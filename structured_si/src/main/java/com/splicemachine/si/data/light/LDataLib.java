@@ -3,6 +3,7 @@ package com.splicemachine.si.data.light;
 import com.google.common.collect.Lists;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.data.api.SDataLib;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -96,7 +97,7 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
 
     private void addKeyValueToTuple(LTuple tuple, Object family, Object qualifier, long timestamp, byte[] value) {
 				KeyValue newCell = new KeyValue(tuple.key, (byte[]) family, (byte[]) qualifier, timestamp, value);
-        tuple.values.add(newCell);
+    			tuple.values.add(newCell);        
     }
 
 		@Override
@@ -163,7 +164,7 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
         ensureFamilyDirect(get, family);
     }
 
-    private void ensureFamilyDirect(LGet lGet, Object family) {
+    private void ensureFamilyDirect(LGet lGet, byte[] family) {
         if (lGet.families.isEmpty() && (lGet.columns == null || lGet.columns.isEmpty())) {
         } else {
             if (lGet.families.contains(family)) {
@@ -234,7 +235,7 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
 
     @Override
     public void addKeyValueToDelete(LTuple delete, byte[] family, byte[] qualifier, long timestamp) {
-        addKeyValueToTuple(delete, family, qualifier, timestamp, null);
+    	addKeyValueToTuple(delete, family, qualifier, timestamp, null);
     }
 
 		@Override
@@ -247,5 +248,10 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
 				KeyValue kv = new KeyValue(kvPair.getRow(),family,column,longTransactionId,kvPair.getValue());
 				LTuple tuple = new LTuple(kvPair.getRow(),Lists.newArrayList(kv));
 				return tuple;
+		}
+
+		@Override
+		public LGet newGet(byte[] rowKey, List<byte[]> families,List<List<byte[]>> columns, Long effectiveTimestamp, int maxVersions) {
+			return new LGet(rowKey, rowKey,families,columns,effectiveTimestamp,maxVersions);
 		}
 }

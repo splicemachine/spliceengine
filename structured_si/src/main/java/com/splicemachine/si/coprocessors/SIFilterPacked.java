@@ -6,8 +6,8 @@ import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.RowAccumulator;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryPredicateFilter;
-
 import com.splicemachine.storage.HasPredicateFilter;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Scan;
@@ -31,7 +31,6 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
     private EntryPredicateFilter predicateFilter;
-    private boolean includeSIColumn;
 
     // always include at least one keyValue so that we can use the "hook" of filterRow(...) to generate the accumulated key value
     private Boolean extraKeyValueIncluded = null;
@@ -46,22 +45,18 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 													TransactionManager transactionManager,
 													RollForwardQueue rollForwardQueue,
 													EntryPredicateFilter predicateFilter,
-													TransactionReadController<Get, Scan> readController,
-													boolean includeSIColumn) throws IOException {
+													TransactionReadController<Get, Scan> readController) throws IOException {
         this.tableName = tableName;
-				this.transactionManager = transactionManager;
-				this.transactionIdString = transactionId.getTransactionIdString();
+		this.transactionManager = transactionManager;
+		this.transactionIdString = transactionId.getTransactionIdString();
         this.rollForwardQueue = rollForwardQueue;
         this.predicateFilter = predicateFilter;
-        this.includeSIColumn = includeSIColumn;
-				this.readController = readController;
-    }
-
+		this.readController = readController;
+ 	}
 
 		@Override
 		public long getBytesVisited(){
 				if(filterState==null) return 0l;
-
 				FilterStatePacked packed = (FilterStatePacked)filterState;
 				@SuppressWarnings("unchecked") RowAccumulator accumulator = packed.getAccumulator();
 				return accumulator.getBytesVisited();
@@ -76,8 +71,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
     public ReturnCode filterKeyValue(KeyValue keyValue) {
         try {
             initFilterStateIfNeeded();
-						ReturnCode returnCode = filterState.filterKeyValue(keyValue);
-//            ReturnCode returnCode = HTransactorFactory.getTransactionReadController().filterKeyValue(filterState, keyValue);
+            ReturnCode returnCode = filterState.filterKeyValue(keyValue);
             switch (returnCode) {
                 case INCLUDE:
                 case INCLUDE_AND_NEXT_COL:
@@ -94,9 +88,6 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
                 case NEXT_COL:
                 	returnCode = ReturnCode.SKIP;
                     break;
-          // We are still re-seeking - TODO JL
-          //      case NEXT_COL:
-          //      	returnCode = ReturnCode.SKIP;
             }
             return returnCode;
         } catch (IOException e) {
@@ -108,7 +99,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 		private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
             filterState = readController.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
-                    transactionManager.transactionIdFromString(transactionIdString), includeSIColumn);
+                    transactionManager.transactionIdFromString(transactionIdString));
         }
     }
 

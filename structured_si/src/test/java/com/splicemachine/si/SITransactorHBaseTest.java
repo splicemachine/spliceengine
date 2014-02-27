@@ -1,13 +1,15 @@
 package com.splicemachine.si;
 
 import com.splicemachine.si.impl.SynchronousRollForwardQueue;
+
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
 import java.util.concurrent.Executors;
-
-public class SITransactorHBaseTest extends SITransactorTest {
+@Ignore
+public abstract class SITransactorHBaseTest extends SITransactorTest {
 
     public SITransactorHBaseTest() {
         useSimple = false;

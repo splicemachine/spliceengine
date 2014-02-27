@@ -13,7 +13,7 @@ import java.util.concurrent.Executors;
  * @author Scott Fines
  * Date: 2/17/14
  */
-public class HBaseAsyncRollForwardTest extends AsyncRollForwardTest{
+public abstract class HBaseAsyncRollForwardTest extends AsyncRollForwardTest{
 		protected static String CLASS_NAME = HBaseAsyncRollForwardTest.class.getSimpleName();
 
 		public HBaseAsyncRollForwardTest() {

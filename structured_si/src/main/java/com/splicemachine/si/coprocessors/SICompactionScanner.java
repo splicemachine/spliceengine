@@ -55,13 +55,14 @@ public class SICompactionScanner implements InternalScanner {
     @SuppressWarnings("unchecked")
 		private boolean nextDirect(List<KeyValue> results, int limit) throws IOException {
         rawList.clear();
-        final boolean more = (limit == -1) ? delegate.next(rawList) : delegate.next(rawList, limit);
-				compactionState.mutate(rawList, results);
+        final boolean more = delegate.next(rawList);
+		compactionState.mutate(rawList, results);
         return more;
     }
 
     @Override
     public void close() throws IOException {
+    	compactionState.close();
         delegate.close();
     }
 }

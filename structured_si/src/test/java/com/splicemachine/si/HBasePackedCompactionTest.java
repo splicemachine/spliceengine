@@ -11,7 +11,6 @@ public class HBasePackedCompactionTest extends HBaseCompactionTest {
 
 		public HBasePackedCompactionTest() {
 				super();
-				usePacked =true;
 		}
 
 

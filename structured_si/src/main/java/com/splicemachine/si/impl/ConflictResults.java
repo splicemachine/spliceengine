@@ -14,4 +14,11 @@ public class ConflictResults {
         this.childConflicts = childConflicts;
         this.hasTombstone = hasTombstone;
     }
+
+	@Override
+	public String toString() {		
+		return super.toString();
+	}
+    
+    
 }

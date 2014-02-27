@@ -236,7 +236,7 @@ public class SIBrowser extends SIConstants {
                     final byte[] q = kv.getQualifier();
                     final byte[] v = kv.getValue();
                     final long ts = kv.getTimestamp();
-                    if (Arrays.equals(SNAPSHOT_ISOLATION_FAMILY_BYTES, f)
+                    if (Arrays.equals(DEFAULT_FAMILY_BYTES, f)
                             && Arrays.equals(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, q)) {
                         Long timestamp = null;
                         if (v.length > 1) {

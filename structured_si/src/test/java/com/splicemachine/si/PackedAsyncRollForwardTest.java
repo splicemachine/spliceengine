@@ -12,7 +12,6 @@ public class PackedAsyncRollForwardTest extends AsyncRollForwardTest{
 
 		@Override
 		public void setUp() throws Exception {
-				usePacked=true;
 				super.setUp();
 		}
 }

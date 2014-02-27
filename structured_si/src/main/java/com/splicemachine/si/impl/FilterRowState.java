@@ -37,7 +37,6 @@ public class FilterRowState<Result, Put extends OperationWithAttributes, Delete,
 
     ObjectArrayList<KeyValue> commitTimestamps = ObjectArrayList.newInstance();
 
-    boolean siColumnIncluded = false;
     boolean siTombstoneIncluded = false;
 
     boolean inData = false;
@@ -59,7 +58,6 @@ public class FilterRowState<Result, Put extends OperationWithAttributes, Delete,
             antiTombstoneTimestamps.clear();
             transactionCache.clear();
             commitTimestamps.clear();
-            siColumnIncluded = false;
             inData = false;
             shortCircuit = null;
         }
@@ -90,14 +88,6 @@ public class FilterRowState<Result, Put extends OperationWithAttributes, Delete,
 
     public ObjectArrayList<KeyValue> getCommitTimestamps() {
         return commitTimestamps;
-    }
-
-    public boolean isSiColumnIncluded() {
-        return siColumnIncluded;
-    }
-
-    public void setSiColumnIncluded() {
-        this.siColumnIncluded = true;
     }
 
     public boolean isSiTombstoneIncluded() {

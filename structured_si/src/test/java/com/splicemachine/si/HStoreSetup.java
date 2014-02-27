@@ -35,7 +35,6 @@ public class HStoreSetup implements StoreSetup {
             return nextBasePort;
         }
     }
-
     SDataLib dataLib;
     STableReader reader;
     STableWriter writer;
@@ -64,21 +63,16 @@ public class HStoreSetup implements StoreSetup {
             });
 						Configuration configuration = testCluster.getConfiguration();
 						SpliceConstants.config = configuration;
-//						configuration.setStrings(CoprocessorHost.USER_REGION_COPROCESSOR_CONF_KEY,
-//										usePacked ? SIObserver.class.getName() : SIObserverUnPacked.class.getName());
             setTestingUtilityPorts(testCluster, basePort);
 
             testCluster.startMiniCluster(1);
 						ZkUtils.getZkManager().initialize(configuration);
 						ZkUtils.initializeZookeeper();
 
-						tableSource = new TestHTableSource(testCluster,new String[]{SpliceConstants.DEFAULT_FAMILY,SIConstants.SNAPSHOT_ISOLATION_FAMILY});
-//						final TestHTableSource tableSource = new TestHTableSource(testCluster, getPersonTableName(),
-//                    new String[]{SpliceConstants.DEFAULT_FAMILY, SIConstants.SNAPSHOT_ISOLATION_FAMILY});
+						tableSource = new TestHTableSource(testCluster,new String[]{SpliceConstants.DEFAULT_FAMILY,SIConstants.DEFAULT_FAMILY});
             tableSource.addTable(testCluster, SpliceConstants.TRANSACTION_TABLE, new String[]{
 										SIConstants.DEFAULT_FAMILY, SIConstants.SI_PERMISSION_FAMILY});
-						tableSource.addPackedTable(getPersonTableName(true));
-						tableSource.addUnpackedTable(getPersonTableName(false));
+						tableSource.addPackedTable(getPersonTableName());
             return tableSource;
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -127,8 +121,8 @@ public class HStoreSetup implements StoreSetup {
     }
 
     @Override
-    public String getPersonTableName(boolean usePacked) {
-        return usePacked ? "999" : "1000";
+    public String getPersonTableName() {
+        return "999";
     }
 
 		@Override

@@ -152,19 +152,6 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
 								}
 						}
 				}
-//        for (KeyValue c : t.values) {
-//            if ((families == null && columns == null) ||
-//                    ((families != null) && families.contains(c.getFamily())) ||
-//                    ((columns != null) && columnsContain(columns, c))) {
-//                if (effectiveTimestamp != null) {
-//                    if (c.getTimestamp() <= effectiveTimestamp) {
-//                        newCells.add(c);
-//                    }
-//                } else {
-//                    newCells.add(c);
-//                }
-//            }
-//        }
         return new LTuple(t.key, Lists.newArrayList(newCells));
     }
 
@@ -259,29 +246,6 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
 
     static void sortValues(List<KeyValue> results) {
 				Collections.sort(results,new KeyValue.KVComparator());
-//        Collections.sort(results, new Comparator<Object>() {
-//            @Override
-//            public int compare(Object simpleCell, Object simpleCell2) {
-//                final LKeyValue v2 = (LKeyValue) simpleCell2;
-//                final LKeyValue v1 = (LKeyValue) simpleCell;
-//                if (Arrays.equals(v1.family,v2.family)) {
-//                    if (v1.qualifier.equals(v2.qualifier)) {
-//                        Long t1 = v1.timestamp;
-//                        if (t1 == null) {
-//                            t1 = 0L;
-//                        }
-//                        Long t2 = v2.timestamp;
-//                        if (t2 == null) {
-//                            t2 = 0L;
-//                        }
-//                        return t2.compareTo(t1);
-//                    } else {
-//                        return Bytes.compareTo(v1.qualifier,v2.qualifier);
-//                    }
-//                }
-//                return Bytes.compareTo(v1.family,v2.family);
-//            }
-//        });
     }
 
     @Override
@@ -374,9 +338,6 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
                         boolean keep = true;
                         for (KeyValue deleteValue : (delete).values) {
 														if(deleteValue.matchingColumn(value.getFamily(),value.getQualifier()) && value.getTimestamp()==deleteValue.getTimestamp()){
-//                            if (Arrays.equals(value.family,deleteValue.family)
-//                                    && value.qualifier.equals(deleteValue.qualifier)
-//                                    && value.timestamp.equals(deleteValue.timestamp)) {
                                 keep = false;
                             }
                         }
@@ -401,10 +362,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
             for (KeyValue newKv : newValues) {
 								if(currentKv.matchingColumn(newKv.getFamily(),newKv.getQualifier())&&
 												currentKv.getTimestamp()==newKv.getTimestamp()){
-//                if (Arrays.equals(currentKv.family,newKv.family) &&
-//                        currentKv.qualifier.equals(newKv.qualifier) &&
-//                        currentKv.timestamp.equals(newKv.timestamp)) {
-                    collides = true;
+									collides = true;
                 }
             }
             if (!collides) {

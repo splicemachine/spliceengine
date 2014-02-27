@@ -11,10 +11,12 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableWriter;
+
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -22,6 +24,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.*;
@@ -72,7 +75,7 @@ public class SITransactor<Table,
         this.transactionStore = transactionStore;
         this.clock = clock;
         this.transactionTimeoutMS = transactionTimeoutMS;
-				this.transactionManager = transactionManager;
+		this.transactionManager = transactionManager;
     }
 
 		// Operation pre-processing. These are to be called "server-side" when we are about to process an operation.
@@ -81,8 +84,7 @@ public class SITransactor<Table,
 
     @Override
     public boolean processPut(Table table, RollForwardQueue rollForwardQueue, Put put) throws IOException {
-				if(!isFlaggedForSITreatment(put)) return false;
-
+    			if(!isFlaggedForSITreatment(put)) return false;
 				final Put[] mutations = (Put[])Array.newInstance(put.getClass(),1);
 				mutations[0] = put;
 				OperationStatus[] operationStatuses = processPutBatch(table,rollForwardQueue,mutations);
@@ -142,11 +144,12 @@ public class SITransactor<Table,
 						boolean isSIDataOnly = true;
 						for(KeyValue keyValue:keyValues){
 								byte[] family = keyValue.getFamily();
-								if(Bytes.equals(family,SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES))
+								byte[] column = keyValue.getQualifier();
+								if(!Bytes.equals(column,SIConstants.PACKED_COLUMN_BYTES)) {
 										continue; //skip SI columns
+								}
 
 								isSIDataOnly = false;
-								byte[] column = keyValue.getQualifier();
 								byte[] value = keyValue.getValue();
 								Map<byte[],Map<byte[],List<KVPair>>> familyMap = kvPairMap.get(txnId);
 								if(familyMap==null){
@@ -171,7 +174,7 @@ public class SITransactor<Table,
 							 * Put a KVPair which is an empty byte[] for all the columns in the data
 							 */
 								byte[] family = SpliceConstants.DEFAULT_FAMILY_BYTES;
-								byte[] column = KVPair.PACKED_COLUMN_KEY;
+								byte[] column = SpliceConstants.PACKED_COLUMN_BYTES;
 								byte[] value = new byte[]{};
 								Map<byte[],Map<byte[],List<KVPair>>> familyMap = kvPairMap.get(txnId);
 								if(familyMap==null){
@@ -206,7 +209,7 @@ public class SITransactor<Table,
 														assert input != null;
 														return !statusMap.containsKey(input.getRow()) || statusMap.get(input.getRow()).getOperationStatusCode() == HConstants.OperationStatusCode.SUCCESS;
 												}
-										}));
+										}));										
 										OperationStatus[] statuses = processKvBatch(table,rollForwardQueue,family,qualifier,kvPairs,txnId);
 										for(int i=0;i<statuses.length;i++){
 												byte[] row = kvPairs.get(i).getRow();
@@ -278,6 +281,7 @@ public class SITransactor<Table,
 		public OperationStatus[] processKvBatch(Table table, RollForwardQueue rollForwardQueue,
 																						byte[] family, byte[] qualifier,
 																						Collection<KVPair> mutations, String txnId) throws IOException {
+			
 				if(mutations.size()<=0)
 						//noinspection unchecked
 						return dataStore.writeBatch(table,new Pair[]{});
@@ -322,6 +326,7 @@ public class SITransactor<Table,
 								Integer lock = mutations[i].getSecond();
 								resolveChildConflicts(table,put,lock,conflictingChildren[i]);
 						}catch(Exception ex){
+							ex.printStackTrace();
 								status[i]= new OperationStatus(HConstants.OperationStatusCode.FAILURE, ex.getMessage());
 						}
 				}
@@ -334,15 +339,18 @@ public class SITransactor<Table,
 				@SuppressWarnings("unchecked") Pair<Mutation,Integer>[] finalPuts = new Pair[dataAndLocks.length];
 				for(int i=0;i<dataAndLocks.length;i++){
 						ConflictResults conflictResults;
-						if(unsafeWrites)
-							conflictResults = ConflictResults.NO_CONFLICT;
-						else{
-								List<KeyValue>[] possibleConflicts = dataStore.getCommitTimestampsAndTombstonesSingle(table, dataAndLocks[i].getFirst().getRow());
-								conflictResults = ensureNoWriteConflict(transaction,possibleConflicts);
+						conflictResults = ConflictResults.NO_CONFLICT;
+						if(unsafeWrites) {
+	
+						} else{
+								Result possibleConflicts = dataStore.getCommitTimestampsAndTombstonesSingle(table, dataAndLocks[i].getFirst().getRow());
+								if (possibleConflicts != null) {
+									conflictResults = ensureNoWriteConflict(transaction,possibleConflicts);
+								}
 						}
 						conflictingChildren[i] = conflictResults.childConflicts;
 						finalPuts[i] = Pair.newPair(getMutationToRun(table,rollForwardQueue,
-										dataAndLocks[i].getFirst(), family, qualifier,transaction, conflictResults),dataAndLocks[i].getSecond());
+										dataAndLocks[i].getFirst(), family, qualifier,transaction, conflictResults),dataAndLocks[i].getSecond());						
 				}
 				return finalPuts;
 		}
@@ -386,7 +394,6 @@ public class SITransactor<Table,
 						newPut = dataLib.toPut(kvPair,family, column,transaction.getLongTransactionId());
 
 				dataStore.suppressIndexing(newPut);
-				dataStore.addTransactionIdToPutKeyValues(newPut, txnIdLong);
 				if(kvPair.getType()!= KVPair.Type.DELETE && conflictResults.hasTombstone)
 						dataStore.setAntiTombstoneOnPut(newPut, txnIdLong);
 
@@ -413,14 +420,25 @@ public class SITransactor<Table,
      * While we hold the lock on the row, check to make sure that no transactions have updated the row since the
      * updating transaction started.
      */
-    private ConflictResults ensureNoWriteConflict(ImmutableTransaction updateTransaction, List<KeyValue>[] values)
-            throws IOException {
-        final ConflictResults timestampConflicts = checkTimestampsHandleNull(updateTransaction, values[1]);
-        final List<KeyValue> tombstoneValues = values[0];
-        boolean hasTombstone = hasCurrentTransactionTombstone(updateTransaction.getLongTransactionId(), tombstoneValues);
+    private ConflictResults ensureNoWriteConflict(ImmutableTransaction updateTransaction, Result result) throws IOException {
+    	// XXX TODO jleach: Create a filter to determine this conflict, no reason to materialize a lot of data across the wire.
+    	final ConflictResults timestampConflicts = checkTimestampsHandleNull(updateTransaction,result.getColumnLatest(
+    			SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES),
+    			result.getColumnLatest(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES),
+    			result.getColumnLatest(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES)
+    			);	
+        boolean hasTombstone = hasCurrentTransactionTombstone(updateTransaction.getLongTransactionId(),
+        		result.getColumnLatest(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES));        
         return new ConflictResults(timestampConflicts.toRollForward, timestampConflicts.childConflicts, hasTombstone);
     }
 
+    private boolean hasCurrentTransactionTombstone(long transactionId, KeyValue tombstoneValue) {
+           if (tombstoneValue != null && tombstoneValue.getTimestamp() == transactionId)
+                    return !dataStore.isAntiTombstone(tombstoneValue);
+           return false;
+    }
+
+    
     private boolean hasCurrentTransactionTombstone(long transactionId, List<KeyValue> tombstoneValues) {
         if (tombstoneValues != null) {
             for (KeyValue tombstone : tombstoneValues) {
@@ -432,24 +450,30 @@ public class SITransactor<Table,
         return false;
     }
 
-    private ConflictResults checkTimestampsHandleNull(ImmutableTransaction updateTransaction, List<KeyValue> dataCommitKeyValues) throws IOException {
-
-        if (dataCommitKeyValues == null) {
+    private ConflictResults checkTimestampsHandleNull(ImmutableTransaction updateTransaction, KeyValue dataCommitKeyValue, KeyValue tombstoneKeyValue, KeyValue dataKeyValue) throws IOException {
+        if (dataCommitKeyValue == null && dataKeyValue == null && tombstoneKeyValue == null) {
             return new ConflictResults(Collections.<Long>emptySet(),Collections.<Long>emptySet(), null);
         } else {
-            return checkCommitTimestampsForConflicts(updateTransaction, dataCommitKeyValues);
+            return checkCommitTimestampsForConflicts(updateTransaction, dataCommitKeyValue, tombstoneKeyValue, dataKeyValue);
         }
     }
 
     /**
      * Look at all of the values in the "commitTimestamp" column to see if there are write collisions.
      */
-    private ConflictResults checkCommitTimestampsForConflicts(ImmutableTransaction updateTransaction, List<KeyValue> dataCommitKeyValues)
+    private ConflictResults checkCommitTimestampsForConflicts(ImmutableTransaction updateTransaction, KeyValue dataCommitKeyValue, KeyValue tombstoneKeyValue, KeyValue dataKeyValue)
             throws IOException {
-				@SuppressWarnings("unchecked") Set<Long>[] conflicts = new Set[2];
-        for (KeyValue dataCommitKeyValue : dataCommitKeyValues) {
-            checkCommitTimestampForConflict(updateTransaction, conflicts, dataCommitKeyValue);
-        }
+				@SuppressWarnings("unchecked") Set<Long>[] conflicts = new Set[2]; // auto boxing XXX TODO Jleach
+			if (dataCommitKeyValue != null) {		
+				checkCommitTimestampForConflict(updateTransaction, conflicts, dataCommitKeyValue);
+			}
+			if (tombstoneKeyValue != null) {
+            	checkDataForConflict(updateTransaction, conflicts, tombstoneKeyValue);				
+			}
+            if (dataKeyValue != null) {
+            	checkDataForConflict(updateTransaction, conflicts, dataKeyValue);
+            }
+            
         return new ConflictResults(conflicts[0], conflicts[1], null);
     }
 
@@ -495,6 +519,36 @@ public class SITransactor<Table,
         }
     }
 
+	private void checkDataForConflict(ImmutableTransaction updateTransaction,Set<Long>[] conflicts, KeyValue dataCommitKeyValue)
+            throws IOException {
+        final long dataTransactionId = dataCommitKeyValue.getTimestamp();
+        if (!updateTransaction.sameTransaction(dataTransactionId)) {
+                final Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
+                if (dataTransaction.getEffectiveStatus().isFinished()) {
+                    // Transaction is now in a final state so asynchronously update the data row with the status
+										if(conflicts[0]==null)
+												conflicts[0] = Sets.newHashSetWithExpectedSize(1);
+                    conflicts[0].add(dataTransactionId);
+                }
+                if(dataTransaction.getEffectiveStatus()== TransactionStatus.ROLLED_BACK)
+                    return; //can't conflict with a rolled back transaction
+                final ConflictType conflictType = checkTransactionConflict(updateTransaction, dataTransaction);
+                switch (conflictType) {
+                    case CHILD:
+												if(conflicts[1]==null)
+														conflicts[1] = Sets.newHashSetWithExpectedSize(1);
+                        conflicts[1].add(dataTransactionId);
+                        break;
+                    case SIBLING:
+                        if (doubleCheckConflict(updateTransaction, dataTransaction)) {
+                            throw new WriteConflict("Write conflict detected between active transactions "+ dataTransactionId+" and "+ updateTransaction.getTransactionId());
+                        }
+                        break;
+                }
+            }
+        }
+
+    
     /**
      * @param updateTransaction the transaction for the new change
      * @param dataTransaction the transaction for the existing data

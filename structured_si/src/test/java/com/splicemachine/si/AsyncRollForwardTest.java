@@ -22,9 +22,8 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 import static com.splicemachine.constants.SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
-import static com.splicemachine.constants.SIConstants.SNAPSHOT_ISOLATION_FAMILY;
+import static com.splicemachine.constants.SIConstants.DEFAULT_FAMILY_BYTES;
 /**
  * Tests surrounding Asynchronous roll-foward queue testing
  * @author Scott Fines
@@ -32,8 +31,6 @@ import static com.splicemachine.constants.SIConstants.SNAPSHOT_ISOLATION_FAMILY;
  */
 public class AsyncRollForwardTest {
 		boolean useSimple = true;
-		boolean usePacked = false;
-
 		StoreSetup storeSetup;
 		TestTransactionSetup transactorSetup;
 		Transactor transactor;
@@ -50,13 +47,13 @@ public class AsyncRollForwardTest {
 										@Override
 										public Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException {
 												final STableReader reader = storeSetup.getReader();
-												Object testSTable = reader.open(storeSetup.getPersonTableName(usePacked));
+												Object testSTable = reader.open(storeSetup.getPersonTableName());
 												return new RegionRollForwardAction(testSTable,
 																Providers.basicProvider(transactorSetup.transactionStore),
 																Providers.basicProvider(transactorSetup.dataStore)).rollForward(transactionId,rowList);
 										}
 								}, 1, 100, 1000, "test");
-				testUtility = new TransactorTestUtility(useSimple,usePacked,storeSetup,transactorSetup,transactor,control);
+				testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup,transactor,control);
 		}
 
 		@Before
@@ -172,7 +169,7 @@ public class AsyncRollForwardTest {
 						TransactionId t2 = control.beginTransaction();
 						String expected = "";
 						Assert.assertTrue(latch.await(11, TimeUnit.SECONDS));
-						Assert.assertEquals(expected, testUtility.scanAll(t2, "140a", "140z", null, true));
+						Assert.assertEquals(expected, testUtility.scanAll(t2, "140a", "140z", null));
 				} finally {
 						Tracer.rollForwardDelayOverride = null;
 				}
@@ -234,9 +231,9 @@ public class AsyncRollForwardTest {
 						} else {
 								control.rollback(t1);
 						}
-						Result result = testUtility.readRaw(testRow,usePacked);
+						Result result = testUtility.readRaw(testRow);
 						final SDataLib dataLib = storeSetup.getDataLib();
-						final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
+						final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES),
 										dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
 						for (KeyValue c : commitTimestamps) {
 								final int timestamp = (Integer) dataLib.decode(c.getValue(), Integer.class);
@@ -253,9 +250,9 @@ public class AsyncRollForwardTest {
 						}
 						Assert.assertTrue(latch.await(11, TimeUnit.SECONDS));
 
-						Result result2 = testUtility.readRaw(testRow,usePacked);
+						Result result2 = testUtility.readRaw(testRow);
 
-						final List<KeyValue> commitTimestamps2 = result2.getColumn(dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
+						final List<KeyValue> commitTimestamps2 = result2.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES),
 										dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
 						for (KeyValue c2 : commitTimestamps2) {
 								timestampProcessor.apply(new Object[]{t1, c2});
@@ -297,6 +294,9 @@ public class AsyncRollForwardTest {
 						final String testRow = "joe" + testIndex;
 						testUtility.insertAge(t1, testRow, 20);
 						final CountDownLatch latch = makeLatch(testRow);
+						
+						System.out.println("action " + action);
+						
 						switch(action){
 								case COMMIT:
 										control.commit(t1);
@@ -311,6 +311,7 @@ public class AsyncRollForwardTest {
 										Assert.fail("Unknown transaction action "+ action);
 						}
 						if (nested) {
+								System.out.println("parent action " + parentAction);
 								switch(parentAction){
 										case COMMIT:
 												control.commit(t0);
@@ -325,19 +326,11 @@ public class AsyncRollForwardTest {
 												Assert.fail("Unknown transaction action "+ action);
 								}
 						}
-						Result result = testUtility.readRaw(testRow,false,usePacked);
+						Result result = testUtility.readRaw(testRow,false);
 						final SDataLib dataLib = storeSetup.getDataLib();
-						final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
-										dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
-						for (KeyValue c : commitTimestamps) {
-								final int timestamp = (Integer) dataLib.decode(c.getValue(), Integer.class);
-								Assert.assertEquals(-1, timestamp);
-								Assert.assertEquals(t1.getId(), c.getTimestamp());
-						}
 						latch.await();
-
-						Result result2 = testUtility.readRaw(testRow,false,usePacked);
-						final List<KeyValue> commitTimestamps2 = result2.getColumn(dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
+						Result result2 = testUtility.readRaw(testRow,false);
+						final List<KeyValue> commitTimestamps2 = result2.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES),
 										dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
 						for (KeyValue c2 : commitTimestamps2) {
 								long timestamp = getTimestamp(new Object[]{t1,c2});

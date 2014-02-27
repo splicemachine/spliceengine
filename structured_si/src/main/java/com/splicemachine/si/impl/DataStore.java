@@ -1,16 +1,19 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -26,53 +29,42 @@ import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTR
  * Library of functions used by the SI module when accessing rows from data tables (data tables as opposed to the
  * transaction table).
  */
-public class DataStore<Mutation, Put extends OperationWithAttributes,
-        Delete, Get extends OperationWithAttributes, Scan, IHTable> {
+public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable> {
+	private static Logger LOG = Logger.getLogger(DataStore.class);
     final SDataLib<Put, Delete, Get, Scan> dataLib;
     private final STableReader<IHTable, Get, Scan> reader;
     private final STableWriter<IHTable, Mutation, Put, Delete> writer;
-
     private final String siNeededAttribute;
     private final byte[] siNeededValue;
-    private final byte[] includeSIColumnValue;
     private final String transactionIdAttribute;
     private final String deletePutAttribute;
-
-    private final byte[] siFamily;
     private final byte[] commitTimestampQualifier;
     private final byte[] tombstoneQualifier;
     private final byte[] siNull;
     private final byte[] siAntiTombstoneValue;
-    final byte[] siFail;
-
+    public final byte[] siFail;
     private final byte[] userColumnFamily;
-
-    public DataStore(SDataLib<Put, Delete, Get, Scan>
-                             dataLib,
-										 STableReader reader,
-										 STableWriter writer,
-										 String siNeededAttribute,
-                     Object siNeededValue,
-										 Object includeSIColumnValue,
-										 String transactionIdAttribute,
-										 String deletePutAttribute,
-                     byte[] siMetaFamily,
-										 byte[] siCommitQualifier,
-										 byte[] siTombstoneQualifier,
-                     Object siNull,
-										 Object siAntiTombstoneValue,
-										 Object siFail,
-										 Object userColumnFamily) {
+    
+    public DataStore(SDataLib<Put, Delete, Get, Scan> dataLib,
+					STableReader reader,
+					STableWriter writer,
+					String siNeededAttribute,
+                    byte[] siNeededValue,
+					String transactionIdAttribute,
+					String deletePutAttribute,
+					byte[] siCommitQualifier,
+					byte[] siTombstoneQualifier,
+                    byte[] siNull,
+                    byte[] siAntiTombstoneValue,
+                    byte[] siFail,
+                    byte[] userColumnFamily) {
         this.dataLib = dataLib;
         this.reader = reader;
         this.writer = writer;
-
         this.siNeededAttribute = siNeededAttribute;
         this.siNeededValue = dataLib.encode(siNeededValue);
-        this.includeSIColumnValue = dataLib.encode(includeSIColumnValue);
         this.transactionIdAttribute = transactionIdAttribute;
         this.deletePutAttribute = deletePutAttribute;
-        this.siFamily = dataLib.encode(siMetaFamily);
         this.commitTimestampQualifier = dataLib.encode(siCommitQualifier);
         this.tombstoneQualifier = dataLib.encode(siTombstoneQualifier);
         this.siNull = dataLib.encode(siNull);
@@ -81,21 +73,20 @@ public class DataStore<Mutation, Put extends OperationWithAttributes,
         this.userColumnFamily = dataLib.encode(userColumnFamily);
     }
 
-    public void setSINeededAttribute(OperationWithAttributes operation, boolean includeSIColumn) {
-				operation.setAttribute(siNeededAttribute, dataLib.encode(includeSIColumn ? includeSIColumnValue : siNeededValue));
+
+
+
+
+	public void setSINeededAttribute(OperationWithAttributes operation) {
+		operation.setAttribute(siNeededAttribute, siNeededValue);
     }
 
     public byte[] getSINeededAttribute(OperationWithAttributes operation) {
         return operation.getAttribute(siNeededAttribute);
     }
 
-    boolean isIncludeSIColumn(OperationWithAttributes operation) {
-				byte[] attribute = operation.getAttribute(siNeededAttribute);
-				return attribute != null && Bytes.equals(attribute, includeSIColumnValue);
-    }
-
     public void setDeletePutAttribute(Put operation) {
-				operation.setAttribute(deletePutAttribute, dataLib.encode(true)); //TODO -sf- cache this encoding
+		operation.setAttribute(deletePutAttribute, SIConstants.TRUE_BYTES);
     }
 
     public Boolean getDeletePutAttribute(OperationWithAttributes operation) {
@@ -104,12 +95,8 @@ public class DataStore<Mutation, Put extends OperationWithAttributes,
         return dataLib.decode(neededValue, Boolean.class);
     }
 
-    void addTransactionIdToPutKeyValues(Put put, long transactionId) {
-        dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, transactionId, siNull);
-    }
-
     public void setTransactionId(long transactionId, OperationWithAttributes operation) {
-				operation.setAttribute(transactionIdAttribute, dataLib.encode(String.valueOf(transactionId)));
+		operation.setAttribute(transactionIdAttribute, dataLib.encode(String.valueOf(transactionId)));
     }
 
     public TransactionId getTransactionIdFromOperation(OperationWithAttributes put) {
@@ -141,59 +128,27 @@ public class DataStore<Mutation, Put extends OperationWithAttributes,
                 dataLib.addKeyValueToDelete(delete, keyValue.getFamily(),
                         keyValue.getQualifier(), transactionId);
             }
-            dataLib.addKeyValueToDelete(delete, siFamily, tombstoneQualifier, transactionId);
-            dataLib.addKeyValueToDelete(delete, siFamily, commitTimestampQualifier, transactionId);
+            dataLib.addKeyValueToDelete(delete, userColumnFamily, tombstoneQualifier, transactionId);
+            dataLib.addKeyValueToDelete(delete, userColumnFamily, commitTimestampQualifier, transactionId);
         }
         return delete;
     }
-//
-//    public Scan getCommitTimestampsAndTombstonesScan(ScanBounds<Data> scanBounds) throws IOException {
-//        final List<List<byte[]>> columns = Arrays.asList(
-//                Arrays.asList(siFamily, tombstoneQualifier),
-//                Arrays.asList(siFamily, commitTimestampQualifier));
-//        return dataLib.newScan(scanBounds.minKey, dataLib.increment(scanBounds.maxKey), null, columns, null);
-//    }
-//
-//    public List<KV>[] splitCommitTimestampsAndTombstones(List<KV> result) {
-//        if (result == null) {
-//            return new List[]{null, null};
-//        } else {
-//            List<KV> tombstones = new ArrayList<KV>();
-//            List<KV> commitTimestamps = new ArrayList<KV>();
-//            for (KV kv : result) {
-//                if (dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), tombstoneQualifier)) {
-//                    tombstones.add(kv);
-//                } else {
-//                    if (!(dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), commitTimestampQualifier))) {
-//                        throw new RuntimeException("unexpected qualifier");
-//                    }
-//                    commitTimestamps.add(kv);
-//                }
-//            }
-//            return new List[]{tombstones, commitTimestamps};
-//        }
-//    }
 
-    List<KeyValue>[] getCommitTimestampsAndTombstonesSingle(IHTable table, byte[] rowKey) throws IOException {
-        @SuppressWarnings("unchecked") final List<List<byte[]>> columns = Arrays.asList(
-								Arrays.asList(siFamily, tombstoneQualifier),
-								Arrays.asList(siFamily, commitTimestampQualifier));
-        Get get = dataLib.newGet(rowKey, null, columns, null);
+
+    Result getCommitTimestampsAndTombstonesSingle(IHTable table, byte[] rowKey) throws IOException {
+    	// XXX TODO JLeach.
+    	@SuppressWarnings("unchecked") final List<List<byte[]>> columns = Arrays.asList(
+								Arrays.asList(userColumnFamily, tombstoneQualifier),
+								Arrays.asList(userColumnFamily, commitTimestampQualifier),
+								Arrays.asList(userColumnFamily, SIConstants.PACKED_COLUMN_BYTES)); // This needs to be static : why create this each time?
+        Get get = dataLib.newGet(rowKey, null, columns, null,1); // Just Retrieve one per...
         suppressIndexing(get);
         checkBloom(get);
-        Result result = reader.get(table, get);
-        if (result != null) {
-						//noinspection unchecked
-						return new List[]{
-                    result.getColumn(siFamily, tombstoneQualifier),
-                    result.getColumn(siFamily, commitTimestampQualifier)};
-        }
-				//noinspection unchecked
-				return new List[]{null, null};
+        return reader.get(table, get);
     }
 
     public void checkBloom(OperationWithAttributes operation) {
-				operation.setAttribute(CHECK_BLOOM_ATTRIBUTE_NAME, siFamily);
+				operation.setAttribute(CHECK_BLOOM_ATTRIBUTE_NAME, userColumnFamily);
     }
 
     boolean isAntiTombstone(KeyValue keyValue) {
@@ -201,14 +156,13 @@ public class DataStore<Mutation, Put extends OperationWithAttributes,
 				int valueOffset = keyValue.getValueOffset();
 				int valueLength = keyValue.getValueLength();
 				return Bytes.equals(siAntiTombstoneValue,0,siAntiTombstoneValue.length,buffer,valueOffset,valueLength);
-//				byte[] keyValueValue = dataLib.getKeyValueValue(keyValue);
-//				return keyValueValue != null && Bytes.equals(siAntiTombstoneValue, keyValueValue);
 		}
 
     public KeyValueType getKeyValueType(KeyValue keyValue) {
-			if(KeyValueUtils.singleMatchingFamily(keyValue,siFamily)){
 				if(KeyValueUtils.singleMatchingQualifier(keyValue,commitTimestampQualifier)){
 					return KeyValueType.COMMIT_TIMESTAMP;
+				} else if(KeyValueUtils.singleMatchingQualifier(keyValue,SIConstants.PACKED_COLUMN_BYTES)){
+					   return KeyValueType.USER_DATA;
 				} else { // Took out the check...
 		            if (KeyValueUtils.matchingValue(keyValue, siNull)) {
 		                return KeyValueType.TOMBSTONE;
@@ -218,11 +172,6 @@ public class DataStore<Mutation, Put extends OperationWithAttributes,
 		                return KeyValueType.OTHER;
 		            }
 	        }
-	   }else if(KeyValueUtils.singleMatchingFamily(keyValue,userColumnFamily)){
-		   return KeyValueType.USER_DATA;
-	   } else {
-	       return KeyValueType.OTHER;
-	   }
     }
 
     public boolean isSINull(KeyValue keyValue) {
@@ -250,7 +199,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes,
     private void setCommitTimestampDirect(IHTable table, byte[] rowKey, long transactionId, byte[] timestampValue) throws IOException {
         Put put = dataLib.newPut(rowKey);
         suppressIndexing(put);
-        dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, transactionId, timestampValue);
+        dataLib.addKeyValueToPut(put, userColumnFamily, commitTimestampQualifier, transactionId, timestampValue);
         writer.write(table, put, false);
     }
 
@@ -268,7 +217,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes,
     }
 
     public void setTombstoneOnPut(Put put, long transactionId) {
-        dataLib.addKeyValueToPut(put, siFamily, tombstoneQualifier, transactionId, siNull);
+        dataLib.addKeyValueToPut(put, userColumnFamily, tombstoneQualifier, transactionId, siNull);
     }
 
     public void setTombstonesOnColumns(IHTable table, long timestamp, Put put) throws IOException {
@@ -281,7 +230,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes,
     }
 
     public void setAntiTombstoneOnPut(Put put, long transactionId) throws IOException {
-        dataLib.addKeyValueToPut(put, siFamily, tombstoneQualifier, transactionId, siAntiTombstoneValue);
+        dataLib.addKeyValueToPut(put, userColumnFamily, tombstoneQualifier, transactionId, siAntiTombstoneValue);
     }
 
     private Map<byte[], byte[]> getUserData(IHTable table, byte[] rowKey) throws IOException {
@@ -295,31 +244,8 @@ public class DataStore<Mutation, Put extends OperationWithAttributes,
         return null;
     }
 
-    public void addSIFamilyToGet(Get read) {
-        dataLib.addFamilyToGet(read, siFamily);
-    }
-
-    public void addSIFamilyToGetIfNeeded(Get read) {
-        dataLib.addFamilyToGetIfNeeded(read, siFamily);
-    }
-
-    public void addSIFamilyToScan(Scan read) {
-        dataLib.addFamilyToScan(read, siFamily);
-    }
-
-    public void addSIFamilyToScanIfNeeded(Scan read) {
-        dataLib.addFamilyToScanIfNeeded(read, siFamily);
-    }
-
-    public void addPlaceHolderColumnToEmptyPut(Put put) {
-        final Iterable<KeyValue> keyValues = dataLib.listPut(put);
-        if (!keyValues.iterator().hasNext()) {
-            dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, 0L, siNull);
-        }
-    }
-
     public OperationStatus[] writeBatch(IHTable table, Pair<Mutation, Integer>[] mutationsAndLocks) throws IOException {
-        return writer.writeBatch(table, mutationsAndLocks);
+            return writer.writeBatch(table, mutationsAndLocks);
     }
 
     public void closeLowLevelOperation(IHTable table) throws IOException {

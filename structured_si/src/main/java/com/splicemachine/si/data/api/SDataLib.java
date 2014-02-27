@@ -30,7 +30,8 @@ public interface SDataLib<
     Iterable<KeyValue> listPut(Put put);
     byte[] getPutKey(Put put);
 
-		Get newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp);
+	Get newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp);
+	Get newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp, int maxVersions);	
     byte[] getGetRow(Get get);
     void setGetTimeRange(Get get, long minTimestamp, long maxTimestamp);
     void setGetMaxVersions(Get get);
