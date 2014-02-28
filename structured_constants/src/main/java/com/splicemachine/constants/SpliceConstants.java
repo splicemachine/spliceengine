@@ -19,11 +19,11 @@ public class SpliceConstants {
 		public static long sequentialImportThreashold;
 		public static int sampleTimingSize = 10000;
 
-        @SpliceConstants.Parameter public static final String CONSTRAINTS_ENABLED ="splice.constraints.enabled";
-    		@DefaultValue(CONSTRAINTS_ENABLED) public static final boolean DEFAULT_CONSTRAINTS_ENABLED = true;
-    		public static volatile boolean constraintsEnabled;
+		@SpliceConstants.Parameter public static final String CONSTRAINTS_ENABLED ="splice.constraints.enabled";
+		@DefaultValue(CONSTRAINTS_ENABLED) public static final boolean DEFAULT_CONSTRAINTS_ENABLED = true;
+		public static volatile boolean constraintsEnabled;
 
-        @Retention(RetentionPolicy.SOURCE)
+		@Retention(RetentionPolicy.SOURCE)
 		protected @interface Parameter{
 
 		}
@@ -817,7 +817,7 @@ public class SpliceConstants {
 
 				sequentialImportThreashold = config.getLong(SEQUENTIAL_IMPORT_THREASHOLD,DEFAULT_SEQUENTIAL_IMPORT_THRESHOLD);
 
-                constraintsEnabled = config.getBoolean(CONSTRAINTS_ENABLED,DEFAULT_CONSTRAINTS_ENABLED);
+				constraintsEnabled = config.getBoolean(CONSTRAINTS_ENABLED,DEFAULT_CONSTRAINTS_ENABLED);
 		}
 
 		public static void reloadConfiguration(Configuration configuration) {

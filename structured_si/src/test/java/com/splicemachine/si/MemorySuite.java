@@ -1,5 +1,6 @@
 package com.splicemachine.si;
 
+import com.splicemachine.si.api.TransactionStatusTest;
 import com.splicemachine.si.impl.CacheMapTest;
 import com.splicemachine.si.impl.ConcurrentRollForwardQueueTest;
 import com.splicemachine.si.impl.RollForwardQueueTest;
@@ -34,7 +35,8 @@ import org.junit.runners.Suite;
 				ConcurrentRollForwardQueueTest.class,
 				RollForwardQueueTest.class,
 				TransactionIdTest.class,
-				CompactionTest.class
+				CompactionTest.class,
+                TransactionStatusTest.class
 })
 @RunWith(Suite.class)
 public class MemorySuite{

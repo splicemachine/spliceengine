@@ -6,27 +6,24 @@ import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.compile.Visitor;
 
 /**
- * Visitor that applies a visitor to all nodes except those identified by a predicate.
- * Skipped nodes are not traversed.
- *
+ * Visitor that applies a visitor along a traversal "axis" defined by a predicate. Only
+ * nodes that pass the predicate are considered axes along which to traverse, or, in other
+ * words, are considered branches.
  *
  * @author P Trolard
- *         Date: 30/10/2013
+ *         Date: 26/02/2014
  */
-public class SkippingVisitor implements Visitor {
+public class AxisVisitor implements Visitor {
     final Visitor v;
-    final Predicate<? super Visitable> skip;
+    final Predicate<? super Visitable> onAxis;
 
-    public SkippingVisitor(final Visitor v, final Predicate<? super Visitable> skip){
+    public AxisVisitor(final Visitor v, final Predicate<? super Visitable> onAxis) {
         this.v = v;
-        this.skip = skip;
+        this.onAxis = onAxis;
     }
 
     @Override
     public Visitable visit(Visitable node) throws StandardException {
-        if (skip.apply(node)){
-            return node;
-        }
         return v.visit(node);
     }
 
@@ -42,7 +39,6 @@ public class SkippingVisitor implements Visitor {
 
     @Override
     public boolean skipChildren(Visitable node) throws StandardException {
-        return skip.apply(node) || v.skipChildren(node);
+        return !onAxis.apply(node) || v.skipChildren(node);
     }
 }
-
