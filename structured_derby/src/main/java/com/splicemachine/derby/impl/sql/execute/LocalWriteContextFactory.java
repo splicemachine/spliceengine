@@ -123,8 +123,10 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         //only add constraints and indices when we are in a RUNNING state
         if(state.get()== State.RUNNING){
             //add Constraint checks before anything else
-            for(ConstraintFactory constraintFactory:constraintFactories){
-                context.addLast(constraintFactory.create());
+            if(SpliceConstants.constraintsEnabled){
+                for(ConstraintFactory constraintFactory:constraintFactories){
+                    context.addLast(constraintFactory.create());
+                }
             }
 
             //add index handlers
