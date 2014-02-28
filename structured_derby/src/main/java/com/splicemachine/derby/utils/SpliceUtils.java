@@ -110,7 +110,6 @@ public class SpliceUtils extends SpliceUtilities {
 		public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
 				try {
 						Get get = createGet(transID, loc.getBytes());
-						get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
 						BitSet fieldsToReturn;
 						if(validColumns!=null){
 								fieldsToReturn = new BitSet(validColumns.size());
@@ -151,13 +150,8 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static Put createPut(byte[] newRowKey, String transactionID) throws IOException {
-        return createPut(newRowKey, transactionID, true);
-    }
-
-    public static Put createPut(byte[] newRowKey, String transactionID, boolean addPlaceHolderColumnToEmptyPut) throws IOException {
         return attachTransaction(new Put(newRowKey), transactionID);
     }
-
     
     /**
      * Attach transactional information to the specified operation.

@@ -92,7 +92,7 @@ public class SITransactionReadController<
 		@Override
 		@SuppressWarnings("unchecked")
 		public IFilterState newFilterStatePacked(String tableName, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter, TransactionId transactionId) throws IOException {
-				return new FilterStatePacked(tableName, dataLib, dataStore,
+				return new FilterStatePacked(
 								(FilterState) newFilterState(rollForwardQueue, transactionId),
 								new HRowAccumulator(predicateFilter, new EntryDecoder(KryoPool.defaultPool())));
 		}
@@ -117,50 +117,17 @@ public class SITransactionReadController<
 				final List<KeyValue> filteredCells = Lists.newArrayList();
 				final List<KeyValue> KVs = dataLib.listResult(result);
 				if (KVs != null) {
-						byte[] qualifierToSkip = null;
-						byte[] familyToSkip = null;
 						byte[] currentRowKey = null;
 						for (KeyValue kv : KVs) {
-								final byte[] rowKey = kv.getRow();
-								if (currentRowKey == null || !Bytes.equals(currentRowKey, rowKey)) {
-										currentRowKey = rowKey;
-										filterState.nextRow();
-								}
-								//noinspection StatementWithEmptyBody
-								if (familyToSkip != null &&kv.matchingColumn(familyToSkip,qualifierToSkip)){
-								} else {
-										familyToSkip = null;
-										qualifierToSkip = null;
-										boolean nextRow = false;
-										Filter.ReturnCode returnCode = filterKeyValue(filterState, kv);
-										switch (returnCode) {
-												case SKIP:
-														break;
-												case INCLUDE:
-														filteredCells.add(kv);
-														break;
-												case NEXT_COL:
-														qualifierToSkip = kv.getQualifier();
-														familyToSkip = kv.getFamily();
-														break;
-												case NEXT_ROW:
-														nextRow = true;
-														break;
-										}
-										if (nextRow) {
-												break;
-										}
-								}
+							filterKeyValue(filterState, kv);
 						}
-				}
-				final KeyValue finalKV = filterState.produceAccumulatedKeyValue();
-				if (finalKV != null) {
-						filteredCells.add(finalKV);
+						if (!filterState.getExcludeRow())
+							filteredCells.add(filterState.produceAccumulatedKeyValue());
 				}
 				if (filteredCells.isEmpty()) {
-						return null;
+					return null;
 				} else {
-						return new Result(filteredCells);
+					return new Result(filteredCells);
 				}
 		}
 
