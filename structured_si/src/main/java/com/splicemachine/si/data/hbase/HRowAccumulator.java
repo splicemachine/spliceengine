@@ -27,12 +27,12 @@ public class HRowAccumulator implements RowAccumulator {
     public boolean isOfInterest(KeyValue keyValue) {
         decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());
         final BitIndex currentIndex = decoder.getCurrentIndex();
-				return entryAccumulator.isInteresting(currentIndex);
+		return entryAccumulator.isInteresting(currentIndex);
     }
 
     @Override
     public boolean accumulate(KeyValue keyValue) throws IOException {
-				bytesAccumulated+=keyValue.getLength();
+		bytesAccumulated+=keyValue.getLength();
         decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());
         boolean pass = predicateFilter.match(decoder, entryAccumulator);
         if(!pass)
@@ -51,6 +51,5 @@ public class HRowAccumulator implements RowAccumulator {
         entryAccumulator.reset();
         return result;
     }
-
-		@Override public long getBytesVisited() { return bytesAccumulated; }
+	@Override public long getBytesVisited() { return bytesAccumulated; }
 }

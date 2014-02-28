@@ -451,7 +451,9 @@ public class SITransactorTest extends SIConstants {
         TransactionId t2 = control.beginTransaction();
         Assert.assertEquals("joe5 age=20 job=null", testUtility.read(t2, "joe5"));
         testUtility.insertJob(t2, "joe5", "baker");
+        System.out.println("Performing a read");
         Assert.assertEquals("joe5 age=20 job=baker", testUtility.read(t2, "joe5"));
+        System.out.println("Performing a read");
         control.commit(t2);
 
         TransactionId t3 = control.beginTransaction();

@@ -24,10 +24,9 @@ import java.util.List;
  */
 public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
     private static Logger LOG = Logger.getLogger(SIFilterPacked.class);
-
     private String tableName;
-		private TransactionReadController<Get,Scan> readController;
-		private TransactionManager transactionManager;
+	private TransactionReadController<Get,Scan> readController;
+	private TransactionManager transactionManager;
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
     private EntryPredicateFilter predicateFilter;
@@ -71,25 +70,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
     public ReturnCode filterKeyValue(KeyValue keyValue) {
         try {
             initFilterStateIfNeeded();
-            ReturnCode returnCode = filterState.filterKeyValue(keyValue);
-            switch (returnCode) {
-                case INCLUDE:
-                case INCLUDE_AND_NEXT_COL:
-                    if (extraKeyValueIncluded == null) {
-                        extraKeyValueIncluded = false;
-                    }
-                    break;
-                case SKIP:
-                    if (extraKeyValueIncluded == null) {
-                        extraKeyValueIncluded = true;
-                        returnCode = ReturnCode.INCLUDE;
-                    } 
-                    break;
-                case NEXT_COL:
-                	returnCode = ReturnCode.SKIP;
-                    break;
-            }
-            return returnCode;
+            return filterState.filterKeyValue(keyValue);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -103,20 +84,25 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
         }
     }
 
-    @Override public boolean filterRow() { return filterState.getExcludeRow(); }
+    @Override 
+    public boolean filterRow() { 
+    	return filterState.getExcludeRow(); 	
+    }
 
-    @Override public boolean hasFilterRow() { return true; }
+    @Override 
+    public boolean hasFilterRow() { 
+    	return true; 
+    }
 
     @Override
     public void filterRow(List<KeyValue> keyValues) {
-        if (extraKeyValueIncluded != null && extraKeyValueIncluded) {
-            keyValues.remove(0);
-        }
         try {
             initFilterStateIfNeeded();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    	if (!filterRow())
+    		keyValues.remove(0);
         final KeyValue accumulatedValue = filterState.produceAccumulatedKeyValue();
         if (accumulatedValue != null) {
             keyValues.add(accumulatedValue);

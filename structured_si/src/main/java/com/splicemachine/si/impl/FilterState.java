@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.data.api.SDataLib;
@@ -29,7 +28,6 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
     private final DataStore<Mutation, Put,Delete, Get, Scan, IHTable> dataStore;
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
-    private boolean ignoreDoneWithColumn;
     final FilterRowState<Result, Put, Delete, Get, Scan, Lock, OperationStatus> rowState;
     final DecodedKeyValue<Result, Put, Delete, Get, Scan> keyValue;
     KeyValueType type;
@@ -50,14 +48,9 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
         this.myTransaction = myTransaction;
         transactionCache = new LongPrimitiveCacheMap<Transaction>();
         visibleCache = new LongPrimitiveCacheMap<VisibleResult>();
-
-        // initialize internal state
         this.rowState = new FilterRowState(dataLib);
     }
 
-    public void setIgnoreDoneWithColumn() {
-        this.ignoreDoneWithColumn = true;
-    }
 
     /**
      * The public entry point. This returns an HBase filter code and is expected to serve as the heart of an HBase filter
@@ -99,24 +92,6 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
             return processUserData();
         } else {
             return processUnknownFamilyData();
-        }
-    }
-
-    private Filter.ReturnCode processUserDataSetupShortCircuit() throws IOException {
-        log("processUserDataSetupShortCircuit");
-        final Filter.ReturnCode result = processUserData();
-        rowState.inData = true;
-        if (rowState.transactionCache.size() == 1) {
-            rowState.shortCircuit = result;
-        }
-        return result;
-    }
-
-    private Filter.ReturnCode processUserDataShortCircuit() throws IOException {
-        if (rowState.shortCircuit != null) {
-            return rowState.shortCircuit;
-        } else {
-            return processUserData();
         }
     }
 
@@ -279,11 +254,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      * Handle a cell that represents user data. Filter it based on the various timestamps and transaction status.
      */
     private Filter.ReturnCode processUserData() throws IOException {
-        if (doneWithColumn() && !ignoreDoneWithColumn) {
-            return NEXT_COL;
-        } else {
             return filterUserDataByTimestamp();
-        }
     }
 
     /**
@@ -307,13 +278,6 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      */
     private void proceedToNextColumn() {
         rowState.lastValidQualifier = keyValue.keyValue();
-    }
-
-    /**
-     * The second half of manually implementing our own "INCLUDE & NEXT_COL" return code.
-     */
-    private boolean doneWithColumn() {
-        return KeyValueUtils.matchingQualifierKeyValue(keyValue.keyValue(), rowState.lastValidQualifier);
     }
 
     /**

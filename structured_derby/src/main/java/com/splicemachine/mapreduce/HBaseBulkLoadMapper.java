@@ -55,7 +55,7 @@ public class HBaseBulkLoadMapper extends Mapper<LongWritable, Text, ImmutableByt
 			ExecRow execRow = rowParser.process(parsedRow,importContext.getColumnInformation());
 			KVPair kvPair = entryEncoder.encode(execRow);
 			outputKey.set(kvPair.getRow());
-    		Put put = SpliceUtils.createPut(kvPair.getRow(),importContext.getTransactionId(),false);
+    		Put put = SpliceUtils.createPut(kvPair.getRow(),importContext.getTransactionId());
     		put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY,Long.parseLong(importContext.getTransactionId()),kvPair.getValue());
     		for (byte[] family:put.getFamilyMap().keySet()) {
     			for (KeyValue keyValue: put.getFamilyMap().get(family)) {

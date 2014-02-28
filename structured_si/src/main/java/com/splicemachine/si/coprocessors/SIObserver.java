@@ -84,6 +84,7 @@ public class SIObserver extends BaseRegionObserver {
             assert (get.getMaxVersions() == Integer.MAX_VALUE);
             addSIFilterToGet(e, get);
         }
+        SpliceLogUtils.trace(LOG, "preGet after %s", get);        
         super.preGet(e, get, results);
     }
 

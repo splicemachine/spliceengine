@@ -90,7 +90,7 @@ public class RegionWriteHandler implements WriteHandler {
         switch (kvPair.getType()) {
             case UPDATE:
             	if (si)
-            		put = SpliceUtils.createPut(rowKey,ctx.getTransactionId(),false);
+            		put = SpliceUtils.createPut(rowKey,ctx.getTransactionId());
             	else
             		throw new RuntimeException("Updating a non si table?");
                 put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY,value);
@@ -105,7 +105,7 @@ public class RegionWriteHandler implements WriteHandler {
                 break;
             default:
             	if (si)
-            		put = SpliceUtils.createPut(rowKey,ctx.getTransactionId(),false);
+            		put = SpliceUtils.createPut(rowKey,ctx.getTransactionId());
             	else 
             		put = new Put(rowKey);
                 put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY,ctx.getTransactionTimestamp(),value);
