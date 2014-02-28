@@ -3,6 +3,7 @@ package com.splicemachine.si;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionStatusTest;
 import com.splicemachine.si.txn.JtaXAResourceHBaseTest;
 import com.splicemachine.si.txn.TransactionManagerHBaseTest;
 import org.junit.AfterClass;
