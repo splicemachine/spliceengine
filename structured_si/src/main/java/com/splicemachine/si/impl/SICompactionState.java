@@ -6,11 +6,15 @@ import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.data.api.SDataLib;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Captures the SI logic to perform when a data table is compacted (without explicit HBase dependencies). Provides the
@@ -23,7 +27,8 @@ public class SICompactionState<Result,  Mutation,
     private final SDataLib<Put, Delete, Get, Scan> dataLib;
     private final DataStore<Mutation, Put, Delete, Get, Scan, IHTable> dataStore;
     private final TransactionStore transactionStore;
-    private SpliceReusableHashmap<ByteBuffer, KeyValue> evaluatedTransactions;
+    private SpliceReusableHashmap<ByteBuffer,KeyValue> evaluatedTransactions;
+    public SortedSet<KeyValue> dataToReturn;
 
     /**
      * Cache of transactions that have been read during the execution of this compaction.
@@ -34,63 +39,82 @@ public class SICompactionState<Result,  Mutation,
         this.dataLib = dataLib;
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
-        evaluatedTransactions = new SpliceReusableHashmap<ByteBuffer, KeyValue>();
+        this.dataToReturn  = new TreeSet<KeyValue>(new Comparator<KeyValue>(){
+    		@Override
+    		public int compare(KeyValue first, KeyValue second) {
+    			return KeyValue.COMPARATOR.compare(first, second);
+    		}
+    	});
+        this.evaluatedTransactions = new SpliceReusableHashmap<ByteBuffer,KeyValue>();
     }
 
     /**
      * Given a list of key-values, populate the results list with possibly mutated values.
      *
-		 * @param rawList - the input of key values to process
-		 * @param results - the output key values
-		 */
+	 * @param rawList - the input of key values to process
+	 * @param results - the output key values
+	 */
     public void mutate(List<KeyValue> rawList, List<KeyValue> results) throws IOException {
     	evaluatedTransactions.reset();
+    	dataToReturn.clear();
     	for (int i = 0; i< rawList.size(); i++) {
-    		mutate(results, rawList.get(i));
+    		mutate(rawList.get(i));
         }
+    	results.addAll(dataToReturn);
     }
     
     /**
      * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
      */
-    private void mutate(List<KeyValue> results, KeyValue keyValue) throws IOException {
+    private void mutate(KeyValue keyValue) throws IOException {
         final KeyValueType keyValueType = dataStore.getKeyValueType(keyValue);
     	ByteBuffer buffer = ByteBuffer.wrap(keyValue.getBuffer(),keyValue.getTimestampOffset(),KeyValue.TIMESTAMP_SIZE);
-        if (keyValueType.equals(KeyValueType.COMMIT_TIMESTAMP)) {
-        	if (keyValue.getValueLength() == 1 && keyValue.getBuffer()[keyValue.getValueOffset()] == SIConstants.SNAPSHOT_ISOLATION_FAILED_TIMESTAMP[0]) {
-        		// remove Failed Timestamp
-        	} else {
-        		if (!evaluatedTransactions.contains(buffer)) // remove duplicates: race condition
-        			results.add(keyValue);        		
-        	}        		
-        	evaluatedTransactions.add(buffer,keyValue);
-        } else {
-        	KeyValue evalTrans = evaluatedTransactions.get(buffer);
-        	if (evalTrans == null) {
-        		mutateCommitTimestamp(results, keyValue);
-        	} else if (evalTrans.getValueLength() == 1 && evalTrans.getBuffer()[evalTrans.getValueOffset()] == SIConstants.SNAPSHOT_ISOLATION_FAILED_TIMESTAMP[0]) {
-        		// remove VK with failed timestamp
-        	} else {
-        		results.add(keyValue);
-        	}
+        switch (keyValueType) {
+    		case COMMIT_TIMESTAMP:
+    			evaluatedTransactions.add(buffer, keyValue);
+            	if (isFailedCommitTimestamp(keyValue)) {
+            		// No Op KeyValue Lost...
+            	} else {
+            		dataToReturn.add(keyValue); // log(n): Hopefully not too painful here...  Need sort order
+            	}
+            	return;
+        	case TOMBSTONE:
+        	case ANTI_TOMBSTONE:
+        		mutateCommitTimestamp(buffer,keyValue);
+        		return;
+        	case USER_DATA:
+        		mutateCommitTimestamp(buffer,keyValue);
+        		return;
+		default:
+			throw new RuntimeException("Saw a non-splice key value");
         }
-    }
+       }   
 
     /**
      * Replace unknown commit timestamps with actual commit times.
      */
-    private void mutateCommitTimestamp(List<KeyValue> results, KeyValue keyValue) throws IOException {
-            final Transaction transaction = getFromCache(keyValue.getTimestamp());
-            final TransactionStatus effectiveStatus = transaction.getEffectiveStatus();
-            if (effectiveStatus.isFinished()) {
-                final Long globalCommitTimestamp = transaction.getEffectiveCommitTimestamp();
-                if (effectiveStatus.isCommitted()) {
-                    results.add(newTransactionTimeStampKeyValue(keyValue,dataLib.encode(globalCommitTimestamp)));
-                    results.add(keyValue);                	
-                } else {
-                	// ignore si fail data...
-                }
-        }
+    private void mutateCommitTimestamp(ByteBuffer buffer, KeyValue keyValue) throws IOException {
+    		if (evaluatedTransactions.contains(buffer)) {
+				if (isFailedCommitTimestamp(evaluatedTransactions.get(buffer))) {
+					return;// No Op failed a commit
+				} else {
+					dataToReturn.add(keyValue);
+					return;
+				}	
+			}
+			Transaction transaction = getFromCache(keyValue.getTimestamp());
+			final TransactionStatus effectiveStatus = transaction.getEffectiveStatus();
+			if (effectiveStatus.isFinished()) {
+				if (effectiveStatus.isCommitted()) {
+					final Long globalCommitTimestamp = transaction.getEffectiveCommitTimestamp();
+					dataToReturn.add(newTransactionTimeStampKeyValue(keyValue,dataLib.encode(globalCommitTimestamp)));
+					dataToReturn.add(keyValue);   
+				} else {
+   				// Finished and not-committed ??
+				}
+			} else {
+				dataToReturn.add(keyValue);
+			}
     }
 
     private Transaction getFromCache(long timestamp) throws IOException {
@@ -108,6 +132,22 @@ public class SICompactionState<Result,  Mutation,
 	
 	public void close() {
 		evaluatedTransactions.close();
+	}
+ 
+    public static boolean isFailedCommitTimestamp(KeyValue keyValue) {
+    	return keyValue.getValueLength() == 1 && keyValue.getBuffer()[keyValue.getValueOffset()] == SIConstants.SNAPSHOT_ISOLATION_FAILED_TIMESTAMP[0];
+    }
+    
+	public static int compareKeyValuesByTimestamp(KeyValue first, KeyValue second) {
+		return Bytes.compareTo(first.getBuffer(), first.getTimestampOffset(), KeyValue.TIMESTAMP_SIZE, 
+				second.getBuffer(), second.getTimestampOffset(), KeyValue.TIMESTAMP_SIZE);
+	}
+	public static int compareKeyValuesByColumnAndTimestamp(KeyValue first, KeyValue second) {
+		int compare = Bytes.compareTo(first.getBuffer(), first.getQualifierOffset(), first.getQualifierLength(), 
+				second.getBuffer(), second.getQualifierOffset(), second.getQualifierLength());
+		if (compare != 0)
+			return compare;
+		return compareKeyValuesByTimestamp(first,second);
 	}
     
 }

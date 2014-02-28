@@ -294,9 +294,7 @@ public class AsyncRollForwardTest {
 						final String testRow = "joe" + testIndex;
 						testUtility.insertAge(t1, testRow, 20);
 						final CountDownLatch latch = makeLatch(testRow);
-						
-						System.out.println("action " + action);
-						
+												
 						switch(action){
 								case COMMIT:
 										control.commit(t1);
@@ -311,7 +309,6 @@ public class AsyncRollForwardTest {
 										Assert.fail("Unknown transaction action "+ action);
 						}
 						if (nested) {
-								System.out.println("parent action " + parentAction);
 								switch(parentAction){
 										case COMMIT:
 												control.commit(t0);

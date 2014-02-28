@@ -133,7 +133,6 @@ public class CompactionTest {
 
 		private void checkCompaction(int testIndex, boolean commit, Function<Object[], Object> timestampProcessor) throws IOException, InterruptedException {
 				final String testRow = "joe" + testIndex;
-				System.out.println("testRow " + testRow);
 				final CountDownLatch latch = new CountDownLatch(1);
 				Tracer.registerCompact(new Runnable() {
 						@Override

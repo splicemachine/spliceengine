@@ -272,9 +272,7 @@ public class TransactorTestUtility {
 				transactorSetup.clientTransactor.initializeGet(transactionId.getTransactionIdString(), get);
 				Object testSTable = reader.open(storeSetup.getPersonTableName());
 				try {
-						System.out.println("get " + get);
 						Result rawTuple = reader.get(testSTable, get);
-						System.out.println("Reading Raw Tuple " + rawTuple);
 						return readRawTuple(useSimple, transactorSetup, storeSetup, transactionId, name, dataLib, rawTuple, true, false, true);
 				} finally {
 						reader.close(testSTable);

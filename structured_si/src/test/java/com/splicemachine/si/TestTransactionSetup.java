@@ -90,7 +90,7 @@ public class TestTransactionSetup {
                 commitTimestampQualifier,
 								tombstoneQualifier,
 								SIConstants.EMPTY_BYTE_ARRAY,
-								SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_COLUMN_BYTES,
+								SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES,
 								SIConstants.SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
 								userColumnsFamilyName);
         timestampSource = new SimpleTimestampSource();
