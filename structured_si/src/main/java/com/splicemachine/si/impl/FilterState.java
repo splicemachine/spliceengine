@@ -143,9 +143,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
     
     private Transaction processCommitTimestampDirect() throws IOException {
         Transaction transaction;
-        if (dataStore.isSINull(keyValue.keyValue())) {
-            transaction = handleUnknownTransactionStatus();
-        } else if (dataStore.isSIFail(keyValue.keyValue())) {
+        if (dataStore.isSIFail(keyValue.keyValue())) {
             transaction = transactionStore.makeStubFailedTransaction(keyValue.timestamp());
             transactionCache.put(keyValue.timestamp(), transaction);
         } else {

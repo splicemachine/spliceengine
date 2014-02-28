@@ -153,7 +153,7 @@ public class HTransactorFactory extends SIConstants {
 										SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, //commitTimestampQualifier
 										SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES, //tombstoneQualifier
 										EMPTY_BYTE_ARRAY,  //siNull
-										SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_COLUMN_BYTES, //siAntiTombstoneValue
+										SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES, //siAntiTombstoneValue
 										SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,  //siFail
 										DEFAULT_FAMILY_BYTES); //user columnFamily
 						if(transactionManager ==null)
