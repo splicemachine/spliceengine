@@ -2158,6 +2158,72 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
+    public void committingNeverVisible() throws Exception {
+        try {
+            final CountDownLatch latch = new CountDownLatch(1);
+            final CountDownLatch latch2 = new CountDownLatch(1);
+            final CountDownLatch latch3 = new CountDownLatch(1);
+
+            final Boolean[] success = new Boolean[]{false, false};
+            final Exception[] exception = new Exception[]{null};
+            Tracer.registerCommitting(new Function<Long, Object>() {
+                @Override
+                public Object apply(@Nullable Long aLong) {
+                    latch.countDown();
+                    try {
+                        Assert.assertTrue("No progress", latch2.await(10, TimeUnit.SECONDS));
+                    } catch (InterruptedException e) {
+                        Assert.fail();
+                    }
+                    return null;
+                }
+            });
+            final TransactionId t1 = control.beginTransaction();
+            Tracer.registerWaiting(new Function<Long, Object>() {
+                @Override
+                public Object apply(@Nullable Long aLong) {
+                    success[0] = true;
+                    latch2.countDown();
+                    return null;
+                }
+            });
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Assert.assertTrue(latch.await(10, TimeUnit.SECONDS));
+                        ImmutableTransaction it1 = transactorSetup.transactionStore.getImmutableTransaction(t1);
+                        Transaction txn1 = transactorSetup.transactionStore.getTransaction(t1);
+                        TransactionStatus status = txn1.getEffectiveStatus();
+                        success[1] = !status.isCommitting();
+                    } catch (Exception e) {
+                        success[1] = false;
+                    } finally {
+                        latch2.countDown();
+                        latch3.countDown();
+                    }
+                }
+            }).start();
+
+            try {
+                control.commit(t1);
+            } catch (DoNotRetryIOException e) {
+                Assert.fail();
+            } catch (RetriesExhaustedWithDetailsException e) {
+                Assert.fail();
+            }
+
+            Assert.assertTrue(latch3.await(10, TimeUnit.SECONDS));
+            Assert.assertTrue("Nobody waited for transaction while committing", success[0]);
+            Assert.assertTrue("Concurrent worker saw transaction in committing state", success[1]);
+        } finally {
+            Tracer.registerCommitting(null);
+            Tracer.registerWaiting(null);
+        }
+    }
+
+    @Test
     public void writeReadViaFilterResult() throws IOException {
         TransactionId t1 = control.beginTransaction();
         testUtility.insertAge(t1, "joe89", 20);
