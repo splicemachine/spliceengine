@@ -8,7 +8,8 @@ How to Build Derby For Splice Machine.
 	./SpliceBuild.sh 'gpg passphrase'
 6.  Push to nexus
 	./SpliceDeploy.sh 'gpg passphrase'
-	
+
+SpliceDeploy2.sh on build server...	
 	
 GPG Explanation
 
