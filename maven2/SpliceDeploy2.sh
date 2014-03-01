@@ -7,7 +7,6 @@
 #fi
 
 mvn clean install
-#mvn -Dgpg.passphrase="$1" install
 mvn deploy:deploy-file -Dfile=client/target/derbyclient-10.9.1.0.splice.jar -Durl=http://nexus.splicemachine.com/nexus/content/repositories/releases/ -DgroupId=org.apache.derby -DartifactId=derbyclient -Dversion=10.9.1.0.splice -Dpackaging=jar -DrepositoryId=splicemachine
 mvn deploy:deploy-file -Dfile=client/target/derbyclient-10.9.1.0.splice-sources.jar -Durl=http://nexus.splicemachine.com/nexus/content/repositories/releases/ -DgroupId=org.apache.derby -DartifactId=derbyclient -Dversion=10.9.1.0.splice -Dclassifier=sources -Dpackaging=jar -DrepositoryId=splicemachine
 mvn deploy:deploy-file -Dfile=derbyLocale_cs/target/derbyLocale_cs-10.9.1.0.splice.jar -Durl=http://nexus.splicemachine.com/nexus/content/repositories/releases/ -DgroupId=org.apache.derby -DartifactId=derbyLocale_cs -Dversion=10.9.1.0.splice -Dpackaging=jar -DrepositoryId=splicemachine

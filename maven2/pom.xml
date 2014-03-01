@@ -136,6 +136,7 @@
       <!-- Generate signatures for the artifacts using GnuPG.
            This requires that you have GnuPG installed and in the search path.
         -->
+        <!--
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-gpg-plugin</artifactId>
@@ -149,7 +150,7 @@
           </execution>
         </executions>
       </plugin>
-
+-->
   </plugins>
   
   </build>
