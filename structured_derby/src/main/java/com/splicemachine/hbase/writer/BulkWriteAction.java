@@ -229,7 +229,7 @@ final class BulkWriteAction implements Callable<WriteStats> {
 														if(LOG.isDebugEnabled())
 																LOG.debug(String.format("Retrying write after receiving partial error %s",response));
 														//add in all the non-empty new BulkWrites to try again
-														writesToPerform.addAll(Collections2.filter(doPartialRetry(bulkWrite, response), nonEmptyPredicate));
+														writesToPerform.addAll(Collections2.filter(doPartialRetry(nextWrite, response), nonEmptyPredicate));
 												default:
 														//return
 										}
