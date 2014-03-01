@@ -1,7 +1,11 @@
 package com.splicemachine.si;
 
 import java.util.concurrent.ConcurrentHashMap;
-
+/*
+ * This class exists as an approach to capture existing transactions without having to 
+ * clean out a hashmap in the case of a single transaction 
+ *
+ */
 public class SpliceReusableHashmap<K,V>  {
 	int count = 0;
 	V singleReferenceValue;
