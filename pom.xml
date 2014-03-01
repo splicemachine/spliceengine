@@ -22,14 +22,14 @@
       <uniqueVersion>false</uniqueVersion>
       <id>structured-hbase-release</id>
       <name>Structured HBase Release</name>
-      <url>http://www.inciteretail.com/nexus/content/repositories/releases</url>
+      <url>http://www.splicemachine.com/nexus/content/repositories/releases</url>
     </repository>
 
     <snapshotRepository>
       <uniqueVersion>true</uniqueVersion>
       <id>structured-hbase-snapshot</id>
       <name>Structured HBase Snapshot</name>
-      <url>http://www.inciteretail.com/nexus/content/repositories/snapshots</url>
+      <url>http://www.splicemachine.com/nexus/content/repositories/snapshots</url>
     </snapshotRepository>
   </distributionManagement>
   <properties>
@@ -161,8 +161,8 @@
       <url>http://repo1.maven.org/maven2</url>
     </repository>
     <repository>
-      <id>inciteretail</id>
-      <url>http://www.inciteretail.com/nexus/content/repositories/releases</url>
+      <id>splicemachine</id>
+      <url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
       <releases>
         <enabled>true</enabled>
       </releases>
