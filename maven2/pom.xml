@@ -88,14 +88,14 @@
 	<uniqueVersion>false</uniqueVersion>
 	<id>structured-hbase-release</id>
 	<name>Structured HBase Release</name>
-	<url>scp://www.inciteretail.com/usr/local/sonatype-work/nexus/storage/releases/</url>
+	<url>scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/releases/</url>
 	</repository>
 	
 	<snapshotRepository>
 	<uniqueVersion>true</uniqueVersion>
 	<id>structured-hbase-snapshot</id>
 	<name>Structured HBase Snapshot</name>
-	<url>scp://www.inciteretail.com/usr/local/sonatype-work/nexus/storage/snapshots/</url>
+	<url>scp://nexus.splicemachine.com/usr/local/sonatype-work/nexus/storage/snapshots/</url>
 	</snapshotRepository>
 	</distributionManagement>
 
@@ -156,8 +156,8 @@
 
 	<repositories>
 			<repository>
-			<id>inciteretail</id>
-			<url>http://www.inciteretail.com/nexus/content/repositories/releases/</url>
+			<id>splicemachine</id>
+			<url>http://nexus.splicemachine.com/nexus/content/repositories/releases/</url>
 						<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
