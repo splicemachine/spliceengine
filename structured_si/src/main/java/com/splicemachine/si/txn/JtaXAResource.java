@@ -19,7 +19,7 @@ public class JtaXAResource implements XAResource {
     private static final Logger LOG = Logger.getLogger(JtaXAResource.class);
     private Map<Xid, TransactionId> xidToTransactionState = new HashMap<Xid, TransactionId>();
     private final Transactor transactor;
-		private final TransactionManager control;
+	private final TransactionManager control;
     private ThreadLocal<TransactionId> threadLocalTransactionState = new ThreadLocal<TransactionId>();
     private int transactionTimeout = 60;
 
