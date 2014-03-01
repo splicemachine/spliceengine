@@ -59,7 +59,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     public static volatile int ipcReserved = 10;
     private static volatile int maxWorkers = 10;
     private static volatile int flushQueueSizeBlock = 10;
-    private static volatile int compactionQueueSizeBlock = 10;
+    private static volatile int compactionQueueSizeBlock = 1000;
     private RegionServerMetrics metrics;
 
     
