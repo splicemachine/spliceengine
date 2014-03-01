@@ -95,12 +95,8 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static Scan createScan(String transactionId) {
-        return createScan(transactionId, true);
-    }
-
-    public static Scan createScan(String transactionId, boolean includeSI) {
         try {
-            return attachTransaction(new Scan(), transactionId, includeSI);
+            return attachTransaction(new Scan(), transactionId);
         } catch (Exception e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, e);
             return null;
@@ -114,7 +110,6 @@ public class SpliceUtils extends SpliceUtilities {
 		public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
 				try {
 						Get get = createGet(transID, loc.getBytes());
-						get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
 						BitSet fieldsToReturn;
 						if(validColumns!=null){
 								fieldsToReturn = new BitSet(validColumns.size());
@@ -155,13 +150,8 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static Put createPut(byte[] newRowKey, String transactionID) throws IOException {
-        return createPut(newRowKey, transactionID, true);
-    }
-
-    public static Put createPut(byte[] newRowKey, String transactionID, boolean addPlaceHolderColumnToEmptyPut) throws IOException {
         return attachTransaction(new Put(newRowKey), transactionID);
     }
-
     
     /**
      * Attach transactional information to the specified operation.
@@ -175,7 +165,7 @@ public class SpliceUtils extends SpliceUtilities {
 
     public static Put attachTransaction(Put op, String transactionId, boolean addPlaceHolderColumnToEmptyPut) throws IOException {
         if (!attachTransactionNA(op, transactionId)) {
-            getTransactor().initializePut(transactionId, op, addPlaceHolderColumnToEmptyPut);
+            getTransactor().initializePut(transactionId, op);
         }
         return op;
     }
@@ -188,9 +178,9 @@ public class SpliceUtils extends SpliceUtilities {
         return op;
     }
 
-    public static Scan attachTransaction(Scan op, String transactionId, boolean includeSI) throws IOException {
+    public static Scan attachTransaction(Scan op, String transactionId) throws IOException {
         if (!attachTransactionNA(op, transactionId)) {
-            getTransactor().initializeScan(transactionId, op, includeSI);
+            getTransactor().initializeScan(transactionId, op);
         }
         return op;
     }

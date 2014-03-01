@@ -52,7 +52,7 @@ public class SpliceUtilities extends SIConstants {
 	public static HTableDescriptor generateDefaultSIGovernedTable(String tableName) {
 		HTableDescriptor desc = new HTableDescriptor(tableName);
 		desc.addFamily(createDataFamily());
-        desc.addFamily(createTransactionFamily());
+        //desc.addFamily(createTransactionFamily()); // Removed transaction family
         return desc;
 	}
 	
@@ -111,21 +111,10 @@ public class SpliceUtilities extends SIConstants {
         snapshot.setInMemory(DEFAULT_IN_MEMORY);
         snapshot.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
         //snapshot.setBloomFilterType(BloomType.ROW); No Temp Bloom Filter, write as quickly as possible
+        // TODO XXX JLEACH make sure this actually saves us time on the scan side
         snapshot.setTimeToLive(DEFAULT_TTL);
         return snapshot;
 	}
-
-    
-    public static HColumnDescriptor createTransactionFamily() {
-        final HColumnDescriptor siFamily = new HColumnDescriptor(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES);
-        siFamily.setMaxVersions(Integer.MAX_VALUE);
-        siFamily.setCompressionType(Compression.Algorithm.valueOf(compression.toUpperCase()));
-        siFamily.setInMemory(true);
-        siFamily.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
-        siFamily.setBloomFilterType(BloomType.ROW); //SI Column Family should use BloomFilters
-        siFamily.setTimeToLive(DEFAULT_TTL);
-        return siFamily;
-    }
 
     public static void refreshHbase() {
         SpliceLogUtils.info(LOG, "Refresh HBase");

@@ -5,9 +5,7 @@ import com.splicemachine.utils.CloseableIterator;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
-
 import java.io.IOException;
-import java.util.Iterator;
 
 public class HTableReader implements STableReader<IHTable, Get, Scan> {
     private final HTableSource tableSource;

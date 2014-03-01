@@ -3,6 +3,7 @@ package com.splicemachine.hbase.batch;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -89,7 +90,7 @@ public class RegionWriteHandler implements WriteHandler {
         switch (kvPair.getType()) {
             case UPDATE:
             	if (si)
-            		put = SpliceUtils.createPut(rowKey,ctx.getTransactionId(),false);
+            		put = SpliceUtils.createPut(rowKey,ctx.getTransactionId());
             	else
             		throw new RuntimeException("Updating a non si table?");
                 put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY,value);
@@ -104,7 +105,7 @@ public class RegionWriteHandler implements WriteHandler {
                 break;
             default:
             	if (si)
-            		put = SpliceUtils.createPut(rowKey,ctx.getTransactionId(),false);
+            		put = SpliceUtils.createPut(rowKey,ctx.getTransactionId());
             	else 
             		put = new Put(rowKey);
                 put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY,ctx.getTransactionTimestamp(),value);
@@ -224,14 +225,7 @@ public class RegionWriteHandler implements WriteHandler {
         final String tableName = region.getTableDesc().getNameAsString();
         if(queue==null)
             queue =  RollForwardQueueMap.lookupRollForwardQueue(tableName);
-				return transactor.processKvBatch(new HbRegion(region),queue,SpliceConstants.DEFAULT_FAMILY_BYTES,KVPair.PACKED_COLUMN_KEY,toProcess,ctx.getTransactionId());
-//        Mutation[] mutations = new Mutation[toProcess.size()];
-//        int i=0;
-//        for(KVPair pair:toProcess){
-//            mutations[i] = getMutation(pair,ctx,true);
-//            i++;
-//        }
-//        return transactor.processPutBatch(new HbRegion(region), queue, mutations);
+				return transactor.processKvBatch(new HbRegion(region),queue,SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,toProcess,ctx.getTransactionId());
     }
 
 	@Override

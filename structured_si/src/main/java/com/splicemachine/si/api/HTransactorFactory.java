@@ -14,13 +14,14 @@ import com.splicemachine.si.jmx.TransactorStatus;
 import com.splicemachine.si.txn.ZooKeeperStatTimestampSource;
 import com.splicemachine.utils.Provider;
 import com.splicemachine.utils.Providers;
-import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.utils.ZkUtils;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-import org.apache.hadoop.hbase.client.*;
-
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Scan;
 
 /**
  * Used to construct a transactor object that is bound to the HBase types and that provides SI functionality. This is
@@ -146,21 +147,19 @@ public class HTransactorFactory extends SIConstants {
 
 						dataStore = new DataStore(dataLib, reader, writer,
 										SI_NEEDED, //siNeededAttribute
-										SI_NEEDED_VALUE ,             //the bytes for the siNeededAttribute
-										ONLY_SI_FAMILY_NEEDED_VALUE, //includeSiColumnValue (e.g. true to only need si family)
+										SI_NEEDED_VALUE_BYTES ,             //the bytes for the siNeededAttribute
 										SI_TRANSACTION_ID_KEY, //transactionIdAttribute
 										SI_DELETE_PUT,  //deletePutAttribute
-										SNAPSHOT_ISOLATION_FAMILY_BYTES, //siFamily
 										SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, //commitTimestampQualifier
 										SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES, //tombstoneQualifier
 										EMPTY_BYTE_ARRAY,  //siNull
-										SI_ANTI_TOMBSTONE_VALUE, //siAntiTombstoneValue
+										SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES, //siAntiTombstoneValue
 										SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,  //siFail
-										DEFAULT_FAMILY); //user columnFamily
+										DEFAULT_FAMILY_BYTES); //user columnFamily
 						if(transactionManager ==null)
 								transactionManager = new SITransactionManager(transactionStore,timestampSource,builderTransactor);
 						if(clientTransactor==null)
-								clientTransactor = new HBaseClientTransactor(transactionManager);
+								clientTransactor = new HBaseClientTransactor(dataStore,transactionManager,dataLib);
 						if(rollForwardFactory ==null)
 								rollForwardFactory = new HBaseRollForwardFactory(Providers.basicProvider(transactionStore),
 												Providers.basicProvider(dataStore));
@@ -176,10 +175,6 @@ public class HTransactorFactory extends SIConstants {
 										.clock(new SystemClock())
 										.transactionTimeout(transactionTimeout)
 										.control(transactionManager).build();
-//						final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Mutation, Put, Get, Scan, Result, KeyValue, byte[], ByteBuffer, Delete, Integer, OperationStatus, RegionScanner>
-//										(dataLib, writer, rowStore, transactionStore, new SystemClock(), transactionTimeout,
-//														new HHasher(), clientTransactor,transactionManager);
-
 						builderTransactor.setTransactor(transactor);
 						if(managedTransactor==null)
 								managedTransactor = builderTransactor;

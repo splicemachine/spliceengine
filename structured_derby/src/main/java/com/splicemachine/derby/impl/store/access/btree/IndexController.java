@@ -2,7 +2,6 @@
 package com.splicemachine.derby.impl.store.access.btree;
 
 import java.io.IOException;
-
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
@@ -11,9 +10,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.raw.Transaction;
@@ -25,8 +22,6 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
-
-import java.io.IOException;
 
 
 public class IndexController  extends SpliceController  {
@@ -59,7 +54,6 @@ public class IndexController  extends SpliceController  {
 			boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 			byte[] rowKey = generateIndexKey(row, order);
             Put put = SpliceUtils.createPut(rowKey,transID);
-
             encodeRow(row, put,null,null);
 			htable.put(put);
 			return 0;
@@ -120,7 +114,6 @@ public class IndexController  extends SpliceController  {
                 Put put = SpliceUtils.createPut(rowKey,transID);
 
                 encodeRow(row,put,validCols,validColumns);
-//                RowMarshaller.columnar().encodeRow(row, validCols, put, null);
                 htable.put(put);
 			}
 			super.delete(loc);

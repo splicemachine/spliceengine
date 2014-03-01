@@ -170,8 +170,7 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
 
     // Internal functions to construct operations to update the transaction table.
 
-    private Put buildCreatePut(long transactionId, TransactionParams params, TransactionStatus status,
-                               long beginTimestamp, long counter) {
+    private Put buildCreatePut(long transactionId, TransactionParams params, TransactionStatus status,long beginTimestamp, long counter) {
         Put put = buildBasePut(transactionId);
         addFieldToPut(put, encodedSchema.dependentQualifier, params.dependent);
         addFieldToPut(put, encodedSchema.startQualifier, beginTimestamp);

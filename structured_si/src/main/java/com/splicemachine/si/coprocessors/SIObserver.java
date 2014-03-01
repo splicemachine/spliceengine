@@ -1,9 +1,7 @@
 package com.splicemachine.si.coprocessors;
 
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
-import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.hbase.IHTable;
@@ -25,16 +23,10 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.*;
-
 import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
 
 /**
@@ -60,9 +52,9 @@ public class SIObserver extends BaseRegionObserver {
         tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
         Tracer.traceRegion(tableName, region);
         tableEnvMatch = doesTableNeedSI(region);
-				RollForwardAction action = HTransactorFactory.getRollForwardFactory().newAction(new HbRegion(region));
-//				rollForwardQueue = new ConcurrentRollForwardQueue(action,10000,10000,5*60*S,timedRoller,rollerPool);
-				rollForwardQueue = new SynchronousRollForwardQueue(action,10000,10*S,5*60*S,tableName);
+		RollForwardAction action = HTransactorFactory.getRollForwardFactory().newAction(new HbRegion(region));
+//		rollForwardQueue = new ConcurrentRollForwardQueue(action,10000,10000,5*60*S,timedRoller,rollerPool);
+		rollForwardQueue = new SynchronousRollForwardQueue(action,10000,10*S,5*60*S,tableName);
         RollForwardQueueMap.registerRollForwardQueue(tableName, rollForwardQueue);
         super.start(e);
     }
@@ -92,6 +84,7 @@ public class SIObserver extends BaseRegionObserver {
             assert (get.getMaxVersions() == Integer.MAX_VALUE);
             addSIFilterToGet(e, get);
         }
+        SpliceLogUtils.trace(LOG, "preGet after %s", get);        
         super.preGet(e, get, results);
     }
 
@@ -123,8 +116,7 @@ public class SIObserver extends BaseRegionObserver {
         final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
 
         final Filter newFilter = makeSIFilter(HTransactorFactory.getClientTransactor().transactionIdFromGet(get), get.getFilter(),
-								getPredicateFilter(get),
-								HTransactorFactory.getTransactionReadController().isGetIncludeSIColumn(get));
+								getPredicateFilter(get));
         get.setFilter(newFilter);
     }
 
@@ -132,8 +124,7 @@ public class SIObserver extends BaseRegionObserver {
         final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
 
         final Filter newFilter = makeSIFilter(HTransactorFactory.getClientTransactor().transactionIdFromScan(scan), scan.getFilter(),
-								getPredicateFilter(scan),
-								HTransactorFactory.getTransactionReadController().isScanIncludeSIColumn(scan));
+								getPredicateFilter(scan));
         scan.setFilter(newFilter);
     }
 
@@ -142,13 +133,11 @@ public class SIObserver extends BaseRegionObserver {
         return EntryPredicateFilter.fromBytes(serializedPredicateFilter);
     }
 
-    private Filter makeSIFilter(TransactionId transactionId, Filter currentFilter, EntryPredicateFilter predicateFilter,
-                                boolean includeSIColumn) throws IOException {
+    private Filter makeSIFilter(TransactionId transactionId, Filter currentFilter, EntryPredicateFilter predicateFilter) throws IOException {
         final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
         final SIFilterPacked siFilter = new SIFilterPacked(tableName,
 								transactionId, HTransactorFactory.getTransactionManager(),
-								rollForwardQueue, predicateFilter,
-								HTransactorFactory.getTransactionReadController(), includeSIColumn);
+								rollForwardQueue, predicateFilter,HTransactorFactory.getTransactionReadController());
         if (needsCompositeFilter(currentFilter)) {
             return composeFilters(orderFilters(currentFilter, siFilter));
         } else {
@@ -202,7 +191,7 @@ public class SIObserver extends BaseRegionObserver {
     @Override
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> e, Store store,
                                       InternalScanner scanner) throws IOException {
-        if (tableEnvMatch && Bytes.compareTo(store.getFamily().getName(), SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES) == 0) {
+        if (tableEnvMatch) {
             final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
             return new SICompactionScanner(transactor, scanner);
         } else {

@@ -11,7 +11,6 @@ public class SITransactorHBasePackedTest extends SITransactorHBaseTest {
 
     public SITransactorHBasePackedTest() {
 				super();
-        usePacked = true;
     }
 
     @Override

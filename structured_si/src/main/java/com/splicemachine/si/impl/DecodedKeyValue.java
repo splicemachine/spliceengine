@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.data.api.SDataLib;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 
@@ -48,4 +49,10 @@ public class DecodedKeyValue<Result, Put extends OperationWithAttributes, Delete
         }
         return timestamp;
     }
+
+	@Override
+	public String toString() {
+		return String.format("DecodedKeyValue { keyValue=%s}",keyValue);
+	}
+    
 }

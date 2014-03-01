@@ -252,8 +252,8 @@ public class PopulateIndexTask extends ZkTask {
 				manipulationTimer.startTiming();
         for(KeyValue kv:result){
             //ignore SI CF
-            if(kv.matchingFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)) continue;
-
+        	if (kv.getBuffer()[kv.getQualifierOffset()] != SIConstants.PACKED_COLUMN_BYTES[0])
+        		continue;
             byte[] row = kv.getRow();
             byte[] data = kv.getValue();
             if(mainPair==null)
