@@ -32,7 +32,6 @@ public class ConstraintHandler implements WriteHandler {
         if(!HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(),mutation.getRow())){
             //we can't check the mutation, it'll explode
             ctx.failed(mutation,WriteResult.wrongRegion());
-//						failed=true;
 						return;
         }
         try {

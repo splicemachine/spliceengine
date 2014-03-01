@@ -1,6 +1,7 @@
 package com.splicemachine.derby.utils.marshall;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.storage.EntryEncoder;
@@ -20,7 +21,7 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 		protected KryoPool kryoPool;
 
 		public EntryDataHash(int[] keyColumns, boolean[] keySortOrder) {
-				this(keyColumns, keySortOrder,SpliceDriver.getKryoPool());
+				this(keyColumns, keySortOrder, SpliceKryoRegistry.getInstance());
 		}
 
 		public EntryDataHash(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool) {

@@ -8,19 +8,19 @@ import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.utils.ErrorState;
 import org.apache.commons.cli.*;
 import org.apache.derby.iapi.error.PublicAPI;
+import org.apache.derby.jdbc.ClientDriver;
+import org.apache.derby.jdbc.ClientDriver40;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.HFileOutputFormat;
 import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.JobStatus;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -31,13 +31,13 @@ import java.io.IOException;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Properties;
 
 public class MapReduceDataLoader extends Configured implements Tool {
 		public static final String HBASE_TABLE_NAME = "hbase.table.name";
 		public static Gson gson = new Gson();
 
-
-		public int runHFileIncrementalLoad(ImportContext importContext,String tempOutputPath) throws Exception {
+		public int runHFileIncrementalLoad(ImportContext importContext,String tempOutputPath,int numReduces) throws Exception {
 				Configuration conf = getConf();
 				conf.set(HBASE_TABLE_NAME, Long.toString(importContext.getTableId()));
 				HBaseConfiguration.addHbaseResources(conf);
@@ -46,11 +46,18 @@ public class MapReduceDataLoader extends Configured implements Tool {
 				job.setJarByClass(MapReduceDataLoader.class);
 				job.setMapperClass(HBaseBulkLoadMapper.class);
 				job.setMapOutputKeyClass(ImmutableBytesWritable.class);
-				job.setMapOutputValueClass(KeyValue.class);
+				job.setMapOutputValueClass(ImmutableBytesWritable.class);
 				job.setInputFormatClass(TextInputFormat.class);
-				HTable hTable = new HTable(job.getConfiguration(),Bytes.toBytes(importContext.getTableId()+""));
 
-				HFileOutputFormat.configureIncrementalLoad(job, hTable);
+				HTable hTable = new HTable(job.getConfiguration(),Bytes.toBytes(importContext.getTableId()+""));
+				HFileOutputFormat.configureIncrementalLoad(job,hTable);
+//				System.out.printf("Setting up reducers with %d reduces%n",numReduces);
+				int setReduceTasks = job.getNumReduceTasks();
+				if(numReduces>setReduceTasks)
+						job.setNumReduceTasks(numReduces);
+				job.setReducerClass(HBaseBulkLoadReducer.class);
+				job.getConfiguration().set("import.txnId", importContext.getTransactionId());
+
 				FileInputFormat.addInputPath(job, importContext.getFilePath());
 				Path outputDir = new Path(tempOutputPath);
 				FileOutputFormat.setOutputPath(job, outputDir);
@@ -68,6 +75,7 @@ public class MapReduceDataLoader extends Configured implements Tool {
 		protected int submitAndCompleteJob(Job job) throws IOException, InterruptedException, ClassNotFoundException {
 				long startTime = System.currentTimeMillis();
 				SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//				job.waitForCompletion(true);
 				job.submit();
 				System.out.printf("Job started at %s%n", formatter.format(new Date(startTime)));
 				System.out.println("Job Information: ");
@@ -89,16 +97,19 @@ public class MapReduceDataLoader extends Configured implements Tool {
 				System.out.printf("Job ended at %s%n", formatter.format(new Date(finishTime)));
 				System.out.printf("Elapsed job time: %f s%n", (finishTime - startTime) / (1000d));
 
-				switch(job.getJobState()){
-						case FAILED:
-								System.out.printf("Job failed: %s%n",job.getStatus().getFailureInfo());
-								return 5;
-						case KILLED:
-								System.out.printf("Job killed%n");
-								return 6;
-						default:
-								return 0;
-				}
+				return job.isSuccessful()? 0: 5;
+//				if(!job.isSuccessful()) return 5;
+//				return 0;
+//				switch(job.getJobState()){
+//						case FAILED:
+//								System.err.printf("Job failed %n");
+//								return 5;
+//						case KILLED:
+//								System.err.printf("Job killed %n");
+//								return 6;
+//						default:
+//								return 0;
+//				}
 		}
 
 		public static void main(String...args) throws Exception{
@@ -184,7 +195,14 @@ public class MapReduceDataLoader extends Configured implements Tool {
 								return 4;
 						}
 						ImportContext ctx = ctxBuilder.build();
-						return runHFileIncrementalLoad(ctx,commandLine.getOptionValue("o"));
+						int numReducers;
+						try{
+								numReducers = Integer.parseInt(commandLine.getOptionValue("r","2"));
+						}catch(NumberFormatException nfe){
+								System.err.printf("Could not parse reducers %s, using default of 2%n",commandLine.getOptionValue("r"));
+								numReducers=2;
+						}
+						return runHFileIncrementalLoad(ctx,commandLine.getOptionValue("o"),numReducers);
 				}finally{
 						commitAndClose(connection, failed);
 				}
@@ -300,7 +318,8 @@ public class MapReduceDataLoader extends Configured implements Tool {
 
 				String connectStr = String.format("jdbc:splice://%s:%d/splicedb;",jdbcHost,jdbcPort);
 				try{
-						Connection connection = DriverManager.getConnection(connectStr);
+						ClientDriver driver = new ClientDriver40();
+						Connection connection = driver.connect(connectStr, new Properties());
 						connection.setAutoCommit(false);
 						return connection;
 				}catch(SQLException se){
@@ -366,6 +385,10 @@ public class MapReduceDataLoader extends Configured implements Tool {
 				Option dateFormat = new Option("D","date-format",true,"The Date format to use. Defaults to yyyy-MM-dd");
 				dateFormat.setRequired(false);
 				options.addOption(dateFormat);
+
+				Option reducers = new Option("r","reduce-tasks",true,"The number of reduce tasks to use. Default is 2");
+				reducers.setRequired(false);
+				options.addOption(reducers);
 				return options;
 		}
 }

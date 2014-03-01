@@ -2,8 +2,6 @@ package com.splicemachine.mapreduce;
 
 import au.com.bytecode.opencsv.CSVParser;
 import com.google.gson.Gson;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.load.ImportContext;
 import com.splicemachine.derby.impl.load.ImportTask;
 import com.splicemachine.derby.impl.load.RowParser;
@@ -14,7 +12,6 @@ import com.splicemachine.utils.Type1UUIDGenerator;
 import com.splicemachine.utils.UUIDGenerator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -22,14 +19,17 @@ import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 
-public class HBaseBulkLoadMapper extends Mapper<LongWritable, Text, ImmutableBytesWritable, KeyValue> {
+public class HBaseBulkLoadMapper extends Mapper<LongWritable, Text,
+				ImmutableBytesWritable, ImmutableBytesWritable> {
 		public static final String IMPORT_CONTEXT = "import.context";
 		private RowParser rowParser;
 		private ImportContext importContext;
 		private PairEncoder entryEncoder;
-		private ImmutableBytesWritable outputKey = new ImmutableBytesWritable();
 		private CSVParser parser;
 		private long txnId;
+
+		private ImmutableBytesWritable outputKey = new ImmutableBytesWritable();
+		private ImmutableBytesWritable outputValue = new ImmutableBytesWritable();
 
 		@Override
 		protected void map(LongWritable key, Text value,Context context) throws IOException, InterruptedException {
@@ -39,17 +39,19 @@ public class HBaseBulkLoadMapper extends Mapper<LongWritable, Text, ImmutableByt
 						KVPair kvPair = entryEncoder.encode(execRow);
 						byte[] row = kvPair.getRow();
 						outputKey.set(row);
-						KeyValue dataKv = new KeyValue(row,
-										SpliceConstants.DEFAULT_FAMILY_BYTES,
-										RowMarshaller.PACKED_COLUMN_KEY,
-										txnId,kvPair.getValue());
-						KeyValue siKv =
-						new KeyValue(row,
-										SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,
-										SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
-										txnId,SIConstants.EMPTY_BYTE_ARRAY);
-						context.write(outputKey,dataKv);
-						context.write(outputKey,siKv);
+						outputValue.set(kvPair.getValue());
+						context.write(outputKey,outputValue);
+//						KeyValue dataKv = new KeyValue(row,
+//										SpliceConstants.DEFAULT_FAMILY_BYTES,
+//										RowMarshaller.PACKED_COLUMN_KEY,
+//										txnId,kvPair.getValue());
+//						KeyValue siKv =
+//						new KeyValue(row,
+//										SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,
+//										SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
+//										txnId,SIConstants.EMPTY_BYTE_ARRAY);
+//						context.write(outputKey,dataKv);
+//						context.write(outputKey,siKv);
 				} catch (StandardException e) {
 						e.printStackTrace();
 						throw new IOException(e);
