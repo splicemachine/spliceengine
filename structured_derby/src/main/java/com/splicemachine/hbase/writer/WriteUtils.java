@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.writer;
 
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -29,7 +30,6 @@ public class WriteUtils {
     public static boolean bucketWrites(ObjectArrayList<KVPair> buffer,List<BulkWrite> buckets) throws Exception{
         //make sure regions are in sorted order
         Collections.sort(buckets, writeComparator);
-       // ObjectArrayList<KVPair> regionLessWrites = ObjectArrayList.newInstanceWithCapacity(0); XXX - TODO Where we supposed to do something with this?
 
         Object[] buffers = buffer.buffer;
         int iBuffer = buffer.size();
@@ -42,7 +42,7 @@ public class WriteUtils {
             //we know this iterator has at least one region, otherwise we would have exploded
             do{
                 BulkWrite next = bucketList.next();
-                int compare = Bytes.compareTo(next.getRegionKey(),row);
+                int compare = BytesUtil.startComparator.compare(next.getRegionKey(), row);
                 less = compare<0;
                 if(compare==0||less){
                     bucket = next;

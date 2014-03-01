@@ -32,6 +32,8 @@ public class ConstraintHandler implements WriteHandler {
         if(!HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(),mutation.getRow())){
             //we can't check the mutation, it'll explode
             ctx.failed(mutation,WriteResult.wrongRegion());
+//						failed=true;
+						return;
         }
         try {
             if(!localConstraint.validate(mutation,ctx.getTransactionId(),ctx.getCoprocessorEnvironment(),visitedRows)){
@@ -45,10 +47,11 @@ public class ConstraintHandler implements WriteHandler {
             }
         }catch(NotServingRegionException nsre){
             ctx.failed(mutation,WriteResult.notServingRegion());
+						failed=true;
         }catch (Exception e) {
             failed=true;
             ctx.failed(mutation,WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
-            visitedRows.add(mutation);
+//            visitedRows.add(mutation);
         }
     }
 
