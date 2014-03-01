@@ -110,11 +110,6 @@ public class SpliceDriver extends SIConstants {
 
     private String startNode;
     private static final SpliceDriver INSTANCE = new SpliceDriver();
-    private static final KryoPool kryoPool;
-    static{
-        kryoPool = new KryoPool(SpliceConstants.kryoPoolSize);
-        kryoPool.setKryoRegistry(new SpliceKryoRegistry());
-    }
 
     private AtomicReference<State> stateHolder = new AtomicReference<State>(State.NOT_STARTED);
 
@@ -501,7 +496,7 @@ public class SpliceDriver extends SIConstants {
     }
 
     public static KryoPool getKryoPool(){
-        return kryoPool;
+        return SpliceKryoRegistry.getInstance();
     }
 
 }

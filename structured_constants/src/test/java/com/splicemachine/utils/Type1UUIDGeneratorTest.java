@@ -16,6 +16,17 @@ import java.util.concurrent.*;
  */
 public class Type1UUIDGeneratorTest {
 		@Test
+		public void testCanGenerateUUIDsInRecurringBlocksWithoutDuplicationLots() throws Exception {
+				UUIDGenerator generator = Type1UUIDGenerator.instance();
+				Set<byte[]> uuids = Sets.newTreeSet(Bytes.BYTES_COMPARATOR);
+				for(int i=0;i<10000000;i++){
+						byte[] next = generator.nextBytes();
+						Assert.assertFalse("uuid " + next + " already seen", uuids.contains(next));
+						uuids.add(next);
+				}
+		}
+
+		@Test
 		public void testCanGenerateUUIDsInRecurringBlocksWithoutDuplication() throws Exception {
 				UUIDGenerator generator = Type1UUIDGenerator.instance();
 				Set<byte[]> uuids = Sets.newTreeSet(Bytes.BYTES_COMPARATOR);

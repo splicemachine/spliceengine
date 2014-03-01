@@ -4,6 +4,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.LazyTimestampDataValueDescriptor;
 import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -124,6 +125,16 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
     //ExternalizableSerializers are stateless, no need to create more than we need
     private static final ExternalizableSerializer EXTERNALIZABLE_SERIALIZER = new ExternalizableSerializer();
     private static final UnmodifiableCollectionsSerializer UNMODIFIABLE_COLLECTIONS_SERIALIZER = new UnmodifiableCollectionsSerializer();
+
+		private static final KryoPool spliceKryoPool;
+		static{
+				spliceKryoPool = new KryoPool(SpliceConstants.kryoPoolSize);
+				spliceKryoPool.setKryoRegistry(new SpliceKryoRegistry());
+		}
+
+		public static KryoPool getInstance(){
+				return spliceKryoPool;
+		}
 
     @Override
     public void register(Kryo instance) {
