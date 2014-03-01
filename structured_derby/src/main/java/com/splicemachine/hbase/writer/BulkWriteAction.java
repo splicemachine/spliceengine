@@ -4,6 +4,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -28,10 +29,7 @@ import org.apache.hadoop.hbase.client.Row;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -204,6 +202,7 @@ final class BulkWriteAction implements Callable<WriteStats> {
 				writesToPerform.add(bulkWrite);
 				do{
 						BulkWrite nextWrite = writesToPerform.removeFirst();
+						SpliceLogUtils.trace(LOG,"[%d] %s",id,nextWrite);
 						try{
 								BulkWriteInvoker invoker = invokerFactory.newInstance();
 								writeTimer.startTiming();
@@ -212,7 +211,8 @@ final class BulkWriteAction implements Callable<WriteStats> {
 
 								WriteResult globalResult = processGlobalResult(response.getGlobalResult(),maximumRetries-numAttempts);
 								if(globalResult.getCode()== WriteResult.Code.REGION_TOO_BUSY){
-										numAttempts--;
+										if(LOG.isTraceEnabled())
+												SpliceLogUtils.trace(LOG,"[%d] Retrying write after receiving a RegionTooBusyException",id);
 										writesToPerform.add(nextWrite); //add it back in to ensure that it tries again
 										continue;
 								}
@@ -227,21 +227,22 @@ final class BulkWriteAction implements Callable<WriteStats> {
 														throw parseIntoException(response);
 												case RETRY:
 														if(LOG.isDebugEnabled())
-																LOG.debug(String.format("Retrying write after receiving partial error %s",response));
+																SpliceLogUtils.debug(LOG,"[%d] Retrying write after receiving partial error %s",id,response);
 														//add in all the non-empty new BulkWrites to try again
-														writesToPerform.addAll(Collections2.filter(doPartialRetry(bulkWrite, response), nonEmptyPredicate));
+														writesToPerform.addAll(Collections2.filter(doPartialRetry(nextWrite, response), nonEmptyPredicate));
 												default:
 														//return
 										}
 								}
 						} catch (Throwable e) {
+								e.printStackTrace();
 								globalErrorCounter.increment();
 								if(thrown)
 										throw new ExecutionException(e);
 
 								if (e instanceof RegionTooBusyException) {
 										if(LOG.isTraceEnabled())
-												LOG.trace("Retrying write after receiving a RegionTooBusyException");
+												SpliceLogUtils.trace(LOG, "[%d] Retrying write after receiving a RegionTooBusyException", id);
 										sleeper.sleep(WriteUtils.getWaitTime(maximumRetries - numAttempts + 1, writeConfiguration.getPause()));
 										writesToPerform.add(nextWrite);
 										continue;
@@ -254,7 +255,7 @@ final class BulkWriteAction implements Callable<WriteStats> {
 										case RETRY:
 												errors.add(e);
 												if(LOG.isDebugEnabled())
-														LOG.debug("Retrying write after receiving global error",e);
+														SpliceLogUtils.debug(LOG, "[%d] Retrying write after receiving a Global error %s:%s", id, e.getClass(), e.getMessage());
 												writesToPerform.addAll(Collections2.filter(retry(maximumRetries, nextWrite),nonEmptyPredicate));
 												break;
 										default:
@@ -321,6 +322,13 @@ final class BulkWriteAction implements Callable<WriteStats> {
 
         List<String> errorMsgs = Lists.newArrayListWithCapacity(failedRows.size());
 
+				if(LOG.isTraceEnabled()){
+						int[] errorCounts = new int[11];
+						for(IntObjectCursor<WriteResult> failedCursor:failedRows){
+								errorCounts[failedCursor.value.getCode().ordinal()]++;
+						}
+						SpliceLogUtils.trace(LOG,"[%d] partial failure types: %s",id,Arrays.toString(errorCounts));
+				}
 				for(IntObjectCursor<WriteResult> cursor:failedRows){
 						errorMsgs.add(cursor.value.getErrorMessage());
         }
@@ -343,6 +351,16 @@ final class BulkWriteAction implements Callable<WriteStats> {
             throw new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
 				List<BulkWrite> newBuckets = getBulkWrites(txnId);
         if(WriteUtils.bucketWrites(failedWrites, newBuckets)){
+						if(LOG.isTraceEnabled()){
+//								List<Integer> sizes = Lists.transform(newBuckets,new Function<BulkWrite, Integer>() {
+//										@Override
+//										public Integer apply(@Nullable BulkWrite input) {
+//												if(input==null) return 0;
+//												return input.getSize();
+//										}
+//								});
+								SpliceLogUtils.trace(LOG,"[%d] Retrying writes with %d buckets: %s",id, newBuckets.size(),newBuckets);
+						}
 						return newBuckets;
         }else{
             return retryFailedWrites(tries-1,txnId,failedWrites);

@@ -9,6 +9,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.common.collect.Lists;
 import com.splicemachine.hbase.KVPair;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.compress.SnappyCodec;
 
 /**
@@ -63,7 +64,7 @@ public class BulkWrite implements Externalizable {
     public String toString() {
         return "BulkWrite{" +
                 "txnId='" + txnId + '\'' +
-                ", regionKey=" + regionKey +
+                ", regionKey=" + Bytes.toStringBinary(regionKey) +
                 ", rows="+mutations.size()+
                 '}';
     }
