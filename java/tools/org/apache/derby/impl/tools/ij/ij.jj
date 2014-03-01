@@ -717,11 +717,11 @@ class ij {
             rs.findColumn("TABLE_NAME"),
             rs.findColumn("INDEX_NAME"),
             rs.findColumn("COLUMN_NAME"),
+            rs.findColumn("ORDINAL_POSITION"),
             rs.findColumn("NON_UNIQUE"),
             rs.findColumn("TYPE"),
             rs.findColumn("ASC_OR_DESC"),
-            rs.findColumn("CARDINALITY"),
-            rs.findColumn("PAGES"),
+            rs.findColumn("CONGLOM_NO"),
         };
         if(schema!=null) {
             displayColumns = intArraySubset(displayColumns, 1, 
@@ -739,11 +739,11 @@ class ij {
             50,
             50,
             20,
-            6,
-            4,
-            4,
             8,
-            8,
+            10,
+            5,
+            4,
+            10,
         };
         if(schema!=null) {
             columnWidths = intArraySubset(columnWidths, 1, 
