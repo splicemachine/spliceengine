@@ -13,13 +13,10 @@ public class SIConstants extends SpliceConstants {
         setParameters();
     }
 
-		public static final byte[] TRUE_BYTES = Bytes.toBytes(true);
-		public static final byte[] FALSE_BYTES = Bytes.toBytes(false);
+	public static final byte[] TRUE_BYTES = Bytes.toBytes(true);
+	public static final byte[] FALSE_BYTES = Bytes.toBytes(false);
     public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
     public static final byte[] SNAPSHOT_ISOLATION_FAILED_TIMESTAMP = new byte[] {-1};
-
-    public static final String SNAPSHOT_ISOLATION_FAMILY = "S";
-    public static final byte[] SNAPSHOT_ISOLATION_FAMILY_BYTES = SNAPSHOT_ISOLATION_FAMILY.getBytes();
     public static final int TRANSACTION_ID_COLUMN = 14;
     public static final int TRANSACTION_START_TIMESTAMP_COLUMN = 0;
     public static final int TRANSACTION_PARENT_COLUMN = 1;
@@ -33,7 +30,7 @@ public class SIConstants extends SpliceConstants {
     public static final int TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN = 16;
     public static final int TRANSACTION_KEEP_ALIVE_COLUMN = 8;
     public static final int TRANSACTION_COUNTER_COLUMN = 15;
-		public static final int WRITE_TABLE_COLUMN = 18;
+	public static final int WRITE_TABLE_COLUMN = 18;
 
     public static final byte[] TRANSACTION_ID_COLUMN_BYTES = Encoding.encode(TRANSACTION_ID_COLUMN);
     public static final byte[] TRANSACTION_START_TIMESTAMP_COLUMN_BYTES = Encoding.encode(TRANSACTION_START_TIMESTAMP_COLUMN);
@@ -50,17 +47,18 @@ public class SIConstants extends SpliceConstants {
     public static final byte[] TRANSACTION_COUNTER_COLUMN_BYTES = Encoding.encode(TRANSACTION_COUNTER_COLUMN);
 
     public static final byte[] TRANSACTION_FAMILY_BYTES = SpliceConstants.DEFAULT_FAMILY.getBytes();
-    public static final int SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN = 0;
-    public static final int SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN = 1;
+	public static final int SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE = 0;
+    public static final int SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN = 0;
+    public static final int SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN = 1;
     public static final String SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING = SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN + "";
     public static final String SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING = SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN + "";
+    public static final String SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_STRING = SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE + "";
+    
     public static final byte[] SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING);
-		public static final byte[] SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES = Bytes.toBytes(SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING);
-
+	public static final byte[] SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES = Bytes.toBytes(SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING);
+	public static final byte[] SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES = Bytes.toBytes(SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_STRING);		
     public static final short SI_NEEDED_VALUE = (short) 0;
-		public static final byte[] SI_NEEDED_VALUE_BYTES = Bytes.toBytes(SI_NEEDED_VALUE);
-    public static final short ONLY_SI_FAMILY_NEEDED_VALUE = (short) 1;
-		public static final byte[] ONLY_SI_FAMILY_NEEDED_VALUE_BYTES = Bytes.toBytes(ONLY_SI_FAMILY_NEEDED_VALUE);
+	public static final byte[] SI_NEEDED_VALUE_BYTES = Bytes.toBytes(SI_NEEDED_VALUE);
 
 		@Parameter public static final String TRANSACTION_KEEP_ALIVE_INTERVAL = "splice.txn.keepAliveIntervalMs";
 		@DefaultValue(TRANSACTION_KEEP_ALIVE_INTERVAL) public static final int DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL=60000;
@@ -74,7 +72,6 @@ public class SIConstants extends SpliceConstants {
     public static final String SI_NEEDED = "B";
     public static final String SI_DELETE_PUT = "D";
 
-    public static final String SI_ANTI_TOMBSTONE_VALUE = "Z";
 		/*
 		 * The time, in ms, to wait between attempts at resolving a transaction which
 		 * is in the COMMITTING state (e.g. the amount of time to wait for a transaction

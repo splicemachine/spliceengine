@@ -19,7 +19,6 @@ public class HbasePackedAsyncRollForwardTest extends HBaseAsyncRollForwardTest{
 
 		public HbasePackedAsyncRollForwardTest() {
 				super();
-				usePacked=true;
 		}
 
 

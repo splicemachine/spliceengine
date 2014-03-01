@@ -24,11 +24,6 @@ public interface TransactionReadController<Get,Scan> {
 		boolean isFilterNeededGet(Get get);
 		boolean isFilterNeededScan(Scan scan);
 
-		/**
-		 * Determine whether an operation has been marked to indicate that it should return an SI column.
-		 */
-		boolean isGetIncludeSIColumn(Get get);
-		boolean isScanIncludeSIColumn(Scan scan);
 
 		/**
 		 * Perform server-side pre-processing of operations. This is before they are actually executed.
@@ -41,11 +36,9 @@ public interface TransactionReadController<Get,Scan> {
 		 * in light of this state.
 		 */
 		IFilterState newFilterState(TransactionId transactionId) throws IOException;
-		IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId,
-																boolean includeSIColumn) throws IOException;
+		IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId) throws IOException;
 		IFilterState newFilterStatePacked(String tableName, RollForwardQueue rollForwardQueue,
-																			EntryPredicateFilter predicateFilter, TransactionId transactionId,
-																			boolean includeSIColumn) throws IOException;
+																			EntryPredicateFilter predicateFilter, TransactionId transactionId) throws IOException;
 
 		/**
 		 * Consider whether to use a key value in light of a given filterState.

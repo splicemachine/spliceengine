@@ -15,14 +15,11 @@ import org.junit.runners.Suite;
  * @author Scott Fines
  * Date: 2/17/14
  */
-@Suite.SuiteClasses({HBaseAsyncRollForwardTest.class,
-				SITransactorHBaseTest.class,
-				JtaXAResourceHBaseTest.class,
+@Suite.SuiteClasses({JtaXAResourceHBaseTest.class,
 				TransactionManagerHBaseTest.class,
 				SIFilterHBaseTest.class,
 				HbasePackedAsyncRollForwardTest.class,
 				SITransactorHBasePackedTest.class,
-				HBaseCompactionTest.class,
 				HBasePackedCompactionTest.class
 })
 @RunWith(Suite.class)

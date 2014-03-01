@@ -45,7 +45,7 @@ public class SIFilterTest extends SIConstants {
     }
 
     private void insertAge(TransactionId transactionId, String name, int age) throws IOException {
-        TransactorTestUtility.insertAgeDirect(useSimple, false, transactorSetup, storeSetup, transactionId, name, age);
+        TransactorTestUtility.insertAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name, age);
     }
 
     Result readEntireTuple(String name) throws IOException {
@@ -54,7 +54,7 @@ public class SIFilterTest extends SIConstants {
 
         byte[] key = dataLib.newRowKey(new Object[]{name});
         Object get = dataLib.newGet(key, null, null, null);
-        Object testSTable = reader.open(storeSetup.getPersonTableName(false));
+        Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             return reader.get(testSTable, get);
         } finally {
@@ -66,7 +66,7 @@ public class SIFilterTest extends SIConstants {
     public void testFiltering() throws Exception {
         final SDataLib dataLib = storeSetup.getDataLib();
         final TransactionId t1 = control.beginTransaction();
-        final IFilterState filterState = readController.newFilterState(transactorSetup.rollForwardQueue, t1, false);
+        final IFilterState filterState = readController.newFilterState(transactorSetup.rollForwardQueue, t1);
         insertAge(t1, "bill", 20);
         control.commit(t1);
 
@@ -74,7 +74,7 @@ public class SIFilterTest extends SIConstants {
         insertAge(t2, "bill", 30);
 
         Result row = readEntireTuple("bill");
-        final List<KeyValue> keyValues = row.getColumn(dataLib.encode(SNAPSHOT_ISOLATION_FAMILY), dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
+        final List<KeyValue> keyValues = row.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES), dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
         for (KeyValue kv : keyValues) {
 						filterState.filterKeyValue(kv);
         }

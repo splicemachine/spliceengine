@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.data.api.SDataLib;
@@ -8,9 +7,7 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
-
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.*;
 
 /**
@@ -21,31 +18,22 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
         Scan, Lock, OperationStatus, Mutation, IHTable>
         implements IFilterState {
     static final Logger LOG = Logger.getLogger(FilterState.class);
-
     /**
      * The transactions that have been loaded as part of running this filter.
      */
     final LongPrimitiveCacheMap<Transaction> transactionCache;
     final LongPrimitiveCacheMap<VisibleResult> visibleCache;
-
     private final ImmutableTransaction myTransaction;
     private final SDataLib<Put, Delete, Get, Scan> dataLib;
-    private final DataStore<Mutation, Put,
-            Delete, Get, Scan, IHTable> dataStore;
+    private final DataStore<Mutation, Put,Delete, Get, Scan, IHTable> dataStore;
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
-    private final boolean includeSIColumn;
-    private boolean ignoreDoneWithColumn;
-
-    private final FilterRowState<Result, Put, Delete, Get, Scan, Lock, OperationStatus> rowState;
+    final FilterRowState<Result, Put, Delete, Get, Scan, Lock, OperationStatus> rowState;
     final DecodedKeyValue<Result, Put, Delete, Get, Scan> keyValue;
     KeyValueType type;
-
     private final TransactionSource transactionSource;
-
     FilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
-                RollForwardQueue rollForwardQueue, boolean includeSIColumn,
-                ImmutableTransaction myTransaction) {
+                RollForwardQueue rollForwardQueue,ImmutableTransaction myTransaction) {
         this.transactionSource = new TransactionSource() {
             @Override
             public Transaction getTransaction(long timestamp) throws IOException {
@@ -57,19 +45,12 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
         this.rollForwardQueue = rollForwardQueue;
-        this.includeSIColumn = includeSIColumn;
         this.myTransaction = myTransaction;
-
         transactionCache = new LongPrimitiveCacheMap<Transaction>();
         visibleCache = new LongPrimitiveCacheMap<VisibleResult>();
-
-        // initialize internal state
         this.rowState = new FilterRowState(dataLib);
     }
 
-    public void setIgnoreDoneWithColumn() {
-        this.ignoreDoneWithColumn = true;
-    }
 
     /**
      * The public entry point. This returns an HBase filter code and is expected to serve as the heart of an HBase filter
@@ -98,83 +79,19 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      * Look at the column family and qualifier to determine how to "dispatch" the current keyValue.
      */
     Filter.ReturnCode filterByColumnType() throws IOException {
-        if (rowState.inData) {
-            return processUserDataShortCircuit();
-        }
         if (type.equals(KeyValueType.TOMBSTONE)) {
+        	processDataTimestamp();
             return processTombstone();
         } else if (type.equals(KeyValueType.ANTI_TOMBSTONE)) {
+        	processDataTimestamp();
             return processAntiTombstone();
         } else if (type.equals(KeyValueType.COMMIT_TIMESTAMP)) {
-            if (includeSIColumn && !rowState.isSiColumnIncluded()) {
-                processCommitTimestamp();
-                return processCommitTimestampAsUserData();
-            } else {
-                return processCommitTimestamp();
-            }
+        	return processCommitTimestamp();
         } else if (type.equals(KeyValueType.USER_DATA)) {
-            return processUserDataSetupShortCircuit();
+        	processDataTimestamp();
+            return processUserData();
         } else {
             return processUnknownFamilyData();
-        }
-    }
-
-    private Filter.ReturnCode processUserDataSetupShortCircuit() throws IOException {
-        log("processUserDataSetupShortCircuit");
-        final Filter.ReturnCode result = processUserData();
-        rowState.inData = true;
-        if (rowState.transactionCache.size() == 1) {
-            rowState.shortCircuit = result;
-        }
-        return result;
-    }
-
-    private Filter.ReturnCode processUserDataShortCircuit() throws IOException {
-        if (rowState.shortCircuit != null) {
-            return rowState.shortCircuit;
-        } else {
-            return processUserData();
-        }
-    }
-
-    private Filter.ReturnCode processCommitTimestampAsUserData() throws IOException {
-        log("processCommitTimestampAsUserData");
-        boolean later = false;
-        final long[] buffer = rowState.tombstoneTimestamps.buffer;
-        final int size = rowState.tombstoneTimestamps.size();
-        for (int i = 0; i < size; i++) {
-            if (buffer[i] < keyValue.timestamp()) {
-                later = true;
-                break;
-            }
-        }
-        if (later) {
-            rowState.rememberCommitTimestamp(keyValue.keyValue());
-            return SKIP;
-        } else {
-            final KeyValue oldKeyValue = keyValue.keyValue();
-            boolean include = false;
-            Object[] commits = rowState.getCommitTimestamps().buffer;
-            int commitsSize = rowState.getCommitTimestamps().size();
-            for (int i = 0 ; i < commitsSize; i++) {
-                keyValue.setKeyValue((KeyValue)commits[i]);
-                if (processUserData().equals(INCLUDE)) {
-                    include = true;
-                    break;
-                }            	
-            }
-            keyValue.setKeyValue(oldKeyValue);
-            if (include) {
-                rowState.setSiColumnIncluded();
-                return INCLUDE;
-            } else {
-                final Filter.ReturnCode returnCode = processUserData();
-                if (returnCode.equals(SKIP)) {
-                } else {
-                    rowState.setSiColumnIncluded();
-                }
-                return returnCode;
-            }
         }
     }
 
@@ -191,12 +108,42 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
         rowState.transactionCache.put(transaction.getTransactionId().getId(), transaction);
         return SKIP;
     }
+    
+    /**
+     * Handles the "commit timestamp" values that SI writes to each data row. Processing these values causes the
+     * relevant transaction data to be loaded up into the local cache.
+     */
+    private void processDataTimestamp() throws IOException {
+        log("processCommitTimestamp");
+        if (rowState.transactionCache.get(keyValue.timestamp()) != null) { // Already processed, must have been committed or failed...
+        	return;
+        }
+        Transaction transaction = transactionCache.get(keyValue.timestamp()); // hit the major cache
+        if (transaction == null) {
+            transaction = processDataTimestampDirect(); // lookup
+        }
+        rowState.transactionCache.put(transaction.getTransactionId().getId(), transaction);
+        return;
+    }
 
+    private Transaction processDataTimestamp(long timestamp) throws IOException {
+        log("processCommitTimestamp");
+        Transaction transaction;
+        if ((transaction = rowState.transactionCache.get(timestamp)) != null) { // Already processed, must have been committed or failed...
+        	return transaction;
+        }
+        transaction = transactionCache.get(timestamp); // hit the major cache
+        if (transaction == null) {
+            transaction = processDataTimestampDirect(timestamp); // lookup
+        }
+        rowState.transactionCache.put(transaction.getTransactionId().getId(), transaction);
+        return transaction;
+    }
+
+    
     private Transaction processCommitTimestampDirect() throws IOException {
         Transaction transaction;
-        if (dataStore.isSINull(keyValue.keyValue())) {
-            transaction = handleUnknownTransactionStatus();
-        } else if (dataStore.isSIFail(keyValue.keyValue())) {
+        if (dataStore.isSIFail(keyValue.keyValue())) {
             transaction = transactionStore.makeStubFailedTransaction(keyValue.timestamp());
             transactionCache.put(keyValue.timestamp(), transaction);
         } else {
@@ -206,6 +153,16 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
         return transaction;
     }
 
+    private Transaction processDataTimestampDirect(long timestamp) throws IOException {
+        return handleUnknownTransactionStatus(timestamp);
+   }
+
+    
+    private Transaction processDataTimestampDirect() throws IOException {
+         return handleUnknownTransactionStatus();
+    }
+
+    
     private Transaction getTransactionFromFilterCache(long timestamp) throws IOException {
         Transaction transaction = transactionCache.get(timestamp);
         if (transaction == null) {
@@ -229,6 +186,20 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
         final Transaction cachedTransaction = rowState.transactionCache.get(keyValue.timestamp());
         if (cachedTransaction == null) {
             final Transaction dataTransaction = getTransactionFromFilterCache(keyValue.timestamp());
+            final VisibleResult visibleResult = checkVisibility(dataTransaction);
+            if (visibleResult.effectiveStatus.isFinished()) {
+                rollForward(dataTransaction);
+            }
+            return dataTransaction;
+        } else {
+            return cachedTransaction;
+        }
+    }
+    
+    private Transaction handleUnknownTransactionStatus(long transactionId) throws IOException {
+        final Transaction cachedTransaction = rowState.transactionCache.get(transactionId);
+        if (cachedTransaction == null) {
+            final Transaction dataTransaction = getTransactionFromFilterCache(transactionId);
             final VisibleResult visibleResult = checkVisibility(dataTransaction);
             if (visibleResult.effectiveStatus.isFinished()) {
                 rollForward(dataTransaction);
@@ -281,11 +252,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      * Handle a cell that represents user data. Filter it based on the various timestamps and transaction status.
      */
     private Filter.ReturnCode processUserData() throws IOException {
-        if (doneWithColumn() && !ignoreDoneWithColumn) {
-            return NEXT_COL;
-        } else {
             return filterUserDataByTimestamp();
-        }
     }
 
     /**
@@ -312,25 +279,35 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
     }
 
     /**
-     * The second half of manually implementing our own "INCLUDE & NEXT_COL" return code.
-     */
-    private boolean doneWithColumn() {
-        return KeyValueUtils.matchingQualifierKeyValue(keyValue.keyValue(), rowState.lastValidQualifier);
-    }
-
-    /**
      * Is there a row level tombstone that supercedes the current cell?
      */
     private boolean tombstoneAfterData() throws IOException {
     	final long[] buffer = rowState.tombstoneTimestamps.buffer;
     	final int size = rowState.tombstoneTimestamps.size();
     	for (int i = 0; i < size; i++) {
-            final Transaction tombstoneTransaction = rowState.transactionCache.get(buffer[i]);
+            Transaction tombstoneTransaction = rowState.transactionCache.get(buffer[i]);
+            if (tombstoneTransaction == null) {
+            	tombstoneTransaction = processDataTimestamp(buffer[i]);	
+            }
             final VisibleResult visibleResult = checkVisibility(tombstoneTransaction);
             if (visibleResult.visible && (keyValue.timestamp() <= buffer[i])) {
                 return true;
             }
         }
+
+    	final long[] buffer2 = rowState.antiTombstoneTimestamps.buffer;
+    	final int size2 = rowState.antiTombstoneTimestamps.size();
+    	for (int i = 0; i < size2; i++) {
+            Transaction tombstoneTransaction = rowState.transactionCache.get(buffer2[i]);
+            if (tombstoneTransaction == null) {
+            	tombstoneTransaction = processDataTimestamp(buffer2[i]);	
+            }
+            final VisibleResult visibleResult = checkVisibility(tombstoneTransaction);
+            if (visibleResult.visible && (keyValue.timestamp() < buffer2[i])) {
+                return true;
+            }
+        }
+
         return false;
     }
 

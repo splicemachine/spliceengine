@@ -13,13 +13,10 @@ public interface ClientTransactor<Put extends OperationWithAttributes, Get, Scan
     TransactionId transactionIdFromGet(Get get);
     TransactionId transactionIdFromScan(Scan scan);
     TransactionId transactionIdFromPut(Put put);
-
     void initializeGet(String transactionId, Get get) throws IOException;
-    void initializeScan(String transactionId, Scan scan, boolean includeSIColumn);
+    void initializeScan(String transactionId, Scan scan);
     void initializePut(String transactionId, Put put);
-    void initializePut(String transactionId, Put put, boolean addPlaceHolderColumnToEmptyPut);
     Put createDeletePut(TransactionId transactionId, byte[] rowKey);
     boolean isDeletePut(Mutation put);
-
-		boolean requiresSI(Put put);
+	boolean requiresSI(Put put);
 }

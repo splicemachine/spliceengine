@@ -22,7 +22,7 @@ public class EncodedTransactionSchema {
     public final byte[] statusQualifier;
     public final byte[] keepAliveQualifier;
     public final byte[] counterQualifier;
-		public final byte[] writeTableQualifier;
+	public final byte[] writeTableQualifier;
 
 		public EncodedTransactionSchema(String tableName,
 																		byte[] siFamily,
@@ -46,7 +46,6 @@ public class EncodedTransactionSchema {
         this.siFamily = siFamily;
         this.permissionFamily = permissionFamily;
         this.siNull = siNull;
-
         this.idQualifier = idQualifier;
         this.startQualifier = startQualifier;
         this.parentQualifier = parentQualifier;

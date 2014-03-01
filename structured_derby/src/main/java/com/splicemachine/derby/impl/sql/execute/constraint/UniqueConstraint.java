@@ -49,10 +49,8 @@ public class UniqueConstraint implements Constraint {
     private Get createGet(KVPair kvPair,String txnId) throws IOException {
 				byte[] txnIdBytes = Bytes.toBytes(txnId);
 				Get get = new Get(kvPair.getRow());
-				get.setAttribute(SIConstants.SI_NEEDED,SIConstants.ONLY_SI_FAMILY_NEEDED_VALUE_BYTES);
+				get.setAttribute(SIConstants.SI_NEEDED,SIConstants.TRUE_BYTES);
 				get.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,txnIdBytes);
-//				get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL, predicateBytes);
-				get.addFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES);
         return get;
     }
 
@@ -70,7 +68,7 @@ public class UniqueConstraint implements Constraint {
 
         HRegion region = rce.getRegion();
         //check the Bloom Filter first--if it's not present, then we know we're good
-        if (!HRegionUtil.keyExists(region.getStore(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES), mutation.getRow()))
+        if (!HRegionUtil.keyExists(region.getStore(SIConstants.DEFAULT_FAMILY_BYTES), mutation.getRow()))
         		return true;
 
         Result result = region.get(get);
@@ -79,12 +77,10 @@ public class UniqueConstraint implements Constraint {
             KeyValue[] raw = result.raw();
             rowPresent=false;
             for(KeyValue kv:raw){
-                if(kv.matchingFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)){
                     rowPresent=true;
                     if (logger.isTraceEnabled())
                     	SpliceLogUtils.trace(logger, "row %s,CF %s present",BytesUtil.toHex(mutation.getRow()),BytesUtil.toHex(kv.getFamily()));
                     break;
-                }
             }
         }
         return !rowPresent;
@@ -95,7 +91,7 @@ public class UniqueConstraint implements Constraint {
         Collection<KVPair> changes = Collections2.filter(mutations,stripDeletes);
         List<KVPair> failedKvs = Lists.newArrayListWithExpectedSize(0);
         for(KVPair change:changes){
-            if(HRegionUtil.keyExists(rce.getRegion().getStore(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES), change.getRow()) && !validate(change,txnId,rce,priorValues))
+            if(HRegionUtil.keyExists(rce.getRegion().getStore(SIConstants.DEFAULT_FAMILY_BYTES), change.getRow()) && !validate(change,txnId,rce,priorValues))
                 failedKvs.add(change);
         }
         return failedKvs;

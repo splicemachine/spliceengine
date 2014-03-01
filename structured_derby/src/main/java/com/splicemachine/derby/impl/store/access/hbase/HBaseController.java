@@ -6,6 +6,7 @@ import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.raw.Transaction;
@@ -16,6 +17,7 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 
 public class HBaseController  extends SpliceController {
@@ -54,12 +56,12 @@ public class HBaseController  extends SpliceController {
 	@Override
 	public void insertAndFetchLocation(DataValueDescriptor[] row,
 			RowLocation destRowLocation) throws StandardException {
-        SpliceLogUtils.trace(LOG,"insertAndFetchLocation into conglom %d row %s",openSpliceConglomerate.getConglomerate().getContainerid(),row);
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG,"insertAndFetchLocation into conglom %d row %s",openSpliceConglomerate.getConglomerate().getContainerid(),row==null?row:Arrays.toString(row));
         HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
 		try {
             Put put = SpliceUtils.createPut(SpliceUtils.getUniqueKey(), transID);
             encodeRow(row, put, null, null);
-
 			destRowLocation.setValue(put.getRow());
 			htable.put(put);
 		} catch (Exception e) {

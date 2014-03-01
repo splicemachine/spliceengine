@@ -46,7 +46,7 @@ public class SIErrorCounter {
 //            byte[] bytesToPut = Bytes.toBytes((long)1354);
         byte[] bytesToPut = new byte[]{};
         Put put = new Put(bytes);
-        put.add(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,Bytes.toBytes(SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING),txnId,bytesToPut);
+        put.add(SIConstants.DEFAULT_FAMILY_BYTES,Bytes.toBytes(SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING),txnId,bytesToPut);
         put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,new byte[]{0x00},txnId,dataBytes);
         put.setAttribute(SpliceConstants.SI_EXEMPT,Bytes.toBytes(true));
         table.put(put);
@@ -55,7 +55,7 @@ public class SIErrorCounter {
     private static void countErrors(HTable table) throws IOException {
         Map<Long,Long> txnIdMap = Maps.newHashMap();
         Scan scan = new Scan();
-        scan.addFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES);
+        scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
         ResultScanner scanner = table.getScanner(scan);
         Result result=null;
         long badRowCount=0l;
@@ -68,7 +68,7 @@ public class SIErrorCounter {
             rowsSeen++;
             if(rowsSeen%1000==0)
                 System.out.printf("Visited %d rows%n",rowsSeen);
-            List<KeyValue> column = result.getColumn(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES, qual);
+            List<KeyValue> column = result.getColumn(SIConstants.DEFAULT_FAMILY_BYTES, qual);
             if(column==null||column.size()<=0){
                 System.out.printf("Result %s did not have a timestamp column%n",result);
                 badRowCount++;
@@ -124,7 +124,7 @@ public class SIErrorCounter {
                     final byte[] q = kv.getQualifier();
                     final byte[] v = kv.getValue();
                     final long ts = kv.getTimestamp();
-                    if (Arrays.equals(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES, f)
+                    if (Arrays.equals(SIConstants.DEFAULT_FAMILY_BYTES, f)
                             && Arrays.equals(SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, q)) {
                         Long timestamp = null;
                         if (v.length > 0) {
