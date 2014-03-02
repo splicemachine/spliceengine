@@ -33,7 +33,8 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Properties;
 
-public class MapReduceDataLoader extends Configured implements Tool {
+public class MapReduceDataLoader extends Configured implements Tool {		
+	
 		public static final String HBASE_TABLE_NAME = "hbase.table.name";
 		public static Gson gson = new Gson();
 
@@ -82,6 +83,7 @@ public class MapReduceDataLoader extends Configured implements Tool {
 				System.out.println(job);
 				float previousStatus = 0.0f;
 				while(!job.isComplete()){
+/*
 						Thread.sleep(500l);
 						float status;
 						status = job.getStatus().getMapProgress();
@@ -92,6 +94,7 @@ public class MapReduceDataLoader extends Configured implements Tool {
 								System.out.printf("Map Progress: %f\tReduce Progress: %f%n",job.getStatus().getMapProgress(),job.getStatus().getReduceProgress());
 								previousStatus = status;
 						}
+*/
 				}
 				long finishTime = System.currentTimeMillis();
 				System.out.printf("Job ended at %s%n", formatter.format(new Date(finishTime)));
