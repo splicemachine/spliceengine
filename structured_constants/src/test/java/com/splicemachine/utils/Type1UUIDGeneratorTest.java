@@ -2,8 +2,10 @@ package com.splicemachine.utils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -14,6 +16,7 @@ import java.util.concurrent.*;
  * @author Scott Fines
  * Date: 2/27/14
  */
+@Ignore
 public class Type1UUIDGeneratorTest {
 		@Test
 		public void testCanGenerateUUIDsInRecurringBlocksWithoutDuplicationLots() throws Exception {
