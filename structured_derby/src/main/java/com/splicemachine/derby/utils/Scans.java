@@ -166,13 +166,13 @@ public class Scans extends SpliceUtils {
 		 * properly serialized into a byte[].
 		 */
 		public static Scan setupScan(DataValueDescriptor[] startKeyValue, int startSearchOperator,
-                                     DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
-                                     Qualifier[][] qualifiers,
-                                     boolean[] sortOrder,
-                                     FormatableBitSet scanColumnList,
-                                     String transactionId,boolean sameStartStopPosition,
-                                     int[] formatIds, int[] columnOrdering, DataValueFactory dataValueFactory) throws StandardException {
-            Scan scan = SpliceUtils.createScan(transactionId);
+																 DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
+																 Qualifier[][] qualifiers,
+																 boolean[] sortOrder,
+																 FormatableBitSet scanColumnList,
+																 String transactionId,boolean sameStartStopPosition, 
+																 int[] formatIds, int[] columnOrdering, DataValueFactory dataValueFactory) throws StandardException {
+				Scan scan = SpliceUtils.createScan(transactionId, scanColumnList!=null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
 				scan.setCaching(DEFAULT_CACHE_SIZE);
 				try{
 						attachScanKeys(scan, startKeyValue, startSearchOperator,

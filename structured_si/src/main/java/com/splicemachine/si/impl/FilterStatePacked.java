@@ -69,6 +69,8 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
 
     @Override
     public KeyValue produceAccumulatedKeyValue() {
+    	if (accumulator.isCountStar())
+    		return lastValidKeyValue;
     	if (lastValidKeyValue == null)
     		return null;
         final byte[] resultData = accumulator.result();
