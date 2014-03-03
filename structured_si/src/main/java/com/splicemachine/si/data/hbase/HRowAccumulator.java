@@ -14,17 +14,21 @@ public class HRowAccumulator implements RowAccumulator {
     private final EntryPredicateFilter predicateFilter;
     private final EntryAccumulator entryAccumulator;
     private final EntryDecoder decoder;
+    private boolean countStar;
 
 		private long bytesAccumulated = 0l;
 
-    public HRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder) {
+    public HRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder, boolean countStar) {
         this.predicateFilter = predicateFilter;
         this.entryAccumulator = predicateFilter.newAccumulator();
         this.decoder = decoder;
+        this.countStar = countStar;
     }
 
     @Override
     public boolean isOfInterest(KeyValue keyValue) {
+    	if (countStar)
+    		return false;
         decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());
         final BitIndex currentIndex = decoder.getCurrentIndex();
 		return entryAccumulator.isInteresting(currentIndex);
@@ -42,6 +46,8 @@ public class HRowAccumulator implements RowAccumulator {
 
     @Override
     public boolean isFinished() {
+    	if (countStar)
+    		return true;
         return entryAccumulator.isFinished();
     }
 
@@ -52,4 +58,9 @@ public class HRowAccumulator implements RowAccumulator {
         return result;
     }
 	@Override public long getBytesVisited() { return bytesAccumulated; }
+	
+	@Override
+	public boolean isCountStar() {
+		return this.countStar;
+	}
 }

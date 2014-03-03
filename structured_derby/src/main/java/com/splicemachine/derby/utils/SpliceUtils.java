@@ -5,6 +5,7 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -12,7 +13,6 @@ import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionId;
@@ -101,6 +101,14 @@ public class SpliceUtils extends SpliceUtilities {
             SpliceLogUtils.logAndThrowRuntime(LOG, e);
             return null;
         }
+    }
+    
+    public static Scan createScan(String transactionId, boolean countStar) {
+    	Scan scan = createScan(transactionId);
+    	if (countStar) {
+    		scan.setAttribute(SIConstants.SI_COUNT_STAR, SIConstants.TRUE_BYTES);
+    	}
+    	return scan;
     }
 
 		public static Get createGet(String transactionId, byte[] row) throws IOException {
