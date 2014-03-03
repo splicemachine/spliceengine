@@ -12,6 +12,15 @@ if [[ -e "${ROOT_DIR}"/splice_pid || -e "${ROOT_DIR}"/zoo_pid ]]; then
     exit 1;
 fi
 
+# Must have Java installed
+if [[ -z $(type -p java) ]]; then
+    echo checking for Java...
+    if [[ -z "$JAVA_HOME" ]] || [[ ! -x "$JAVA_HOME/bin/java" ]];  then
+        echo Must have Java installed
+        exit 1;
+    fi
+fi
+
 # Config server
 CP="${ROOT_DIR}/lib/*"
 ZOO_DIR="${ROOT_DIR}"/db/zookeeper
