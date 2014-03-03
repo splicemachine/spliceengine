@@ -8,7 +8,7 @@ import com.splicemachine.derby.impl.load.RowParser;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.utils.IntArrays;
-import com.splicemachine.utils.Type1UUIDGenerator;
+import com.splicemachine.utils.Type1UUID;
 import com.splicemachine.utils.UUIDGenerator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -92,6 +92,10 @@ public class HBaseBulkLoadMapper extends Mapper<LongWritable, Text,
 		}
 
 		protected UUIDGenerator getRandomGenerator(){
-				return Type1UUIDGenerator.instance();
+				/*
+				 * You only use MapReduce if you are planning in importing a large number of rows. Thus,
+				 * we'll want to buffer up a large number of UUIDs for usage to reduce contention.
+				 */
+				return Type1UUID.newGenerator(2048);
 		}
 }

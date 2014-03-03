@@ -1,6 +1,5 @@
 package com.splicemachine.mapreduce;
 
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import org.apache.hadoop.hbase.KeyValue;
@@ -32,18 +31,21 @@ public class HBaseBulkLoadReducer extends Reducer<ImmutableBytesWritable,
 				 * to determine whether or not to explode.
 				 */
 				boolean seen = false;
-				for(ImmutableBytesWritable value:kvs){
-						byte[] rowBytes = row.copyBytes();
-						if(seen){
-								if(throwErrorOnDuplicates)
-										throw new IOException("Duplicate entries detected for key "+ Bytes.toStringBinary(rowBytes));
-						} else seen = true;
+				try{
+						for(ImmutableBytesWritable value:kvs){
+								byte[] rowBytes = row.copyBytes();
+								if(seen){
+										if(throwErrorOnDuplicates)
+												throw new IOException("Duplicate entries detected for key "+ Bytes.toStringBinary(rowBytes));
+								} else seen = true;
 
-						KeyValue dataKv = new KeyValue(rowBytes, SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY,txnId,value.get());
-						KeyValue siKv = new KeyValue(rowBytes, SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,txnId,SIConstants.EMPTY_BYTE_ARRAY);
-						context.write(row,dataKv);
-						context.write(row,siKv);
-						rowCounter.increment(1);
+								KeyValue dataKv = new KeyValue(rowBytes, SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY,txnId,value.get());
+								context.write(row,dataKv);
+								rowCounter.increment(1);
+						}
+				}catch(Throwable t){
+						t.printStackTrace();
+						throw new IOException(t);
 				}
 		}
 
