@@ -319,7 +319,7 @@ public class TransactorTestUtility {
 										throw new RuntimeException(e);
 								}
 								EntryDecoder decoder = new EntryDecoder(kryoPool);
-								filterState = new FilterStatePacked((FilterState) filterState, new HRowAccumulator(EntryPredicateFilter.emptyPredicate(),decoder));
+								filterState = new FilterStatePacked((FilterState) filterState, new HRowAccumulator(EntryPredicateFilter.emptyPredicate(),decoder, false));
 								result = transactorSetup.readController.filterResult(filterState, rawTuple);
 								
 						} 	

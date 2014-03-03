@@ -1,5 +1,6 @@
 package com.splicemachine.si.coprocessors;
 
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.si.api.*;
@@ -8,6 +9,7 @@ import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -24,9 +26,11 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.*;
+
 import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
 
 /**
@@ -116,15 +120,14 @@ public class SIObserver extends BaseRegionObserver {
         final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
 
         final Filter newFilter = makeSIFilter(HTransactorFactory.getClientTransactor().transactionIdFromGet(get), get.getFilter(),
-								getPredicateFilter(get));
+								getPredicateFilter(get),false);
         get.setFilter(newFilter);
     }
 
     private void addSIFilterToScan(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan) throws IOException {
         final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
-
         final Filter newFilter = makeSIFilter(HTransactorFactory.getClientTransactor().transactionIdFromScan(scan), scan.getFilter(),
-								getPredicateFilter(scan));
+								getPredicateFilter(scan),scan.getAttribute(SIConstants.SI_COUNT_STAR) != null);
         scan.setFilter(newFilter);
     }
 
@@ -133,11 +136,11 @@ public class SIObserver extends BaseRegionObserver {
         return EntryPredicateFilter.fromBytes(serializedPredicateFilter);
     }
 
-    private Filter makeSIFilter(TransactionId transactionId, Filter currentFilter, EntryPredicateFilter predicateFilter) throws IOException {
+    private Filter makeSIFilter(TransactionId transactionId, Filter currentFilter, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
         final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
         final SIFilterPacked siFilter = new SIFilterPacked(tableName,
 								transactionId, HTransactorFactory.getTransactionManager(),
-								rollForwardQueue, predicateFilter,HTransactorFactory.getTransactionReadController());
+								rollForwardQueue, predicateFilter,HTransactorFactory.getTransactionReadController(), countStar);
         if (needsCompositeFilter(currentFilter)) {
             return composeFilters(orderFilters(currentFilter, siFilter));
         } else {

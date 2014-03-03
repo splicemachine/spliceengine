@@ -9,6 +9,6 @@ public interface RowAccumulator {
     boolean accumulate(KeyValue value) throws IOException;
     boolean isFinished();
     byte[] result();
-
 		long getBytesVisited();
+		boolean isCountStar();
 }

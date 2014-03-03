@@ -9,13 +9,10 @@ import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.kryo.KryoPool;
-
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -91,10 +88,10 @@ public class SITransactionReadController<
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public IFilterState newFilterStatePacked(String tableName, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter, TransactionId transactionId) throws IOException {
+		public IFilterState newFilterStatePacked(String tableName, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter, TransactionId transactionId, boolean countStar) throws IOException {
 				return new FilterStatePacked(
 								(FilterState) newFilterState(rollForwardQueue, transactionId),
-								new HRowAccumulator(predicateFilter, new EntryDecoder(KryoPool.defaultPool())));
+								new HRowAccumulator(predicateFilter, new EntryDecoder(KryoPool.defaultPool()), countStar ));
 		}
 
 		@Override
@@ -105,7 +102,6 @@ public class SITransactionReadController<
 
 		@Override
 		public void filterNextRow(IFilterState filterState) {
-				//TODO -sf- excessive method, remove
 				filterState.nextRow();
 		}
 
