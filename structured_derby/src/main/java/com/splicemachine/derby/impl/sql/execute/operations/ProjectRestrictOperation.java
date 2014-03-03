@@ -10,6 +10,7 @@ import com.google.common.base.Strings;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.utils.SpliceUtilities;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -58,6 +59,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		}
 
 		public NoPutResultSet[] subqueryTrackingArray;
+		private ExecRow execRowDefinition;
 
 		public ProjectRestrictOperation() {
 				super();
@@ -287,12 +289,16 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		 */
 		@Override
 		public ExecRow getExecRowDefinition() throws StandardException {
-				ExecRow def = source.getExecRowDefinition();
-				// Set the default values to 1.  This is to avoid division by zero if any of the projected columns have
-				// division or modulus operators.  The delegate classes will need to reset the values to 0.
-				if (def != null) SpliceUtils.populateDefaultValues(def.getRowArray(),1);
-				source.setCurrentRow(def);
-				return doProjection(def);
+				if(execRowDefinition==null){
+						ExecRow def = source.getExecRowDefinition();
+						ExecRow clone = def !=null? def.getClone(): null;
+						// Set the default values to 1.  This is to avoid division by zero if any of the projected columns have
+						// division or modulus operators.  The delegate classes will need to reset the values to 0.
+						if(clone!=null) SpliceUtils.populateDefaultValues(clone.getRowArray(),1);
+						source.setCurrentRow(clone);
+						execRowDefinition = doProjection(clone);
+				}
+				return execRowDefinition;
 		}
 
 		@Override
