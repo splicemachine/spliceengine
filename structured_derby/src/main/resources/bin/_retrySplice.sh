@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ROOT_DIR="${1}"
 SPLICELOGFILE="${2}"
