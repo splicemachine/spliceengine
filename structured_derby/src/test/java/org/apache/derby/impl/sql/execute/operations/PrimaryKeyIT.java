@@ -52,11 +52,14 @@ public class PrimaryKeyIT extends SpliceUnitTest {
 				ps.executeUpdate();
 				ps.setString(1,"mzweben");
 				ps.setInt(2,3);
-				ps.executeUpdate();				
-				ps.setString(1,"gdavis");
-				ps.setInt(2,4);
-				ps.executeUpdate();				
-			} catch (Exception e) {
+				ps.executeUpdate();
+                ps.setString(1,"gdavis");
+                ps.setInt(2,4);
+                ps.executeUpdate();
+                ps.setString(1,"dgf");
+                ps.setInt(2,5);
+                ps.executeUpdate();
+            } catch (Exception e) {
 				throw new RuntimeException(e);
 			}
 			finally {
@@ -188,6 +191,30 @@ public class PrimaryKeyIT extends SpliceUnitTest {
             if("jzhang".equalsIgnoreCase(rs.getString(1))){
                 matchCount++;
                 Assert.assertEquals("Column incorrect!",2,rs.getInt(2));
+            }
+        }
+        Assert.assertEquals("Incorrect number of updated rows!",1,matchCount);
+    }
+
+    @Test(timeout=10000)
+    // Test for DB-1112
+    public void updateKeyColumnWithSameValue() throws Exception{
+        PreparedStatement updateStatement = methodWatcher.prepareStatement(UPDATE_NAME_BY_NAME);
+        updateStatement.setString(1,"dgf");
+        updateStatement.setString(2,"dgf");
+        updateStatement.executeUpdate();
+        updateStatement.executeUpdate();
+        updateStatement.executeUpdate();
+        updateStatement.executeUpdate();
+        updateStatement.executeUpdate();
+        PreparedStatement validator = methodWatcher.prepareStatement(SELECT_BY_NAME);
+        validator.setString(1,"dgf");
+        ResultSet rs = validator.executeQuery();
+        int matchCount = 0;
+        while(rs.next()){
+            if("dgf".equalsIgnoreCase(rs.getString(1))){
+                matchCount++;
+                Assert.assertEquals("Column incorrect!", 5, rs.getInt(2));
             }
         }
         Assert.assertEquals("Incorrect number of updated rows!",1,matchCount);
