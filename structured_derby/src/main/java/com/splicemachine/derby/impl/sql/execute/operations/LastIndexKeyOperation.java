@@ -1,45 +1,43 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.stats.TimeView;
-import org.apache.log4j.Logger;
-
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.HRegionInfo;
-
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.hbase.HBaseRegionCache;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Collections;
-import java.util.SortedSet;
-import java.util.concurrent.ExecutionException;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.SortedSet;
+import java.util.concurrent.ExecutionException;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.hbase.HBaseRegionCache;
+import com.splicemachine.stats.TimeView;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public class LastIndexKeyOperation extends ScanOperation{
 
@@ -141,6 +139,7 @@ public class LastIndexKeyOperation extends ScanOperation{
 
 						for(KeyValue kv:keyValues){
 								//should only be 1
+                            if (kv != null)
 								RowMarshaller.sparsePacked().decode(kv,fields,baseColumnMap,rowDecoder);
 						}
 
