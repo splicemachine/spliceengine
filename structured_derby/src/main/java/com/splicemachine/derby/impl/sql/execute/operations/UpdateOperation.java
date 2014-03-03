@@ -215,7 +215,10 @@ public class UpdateOperation extends DMLWriteOperation{
 								@Override
 								public void add(KVPair element) throws Exception {
 										byte[] oldLocation = ((RowLocation) currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
-										delegate.add(new KVPair(oldLocation, HConstants.EMPTY_BYTE_ARRAY, KVPair.Type.DELETE));
+                                        if (!Bytes.equals(oldLocation, element.getRow())) {
+                                            // only add the delete if we aren't overwriting the same row
+										    delegate.add(new KVPair(oldLocation, HConstants.EMPTY_BYTE_ARRAY, KVPair.Type.DELETE));
+                                        }
 										delegate.add(element);
 								}
 						};
