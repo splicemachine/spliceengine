@@ -450,6 +450,38 @@ public class UniqueIndexIT extends SpliceUnitTest {
 //        System.out.println(fr.toString());
     }
 
+    /**
+     * DB-1110
+     * Tests create a descending index.
+     */
+    @Test
+    public void testCanCreateDescendingIndex() throws Exception{
+        String indexName = "descinx";
+        String tableName = "T";
+        new MyWatcher(tableName, CLASS_NAME, "(c1 int, c2 smallint)").create(null);
+        methodWatcher.getStatement().execute(format("insert into %s (c1,c2) values (%s,%s)",
+                                                    this.getTableReference(tableName), 8, 12));
+        methodWatcher.getStatement().execute(format("insert into %s (c1,c2) values (%s,%s)",
+                                                    this.getTableReference(tableName), 56, -3));
+
+        String query = format("select min(c2) from %s",this.getTableReference(tableName));
+        ResultSet rs = methodWatcher.executeQuery(query);
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        Assert.assertEquals(fr.toString(), 1, fr.size());
+        System.out.println("1:");
+        System.out.println(fr.toString());
+
+
+        new SpliceIndexWatcher(tableName, CLASS_NAME,indexName, CLASS_NAME,"(c2 desc, c1)",false).starting(null);
+        System.out.println(TestUtils.indexQuery(methodWatcher.getOrCreateConnection(), CLASS_NAME, tableName));
+
+        rs = methodWatcher.executeQuery(query);
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        Assert.assertEquals(fr.toString(), 1, fr.size());
+        System.out.println("2:");
+        System.out.println(fr.toString());
+    }
+
     @Test(timeout = 10000)
     public void testCanDeleteThenInsertEntryInTransaction() throws Exception {
         new SpliceIndexWatcher(TABLE_NAME_6, CLASS_NAME, INDEX_61, CLASS_NAME, "(name)", true).starting(null);
