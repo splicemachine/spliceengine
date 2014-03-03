@@ -175,7 +175,7 @@ public class Scans extends SpliceUtils {
 																 FormatableBitSet scanColumnList,
 																 String transactionId,boolean sameStartStopPosition, 
 																 int[] formatIds, int[] columnOrdering, DataValueFactory dataValueFactory) throws StandardException {
-				Scan scan = SpliceUtils.createScan(transactionId);
+				Scan scan = SpliceUtils.createScan(transactionId, scanColumnList!=null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
 				scan.setCaching(DEFAULT_CACHE_SIZE);
 				try{
 						attachScanKeys(scan, startKeyValue, startSearchOperator,

@@ -71,7 +71,9 @@ public class SIConstants extends SpliceConstants {
     public static final String SI_TRANSACTION_ID_KEY = "A";
     public static final String SI_NEEDED = "B";
     public static final String SI_DELETE_PUT = "D";
-
+    public static final String SI_COUNT_STAR = "M";
+    
+    
 		/*
 		 * The time, in ms, to wait between attempts at resolving a transaction which
 		 * is in the COMMITTING state (e.g. the amount of time to wait for a transaction

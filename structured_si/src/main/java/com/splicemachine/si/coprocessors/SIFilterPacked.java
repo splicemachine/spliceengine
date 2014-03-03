@@ -30,11 +30,8 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
     private EntryPredicateFilter predicateFilter;
-
-    // always include at least one keyValue so that we can use the "hook" of filterRow(...) to generate the accumulated key value
-    private Boolean extraKeyValueIncluded = null;
-
     private IFilterState filterState = null;
+    private boolean countStar = false;
 
     public SIFilterPacked() {
     }
@@ -44,13 +41,14 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 													TransactionManager transactionManager,
 													RollForwardQueue rollForwardQueue,
 													EntryPredicateFilter predicateFilter,
-													TransactionReadController<Get, Scan> readController) throws IOException {
+													TransactionReadController<Get, Scan> readController, boolean countStar) throws IOException {
         this.tableName = tableName;
 		this.transactionManager = transactionManager;
 		this.transactionIdString = transactionId.getTransactionIdString();
         this.rollForwardQueue = rollForwardQueue;
         this.predicateFilter = predicateFilter;
 		this.readController = readController;
+		this.countStar = countStar;
  	}
 
 		@Override
@@ -80,7 +78,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 		private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
             filterState = readController.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
-                    transactionManager.transactionIdFromString(transactionIdString));
+                    transactionManager.transactionIdFromString(transactionIdString), countStar);
         }
     }
 
@@ -111,10 +109,8 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 
     @Override
     public void reset() {
-        extraKeyValueIncluded = null;
-        if (filterState != null) {
-						filterState.nextRow();
-        }
+        if (filterState != null)
+        	filterState.nextRow();
     }
 
     @Override public void readFields(DataInput in) throws IOException { }
