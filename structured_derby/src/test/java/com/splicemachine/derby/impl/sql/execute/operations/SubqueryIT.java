@@ -3,8 +3,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.perf.runner.qualifiers.Result;
+import org.apache.derby.iapi.error.StandardException;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -13,6 +15,7 @@ import org.junit.runner.Description;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 
 import static com.splicemachine.homeless.TestUtils.o;
@@ -44,6 +47,7 @@ public class SubqueryIT {
 
     protected static SpliceTableWatcher t1Watcher = new SpliceTableWatcher("t1",schemaWatcher.schemaName,"(k int, l int)");
     protected static SpliceTableWatcher t2Watcher = new SpliceTableWatcher("t2",schemaWatcher.schemaName,"(k int, l int)");
+		private static SpliceTableWatcher t5Watcher = new SpliceTableWatcher("t5",schemaWatcher.schemaName,"(k int)");
     protected static SpliceTableWatcher t3Watcher = new SpliceTableWatcher("WORKS8",schemaWatcher.schemaName,
             "(EMPNUM VARCHAR(3) NOT NULL, PNUM VARCHAR(3) NOT NULL,HOURS DECIMAL(5))");
 
@@ -56,19 +60,22 @@ public class SubqueryIT {
             .around(t1Watcher)
             .around(t2Watcher)
             .around(t3Watcher)
+						.around(t5Watcher)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try {
-                        PreparedStatement ps = spliceClassWatcher.prepareStatement("insert into "+t2Watcher.toString()+" values (?,?)");
+                        PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?)",t2Watcher.toString()));
                         for(int i=0;i<size;i++){
+														//(0,1),(1,2),...,(size,size+1)
                             ps.setInt(1,i);
                             ps.setInt(2,i+1);
                             ps.execute();
                         }
 
-                        ps = spliceClassWatcher.prepareStatement("insert into "+ t1Watcher.toString()+" values(?,?)");
+                        ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?)",t1Watcher.toString()));
                         for(int i=0;i<size;i++){
+														//(0,1),(0,1),(1,2),...,(size,size+1)
                             ps.setInt(1,i);
                             ps.setInt(2,i+1);
                             ps.execute();
@@ -78,13 +85,15 @@ public class SubqueryIT {
                                 ps.setInt(2,i+1);
                                 ps.execute();
                             }
-
                         }
 
                         //  load t3
                         for (String rowVal : t3RowVals) {
                             spliceClassWatcher.getStatement().executeUpdate("insert into "+t3Watcher.toString()+" values " + rowVal);
                         }
+
+												//load t5
+												spliceClassWatcher.executeUpdate(String.format("insert into %s values %d",t5Watcher,2));
 
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -363,5 +372,15 @@ public class SubqueryIT {
         Assert.assertArrayEquals(expected.toArray(), actual.toArray());
     }
 
+		@Test(expected = SQLException.class)
+		public void testScalarSubqueryExpected() throws Exception {
+				/*Regression test for DB-945*/
+			try{
+					methodWatcher.executeQuery("select ( select t1.k from t1 where t1.k = t2.k union all select t5.k from t5 where t5.k = t2.k),k from t2");
+			}catch(StandardException se){
+					String correctSqlState = ErrorState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION.getSqlState();
+					Assert.assertEquals("Incorrect sql state returned!",correctSqlState,se.getSqlState());
+			}
 
+		}
 }
