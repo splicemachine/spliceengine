@@ -48,6 +48,10 @@ public class SubqueryIT {
     protected static SpliceTableWatcher t1Watcher = new SpliceTableWatcher("t1",schemaWatcher.schemaName,"(k int, l int)");
     protected static SpliceTableWatcher t2Watcher = new SpliceTableWatcher("t2",schemaWatcher.schemaName,"(k int, l int)");
 		private static SpliceTableWatcher t5Watcher = new SpliceTableWatcher("t5",schemaWatcher.schemaName,"(k int)");
+
+		private static SpliceTableWatcher intTable1 = new SpliceTableWatcher("t3",schemaWatcher.schemaName,"(i int)");
+		private static SpliceTableWatcher intTable2 = new SpliceTableWatcher("t4",schemaWatcher.schemaName,"(i int)");
+
     protected static SpliceTableWatcher t3Watcher = new SpliceTableWatcher("WORKS8",schemaWatcher.schemaName,
             "(EMPNUM VARCHAR(3) NOT NULL, PNUM VARCHAR(3) NOT NULL,HOURS DECIMAL(5))");
 
@@ -61,6 +65,8 @@ public class SubqueryIT {
             .around(t2Watcher)
             .around(t3Watcher)
 						.around(t5Watcher)
+						.around(intTable1)
+						.around(intTable2)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -94,6 +100,16 @@ public class SubqueryIT {
 
 												//load t5
 												spliceClassWatcher.executeUpdate(String.format("insert into %s values %d",t5Watcher,2));
+
+												ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?)",intTable1));
+												ps.setInt(1,10);ps.addBatch();
+												ps.setInt(1,20);ps.addBatch();
+												ps.executeBatch();
+
+												ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?)",intTable2));
+												ps.setInt(1,30);ps.addBatch();
+												ps.setInt(1,40);ps.addBatch();
+												ps.executeBatch();
 
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -381,6 +397,20 @@ public class SubqueryIT {
 					String correctSqlState = ErrorState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION.getSqlState();
 					Assert.assertEquals("Incorrect sql state returned!",correctSqlState,se.getSqlState());
 			}
+		}
 
+		@Test
+		public void testWeirdQuery() throws Exception {
+				/*Regression test for DB-954*/
+				ResultSet resultSet = methodWatcher.executeQuery("select i from t3 a where i in (select a.i from t4 where a.i < i union all select i from t4 where 1 < 0)");
+				List<Integer> correctResults = Arrays.asList(10,20);
+				List<Integer> actual = Lists.newArrayListWithExpectedSize(2);
+				while(resultSet.next()){
+						int next = resultSet.getInt(1);
+						Assert.assertFalse("Returned null accidentally!",resultSet.wasNull());
+						actual.add(next);
+				}
+				Collections.sort(actual);
+				Assert.assertEquals("Incorrect results!",correctResults,actual);
 		}
 }
