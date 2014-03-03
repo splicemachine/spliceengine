@@ -2,7 +2,6 @@ package com.splicemachine.utils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -16,22 +15,21 @@ import java.util.concurrent.*;
  * @author Scott Fines
  * Date: 2/27/14
  */
-@Ignore
 public class Type1UUIDGeneratorTest {
-		@Test
-		public void testCanGenerateUUIDsInRecurringBlocksWithoutDuplicationLots() throws Exception {
-				UUIDGenerator generator = Type1UUIDGenerator.instance();
-				Set<byte[]> uuids = Sets.newTreeSet(Bytes.BYTES_COMPARATOR);
-				for(int i=0;i<10000000;i++){
-						byte[] next = generator.nextBytes();
-						Assert.assertFalse("uuid " + next + " already seen", uuids.contains(next));
-						uuids.add(next);
-				}
-		}
+//		@Test
+//		public void testCanGenerateUUIDsInRecurringBlocksWithoutDuplicationLots() throws Exception {
+//				UUIDGenerator generator = Type1UUID.newGenerator(128);
+//				Set<byte[]> uuids = Sets.newTreeSet(Bytes.BYTES_COMPARATOR);
+//				for(int i=0;i<1000000;i++){
+//						byte[] next = generator.nextBytes();
+//						Assert.assertFalse(String.format("uuid %s already seen",Bytes.toStringBinary(next)), uuids.contains(next));
+//						uuids.add(next);
+//				}
+//		}
 
 		@Test
 		public void testCanGenerateUUIDsInRecurringBlocksWithoutDuplication() throws Exception {
-				UUIDGenerator generator = Type1UUIDGenerator.instance();
+				UUIDGenerator generator = Type1UUID.newGenerator(128);
 				Set<byte[]> uuids = Sets.newTreeSet(Bytes.BYTES_COMPARATOR);
 				for(int i=0;i<2*Short.MAX_VALUE;i++){
 						byte[] next = generator.nextBytes();
@@ -53,14 +51,13 @@ public class Type1UUIDGeneratorTest {
 								@Override
 								public Boolean call() throws Exception {
 										startBarrier.await(); //wait for everyone to force contention
-										UUIDGenerator generator = Type1UUIDGenerator.instance();
+										UUIDGenerator generator = Type1UUID.newGenerator(128);
 										for(int i=0;i<numIterations;i++){
 												long time = System.currentTimeMillis();
 												byte[] uuid = generator.nextBytes();
 												if(existing.putIfAbsent(uuid,true)!=null){
 														System.out.printf("     already present!i=%d,value=%s, time=%d,count=%d%n",
 																		i, Bytes.toStringBinary(uuid), time, Bytes.toShort(uuid, 14));
-//														System.out.println("     already present!i= "+i+", value="+Bytes.toStringBinary(uuid)+", time="+Long.toBinaryString(time));
 														return false;  //uh-oh, duplicates!
 												}
 										}
@@ -79,7 +76,7 @@ public class Type1UUIDGeneratorTest {
 
 
 		@Test
-		public void testRepeatedNoDuplicatesManyThreadsSameSnowflake() throws Exception {
+		public void testRepeatedNoDuplicatedManyThreadsSameJVM() throws Exception {
 				for(int i=0;i<10;i++){
 						System.out.println("Trying iteration "+ i);
 						testNoDuplicatesManyThreadsSameJVM();
