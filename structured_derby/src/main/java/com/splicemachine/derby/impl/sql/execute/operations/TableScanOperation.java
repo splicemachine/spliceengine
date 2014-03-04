@@ -343,7 +343,7 @@ public class TableScanOperation extends ScanOperation {
                 Object[] buffer = predicateFilter.getValuePredicates().buffer;
                 int ibuffer = predicateFilter.getValuePredicates().size();
                 for (int j =0; j<ibuffer; j++) {
-                    if(((Predicate)buffer[j]).applies(i) && !((Predicate)buffer[j]).match(i,data,offset,size))
+                    if(((Predicate)buffer[j]).applies(columnOrdering[i]) && !((Predicate)buffer[j]).match(columnOrdering[i],data,offset,size))
                         return false;
                 }
             }
