@@ -163,14 +163,14 @@ public class CreateIndexNode extends DDLStatementNode
 		}
 
 		//If total number of indexes on the table so far is more than 32767, then we need to throw an exception
-		if (td.getTotalNumberOfIndexes() > Limits.DB2_MAX_INDEXES_ON_TABLE)
+/*		if (td.getTotalNumberOfIndexes() > Limits.DB2_MAX_INDEXES_ON_TABLE)
 		{
 			throw StandardException.newException(SQLState.LANG_TOO_MANY_INDEXES_ON_TABLE,
 				String.valueOf(td.getTotalNumberOfIndexes()),
 				tableName,
 				String.valueOf(Limits.DB2_MAX_INDEXES_ON_TABLE));
 		}
-
+*/
 		/* Validate the column name list */
 		verifyAndGetUniqueNames();
 
@@ -204,9 +204,9 @@ public class CreateIndexNode extends DDLStatementNode
 		}
 
 		/* Check for number of key columns to be less than 16 to match DB2 */
-		if (columnCount > 16)
+/*		if (columnCount > 16)
 			throw StandardException.newException(SQLState.LANG_TOO_MANY_INDEX_KEY_COLS);
-
+*/
 		/* See if the index already exists in this schema.
 		 * NOTE: We still need to check at execution time
 		 * since the index name is only unique to the schema,
