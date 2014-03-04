@@ -140,8 +140,8 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 	 *  index (if a new backing index is needed)
 	 * @param lcc LanguageConnectionContext used for dropping
 	 */
-	void dropConglomerate(ConglomerateDescriptor congDesc, TableDescriptor td,
-		Activation activation, LanguageConnectionContext lcc) throws StandardException {
+	protected void dropConglomerate(ConglomerateDescriptor congDesc, TableDescriptor td,
+																	Activation activation, LanguageConnectionContext lcc) throws StandardException {
 		SpliceLogUtils.trace(LOG, "dropConglomerate %s with table descriptor %s",congDesc, td);
 		dropConglomerate(congDesc, td,false, (List)null, activation, lcc);
 	}

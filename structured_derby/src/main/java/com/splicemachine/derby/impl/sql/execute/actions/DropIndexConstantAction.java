@@ -129,6 +129,7 @@ public class DropIndexConstantAction extends IndexConstantOperation {
 		 */
         dropIndex(td,cd);
 		dropConglomerate(cd, td, activation, lcc);
+
 		return;
 	}
 	
