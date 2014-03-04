@@ -5,6 +5,8 @@ import java.util.Comparator;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
+import com.splicemachine.storage.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -12,6 +14,8 @@ import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DataValueFactory;
+import org.apache.derby.iapi.types.SQLChar;
+import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.CompareFilter;
@@ -26,12 +30,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.filter.ColumnNullableFilter;
-import com.splicemachine.storage.AndPredicate;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.NullPredicate;
-import com.splicemachine.storage.OrPredicate;
-import com.splicemachine.storage.Predicate;
-import com.splicemachine.storage.ValuePredicate;
 
 /**
  * Utility methods and classes related to building HBase Scans
@@ -276,9 +274,14 @@ public class Scans extends SpliceUtils {
 								return new NullPredicate(filterIfMissing,isNullNumericalComparison,qualifier.getColumnId(),false,false);
 				}else{
 						byte[] bytes = DerbyBytesUtil.generateBytes(dvd);
-						return new ValuePredicate(getHBaseCompareOp(qualifier.getOperator(),qualifier.negateCompareResult()),
-										qualifier.getColumnId(),
-										bytes,true);
+						if(dvd instanceof StringDataValue){
+								return new CharValuePredicate(getHBaseCompareOp(qualifier.getOperator(),
+												qualifier.negateCompareResult()),qualifier.getColumnId(),bytes,true);
+						}else{
+								return new ValuePredicate(getHBaseCompareOp(qualifier.getOperator(),qualifier.negateCompareResult()),
+												qualifier.getColumnId(),
+												bytes,true);
+						}
 				}
 		}
 
