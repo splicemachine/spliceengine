@@ -7,8 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.base.Strings;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
@@ -27,8 +26,6 @@ import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.compile.JoinNode;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class JoinOperation extends SpliceBaseOperation {
@@ -175,8 +172,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				return cols;
 		}
 
-		public SpliceOperation getRightResultSet() {
-				return rightResultSet;
+		public OperationResultSet getRightResultSet() {
+				return new OperationResultSet(activation,rightResultSet);
 		}
 
 		public SpliceOperation getLeftResultSet() {

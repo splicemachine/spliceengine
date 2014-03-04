@@ -1,10 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.derby.impl.sql.execute.SpliceGenericResultSetFactory;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.tools.splice;
@@ -179,16 +177,20 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin,SpliceRuntimeContext context) throws StandardException {
 						SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
 						this.leftRow = leftRow;
-						if (hash) {
-								SpliceLogUtils.trace(LOG, "Iterator - executeProbeScan on %s",getRightResultSet());
-								probeResultSet = (getRightResultSet()).executeProbeScan();
-						}
-						else {
-								SpliceLogUtils.trace(LOG, "Iterator - executeScan on %s",getRightResultSet());
-								probeResultSet = (getRightResultSet()).executeScan(context);
-						}
-						SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Opening ",(outerJoin?"Outer ":""),"join. Left: ",(leftRow != null ? leftRow : "NULL Left Row"));
-						probeResultSet.openCore();
+						OperationResultSet ors = getRightResultSet();
+						ors.open(hash);
+						probeResultSet = ors.getDelegate();
+//						if (hash) {
+//								SpliceLogUtils.trace(LOG, "Iterator - executeProbeScan on %s",getRightResultSet());
+//						}
+//						else {
+//								SpliceLogUtils.trace(LOG, "Iterator - executeScan on %s",getRightResultSet());
+//								ors.openCore();
+//								probeResultSet = (getRightResultSet()).executeScan(context);
+//						}
+//
+//						SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Opening ",(outerJoin?"Outer ":""),"join. Left: ",(leftRow != null ? leftRow : "NULL Left Row"));
+//						probeResultSet.openCore();
 						populated=false;
 						this.outerJoin = outerJoin;
 				}
