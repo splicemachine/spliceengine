@@ -49,7 +49,7 @@ public class ScalarAggregatorTest {
                 return null;
             }
         });
-        ScalarAggregator aggregator = new ScalarAggregator(source,new SpliceGenericAggregator[]{agg},true,false);
+        ScalarAggregator aggregator = new ScalarAggregator(source,new SpliceGenericAggregator[]{agg},true,false,false);
 
         ExecRow correct = aggregator.aggregate(new SpliceRuntimeContext());
 
@@ -64,6 +64,16 @@ public class ScalarAggregatorTest {
         CountAggregator agg = (CountAggregator)countObj;
         int count = agg.getResult().getInt();
         Assert.assertEquals("Incorrect count!",10,count);
+    }
+
+    @Test
+    public void testAggregatesCorrectlyOneInputRow() throws Exception {
+        ExecRow aggregatedRow = getAggregateOneInputRow();
+        Object countObj = aggregatedRow.getColumn(2).getObject();
+        Assert.assertTrue("Incorrect aggregator type!",countObj instanceof CountAggregator);
+        CountAggregator agg = (CountAggregator)countObj;
+        int count = agg.getResult().getInt();
+        Assert.assertEquals("Incorrect count!",1,count);
     }
 
     private ExecRow getAggregateRow() throws StandardException, IOException {
@@ -81,7 +91,29 @@ public class ScalarAggregatorTest {
             }
         });
 
-        ScalarAggregator aggregate = new ScalarAggregator(source,new SpliceGenericAggregator[]{aggregator},false,true);
+        ScalarAggregator aggregate = new ScalarAggregator(source,new SpliceGenericAggregator[]{aggregator},false,true,false);
+
+        ExecRow aggregatedRow = aggregate.aggregate(new SpliceRuntimeContext());
+        aggregate.finish(aggregatedRow);
+        return aggregatedRow;
+    }
+
+    private ExecRow getAggregateOneInputRow() throws StandardException, IOException {
+        CountAggregator countAggregator = new CountAggregator();
+        SpliceGenericAggregator aggregator = new SpliceGenericAggregator(countAggregator,2,1,1);
+
+        ScalarAggregateSource source = mock(ScalarAggregateSource.class);
+        final List<ExecRow> inputRows = getInputRows();
+        when(source.nextRow(any(SpliceRuntimeContext.class))).thenAnswer(new Answer<ExecRow>() {
+            @Override
+            public ExecRow answer(InvocationOnMock invocation) throws Throwable {
+                if(inputRows.size()>0)
+                    return inputRows.remove(0);
+                return null;
+            }
+        }).thenThrow(new AssertionError("Expected to be called only once"));
+
+        ScalarAggregator aggregate = new ScalarAggregator(source,new SpliceGenericAggregator[]{aggregator},false,true,true);
 
         ExecRow aggregatedRow = aggregate.aggregate(new SpliceRuntimeContext());
         aggregate.finish(aggregatedRow);
