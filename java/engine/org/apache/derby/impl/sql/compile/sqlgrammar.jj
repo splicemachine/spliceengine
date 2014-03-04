@@ -13880,7 +13880,7 @@ dropTableStatement() throws StandardException :
 	TableName tableName;
 }
 {
-	[ ifTok = <IF> existsTok = <EXISTS> ] <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
+	<TABLE> [ ifTok = <IF> existsTok = <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 	{
         // must have both "if" and "exists"
         boolean ifExists = ifTok != null && existsTok != null;
