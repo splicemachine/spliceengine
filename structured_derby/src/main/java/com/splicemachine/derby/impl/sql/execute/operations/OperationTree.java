@@ -45,7 +45,7 @@ public class OperationTree {
 
     }
 
-    public static SpliceNoPutResultSet executeTree(SpliceOperation operation, final SpliceRuntimeContext runtimeContext) throws StandardException{
+    public static SpliceNoPutResultSet executeTree(SpliceOperation operation, final SpliceRuntimeContext runtimeContext,boolean useProbe) throws StandardException{
         //first form the level Map
         NavigableMap<Integer,List<SpliceOperation>> levelMap = split(operation);
         if (LOG.isDebugEnabled())
@@ -88,7 +88,10 @@ public class OperationTree {
             }
         }
         //operation is the highest level, it has the final scan
-        return operation.executeScan(runtimeContext);
+				if(useProbe)
+						return operation.executeProbeScan();
+				else
+						return operation.executeScan(runtimeContext);
     }
 
     private static NavigableMap<Integer, List<SpliceOperation>> split(SpliceOperation parentOperation) {
@@ -100,8 +103,16 @@ public class OperationTree {
     }
 
     private static void split(SpliceOperation parentOp,NavigableMap<Integer,List<SpliceOperation>> levelMap, int level){
-        List<SpliceOperation> levelOps = levelMap.get(level);
-        List<SpliceOperation> children = parentOp.getSubOperations();
+				List<SpliceOperation> levelOps = levelMap.get(level);
+				List<SpliceOperation> children;
+				if(parentOp instanceof NestedLoopJoinOperation){
+						/*
+						 * NestedLoopJoin shouldn't execute a shuffle on it's right side,
+						 * but it SHOULD if there's a shuffle on the left side
+						 */
+						children = Arrays.asList(parentOp.getLeftOperation());
+				}else
+						children = parentOp.getSubOperations();
         for(SpliceOperation child:children){
             if(child.getNodeTypes().contains(SpliceOperation.NodeType.REDUCE)){
                 if(levelOps==null){

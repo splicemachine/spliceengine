@@ -141,7 +141,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
     @Override
     public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         //TODO -sf- is this right?
-        return getRightResultSet().getMapRowProvider(top, decoder, spliceRuntimeContext);
+				return getRightOperation().getMapRowProvider(top,decoder,spliceRuntimeContext);
     }
 
     @Override

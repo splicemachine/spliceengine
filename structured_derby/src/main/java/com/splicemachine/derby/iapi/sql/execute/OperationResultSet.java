@@ -90,20 +90,23 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         return stmtInfo;
     }
 
-    @Override
-    public void openCore() throws StandardException {
-        SpliceLogUtils.trace(LOG,"openCore");
-        closed=false;
-        if(delegate!=null) delegate.close();
-        try {
-            SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation);
-            topOperation.init(operationContext);
-            topOperation.open();
-            statementInfo = initStatmentInfo(statementInfo, operationContext);
+		public SpliceNoPutResultSet getDelegate(){
+				return delegate;
+		}
 
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
+		public void open(boolean useProbe) throws StandardException{
+				SpliceLogUtils.trace(LOG,"openCore");
+				closed=false;
+				if(delegate!=null) delegate.close();
+				try {
+						SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation);
+						topOperation.init(operationContext);
+						topOperation.open();
+						statementInfo = initStatmentInfo(statementInfo, operationContext);
+
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 
 				try{
 						SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
@@ -114,7 +117,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 								runtimeContext.setXplainSchema(xplainSchema);
 						}
 
-						delegate = OperationTree.executeTree(topOperation,runtimeContext);
+						delegate = OperationTree.executeTree(topOperation,runtimeContext,useProbe);
 						delegate.setScrollId(scrollUuid);
 						//open the delegate
 						delegate.openCore();
@@ -122,9 +125,14 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 						throw Exceptions.parseException(e);
 				}
 
-        if(PLAN_LOG.isDebugEnabled() && Boolean.valueOf(System.getProperty("derby.language.logQueryPlan"))){
-            PLAN_LOG.debug(topOperation.prettyPrint(1));
-        }
+				if(PLAN_LOG.isDebugEnabled() && Boolean.valueOf(System.getProperty("derby.language.logQueryPlan"))){
+						PLAN_LOG.debug(topOperation.prettyPrint(1));
+				}
+
+		}
+    @Override
+    public void openCore() throws StandardException {
+				open(false);
     }
 
 		private List<OperationInfo> getOperationInfo(long statementId) {
