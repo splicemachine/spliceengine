@@ -29,7 +29,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
     final FilterRowState<Result, Put, Delete, Get, Scan, Lock, OperationStatus> rowState;
-    final DecodedKeyValue<Result, Put, Delete, Get, Scan> keyValue;
+    final DecodedKeyValue keyValue;
     KeyValueType type;
     private final TransactionSource transactionSource;
     FilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
@@ -41,14 +41,14 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
             }
         };
         this.dataLib = dataLib;
-        this.keyValue = new DecodedKeyValue(dataLib);
+        this.keyValue = new DecodedKeyValue();
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
         this.rollForwardQueue = rollForwardQueue;
         this.myTransaction = myTransaction;
         transactionCache = new LongPrimitiveCacheMap<Transaction>();
         visibleCache = new LongPrimitiveCacheMap<VisibleResult>();
-        this.rowState = new FilterRowState(dataLib);
+        this.rowState = new FilterRowState();
     }
 
 
@@ -79,20 +79,22 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      * Look at the column family and qualifier to determine how to "dispatch" the current keyValue.
      */
     Filter.ReturnCode filterByColumnType() throws IOException {
-        if (type.equals(KeyValueType.TOMBSTONE)) {
-        	processDataTimestamp();
-            return processTombstone();
-        } else if (type.equals(KeyValueType.ANTI_TOMBSTONE)) {
-        	processDataTimestamp();
-            return processAntiTombstone();
-        } else if (type.equals(KeyValueType.COMMIT_TIMESTAMP)) {
-        	return processCommitTimestamp();
-        } else if (type.equals(KeyValueType.USER_DATA)) {
+    	switch(type) {
+		case USER_DATA:
         	processDataTimestamp();
             return processUserData();
-        } else {
-            return processUnknownFamilyData();
-        }
+		case COMMIT_TIMESTAMP:
+			return processCommitTimestamp();
+		case TOMBSTONE:
+	       	processDataTimestamp();
+            return processTombstone();
+		case ANTI_TOMBSTONE:
+        	processDataTimestamp();
+            return processAntiTombstone();
+		case OTHER:
+		default:
+            return processUnknownFamilyData();    	
+    	}
     }
 
     /**

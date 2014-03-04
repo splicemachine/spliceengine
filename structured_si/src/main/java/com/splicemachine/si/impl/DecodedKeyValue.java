@@ -1,22 +1,18 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.data.api.SDataLib;
-
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.OperationWithAttributes;
 
 /**
  * Lazily read individual elements out of a KV object and cache them for subsequent calls.
  */
-public class DecodedKeyValue<Result, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan> {
-    private final SDataLib<Put, Delete, Get, Scan> dataLib;
+public class DecodedKeyValue {
     private KeyValue keyValue;
     private byte[] row;
     private byte[] value;
     private long timestamp;
 
-    public DecodedKeyValue(SDataLib dataLib) {
-        this.dataLib = dataLib;
+    public DecodedKeyValue() {
+
     }
 
     public void setKeyValue(KeyValue keyValue) {
