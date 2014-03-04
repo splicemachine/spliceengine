@@ -119,6 +119,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 				for(DataValueDescriptor dvd:probeValues){
 						out.writeObject(dvd);
 				}
+                out.writeObject(probeValue);
 		}
 
 		@Override
@@ -128,5 +129,6 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 				for(int i=0;i<probeValues.length;i++){
 						probeValues[i] = (DataValueDescriptor)in.readObject();
 				}
+                probeValue = (DataValueDescriptor)in.readObject();
 		}
 }
