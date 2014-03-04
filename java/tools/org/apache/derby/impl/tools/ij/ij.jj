@@ -701,7 +701,6 @@ class ij {
       throws SQLException {
 
         haveConnection();
-        verifyTableExists(schema, table);
 
         DatabaseMetaData dbmd = theConnection.getMetaData();
         return dbmd.getIndexInfo(null, schema, table, false, true);
@@ -768,44 +767,11 @@ class ij {
         int[] columnWidths = null;
 
         try {
-            if (table != null) {
-                ResultSet rs = getIndexInfoForTable(schema, table);
-                displayColumns = getDisplayColumnsForIndex(schema, rs);
-                columnWidths = getColumnWidthsForIndex(schema);
-                result = new ijResultSetResult(rs, displayColumns,
-                                               columnWidths); 
-            }
-            else {
-                /* DatabaseMetaData#getIndexInfo requires exact table names.
-                 * If table is null, we must first get all table names in
-                 * the appropriate schema, and then get all indices for each
-                 * of these. 
-                 */
-                haveConnection();
-                verifyTableExists(schema, table);
-
-                DatabaseMetaData dbmd = theConnection.getMetaData();
-                ResultSet tablers = dbmd.getTables(null,schema,null,null); 
-              
-                List resultSets = new ArrayList();
-                boolean firstIteration = true;
-                ResultSet current_rs = null;
-                while (tablers.next()){
-                    String tableName = tablers.getString("TABLE_NAME");
-                    current_rs = getIndexInfoForTable(schema, tableName);
-                    resultSets.add(current_rs);
-
-                    if (firstIteration) {
-                        displayColumns = getDisplayColumnsForIndex(schema,
-                                                                   current_rs);
-                        columnWidths = getColumnWidthsForIndex(schema);
-                        firstIteration = false;
-                    }              
-                }
-                result = new ijMultipleResultSetResult(resultSets,
-                                                       displayColumns,
-                                                       columnWidths);
-            }
+            ResultSet rs = getIndexInfoForTable(schema, table);
+            displayColumns = getDisplayColumnsForIndex(schema, rs);
+            columnWidths = getColumnWidthsForIndex(schema);
+            result = new ijResultSetResult(rs, displayColumns,
+                                           columnWidths); 
             return result;
         } catch (SQLException e) {
             try {

@@ -2009,11 +2009,6 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                                     boolean approximate) throws SqlException {
         checkForClosedConnectionX();
 
-        // validate the input table name
-        if (table == null) {
-            throw new SqlException(agent_.logWriter_,
-                new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL)); 
-        }
         PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLSTATISTICS(?,?,?,?,?,?)");
 
         cs.setStringX(1, catalog);

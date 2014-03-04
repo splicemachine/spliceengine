@@ -2814,19 +2814,12 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		boolean unique, boolean approximate, String queryName)
 		throws SQLException {
 
-        if (table == null) {
-            throw Util.generateCsSQLException(
-                           SQLState.TABLE_NAME_CANNOT_BE_NULL);
-        }
-
 		int approximateInInt = 0;
 		if (approximate) approximateInInt = 1;
 		PreparedStatement s = getPreparedQuery(queryName);
-		s.setString(1, swapNull(catalog));
-		s.setString(2, swapNull(schema));
-		s.setString(3, table); //DERBY-1484: Must match table name as stored
-		s.setBoolean(4, unique);
-		s.setInt(5, approximateInInt);
+		s.setString(1, swapNull(schema));
+		s.setString(2, swapNull(table)); //DERBY-1484: Must match table name as stored
+		s.setBoolean(3, unique);
 		return s.executeQuery();
 	}
 
