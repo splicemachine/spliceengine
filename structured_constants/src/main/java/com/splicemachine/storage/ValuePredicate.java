@@ -12,14 +12,13 @@ import com.carrotsearch.hppc.BitSet;
  * Created on: 7/8/13
  */
 public class ValuePredicate implements Predicate {
-    private static final long serialVersionUID=2l;
     private CompareFilter.CompareOp compareOp;
     private int column;
-    private byte[] compareValue;
+    protected byte[] compareValue;
 
     private boolean removeNullEntries;
 
-    public ValuePredicate(CompareFilter.CompareOp compareOp, int column, byte[] compareValue,boolean removeNullEntries) {
+		public ValuePredicate(CompareFilter.CompareOp compareOp, int column, byte[] compareValue,boolean removeNullEntries) {
         this.compareOp = compareOp;
         this.column = column;
         this.compareValue = compareValue;
@@ -51,8 +50,8 @@ public class ValuePredicate implements Predicate {
                 length=0;
             }
         }
-        int compare = Bytes.compareTo(compareValue,0,compareValue.length,data,offset,length);
-        switch (compareOp) {
+				int compare = doComparison(data, offset, length);
+				switch (compareOp) {
             case LESS:
                 return compare>0;
             case LESS_OR_EQUAL:
@@ -70,7 +69,11 @@ public class ValuePredicate implements Predicate {
         }
     }
 
-    @Override
+		protected int doComparison(byte[] data, int offset, int length) {
+				return Bytes.compareTo(compareValue, 0, compareValue.length, data, offset, length);
+		}
+
+		@Override
     public boolean checkAfter() {
         /*
          * Remove null entries is an implicit not-null check--we thus need to make sure that
@@ -87,9 +90,9 @@ public class ValuePredicate implements Predicate {
     @Override
     public void reset() { } //no-op
 
-    @Override
-    public byte[] toBytes() {
-        /*
+		@Override
+		public byte[] toBytes() {
+				/*
          * Format is as follows:
          *
          * 1-byte type header (PredicateType.VALUE)
@@ -101,19 +104,22 @@ public class ValuePredicate implements Predicate {
          *
          * which results in an array of n+10 bytes
          */
-        byte[] data = new byte[compareValue.length+14];
-        data[0] = PredicateType.VALUE.byteValue();
-        BytesUtil.intToBytes(column, data, 1);
+				byte[] data = new byte[compareValue.length + 14];
+				data[0] = getType().byteValue();
+				BytesUtil.intToBytes(column, data, 1);
 
-        data[5] = removeNullEntries? (byte)0x01: 0x00;
-        BytesUtil.intToBytes(compareOp.ordinal(), data, 6);
-        BytesUtil.intToBytes(compareValue.length, data, 10);
-        System.arraycopy(compareValue,0,data,14,compareValue.length);
+				data[5] = removeNullEntries ? (byte) 0x01 : 0x00;
+				BytesUtil.intToBytes(compareOp.ordinal(), data, 6);
+				BytesUtil.intToBytes(compareValue.length, data, 10);
+				System.arraycopy(compareValue, 0, data, 14, compareValue.length);
 
-        return data;
-    }
+				return data;
+		}
 
     public static Pair<ValuePredicate,Integer> fromBytes(byte[] data, int offset){
+				//first byte is the type.
+				PredicateType pType = PredicateType.valueOf(data[offset]);
+				offset++;
         //first bytes are the Column
         int column = BytesUtil.bytesToInt(data, offset);
         boolean removeNullEntries = data[offset+4] ==0x01;
@@ -122,7 +128,12 @@ public class ValuePredicate implements Predicate {
         int compareValueSize = BytesUtil.bytesToInt(data, offset + 9);
         byte[] compareValue = new byte[compareValueSize];
         System.arraycopy(data,offset+13,compareValue,0,compareValue.length);
-        return Pair.newPair(new ValuePredicate(compareOp,column,compareValue,removeNullEntries),compareValue.length+14);
+				ValuePredicate pred;
+				if(pType==PredicateType.CHAR_VALUE) {
+						pred = new CharValuePredicate(compareOp, column, compareValue, removeNullEntries);
+				}else
+						pred = new ValuePredicate(compareOp, column, compareValue, removeNullEntries);
+				return Pair.newPair(pred,compareValue.length+14);
     }
 
     private static CompareFilter.CompareOp getCompareOp(int compareOrdinal) {
@@ -134,4 +145,5 @@ public class ValuePredicate implements Predicate {
         throw new IllegalArgumentException("Unable to find Compare op for ordinal "+ compareOrdinal);
     }
 
+		protected PredicateType getType() { return PredicateType.VALUE; }
 }

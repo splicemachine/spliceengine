@@ -11,7 +11,8 @@ public enum PredicateType {
     NULL((byte)0x02),
     AND((byte)0x03),
     OR((byte)0x04),
-    CUSTOM((byte)0x05);
+    CUSTOM((byte)0x05),
+		CHAR_VALUE((byte)0x06);
 
     private final byte type;
 
@@ -24,6 +25,8 @@ public enum PredicateType {
     }
 
     public static PredicateType valueOf(byte typeByte) {
+				if(CHAR_VALUE.type==typeByte)
+						return CHAR_VALUE;
         if(VALUE.type==typeByte)
             return VALUE;
         else if(NULL.type==typeByte)

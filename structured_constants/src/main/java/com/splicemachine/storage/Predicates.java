@@ -18,7 +18,8 @@ public class Predicates {
         PredicateType type = PredicateType.valueOf(bytes[offset]);
         switch (type) {
             case VALUE:
-                return ValuePredicate.fromBytes(bytes,offset+1);
+						case CHAR_VALUE:
+                return ValuePredicate.fromBytes(bytes,offset);
             case NULL:
                 return NullPredicate.fromBytes(bytes,offset+1);
             case AND:

@@ -684,10 +684,6 @@ public final class Encoding {
     }
 
     public static void main(String... args) throws Exception{
-				byte[] data = new byte[]{-27,-73,116,0};
-				System.out.println(Encoding.decodeLong(data));
-				data = Encoding.encode(28800000l);
-				System.out.println(Arrays.toString(data));
-				System.out.println(Encoding.decodeLong(data));
+				System.out.println(Arrays.toString(encode("3                             ")));
     }
 }
