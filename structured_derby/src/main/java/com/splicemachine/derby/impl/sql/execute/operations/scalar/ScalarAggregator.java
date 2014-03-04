@@ -21,19 +21,30 @@ public class ScalarAggregator {
 		private final boolean shouldMerge;
 		private final boolean initialize;
 		private final SpliceGenericAggregator[] aggregates;
-		private long rowsRead;
+        private final boolean singleInputRow;
+        private boolean depleted = false;
+        private long rowsRead;
 
 		public ScalarAggregator(ScalarAggregateSource source,SpliceGenericAggregator[] aggregates,
-														boolean shouldMerge, boolean initialize
+														boolean shouldMerge, boolean initialize, boolean singleInputRow
 		) {
 				this.source = source;
 				this.shouldMerge = shouldMerge;
 				this.initialize = initialize;
 				this.aggregates = aggregates;
+                this.singleInputRow = singleInputRow;
 		}
 
 		public ExecRow aggregate(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException{
 				ExecIndexRow nextRow;
+                if (singleInputRow) {
+                    if (depleted) return null;
+                    nextRow = source.nextRow(spliceRuntimeContext);
+                    depleted = true;
+                    if(nextRow==null) return null;
+                    rowsRead++;
+                    return aggregate(nextRow, null);
+                }
 				ExecRow aggResult = null;
 				do {
 						SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
