@@ -37,7 +37,7 @@ public class HRowAccumulator implements RowAccumulator {
     @Override
     public boolean accumulate(KeyValue keyValue) throws IOException {
 		bytesAccumulated+=keyValue.getLength();
-        decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());
+//        decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength()); //do we need to do this twice?
         boolean pass = predicateFilter.match(decoder, entryAccumulator);
         if(!pass)
             entryAccumulator.reset();

@@ -145,7 +145,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 				if(scanAggregator==null){
 						PairDecoder decoder = OperationUtils.getPairDecoder(this,spliceRuntimeContext);
 						scanAggregator = new ScalarAggregator(new ScalarAggregateScan(decoder,regionScanner),
-										aggregates,true,false);
+										aggregates,true,false,singleInputRow);
 						timer = spliceRuntimeContext.newTimer();
 				}
 
@@ -177,7 +177,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		@Override
 		public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				if(sinkAggregator==null){
-						sinkAggregator = new ScalarAggregator(new OperationScalarAggregateSource(source,sourceExecIndexRow,false),aggregates,false,true);
+						sinkAggregator = new ScalarAggregator(new OperationScalarAggregateSource(source,sourceExecIndexRow,false),
+                                aggregates,false,true,singleInputRow);
 						timer = spliceRuntimeContext.newTimer();
 				}
 
