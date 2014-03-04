@@ -165,7 +165,7 @@ public class TableConstantOperationIT extends SpliceUnitTest {
         }
 
         // we should not get an exception here because we've used "if exists"
-        methodWatcher.getStatement().execute(String.format("drop if exists table %s", tableSchema.schemaName + "." + tableName));
+        methodWatcher.getStatement().execute(String.format("drop table if exists %s", tableSchema.schemaName + "." + tableName));
     }
 
     @Test
