@@ -835,8 +835,8 @@ class ij {
 			};
 			int[] columnWidths = new int[] {
 				20,
-				30,
-				20,
+				60,
+				100,
 			};
 
 			return new ijResultSetResult(rs, displayColumns, columnWidths);
@@ -900,8 +900,8 @@ class ij {
             };
             int[] columnWidths = new int[] {
                     14,
-                    28,
-                    35
+                    35,
+                    80
             };
 
             return new ijResultSetResult(rs, displayColumns, columnWidths);
@@ -1105,7 +1105,7 @@ class ij {
 			int[] columnWidths = new int[] {
 				20,
 				20,
-				20,
+				40,
 				9,
 				4,
 				4,
