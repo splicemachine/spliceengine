@@ -9,7 +9,6 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.utils.marshall.KeyDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
@@ -51,7 +50,7 @@ public class OperationUtils {
 			PairDecoder decoder = OperationUtils.getPairDecoder(operation,spliceRuntimeContext);
 		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && operation != regionOperation) {
 			SpliceLogUtils.trace(log,"scanning Temp Table");
-			provider = regionOperation.getReduceRowProvider(operation,decoder,spliceRuntimeContext);
+			provider = regionOperation.getReduceRowProvider(operation,decoder,spliceRuntimeContext, true);
 		} else {
 			SpliceLogUtils.trace(log,"scanning Map Table");
 			provider = regionOperation.getMapRowProvider(operation,decoder,spliceRuntimeContext);

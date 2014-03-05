@@ -164,8 +164,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext,returnDefaultValue);
 		}
 
 		@Override

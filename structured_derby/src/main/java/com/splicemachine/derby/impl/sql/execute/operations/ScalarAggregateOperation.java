@@ -22,12 +22,10 @@ import com.splicemachine.stats.TimeView;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import org.apache.derby.iapi.error.SQLWarningFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -89,7 +87,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
 				try {
 						byte[] range = new byte[uniqueSequenceID.length+1];
 						range[0] = spliceRuntimeContext.getHashBucket();
@@ -104,12 +102,12 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 				SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
 				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
 				RowProvider delegate = new ClientScanProvider("scalarAggregateReduce", tempTableBytes,reduceScan,rowDecoder,spliceRuntimeContext);
-				return new ScalarAggregateRowProvider(rowDecoder.getTemplate(),aggregates,delegate);
+				return new ScalarAggregateRowProvider(rowDecoder.getTemplate(),aggregates,delegate,returnDefaultValue);
 		}
 
 		@Override
 		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				return getReduceRowProvider(top, rowDecoder, spliceRuntimeContext);
+				return getReduceRowProvider(top, rowDecoder, spliceRuntimeContext, true);
 		}
 
 		@Override

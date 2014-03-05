@@ -84,7 +84,7 @@ public class CachedOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
         return getMapRowProvider(top, rowDecoder, spliceRuntimeContext);
     }
 

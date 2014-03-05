@@ -208,7 +208,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 	}
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
         return getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
         

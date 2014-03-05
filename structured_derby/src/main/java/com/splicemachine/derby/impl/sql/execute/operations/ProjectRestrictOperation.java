@@ -10,7 +10,6 @@ import com.google.common.base.Strings;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.utils.SpliceUtilities;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -195,7 +194,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 		@Override
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
+				RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext, true);
 				SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
 				nextTime += getCurrentTimeMillis() - beginTime;
 				return rs;
@@ -207,8 +206,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
 		}
 
 

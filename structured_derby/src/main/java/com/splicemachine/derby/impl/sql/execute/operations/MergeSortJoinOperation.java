@@ -248,7 +248,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 		}
 
 		@Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
         byte[] start = uniqueSequenceID;
         byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);
         reduceScan = Scans.newScan(start, finish, SpliceUtils.NA_TRANSACTION_ID);
@@ -272,7 +272,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     @Override
     public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        return getReduceRowProvider(top, decoder, spliceRuntimeContext);
+        return getReduceRowProvider(top, decoder, spliceRuntimeContext, true);
     }
 
     @Override
@@ -303,7 +303,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         this.generateLeftOperationStack(opStack);
         SpliceLogUtils.trace(LOG, "operationStack=%s", opStack);
 
-        RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext);
+        RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext, true);
         return new SpliceNoPutResultSet(activation, this, provider);
     }
 

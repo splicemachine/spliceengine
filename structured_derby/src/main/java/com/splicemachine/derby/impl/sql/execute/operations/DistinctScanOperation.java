@@ -301,7 +301,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 		}
 
 		@Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
         return getMapRowProvider(top, decoder, spliceRuntimeContext);
 			
     }
@@ -319,7 +319,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     @Override
     public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
     	
-        RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext);
+        RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext, true);
         return new SpliceNoPutResultSet(activation,this,provider);
     }
 

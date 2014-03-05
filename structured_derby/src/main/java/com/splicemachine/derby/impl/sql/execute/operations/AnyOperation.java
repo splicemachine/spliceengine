@@ -14,13 +14,11 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.StatementContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 
@@ -131,7 +129,7 @@ public class AnyOperation extends SpliceBaseOperation {
 
     @Override
     public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-        RowProvider provider = getReduceRowProvider(source,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
+        RowProvider provider = getReduceRowProvider(source,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext, false);
         return new SpliceNoPutResultSet(activation,this,provider);
     }
 
@@ -152,8 +150,8 @@ public class AnyOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				return new RowProviders.DelegatingRowProvider(source.getReduceRowProvider(top,decoder,spliceRuntimeContext)) {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+				return new RowProviders.DelegatingRowProvider(source.getReduceRowProvider(top,decoder,spliceRuntimeContext, returnDefaultValue)) {
 						@Override
 						public boolean hasNext() throws StandardException {
 								// AnyOperation should never return null; it signals end-of-stream with a special empty ExecRow (see next())

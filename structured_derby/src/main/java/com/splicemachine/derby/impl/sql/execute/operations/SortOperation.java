@@ -246,7 +246,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
 				try {
 						//be sure and include the hash prefix
 						byte[] range = new byte[uniqueSequenceID.length+1];
@@ -278,7 +278,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
 		@Override
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this,spliceRuntimeContext),spliceRuntimeContext);
+				RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this,spliceRuntimeContext),spliceRuntimeContext, true);
 				SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this,provider);
 				nextTime += getCurrentTimeMillis() - beginTime;
 				return rs;
@@ -334,7 +334,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
 		@Override
 		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				return getReduceRowProvider(top, rowDecoder, spliceRuntimeContext);
+				return getReduceRowProvider(top, rowDecoder, spliceRuntimeContext, true);
 		}
 
 		@Override

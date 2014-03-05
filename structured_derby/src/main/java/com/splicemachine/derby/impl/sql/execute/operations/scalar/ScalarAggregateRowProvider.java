@@ -36,7 +36,8 @@ public class ScalarAggregateRowProvider implements RowProvider {
 
 		public ScalarAggregateRowProvider(ExecRow templateRow,
 																			SpliceGenericAggregator[] aggregates,
-																			RowProvider delegate) throws StandardException {
+																			RowProvider delegate,
+																			boolean returnDefault) throws StandardException {
 				this.delegate = delegate;
 				this.templateRow =templateRow.getClone();
 				this.templateRow.resetRowArray();
@@ -60,6 +61,7 @@ public class ScalarAggregateRowProvider implements RowProvider {
 				for(int i=0;i<columnMap.length;i++){
 						colPosMap[columnMap[i]] = i;
 				}
+				this.defaultReturned = !returnDefault;
 		}
 
 		/*delegate methods*/

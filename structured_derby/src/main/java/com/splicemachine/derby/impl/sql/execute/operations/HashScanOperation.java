@@ -177,7 +177,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
 				return getMapRowProvider(top,decoder, spliceRuntimeContext);
 		}
 
@@ -196,7 +196,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 						sequence = new DataValueDescriptor[1];
 						sequence[0] = activation.getDataValueFactory().getBitDataValue(uniqueSequenceID);
 						SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-						return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,OperationUtils.getPairDecoder(this,spliceRuntimeContext), spliceRuntimeContext));
+						return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,OperationUtils.getPairDecoder(this,spliceRuntimeContext), spliceRuntimeContext, true));
 				} catch (Exception e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG, "executeProbeScan failed!", e);
 						return null;
@@ -247,7 +247,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 
 		@Override
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
+				RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext, true);
 				return new SpliceNoPutResultSet(activation,this,provider);
 		}
 

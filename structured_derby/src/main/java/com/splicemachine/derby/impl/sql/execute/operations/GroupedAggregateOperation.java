@@ -137,7 +137,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
 				buildReduceScan();
 				if(top!=this && top instanceof SinkingOperation){
 						SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
@@ -171,7 +171,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
 		@Override
 		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				return getReduceRowProvider(top,decoder,spliceRuntimeContext);
+				return getReduceRowProvider(top,decoder,spliceRuntimeContext, true);
 		}
 
 		@Override
