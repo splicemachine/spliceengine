@@ -47,13 +47,16 @@ public class SubqueryIT {
 
     protected static SpliceTableWatcher t1Watcher = new SpliceTableWatcher("t1",schemaWatcher.schemaName,"(k int, l int)");
     protected static SpliceTableWatcher t2Watcher = new SpliceTableWatcher("t2",schemaWatcher.schemaName,"(k int, l int)");
-		private static SpliceTableWatcher t5Watcher = new SpliceTableWatcher("t5",schemaWatcher.schemaName,"(k int)");
 
 		private static SpliceTableWatcher intTable1 = new SpliceTableWatcher("t3",schemaWatcher.schemaName,"(i int)");
 		private static SpliceTableWatcher intTable2 = new SpliceTableWatcher("t4",schemaWatcher.schemaName,"(i int)");
 
+		private static SpliceTableWatcher t5Watcher = new SpliceTableWatcher("t5",schemaWatcher.schemaName,"(k int)");
     protected static SpliceTableWatcher t3Watcher = new SpliceTableWatcher("WORKS8",schemaWatcher.schemaName,
             "(EMPNUM VARCHAR(3) NOT NULL, PNUM VARCHAR(3) NOT NULL,HOURS DECIMAL(5))");
+
+		private static SpliceTableWatcher collTable = new SpliceTableWatcher("colls",schemaWatcher.schemaName,"(ID VARCHAR(128) NOT NULL, COLLID SMALLINT NOT NULL)");
+		private static SpliceTableWatcher docsTable = new SpliceTableWatcher("docs",schemaWatcher.schemaName,"(ID VARCHAR(128) NOT NULL)");
 
 
     private static final int size = 10;
@@ -67,57 +70,76 @@ public class SubqueryIT {
 						.around(t5Watcher)
 						.around(intTable1)
 						.around(intTable2)
+						.around(docsTable)
+						.around(collTable)
             .around(new SpliceDataWatcher() {
-                @Override
-                protected void starting(Description description) {
-                    try {
-                        PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?)",t2Watcher.toString()));
-                        for(int i=0;i<size;i++){
+								@Override
+								protected void starting(Description description) {
+										try {
+												PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?)", t2Watcher.toString()));
+												for (int i = 0; i < size; i++) {
 														//(0,1),(1,2),...,(size,size+1)
-                            ps.setInt(1,i);
-                            ps.setInt(2,i+1);
-                            ps.execute();
-                        }
+														ps.setInt(1, i); ps.setInt(2, i + 1);
+														ps.addBatch();
+												}
+												ps.executeBatch();
 
-                        ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?)",t1Watcher.toString()));
-                        for(int i=0;i<size;i++){
+												ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?)", t1Watcher.toString()));
+												for (int i = 0; i < size; i++) {
 														//(0,1),(0,1),(1,2),...,(size,size+1)
-                            ps.setInt(1,i);
-                            ps.setInt(2,i+1);
-                            ps.execute();
-                            if(i%2==0){
-                                //put in a duplicate
-                                ps.setInt(1,i);
-                                ps.setInt(2,i+1);
-                                ps.execute();
-                            }
-                        }
+														ps.setInt(1, i); ps.setInt(2, i + 1);
+														ps.addBatch();
+														if (i % 2 == 0) {
+																//put in a duplicate
+																ps.setInt(1, i); ps.setInt(2, i + 1);
+																ps.addBatch();
+														}
+												}
+												ps.executeBatch();
 
-                        //  load t3
-                        for (String rowVal : t3RowVals) {
-                            spliceClassWatcher.getStatement().executeUpdate("insert into "+t3Watcher.toString()+" values " + rowVal);
-                        }
+												//  load t3
+												for (String rowVal : t3RowVals) {
+														spliceClassWatcher.getStatement().executeUpdate("insert into " + t3Watcher.toString() + " values " + rowVal);
+												}
 
 												//load t5
-												spliceClassWatcher.executeUpdate(String.format("insert into %s values %d",t5Watcher,2));
+												spliceClassWatcher.executeUpdate(String.format("insert into %s values %d", t5Watcher, 2));
 
-												ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?)",intTable1));
-												ps.setInt(1,10);ps.addBatch();
-												ps.setInt(1,20);ps.addBatch();
+												ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?)", intTable1));
+												ps.setInt(1, 10); ps.addBatch();
+												ps.setInt(1, 20); ps.addBatch();
 												ps.executeBatch();
 
-												ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?)",intTable2));
-												ps.setInt(1,30);ps.addBatch();
-												ps.setInt(1,40);ps.addBatch();
+												ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?)", intTable2));
+												ps.setInt(1, 30); ps.addBatch();
+												ps.setInt(1, 40); ps.addBatch();
 												ps.executeBatch();
 
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }finally{
-                        spliceClassWatcher.closeAll();
-                    }
-                }
+												String collLoadQuery = String.format("insert into %s values (?,?)",collTable);
+												ps = spliceClassWatcher.prepareStatement(collLoadQuery);
+												ps.setString(1,"123");ps.setInt(2,2);ps.addBatch();
+												ps.setString(1,"124");ps.setInt(2,-5);ps.addBatch();
+												ps.setString(1,"24");ps.setInt(2,1);ps.addBatch();
+												ps.setString(1,"26");ps.setInt(2,-2);ps.addBatch();
+												ps.setString(1,"36");ps.setInt(2,1);ps.addBatch();
+												ps.setString(1,"37");ps.setInt(2, 8);ps.addBatch();
+												ps.executeBatch();	
+												String docLoadQuery = String.format("insert into %s values (?)",docsTable);
+												ps = spliceClassWatcher.prepareStatement(docLoadQuery);
+												ps.setString(1,"24");ps.addBatch();
+												ps.setString(1,"25");ps.addBatch();
+												ps.setString(1,"27");ps.addBatch();
+												ps.setString(1,"36");ps.addBatch();
+												ps.setString(1,"124");ps.addBatch();
+												ps.setString(1,"567");ps.addBatch();
+												ps.executeBatch();
 
+										} catch (Exception e) {
+												throw new RuntimeException(e);
+										} finally {
+												spliceClassWatcher.closeAll();
+										}
+								}
             })
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/content.sql", CLASS_NAME))
@@ -412,5 +434,17 @@ public class SubqueryIT {
 				}
 				Collections.sort(actual);
 				Assert.assertEquals("Incorrect results!",correctResults,actual);
+		}
+
+		@Test
+		public void testCountOverSubqueryWithJoin() throws Exception {
+				/*Regression test for DB-1027*/
+				String query = String.format("SELECT COUNT(*) FROM " +
+								"(SELECT ID FROM %1$s WHERE " +
+								"(ID NOT IN (SELECT ID FROM %2$s WHERE COLLID IN (-2,1)))) AS TAB",docsTable,collTable);
+				ResultSet resultSet = methodWatcher.executeQuery(query);
+				int correctCount = 4;
+				Assert.assertTrue("No Results returned!",resultSet.next());
+				Assert.assertEquals("Incorrect count!",correctCount,resultSet.getInt(1));
 		}
 }
