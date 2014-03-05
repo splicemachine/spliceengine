@@ -10,16 +10,18 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.tools.splice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.HasIncrement;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.impl.sql.execute.InsertConstantAction;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 
 
@@ -37,11 +39,12 @@ import java.io.IOException;
 public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		private static final long serialVersionUID = 1l;
 		private static final Logger LOG = Logger.getLogger(InsertOperation.class);
-
 		private ExecRow rowTemplate;
 		private HTableInterface sysColumnTable;
-
 		private int[] pkCols;
+		protected boolean autoincrementGenerated;
+		private boolean	singleRowResultSet = false;
+		
 
 		@SuppressWarnings("UnusedDeclaration")
 		public InsertOperation(){ super(); }
@@ -65,8 +68,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		public void init(SpliceOperationContext context) throws StandardException{
 				super.init(context);
 				heapConglom = writeInfo.getConglomerateId();
-
 				pkCols = writeInfo.getPkColumnMap();
+				singleRowResultSet = isSingleRowResultSet();
 		}
 
 		@Override
@@ -131,14 +134,17 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 				}
 
 				Sequence sequence;
+				long nextValue = -1;
 				try {
-						sequence = SpliceDriver.driver().getSequencePool().get(new Sequence.Key(sysColumnTable,rlBytes,
-										getTransactionID(),heapConglom,columnPosition,activation.getLanguageConnectionContext().getDataDictionary()));
+					sequence = SpliceDriver.driver().getSequencePool().get(new Sequence.Key(sysColumnTable,rlBytes,
+							getTransactionID(),heapConglom,columnPosition,activation.getLanguageConnectionContext().getDataDictionary()));						
+					nextValue = sequence.getNext();
+					if (singleRowResultSet) { // Single Sequence Move
+						this.getActivation().getLanguageConnectionContext().setIdentityValue(nextValue);
+					} 
 				} catch (Exception e) {
 						throw Exceptions.parseException(e);
-				}
-
-				long nextValue = sequence.getNext();
+				}				
 
 				if(rowTemplate==null)
 						rowTemplate = getExecRowDefinition();
@@ -158,4 +164,14 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 						}
 				}
 		}
+				
+	    private boolean isSingleRowResultSet()
+	    {
+	        boolean isRow = false;
+	        if (source instanceof RowOperation)
+	        	isRow = true;
+	        else if (source instanceof NormalizeOperation)
+	            isRow = (((NormalizeOperation) source).source instanceof RowOperation);
+	        return isRow;
+	    }
 }
