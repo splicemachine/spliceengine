@@ -2547,6 +2547,7 @@ TOKEN [IGNORE_CASE] :
 |   <DYNAMIC: "dynamic">
 |	<FORTRAN: "fortran">
 |   <GENERATED: "generated">
+|	<IDENTITY_VAL_LOCAL: "identity_val_local">
 |	<INCREMENT: "increment">
 |	<INITIAL: "initial">
 |   <INOUT: "inout">
@@ -6539,6 +6540,13 @@ numericValueFunction() throws StandardException :
 	{
 		return value;
 	}
+|
+	<IDENTITY_VAL_LOCAL> <LEFT_PAREN> <RIGHT_PAREN>
+	{
+		return (ValueNode) nodeFactory.getNode(
+						C_NodeTypes.IDENTITY_VAL_NODE,
+						getContextManager());
+	}
 }
 
 /*
@@ -6937,6 +6945,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == MOD ||
                 getToken(1).kind == COALESCE ||
                 getToken(1).kind == VALUE ||
+                getToken(1).kind == IDENTITY_VAL_LOCAL ||
                 getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == SUBSTR ||
                 getToken(1).kind == UPPER ||
@@ -14937,6 +14946,7 @@ nonReservedKeyword()  :
 	|	tok = <FN>
 	|	tok = <FORTRAN>
 	|	tok = <GENERATED>
+	|	tok = <IDENTITY_VAL_LOCAL>
 	|	tok = <INCREMENT>
 	|	tok = <INDEX>
 	|	tok = <INITIAL>
