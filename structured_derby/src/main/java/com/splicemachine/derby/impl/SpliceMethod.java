@@ -1,12 +1,16 @@
 package com.splicemachine.derby.impl;
 
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.impl.sql.execute.BaseActivation;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceMethod<T> {
@@ -14,11 +18,11 @@ public class SpliceMethod<T> {
 	protected String methodName;
 	protected Activation activation;
 	protected Method method;
-	private static final GeneratedMethod[] directs;
+	private static final HashMap<String,GeneratedMethod> directs;
 	 static {
-		directs = new GeneratedMethod[10];
-		for (int i = 0; i < directs.length; i++) {
-			directs[i] = new DirectCall(i);
+		directs = new HashMap<String,GeneratedMethod>(10);
+		for (int i = 0; i < 10; i++) {
+			directs.put("e"+i, new DirectCall(i));
 		}
 	 }	
 	
@@ -33,8 +37,9 @@ public class SpliceMethod<T> {
 	
 	@SuppressWarnings("unchecked")
 	public T invoke() throws StandardException{
-		if ((methodName.length() == 2) && methodName.startsWith("e"))
-			return (T) (directs[((int) methodName.charAt(1)) - '0']).invoke(activation);
+		GeneratedMethod genMethod = directs.get(methodName);
+		if (genMethod != null)
+			return (T) genMethod.invoke(activation);
 		else { 	
 			try {
 				if (method == null)
