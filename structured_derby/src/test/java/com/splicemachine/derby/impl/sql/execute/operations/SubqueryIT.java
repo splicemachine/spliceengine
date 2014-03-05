@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.Ints;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.homeless.TestUtils;
@@ -58,7 +59,8 @@ public class SubqueryIT {
 		private static SpliceTableWatcher collTable = new SpliceTableWatcher("colls",schemaWatcher.schemaName,"(ID VARCHAR(128) NOT NULL, COLLID SMALLINT NOT NULL)");
 		private static SpliceTableWatcher docsTable = new SpliceTableWatcher("docs",schemaWatcher.schemaName,"(ID VARCHAR(128) NOT NULL)");
 
-
+		private static SpliceTableWatcher scanSubqueryT1 = new SpliceTableWatcher("sT1",schemaWatcher.schemaName,"(toid int,rd int)");
+		private static SpliceTableWatcher scanSubqueryT2 = new SpliceTableWatcher("sT2",schemaWatcher.schemaName,"(userid int,pmnew int,pmtotal int)");
     private static final int size = 10;
 
     @ClassRule
@@ -72,6 +74,8 @@ public class SubqueryIT {
 						.around(intTable2)
 						.around(docsTable)
 						.around(collTable)
+						.around(scanSubqueryT1)
+						.around(scanSubqueryT2)
             .around(new SpliceDataWatcher() {
 								@Override
 								protected void starting(Description description) {
@@ -79,20 +83,17 @@ public class SubqueryIT {
 												PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?)", t2Watcher.toString()));
 												for (int i = 0; i < size; i++) {
 														//(0,1),(1,2),...,(size,size+1)
-														ps.setInt(1, i); ps.setInt(2, i + 1);
-														ps.addBatch();
+														ps.setInt(1, i); ps.setInt(2, i + 1); ps.addBatch();
 												}
 												ps.executeBatch();
 
 												ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?)", t1Watcher.toString()));
 												for (int i = 0; i < size; i++) {
 														//(0,1),(0,1),(1,2),...,(size,size+1)
-														ps.setInt(1, i); ps.setInt(2, i + 1);
-														ps.addBatch();
+														ps.setInt(1, i); ps.setInt(2, i + 1); ps.addBatch();
 														if (i % 2 == 0) {
 																//put in a duplicate
-																ps.setInt(1, i); ps.setInt(2, i + 1);
-																ps.addBatch();
+																ps.setInt(1, i); ps.setInt(2, i + 1); ps.addBatch();
 														}
 												}
 												ps.executeBatch();
@@ -115,32 +116,55 @@ public class SubqueryIT {
 												ps.setInt(1, 40); ps.addBatch();
 												ps.executeBatch();
 
-												String collLoadQuery = String.format("insert into %s values (?,?)",collTable);
+												String collLoadQuery = String.format("insert into %s values (?,?)", collTable);
 												ps = spliceClassWatcher.prepareStatement(collLoadQuery);
-												ps.setString(1,"123");ps.setInt(2,2);ps.addBatch();
-												ps.setString(1,"124");ps.setInt(2,-5);ps.addBatch();
-												ps.setString(1,"24");ps.setInt(2,1);ps.addBatch();
-												ps.setString(1,"26");ps.setInt(2,-2);ps.addBatch();
-												ps.setString(1,"36");ps.setInt(2,1);ps.addBatch();
-												ps.setString(1,"37");ps.setInt(2, 8);ps.addBatch();
-												ps.executeBatch();	
-												String docLoadQuery = String.format("insert into %s values (?)",docsTable);
-												ps = spliceClassWatcher.prepareStatement(docLoadQuery);
-												ps.setString(1,"24");ps.addBatch();
-												ps.setString(1,"25");ps.addBatch();
-												ps.setString(1,"27");ps.addBatch();
-												ps.setString(1,"36");ps.addBatch();
-												ps.setString(1,"124");ps.addBatch();
-												ps.setString(1,"567");ps.addBatch();
+												ps.setString(1, "123"); ps.setInt(2, 2); ps.addBatch();
+												ps.setString(1, "124"); ps.setInt(2, -5); ps.addBatch();
+												ps.setString(1, "24"); ps.setInt(2, 1); ps.addBatch();
+												ps.setString(1, "26"); ps.setInt(2, -2); ps.addBatch();
+												ps.setString(1, "36"); ps.setInt(2, 1); ps.addBatch();
+												ps.setString(1, "37"); ps.setInt(2, 8); ps.addBatch();
 												ps.executeBatch();
 
+												String docLoadQuery = String.format("insert into %s values (?)", docsTable);
+												ps = spliceClassWatcher.prepareStatement(docLoadQuery);
+												ps.setString(1, "24"); ps.addBatch();
+												ps.setString(1, "25"); ps.addBatch();
+												ps.setString(1, "27"); ps.addBatch();
+												ps.setString(1, "36"); ps.addBatch();
+												ps.setString(1, "124"); ps.addBatch();
+												ps.setString(1, "567"); ps.addBatch();
+												ps.executeBatch();
+
+
+												String subqueryT1Load = String.format("insert into %s values (?,?)",scanSubqueryT1);
+												ps = spliceClassWatcher.prepareStatement(subqueryT1Load);
+												ps.setInt(1,1); ps.setInt(2,0); ps.addBatch();
+												ps.setInt(1,1); ps.setInt(2,0); ps.addBatch();
+												ps.setInt(1,1); ps.setInt(2,0); ps.addBatch();
+												ps.setInt(1,1); ps.setInt(2,12); ps.addBatch();
+												ps.setInt(1,1); ps.setInt(2,15); ps.addBatch();
+												ps.setInt(1,1); ps.setInt(2,123); ps.addBatch();
+												ps.setInt(1,1); ps.setInt(2,12312); ps.addBatch();
+												ps.setInt(1,1); ps.setInt(2,12312); ps.addBatch();
+												ps.setInt(1,1); ps.setInt(2,123); ps.addBatch();
+												ps.setInt(1,2); ps.setInt(2,0); ps.addBatch();
+												ps.setInt(1,2); ps.setInt(2,0); ps.addBatch();
+												ps.setInt(1,2); ps.setInt(2,1); ps.addBatch();
+												ps.setInt(1,2); ps.setInt(2,2); ps.addBatch();
+												ps.executeBatch();
+
+												ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?,?)",scanSubqueryT2));
+												ps.setInt(1,1);ps.setInt(2,0);ps.setInt(3,0);ps.addBatch();
+												ps.setInt(1,2);ps.setInt(2,0);ps.setInt(3,0);ps.addBatch();
+												ps.executeBatch();
 										} catch (Exception e) {
 												throw new RuntimeException(e);
 										} finally {
 												spliceClassWatcher.closeAll();
 										}
 								}
-            })
+						})
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/content.sql", CLASS_NAME))
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "null_int_data.sql", schemaWatcher.schemaName))
@@ -446,5 +470,49 @@ public class SubqueryIT {
 				int correctCount = 4;
 				Assert.assertTrue("No Results returned!",resultSet.next());
 				Assert.assertEquals("Incorrect count!",correctCount,resultSet.getInt(1));
+		}
+
+		@Test
+		public void testSubqueryInProjection() throws Exception {
+				/*Regression test for DB-1086*/
+				String query = String.format("select userid,pmtotal,pmnew, " +
+								"(select count(rd) from %1$s where toid=%2$s.userid) calc_total, " +
+								"(select count(rd) from %1$s where rd=0 and toid=%2$s.userid) calc_new from %2$s",scanSubqueryT1,scanSubqueryT2);
+
+				ResultSet rs = methodWatcher.executeQuery(query);
+				List<int[]> correct = Arrays.asList(
+								new int[]{1,0,0,9,3},
+								new int[]{2,0,0,4,2}
+				);
+
+				List<int[]> actual = Lists.newArrayListWithExpectedSize(correct.size());
+				while(rs.next()){
+						int[] nextRow = new int[5];
+						for(int i=0;i<5;i++){
+								int n = rs.getInt(i+1);
+								Assert.assertFalse("Incorrectly returned null!",rs.wasNull());
+								nextRow[i] = n;
+						}
+						actual.add(nextRow);
+				}
+				Assert.assertEquals("Incorrect number of rows returned!",correct.size(),actual.size());
+				Collections.sort(actual,new Comparator<int[]>() {
+						@Override
+						public int compare(int[] o1, int[] o2) {
+								if(o1==null){
+										if(o2==null) return 0;
+										else return -1;
+								}else if(o2==null)
+										return 1;
+
+								return Ints.compare(o1[0], o2[0]);
+						}
+				});
+
+				Iterator<int[]> actualIter = actual.iterator();
+				for(int[] correctRow:correct){
+						int[] actualRow = actualIter.next();
+						Assert.assertArrayEquals("Incorrect row!",correctRow,actualRow);
+				}
 		}
 }
