@@ -2153,21 +2153,23 @@ public class SelectNode extends ResultSetNode
 
 	}
 
-    private ColumnReference getJoinColumn(Predicate predicate){
+		private ColumnReference getJoinColumn(Predicate predicate){
 				OperatorNode node = predicate.getAndNode();
 				ValueNode left;
 				do{
-					if(node instanceof UnaryOperatorNode){
-						left = ((UnaryOperatorNode)node).getOperand();	
-					}else if(node instanceof BinaryOperatorNode){
-						left = ((BinaryOperatorNode)node).getLeftOperand();
-					}else if(node instanceof TernaryOperatorNode){
-						left = ((TernaryOperatorNode)node).getLeftOperand();
-					}else
-						throw new IllegalStateException("Unexpected join column type: "+ node.getClass());
+						if(node instanceof UnaryOperatorNode){
+								left = ((UnaryOperatorNode)node).getOperand();
+						}else if(node instanceof BinaryOperatorNode){
+								left = ((BinaryOperatorNode)node).getLeftOperand();
+						}else if(node instanceof TernaryOperatorNode){
+								left = ((TernaryOperatorNode)node).getLeftOperand();
+						}else
+								throw new IllegalStateException("Unexpected join column type: "+ node.getClass());
 
-					if(left instanceof OperatorNode)
-						node = (OperatorNode)left;
+						if(left instanceof CastNode)
+								left = ((CastNode)left).castOperand;
+						if(left instanceof OperatorNode)
+								node = (OperatorNode)left;
 
 				}while(!(left instanceof ColumnReference));
 				return (ColumnReference)left;
