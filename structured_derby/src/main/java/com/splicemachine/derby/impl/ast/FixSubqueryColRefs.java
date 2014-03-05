@@ -1,9 +1,8 @@
 package com.splicemachine.derby.impl.ast;
 
-import com.google.common.base.*;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Lists;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.Optimizable;
 import org.apache.derby.iapi.sql.compile.Visitable;
@@ -11,8 +10,9 @@ import org.apache.derby.impl.sql.compile.*;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nullable;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author P Trolard
@@ -25,11 +25,20 @@ public class FixSubqueryColRefs extends AbstractSpliceVisitor {
     private Map<Integer,List<SubqueryNode>> correlatedSubQs;
 
     public static <K,V> Map<K,List<V>> appendVal(Map<K,List<V>> m, K k, V v){
-        if (m.containsKey(k)){
-            m.get(k).add(v);
-        } else {
-            m.put(k, Collections.singletonList(v));
-        }
+				List<V> objects = m.get(k);
+				if(objects==null){
+						objects = Lists.newArrayListWithExpectedSize(1);
+						m.put(k,objects);
+				}
+				objects.add(v);
+//        if (m.containsKey(k)){
+//            m.get(k).add(v);
+//        } else {
+//						//noinspection unchecked
+//						List<V> objects = Lists.newArrayListWithExpectedSize(1);
+//						objects.add(v);
+//						m.put(k, objects);
+//        }
         return m;
     }
 
