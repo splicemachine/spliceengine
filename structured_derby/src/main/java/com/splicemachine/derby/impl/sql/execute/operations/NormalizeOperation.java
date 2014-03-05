@@ -22,7 +22,6 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.shared.common.reference.SQLState;
@@ -107,8 +106,8 @@ public class NormalizeOperation extends SpliceBaseOperation {
 
 		@Override
 		public RowProvider getReduceRowProvider(SpliceOperation top,
-																						PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
+																						PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
 		}
 
 		private int computeStartColumn(boolean forUpdate,

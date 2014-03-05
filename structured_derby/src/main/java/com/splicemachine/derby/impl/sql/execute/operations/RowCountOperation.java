@@ -228,7 +228,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 
 		@Override
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext));
+				return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext, true));
 		}
 
 		@Override
@@ -242,8 +242,8 @@ public class RowCountOperation extends SpliceBaseOperation{
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				RowProvider provider = source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+				RowProvider provider = source.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
 				long fetchLimit = getFetchLimit();
 				long offset = getTotalOffset();
 

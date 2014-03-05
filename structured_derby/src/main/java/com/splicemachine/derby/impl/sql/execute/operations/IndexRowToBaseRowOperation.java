@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 
 import com.google.common.base.Strings;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -16,7 +15,6 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.stats.TimeView;
-import com.splicemachine.tools.splice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
@@ -27,14 +25,12 @@ import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.DynamicCompiledOpenConglomInfo;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericPreparedStatement;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -236,7 +232,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				PairDecoder decoder = OperationUtils.getPairDecoder(this,runtimeContext);
 				if(regionOperation.getNodeTypes().contains(NodeType.REDUCE)&&this!=regionOperation){
 						SpliceLogUtils.trace(LOG,"Scanning temp tables");
-						provider = regionOperation.getReduceRowProvider(this,decoder,runtimeContext);
+						provider = regionOperation.getReduceRowProvider(this,decoder,runtimeContext, true);
 				}else {
 						SpliceLogUtils.trace(LOG,"scanning Map table");
 						provider = regionOperation.getMapRowProvider(this,decoder,runtimeContext);
@@ -250,8 +246,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
 		}
 
 		@Override

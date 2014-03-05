@@ -515,4 +515,11 @@ public class SubqueryIT {
 						Assert.assertArrayEquals("Incorrect row!",correctRow,actualRow);
 				}
 		}
+
+		@Test
+		public void testSubqueryOverCountReturnsCorrectly() throws Exception {
+				/*Regression test for DB-1085*/
+				ResultSet rs = methodWatcher.executeQuery(String.format("select * from %1$s where i in (select sum(%1$s.i) from %2$s)",intTable1,intTable2));
+				Assert.assertFalse("Rows incorrectly returned!",rs.next());
+		}
 }

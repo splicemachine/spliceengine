@@ -147,7 +147,7 @@ public class OnceOperation extends SpliceBaseOperation {
 				SpliceLogUtils.trace(LOG, "operationStack=%s",operationStack);
 				SpliceOperation regionOperation = operationStack.get(0);
 				SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-				RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(source, runtimeContext),runtimeContext);
+				RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(source, runtimeContext),runtimeContext, true);
 				return new SpliceNoPutResultSet(activation,this, provider);
 		}
 
@@ -173,9 +173,9 @@ public class OnceOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException{
 				SpliceLogUtils.trace(LOG, "getReduceRowProvider");
-				return new OnceRowProvider(source.getReduceRowProvider(top,rowDecoder, spliceRuntimeContext));
+				return new OnceRowProvider(source.getReduceRowProvider(top,rowDecoder, spliceRuntimeContext, returnDefaultValue));
 		}
 
 		@Override

@@ -83,7 +83,7 @@ public interface SpliceOperation  {
 	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
 	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
 	 */
-	public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+	public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException;
 
 		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
 

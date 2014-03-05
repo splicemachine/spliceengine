@@ -345,13 +345,15 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		 * If the operation does a transformation (e.g. ProjectRestrict, Normalize, IndexRowToBaseRow), then
 		 * this should delegate to the operation's source.
 		 *
+		 *
 		 * @param top the top operation to be executed
 		 * @param decoder the decoder to use
+		 * @param returnDefaultValue
 		 * @return a ReduceRowProvider
 		 * @throws StandardException if something goes wrong
 		 */
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
 				throw new UnsupportedOperationException("ReduceRowProviders not implemented for this node: "+ this.getClass());
 		}
 

@@ -11,24 +11,19 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.stats.Counter;
-import com.splicemachine.tools.splice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.tools.run;
 import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.derby.shared.common.reference.MessageId;
 import org.apache.hadoop.hbase.client.Scan;
@@ -161,8 +156,8 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        return leftResultSet.getReduceRowProvider(top, decoder, spliceRuntimeContext);
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+        return leftResultSet.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
     }
 
     @Override
@@ -196,7 +191,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         RowProvider provider;
 				PairDecoder decoder = OperationUtils.getPairDecoder(this,runtimeContext);
         if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)) {
-            provider = regionOperation.getReduceRowProvider(this, decoder, runtimeContext);
+            provider = regionOperation.getReduceRowProvider(this, decoder, runtimeContext, true);
         } else {
             provider = regionOperation.getMapRowProvider(this, decoder, runtimeContext);
         }
