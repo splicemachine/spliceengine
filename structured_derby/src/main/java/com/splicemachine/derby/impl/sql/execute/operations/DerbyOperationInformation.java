@@ -154,15 +154,17 @@ public class DerbyOperationInformation implements OperationInformation,Externali
                               boolean isKeyed) throws StandardException {
         int	numCandidateCols = candidateRow.nColumns();
         ExecRow compactRow;
+        baseColumnMap = new int[numCandidateCols];
+        for (int i = 0; i < numCandidateCols; ++i) {
+            baseColumnMap[i] = -1;
+        }
         if (accessedColumns == null) {
             compactRow =  candidateRow;
-            baseColumnMap = new int[numCandidateCols];
             for (int i = 0; i < baseColumnMap.length; i++)
                 baseColumnMap[i] = i;
         }
         else {
             int numCols = accessedColumns.getNumBitsSet();
-            baseColumnMap = new int[numCandidateCols];
 
             ExecutionFactory ex = activation.getLanguageConnectionContext()
                                             .getLanguageConnectionFactory().getExecutionFactory();

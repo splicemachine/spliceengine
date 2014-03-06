@@ -21,7 +21,6 @@ import com.splicemachine.stats.TimeView;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
-import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -167,15 +166,18 @@ public class TableScanOperation extends ScanOperation {
 
 		@Override
 		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-            /*FormatableBitSet accessedPkCols = scanInformation.getAccessedPkColumns();
-            int size = accessedPkCols.getNumBitsSet();*/
+
             columnOrdering = scanInformation.getColumnOrdering();
-
-            int[] keyColumns = new int[columnOrdering.length];
-            for (int i = 0; i < keyColumns.length; ++i) {
-                keyColumns[i] = baseColumnMap[columnOrdering[i]];
+            int[] keyColumns = null;
+            if(columnOrdering != null && columnOrdering.length > 0) {
+                keyColumns = new int[columnOrdering.length];
+                for (int i = 0; i < keyColumns.length; ++i) {
+                    keyColumns[i] = -1;
+                }
+                for (int i = 0; i < keyColumns.length && columnOrdering[i] < baseColumnMap.length; ++i) {
+                    keyColumns[i] = baseColumnMap[columnOrdering[i]];
+                }
             }
-
 		    /*
 			 * Table Scans only use a key encoder when encoding to SpliceOperationRegionScanner,
 			 * in which case, the KeyEncoder should be either the row location of the last emitted
@@ -288,13 +290,15 @@ public class TableScanOperation extends ScanOperation {
                         currentRow = null;
                         currentRowLocation = null;
                     } else {
-
+                        //LOG.error("row = " + BytesUtil.toHex(keyValue.getRow()));
+                        //LOG.error("value = " + BytesUtil.toHex(keyValue.getValue()));
                         if(rowDecoder==null)
                             rowDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
                         currentRow.resetRowArray();
                         DataValueDescriptor[] fields = currentRow.getRowArray();
                         if (fields.length != 0) {
                             // Apply predicate to the row key first
+                            getColumnDVDs();
                             if (getColumnOrdering() != null && getPredicateFilter(spliceRuntimeContext) != null) {
                                 boolean passed = filterRow(keyValue.getRow());
                                 if (!passed)
@@ -333,17 +337,22 @@ public class TableScanOperation extends ScanOperation {
 		}
 
         private boolean filterRow(byte[] data) throws StandardException{
+            int ibuffer = predicateFilter.getValuePredicates().size();
+            if (ibuffer == 0)
+                return true;
             getColumnDVDs();
             MultiFieldDecoder keyDecoder = getKeyDecoder();
             keyDecoder.set(data);
+            Object[] buffer = predicateFilter.getValuePredicates().buffer;
+
             for (int i = 0; i < kdvds.length; ++i) {
+                if (kdvds[i] == null) continue;
                 int offset = keyDecoder.offset();
                 DerbyBytesUtil.skip(keyDecoder,kdvds[i]);
-                int size = keyDecoder.offset()-1-offset;
-                Object[] buffer = predicateFilter.getValuePredicates().buffer;
-                int ibuffer = predicateFilter.getValuePredicates().size();
+                int size = keyDecoder.offset()-offset-1;
                 for (int j =0; j<ibuffer; j++) {
-                    if(((Predicate)buffer[j]).applies(columnOrdering[i]) && !((Predicate)buffer[j]).match(columnOrdering[i],data,offset,size))
+                    if(((Predicate)buffer[j]).applies(columnOrdering[i]) &&
+                       !((Predicate)buffer[j]).match(columnOrdering[i],data,offset,size))
                         return false;
                 }
             }
@@ -490,11 +499,13 @@ public class TableScanOperation extends ScanOperation {
         }
 
         private void unpack(MultiFieldDecoder decoder, ExecRow destination) throws StandardException {
+            if (keyColumns == null) return;
             DataValueDescriptor[] fields = destination.getRowArray();
             for (int i = 0; i < keyColumns.length; ++i) {
                 if (keyColumns[i] == -1) {
                     // skip the key columns that are not in the result
-                    DerbyBytesUtil.skip(decoder, kdvds[i]);
+                    if(kdvds[i] != null && i!=keyColumns.length-1)
+                        DerbyBytesUtil.skip(decoder, kdvds[i]);
                 }
                 else {
                     DataValueDescriptor field = fields[keyColumns[i]];

@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.List;
-import java.util.BitSet;
 
 /**
  * @author Scott Fines
@@ -120,10 +119,12 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
                 accessedCols = null;
             }else{
                 accessedCols = (FormatableBitSet)gsps.getSavedObject(colRefItem);
+                accessedCols.grow(getConglomerate().getFormat_ids().length);
             }
         }
         return accessedCols;
     }
+
 
     @Override
     public FormatableBitSet getAccessedPkColumns() throws StandardException {
@@ -133,15 +134,14 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
                 return null;
             FormatableBitSet cols = getAccessedColumns();
             if (cols == null) {
-                ExecRow row = getResultRow();
-                cols = new FormatableBitSet(row.nColumns());
-                for (int i = 0; i < row.nColumns(); ++i) {
+                int size = getConglomerate().getFormat_ids().length;
+                cols = new FormatableBitSet(size);
+                for (int i = 0; i < size; ++i) {
                     cols.set(i);
                 }
             }
             accessedPkCols = new FormatableBitSet(cols);
             accessedPkCols.clear();
-
             for (int col:columnOrdering) {
                 if(cols.isSet(col))
                     accessedPkCols.set(col);
@@ -155,9 +155,9 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
         if (accessedNonPkCols == null) {
             FormatableBitSet cols = getAccessedColumns();
             if (cols == null) {
-                ExecRow row = getResultRow();
-                cols = new FormatableBitSet(row.nColumns());
-                for (int i = 0; i < row.nColumns(); ++i) {
+                int size = getConglomerate().getFormat_ids().length;
+                cols = new FormatableBitSet(size);
+                for (int i = 0; i < size; ++i) {
                     cols.set(i);
                 }
             }
