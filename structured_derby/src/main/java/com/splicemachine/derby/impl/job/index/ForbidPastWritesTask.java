@@ -61,7 +61,7 @@ public class ForbidPastWritesTask extends ZkTask {
             //add index to table watcher
             TentativeIndexDesc tentativeIndexDesc = ddlChange.getTentativeIndexDesc();
             LocalWriteContextFactory contextFactory = SpliceIndexEndpoint.getContextFactory(tentativeIndexDesc.getBaseConglomerateNumber());
-            contextFactory.addIndex(ddlChange);
+            contextFactory.addIndex(ddlChange, null, null);
         } catch (Exception e) {
             throw new ExecutionException(Throwables.getRootCause(e));
         }

@@ -60,6 +60,8 @@ public class PopulateIndexTask extends ZkTask {
     private boolean isUniqueWithDuplicateNulls;
     private BitSet indexedColumns;
     private BitSet descColumns;
+    private int[] columnOrdering;
+    private int[] format_ids;
 
     private HRegion region;
 
@@ -68,7 +70,7 @@ public class PopulateIndexTask extends ZkTask {
 
 		private String xplainSchema; //could be null, if no stats are to be collected
 
-		@SuppressWarnings("UnusedDeclaration")
+        @SuppressWarnings("UnusedDeclaration")
 		public PopulateIndexTask() { }
 
     public PopulateIndexTask(String transactionId,
@@ -82,7 +84,9 @@ public class PopulateIndexTask extends ZkTask {
                              BitSet descColumns,
                              String xplainSchema,
                              long statementId,
-                             long operationId) {
+                             long operationId,
+                             int[] columnOrdering,
+                             int[] format_ids) {
         super(jobId, OperationJob.operationTaskPriority,transactionId,false);
         this.transactionId = transactionId;
         this.indexConglomId = indexConglomId;
@@ -95,6 +99,8 @@ public class PopulateIndexTask extends ZkTask {
         this.xplainSchema = xplainSchema;
         this.statementId = statementId;
         this.operationId = operationId;
+        this.columnOrdering = columnOrdering;
+        this.format_ids = format_ids;
     }
 
     @Override
@@ -121,12 +127,14 @@ public class PopulateIndexTask extends ZkTask {
         out.writeBoolean(isUniqueWithDuplicateNulls);
         out.writeInt(descColumns.wlen);
         ArrayUtil.writeLongArray(out, descColumns.bits);
-				out.writeBoolean(xplainSchema!=null);
-				if(xplainSchema!=null){
-						out.writeUTF(xplainSchema);
-						out.writeLong(statementId);
-						out.writeLong(operationId);
-				}
+        out.writeBoolean(xplainSchema!=null);
+        if(xplainSchema!=null){
+            out.writeUTF(xplainSchema);
+            out.writeLong(statementId);
+            out.writeLong(operationId);
+        }
+        ArrayUtil.writeIntArray(out, columnOrdering);
+        ArrayUtil.writeIntArray(out, format_ids);
     }
 
     @Override
@@ -142,11 +150,13 @@ public class PopulateIndexTask extends ZkTask {
         isUniqueWithDuplicateNulls = in.readBoolean();
         numWords = in.readInt();
         descColumns = new BitSet(ArrayUtil.readLongArray(in),numWords);
-				if(in.readBoolean()){
-						xplainSchema = in.readUTF();
-						statementId = in.readLong();
-						operationId = in.readLong();
-				}
+        if(in.readBoolean()){
+            xplainSchema = in.readUTF();
+            statementId = in.readLong();
+            operationId = in.readLong();
+        }
+        columnOrdering = ArrayUtil.readIntArray(in);
+        format_ids = ArrayUtil.readIntArray(in);
     }
 
     @Override
@@ -159,29 +169,32 @@ public class PopulateIndexTask extends ZkTask {
         regionScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
         regionScan.setStartRow(region.getStartKey());
         regionScan.setStopRow(region.getEndKey());
-				regionScan.setCacheBlocks(false);
+        regionScan.setCacheBlocks(false);
         regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
         //need to manually add the SIFilter, because it doesn't get added by region.getScanner(
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, ObjectArrayList.<Predicate>newInstance() ,true);
         regionScan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
 				//TODO -sf- disable when stats tracking is disabled
-				MetricFactory metricFactory = xplainSchema!=null? Metrics.samplingMetricFactory(SpliceConstants.sampleTimingSize): Metrics.noOpMetricFactory();
-				long numRecordsRead = 0l;
+                MetricFactory metricFactory = xplainSchema!=null? Metrics.samplingMetricFactory(SpliceConstants.sampleTimingSize): Metrics.noOpMetricFactory();
+                long numRecordsRead = 0l;
 				long startTime = System.currentTimeMillis();
 
-				Timer transformationTimer = metricFactory.newTimer();
+                Timer transformationTimer = metricFactory.newTimer();
 				try{
 						//backfill the index with previously committed data
 						RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
 						if(sourceScanner==null)
 								sourceScanner = region.getScanner(regionScan);
 						BufferedRegionScanner brs = new BufferedRegionScanner(region,sourceScanner,regionScan,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory);
-						RecordingCallBuffer<KVPair> writeBuffer = null;
-						try{
+                        RecordingCallBuffer<KVPair> writeBuffer = null;
+                        try{
 								List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
 								boolean shouldContinue = true;
-								IndexTransformer transformer = IndexTransformer.newTransformer(indexedColumns, mainColToIndexPosMap, descColumns, isUnique, isUniqueWithDuplicateNulls);
+								IndexTransformer transformer =
+                                        IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,
+                                                isUnique,isUniqueWithDuplicateNulls,columnOrdering,format_ids);
+
 								byte[] indexTableLocation = Bytes.toBytes(Long.toString(indexConglomId));
 								writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTaskStatus().getTransactionId(),metricFactory);
 								try{
@@ -190,19 +203,19 @@ public class PopulateIndexTask extends ZkTask {
 												nextRow.clear();
 												shouldContinue  = brs.nextRaw(nextRow,null);
 												numRecordsRead++;
-												translateResult(nextRow, transformer, writeBuffer, transformationTimer);
+												translateResult(nextRow, transformer,writeBuffer,transformationTimer);
 										}
 								}finally{
-										transformationTimer.startTiming();
+                                        transformationTimer.startTiming();
 										writeBuffer.flushBuffer();
 										writeBuffer.close();
-										transformationTimer.stopTiming();
-								}
+                                        transformationTimer.stopTiming(); //be sure and time the final flush wait time
+                                }
 						}finally{
 								brs.close();
 						}
 
-						reportStats(startTime, brs, writeBuffer, transformationTimer.getTime());
+                        reportStats(startTime, brs, writeBuffer, transformationTimer.getTime());
 
         } catch (IOException e) {
             SpliceLogUtils.error(LOG, e);
@@ -213,43 +226,43 @@ public class PopulateIndexTask extends ZkTask {
         }
     }
 
-		protected void reportStats(long startTime, BufferedRegionScanner brs, RecordingCallBuffer<KVPair> writeBuffer,TimeView manipulationTime) {
-				if(xplainSchema!=null){
-						//record some stats
-						OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId, Bytes.toLong(taskId),region.getRegionNameAsString(),12);
-						stats.addMetric(OperationMetric.STOP_TIMESTAMP,System.currentTimeMillis());
+    protected void reportStats(long startTime, BufferedRegionScanner brs, RecordingCallBuffer<KVPair> writeBuffer,TimeView manipulationTime) {
+        if(xplainSchema!=null){
+            //record some stats
+            OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId, Bytes.toLong(taskId),region.getRegionNameAsString(),12);
+            stats.addMetric(OperationMetric.STOP_TIMESTAMP,System.currentTimeMillis());
 
-						WriteStats writeStats = writeBuffer.getWriteStats();
-						TimeView readTime = brs.getReadTime();
-						stats.addMetric(OperationMetric.START_TIMESTAMP,startTime);
-						stats.addMetric(OperationMetric.TASK_QUEUE_WAIT_WALL_TIME,waitTimeNs);
-						stats.addMetric(OperationMetric.OUTPUT_ROWS,writeStats.getRowsWritten());
-						stats.addMetric(OperationMetric.TOTAL_WALL_TIME, manipulationTime.getWallClockTime()+readTime.getWallClockTime());
-						stats.addMetric(OperationMetric.TOTAL_CPU_TIME, manipulationTime.getCpuTime()+readTime.getCpuTime());
-						stats.addMetric(OperationMetric.TOTAL_USER_TIME,manipulationTime.getUserTime()+readTime.getUserTime());
+            WriteStats writeStats = writeBuffer.getWriteStats();
+            TimeView readTime = brs.getReadTime();
+            stats.addMetric(OperationMetric.START_TIMESTAMP,startTime);
+            stats.addMetric(OperationMetric.TASK_QUEUE_WAIT_WALL_TIME,waitTimeNs);
+            stats.addMetric(OperationMetric.OUTPUT_ROWS,writeStats.getRowsWritten());
+            stats.addMetric(OperationMetric.TOTAL_WALL_TIME, manipulationTime.getWallClockTime()+readTime.getWallClockTime());
+            stats.addMetric(OperationMetric.TOTAL_CPU_TIME, manipulationTime.getCpuTime()+readTime.getCpuTime());
+            stats.addMetric(OperationMetric.TOTAL_USER_TIME,manipulationTime.getUserTime()+readTime.getUserTime());
 
-						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,brs.getBytesVisited());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,brs.getRowsVisited());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME, readTime.getWallClockTime());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTime.getCpuTime());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTime.getUserTime());
+            stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,brs.getBytesVisited());
+            stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,brs.getRowsVisited());
+            stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME, readTime.getWallClockTime());
+            stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTime.getCpuTime());
+            stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTime.getUserTime());
 
-						stats.addMetric(OperationMetric.PROCESSING_WALL_TIME, manipulationTime.getWallClockTime());
-						stats.addMetric(OperationMetric.PROCESSING_CPU_TIME,manipulationTime.getCpuTime());
-						stats.addMetric(OperationMetric.PROCESSING_USER_TIME,manipulationTime.getUserTime());
+            stats.addMetric(OperationMetric.PROCESSING_WALL_TIME, manipulationTime.getWallClockTime());
+            stats.addMetric(OperationMetric.PROCESSING_CPU_TIME,manipulationTime.getCpuTime());
+            stats.addMetric(OperationMetric.PROCESSING_USER_TIME,manipulationTime.getUserTime());
 
-						OperationRuntimeStats.addWriteStats(writeStats,stats);
+            OperationRuntimeStats.addWriteStats(writeStats,stats);
 
-						SpliceDriver.driver().getTaskReporter().report(xplainSchema,stats);
-				}
-		}
+            SpliceDriver.driver().getTaskReporter().report(xplainSchema,stats);
+        }
+    }
 
-		private void translateResult(List<KeyValue> result,
+    private void translateResult(List<KeyValue> result,
                                  IndexTransformer transformer,
                                  CallBuffer<KVPair> writeBuffer,
-																 Timer manipulationTimer) throws Exception {
+                                 Timer manipulationTimer) throws Exception {
         //we know that there is only one KeyValue for each row
-				manipulationTimer.startTiming();
+        manipulationTimer.startTiming();
         for(KeyValue kv:result){
             //ignore SI CF
         	if (kv.getBuffer()[kv.getQualifierOffset()] != SIConstants.PACKED_COLUMN_BYTES[0])
@@ -264,7 +277,7 @@ public class PopulateIndexTask extends ZkTask {
 
             writeBuffer.add(pair);
         }
-				manipulationTimer.tick(1);
+        manipulationTimer.tick(1);
     }
 
     @Override

@@ -12,9 +12,9 @@ import com.splicemachine.hbase.KVPair;
 public class UniqueIndexUpsertWriteHandler extends IndexUpsertWriteHandler {
     public UniqueIndexUpsertWriteHandler(BitSet indexedColumns, int[] mainColToIndexPosMap, byte[] indexConglomBytes,
                                          BitSet descColumns, boolean keepState, boolean isUniqueWithDuplicateNulls,
-                                         int expectedWrites) {
+                                         int expectedWrites, int[] columnOrdering, int[] formatIds) {
         super(indexedColumns, mainColToIndexPosMap, indexConglomBytes, descColumns, keepState, true,
-              isUniqueWithDuplicateNulls, expectedWrites);
+              isUniqueWithDuplicateNulls, expectedWrites, columnOrdering, formatIds);
     }
 
     @Override

@@ -17,6 +17,10 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -80,10 +84,10 @@ public class IndexUpsertWriteHandlerTest {
         pairs.add(next);
 
         List<KVPair> indexPairs = checkInsertionCorrect(indexedColumns, pairs);
-
+        int[] formatIds = new int[]{80};
         //get a delete write handler
         IndexDeleteWriteHandler deleteHandler = new IndexDeleteWriteHandler(
-                indexedColumns,mainColToIndexPos,Bytes.toBytes("1184"),new BitSet(),true,6);
+                indexedColumns,mainColToIndexPos,Bytes.toBytes("1184"),new BitSet(),true,6, null, formatIds);
 
         //delete every other row in pairs
         Set<KVPair> deletedPairs = Sets.newTreeSet();
@@ -199,17 +203,15 @@ public class IndexUpsertWriteHandlerTest {
         return indexPairs;
     }
 
-    private void assertPresentInIndex(Collection<KVPair> pairs, List<KVPair> indexPairs) throws IOException {
+    private void assertPresentInIndex(Collection<KVPair> pairs, List<KVPair> indexPairs) throws IOException, StandardException {
         //make sure that every main row is found by doing a lookup on every index row
-        EntryDecoder decoder = new EntryDecoder(SpliceDriver.getKryoPool());
+        MultiFieldDecoder decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
         for(KVPair indexPair:indexPairs){
-            decoder.set(indexPair.getValue());
-            MultiFieldDecoder entryDecoder = decoder.getEntryDecoder();
-            decoder.seekForward(entryDecoder,0);//skip data, go to byte[]
-            ByteBuffer byteBuffer = decoder.nextAsBuffer(entryDecoder, 1);
-            byte[] bits = new byte[byteBuffer.remaining()];
-            byteBuffer.get(bits);
-            byte[] rowPos = Encoding.decodeBytesUnsortd(bits, 0, bits.length);
+            decoder.set(indexPair.getRow());
+            DataValueDescriptor dvd = LazyDataValueFactory.getLazyNull(80);
+            DerbyBytesUtil.skip(decoder, dvd);//skip data, go to byte[]
+            int offset = decoder.offset();
+            byte[] rowPos = Encoding.decodeBytesUnsortd(decoder.array(), offset, decoder.array().length - offset);
             KVPair mainPair = new KVPair(rowPos,new byte[]{});
             Assert.assertTrue("Incorrect main table lookup!", pairs.contains(mainPair));
         }
@@ -264,13 +266,13 @@ public class IndexUpsertWriteHandlerTest {
         boolean uniqueWithDuplicateNulls = false;
         int expectedWrites = 10;
         byte[] indexConglomBytes = Bytes.toBytes("1184");
-
+        int[] formatIds = new int[] {80};
         IndexUpsertWriteHandler writeHandler = new IndexUpsertWriteHandler(indexedColumns,
                 mainColToIndexPos,
                 indexConglomBytes,
                 descColumns,
                 keepState,unique,
-                uniqueWithDuplicateNulls,expectedWrites);
+                uniqueWithDuplicateNulls,expectedWrites, null, formatIds);
 
         return writeHandler;
     }

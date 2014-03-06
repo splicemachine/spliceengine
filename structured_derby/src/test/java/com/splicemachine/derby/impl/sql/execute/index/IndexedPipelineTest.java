@@ -525,6 +525,7 @@ public class IndexedPipelineTest {
         boolean uniqueWithDuplicateNulls = false;
         int expectedWrites = 10;
         byte[] indexConglomBytes = Bytes.toBytes("1184");
+        int[] format_ids = new int[]{80};
 
         Snowflake snowflake = new Snowflake((short)1);
         Snowflake.Generator generator = snowflake.newGenerator(100);
@@ -534,7 +535,7 @@ public class IndexedPipelineTest {
                 indexConglomBytes,
                 descColumns,
                 keepState,unique,
-                uniqueWithDuplicateNulls,expectedWrites);
+                uniqueWithDuplicateNulls,expectedWrites,null,format_ids);
 
         return writeHandler;
     }

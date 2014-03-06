@@ -378,6 +378,8 @@ public class DerbyBytesUtil {
             rowDecoder.skipDouble();
         else if(isFloatType(dvd))
             rowDecoder.skipFloat();
+        else if (isDateTimeType(dvd))
+            rowDecoder.skipLong();
         else
             rowDecoder.skip();
     }
@@ -518,7 +520,18 @@ public class DerbyBytesUtil {
 
     public static boolean isFloatType(DataValueDescriptor dvd){
 				return dvd != null && dvd.getTypeFormatId() == StoredFormatIds.SQL_REAL_ID;
-		}
+	}
+
+    public static boolean isDateTimeType(DataValueDescriptor dvd){
+        if (dvd != null) {
+            int formatId = dvd.getTypeFormatId();
+
+            return (formatId == StoredFormatIds.SQL_TIMESTAMP_ID ||
+                    formatId == StoredFormatIds.SQL_TIME_ID ||
+                    formatId == StoredFormatIds.SQL_DATE_ID);
+        }
+        return false;
+    }
 
     public static boolean isDoubleType(DataValueDescriptor dvd){
 				return dvd != null && dvd.getTypeFormatId() == StoredFormatIds.SQL_DOUBLE_ID;

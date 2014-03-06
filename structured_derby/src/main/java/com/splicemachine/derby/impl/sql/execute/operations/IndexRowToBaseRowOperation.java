@@ -10,13 +10,15 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.stats.TimeView;
-import com.splicemachine.tools.splice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
@@ -27,14 +29,12 @@ import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.DynamicCompiledOpenConglomInfo;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericPreparedStatement;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -43,7 +43,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
+import com.splicemachine.derby.utils.marshall.KeyDataHash;
 /**
  * Maps between an Index Table and a data Table.
  */
@@ -75,7 +75,10 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		private ExecRow compactRow;
 		RowLocation baseRowLocation = null;
 		boolean copiedFromSource = false;
-
+        int[] columnOrdering;
+        int[] format_ids;
+        DataValueDescriptor[] kdvds;
+        SpliceConglomerate conglomerate;
 		/*
 			* Variable here to stash pre-generated DataValue definitions for use in
 			* getExecRowDefinition(). Save a little bit of performance by caching it
@@ -114,6 +117,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				this.restrictionMethodName = restriction==null? null: restriction.getMethodName();
 				init(SpliceOperationContext.newContext(activation));
 				recordConstructorTime();
+                getKeyColumnDVDs();
 		}
 
 		@Override
@@ -254,29 +258,47 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
 		}
 
+        private void getKeyColumnDVDs() throws StandardException{
+            if (kdvds == null && getColumnOrdering() != null) {
+                int len = columnOrdering.length;
+                kdvds = new DataValueDescriptor[len];
+                getFormatIds();
+                for (int i = 0; i < len; ++i) {
+                    kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
+                }
+            }
+        }
 		@Override
 		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+            int[] keyColumns = new int[getColumnOrdering().length];
+            int[] baseColumnMap = operationInformation.getBaseColumnMap();
+            for (int i = 0; i <keyColumns.length; ++i)
+                keyColumns[i] = -1;
+            for (int i = 0; i < keyColumns.length; ++i) {
+                keyColumns[i] = baseColumnMap[columnOrdering[i]];
+            }
 			/*
 			 * We only ask for this KeyEncoder if we are the top of a RegionScan.
 			 * In this case, we encode with either the current row location or a
 			 * random UUID (if the current row location is null).
 			 */
-				DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
-						@Override
-						public byte[] get() throws StandardException {
-								if(currentRowLocation!=null)
-										return currentRowLocation.getBytes();
-								return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-						}
-				});
+            DataHash hash = new KeyDataHash(new StandardSupplier<byte[]>() {
+                @Override
+                public byte[] get() throws StandardException {
+                    if(currentRowLocation!=null)
+                        return currentRowLocation.getBytes();
+                    return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+                }
+            }, keyColumns, kdvds);
 
-				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
+            return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
 		}
 
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				ExecRow defnRow = getExecRowDefinition();
-				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null);
+                int[] nonPkCols = getAccessedNonPkColumns();
+				return BareKeyHash.encoder(nonPkCols,null);
+
 		}
 
 		@Override
@@ -290,10 +312,29 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		}
 
 		@Override
+
 		public List<SpliceOperation> getSubOperations() {
 				SpliceLogUtils.trace(LOG,"getSubOperations");
 				return Collections.singletonList(source);
 		}
+
+        private SpliceConglomerate getConglomerate() throws StandardException{
+            if(conglomerate==null)
+                conglomerate = (SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(conglomId);
+            return conglomerate;
+        }
+
+        private int[] getColumnOrdering() throws StandardException{
+            if (columnOrdering == null)
+                columnOrdering = getConglomerate().getColumnOrdering();
+            return columnOrdering;
+        }
+
+        private int[] getFormatIds() throws StandardException {
+            if (format_ids == null)
+                format_ids = getConglomerate().getFormat_ids();
+            return format_ids;
+        }
 
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
@@ -311,7 +352,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 										getTransactionID(),
 										indexCols,
 										operationInformation.getBaseColumnMap(),heapOnlyCols,
-										spliceRuntimeContext);
+										spliceRuntimeContext, getColumnOrdering(), getFormatIds());
 				}
 
 				timer.startTiming();
@@ -453,4 +494,18 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		public String getName() {
 				return super.getName()+"(baseTable="+indexName+")";
 		}
+
+        @Override
+        public int[] getAccessedNonPkColumns() throws StandardException{
+            int[] baseColumnMap = operationInformation.getBaseColumnMap();
+            int[] nonPkCols = new int[baseColumnMap.length];
+            for (int i = 0; i < nonPkCols.length; ++i)
+                nonPkCols[i] = baseColumnMap[i];
+            for (int col:getColumnOrdering()){
+                if (col < nonPkCols.length) {
+                    nonPkCols[col] = -1;
+                }
+            }
+            return nonPkCols;
+        }
 }

@@ -78,6 +78,7 @@ public class UniqueConstraint implements Constraint {
             rowPresent=false;
             for(KeyValue kv:raw){
                     rowPresent=true;
+                    logger.error("Duplicated row = " + BytesUtil.toHex(mutation.getRow()));
                     if (logger.isTraceEnabled())
                     	SpliceLogUtils.trace(logger, "row %s,CF %s present",BytesUtil.toHex(mutation.getRow()),BytesUtil.toHex(kv.getFamily()));
                     break;
