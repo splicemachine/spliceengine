@@ -99,15 +99,15 @@ public class Joiner {
                 // return with empty right side
                 rightSideReturned = true;
                 return getMergedRow(currentLeftRow, emptyRowSupplier.get());
-            }else{
-								/*
-								 * We've exhausted the right hand side, and we aren't going to return a match this time.
-								 * However, if this is an antiJoin, then we could potentially have returned a match if we
-								 * saw the left hand side one too many times. To prevent that, we clear the left side of the
-								 * join here.
-								 */
-								currentLeftRow = null;
-						}
+            } else {
+                /*
+                 * We've exhausted the right hand side, and we aren't going to return a match this time.
+                 * However, if this is an antiJoin, then we could potentially have returned a match if we
+                 * saw the left hand side one too many times. To prevent that, we clear the left side of the
+                 * join here.
+                 */
+                currentLeftRow = null;
+            }
         }
         return null;
 
