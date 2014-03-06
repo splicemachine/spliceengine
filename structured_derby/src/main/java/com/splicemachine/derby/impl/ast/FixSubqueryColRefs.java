@@ -25,20 +25,12 @@ public class FixSubqueryColRefs extends AbstractSpliceVisitor {
     private Map<Integer,List<SubqueryNode>> correlatedSubQs;
 
     public static <K,V> Map<K,List<V>> appendVal(Map<K,List<V>> m, K k, V v){
-				List<V> objects = m.get(k);
-				if(objects==null){
-						objects = Lists.newArrayListWithExpectedSize(1);
-						m.put(k,objects);
-				}
-				objects.add(v);
-//        if (m.containsKey(k)){
-//            m.get(k).add(v);
-//        } else {
-//						//noinspection unchecked
-//						List<V> objects = Lists.newArrayListWithExpectedSize(1);
-//						objects.add(v);
-//						m.put(k, objects);
-//        }
+        List<V> vals = m.get(k);
+        if (vals == null) {
+            vals = Lists.newLinkedList();
+            m.put(k, vals);
+        }
+        vals.add(v);
         return m;
     }
 
@@ -75,8 +67,10 @@ public class FixSubqueryColRefs extends AbstractSpliceVisitor {
                 for (ColumnReference cr: crs){
                     Pair<Integer,Integer> coord = ColumnUtils.RSCoordinate(cr.getSource());
                     ResultColumn rcInScope = colMap.get(coord);
-                    LOG.info(String.format("Translating column %s to %s", coord,
-                            ColumnUtils.RSCoordinate(rcInScope)));
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug(String.format("Translating column %s to %s", coord,
+                                                   ColumnUtils.RSCoordinate(rcInScope)));
+                    }
                     cr.setSource(rcInScope);
                 }
             }
