@@ -220,4 +220,6 @@ public interface SpliceOperation  {
     void setStatementId(long statementId);
 
     int[] getAccessedNonPkColumns() throws StandardException;
+		
+		void setActivation(Activation activation) throws StandardException;
 }

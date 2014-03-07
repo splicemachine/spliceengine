@@ -146,10 +146,9 @@ public class Sequence {
     public static class Key implements ResourcePool.Key{
         private final byte[] sysColumnsRow;
         private final HTableInterface table;
-        private final String txnId;
         private final long seqConglomId;
         private final int columnNum;
-
+        public final long blockAllocationSize;
         private long autoIncStart;
         private long autoIncrement;
 
@@ -158,16 +157,16 @@ public class Sequence {
 
         public Key(HTableInterface table,
                    byte[] sysColumnsRow,
-                   String txnId,
                    long seqConglomId,
                    int columnNum,
-                   DataDictionary metaDictionary) {
+                   DataDictionary metaDictionary,
+                   long blockAllocationSize) {
             this.sysColumnsRow = sysColumnsRow;
             this.table = table;
-            this.txnId = txnId;
             this.seqConglomId = seqConglomId;
             this.columnNum = columnNum;
             this.metaDictionary = metaDictionary;
+            this.blockAllocationSize = blockAllocationSize;
         }
 
         public byte[] getSysColumnsRow(){
@@ -178,10 +177,8 @@ public class Sequence {
         public boolean equals(Object o) {
             if (this == o) return true;
             if (!(o instanceof Key)) return false;
-
             Key key = (Key) o;
-
-            return Arrays.equals(sysColumnsRow, key.sysColumnsRow);
+            return Arrays.equals(sysColumnsRow, key.sysColumnsRow) && blockAllocationSize == key.blockAllocationSize;
         }
 
         @Override

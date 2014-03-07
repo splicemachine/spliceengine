@@ -627,6 +627,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 								throw new IOException(new InterruptedException());
 				}
 		}
+		
+		public void setActivation (Activation activation) throws StandardException {
+			this.activation = activation;
+		}
 
         public int[] getAccessedNonPkColumns() throws StandardException{
             // by default return null

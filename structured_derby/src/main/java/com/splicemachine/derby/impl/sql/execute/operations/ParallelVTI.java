@@ -209,4 +209,12 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
         public int[] getAccessedNonPkColumns() {
             return null;
         }
+
+
+		@Override
+		public void setActivation(Activation activation) {
+			throw new UnsupportedOperationException();			
+		}
+		
+		
 }

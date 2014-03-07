@@ -48,13 +48,18 @@ import java.util.concurrent.ExecutionException;
 public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorResultSet,ConvertedResultSet {
     private static final Logger LOG = Logger.getLogger(OperationResultSet.class);
     private static Logger PLAN_LOG = Logger.getLogger("com.splicemachine.queryPlan");
-    private final Activation activation;
+    private Activation activation;
     private SpliceOperation topOperation;
     private SpliceNoPutResultSet delegate;
     private boolean closed = false;
 		private StatementInfo statementInfo;
 		private long scrollUuid;
 
+		public OperationResultSet() {
+			// no-op
+		}
+
+		
 		public OperationResultSet(Activation activation,
                               SpliceOperation topOperation){
         this.activation = activation;
@@ -464,7 +469,6 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     public DataValueDescriptor increment(int columnPosition, long increment) throws StandardException {
         if(!(topOperation instanceof HasIncrement))
             throw StandardException.newException(SQLState.STORE_FEATURE_NOT_IMPLEMENTED);
-
         return ((HasIncrement)topOperation).increment(columnPosition,increment);
     }
 
@@ -499,4 +503,9 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 		public StatementInfo getStatementInfo(){
 				return statementInfo;
 		}
+	public void setActivation(Activation activation) throws StandardException {
+		this.activation = activation;
+		topOperation.setActivation(activation);
+	}
+		
 }

@@ -7,20 +7,22 @@ import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.CachedOperation;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ParameterValueSet;
 import org.apache.derby.iapi.sql.ResultDescription;
+import org.apache.derby.iapi.sql.ResultSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.BaseActivation;
 import org.apache.derby.impl.sql.execute.IndexRow;
 import org.apache.log4j.Logger;
+
 import java.io.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
-import java.sql.ResultSet;
 import java.util.List;
 import java.util.Map;
 
@@ -63,7 +65,7 @@ public class ActivationSerializer {
         factories = Lists.newArrayList();
         factories.add(new DataValueDescriptorFactory());
         factories.add(new ExecRowFactory());
-
+        factories.add(new OperationResultSetFactory());
         arrayFactory = new ArrayFactory();
         factories.add(arrayFactory);
         factories.add(new CachedOpFieldFactory());
@@ -96,6 +98,7 @@ public class ActivationSerializer {
 
             try{
                 visit(baseActClass.getDeclaredField("row"),baseFields);
+                visit(baseActClass.getDeclaredField("resultSet"),baseFields);
             } catch (NoSuchFieldException e) {
                 SpliceLogUtils.warn(LOG, "Could not serialize current row list");
             }
@@ -212,7 +215,6 @@ public class ActivationSerializer {
 
     private static interface FieldStorageFactory<F extends FieldStorage> {
         F create(Object objectToStore, @SuppressWarnings("rawtypes") Class type);
-
         boolean isType(Object instance, Class type);
     }
 
@@ -289,6 +291,50 @@ public class ActivationSerializer {
         }
     }
 
+    private static class OperationResultSetFactory implements FieldStorageFactory<OperationResultSetStorage>{
+
+        @Override
+        public OperationResultSetStorage create(Object objectToStore, Class type) {
+        	OperationResultSet ors = (OperationResultSet) objectToStore;
+            return new OperationResultSetStorage(ors);
+        }
+
+        @Override
+        public boolean isType(Object instance, Class type) {
+        	return type.equals(ResultSet.class);
+        }
+    }  
+
+    public static class OperationResultSetStorage implements FieldStorage {
+    	private OperationResultSet ors;
+    	
+    	public OperationResultSetStorage() {}
+    	
+    	
+    	public OperationResultSetStorage(OperationResultSet ors) {
+    		this.ors = ors;
+    	}
+
+		@Override
+		public void readExternal(ObjectInput input) throws IOException,
+				ClassNotFoundException {
+			ors = new OperationResultSet(null,(SpliceOperation)input.readObject());			
+		}
+
+		@Override
+		public void writeExternal(ObjectOutput output) throws IOException {
+			output.writeObject(ors.getTopOperation());
+		}
+
+		@Override
+		public Object getValue(Activation context) throws StandardException {
+			 ors.setActivation(context);
+			 return ors;
+		}
+    	
+    	
+    }
+
     private static class DataValueDescriptorFactory implements FieldStorageFactory<DataValueStorage>{
 
         @Override
@@ -301,8 +347,7 @@ public class ActivationSerializer {
         public boolean isType(Object instance, Class type) {
             return DataValueDescriptor.class.isAssignableFrom(type);
         }
-
-    }
+    }  
 
     public static class DataValueStorage implements FieldStorage {
         private static final long serialVersionUID = 1l;
