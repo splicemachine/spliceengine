@@ -169,7 +169,8 @@ public class WriteResult implements Externalizable{
             public boolean canRetry() {
                 return true;
             }
-        };
+        },
+				NOT_NULL;
 
         public boolean canRetry(){
             return false;

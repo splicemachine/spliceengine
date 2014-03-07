@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils.marshall;
 
+import com.splicemachine.hbase.KVPair;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.KeyValue;
@@ -25,6 +26,14 @@ public class PairDecoder {
 				templateRow.resetRowArray();
 				keyDecoder.decode(data.getBuffer(),data.getRowOffset(),data.getRowLength(),templateRow);
 				rowDecoder.set(data.getBuffer(),data.getValueOffset(),data.getValueLength());
+				rowDecoder.decode(templateRow);
+				return templateRow;
+		}
+
+		public ExecRow decode(KVPair kvPair) throws StandardException{
+				templateRow.resetRowArray();
+				keyDecoder.decode(kvPair.getRow(),0,kvPair.getRow().length,templateRow);
+				rowDecoder.set(kvPair.getValue(),0,kvPair.getValue().length);
 				rowDecoder.decode(templateRow);
 				return templateRow;
 		}

@@ -512,7 +512,7 @@ public class ImportTaskTest {
 				when(fakeBufferFactory.writeBuffer(any(byte[].class),any(String.class),any(Writer.WriteConfiguration.class))).thenReturn(testingBuffer);
         final Snowflake snowflake = new Snowflake((short)1);
 				KryoPool kryoPool = KryoPool.defaultPool();
-				Importer importer = new SequentialImporter(ctx,template,"TEXT_TXN",fakeBufferFactory, kryoPool){
+				Importer importer = new SequentialImporter(ctx,template,"TEXT_TXN",fakeBufferFactory, kryoPool,FailAlwaysReporter.INSTANCE){
 						@Override
 						protected Snowflake.Generator getRandomGenerator() {
 								return snowflake.newGenerator(lines.size());
@@ -558,7 +558,7 @@ public class ImportTaskTest {
     private List<ExecRow> getCorrectExecRows(List<String[]> lines,
                                              final ImportContext ctx,
                                              ExecRow template) {
-        final RowParser parser = new RowParser(template,null,null,null);
+        final RowParser parser = new RowParser(template,null,null,null,FailAlwaysReporter.INSTANCE);
         return Lists.newArrayList(Lists.transform(lines, new Function<String[], ExecRow>() {
             @Override
             public ExecRow apply(@Nullable String[] input) {

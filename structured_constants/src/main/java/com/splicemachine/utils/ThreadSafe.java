@@ -15,6 +15,9 @@ import static java.lang.annotation.ElementType.*;
  *
  * When specified on a Class, it is an indication that the class is thread-safe.
  *
+ * When specified on an interface, it is an indication that all implementations MUST
+ * be thread-safe.
+ *
  * @author Scott Fines
  * Date: 1/24/14
  */

@@ -101,7 +101,7 @@ public class RowParserDateTimeTest {
 				DataValueDescriptor dvd = new SQLTimestamp();
 				row.setColumn(1,dvd);
 
-				RowParser parser = new RowParser(row,null,null,timestampFormat);
+				RowParser parser = new RowParser(row,null,null,timestampFormat,FailAlwaysReporter.INSTANCE);
 				ColumnContext ctx = new ColumnContext.Builder()
 								.columnType(Types.TIMESTAMP)
 								.nullable(true)
