@@ -1,18 +1,23 @@
 package com.splicemachine.utils;
 
 import com.splicemachine.constants.bytes.BytesUtil;
+
 import org.apache.lucene.util.ArrayUtil;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class ByteSlice {
+public class ByteSlice implements Externalizable {
 		private static final byte[] EMPTY_BYTE_ARRAY = new byte[]{};
 		private byte[] buffer;
 		private int offset;
 		private int length;
 
-		private ByteSlice() {  }
+		public ByteSlice() {  }
 
 		public static ByteSlice empty(){
 				return new ByteSlice(null,0,0);
@@ -139,6 +144,21 @@ public class ByteSlice {
 				result = 31 * result + offset;
 				result = 31 * result + length;
 				return result;
+		}
+
+		@Override
+		public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
+			offset = in.readInt();
+			length = in.readInt();
+			buffer = new byte[length];
+			in.readFully(buffer);
+		}
+
+		@Override
+		public void writeExternal(ObjectOutput out) throws IOException {
+			out.writeInt(offset);
+			out.writeInt(length);
+			out.write(buffer,offset,length);
 		}
 
 }
