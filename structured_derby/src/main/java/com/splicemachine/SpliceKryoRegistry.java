@@ -18,6 +18,7 @@ import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
+
 import org.apache.derby.impl.sql.execute.UserDefinedAggregator;
 
 import com.splicemachine.derby.impl.sql.execute.operations.*;
@@ -32,6 +33,7 @@ import com.splicemachine.hbase.writer.BulkWrite;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.job.ErrorTransport;
 import com.splicemachine.job.TaskStatus;
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoPool;
 
@@ -625,5 +627,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 },149);
 
         instance.register(LazyTimestampDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,154);
-	}
+        instance.register(ActivationSerializer.OperationResultSetStorage.class,EXTERNALIZABLE_SERIALIZER,155);
+        instance.register(ByteSlice.class,EXTERNALIZABLE_SERIALIZER,156);
+
+    }
 }

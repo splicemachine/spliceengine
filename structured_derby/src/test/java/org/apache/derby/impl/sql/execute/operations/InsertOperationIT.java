@@ -35,6 +35,7 @@ public class InsertOperationIT extends SpliceUnitTest {
 		protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher("FILES",InsertOperationIT.class.getSimpleName(),"(name varchar(32) not null primary key, doc blob(50M))");
 		protected static SpliceTableWatcher spliceTableWatcher12 = new SpliceTableWatcher("HMM",InsertOperationIT.class.getSimpleName(),"(b16a char(2) for bit data, b16b char(2) for bit data, vb16a varchar(2) for bit data, vb16b varchar(2) for bit data, lbv long varchar for bit data)");
 		protected static SpliceTableWatcher spliceTableWatcher13 = new SpliceTableWatcher("WARNING",InsertOperationIT.class.getSimpleName(),"(a char(1))");
+		protected static SpliceTableWatcher spliceTableWatcher14 = new SpliceTableWatcher("T1",InsertOperationIT.class.getSimpleName(),"(c1 int generated always as identity, c2 int)");
 
 	
 	@ClassRule 
@@ -51,9 +52,9 @@ public class InsertOperationIT extends SpliceUnitTest {
 		.around(spliceTableWatcher9)
 		.around(spliceTableWatcher10)	
 		.around(spliceTableWatcher11)
-            .around(spliceTableWatcher13)
-		.around(spliceTableWatcher12);
-	
+        .around(spliceTableWatcher13)
+		.around(spliceTableWatcher12)
+		.around(spliceTableWatcher14);
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
@@ -232,6 +233,20 @@ public class InsertOperationIT extends SpliceUnitTest {
             is.close();
             fos.close();
         }
+	}
+	
+	@Test
+	public void testInsertIdentitySingleAndFromSelfScan() throws Exception {
+		methodWatcher.executeUpdate("insert into"+this.getPaddedTableReference("T1")+"(c2) values (1)");
+		methodWatcher.executeUpdate("insert into"+this.getPaddedTableReference("T1")+"(c2) values (1)");
+		methodWatcher.executeUpdate("insert into"+this.getPaddedTableReference("T1")+"(c2) select c1 from" + this.getPaddedTableReference("T1"));
+		ResultSet rs = methodWatcher.executeQuery("select c1, c2 from"+this.getPaddedTableReference("T1"));
+		int i = 0;
+		while (rs.next()) {
+			i++;
+			Assert.assertTrue("These numbers should be contiguous",rs.getInt(1) >= 1 && rs.getInt(1) <= 4);
+		}
+		Assert.assertEquals("Should have returned 4 rows from identity insert",4,i);
 	}
 	
 }

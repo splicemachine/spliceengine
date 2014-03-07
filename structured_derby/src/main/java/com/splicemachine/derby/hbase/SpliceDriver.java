@@ -87,14 +87,13 @@ public class SpliceDriver extends SIConstants {
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     protected SpliceCache cache;
     private JmxReporter metricsReporter;
-		private Connection connection;
+	private Connection connection;
+	private XplainTaskReporter taskReporter;
+	public XplainTaskReporter getTaskReporter() {
+		return taskReporter;
+	}
 
-		private XplainTaskReporter taskReporter;
-		public XplainTaskReporter getTaskReporter() {
-				return taskReporter;
-		}
-
-		public static enum State{
+	public static enum State{
         NOT_STARTED,
         INITIALIZING,
         RUNNING,
@@ -102,34 +101,26 @@ public class SpliceDriver extends SIConstants {
     }
 
     public static interface Service{
-
-        boolean start();
-
-        boolean shutdown();
+    	boolean start();
+    	boolean shutdown();
     }
 
-    private String startNode;
     private static final SpliceDriver INSTANCE = new SpliceDriver();
-
     private AtomicReference<State> stateHolder = new AtomicReference<State>(State.NOT_STARTED);
-
     private volatile Properties props = new Properties();
-
     private volatile NetworkServerControl server;
-
     private volatile WriteCoordinator writerPool;
     private volatile CountDownLatch initalizationLatch = new CountDownLatch(1);
-
     private ExecutorService executor;
     private TaskScheduler threadTaskScheduler;
     private JobScheduler jobScheduler;
     private TaskMonitor taskMonitor;
-		private SnowflakeLoader snowLoader;
+	private SnowflakeLoader snowLoader;
     private volatile Snowflake snowflake;
     private final MetricsRegistry spliceMetricsRegistry = new MetricsRegistry();
-		//-sf- when we need to, replace this with a list
-		private final TempTable tempTable;
-		private StatementManager statementManager;
+	//-sf- when we need to, replace this with a list
+	private final TempTable tempTable;
+	private StatementManager statementManager;
     private Logging logging;
 
     private ResourcePool<Sequence,Sequence.Key> sequences = CachedResourcePool.
@@ -137,7 +128,7 @@ public class SpliceDriver extends SIConstants {
         @Override
         public Sequence makeNew(Sequence.Key refKey) throws StandardException {
             return new Sequence(refKey.getTable(),
-                    SpliceConstants.sequenceBlockSize,refKey.getSysColumnsRow(),
+                    refKey.blockAllocationSize,refKey.getSysColumnsRow(),
                     refKey.getStartingValue(),refKey.getIncrementSize());
         }
 
@@ -166,7 +157,7 @@ public class SpliceDriver extends SIConstants {
             threadTaskScheduler = new TieredTaskScheduler(setup,overflowHandler,overflowScheduler);
             jobScheduler = new DistributedJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
             taskMonitor = new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());
-						tempTable = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
+			tempTable = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
         }
