@@ -3,8 +3,15 @@ package com.splicemachine.derby.impl.load;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.UUIDGenerator;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecRow;
 
 import java.sql.*;
 import java.util.Arrays;
@@ -26,6 +33,25 @@ public class ImportUtils {
 		private static final int COLUMNDEFAULT_POSIITON = 13;
 		private static final int ISAUTOINCREMENT_POSIITON = 23;
 		private static final String AUTOINCREMENT_PREFIX = "AUTOINCREMENT: start ";
+
+
+		public static PairEncoder newEntryEncoder(ExecRow row,ImportContext ctx, UUIDGenerator randomGenerator){
+				return newEntryEncoder(row,ctx,randomGenerator,SpliceKryoRegistry.getInstance());
+		}
+
+		public static PairEncoder newEntryEncoder(ExecRow row,ImportContext ctx, UUIDGenerator randomGenerator,KryoPool kryoPool){
+				int[] pkCols = ctx.getPrimaryKeys();
+
+				KeyEncoder encoder;
+				if(pkCols!=null&& pkCols.length>0){
+						encoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(pkCols,null),NoOpPostfix.INSTANCE);
+				}else
+						encoder = new KeyEncoder(new SaltedPrefix(randomGenerator), NoOpDataHash.INSTANCE, NoOpPostfix.INSTANCE);
+
+				DataHash rowHash = new EntryDataHash(IntArrays.count(row.nColumns()), null,kryoPool);
+
+				return new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
+		}
 
 		public static void buildColumnInformation(Connection connection,
 																							 String schemaName,

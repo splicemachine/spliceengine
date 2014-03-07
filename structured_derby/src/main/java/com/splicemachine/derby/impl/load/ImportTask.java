@@ -8,6 +8,8 @@ import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
@@ -17,12 +19,14 @@ import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+import com.splicemachine.utils.UUIDGenerator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -97,10 +101,12 @@ public class ImportTask extends ZkTask{
 						Timer totalTimer = importContext.shouldRecordStats()? Metrics.newTimer(): Metrics.noOpTimer();
 						totalTimer.startTiming();
 						long startTime = System.currentTimeMillis();
+						ImportErrorReporter errorReporter = getErrorReporter(row);
 						try{
 								reader.setup(fileSystem,importContext);
 								if(importer==null){
-										importer = getImporter(row);
+
+										importer = getImporter(row,errorReporter);
 								}
 
 								try{
@@ -136,6 +142,33 @@ public class ImportTask extends ZkTask{
 				}
 		}
 
+		private ImportErrorReporter getErrorReporter(ExecRow rowTemplate) {
+				long maxBadRecords = importContext.getMaxBadRecords();
+				if(maxBadRecords<=0) return FailAlwaysReporter.INSTANCE;
+
+				RowErrorLogger logger = getErrorLogger();
+
+
+				PairDecoder decoder = ImportUtils.newEntryEncoder(rowTemplate,importContext,getUuidGenerator()).getDecoder(rowTemplate);
+				return new ThresholdErrorReporter(maxBadRecords,new QueuedErrorReporter(
+								Math.min((int)maxBadRecords,SpliceConstants.importLogQueueSize),
+								SpliceConstants.importLogQueueWaitTimeMs,logger,decoder));
+		}
+
+		protected UUIDGenerator getUuidGenerator() {
+				return SpliceDriver.driver().getUUIDGenerator().newGenerator(128);
+		}
+
+		protected RowErrorLogger getErrorLogger() {
+				/*
+				 * Made protected so that it can be easily overridden for testing.
+				 */
+				Path directory = importContext.getBadLogDirectory();
+				Path badLogFile = new Path(directory,"_BAD_"+importContext.getFilePath().getName()+"_"+Bytes.toLong(taskId));
+
+				return new FileErrorLogger(fileSystem,badLogFile);
+		}
+
 		protected void reportStats(long startTimeMs, long stopTimeMs,TimeView processTime,TimeView totalTimeView) {
 				if(importContext.shouldRecordStats()){
 						OperationRuntimeStats runtimeStats = new OperationRuntimeStats(statementId, operationId,
@@ -167,7 +200,7 @@ public class ImportTask extends ZkTask{
 				}
 		}
 
-		protected Importer getImporter(ExecRow row) throws ExecutionException {
+		protected Importer getImporter(ExecRow row,ImportErrorReporter errorReporter) throws ExecutionException {
 				boolean shouldParallelize;
 				try {
 						shouldParallelize = reader.shouldParallelize(fileSystem, importContext);
@@ -179,10 +212,10 @@ public class ImportTask extends ZkTask{
 						SpliceLogUtils.info(LOG,"Importing %s using transaction %s, which is a child of transaction %s",
 										reader.toString(),transactionId,parentTxnId);
 				if(shouldParallelize) {
-						return  new ParallelImporter(importContext,row, transactionId);
+						return  new ParallelImporter(importContext,row, transactionId,errorReporter);
 				} else
 //					return new SequentialImporter(importContext,row,transactionId);
-						return new ParallelImporter(importContext,row,1,SpliceConstants.maxImportReadBufferSize,transactionId);
+						return new ParallelImporter(importContext,row,1,SpliceConstants.maxImportReadBufferSize,transactionId,errorReporter);
 		}
 
 		@Override

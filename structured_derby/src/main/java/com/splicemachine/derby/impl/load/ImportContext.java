@@ -55,6 +55,13 @@ public class ImportContext implements Externalizable{
 		private String xplainSchema;
 		private boolean recordStats;
 
+		/*
+		 * The maximum number of records that can fail irretrievably before failing
+		 * the import task
+		 */
+		private long maxBadRecords;
+		private Path badLogDirectory;
+
 		public ImportContext(){}
 
 		private ImportContext(String transactionId,
@@ -69,7 +76,9 @@ public class ImportContext implements Externalizable{
 													long byteOffset,
 													int bytesToRead,
 													boolean recordStats,
-													String xplainSchema){
+													String xplainSchema,
+													long maxBadRecords,
+													Path badLogDirectory){
 				this.transactionId = transactionId;
 				this.filePath = filePath;
 				this.columnDelimiter = columnDelimiter!= null?columnDelimiter:DEFAULT_COLUMN_DELIMITTER;
@@ -83,6 +92,8 @@ public class ImportContext implements Externalizable{
 				this.columnInformation = columnInformation;
 				this.recordStats = recordStats;
 				this.xplainSchema = xplainSchema;
+				this.maxBadRecords = maxBadRecords;
+				this.badLogDirectory = badLogDirectory;
 		}
 
 		public void setFilePath(Path filePath) {
@@ -137,6 +148,10 @@ public class ImportContext implements Externalizable{
 				out.writeBoolean(recordStats);
 				if(recordStats)
 						out.writeUTF(xplainSchema);
+				out.writeLong(maxBadRecords);
+				out.writeBoolean(badLogDirectory!=null);
+				if(badLogDirectory!=null)
+						out.writeUTF(badLogDirectory.toString());
 		}
 
 		@Override
@@ -160,6 +175,9 @@ public class ImportContext implements Externalizable{
 						xplainSchema = in.readUTF();
 				else
 						xplainSchema = null;
+				maxBadRecords = in.readLong();
+				if(in.readBoolean())
+						badLogDirectory = new Path(in.readUTF());
 		}
 
 		@Override
@@ -201,9 +219,13 @@ public class ImportContext implements Externalizable{
 		public ImportContext getCopy() {
 				return new ImportContext(transactionId,filePath,tableId,columnDelimiter,stripString,
 								columnInformation,timestampFormat,
-								dateFormat,timeFormat,byteOffset,bytesToRead,recordStats,xplainSchema);
+								dateFormat,timeFormat,byteOffset,bytesToRead,
+								recordStats,xplainSchema,maxBadRecords,badLogDirectory);
 		}
 
+		public long getMaxBadRecords() { return maxBadRecords; }
+
+		public Path getBadLogDirectory() { return badLogDirectory; }
 
 		public static class Builder{
 				private Path filePath;
@@ -222,6 +244,20 @@ public class ImportContext implements Externalizable{
 				private List<ColumnContext> columnInformation = Lists.newArrayList();
 				private boolean recordStats = false;
 				private String xplainSchema = null;
+
+				private long maxBadRecords = 0l;
+				private Path badLogDirectory = null;
+
+				public Builder maxBadRecords(long maxBadRecords){
+						this.maxBadRecords = maxBadRecords;
+						return this;
+				}
+
+				public Builder badLogDirectory(Path badLogDirectory){
+						this.badLogDirectory = badLogDirectory;
+						return this;
+				}
+
 
 				public Builder addColumn(ColumnContext columnContext){
 						this.columnInformation.add(columnContext);
@@ -329,7 +365,7 @@ public class ImportContext implements Externalizable{
 										columnDelimiter,stripString,
 										context,
 										timestampFormat,dateFormat,timeFormat, byteOffset, bytesToRead,
-										recordStats,xplainSchema);
+										recordStats,xplainSchema,maxBadRecords,badLogDirectory);
 				}
 		}
 }

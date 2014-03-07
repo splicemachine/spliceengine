@@ -11,6 +11,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class SpliceConstants {
 
@@ -22,6 +23,14 @@ public class SpliceConstants {
 		@SpliceConstants.Parameter public static final String CONSTRAINTS_ENABLED ="splice.constraints.enabled";
 		@DefaultValue(CONSTRAINTS_ENABLED) public static final boolean DEFAULT_CONSTRAINTS_ENABLED = true;
 		public static volatile boolean constraintsEnabled;
+
+		@Parameter public static final String IMPORT_LOG_QUEUE_SIZE = "splice.import.badRecords.queueSize";
+		@DefaultValue(IMPORT_LOG_QUEUE_SIZE) private static final int DEFAULT_IMPORT_LOG_QUEUE_SIZE = 1000;
+		public static int importLogQueueSize;
+
+		@Parameter public static final String IMPORT_LOG_QUEUE_WAIT_TIME = "splice.import.badRecords.queueWaitTime";
+		@DefaultValue(IMPORT_LOG_QUEUE_WAIT_TIME) private static final long DEFAULT_IMPORT_LOG_QUEUE_WAIT_TIME = TimeUnit.MINUTES.toMillis(1); //1 minute
+		public static long importLogQueueWaitTimeMs;
 
 		@Retention(RetentionPolicy.SOURCE)
 		protected @interface Parameter{
@@ -823,6 +832,10 @@ public class SpliceConstants {
 				sequentialImportThreashold = config.getLong(SEQUENTIAL_IMPORT_THREASHOLD,DEFAULT_SEQUENTIAL_IMPORT_THRESHOLD);
 
 				constraintsEnabled = config.getBoolean(CONSTRAINTS_ENABLED,DEFAULT_CONSTRAINTS_ENABLED);
+
+				importLogQueueSize = config.getInt(IMPORT_LOG_QUEUE_SIZE, DEFAULT_IMPORT_LOG_QUEUE_SIZE);
+
+				importLogQueueWaitTimeMs = config.getLong(IMPORT_LOG_QUEUE_WAIT_TIME,DEFAULT_IMPORT_LOG_QUEUE_WAIT_TIME);
 		}
 
 		public static void reloadConfiguration(Configuration configuration) {

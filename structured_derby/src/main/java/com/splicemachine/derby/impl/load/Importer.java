@@ -1,8 +1,10 @@
 package com.splicemachine.derby.impl.load;
 
+import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.stats.IOStats;
 import com.splicemachine.stats.TimeView;
+import org.apache.derby.iapi.sql.execute.ExecRow;
 
 import java.io.Closeable;
 
@@ -23,4 +25,5 @@ public interface Importer extends Closeable {
 		WriteStats getWriteStats();
 
 		TimeView getTotalTime();
+
 }

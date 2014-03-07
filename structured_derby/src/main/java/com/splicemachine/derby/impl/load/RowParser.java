@@ -1,10 +1,12 @@
 package com.splicemachine.derby.impl.load;
 
+import com.google.common.base.Joiner;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.hbase.writer.WriteResult;
 import org.apache.commons.lang.time.FastDateFormat;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -38,11 +40,15 @@ public class RowParser {
 		private Sequence[] sequences;
 		private GregorianCalendar calendar;
 
+		private final ImportErrorReporter errorReporter;
+
 		public RowParser(ExecRow template,
                      String dateFormat,
                      String timeFormat,
-                     String timestampFormat) {
+                     String timestampFormat,
+										 ImportErrorReporter errorReporter) {
 				this.template = template;
+				this.errorReporter = errorReporter;
 				String ctxDateFormat = dateFormat;
 				if(ctxDateFormat ==null)
 						ctxDateFormat = "yyyy-MM-dd";
@@ -67,8 +73,9 @@ public class RowParser {
 
 
     public RowParser(ExecRow template,
-            ImportContext importContext) {
-				this(template,importContext.getDateFormat(),importContext.getTimeFormat(),importContext.getTimestampFormat());
+            ImportContext importContext,
+						ImportErrorReporter errorReporter) {
+				this(template,importContext.getDateFormat(),importContext.getTimeFormat(),importContext.getTimestampFormat(),errorReporter);
 
 				ColumnContext[] columnInformation = importContext.getColumnInformation();
 				this.sequences = new Sequence[columnInformation.length];
@@ -97,14 +104,23 @@ public class RowParser {
             	else
             		context.setFormatStr(tmpstr);
             }
-            setColumn(context, value);
+						try{
+								setColumn(context, value,line);
+						}catch(StandardException se){
+								if(!errorReporter.reportError(join(line),WriteResult.failed(se.getMessage())))
+										throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException();
+								else{
+										//skip line
+										return null;
+								}
+						}
             pos++;
         }
 
         return template;
     }
 
-		private void setColumn(ColumnContext columnContext, String elem) throws StandardException {
+		private void setColumn(ColumnContext columnContext, String elem,String[] row) throws StandardException {
 				if(elem==null||elem.length()==0)
 						elem=null;
 				DataValueDescriptor column = template.getColumn(columnContext.getColumnNumber() + 1);
@@ -191,6 +207,14 @@ public class RowParser {
         columnContext.validate(column);
     }
 
+		/*Convenience method to re-join a failed row*/
+		private Joiner joiner = null;
+		private String join(String[] row) {
+				if(joiner==null)
+						joiner = Joiner.on(",");
+				return joiner.join(row);
+		}
+
 		private SimpleDateFormat getDateFormat(DataValueDescriptor dvd, String elem) throws StandardException {
 				SimpleDateFormat format;
 				if(dvd instanceof SQLTimestamp){
@@ -209,6 +233,7 @@ public class RowParser {
 						}
 						format = timeFormat;
 				}else{
+						//this represents a programmer error, don't try and log this
 						throw Exceptions.parseException(new IllegalStateException("Unable to determine date format for type " + dvd.getClass()));
 				}
 
