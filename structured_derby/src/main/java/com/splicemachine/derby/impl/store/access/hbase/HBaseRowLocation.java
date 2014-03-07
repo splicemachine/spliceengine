@@ -161,19 +161,19 @@ public class HBaseRowLocation extends DataType implements RowLocation {
     }
 
 	public void writeExternal(ObjectOutput out) throws IOException {
-		//throw new IOException("Not Implemented");
-    }
+		out.writeObject(slice);
+	}
 	/**
 	  @exception java.lang.ClassNotFoundException A class needed to read the
 	  stored form of this object could not be found.
 	  @see java.io.Externalizable#readExternal
 	  */
 	public void readExternal(ObjectInput in)  throws IOException, ClassNotFoundException {
-		//throw new IOException("Not Implemented");
-    }
+		slice = (ByteSlice) in.readObject();
+	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException {
-		//throw new IOException("Not Implemented");
-    }
+		
+	}
 
     public void restoreToNull() {
     }
