@@ -75,7 +75,7 @@ public class BareKeyHash{
 						}
 				}else{
 						for(int rowSpot:keyColumns){
-								if(rowSpot!=-1){
+								if(rowSpot!=-1 && rowSpot < fields.length){
 										DataValueDescriptor field = fields[rowSpot];
 										decodeNext(decoder,field,false);
 								}

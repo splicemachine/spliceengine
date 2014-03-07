@@ -4,6 +4,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
@@ -53,6 +54,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
 
     //fields which are cached for performance
     private FormatableBitSet accessedCols;
+    private FormatableBitSet accessedNonPkCols;
+    private FormatableBitSet accessedPkCols;
 
     private SpliceMethod<ExecRow> resultRowAllocator;
     private SpliceMethod<ExecIndexRow> startKeyGetter;
@@ -102,7 +105,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
         return  getConglomerate().getTypeFormatId()== IndexConglomerate.FORMAT_NUMBER;
     }
 
-    protected SpliceConglomerate getConglomerate() throws StandardException {
+    public SpliceConglomerate getConglomerate() throws StandardException {
         if(conglomerate==null)
             conglomerate = (SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(conglomId);
         return conglomerate;
@@ -112,15 +115,71 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     public FormatableBitSet getAccessedColumns() throws StandardException {
         if(accessedCols==null){
             if(colRefItem==-1) {
+                // accessed all columns
                 accessedCols = null;
             }else{
                 accessedCols = (FormatableBitSet)gsps.getSavedObject(colRefItem);
+                accessedCols.grow(getConglomerate().getFormat_ids().length);
             }
         }
         return accessedCols;
     }
 
 
+    @Override
+    public FormatableBitSet getAccessedPkColumns() throws StandardException {
+        if(accessedPkCols == null) {
+            int[] columnOrdering = getColumnOrdering();
+            if (columnOrdering == null)
+                return null;
+            FormatableBitSet cols = getAccessedColumns();
+            if (cols == null) {
+                int size = getConglomerate().getFormat_ids().length;
+                cols = new FormatableBitSet(size);
+                for (int i = 0; i < size; ++i) {
+                    cols.set(i);
+                }
+            }
+            accessedPkCols = new FormatableBitSet(cols);
+            accessedPkCols.clear();
+            for (int col:columnOrdering) {
+                if(cols.isSet(col))
+                    accessedPkCols.set(col);
+            }
+        }
+        return accessedPkCols;
+    }
+
+    @Override
+    public FormatableBitSet getAccessedNonPkColumns() throws StandardException {
+        if (accessedNonPkCols == null) {
+            FormatableBitSet cols = getAccessedColumns();
+            if (cols == null) {
+                int size = getConglomerate().getFormat_ids().length;
+                cols = new FormatableBitSet(size);
+                for (int i = 0; i < size; ++i) {
+                    cols.set(i);
+                }
+            }
+            accessedNonPkCols = removePkCols(cols);
+        }
+        return accessedNonPkCols;
+    }
+
+    private FormatableBitSet removePkCols(FormatableBitSet cols) throws StandardException {
+
+        int[] columnOrdering = getColumnOrdering();
+
+        if (columnOrdering == null) {
+            return cols;
+        } else {
+            FormatableBitSet result = new FormatableBitSet(cols);
+            for(int col:columnOrdering) {
+                result.clear(col);
+            }
+            return result;
+        }
+    }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
@@ -188,7 +247,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
                 stopSearchOperator,
                 qualifiers,
                 conglomerate.getAscDescInfo(),
-                accessedCols,
+                getAccessedNonPkColumns(),
                 txnId,sameStartStop,
                 conglomerate.getFormat_ids(),conglomerate.getColumnOrdering(), activation.getDataValueFactory());
     }
@@ -365,5 +424,21 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
 	public List<Scan> getScans(String txnId, ExecRow startKeyOverride, Activation activation, SpliceOperation top,SpliceRuntimeContext spliceRuntimeContext) throws StandardException  {
 		throw new RuntimeException("getScans is not supported");
 	}
+
+    @Override
+    public int[] getColumnOrdering() throws StandardException{
+        return getConglomerate().getColumnOrdering();
+    }
+
+    @Override
+    public DataValueDescriptor[] getKeyColumnDVDs() throws StandardException{
+        int[] columnOrdering = getColumnOrdering();
+        DataValueDescriptor[] kdvds = new DataValueDescriptor[columnOrdering.length];
+        int[] format_ids = getConglomerate().getFormat_ids();
+        for (int i = 0; i < kdvds.length; ++i) {
+            kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[i]);
+        }
+        return kdvds;
+    }
 
 }

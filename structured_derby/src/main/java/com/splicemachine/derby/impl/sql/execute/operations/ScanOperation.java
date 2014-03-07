@@ -34,6 +34,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 	public boolean isConstraint;
 	public boolean forUpdate;	
     protected ExecRow currentTemplate;
+    protected int[] columnOrdering;
+    protected ExecRow keyTemplate;
 
     public ScanOperation () {
 		super();
@@ -101,7 +103,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
             FormatableBitSet accessedCols = scanInformation.getAccessedColumns();
             boolean isKeyed = scanInformation.isKeyed();
             //TODO -sf- remove this call to getLanguageConnectionContext()
-            currentRow = operationInformation.compactRow(candidate, accessedCols, isKeyed);
+            currentRow = operationInformation.compactRow(candidate, scanInformation);
             currentTemplate = currentRow.getClone();
             if (currentRowLocation == null)
             	currentRowLocation = new HBaseRowLocation();

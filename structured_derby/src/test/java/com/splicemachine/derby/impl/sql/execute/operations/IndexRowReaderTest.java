@@ -156,8 +156,10 @@ public class IndexRowReaderTest {
         }
         EntryPredicateFilter epf = new EntryPredicateFilter(heapCols, new ObjectArrayList<Predicate>());
         byte[] epfBytes = epf.toBytes();
+        int[] typeIds = new int[]{80, 80};
         IndexRowReader rowReader = new IndexRowReader(mockService,table,mockSource,
-                1,1,templateOutput,"10.IRO",indexCols,1184l,baseColumnMap,epfBytes,new SpliceRuntimeContext(new TempTable(SpliceConstants.TEMP_TABLE_BYTES),kryoPool));
+                1,1,templateOutput,"10.IRO",indexCols,1184l,baseColumnMap,epfBytes,new SpliceRuntimeContext(new TempTable(SpliceConstants.TEMP_TABLE_BYTES),kryoPool),
+                null, typeIds);
 
         List<IndexRowReader.RowAndLocation> actualOutput = Lists.newArrayListWithExpectedSize(correctOutput.size());
         IndexRowReader.RowAndLocation rowAndLocation;

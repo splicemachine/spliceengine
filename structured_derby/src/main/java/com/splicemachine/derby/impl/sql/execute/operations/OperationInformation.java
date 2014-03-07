@@ -31,6 +31,12 @@ public interface OperationInformation {
                               FormatableBitSet accessedColumns,
                               boolean isKeyed) throws StandardException;
 
+    public ExecRow compactRow(ExecRow candidateRow,
+                              ScanInformation scanInfo) throws StandardException;
+
+    public ExecRow getKeyTemplate(ExecRow candidateRow,
+                              ScanInformation scanInfo) throws StandardException;
+
     public NoPutResultSet[] getSubqueryTrackingArray() throws StandardException;
 
     DataValueDescriptor getSequenceField(byte[] uuidBytes) throws StandardException;
