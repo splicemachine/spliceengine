@@ -7,6 +7,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
 import java.io.IOException;
 
 /**
@@ -14,11 +15,14 @@ import java.io.IOException;
  * Created on: 7/8/13
  */
 public class EntryPredicateFilter {
+    private static final Logger LOG = Logger.getLogger(EntryPredicateFilter.class);
     public static EntryPredicateFilter EMPTY_PREDICATE = new EntryPredicateFilter(new BitSet(), new ObjectArrayList<Predicate>());
     private BitSet fieldsToReturn;
     private ObjectArrayList<Predicate> valuePredicates;
     private boolean returnIndex;
     private BitSet predicateColumns;
+    private int[] columnOrdering;
+    private int[] format_ids;
 
 		private long rowsFiltered = 0l;
 		private EntryAccumulator accumulator;
@@ -33,6 +37,23 @@ public class EntryPredicateFilter {
         this.fieldsToReturn = fieldsToReturn;
         this.valuePredicates = predicates;
         this.returnIndex=returnIndex;
+    }
+
+    public EntryPredicateFilter(BitSet fieldsToReturn, ObjectArrayList<Predicate> predicates,boolean returnIndex,
+                                int[] columnOrdering, int[] format_ids){
+        this.fieldsToReturn = fieldsToReturn;
+        this.valuePredicates = predicates;
+        this.returnIndex=returnIndex;
+        this.columnOrdering = columnOrdering;
+        this.format_ids = format_ids;
+    }
+
+    public EntryPredicateFilter(BitSet fieldsToReturn, ObjectArrayList<Predicate> predicates,
+                                int[] columnOrdering, int[] format_ids){
+        this.fieldsToReturn = fieldsToReturn;
+        this.valuePredicates = predicates;
+        this.columnOrdering=columnOrdering;
+        this.format_ids = format_ids;
     }
 
     public boolean match(EntryDecoder entry,EntryAccumulator accumulator) throws IOException {
@@ -99,6 +120,12 @@ public class EntryPredicateFilter {
                 ((Predicate)buffer[i]).setCheckedColumns(predicateColumns);
             }
         }
+        // exclude primary key columns
+        if (columnOrdering != null && columnOrdering.length > 0) {
+            for (int col:columnOrdering) {
+                predicateColumns.clear(col);
+            }
+        }
         return predicateColumns;
     }
 
@@ -106,7 +133,7 @@ public class EntryPredicateFilter {
         Object[] vpBuffer = valuePredicates.buffer;
         int ibuffer = valuePredicates.size();
         for (int i =0; i<ibuffer; i++) {
-        	Predicate predicate = (Predicate) vpBuffer[i];
+            Predicate predicate = (Predicate) vpBuffer[i];
             if(!predicate.applies(position))
                 continue;
             if(predicate.checkAfter()){
@@ -165,10 +192,41 @@ public class EntryPredicateFilter {
          */
         byte[] bitSetBytes = BytesUtil.toByteArray(fieldsToReturn);
         byte[] predicates = Predicates.toBytes(valuePredicates);
-        byte[] finalData = new byte[predicates.length+bitSetBytes.length+1];
+        int size = predicates.length+bitSetBytes.length+1;
+        size += 4; // 4 bytes for length of columnOrdering
+        if (columnOrdering != null) {
+            size += 4 * columnOrdering.length;
+        }
+        size += 4; // 4 bytes for number of format ids
+        if (format_ids != null) {
+            size += 4 * format_ids.length;
+        }
+
+        byte[] finalData = new byte[size];
         System.arraycopy(bitSetBytes,0,finalData,0,bitSetBytes.length);
         finalData[bitSetBytes.length] = returnIndex? (byte)0x01: 0x00;
         System.arraycopy(predicates,0,finalData,bitSetBytes.length+1,predicates.length);
+        int index = bitSetBytes.length + 1 + predicates.length;
+        int n = columnOrdering != null ? columnOrdering.length : 0;
+        BytesUtil.intToBytes(n, finalData, index);
+        index += 4;
+        if (columnOrdering != null) {
+            for (int col:columnOrdering) {
+                BytesUtil.intToBytes(col, finalData, index);
+                index += 4;
+            }
+        }
+        n = format_ids != null ? format_ids.length : 0;
+        BytesUtil.intToBytes(n, finalData, index);
+        index += 4;
+        if (format_ids != null) {
+            for (int id:format_ids) {
+                BytesUtil.intToBytes(id, finalData, index);
+                index += 4;
+            }
+        }
+        assert (index == size);
+
         return finalData;
     }
 
@@ -178,7 +236,35 @@ public class EntryPredicateFilter {
         Pair<BitSet,Integer> fieldsToReturn = BytesUtil.fromByteArray(data,0);
         boolean returnIndex = data[fieldsToReturn.getSecond()] > 0;
         Pair<ObjectArrayList<Predicate>,Integer> predicates = Predicates.allFromBytes(data,fieldsToReturn.getSecond()+1);
+        int index = predicates.getSecond();
+        int[] columnOrdering = null;
+        int[] format_ids = null;
+        //read columnOrdering length
+        int n = BytesUtil.bytesToInt(data, index);
+        index += 4;
+        if (n > 0) {
+            columnOrdering = new int[n];
+            for (int i = 0; i < n; ++i) {
+                columnOrdering[i] = BytesUtil.bytesToInt(data, index);
+                index += 4;
+            }
+        }
 
-        return new EntryPredicateFilter(fieldsToReturn.getFirst(),predicates.getFirst(),returnIndex);
+        // read length of format_ids
+        n = BytesUtil.bytesToInt(data, index);
+        index += 4;
+        if (n > 0) {
+            format_ids = new int[n];
+            for (int i = 0; i < n; ++i) {
+                format_ids[i] = BytesUtil.bytesToInt(data, index);
+                index += 4;
+            }
+        }
+        assert (index == data.length);
+        return new EntryPredicateFilter(fieldsToReturn.getFirst(),predicates.getFirst(),returnIndex, columnOrdering, format_ids);
+    }
+
+    public ObjectArrayList<Predicate> getValuePredicates() {
+        return valuePredicates;
     }
 }

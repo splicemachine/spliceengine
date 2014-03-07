@@ -15,13 +15,7 @@ import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
@@ -160,11 +154,11 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
     @Override
-    public void addIndex(DDLChange ddlChange) {
+    public void addIndex(DDLChange ddlChange, int[] columnOrdring, int[] formatIds) {
         synchronized (tableWriteLatch){
             tableWriteLatch.reset();
             try{
-                indexFactories.add(IndexFactory.create(ddlChange));
+                indexFactories.add(IndexFactory.create(ddlChange,columnOrdring, formatIds));
             }finally{
                 tableWriteLatch.countDown();
             }
@@ -301,6 +295,15 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
         //get primary key constraint
         //-sf- Hbase scan
+        int[] columnOrdering = null;
+        int[] formatIds = null;
+        ColumnDescriptorList cdList = td.getColumnDescriptorList();
+        int size = cdList.size();
+        formatIds= new int[size];
+        for (int j = 0; j < cdList.size(); ++j) {
+            ColumnDescriptor columnDescriptor = cdList.elementAt(j);
+            formatIds[j] = columnDescriptor.getType().getNull().getTypeFormatId();
+        }
         ConstraintDescriptorList constraintDescriptors = dataDictionary.getConstraintDescriptors(td);
         for(int i=0;i<constraintDescriptors.size();i++){
             ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);
@@ -310,6 +313,15 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
             switch(cDescriptor.getConstraintType()){
                 case DataDictionary.PRIMARYKEY_CONSTRAINT:
+                    int[] referencedColumns = cDescriptor.getReferencedColumns();
+                    if (referencedColumns != null && referencedColumns.length > 0){
+                        columnOrdering = new int[referencedColumns.length];
+
+                        for (int j = 0; j < referencedColumns.length; ++j){
+                            columnOrdering[j] = referencedColumns[j] - 1;
+                        }
+                    }
+
                     constraintFactories.add(buildPrimaryKey(cDescriptor));
                     break;
                 case DataDictionary.UNIQUE_CONSTRAINT:
@@ -331,7 +343,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                     indexFactories.clear();
                     break;
                 } else {
-                    indexFactories.add(buildIndex(conglomDesc,constraintDescriptors));
+                    indexFactories.add(buildIndex(conglomDesc,constraintDescriptors,columnOrdering,formatIds));
                 }
             }
         }
@@ -360,7 +372,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             if (error || status.isFinished()) {
                 DDLCoordinationFactory.getController().finishMetadataChange(indexChange.getIdentifier());
             } else if (indexDesc.getBaseConglomerateNumber() == congomId) {
-                indexFactories.add(IndexFactory.create(indexChange));
+                indexFactories.add(IndexFactory.create(indexChange,columnOrdering,formatIds));
             }
         }
     }
@@ -382,11 +394,12 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         }
     }
 
-    private IndexFactory buildIndex(ConglomerateDescriptor conglomDesc,ConstraintDescriptorList constraints) {
+    private IndexFactory buildIndex(ConglomerateDescriptor conglomDesc,ConstraintDescriptorList constraints,
+                                    int[] columnOrdering, int[] typeIds) {
         IndexRowGenerator irg = conglomDesc.getIndexDescriptor();
         IndexDescriptor indexDescriptor = irg.getIndexDescriptor();
         if(indexDescriptor.isUnique())
-            return IndexFactory.create(conglomDesc.getConglomerateNumber(), indexDescriptor);
+            return IndexFactory.create(conglomDesc.getConglomerateNumber(), indexDescriptor, columnOrdering, typeIds);
 
         /*
          * just because the conglom descriptor doesn't claim it's unique, doesn't mean that it isn't
@@ -398,11 +411,12 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             UUID conglomerateId = constraint.getConglomerateId();
             if (constraint.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT &&
                     (conglomerateId != null && conglomerateId.equals(conglomDesc.getUUID()))) {
-                return IndexFactory.create(conglomDesc.getConglomerateNumber(), indexDescriptor, true, false);
+                return IndexFactory.create(conglomDesc.getConglomerateNumber(), indexDescriptor,
+                                           true, false, columnOrdering, typeIds);
             }
         }
 
-        return IndexFactory.create(conglomDesc.getConglomerateNumber(), indexDescriptor);
+        return IndexFactory.create(conglomDesc.getConglomerateNumber(), indexDescriptor, columnOrdering, typeIds);
     }
 
     private ConstraintFactory buildPrimaryKey(ConstraintDescriptor cDescriptor) {
@@ -445,6 +459,8 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         private int[] mainColToIndexPosMap;
         private BitSet descColumns;
         private DDLChange ddlChange;
+        private int[] baseTableColumnOrdering;
+        private int[] formatIds;
 
         private IndexFactory(long indexConglomId){
             this.indexConglomId = indexConglomId;
@@ -453,7 +469,9 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             isUniqueWithDuplicateNulls = false;
         }
 
-        private IndexFactory(long indexConglomId,BitSet indexedColumns,int[] mainColToIndexPosMap,boolean isUnique, boolean isUniqueWithDuplicateNulls,BitSet descColumns, DDLChange ddlChange) {
+        private IndexFactory(long indexConglomId,BitSet indexedColumns,int[] mainColToIndexPosMap,boolean isUnique,
+                             boolean isUniqueWithDuplicateNulls,BitSet descColumns, DDLChange ddlChange,
+                             int[] columnOrdering, int[] formatIds) {
             this.indexConglomId = indexConglomId;
             this.indexConglomBytes = Long.toString(indexConglomId).getBytes();
             this.isUnique=isUnique;
@@ -462,24 +480,28 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             this.mainColToIndexPosMap=mainColToIndexPosMap;
             this.descColumns = descColumns;
             this.ddlChange = ddlChange;
+            this.baseTableColumnOrdering = columnOrdering;
+            this.formatIds = formatIds;
         }
 
-        public static IndexFactory create(long conglomerateNumber,int[] indexColsToMainColMap,boolean isUnique,boolean isUniqueWithDuplicateNulls,BitSet descColumns){
+        public static IndexFactory create(long conglomerateNumber,int[] indexColsToMainColMap,boolean isUnique,boolean isUniqueWithDuplicateNulls,BitSet descColumns,
+                                          int[] columnOrdering, int[] formatIds){
             BitSet indexedCols = getIndexedCols(indexColsToMainColMap);
             int[] mainColToIndexPosMap = getMainColToIndexPosMap(indexColsToMainColMap, indexedCols);
 
             return new IndexFactory(conglomerateNumber,indexedCols,mainColToIndexPosMap,isUnique, isUniqueWithDuplicateNulls,
-                    descColumns, null);
+                    descColumns, null, columnOrdering, formatIds);
         }
 
-        public static IndexFactory create(DDLChange ddlChange){
+        public static IndexFactory create(DDLChange ddlChange, int[] columnOrdering, int[] formatIds){
             TentativeIndexDesc tentativeIndexDesc = ddlChange.getTentativeIndexDesc();
             int[] indexColsToMainColMap = tentativeIndexDesc.getIndexColsToMainColMap();
             BitSet indexedCols = getIndexedCols(indexColsToMainColMap);
             int[] mainColToIndexPosMap = getMainColToIndexPosMap(indexColsToMainColMap, indexedCols);
 
             return new IndexFactory(tentativeIndexDesc.getConglomerateNumber(),indexedCols,mainColToIndexPosMap,tentativeIndexDesc.isUnique(),
-                                    tentativeIndexDesc.isUniqueWithDuplicateNulls(),tentativeIndexDesc.getDescColumns(), ddlChange);
+                                    tentativeIndexDesc.isUniqueWithDuplicateNulls(),tentativeIndexDesc.getDescColumns(), ddlChange,
+                                    columnOrdering, formatIds);
         }
 
         private static int[] getMainColToIndexPosMap(int[] indexColsToMainColMap, BitSet indexedCols) {
@@ -499,11 +521,14 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             return indexedCols;
         }
 
-        public static IndexFactory create(long conglomerateNumber, IndexDescriptor indexDescriptor) {
-            return create(conglomerateNumber, indexDescriptor,indexDescriptor.isUnique(),indexDescriptor.isUniqueWithDuplicateNulls());
+        public static IndexFactory create(long conglomerateNumber, IndexDescriptor indexDescriptor,
+                                          int[] columnOrdering, int[] formatIds) {
+            return create(conglomerateNumber, indexDescriptor,indexDescriptor.isUnique(),
+                          indexDescriptor.isUniqueWithDuplicateNulls(), columnOrdering, formatIds);
         }
 
-        public static IndexFactory create(long conglomerateNumber, IndexDescriptor indexDescriptor,boolean isUnique,boolean isUniqueWithDuplicateNulls) {
+        public static IndexFactory create(long conglomerateNumber, IndexDescriptor indexDescriptor,boolean isUnique,
+                                          boolean isUniqueWithDuplicateNulls, int[] columnOrdering, int[] formatIds) {
             int[] indexColsToMainColMap = indexDescriptor.baseColumnPositions();
 
             //get the descending columns
@@ -513,18 +538,22 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 if(!ascending[i])
                     descColumns.set(i);
             }
-            return create(conglomerateNumber,indexColsToMainColMap,isUnique,isUniqueWithDuplicateNulls,descColumns);
+            return create(conglomerateNumber,indexColsToMainColMap,isUnique,isUniqueWithDuplicateNulls,descColumns,
+                    columnOrdering,formatIds);
         }
 
         public void addTo(PipelineWriteContext ctx,boolean keepState,int expectedWrites) throws IOException {
-
             IndexDeleteWriteHandler deleteHandler =
-                    new IndexDeleteWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes, descColumns, keepState, isUnique, isUniqueWithDuplicateNulls, expectedWrites);
+                    new IndexDeleteWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes, descColumns,
+                            keepState, isUnique, isUniqueWithDuplicateNulls, expectedWrites, baseTableColumnOrdering, formatIds);
             IndexUpsertWriteHandler writeHandler;
             if (isUnique) {
-                writeHandler = new UniqueIndexUpsertWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes, descColumns, keepState, isUniqueWithDuplicateNulls, expectedWrites);
+                writeHandler = new UniqueIndexUpsertWriteHandler(indexedColumns, mainColToIndexPosMap,
+                        indexConglomBytes, descColumns, keepState, isUniqueWithDuplicateNulls, expectedWrites,
+                        baseTableColumnOrdering, formatIds);
             } else {
-                writeHandler = new IndexUpsertWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes, descColumns, keepState, false, false, expectedWrites);
+                writeHandler = new IndexUpsertWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes,
+                        descColumns, keepState, false, false, expectedWrites, baseTableColumnOrdering, formatIds);
             }
             if (ddlChange == null) {
                 ctx.addLast(deleteHandler);

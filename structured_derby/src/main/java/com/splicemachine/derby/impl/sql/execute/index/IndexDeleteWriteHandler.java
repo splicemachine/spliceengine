@@ -37,8 +37,11 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
                                    byte[] indexConglomBytes,
                                    BitSet descColumns,
                                    boolean keepState,
-                                   int expectedWrites){
-        this(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState,false,false,expectedWrites);
+                                   int expectedWrites,
+                                   int[] columnOrdering,
+                                   int[] formatIds){
+        this(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,
+             keepState,false,false,expectedWrites, columnOrdering, formatIds);
     }
 
     public IndexDeleteWriteHandler(BitSet indexedColumns,
@@ -48,15 +51,16 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
                                    boolean keepState,
                                    boolean unique,
                                    boolean uniqueWithDuplicateNulls,
-                                   int expectedWrites){
+                                   int expectedWrites,
+                                   int[] columnOrdering,
+                                   int[] formatIds){
         super(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState);
         BitSet nonUniqueIndexColumn = (BitSet)translatedIndexColumns.clone();
         nonUniqueIndexColumn.set(translatedIndexColumns.length());
         this.expectedWrites = expectedWrites;
         this.transformer = new IndexTransformer(indexedColumns,
-                translatedIndexColumns,
-                nonUniqueIndexColumn,
-                descColumns,mainColToIndexPosMap,unique, uniqueWithDuplicateNulls, SpliceDriver.getKryoPool());
+                translatedIndexColumns,nonUniqueIndexColumn,descColumns,mainColToIndexPosMap,unique,
+                uniqueWithDuplicateNulls, SpliceDriver.getKryoPool(),columnOrdering,formatIds);
     }
 
     @Override

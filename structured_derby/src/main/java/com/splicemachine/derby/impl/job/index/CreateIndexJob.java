@@ -22,17 +22,23 @@ public class CreateIndexJob implements CoprocessorJob{
     private final HTableInterface table;
     private final DDLChange ddlChange;
     private final String transactionId;
+    private int[] columnOrdering;
+    private int[] formatIds;
 
     public CreateIndexJob(HTableInterface table,
-                          DDLChange ddlChange) {
+                          DDLChange ddlChange,
+                          int[] columnOrdering,
+                          int[] formatIds) {
         this.table = table;
         this.transactionId = ddlChange.getTransactionId();
         this.ddlChange = ddlChange;
+        this.columnOrdering = columnOrdering;
+        this.formatIds = formatIds;
     }
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
-        CreateIndexTask task = new CreateIndexTask(getJobId(), ddlChange);
+        CreateIndexTask task = new CreateIndexTask(getJobId(), ddlChange, columnOrdering, formatIds);
         return Collections.singletonMap(task,Pair.newPair(HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW));
     }
 

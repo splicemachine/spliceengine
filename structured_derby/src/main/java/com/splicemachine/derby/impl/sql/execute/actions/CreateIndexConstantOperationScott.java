@@ -207,7 +207,7 @@ public class CreateIndexConstantOperationScott extends IndexConstantOperation im
                                                                                          desc,
                                                                                          -1l,
                                                                                          -1l,
-                                                                                         null));
+                                                                                         null, null, null));
 
             future.completeAll(null); //TODO -sf- add status hook
         } catch (ExecutionException e) {

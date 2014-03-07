@@ -25,13 +25,19 @@ public class CreateIndexTask extends ZkTask {
     private static final long serialVersionUID = 5l;
 
     private DDLChange ddlChange;
+    private int[] columnOrdering;
+    private int[] formatIds;
 
     public CreateIndexTask() { }
 
     public CreateIndexTask(String jobId,
-                           DDLChange ddlChange) {
+                           DDLChange ddlChange,
+                           int[] columnOrdering,
+                           int[] formatIds) {
         super(jobId, OperationJob.operationTaskPriority,ddlChange.getTransactionId(),false);
         this.ddlChange = ddlChange;
+        this.columnOrdering = columnOrdering;
+        this.formatIds = formatIds;
     }
 
     @Override
@@ -48,12 +54,36 @@ public class CreateIndexTask extends ZkTask {
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeObject(ddlChange);
+        int n = (columnOrdering != null) ? columnOrdering.length : 0;
+        out.writeInt(n);
+        for (int i = 0; i < n; ++i) {
+            out.writeInt(columnOrdering[i]);
+        }
+
+        n = (formatIds != null) ? formatIds.length : 0;
+        out.writeInt(n);
+        for (int i = 0; i < n; ++i) {
+            out.writeInt(formatIds[i]);
+        }
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
         ddlChange = (DDLChange) in.readObject();
+        int n = in.readInt();
+        if (n > 0)
+            columnOrdering = new int[n];
+        for (int i = 0; i < n; ++i) {
+            columnOrdering[i] = in.readInt();
+        }
+
+        n = in.readInt();
+        if (n > 0)
+            formatIds = new int[n];
+        for (int i = 0; i < n; ++i) {
+            formatIds[i] = in.readInt();
+        }
     }
 
     @Override
@@ -66,7 +96,7 @@ public class CreateIndexTask extends ZkTask {
             //add index to table watcher
             TentativeIndexDesc tentativeIndexDesc = ddlChange.getTentativeIndexDesc();
             LocalWriteContextFactory contextFactory = SpliceIndexEndpoint.getContextFactory(tentativeIndexDesc.getBaseConglomerateNumber());
-            contextFactory.addIndex(ddlChange);
+            contextFactory.addIndex(ddlChange, columnOrdering, formatIds);
         } catch (Exception e) {
         	SpliceLogUtils.error(LOG, e);
             throw new ExecutionException(Throwables.getRootCause(e));

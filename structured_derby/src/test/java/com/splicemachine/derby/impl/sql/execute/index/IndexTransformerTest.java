@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
@@ -27,9 +28,9 @@ public class IndexTransformerTest {
 				int[] mainColToIndexPosMap = new int[]{-1,0};
 
 				BitSet descColumns = new BitSet();
-
+                int[] formatIds = new int[]{79,80,80,79};
 				IndexTransformer transformer = IndexTransformer.newTransformer(indexedColumns,
-								mainColToIndexPosMap, descColumns, false, false, KryoPool.defaultPool());
+								mainColToIndexPosMap, descColumns, false, false, KryoPool.defaultPool(), null, formatIds);
 
 
 				BitSet mainDataFields = new BitSet(4);
@@ -39,7 +40,7 @@ public class IndexTransformerTest {
 				BitSet floatFields = new BitSet(4);
 				floatFields.set(0);
 				BitSet doubleFields = new BitSet(4);
-				doubleFields.set(2);
+				doubleFields.set(3);
 				EntryEncoder mainEntryEncoder = EntryEncoder.create(KryoPool.defaultPool(),4,
 								mainDataFields,scalarFields,floatFields,doubleFields);
 
@@ -58,23 +59,17 @@ public class IndexTransformerTest {
 				EntryDecoder entryDecoder = new EntryDecoder(KryoPool.defaultPool());
 				entryDecoder.set(indexData);
 
-				//make sure index is correct
+				//make sure index is correct. Row should not contain data
 				BitIndex indexIndex = entryDecoder.getCurrentIndex();
 				Assert.assertEquals("Incorrect index size!",2,indexIndex.length());
-				Assert.assertTrue("Incorrect data value type in index",indexIndex.isScalarType(0));
-
-				//make sure row includes 2 fields--entry 1, and the row key
-				MultiFieldDecoder fieldDecoder= entryDecoder.getEntryDecoder();
-				Assert.assertEquals("Incorrect data element in position 0",1,fieldDecoder.decodeNextInt());
-				Assert.assertArrayEquals("Incorrect data element in position 1", mainPair.getRow(), fieldDecoder.decodeNextBytesUnsorted());
 
 				/*row key validation*/
 
 				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create(KryoPool.defaultPool());
 				keyDecoder.set(indexPair.getRow());
 				Assert.assertEquals("Incorrect key element in position 0",1,keyDecoder.decodeNextInt());
-
-				Assert.assertArrayEquals("Incorrect key element in position 1", mainPair.getRow(), keyDecoder.slice(8));
+				Assert.assertArrayEquals("Incorrect key element in position 1", mainPair.getRow(),
+                        Encoding.decodeBytesUnsortd(keyDecoder.array(), keyDecoder.offset(), keyDecoder.array().length-keyDecoder.offset()));
 		}
 
 		@Test
@@ -86,9 +81,10 @@ public class IndexTransformerTest {
 
 				BitSet descColumns = new BitSet();
 				descColumns.set(0);
+                int[] formatIds = new int[]{79,80,80,79};
 
 				IndexTransformer transformer = IndexTransformer.newTransformer(indexedColumns,
-								mainColToIndexPosMap,descColumns,false,false,KryoPool.defaultPool());
+								mainColToIndexPosMap,descColumns,false,false,KryoPool.defaultPool(), null, formatIds);
 
 
 				BitSet mainDataFields = new BitSet(4);
@@ -98,7 +94,7 @@ public class IndexTransformerTest {
 				BitSet floatFields = new BitSet(4);
 				floatFields.set(0);
 				BitSet doubleFields = new BitSet(4);
-				doubleFields.set(2);
+				doubleFields.set(3);
 				EntryEncoder mainEntryEncoder = EntryEncoder.create(KryoPool.defaultPool(),4,
 								mainDataFields,scalarFields,floatFields,doubleFields);
 
@@ -117,22 +113,15 @@ public class IndexTransformerTest {
 				EntryDecoder entryDecoder = new EntryDecoder(KryoPool.defaultPool());
 				entryDecoder.set(indexData);
 
-				//make sure index is correct
+				//make sure index is correct. The row should not contain any data
 				BitIndex indexIndex = entryDecoder.getCurrentIndex();
 				Assert.assertEquals("Incorrect index size!",2,indexIndex.length());
-				Assert.assertTrue("Incorrect data value type in index",indexIndex.isScalarType(0));
-
-				//make sure row includes 2 fields--entry 1, and the row key
-				MultiFieldDecoder fieldDecoder= entryDecoder.getEntryDecoder();
-				Assert.assertEquals("Incorrect data element in position 0",1,fieldDecoder.decodeNextInt());
-				Assert.assertArrayEquals("Incorrect data element in position 1",mainPair.getRow(),fieldDecoder.decodeNextBytesUnsorted());
 
 				/*row key validation*/
-
 				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create(KryoPool.defaultPool());
 				keyDecoder.set(indexPair.getRow());
 				Assert.assertEquals("Incorrect key element in position 0",1,keyDecoder.decodeNextInt(true));
-
-				Assert.assertArrayEquals("Incorrect key element in position 1",mainPair.getRow(),keyDecoder.slice(8));
+				Assert.assertArrayEquals("Incorrect key element in position 1",mainPair.getRow(),
+                        Encoding.decodeBytesUnsortd(keyDecoder.array(), keyDecoder.offset(), keyDecoder.array().length-keyDecoder.offset()));
 		}
 }
