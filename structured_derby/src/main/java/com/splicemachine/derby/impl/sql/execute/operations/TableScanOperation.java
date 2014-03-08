@@ -21,6 +21,7 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.derby.utils.EntryPredicateUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -52,17 +53,12 @@ public class TableScanOperation extends ScanOperation {
 		public String startPositionString;
 		public String stopPositionString;
 		public ByteSlice slice;
-        private EntryPredicateFilter predicateFilter;
-        private boolean cachedPredicateFilter = false;
-		static {
+
+        static {
 				nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN);
 		}
 
-		private EntryDecoder rowDecoder;
-        private MultiFieldDecoder keyDecoder;
-        private KeyMarshaller keyMarshaller;
 		private int[] baseColumnMap;
-        private DataValueDescriptor[] kdvds;
 
 		public TableScanOperation() { super(); }
 
@@ -246,14 +242,6 @@ public class TableScanOperation extends ScanOperation {
 				}
 		}
 
-        private EntryPredicateFilter getPredicateFilter(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException{
-            if (!cachedPredicateFilter) {
-                Scan scan = getScan(spliceRuntimeContext);
-                predicateFilter = EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
-                cachedPredicateFilter = true;
-            }
-            return predicateFilter;
-        }
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException {
 				if(timer==null)
@@ -271,23 +259,23 @@ public class TableScanOperation extends ScanOperation {
                         currentRow = null;
                         currentRowLocation = null;
                     } else {
-                        if(rowDecoder==null)
-                            rowDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
                         currentRow.resetRowArray();
                         DataValueDescriptor[] fields = currentRow.getRowArray();
                         if (fields.length != 0) {
                             // Apply predicate to the row key first
-                            getColumnDVDs();
                             if (getColumnOrdering() != null && getPredicateFilter(spliceRuntimeContext) != null) {
-                                boolean passed = filterRow(keyValue.getRow());
+                                boolean passed = EntryPredicateUtils.qualify(predicateFilter, keyValue.getRow(), getColumnDVDs(),
+                                        getColumnOrdering(),getKeyDecoder());
                                 if (!passed)
                                     continue;
                             }
                             // Decode row data
-                            RowMarshaller.sparsePacked().decode(keyValue,fields,baseColumnMap,rowDecoder);
+                            RowMarshaller.sparsePacked().decode(keyValue,fields,baseColumnMap, getRowDecoder());
                             // Decode key data if primary key is accessed
-                            if (scanInformation.getAccessedPkColumns() != null && scanInformation.getAccessedPkColumns().getNumBitsSet() > 0) {
-                                getKeyMarshaller().decode(keyValue, fields, baseColumnMap, getKeyDecoder(), columnOrdering, kdvds);
+                            if (scanInformation.getAccessedPkColumns() != null &&
+                                scanInformation.getAccessedPkColumns().getNumBitsSet() > 0) {
+                                getKeyMarshaller().decode(keyValue, fields, baseColumnMap,
+                                        getKeyDecoder(), getColumnOrdering(), getColumnDVDs());
                             }
                         }
                         if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
@@ -314,43 +302,6 @@ public class TableScanOperation extends ScanOperation {
 						timer.tick(1);
 				return currentRow;
 		}
-
-        private boolean filterRow(byte[] data) throws StandardException{
-            int ibuffer = predicateFilter.getValuePredicates().size();
-            if (ibuffer == 0)
-                return true;
-            getColumnDVDs();
-            MultiFieldDecoder keyDecoder = getKeyDecoder();
-            keyDecoder.set(data);
-            Object[] buffer = predicateFilter.getValuePredicates().buffer;
-
-            for (int i = 0; i < kdvds.length; ++i) {
-                if (kdvds[i] == null) continue;
-                int offset = keyDecoder.offset();
-                DerbyBytesUtil.skip(keyDecoder,kdvds[i]);
-                int size = keyDecoder.offset()-offset-1;
-                for (int j =0; j<ibuffer; j++) {
-                    if(((Predicate)buffer[j]).applies(columnOrdering[i]) &&
-                       !((Predicate)buffer[j]).match(columnOrdering[i],data,offset,size))
-                        return false;
-                }
-            }
-
-            return true;
-        }
-
-        private MultiFieldDecoder getKeyDecoder() {
-            if (keyDecoder == null)
-                keyDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
-            return keyDecoder;
-        }
-
-        private KeyMarshaller getKeyMarshaller () {
-            if (keyMarshaller == null)
-                keyMarshaller = new KeyMarshaller();
-
-            return keyMarshaller;
-        }
 
 		@Override
 		public String toString() {
@@ -404,12 +355,7 @@ public class TableScanOperation extends ScanOperation {
 				return scanProperties;
 		}
 
-        protected int[] getColumnOrdering() throws StandardException{
-            if (columnOrdering == null) {
-                columnOrdering = scanInformation.getColumnOrdering();
-            }
-            return columnOrdering;
-        }
+
 
         @Override
         public int[] getAccessedNonPkColumns() throws StandardException{
@@ -424,17 +370,6 @@ public class TableScanOperation extends ScanOperation {
                 }
             }
             return cols;
-        }
-
-        private void getColumnDVDs() throws StandardException{
-            if (kdvds == null) {
-                int[] columnOrdering = getColumnOrdering();
-                int[] format_ids = scanInformation.getConglomerate().getFormat_ids();
-                kdvds = new DataValueDescriptor[columnOrdering.length];
-                for (int i = 0; i < columnOrdering.length; ++i) {
-                    kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
-                }
-            }
         }
 
     private class KeyDataHash extends SuppliedDataHash {

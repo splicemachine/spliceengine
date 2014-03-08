@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.utils.EntryPredicateUtils;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
@@ -24,7 +24,6 @@ import com.splicemachine.job.JobResults;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.hash.HashFunctions;
@@ -389,10 +388,9 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
                 template.resetRowArray();
                 KeyValue kv = KeyValueUtils.matchKeyValue(values,SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
-
-                getColumnDVDs();
                 if (getColumnOrdering() != null && getPredicateFilter(spliceRuntimeContext) != null) {
-                    boolean passed = filterRow(kv.getRow());
+                    boolean passed = EntryPredicateUtils.qualify(predicateFilter, kv.getRow(), getColumnDVDs(),
+                            getColumnOrdering(),getKeyDecoder());
                     if (!passed)
                         continue;
                 }
@@ -406,7 +404,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         }
         @Override public void close() throws StandardException, IOException {  }
 
-        private void getColumnDVDs() throws StandardException{
+        private DataValueDescriptor[] getColumnDVDs() throws StandardException{
             if (kdvds == null) {
                 int[] columnOrdering = getColumnOrdering();
                 int[] format_ids = scanInformation.getConglomerate().getFormat_ids();
@@ -415,6 +413,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                     kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
                 }
             }
+            return kdvds;
         }
 
         private int[] getColumnOrdering() throws StandardException{
@@ -440,30 +439,6 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
             return keyMarshaller;
         }
 
-        private boolean filterRow(byte[] data) throws StandardException{
-            int ibuffer = predicateFilter.getValuePredicates().size();
-            if (ibuffer == 0)
-                return true;
-            getColumnDVDs();
-            MultiFieldDecoder keyDecoder = getKeyDecoder();
-            keyDecoder.set(data);
-            Object[] buffer = predicateFilter.getValuePredicates().buffer;
-
-            for (int i = 0; i < kdvds.length; ++i) {
-                if (kdvds[i] == null) continue;
-                int offset = keyDecoder.offset();
-                DerbyBytesUtil.skip(keyDecoder,kdvds[i]);
-                int size = keyDecoder.offset()-1-offset;
-                for (int j =0; j<ibuffer; j++) {
-                    if(((Predicate)buffer[j]).applies(columnOrdering[i]) &&
-                            !((Predicate)buffer[j]).match(columnOrdering[i],data,offset,size))
-                        return false;
-                }
-            }
-
-            return true;
-        }
-
         private MultiFieldDecoder getKeyDecoder() {
             if (keyDecoder == null)
                 keyDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
@@ -476,5 +451,4 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
             return rowDecoder;
         }
     }
-
 }
