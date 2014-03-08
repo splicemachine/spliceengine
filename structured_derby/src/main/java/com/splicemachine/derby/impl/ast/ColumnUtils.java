@@ -70,6 +70,6 @@ public class ColumnUtils {
     }
 
     public static Pair<Integer, Integer> RSCoordinate(ResultColumn rc) {
-        return new Pair<Integer, Integer>(rc.getResultSetNumber(), rc.getVirtualColumnId());
+        return Pair.newPair(rc.getResultSetNumber(), rc.getVirtualColumnId());
     }
 }
