@@ -18,7 +18,8 @@ public abstract class AbstractSequence implements Sequence {
 	protected long startingValue;
 
     public AbstractSequence(long blockAllocationSize, long incrementSteps, long startingValue) {
-    	assert incrementSteps <= blockAllocationSize; // not good
+    	if (incrementSteps > blockAllocationSize)
+    		blockAllocationSize = incrementSteps;
         this.blockAllocationSize = blockAllocationSize;
         this.incrementSteps = incrementSteps;
         this.startingValue = startingValue;
