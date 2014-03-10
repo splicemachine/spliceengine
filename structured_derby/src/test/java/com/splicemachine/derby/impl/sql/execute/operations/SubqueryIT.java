@@ -522,4 +522,44 @@ public class SubqueryIT {
 				ResultSet rs = methodWatcher.executeQuery(String.format("select * from %1$s where i in (select sum(%1$s.i) from %2$s)",intTable1,intTable2));
 				Assert.assertFalse("Rows incorrectly returned!",rs.next());
 		}
+
+		@Test
+		public void testSubqueryOverScalarAggregateCorrect() throws Exception{
+				/*Regression test for DB-961*/
+				ResultSet rs = methodWatcher.executeQuery(String.format("select * from (select max(i) from %s) q,%s",intTable1,intTable2));
+				List<int[]> correct = Arrays.asList(
+								new int[]{20,30},
+								new int[]{20,40}
+				);
+				List<int[]> actual = Lists.newArrayListWithExpectedSize(2);
+				while(rs.next()){
+						int[] n = new int[2];
+						for(int i=0;i<2;i++){
+								n[0] = rs.getInt(1);
+								Assert.assertFalse("Null returned!",rs.wasNull());
+								n[1] = rs.getInt(2);
+								Assert.assertFalse("Null returned!",rs.wasNull());
+						}
+						actual.add(n);
+				}
+				Assert.assertEquals("incorrect number of rows returned!",correct.size(),actual.size());
+				Comparator<int[]> c = new Comparator<int[]>() {
+						@Override
+						public int compare(int[] o1, int[] o2) {
+								int compare = Ints.compare(o1[0], o2[0]);
+								if (compare == 0)
+										compare = Ints.compare(o1[1], o2[1]);
+								return compare;
+						}
+				};
+				Collections.sort(correct,c);
+				Collections.sort(actual, c);
+
+				int pos =0;
+				for(int[] correctRow:correct){
+						int[] actualRow = actual.get(pos);
+						Assert.assertArrayEquals("Row value incorrect!",correctRow,actualRow);
+						pos++;
+				}
+		}
 }

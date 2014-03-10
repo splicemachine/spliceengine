@@ -1,15 +1,20 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scalar;
 
-import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
+import com.splicemachine.derby.impl.storage.RegionAwareScanner;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.stats.MetricFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+
 import java.io.IOException;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -18,19 +23,38 @@ import java.util.List;
 public class ScalarAggregateScan implements ScalarAggregateSource{
 
     private final PairDecoder scanDecoder;
-    private List<KeyValue> keyValues;
-    private final RegionScanner regionScanner;
+    private final RegionAwareScanner regionScanner;
 
-    public ScalarAggregateScan(PairDecoder scanDecoder, RegionScanner regionScanner) {
+    public ScalarAggregateScan(PairDecoder scanDecoder, MetricFactory metricFactory, String txnId, HRegion region, Scan localScan) throws StandardException {
         this.scanDecoder = scanDecoder;
-        this.regionScanner = regionScanner;
+				//TODO -sf- is this safe?
+				final byte bucket = localScan.getStartRow()[0];
+				final byte[] table = region.getTableDesc().getName();
+
+				int prefixOffset = scanDecoder.getKeyPrefixOffset();
+				final byte[] prefix = new byte[prefixOffset];
+				BytesUtil.slice(prefix,0,prefixOffset);
+				this.regionScanner = RegionAwareScanner.create(txnId,region,localScan,table,
+								new BaseHashAwareScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES) {
+						@Override
+						public byte[] getStartKey(Result result) {
+								return prefix;
+						}
+
+						@Override
+						public byte[] getStopKey(Result result) {
+								return BytesUtil.unsignedCopyAndIncrement(prefix);
+						}
+				},metricFactory);
+				regionScanner.open();
     }
+
 
     @Override
     public ExecIndexRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException {
-        if(keyValues==null)
-            keyValues = Lists.newArrayListWithExpectedSize(2);
-        keyValues.clear();
+//        if(keyValues==null)
+//            keyValues = Lists.newArrayListWithExpectedSize(2);
+//        keyValues.clear();
         /*
          * We use nextRaw() because it avoids region availability checks--once
          * we get as far as calling this.nextRow(SpliceRuntimeContext), we should
@@ -38,10 +62,12 @@ public class ScalarAggregateScan implements ScalarAggregateSource{
          * but then we avoid making that check again until we've finished reading our aggregate
          * data.
          */
-        regionScanner.nextRaw(keyValues,null);
+				Result next = regionScanner.next();
+				if(next==null || next.size()<=0)
+						return null;
 
-        if(keyValues.isEmpty())
-            return null;
-        return (ExecIndexRow)scanDecoder.decode(KeyValueUtils.matchDataColumn(keyValues));
+//				if(keyValues.isEmpty())
+//            return null;
+        return (ExecIndexRow)scanDecoder.decode(KeyValueUtils.matchDataColumn(next.raw()));
     }
 }

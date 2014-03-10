@@ -120,6 +120,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 				} catch (StandardException e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG,e);
 				}
+				this.reduceScan = context.getScan();
 				startExecutionTime = System.currentTimeMillis();
 		}
 
@@ -142,7 +143,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				if(scanAggregator==null){
 						PairDecoder decoder = OperationUtils.getPairDecoder(this,spliceRuntimeContext);
-						scanAggregator = new ScalarAggregator(new ScalarAggregateScan(decoder,regionScanner),
+						ScalarAggregateScan scan = new ScalarAggregateScan(decoder,spliceRuntimeContext,transactionID,region,reduceScan);
+						scanAggregator = new ScalarAggregator(scan,
 										aggregates,true,false,singleInputRow);
 						timer = spliceRuntimeContext.newTimer();
 				}

@@ -98,33 +98,36 @@ public class ScalarAggregateRowProvider implements RowProvider {
 						return templateRow;
 				}
 
-				ExecRow finalRow = null;
-				while(hasNext()){
-						ExecRow row = delegate.next();
-						if(finalRow==null)
-								finalRow = row.getClone();
-						for(int i=0;i<genericAggregators.length;i++){
-								ExecAggregator aggregate = execAggregators[i];
-								SpliceGenericAggregator genericAgg = genericAggregators[i];
-								DataValueDescriptor column = row.getColumn(colPosMap[genericAgg.getResultColumnId()] + 1);
-                /*
-                 * For some reason, sometimes we get aggregators that aren't reflected
-                 * in the final answer. These should be ignored.
-                 */
-								if(column!=null)
-										aggregate.add(column);
-						}
-				}
+				if(!hasNext()) return null;
 
-				if(finalRow!=null){
-						for(int i=0;i<genericAggregators.length;i++){
-								ExecAggregator aggregate = execAggregators[i];
-								SpliceGenericAggregator genericAgg = genericAggregators[i];
-								finalRow.setColumn(colPosMap[genericAgg.getResultColumnId()] + 1, aggregate.getResult());
-						}
-				}
-
-				return finalRow;
+				return delegate.next();
+//				ExecRow finalRow = null;
+//				while(hasNext()){
+//						ExecRow row = delegate.next();
+//						if(finalRow==null)
+//								finalRow = row.getClone();
+//						for(int i=0;i<genericAggregators.length;i++){
+//								ExecAggregator aggregate = execAggregators[i];
+//								SpliceGenericAggregator genericAgg = genericAggregators[i];
+//								DataValueDescriptor column = row.getColumn(colPosMap[genericAgg.getResultColumnId()] + 1);
+//                /*
+//                 * For some reason, sometimes we get aggregators that aren't reflected
+//                 * in the final answer. These should be ignored.
+//                 */
+//								if(column!=null)
+//										aggregate.add(column);
+//						}
+//				}
+//
+//				if(finalRow!=null){
+//						for(int i=0;i<genericAggregators.length;i++){
+//								ExecAggregator aggregate = execAggregators[i];
+//								SpliceGenericAggregator genericAgg = genericAggregators[i];
+//								finalRow.setColumn(colPosMap[genericAgg.getResultColumnId()] + 1, aggregate.getResult());
+//						}
+//				}
+//
+//				return finalRow;
 		}
 
 		@Override
