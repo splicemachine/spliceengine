@@ -177,7 +177,8 @@ public class UnionOperation extends SpliceBaseOperation {
 
 		@Override
 		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				if(firstResultSet instanceof RowOperation && secondResultSet instanceof RowOperation){
+				if(OperationUtils.isInMemory(this)){
+//				if(firstResultSet instanceof RowOperation && secondResultSet instanceof RowOperation){
 						spliceRuntimeContext.addPath(resultSetNumber, SpliceRuntimeContext.Side.MERGED);
 						return firstResultSet.getMapRowProvider(top,decoder,spliceRuntimeContext);
 				}

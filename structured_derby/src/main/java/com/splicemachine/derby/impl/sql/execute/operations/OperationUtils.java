@@ -1,6 +1,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation.NodeType;
@@ -62,5 +63,29 @@ public class OperationUtils {
 				KeyDecoder keyDecoder = operation.getKeyEncoder(runtimeContext).getDecoder();
 				KeyHashDecoder rowDecoder = operation.getRowHash(runtimeContext).getDecoder();
 				return new PairDecoder(keyDecoder,rowDecoder,operation.getExecRowDefinition());
+		}
+
+		/**
+		 * Determines if an operation is operation solely over in-memory representations. (e.g. There is no
+		 * active serialization over to a region for scanning.)
+		 *
+		 * @param operation the operation to check
+		 * @return true if this operation is acted upon entirely in memory
+		 */
+		public static boolean isInMemory(SpliceOperation operation){
+				if(operation==null) return false;
+				if(operation instanceof RowOperation) return true;
+				if(operation instanceof SinkingOperation) return false; //sinking ops always go to TEMP, can't be in-memory
+
+				List<SpliceOperation> subOperations = operation.getSubOperations();
+				/*
+				 * If we got here, we can't be a RowOperation, but we're still a leaf node. Thus, we aren't an
+				 * in-memory node, so return false
+				 */
+				if(subOperations.size()<=0) return false;
+				for(SpliceOperation child: subOperations){
+						if(!isInMemory(child)) return false;
+				}
+				return true;
 		}
 }
