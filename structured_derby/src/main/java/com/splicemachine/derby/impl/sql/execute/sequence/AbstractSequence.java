@@ -9,17 +9,19 @@ import org.apache.derby.iapi.error.StandardException;
 
 import com.splicemachine.derby.utils.Exceptions;
 
-public abstract class AbstractSequence {
+public abstract class AbstractSequence implements Sequence {
 	protected final AtomicLong remaining = new AtomicLong(0l);
     protected final AtomicLong currPosition = new AtomicLong(0l);
     protected final long blockAllocationSize;
     protected final long incrementSteps;
     protected final Lock updateLock = new ReentrantLock();
+	protected long startingValue;
 
-    public AbstractSequence(long blockAllocationSize, long incrementSteps) {
+    public AbstractSequence(long blockAllocationSize, long incrementSteps, long startingValue) {
     	assert incrementSteps <= blockAllocationSize; // not good
         this.blockAllocationSize = blockAllocationSize;
         this.incrementSteps = incrementSteps;
+        this.startingValue = startingValue;
     }
 
     public long getNext() throws StandardException {
@@ -43,8 +45,9 @@ public abstract class AbstractSequence {
                 	return;
                 currPosition.set(getCurrentValue());
                 success = atomicIncrement(currPosition.get()+(incrementSteps>blockAllocationSize?incrementSteps:blockAllocationSize));
-                if(success)
-                    remaining.set(blockAllocationSize/incrementSteps);
+                if(success) {
+                    remaining.set(blockAllocationSize/incrementSteps - 1);
+                }
             } 
             catch (IOException e) {
                 throw Exceptions.parseException(e);
