@@ -13,7 +13,6 @@ import com.splicemachine.encoding.Encoding;
 public class SpliceSequence extends AbstractSequence {
 	protected HTableInterface sysColumns;
 	protected byte[] sysColumnsRow;
-	protected long startingValue;
     protected static final byte[] autoIncrementValueQualifier = Encoding.encode(7);
 
 	
@@ -21,10 +20,9 @@ public class SpliceSequence extends AbstractSequence {
             long blockAllocationSize,byte[] sysColumnsRow,
             long startingValue,
             long incrementSteps) {
-			super(blockAllocationSize,incrementSteps);
+			super(blockAllocationSize,incrementSteps, startingValue);
 			this.sysColumns = sysColumns;
 			this.sysColumnsRow = sysColumnsRow;
-			this.startingValue = startingValue;
 }
 
 	@Override
