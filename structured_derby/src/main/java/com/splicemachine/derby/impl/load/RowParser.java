@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.load;
 
 import com.google.common.base.Joiner;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
+import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
@@ -15,7 +15,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLDate;
 import org.apache.derby.iapi.types.SQLTime;
 import org.apache.derby.iapi.types.SQLTimestamp;
-
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -37,8 +36,8 @@ public class RowParser {
     private String dateFormatStr;
     private String timeFormatStr;
     private final HashMap<String,String> columnTimestampFormats;
-		private Sequence[] sequences;
-		private GregorianCalendar calendar;
+	private SpliceSequence[] sequences;
+	private GregorianCalendar calendar;
 
 		private final ImportErrorReporter errorReporter;
 
@@ -78,11 +77,11 @@ public class RowParser {
 				this(template,importContext.getDateFormat(),importContext.getTimeFormat(),importContext.getTimestampFormat(),errorReporter);
 
 				ColumnContext[] columnInformation = importContext.getColumnInformation();
-				this.sequences = new Sequence[columnInformation.length];
+				this.sequences = new SpliceSequence[columnInformation.length];
 				for(int i=0;i< columnInformation.length;i++){
 						ColumnContext cc = columnInformation[i];
 						if(columnInformation[i].isAutoIncrement()){
-								sequences[i] = new Sequence(SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES),
+								sequences[i] = new SpliceSequence(SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES),
 												50*cc.getAutoIncrementIncrement(),
 												cc.getSequenceRowLocation(),
 												cc.getAutoIncrementStart(),
