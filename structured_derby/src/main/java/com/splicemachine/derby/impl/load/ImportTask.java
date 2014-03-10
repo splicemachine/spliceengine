@@ -179,6 +179,9 @@ public class ImportTask extends ZkTask{
 		}
 
 		protected RowErrorLogger getErrorLogger() {
+				if(importContext.getMaxBadRecords()<=0)
+						return NoopErrorLogger.INSTANCE;
+
 				/*
 				 * Made protected so that it can be easily overridden for testing.
 				 */
