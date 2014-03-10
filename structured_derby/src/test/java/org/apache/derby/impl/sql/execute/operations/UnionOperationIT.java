@@ -355,4 +355,22 @@ public class UnionOperationIT extends SpliceUnitTest {
 						Assert.assertArrayEquals("Incorrect value!",correct[i],actual[i]);
 				}
 		}
+
+		@Test
+		public void testMultipleUnionValues() throws Exception{
+				/*Regression test for DB-1026*/
+				ResultSet rs = methodWatcher.executeQuery("select distinct * from (values 2.0,2.1,2.2,2.2) v1");
+				float[] correct = new float[]{ 2.0f,2.1f,2.2f};
+				float[] actual = new float[correct.length];
+				int count=0;
+				while(rs.next()){
+						Assert.assertTrue("Too many rows returned!",count<correct.length);
+						float n = rs.getFloat(1);
+						actual[count] = n;
+						count++;
+				}
+
+				/*There should be no rounding error present*/
+				Assert.assertArrayEquals("Incorrect values!",correct,actual,1/1f);
+		}
 }
