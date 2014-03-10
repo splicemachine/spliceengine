@@ -44,15 +44,6 @@ public interface ImportErrorReporter extends Closeable{
 		 */
 		public boolean reportError(String row,WriteResult result);
 
-		/**
-		 * Mechanism for reporting a row (using the ExecRow interface) as erroneous.
-		 * In general, an ImportErrorReporter would convert a KVPair back into an ExecRow,
-		 * and then report it to this logger.
-		 *
-		 * Unlike ImportErrorReporters, RowLoggers are <em>not</em> required to be
-		 * thread-safe. It is assumed that the ImportErrorReporter will properly synchronize the logger
-		 */
-		public static interface RowLogger{
-				public void report(ExecRow row, WriteResult result);
-		}
+		long errorsReported();
+
 }

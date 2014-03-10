@@ -29,5 +29,9 @@ public interface RowErrorLogger extends Closeable {
 		 * @throws IOException if something goes wrong during the report
 		 */
 		public void report(String row, WriteResult result) throws IOException;
+
+		void deleteLog() throws IOException;
+
+		void open() throws IOException;
 }
 

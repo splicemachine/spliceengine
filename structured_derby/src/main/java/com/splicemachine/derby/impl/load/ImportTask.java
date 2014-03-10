@@ -8,8 +8,8 @@ import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
@@ -31,6 +31,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -78,11 +79,13 @@ public class ImportTask extends ZkTask{
 											ImportReader reader,
 											Importer importer,
 											int priority,
-											String parentTxnId){
+											String parentTxnId,
+											byte[] taskId){
 				super(jobId, priority, parentTxnId, false);
 				this.importContext = importContext;
 				this.reader = reader;
 				this.importer = importer;
+				this.taskId = taskId;
 		}
 
 		@Override
@@ -101,8 +104,10 @@ public class ImportTask extends ZkTask{
 						Timer totalTimer = importContext.shouldRecordStats()? Metrics.newTimer(): Metrics.noOpTimer();
 						totalTimer.startTiming();
 						long startTime = System.currentTimeMillis();
-						ImportErrorReporter errorReporter = getErrorReporter(row);
+						RowErrorLogger errorLogger = getErrorLogger();
+						ImportErrorReporter errorReporter = getErrorReporter(row,errorLogger);
 						try{
+								errorLogger.open();
 								reader.setup(fileSystem,importContext);
 								if(importer==null){
 
@@ -126,13 +131,28 @@ public class ImportTask extends ZkTask{
                      * we need to make sure that we get out any IOExceptions
                      * that get thrown
                      */
-										importer.close();
+										try{
+												importer.close();
+										}finally{
+												//close error reporter AFTER importer finishes
+												Closeables.closeQuietly(errorReporter);
+												Closeables.closeQuietly(errorLogger);
+										}
 										stopTime = System.currentTimeMillis();
 								}
 								totalTimer.stopTiming();
 								//don't report stats if there's an error
 								reportStats(startTime, stopTime,importer.getTotalTime(),totalTimer.getTime());
+								TaskStats stats = new TaskStats(stopTime-startTime,rowsRead,
+												rowsRead-errorReporter.errorsReported());
+								getTaskStatus().setStats(stats);
 						}catch(Exception e){
+								//delete the logger file
+								try {
+										errorLogger.deleteLog();
+								} catch (IOException e1) {
+										LOG.error("Unable to delete bad record file in the event of failure",e1);
+								}
 								if(e instanceof ExecutionException)
 										throw (ExecutionException)e;
 								throw new ExecutionException(e);
@@ -142,17 +162,16 @@ public class ImportTask extends ZkTask{
 				}
 		}
 
-		private ImportErrorReporter getErrorReporter(ExecRow rowTemplate) {
+		private ImportErrorReporter getErrorReporter(ExecRow rowTemplate,RowErrorLogger errorLogger) {
 				long maxBadRecords = importContext.getMaxBadRecords();
 				if(maxBadRecords<=0) return FailAlwaysReporter.INSTANCE;
 
-				RowErrorLogger logger = getErrorLogger();
 
 
 				PairDecoder decoder = ImportUtils.newEntryEncoder(rowTemplate,importContext,getUuidGenerator()).getDecoder(rowTemplate);
 				return new ThresholdErrorReporter(maxBadRecords,new QueuedErrorReporter(
 								Math.min((int)maxBadRecords,SpliceConstants.importLogQueueSize),
-								SpliceConstants.importLogQueueWaitTimeMs,logger,decoder));
+								SpliceConstants.importLogQueueWaitTimeMs,errorLogger,decoder));
 		}
 
 		protected UUIDGenerator getUuidGenerator() {
@@ -164,6 +183,8 @@ public class ImportTask extends ZkTask{
 				 * Made protected so that it can be easily overridden for testing.
 				 */
 				Path directory = importContext.getBadLogDirectory();
+				if(directory==null)
+						directory = importContext.getFilePath().getParent();
 				Path badLogFile = new Path(directory,"_BAD_"+importContext.getFilePath().getName()+"_"+Bytes.toLong(taskId));
 
 				return new FileErrorLogger(fileSystem,badLogFile);

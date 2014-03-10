@@ -4,6 +4,7 @@ import com.splicemachine.hbase.writer.WriteResult;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.log4j.Logger;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -16,6 +17,7 @@ import java.io.OutputStreamWriter;
  * Date: 3/7/14
  */
 public class FileErrorLogger implements RowErrorLogger{
+		private static final Logger LOG = Logger.getLogger(FileErrorLogger.class);
 		private final FileSystem fs;
 		private final Path outputFile;
 		private FSDataOutputStream outputStream;
@@ -27,23 +29,25 @@ public class FileErrorLogger implements RowErrorLogger{
 		}
 
 		@Override
-		public void close() throws IOException {
-				if(writer==null) return; //nothing to do
+		public void open() throws IOException {
+				outputStream = fs.create(outputFile);
+				//TODO -sf- do we want to compress the outputstream?
+				writer = new BufferedWriter(new OutputStreamWriter(outputStream));
+		}
 
+		@Override
+		public void close() throws IOException {
+				LOG.trace("Close called");
 				//close the stream
 				writer.flush();
 				writer.close();
+				outputStream.flush();
 				outputStream.close();
+				LOG.trace("close completed");
 		}
 
 		@Override
 		public void report(String row, WriteResult result) throws IOException {
-				if(outputStream==null){
-						outputStream = fs.create(outputFile);
-						//TODO -sf- do we want to compress the outputstream?
-						writer = new BufferedWriter(new OutputStreamWriter(outputStream));
-				}
-
 				StringBuilder sb = new StringBuilder();
 				switch(result.getCode()){
 						case NOT_NULL:
@@ -77,5 +81,10 @@ public class FileErrorLogger implements RowErrorLogger{
 
 				writer.write(sb.toString());
 				writer.newLine();
+		}
+
+		@Override
+		public void deleteLog() throws IOException {
+			fs.delete(outputFile);
 		}
 }

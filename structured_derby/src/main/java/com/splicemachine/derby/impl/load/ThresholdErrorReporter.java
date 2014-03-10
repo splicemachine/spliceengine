@@ -34,5 +34,7 @@ public class ThresholdErrorReporter implements ImportErrorReporter {
 				return errors.incrementAndGet() < maxErrorCount && delegate.reportError(row, result);
 		}
 
+		@Override public long errorsReported() { return errors.get(); }
+
 		@Override public void close() throws IOException { delegate.close();		 }
 }

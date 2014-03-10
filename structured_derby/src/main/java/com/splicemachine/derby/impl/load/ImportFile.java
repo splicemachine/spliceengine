@@ -35,6 +35,12 @@ class ImportFile {
 		private static String IS_DIRECTORY = "isDirectory";
 		private static String IS_DIR = "isDir";
 		private static Directory directory;
+		private FileSystem fileSystem;
+
+		public FileSystem getFileSystem() {
+				return fileSystem;
+		}
+
 		private interface Directory {
 			boolean isDirectory(FileStatus fileStatus) throws IOException;
 		}
@@ -76,13 +82,14 @@ class ImportFile {
 		private final String inputPath;
 		private List<FileStatus> fileStatus;
 
-		ImportFile(String inputPath) {
+		ImportFile(String inputPath) throws IOException {
 				this.inputPath = inputPath;
+				fileSystem = FileSystem.get(SpliceUtils.config);
 		}
 
 		public List<Path> getPaths() throws IOException {
 				if(fileStatus==null)
-						fileStatus = listStatus(inputPath);
+						fileStatus = listStatus(fileSystem,inputPath);
 
 				return Lists.transform(fileStatus,new Function<FileStatus, Path>() {
 						@Override
@@ -100,7 +107,7 @@ class ImportFile {
 		 */
 		public long getTotalLength() throws IOException {
 				if(fileStatus==null)
-						fileStatus = listStatus(inputPath);
+						fileStatus = listStatus(fileSystem,inputPath);
 
 				long length=0l;
 				for(FileStatus status:fileStatus){
@@ -128,7 +135,7 @@ class ImportFile {
 				return result;
 		}
 
-		private static List<FileStatus> listStatus(String input) throws IOException {
+		private static List<FileStatus> listStatus(FileSystem fs,String input) throws IOException {
 				Path[] dirs = getInputPaths(input);
 				if (dirs.length == 0)
 						throw new IOException("No Path Supplied in job");
@@ -142,7 +149,6 @@ class ImportFile {
 
 				List<FileStatus> result = Lists.newArrayListWithExpectedSize(dirs.length);
 				for (Path p : dirs) {
-						FileSystem fs = FileSystem.get(SpliceUtils.config);
 						FileStatus[] matches = fs.globStatus(p, inputFilter);
 						if (matches == null) {
 								errors.add(p);

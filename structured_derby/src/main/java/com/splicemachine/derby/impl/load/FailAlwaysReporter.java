@@ -18,5 +18,7 @@ public class FailAlwaysReporter implements ImportErrorReporter{
 
 		@Override public boolean reportError(String row, WriteResult result) { return false; }
 
+		@Override public long errorsReported() { return 0; }
+
 		@Override public void close() throws IOException {  }
 }

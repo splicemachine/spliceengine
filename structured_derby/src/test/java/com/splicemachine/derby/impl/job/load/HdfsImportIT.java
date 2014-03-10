@@ -77,7 +77,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	}
 
     @Test
-    @Ignore("Weird error, need to deal later -SF-")
+//    @Ignore("Weird error, need to deal later -SF-")
     public void testImportWithPrimaryKeys() throws Exception{
         testImport(spliceSchemaWatcher.schemaName,TABLE_2,getResourceDirectory()+"importTest.in","NAME,TITLE,AGE");
     }

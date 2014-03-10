@@ -48,7 +48,13 @@ public class ImportUtils {
 				}else
 						encoder = new KeyEncoder(new SaltedPrefix(randomGenerator), NoOpDataHash.INSTANCE, NoOpPostfix.INSTANCE);
 
-				DataHash rowHash = new EntryDataHash(IntArrays.count(row.nColumns()), null,kryoPool);
+				int[] cols = IntArrays.count(row.nColumns());
+				if (pkCols != null && pkCols.length>0) {
+						for (int col:pkCols) {
+								cols[col] = -1;
+						}
+				}
+				DataHash rowHash = new EntryDataHash(cols,null);
 
 				return new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
 		}
