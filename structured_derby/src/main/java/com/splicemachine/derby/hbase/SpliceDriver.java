@@ -17,7 +17,8 @@ import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.TieredTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.TieredTaskSchedulerSetup;
-import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
+import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequenceKey;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
@@ -47,6 +48,7 @@ import com.splicemachine.utils.logging.LogManager;
 import com.splicemachine.utils.logging.Logging;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
+
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -62,6 +64,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
 import javax.annotation.Nullable;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
@@ -69,7 +72,9 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
+
 import net.sf.ehcache.Cache;
+
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.db.OptimizerTrace;
 import org.apache.derby.iapi.error.StandardException;
@@ -123,17 +128,15 @@ public class SpliceDriver extends SIConstants {
 	private StatementManager statementManager;
     private Logging logging;
 
-    private ResourcePool<Sequence,Sequence.Key> sequences = CachedResourcePool.
-            Builder.<Sequence,Sequence.Key>newBuilder().expireAfterAccess(1l,TimeUnit.MINUTES).generator(new ResourcePool.Generator<Sequence,Sequence.Key>() {
+    private ResourcePool<SpliceSequence,SpliceSequenceKey> sequences = CachedResourcePool.
+            Builder.<SpliceSequence,SpliceSequenceKey>newBuilder().expireAfterAccess(1l,TimeUnit.MINUTES).generator(new ResourcePool.Generator<SpliceSequence,SpliceSequenceKey>() {
         @Override
-        public Sequence makeNew(Sequence.Key refKey) throws StandardException {
-            return new Sequence(refKey.getTable(),
-                    refKey.blockAllocationSize,refKey.getSysColumnsRow(),
-                    refKey.getStartingValue(),refKey.getIncrementSize());
+        public SpliceSequence makeNew(SpliceSequenceKey refKey) throws StandardException {
+        	return refKey.makeNew();
         }
 
         @Override
-        public void close(Sequence entity) throws Exception{
+        public void close(SpliceSequence entity) throws Exception{
             entity.close();
         }
     }).build();
@@ -337,7 +340,7 @@ public class SpliceDriver extends SIConstants {
         }
     }
 
-    public ResourcePool<Sequence,Sequence.Key> getSequencePool(){
+    public ResourcePool<SpliceSequence,SpliceSequenceKey> getSequencePool(){
         return sequences;
     }
 

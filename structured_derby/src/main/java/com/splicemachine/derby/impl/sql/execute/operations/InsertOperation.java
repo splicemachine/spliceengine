@@ -6,13 +6,14 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequenceKey;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -20,10 +21,8 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.HasIncrement;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.impl.sql.execute.InsertConstantAction;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -146,15 +145,15 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 						sysColumnTable = SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES);
 				}
 
-				Sequence sequence;
+				SpliceSequence sequence;
 				try {
 					if (singleRowResultSet) { // Single Sequence Move
-						sequence = SpliceDriver.driver().getSequencePool().get(new Sequence.Key(sysColumnTable,rlBytes,
+						sequence = SpliceDriver.driver().getSequencePool().get(new SpliceSequenceKey(sysColumnTable,rlBytes,
 								heapConglom,columnPosition,activation.getLanguageConnectionContext().getDataDictionary(),1l));						
 						nextIncrement = sequence.getNext();
 						this.getActivation().getLanguageConnectionContext().setIdentityValue(nextIncrement);
 					} else {
-						sequence = SpliceDriver.driver().getSequencePool().get(new Sequence.Key(sysColumnTable,rlBytes,
+						sequence = SpliceDriver.driver().getSequencePool().get(new SpliceSequenceKey(sysColumnTable,rlBytes,
 								heapConglom,columnPosition,activation.getLanguageConnectionContext().getDataDictionary(),SpliceConstants.sequenceBlockSize));						
 						nextIncrement = sequence.getNext();						
 					}
