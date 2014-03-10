@@ -17,6 +17,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Scott Fines
@@ -88,7 +89,10 @@ public class SequentialImporter implements Importer{
 														if(errorReporter.reportError((KVPair)request.getBuffer()[resultCursor.index],resultCursor.value))
 																failedRows.remove(resultCursor.index); //remove the row to prevent retrying the write
 														else{
-																throw new ExecutionException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException());
+																if(errorReporter ==FailAlwaysReporter.INSTANCE)
+																		return super.partialFailure(result,request);
+																else
+																		throw new ExecutionException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException());
 														}
 														break;
 										}

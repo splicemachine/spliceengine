@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Scott Fines
@@ -37,7 +38,9 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 		 * after the close will return {@code false}
 		 */
 		private volatile boolean closed = false;
+		private AtomicLong errorsReported  = new AtomicLong(0l);
 
+		private static final Logger LOG = Logger.getLogger(QueuedErrorReporter.class);
 		public QueuedErrorReporter(int maxQueuedRows,
 															 long maxWaitTimeMs,
 															 RowErrorLogger rowLogger, PairDecoder pairDecoder) {
@@ -49,6 +52,7 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 
 		@Override
 		public void close() throws IOException {
+				LOG.trace("Close called");
 				closed = true;
 				loggerThreads.shutdownNow();
 				try {
@@ -62,6 +66,7 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 						//ensure interrupt flag is set
 						Thread.currentThread().interrupt();
 				}
+				LOG.trace("Close completed");
 		}
 
 		@Override
@@ -75,14 +80,21 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 				return !closed && offer(new StringErrorRow(row, result));
 		}
 
+		@Override
+		public long errorsReported() {
+				return errorsReported.get();
+		}
+
 
 		/*private helper methods*/
 		private boolean offer(ErrorRow errorRow) {
 				for(int i=0;i<10;i++){
 						if(failed) return false; // the logger failed, so we must fail the import
 						try {
-								if(queue.offer(errorRow,maxWaitTimeMs/10, TimeUnit.MILLISECONDS))
+								if(queue.offer(errorRow,maxWaitTimeMs/10, TimeUnit.MILLISECONDS)){
+										errorsReported.incrementAndGet();
 										return true;
+								}
 						} catch (InterruptedException e) {
 								/*
 								 * Interruption indicates that the offering thread was interrupted while
@@ -112,7 +124,7 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 				}
 
 				final void log(QueueWorker worker) throws IOException{
-					worker.logger.report(getRow(worker),result);
+						worker.logger.report(getRow(worker),result);
 				}
 
 				protected abstract String getRow(QueueWorker worker) throws IOException;
@@ -130,7 +142,6 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 				protected String getRow(QueueWorker worker) throws IOException {
 						try{
 								ExecRow row = worker.pairDecoder.decode(kvPair);
-								if(row==null) return null;
 								return row.toString(); //TODO -sf- decide on a standard format for rows?
 						}catch(StandardException se){
 								throw Exceptions.getIOException(se);
@@ -169,21 +180,36 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 								try {
 										//get the next entry. Wait only for 1 second so that we can check the closed variable periodically
 										ErrorRow poll = queue.poll(1, TimeUnit.SECONDS);
-										if(poll==null) continue;
-										try {
-												poll.log(this);
-										} catch (IOException e) {
-												WORKER_LOG.error("Unexpected error logging bad row",e);
-												/*
-												 * We couldn't log the row. Bail on the entire import.
-												 */
-												failed = true;
-												return;
+										if(poll!=null){
+												try {
+														poll.log(this);
+												} catch (IOException e) {
+														WORKER_LOG.error("Unexpected error logging bad row",e);
+														/*
+												 		 * We couldn't log the row. Bail on the entire import.
+												 		 */
+														failed = true;
+														return;
+												}
 										}
 								} catch (InterruptedException e) {
 										//we have been shutdown, so move on
 										Thread.currentThread().interrupt();
 										break;
+								}
+						}
+						//empty the queue
+						ErrorRow poll;
+						while((poll = queue.poll())!=null){
+								try{
+										poll.log(this);
+								} catch (IOException e) {
+										WORKER_LOG.error("Unexpected error logging bad row", e);
+									/*
+									 * We couldn't log the row. Bail on the entire import.
+									 */
+										failed = true;
+										return;
 								}
 						}
 				}

@@ -6,21 +6,20 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.sql.execute.operations.ParallelVTI;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.*;
-import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
@@ -28,14 +27,14 @@ import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.iapi.types.SQLVarchar;
+import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
 import org.apache.derby.shared.common.reference.SQLState;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.MasterNotRunningException;
@@ -45,6 +44,7 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -84,7 +84,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  *
  */
-public class HdfsImport extends ParallelVTI {
+public class HdfsImport {
 		private static final Logger LOG = Logger.getLogger(HdfsImport.class);
 		private final ImportContext context;
 		private final long statementId;
@@ -152,6 +152,27 @@ public class HdfsImport extends ParallelVTI {
 																				 String timestampFormat,
 																				 String dateFormat,
 																				 String timeFormat) throws SQLException {
+			IMPORT_DATA(schemaName,tableName,insertColumnList,fileName,columnDelimiter,characterDelimiter,timestampFormat,dateFormat,timeFormat,0,null,new ResultSet[1]);
+		}
+
+		private static final ResultColumnDescriptor[] IMPORT_RESULT_COLUMNS = new GenericColumnDescriptor[]{
+						new GenericColumnDescriptor("numFiles",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+						new GenericColumnDescriptor("numTasks",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+						new GenericColumnDescriptor("numRowsImported",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+						new GenericColumnDescriptor("numBadRecords",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
+		};
+		public static void IMPORT_DATA(String schemaName, String tableName,
+																				 String insertColumnList,
+																				 String fileName,
+																				 String columnDelimiter,
+																				 String characterDelimiter,
+																				 String timestampFormat,
+																				 String dateFormat,
+																				 String timeFormat,
+																				 long maxBadRecords,
+																				 String badRecordDirectory,
+																				 ResultSet[] results
+																				 ) throws SQLException {
 				Connection conn = SpliceAdmin.getDefaultConn();
 				try {
 						LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
@@ -162,9 +183,17 @@ public class HdfsImport extends ParallelVTI {
 										schemaName = "APP";
 								if(tableName==null)
 										throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException("NULL"));
-								importData(transactionId, user,conn, schemaName.toUpperCase(), tableName.toUpperCase(),
+								ExecRow resultRow = importData(transactionId, user, conn, schemaName.toUpperCase(), tableName.toUpperCase(),
 												insertColumnList, fileName, columnDelimiter,
-												characterDelimiter, timestampFormat,dateFormat,timeFormat,lcc);
+												characterDelimiter, timestampFormat, dateFormat, timeFormat, lcc, maxBadRecords, badRecordDirectory);
+								EmbedConnection embedConnection = (EmbedConnection)conn;
+								Activation activation = embedConnection.getLanguageConnection().getLastActivation();
+								IteratorNoPutResultSet rs = new IteratorNoPutResultSet(Arrays.asList(resultRow),IMPORT_RESULT_COLUMNS,activation);
+								rs.open();
+								results[0] = new EmbedResultSet40(embedConnection,rs,false,null,true);
+
+						}catch (StandardException e) {
+								throw PublicAPI.wrapStandardException(e);
 						} catch (SQLException se) {
 								try {
 										conn.rollback();
@@ -186,13 +215,20 @@ public class HdfsImport extends ParallelVTI {
 				}
 		}
 
-		public static ResultSet importData(String transactionId, String user,
+		public static ExecRow importData(String transactionId, String user,
 																			 Connection connection,
-																			 String schemaName,String tableName,
-																			 String insertColumnList,String inputFileName,
-																			 String delimiter,String charDelimiter,String timestampFormat,
-																			 String dateFormat,String timeFormat,
-																			 LanguageConnectionContext lcc) throws SQLException{
+																			 String schemaName,
+																			 String tableName,
+																			 String insertColumnList,
+																			 String inputFileName,
+																			 String delimiter,
+																			 String charDelimiter,
+																			 String timestampFormat,
+																			 String dateFormat,
+																			 String timeFormat,
+																			 LanguageConnectionContext lcc,
+																			 long maxBadRecords,
+																			 String badRecordDirectory) throws SQLException{
 				if(connection ==null)
 						throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.CONNECTION_NULL));
 				if(tableName==null)
@@ -206,7 +242,10 @@ public class HdfsImport extends ParallelVTI {
 										.timestampFormat(timestampFormat)
 										.dateFormat(dateFormat)
 										.timeFormat(timeFormat)
-										.transactionId(transactionId);
+										.transactionId(transactionId)
+										.maxBadRecords(maxBadRecords)
+										.badLogDirectory(badRecordDirectory==null?null: new Path(badRecordDirectory))
+						;
 
 						if(lcc.getRunTimeStatisticsMode()){
 								String xplainSchema = lcc.getXplainSchema();
@@ -232,10 +271,9 @@ public class HdfsImport extends ParallelVTI {
 				SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
 				try {
 						importer = new HdfsImport(builder.build(),statementInfo.getStatementUuid(),opInfo.getOperationUuid());
-						importer.open();
 						SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
 						runtimeContext.setStatementInfo(statementInfo);
-						importer.executeShuffle(runtimeContext);
+						return importer.executeShuffle(runtimeContext);
 				} catch(AssertionError ae){
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(ae));
 				} catch(StandardException e) {
@@ -249,12 +287,10 @@ public class HdfsImport extends ParallelVTI {
 						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema: null);
 				}
 
-				return importer;
 		}
 
 
-		@Override
-		public void open() throws StandardException {
+		public ExecRow executeShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
 				try {
 						admin = new HBaseAdmin(SpliceUtils.config);
 				} catch (MasterNotRunningException e) {
@@ -262,81 +298,94 @@ public class HdfsImport extends ParallelVTI {
 				} catch (ZooKeeperConnectionException e) {
 						throw StandardException.newException(SQLState.COMMUNICATION_ERROR,e);
 				}
-		}
-
-		@Override
-		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public int[] getRootAccessedCols(long tableNumber) {
-				throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement getRootAccessedCols");
-		}
-
-		@Override
-		public boolean isReferencingTable(long tableNumber) {
-				throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement isReferencingTable");
-		}
-
-		@Override
-		public void executeShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
-				ImportFile file = new ImportFile(context.getFilePath().toString());
-				byte[] tableName = context.getTableName().getBytes();
-				try {
-						splitToFit(tableName,file);
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-				HTableInterface table = SpliceAccessManager.getHTable(SpliceDriver.driver().getTempTable().getTempTableName());
-
-				List<Pair<JobFuture,JobInfo>> jobFutures = Lists.newArrayList();
-				StatementInfo statementInfo = runtimeContext.getStatementInfo();
-				Set<OperationInfo> opInfos = statementInfo.getOperationInfo();
-				OperationInfo opInfo = null;
-				//noinspection LoopStatementThatDoesntLoop
-				for(OperationInfo opInfoField:opInfos){
-						opInfo = opInfoField;
-						break;
-				}
-				try {
-						LOG.info("Importing files "+ file.getPaths());
-						ImportJob importJob = new FileImportJob(table,context,statementId,file.getPaths(),operationId);
-						long start = System.currentTimeMillis();
-						JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob);
-						JobInfo info = new JobInfo(importJob.getJobId(),jobFuture.getNumTasks(),start);
-						info.tasksRunning(jobFuture.getAllTaskIds());
-						if(opInfo!=null)
-								opInfo.addJob(info);
-						jobFutures.add(Pair.newPair(jobFuture,info));
-
-						try{
-								jobFuture.completeAll(info);
-						}catch(ExecutionException e){
-								info.failJob();
-								throw e;
-						}
-				} catch (InterruptedException e) {
-						throw Exceptions.parseException(e);
-				} catch (ExecutionException e) {
-						throw Exceptions.parseException(e.getCause());
-				} // still need to cancel all other jobs ? // JL
-				catch (IOException e) {
-						throw Exceptions.parseException(e);
-				} finally{
-						Closeables.closeQuietly(table);
-						for(Pair<JobFuture,JobInfo> future:jobFutures){
-								try {
-										future.getFirst().cleanup();
-								} catch (ExecutionException e) {
-										LOG.error("Exception cleaning up import future",e);
+				try{
+						ImportFile file = new ImportFile(context.getFilePath().toString());
+						//check that the badLogDirectory exists and is writable
+						Path badLogDir = context.getBadLogDirectory();
+						if(badLogDir!=null){
+								FileSystem fileSystem = file.getFileSystem();
+								try{
+										FileStatus status = fileSystem.getFileStatus(badLogDir);
+										if(!status.isDirectory())
+												throw ErrorState.LANG_FILE_DOES_NOT_EXIST.newException(badLogDir.toString());
+								}catch(FileNotFoundException fnfe){
+										throw Exceptions.parseException(fnfe);
 								}
 						}
+						byte[] tableName = context.getTableName().getBytes();
+						try {
+								splitToFit(tableName,file);
+						} catch (IOException e) {
+								throw Exceptions.parseException(e);
+						}
+						HTableInterface table = SpliceAccessManager.getHTable(SpliceDriver.driver().getTempTable().getTempTableName());
+
+						List<Pair<JobFuture,JobInfo>> jobFutures = Lists.newArrayList();
+						StatementInfo statementInfo = runtimeContext.getStatementInfo();
+						Set<OperationInfo> opInfos = statementInfo.getOperationInfo();
+						OperationInfo opInfo = null;
+						//noinspection LoopStatementThatDoesntLoop
+						for(OperationInfo opInfoField:opInfos){
+								opInfo = opInfoField;
+								break;
+						}
+						try {
+								LOG.info("Importing files "+ file.getPaths());
+								ImportJob importJob = new FileImportJob(table,context,statementId,file.getPaths(),operationId);
+								long start = System.currentTimeMillis();
+								JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob);
+								JobInfo info = new JobInfo(importJob.getJobId(),jobFuture.getNumTasks(),start);
+								info.tasksRunning(jobFuture.getAllTaskIds());
+								if(opInfo!=null)
+										opInfo.addJob(info);
+								jobFutures.add(Pair.newPair(jobFuture,info));
+
+								try{
+										jobFuture.completeAll(info);
+								}catch(ExecutionException e){
+										info.failJob();
+										throw e;
+								}
+								JobStats jobStats = jobFuture.getJobStats();
+								List<TaskStats> taskStats = jobStats.getTaskStats();
+								long numImported = 0l;
+								long numBadRecords = 0l;
+								for(TaskStats stats:taskStats){
+										long totalRowsWritten = stats.getTotalRowsWritten();
+										long totalRead = stats.getTotalRowsProcessed();
+										numImported+= totalRowsWritten;
+										numBadRecords+=(totalRead-totalRowsWritten);
+								}
+								ExecRow result = new ValueRow(3);
+								result.setRowArray(new DataValueDescriptor[]{
+												new SQLInteger(file.getPaths().size()),
+												new SQLInteger(jobFuture.getJobStats().getNumTasks()),
+												new SQLLongint(Math.max(0,numImported)),
+												new SQLLongint(numBadRecords)
+								});
+								return result;
+						} catch (InterruptedException e) {
+								throw Exceptions.parseException(e);
+						} catch (ExecutionException e) {
+								throw Exceptions.parseException(e.getCause());
+						} // still need to cancel all other jobs ? // JL
+						catch (IOException e) {
+								throw Exceptions.parseException(e);
+						} finally{
+								Closeables.closeQuietly(table);
+								for(Pair<JobFuture,JobInfo> future:jobFutures){
+										try {
+												future.getFirst().cleanup();
+										} catch (ExecutionException e) {
+												LOG.error("Exception cleaning up import future",e);
+										}
+								}
+						}
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				} finally{
+						if(admin!=null)
+								Closeables.closeQuietly(admin);
 				}
 		}
 
@@ -421,51 +470,7 @@ public class HdfsImport extends ParallelVTI {
 				}
 		}
 
-		@Override
-		public void close() {
-				try{
-						admin.close();
-				}catch(IOException ioe){
-						SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
-				}
-		}
-
 	/*One-line public methods*/
-
-		//TODO -sf- make HdfsImport report how many rows were returned
-		@Override public int modifiedRowCount() { return 0; }
-
-		@Override
-		public void clearCurrentRow() {
-				//no-op
-		}
-
-		/*no op methods*/
-		@Override public ExecRow getExecRowDefinition() { return null; }
-		@Override public boolean next() { return false; }
-		@Override public SpliceOperation getRightOperation() { return null; } //noop
-		@Override public void generateRightOperationStack(boolean initial, List<SpliceOperation> operations) {  }
-		@Override public String prettyPrint(int indentLevel) { return "HdfsImport"; }
-
-		@Override
-		public long getStatementId() {
-				return statementId;
-		}
-
-		//no-op
-		@Override public void setStatementId(long statementId) {
-			throw new UnsupportedOperationException("HdfsImport does not support mutating statment ids");
-		}
-
-		@Override public void setCurrentRowLocation(RowLocation rowLocation) { }
-
-		@Override
-		public String getName() {
-				return "Import("+context.getFilePath().toString()+"->"+context.getTableName()+")";
-		}
-
-		@Override public boolean shouldRecordStats() { return false; }
-		@Override public String getXplainSchema() { return null; }
 
 		/************************************************************************************************************/
 	/*private helper functions*/

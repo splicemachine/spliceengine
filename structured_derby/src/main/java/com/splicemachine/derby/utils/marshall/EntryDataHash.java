@@ -80,7 +80,7 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 
 		@Override
 		public KeyHashDecoder getDecoder() {
-				return null;  //To change body of implemented methods use File | Settings | File Templates.
+				return new EntryDataDecoder(keyColumns,keySortOrder);
 		}
 
 		public void close() throws IOException {

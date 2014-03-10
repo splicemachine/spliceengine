@@ -7,18 +7,21 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
+import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.hbase.writer.Writer;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.sql.Date;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
@@ -519,7 +522,18 @@ public class ImportTaskTest {
 						}
 				};
 
-        ImportTask importTask = new ImportTask("TEST_JOB",ctx,reader,importer,1,"TEST_TXN");
+        ImportTask importTask = new ImportTask("TEST_JOB",ctx,reader,importer,1,"TEST_TXN", Bytes.toBytes(-1l)){
+						@Override
+						protected RowErrorLogger getErrorLogger() {
+								return new RowErrorLogger() {
+										@Override public void report(String row, WriteResult result) throws IOException {  }
+										@Override public void deleteLog() throws IOException {  }
+										@Override public void open() throws IOException {  }
+
+										@Override public void close() throws IOException {  }
+								};
+						}
+				};
         importTask.doExecute();
 
         /*

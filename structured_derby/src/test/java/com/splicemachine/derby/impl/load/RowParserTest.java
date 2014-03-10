@@ -272,6 +272,8 @@ public class RowParserTest {
 						}
 
 						@Override public void close() throws IOException {  }
+
+						@Override public long errorsReported() { return 0; }
 				});
 
 				final ColumnContext[] columnCtxs = new ColumnContext[dataTypes.size()];
@@ -321,7 +323,79 @@ public class RowParserTest {
 				Assert.assertEquals("Incorrect number of failed rows!",1,badRows.size());
 		}
 
-    @Test(expected = StandardException.class)
+		@Test(expected = StandardException.class)
+    public void testParseNullIntoNonNullFailsWithTooManyErrors() throws Throwable {
+        /*
+         * Tests that we can parse a whitespace string as null in the first element
+         * of the string[] and still get a correct array (if the type is NOT VARCHAR or CHAR)
+         */
+
+        Random random = new Random(0l);
+
+        final ExecRow row = getExecRow();
+
+        final RowParser parser = getRowParser(row,new ImportErrorReporter() {
+						@Override public boolean reportError(KVPair kvPair, WriteResult result) { return false; }
+						@Override public boolean reportError(String row, WriteResult result) { return false; }
+						@Override public void close() throws IOException {  }
+
+						@Override public long errorsReported() { return 0; }
+				});
+
+        final ColumnContext[] columnCtxs = new ColumnContext[dataTypes.size()];
+        for(int i=0;i<columnCtxs.length;i++){
+            TestingDataType dataType = dataTypes.get(i);
+            if(i==0){
+            columnCtxs[i] = new ColumnContext.Builder()
+                    .columnType(dataType.getJdbcType())
+                    .nullable(false).build();
+            }else{
+                columnCtxs[i] = new ColumnContext.Builder()
+                        .columnType(dataType.getJdbcType())
+                        .nullable(true).build();
+            }
+        }
+        final List<String[]> rows = Lists.newArrayListWithCapacity(10);
+        List<ExecRow> correctRows = Lists.newArrayListWithCapacity(10);
+        for(int i=0;i<10;i++){
+            int colPos=1;
+            String[] line = new String[dataTypes.size()];
+            for(TestingDataType testingDataType :dataTypes){
+                if(colPos!=1){
+                    Object o = testingDataType.newObject(random);
+                    testingDataType.setNext(row.getColumn(colPos),o);
+                    line[colPos-1] = testingDataType.toString(o);
+                }else{
+                    row.getColumn(colPos).setToNull();
+                    line[colPos-1] = "";
+                }
+                colPos++;
+            }
+            correctRows.add(row.getClone());
+            rows.add(line);
+        }
+
+        try{
+            Lists.newArrayList(Lists.transform(rows,new Function<String[], ExecRow>() {
+                @Override
+                public ExecRow apply(@Nullable String[] input) {
+                    try {
+                        return parser.process(input,columnCtxs).getClone();
+                    } catch (StandardException e) {
+                        Assert.assertEquals("Incorrect sql state!", ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.getSqlState(),e.getSqlState());
+                        throw new RuntimeException(e);
+                    }
+                }
+            }));
+        }catch(RuntimeException re){
+            Throwable t =  re.getCause();
+            if(t!=null)
+                throw t;
+        }
+        Assert.fail("Did not get any errors for type "+ dataTypes.get(0));
+    }
+
+		@Test(expected = StandardException.class)
     public void testParseNullIntoNonNullFails() throws Throwable {
         /*
          * Tests that we can parse a whitespace string as null in the first element
@@ -374,7 +448,7 @@ public class RowParserTest {
                     try {
                         return parser.process(input,columnCtxs).getClone();
                     } catch (StandardException e) {
-                        Assert.assertEquals("Incorrect sql state!", ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.getSqlState(),e.getSqlState());
+                        Assert.assertEquals("Incorrect sql state!", ErrorState.LANG_NULL_INTO_NON_NULL.getSqlState(),e.getSqlState());
                         throw new RuntimeException(e);
                     }
                 }

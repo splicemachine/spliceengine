@@ -107,9 +107,12 @@ public class RowParser {
 						try{
 								setColumn(context, value,line);
 						}catch(StandardException se){
-								if(!errorReporter.reportError(join(line),WriteResult.failed(se.getMessage())))
-										throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException();
-								else{
+								if(!errorReporter.reportError(join(line),WriteResult.failed(se.getMessage()))){
+										if(errorReporter == FailAlwaysReporter.INSTANCE)
+												throw se; //don't swallow the exception if we aren't recording errors
+										else
+												throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException();
+								}else{
 										//skip line
 										return null;
 								}
