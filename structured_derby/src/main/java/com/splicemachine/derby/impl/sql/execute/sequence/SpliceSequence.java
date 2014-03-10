@@ -37,17 +37,15 @@ public class SpliceSequence extends AbstractSequence {
 
 	@Override
 	protected boolean atomicIncrement(long next) throws IOException {
-        Put put = new Put(sysColumnsRow);
+		Put put = new Put(sysColumnsRow);
         put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,autoIncrementValueQualifier,Encoding.encode(next));
         return sysColumns.checkAndPut(sysColumnsRow,
                 SpliceConstants.DEFAULT_FAMILY_BYTES,
-                autoIncrementValueQualifier,Encoding.encode(currPosition.get()),put);
+                autoIncrementValueQualifier,currPosition.get() == startingValue?null:Encoding.encode(currPosition.get()),put);
 	}
 
 	@Override
 	public void close() throws IOException {
 	       sysColumns.close();
 	}
-
-
 }
