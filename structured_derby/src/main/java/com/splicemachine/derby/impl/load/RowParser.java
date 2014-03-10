@@ -162,13 +162,6 @@ public class RowParser {
 										column.setToNull();
 										break;
 								}
-								try{
-										int value = Integer.parseInt(elem);
-										column.setValue(value);
-										break;
-								}catch(NumberFormatException nfe){
-										throw ErrorState.LANG_FORMAT_EXCEPTION.newException(column.getTypeName());
-								}
 						case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
 						case StoredFormatIds.SQL_LONGINT_ID: //return new SQLLongint();
 						case StoredFormatIds.SQL_REAL_ID: //return new SQLReal();
