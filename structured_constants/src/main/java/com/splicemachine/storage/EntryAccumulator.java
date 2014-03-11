@@ -45,4 +45,6 @@ public interface EntryAccumulator {
 		void markOccupiedUntyped(int position);
 
 		boolean isInteresting(BitIndex potentialIndex);
+
+		void complete();
 }

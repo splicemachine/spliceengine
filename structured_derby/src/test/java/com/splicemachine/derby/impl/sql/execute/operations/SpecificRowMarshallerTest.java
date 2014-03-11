@@ -6,17 +6,15 @@ import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
+import com.splicemachine.storage.ByteEntryAccumulator;
+import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.SparseEntryAccumulator;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
-
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.KeyValue;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.nio.ByteBuffer;
 
 import static org.mockito.Mockito.mock;
 
@@ -41,7 +39,7 @@ public class SpecificRowMarshallerTest {
         fieldsToCheck.set(0);
         fieldsToCheck.set(2);
 
-        SparseEntryAccumulator accumulator = new SparseEntryAccumulator(null,fieldsToCheck,true);
+        EntryAccumulator accumulator = new ByteEntryAccumulator(null,true,fieldsToCheck);
 
         byte[] correctRowLoc = snowflake.nextUUIDBytes();
         byte[] encodedRowLoc = Encoding.encodeBytesUnsorted(correctRowLoc);

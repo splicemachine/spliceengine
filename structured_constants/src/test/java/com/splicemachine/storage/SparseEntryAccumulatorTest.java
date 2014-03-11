@@ -11,7 +11,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import java.nio.ByteBuffer;
+
 import java.util.Arrays;
 import com.carrotsearch.hppc.BitSet;
 import java.util.Collection;
@@ -58,7 +58,7 @@ public class SparseEntryAccumulatorTest {
         BitSet fields  = new BitSet(dataTypes.length);
         fields.set(0,dataTypes.length);
         fields.clear(missingField);
-        EntryAccumulator accumulator = new SparseEntryAccumulator(null,fields,true);
+        EntryAccumulator accumulator = new ByteEntryAccumulator(null, true, fields);
 
         Object[] correctData = new Object[dataTypes.length];
         MultiFieldEncoder encoder = MultiFieldEncoder.create(kryoPool,1);
@@ -121,7 +121,7 @@ public class SparseEntryAccumulatorTest {
         Random random = new Random(0l);
         BitSet fields  = new BitSet(dataTypes.length);
         fields.set(0,dataTypes.length);
-        EntryAccumulator accumulator = new SparseEntryAccumulator(null,fields,true);
+        EntryAccumulator accumulator = new ByteEntryAccumulator(null, true, fields);
 
         Object[] correctData = new Object[dataTypes.length];
         MultiFieldEncoder encoder = MultiFieldEncoder.create(kryoPool,1);
