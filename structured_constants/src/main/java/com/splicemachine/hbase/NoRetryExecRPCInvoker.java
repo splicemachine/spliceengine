@@ -27,7 +27,7 @@ public class NoRetryExecRPCInvoker implements InvocationHandler {
 
     private Configuration conf;
     private final HConnection connection;
-    private Class<? extends CoprocessorService> protocol;
+    private Class<? extends CoprocessorService> service;
     private final byte[] table;
     private final byte[] row;
     private final boolean refreshConnectionCache;
@@ -35,13 +35,13 @@ public class NoRetryExecRPCInvoker implements InvocationHandler {
 
     public NoRetryExecRPCInvoker(Configuration conf,
                           HConnection connection,
-                          Class<? extends CoprocessorService> protocol,
+                          Class<? extends CoprocessorService> service,
                           byte[] table,
                           byte[] row,
                           boolean refreshConnectionCache) {
         this.conf = conf;
         this.connection = connection;
-        this.protocol = protocol;
+        this.service = service;
         this.table = table;
         this.row = row;
         this.refreshConnectionCache = refreshConnectionCache;
@@ -54,7 +54,7 @@ public class NoRetryExecRPCInvoker implements InvocationHandler {
         }
 
         if (row != null) {
-            final Exec exec = new Exec(conf, row, protocol, method, args);
+            final Exec exec = new Exec(conf, row, service, method, args);
             RegionServerCallable<ExecResult> callable =
                     new RegionServerCallable<ExecResult>(connection, table, row) {
                         public ExecResult call() throws Exception {
