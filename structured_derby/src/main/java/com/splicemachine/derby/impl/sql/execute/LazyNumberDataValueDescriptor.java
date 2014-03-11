@@ -100,7 +100,7 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
     @Override
     public DataValueDescriptor cloneHolder() {
         LazyNumberDataValueDescriptor newDvd = new LazyNumberDataValueDescriptor((NumberDataValue) ndv.cloneHolder(), dvdSerializer);
-        newDvd.dvdBytes = this.dvdBytes;
+        newDvd.bytes = this.bytes;
         newDvd.deserialized = this.deserialized;
         newDvd.updateNullFlag();
 
@@ -111,7 +111,7 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
     public DataValueDescriptor cloneValue(boolean forceMaterialization) {
 
         LazyNumberDataValueDescriptor newDvd = new LazyNumberDataValueDescriptor((NumberDataValue) ndv.cloneValue(forceMaterialization), dvdSerializer);
-        newDvd.dvdBytes = this.dvdBytes;
+        newDvd.bytes = this.bytes;
         newDvd.deserialized = this.deserialized;
         newDvd.updateNullFlag();
 

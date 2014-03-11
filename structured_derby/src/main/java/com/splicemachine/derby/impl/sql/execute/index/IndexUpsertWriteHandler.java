@@ -216,8 +216,8 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 return mutation;
             }
 
-            EntryAccumulator newKeyAccumulator = transformer.getKeyAccumulator();
-            EntryAccumulator newRowAccumulator = transformer.getRowAccumulator();
+            ByteEntryAccumulator newKeyAccumulator = transformer.getKeyAccumulator();
+            ByteEntryAccumulator newRowAccumulator = transformer.getRowAccumulator();
 
             newKeyAccumulator.reset();
             newRowAccumulator.reset();
@@ -229,7 +229,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
             MultiFieldDecoder newDecoder = null;
             MultiFieldDecoder oldDecoder = null;
-            EntryAccumulator oldKeyAccumulator;
+            ByteEntryAccumulator oldKeyAccumulator;
             try {
                 newDecoder = newPutDecoder.getEntryDecoder();
 

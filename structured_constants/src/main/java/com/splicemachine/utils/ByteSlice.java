@@ -161,4 +161,9 @@ public class ByteSlice implements Externalizable {
 			out.write(buffer,offset,length);
 		}
 
+		public void reverse() {
+				for(int i=offset;i<offset+length;i++){
+					buffer[i]^=0xff;
+				}
+		}
 }

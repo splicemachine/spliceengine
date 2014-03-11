@@ -17,8 +17,18 @@ public class DoubleDVDSerializer implements DVDSerializer {
         return Encoding.encode(obj.getDouble());
     }
 
-    @Override
+		@Override
+		public byte[] serialize(DataValueDescriptor obj, boolean desc) throws Exception {
+				return Encoding.encode(obj.getDouble(),desc);
+		}
+
+		@Override
     public void deserialize(byte[] bytes, DataValueDescriptor ldvd, boolean desc) throws Exception {
         ldvd.setValue(Encoding.decodeDouble(bytes,desc));
     }
+
+		@Override
+		public void deserialize(DataValueDescriptor ldvd, byte[] bytes, int offset, int length, boolean desc) throws Exception {
+				ldvd.setValue(Encoding.decodeDouble(bytes,offset,desc));
+		}
 }

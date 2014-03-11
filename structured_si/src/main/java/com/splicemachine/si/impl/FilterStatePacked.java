@@ -10,11 +10,11 @@ import java.io.IOException;
 public class FilterStatePacked<Result, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
         Scan, Lock, OperationStatus, Mutation, IHTable> implements IFilterState {
     static final Logger LOG = Logger.getLogger(FilterStatePacked.class);
-    private final FilterState<Result, Put, Delete, Get, Scan, Lock, OperationStatus,
+    protected final FilterState<Result, Put, Delete, Get, Scan, Lock, OperationStatus,
 						Mutation, IHTable> simpleFilter;
-    private final RowAccumulator accumulator;
+    protected final RowAccumulator accumulator;
     private KeyValue lastValidKeyValue;
-    private boolean excludeRow = false;
+    protected boolean excludeRow = false;
 
     public FilterStatePacked(FilterState<Result, Put, Delete, Get, Scan, Lock,
                             OperationStatus, Mutation, IHTable> simpleFilter,
@@ -37,15 +37,8 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
             case USER_DATA:
                 switch (returnCode) {
                 	case INCLUDE:
-                	case INCLUDE_AND_NEXT_COL:	
-                		if (!accumulator.isFinished() && !excludeRow && accumulator.isOfInterest(simpleFilter.keyValue.keyValue())) { 
-                			accumulateUserData(dataKeyValue);
-                		}
-                		if (lastValidKeyValue == null) {
-                			lastValidKeyValue = dataKeyValue;
-                			return Filter.ReturnCode.INCLUDE;
-                		}
-                		return Filter.ReturnCode.SKIP;
+                	case INCLUDE_AND_NEXT_COL:
+											return doAccumulate(dataKeyValue);
                     case SKIP:
                     case NEXT_COL:
                     case NEXT_ROW:
@@ -63,31 +56,38 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
         }
     }
 
-    private void accumulateUserData(KeyValue dataKeyValue) throws IOException {
-    	if (!accumulator.accumulate(simpleFilter.keyValue.keyValue())) {
-            excludeRow = true;
-        }
-    }
+		protected Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
+				if (!accumulator.isFinished() && !excludeRow && accumulator.isOfInterest(dataKeyValue)) {
+						if (!accumulator.accumulate(simpleFilter.keyValue.keyValue())) {
+								excludeRow = true;
+						}
+				}
+				if (lastValidKeyValue == null) {
+						lastValidKeyValue = dataKeyValue;
+						return Filter.ReturnCode.INCLUDE;
+				}
+				return Filter.ReturnCode.SKIP;
+		}
 
-    @Override
-    public KeyValue produceAccumulatedKeyValue() {
-    	if (accumulator.isCountStar())
-    		return lastValidKeyValue;
-    	if (lastValidKeyValue == null)
-    		return null;
-        final byte[] resultData = accumulator.result();
-        if (resultData != null) {
-        	KeyValue keyValue = KeyValueUtils.newKeyValue(lastValidKeyValue, resultData);
-			return keyValue;
-        } else {
-        	return null;
-        }
-    }
 
-    @Override
-    public boolean getExcludeRow() {
-        return excludeRow || lastValidKeyValue == null;
-    }
+		@Override
+		public KeyValue produceAccumulatedKeyValue() {
+				if (accumulator.isCountStar())
+						return lastValidKeyValue;
+				if (lastValidKeyValue == null)
+						return null;
+				final byte[] resultData = accumulator.result();
+				if (resultData != null) {
+						return KeyValueUtils.newKeyValue(lastValidKeyValue, resultData);
+				} else {
+						return null;
+				}
+		}
+
+		@Override
+		public boolean getExcludeRow() {
+				return excludeRow || lastValidKeyValue == null;
+		}
 
     @Override
     public void nextRow() {

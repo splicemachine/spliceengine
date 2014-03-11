@@ -18,9 +18,13 @@ public class HRowAccumulator implements RowAccumulator {
 
 		private long bytesAccumulated = 0l;
 
-    public HRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder, boolean countStar) {
+		public HRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder, boolean countStar) {
+			this(predicateFilter, decoder, predicateFilter.newAccumulator(),countStar);
+		}
+
+    public HRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder,EntryAccumulator accumulator, boolean countStar) {
         this.predicateFilter = predicateFilter;
-        this.entryAccumulator = predicateFilter.newAccumulator();
+        this.entryAccumulator = accumulator;
         this.decoder = decoder;
         this.countStar = countStar;
     }
