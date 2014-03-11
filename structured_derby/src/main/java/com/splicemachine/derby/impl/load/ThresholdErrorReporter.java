@@ -26,7 +26,7 @@ public class ThresholdErrorReporter implements ImportErrorReporter {
 
 		@Override
 		public boolean reportError(KVPair kvPair, WriteResult result) {
-				return errors.incrementAndGet() < maxErrorCount && delegate.reportError(kvPair, result);
+				return delegate.reportError(kvPair, result) && errors.getAndIncrement() < maxErrorCount;
 		}
 
 		@Override
