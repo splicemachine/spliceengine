@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.load;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.ErrorState;
@@ -16,6 +17,7 @@ import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -78,6 +80,7 @@ public class SequentialImporter implements Importer{
 								if(isFailed()) return Writer.WriteResponse.IGNORE;
 								//filter out and report bad records
 								IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
+								IntObjectOpenHashMap<WriteResult> filteredRows = IntObjectOpenHashMap.newInstance();
 								for(IntObjectCursor<WriteResult> resultCursor:failedRows){
 										switch(resultCursor.value.getCode()){
 												case FAILED:
@@ -86,17 +89,18 @@ public class SequentialImporter implements Importer{
 												case UNIQUE_VIOLATION:
 												case FOREIGN_KEY_VIOLATION:
 												case CHECK_VIOLATION:
-														if(errorReporter.reportError((KVPair)request.getBuffer()[resultCursor.index],resultCursor.value))
-																failedRows.remove(resultCursor.index); //remove the row to prevent retrying the write
-														else{
+														if(!errorReporter.reportError((KVPair)request.getBuffer()[resultCursor.key],resultCursor.value)){
 																if(errorReporter ==FailAlwaysReporter.INSTANCE)
 																		return super.partialFailure(result,request);
 																else
 																		throw new ExecutionException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException());
 														}
 														break;
+												default:
+														filteredRows.put(resultCursor.index,resultCursor.value);
 										}
 								}
+								result.setFailedRows(filteredRows);
 								return super.partialFailure(result,request);
 						}
 

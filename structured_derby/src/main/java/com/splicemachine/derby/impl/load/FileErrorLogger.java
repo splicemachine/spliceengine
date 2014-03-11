@@ -79,6 +79,7 @@ public class FileErrorLogger implements RowErrorLogger{
 				}
 				sb = sb.append("---").append(row);
 
+				LOG.trace("Writing line to writer "+ writer );
 				writer.write(sb.toString());
 				writer.newLine();
 		}

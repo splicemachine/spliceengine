@@ -147,12 +147,6 @@ public class ImportTask extends ZkTask{
 												rowsRead-errorReporter.errorsReported());
 								getTaskStatus().setStats(stats);
 						}catch(Exception e){
-								//delete the logger file
-								try {
-										errorLogger.deleteLog();
-								} catch (IOException e1) {
-										LOG.error("Unable to delete bad record file in the event of failure",e1);
-								}
 								if(e instanceof ExecutionException)
 										throw (ExecutionException)e;
 								throw new ExecutionException(e);
