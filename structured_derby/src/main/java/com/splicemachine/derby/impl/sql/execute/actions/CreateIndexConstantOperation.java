@@ -765,7 +765,11 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             tc.abort();
             throw Exceptions.parseException(t);
         }
-        tc.commit();
+        try {
+            HTransactorFactory.getTransactionManager().commit(new TransactionId(getTransactionId(tc)));
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
     protected TransactionId getIndexTransaction(TransactionController parent, TransactionController tc, TransactionId tentativeTransaction, TransactionManager transactor, long tableConglomId) throws StandardException {
