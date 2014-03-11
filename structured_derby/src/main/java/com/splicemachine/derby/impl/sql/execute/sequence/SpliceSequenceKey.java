@@ -39,7 +39,6 @@ public class SpliceSequenceKey extends AbstractSequenceKey {
             if(cd.getPosition()==columnNum){
                 autoIncStart = cd.getAutoincStart();
                 autoIncrement = cd.getAutoincInc();
-                System.out.println("autoIncStart" + autoIncStart + "autoIncrement"+autoIncStart);
                 break;
             }
         }
