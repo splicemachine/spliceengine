@@ -506,6 +506,11 @@ public class IndexConglomerate extends SpliceConglomerate {
         writeExternal_v10_3 (out);
         if (conglom_format_id == StoredFormatIds.ACCESS_B2I_V5_ID)
             out.writeBoolean (isUniqueWithDuplicateNulls());
+        int len = (columnOrdering != null && columnOrdering.length > 0) ? columnOrdering.length : 0;
+        out.writeInt(len);
+        if ( len > 0) {
+            ConglomerateUtil.writeFormatIdArray(columnOrdering, out);
+        }
     }
 
     /**
@@ -572,6 +577,8 @@ public class IndexConglomerate extends SpliceConglomerate {
         if (conglom_format_id == StoredFormatIds.ACCESS_B2I_V5_ID) {
             setUniqueWithDuplicateNulls(in.readBoolean());
         }
+        int len = in.readInt();
+        columnOrdering = ConglomerateUtil.readFormatIdArray(len, in);
 	}
     
     /**

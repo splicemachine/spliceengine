@@ -78,19 +78,93 @@ public class DerbyOperationInformation implements OperationInformation,Externali
 
     @Override
     public ExecRow compactRow(ExecRow candidateRow,
+                              ScanInformation scanInfo) throws StandardException {
+        int	numCandidateCols = candidateRow.nColumns();
+        ExecRow compactRow;
+        FormatableBitSet accessedColumns = null;
+        if(scanInfo.getAccessedPkColumns() != null) {
+            accessedColumns = (FormatableBitSet)scanInfo.getAccessedPkColumns().clone();
+        }
+        else {
+            accessedColumns = new FormatableBitSet(numCandidateCols);
+        }
+        FormatableBitSet accessedNonPkColumns = scanInfo.getAccessedNonPkColumns();
+        if (accessedNonPkColumns == null) {
+            accessedNonPkColumns = new FormatableBitSet(numCandidateCols);
+        }
+        accessedColumns.or(accessedNonPkColumns);
+        boolean isKeyed = scanInfo.isKeyed();
+
+        baseColumnMap = new int[numCandidateCols];
+        for (int i = 0; i < baseColumnMap.length; ++i) {
+            baseColumnMap[i] = -1;
+        }
+
+        int numCols = accessedColumns.getNumBitsSet();
+
+        ExecutionFactory ex = activation.getLanguageConnectionContext()
+                .getLanguageConnectionFactory().getExecutionFactory();
+        if (isKeyed) {
+            compactRow = ex.getIndexableRow(numCols);
+        }
+        else {
+            compactRow = ex.getValueRow(numCols);
+        }
+        int position = 0;
+        for (int i = accessedColumns.anySetBit();i != -1; i = accessedColumns.anySetBit(i)) {
+            // Stop looking if there are columns beyond the columns
+            // in the candidate row. This can happen due to the
+            // otherCols bit map.
+            if (i >= numCandidateCols)
+                break;
+            DataValueDescriptor sc = candidateRow.getColumn(i+1);
+            if (sc != null) {
+                compactRow.setColumn(position + 1,sc);
+            }
+            baseColumnMap[i] = position;
+            position++;
+        }
+
+        return compactRow;
+    }
+
+    @Override
+    public ExecRow getKeyTemplate(ExecRow candidateRow,
+                                  ScanInformation scanInfo) throws StandardException {
+
+        int[] columnOrdering = scanInfo.getColumnOrdering();
+        int numKeyCols = columnOrdering.length;
+        ExecutionFactory ex = activation.getLanguageConnectionContext()
+                .getLanguageConnectionFactory().getExecutionFactory();
+        ExecRow keyTemplate = ex.getValueRow(numKeyCols);
+
+        int position = 0;
+        for (int i:columnOrdering) {
+            DataValueDescriptor sc = candidateRow.getColumn(i+1);
+            if (sc != null) {
+                keyTemplate.setColumn(position + 1,sc);
+            }
+        }
+        return keyTemplate;
+
+    }
+    @Override
+    public ExecRow compactRow(ExecRow candidateRow,
                               FormatableBitSet accessedColumns,
                               boolean isKeyed) throws StandardException {
         int	numCandidateCols = candidateRow.nColumns();
         ExecRow compactRow;
+        baseColumnMap = new int[numCandidateCols];
+        for (int i = 0; i < numCandidateCols; ++i) {
+            baseColumnMap[i] = -1;
+        }
         if (accessedColumns == null) {
             compactRow =  candidateRow;
-            baseColumnMap = new int[numCandidateCols];
             for (int i = 0; i < baseColumnMap.length; i++)
                 baseColumnMap[i] = i;
         }
         else {
             int numCols = accessedColumns.getNumBitsSet();
-            baseColumnMap = new int[numCandidateCols];
 
             ExecutionFactory ex = activation.getLanguageConnectionContext()
                                             .getLanguageConnectionFactory().getExecutionFactory();

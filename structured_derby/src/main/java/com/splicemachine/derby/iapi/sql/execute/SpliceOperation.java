@@ -202,20 +202,24 @@ public interface SpliceOperation  {
      */
     String prettyPrint(int indentLevel);
 
-		/**
-		 * Get the recorded metrics for the Operation. This should only be called when trace
-		 * metrics gathering is enabled.
-		 *
-		 * @return the metrics recorded by this operation. Return {@code null} if no
-		 * metrics have been collected.
-		 */
-		OperationRuntimeStats getMetrics(long statementId,long taskId);
+    /**
+     * Get the recorded metrics for the Operation. This should only be called when trace
+     * metrics gathering is enabled.
+     *
+     * @return the metrics recorded by this operation. Return {@code null} if no
+     * metrics have been collected.
+     */
+    OperationRuntimeStats getMetrics(long statementId,long taskId);
 
-		/**
-		 * @return -1l if no statementId has been set on this operation, or the statement
-		 * id if one has. Generally, a statementId is only set on the top operation
-		 */
-		long getStatementId();
+    /**
+     * @return -1l if no statementId has been set on this operation, or the statement
+     * id if one has. Generally, a statementId is only set on the top operation
+     */
+    long getStatementId();
 
-		void setStatementId(long statementId);
+    void setStatementId(long statementId);
+
+    int[] getAccessedNonPkColumns() throws StandardException;
+		
+		void setActivation(Activation activation) throws StandardException;
 }

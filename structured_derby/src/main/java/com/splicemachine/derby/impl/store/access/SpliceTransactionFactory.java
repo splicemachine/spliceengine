@@ -84,7 +84,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		if (this.hbaseStore == hbaseStore) {
 			LOG.error("##############startNestedUpdateUserTransaction, passed in context mgr not the same as current context mgr");
 		}
-		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, transName, false, NESTED_UPDATE_USER_CONTEXT_ID, true, false, parentTransactionid);
+		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, transName, false, NESTED_UPDATE_USER_CONTEXT_ID, true, true, parentTransactionid);
 	}
 
 	public Transaction startGlobalTransaction(HBaseStore hbaseStore,ContextManager contextMgr, int format_id, byte[] global_id,byte[] branch_id) throws StandardException {

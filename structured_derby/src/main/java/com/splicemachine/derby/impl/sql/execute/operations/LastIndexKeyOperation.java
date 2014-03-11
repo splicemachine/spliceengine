@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
+import com.splicemachine.derby.utils.marshall.KeyMarshaller;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -130,17 +133,19 @@ public class LastIndexKeyOperation extends ScanOperation{
 						}
 
 						Collections.addAll(keyValues, prev);
-
-						if(rowDecoder==null)
-								rowDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
-
 						currentRow.resetRowArray();
 						DataValueDescriptor[] fields = currentRow.getRowArray();
 
 						for(KeyValue kv:keyValues){
 								//should only be 1
-                            if (kv != null)
-								RowMarshaller.sparsePacked().decode(kv,fields,baseColumnMap,rowDecoder);
+                            if (kv != null) {
+								RowMarshaller.sparsePacked().decode(kv,fields,baseColumnMap,getRowDecoder());
+                                if (scanInformation.getAccessedPkColumns() != null &&
+                                    scanInformation.getAccessedPkColumns().getNumBitsSet() > 0) {
+                                    getKeyMarshaller().decode(kv, fields, baseColumnMap, getKeyDecoder(),
+                                            getColumnOrdering(), getColumnDVDs());
+                                }
+                            }
 						}
 
 						if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){

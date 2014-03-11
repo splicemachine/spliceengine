@@ -1,16 +1,23 @@
 package com.splicemachine.derby.impl.load;
 
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.hbase.writer.*;
+import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.stats.*;
-import com.splicemachine.utils.IntArrays;
+import com.splicemachine.hbase.writer.*;
+import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.Metrics;
+import com.splicemachine.stats.TimeView;
+import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Scott Fines
@@ -29,19 +36,29 @@ public class SequentialImporter implements Importer{
 		private PairEncoder entryEncoder;
 		private KryoPool kryoPool;
 
+
 		public SequentialImporter(ImportContext importContext,
 															ExecRow templateRow,
-															String txnId){
-			this(importContext, templateRow, txnId,SpliceDriver.driver().getTableWriter(),SpliceDriver.getKryoPool());
+															String txnId, ImportErrorReporter errorReporter){
+			this(importContext, templateRow, txnId,SpliceDriver.driver().getTableWriter(),SpliceDriver.getKryoPool(),errorReporter);
+		}
+
+		public SequentialImporter(ImportContext importContext,
+															ExecRow templateRow,
+															String txnId, ImportErrorReporter errorReporter,
+															CallBufferFactory<KVPair> callBufferFactory,
+															KryoPool kryoPool){
+				this(importContext, templateRow, txnId,callBufferFactory,kryoPool,errorReporter);
 		}
 
 		public SequentialImporter(ImportContext importContext,
 															ExecRow templateRow,
 															String txnId,
 															CallBufferFactory<KVPair> callBufferFactory,
-															KryoPool kryoPool){
+															KryoPool kryoPool,
+															final ImportErrorReporter errorReporter){
 				this.importContext = importContext;
-				this.rowParser = new RowParser(templateRow,importContext);
+				this.rowParser = new RowParser(templateRow,importContext,errorReporter);
 				this.kryoPool = kryoPool;
 
 				if(importContext.shouldRecordStats()){
@@ -50,6 +67,39 @@ public class SequentialImporter implements Importer{
 						metricFactory = Metrics.noOpMetricFactory();
 
 				Writer.WriteConfiguration config = new ForwardingWriteConfiguration(callBufferFactory.defaultWriteConfiguration()){
+						@Override
+						public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
+								if(isFailed()) return Writer.WriteResponse.IGNORE;
+								return super.globalError(t);
+						}
+
+						@Override
+						public Writer.WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
+								if(isFailed()) return Writer.WriteResponse.IGNORE;
+								//filter out and report bad records
+								IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
+								for(IntObjectCursor<WriteResult> resultCursor:failedRows){
+										switch(resultCursor.value.getCode()){
+												case FAILED:
+												case WRITE_CONFLICT:
+												case PRIMARY_KEY_VIOLATION:
+												case UNIQUE_VIOLATION:
+												case FOREIGN_KEY_VIOLATION:
+												case CHECK_VIOLATION:
+														if(errorReporter.reportError((KVPair)request.getBuffer()[resultCursor.index],resultCursor.value))
+																failedRows.remove(resultCursor.index); //remove the row to prevent retrying the write
+														else{
+																if(errorReporter ==FailAlwaysReporter.INSTANCE)
+																		return super.partialFailure(result,request);
+																else
+																		throw new ExecutionException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException());
+														}
+														break;
+										}
+								}
+								return super.partialFailure(result,request);
+						}
+
 						@Override
 						public MetricFactory getMetricFactory() {
 								return metricFactory;
@@ -60,16 +110,11 @@ public class SequentialImporter implements Importer{
 
 		@Override
 		public void process(String[] parsedRow) throws Exception {
-				if(writeTimer==null){
-						writeTimer = metricFactory.newTimer();
-				}
+				processBatch(parsedRow);
+		}
 
-				ExecRow newRow = rowParser.process(parsedRow,importContext.getColumnInformation());
-				if(entryEncoder==null)
-						entryEncoder = newEntryEncoder(newRow);
-
-				writeBuffer.add(entryEncoder.encode(newRow));
-				writeTimer.tick(1);
+		protected boolean isFailed(){
+				return false; //by default, Sequential Imports don't record failures, since they throw errors directly
 		}
 
 		@Override
@@ -83,8 +128,9 @@ public class SequentialImporter implements Importer{
 				for(String[] line:parsedRows){
 						if(line==null) break;
 						ExecRow row = rowParser.process(line,importContext.getColumnInformation());
+						if(row==null) continue; //unable to parse the row, so skip it.
 						if(entryEncoder==null)
-								entryEncoder = newEntryEncoder(row);
+								entryEncoder = ImportUtils.newEntryEncoder(row,importContext,getRandomGenerator(),kryoPool);
 						writeBuffer.add(entryEncoder.encode(row));
 						count++;
 				}
@@ -120,17 +166,17 @@ public class SequentialImporter implements Importer{
 				return SpliceDriver.driver().getUUIDGenerator().newGenerator(128);
 		}
 
-		private PairEncoder newEntryEncoder(ExecRow row) {
-				int[] pkCols = importContext.getPrimaryKeys();
-
-				KeyEncoder encoder;
-				if(pkCols!=null&& pkCols.length>0){
-						encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(pkCols, null), NoOpPostfix.INSTANCE);
-				}else
-						encoder = new KeyEncoder(new SaltedPrefix(getRandomGenerator()),NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
-
-				DataHash rowHash = new EntryDataHash(IntArrays.count(row.nColumns()),null,kryoPool);
-
-				return new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
-		}
+//		public PairEncoder newEntryEncoder(ExecRow row) {
+//				int[] pkCols = importContext.getPrimaryKeys();
+//
+//				KeyEncoder encoder;
+//				if(pkCols!=null&& pkCols.length>0){
+//						encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(pkCols, null), NoOpPostfix.INSTANCE);
+//				}else
+//						encoder = new KeyEncoder(new SaltedPrefix(getRandomGenerator()),NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
+//
+//				DataHash rowHash = new EntryDataHash(IntArrays.count(row.nColumns()),null,kryoPool);
+//
+//				return new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
+//		}
 }

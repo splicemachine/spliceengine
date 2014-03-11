@@ -1874,9 +1874,10 @@ public enum ErrorState {
 				public StandardException newException(Throwable rootCause) {
 						return StandardException.newException(getSqlState());
 				}
-		};
+		},
+		LANG_IMPORT_TOO_MANY_BAD_RECORDS("SE009");
 
-    private final String sqlState;
+		private final String sqlState;
 
     private ErrorState(String sqlState) {
         this.sqlState = sqlState;

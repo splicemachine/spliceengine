@@ -205,4 +205,16 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 		public RowLocation getCurrentRowLocation() {
 				throw new UnsupportedOperationException();
 		}
+
+        public int[] getAccessedNonPkColumns() {
+            return null;
+        }
+
+
+		@Override
+		public void setActivation(Activation activation) {
+			throw new UnsupportedOperationException();			
+		}
+		
+		
 }

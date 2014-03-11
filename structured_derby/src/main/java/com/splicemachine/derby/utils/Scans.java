@@ -5,31 +5,31 @@ import java.util.Comparator;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.storage.*;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
+import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DataValueFactory;
-import org.apache.derby.iapi.types.SQLChar;
-import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
-import org.apache.hadoop.hbase.util.Pair;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.filter.ColumnNullableFilter;
+
+import org.apache.hadoop.hbase.util.Pair;
 
 /**
  * Utility methods and classes related to building HBase Scans
@@ -180,7 +180,7 @@ public class Scans extends SpliceUtils {
 										stopKeyValue, stopSearchOperator,
 										qualifiers, scanColumnList, sortOrder,sameStartStopPosition, formatIds, columnOrdering, dataValueFactory);
 
-						buildPredicateFilter(startKeyValue, startSearchOperator, qualifiers, scanColumnList, scan);
+						buildPredicateFilter(startKeyValue, startSearchOperator, qualifiers, scanColumnList, columnOrdering, formatIds, scan);
 				}catch(IOException e){
 						throw Exceptions.parseException(e);
 				}
@@ -188,17 +188,21 @@ public class Scans extends SpliceUtils {
 		}
 
 		public static void buildPredicateFilter(DataValueDescriptor[] startKeyValue,
-																						int startSearchOperator,
-																						Qualifier[][] qualifiers,
-																						FormatableBitSet scanColumnList, Scan scan) throws StandardException, IOException {
-				EntryPredicateFilter pqf = getPredicates(startKeyValue,startSearchOperator,qualifiers,scanColumnList);
+                                                int startSearchOperator,
+                                                Qualifier[][] qualifiers,
+                                                FormatableBitSet scanColumnList,
+                                                int[] columnOrdering,
+                                                int[] formatIds, Scan scan) throws StandardException, IOException {
+                EntryPredicateFilter pqf = getPredicates(startKeyValue,startSearchOperator,qualifiers,scanColumnList, columnOrdering, formatIds);
 				scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,pqf.toBytes());
 		}
 
 		public static EntryPredicateFilter getPredicates(DataValueDescriptor[] startKeyValue,
-																										 int startSearchOperator,
-																										 Qualifier[][] qualifiers,
-																										 FormatableBitSet scanColumnList) throws StandardException {
+                                                         int startSearchOperator,
+                                                         Qualifier[][] qualifiers,
+                                                         FormatableBitSet scanColumnList,
+                                                         int[] columnOrdering,
+                                                         int[] formatIds) throws StandardException {
 				ObjectArrayList<Predicate> predicates;
 				BitSet colsToReturn = new BitSet();
 				if(qualifiers!=null){
@@ -218,12 +222,19 @@ public class Scans extends SpliceUtils {
 				}else{
 						colsToReturn.clear(); //we want everything
 				}
+
+               //exclude any primary key columns
+               if (columnOrdering != null && columnOrdering.length > 0) {
+                   for (int col:columnOrdering) {
+                       colsToReturn.clear(col);
+                   }
+               }
 //        if(startKeyValue!=null && startSearchOperator != ScanController.GT){
 //            Predicate indexPredicate = generateIndexPredicate(startKeyValue,startSearchOperator);
 //            if(indexPredicate!=null)
 //                predicates.add(indexPredicate);
 //        }
-				return new EntryPredicateFilter(colsToReturn,predicates,true);
+				return new EntryPredicateFilter(colsToReturn,predicates,true, columnOrdering, formatIds);
 		}
 
 		public static ObjectArrayList<Predicate> getQualifierPredicates(Qualifier[][] qualifiers) throws StandardException {

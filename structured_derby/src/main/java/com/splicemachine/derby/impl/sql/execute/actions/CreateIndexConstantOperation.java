@@ -64,6 +64,8 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
+import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptorList;
 
 public class CreateIndexConstantOperation extends IndexConstantOperation {
     private static final Logger LOG = Logger.getLogger(CreateIndexConstantOperation.class);
@@ -734,169 +736,200 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                 throw Exceptions.parseException(e);
             }
             TentativeIndexDesc tentativeIndexDesc = new TentativeIndexDesc(conglomId, td.getHeapConglomerateId(),
-                                                                           baseColumnPositions, unique,
-                                                                           uniqueWithDuplicateNulls,
-                                                                           SpliceUtils.bitSetFromBooleanArray(descColumns));
+                    baseColumnPositions, unique,
+                    uniqueWithDuplicateNulls,
+                    SpliceUtils.bitSetFromBooleanArray(descColumns));
             DDLChange ddlChange = new DDLChange(tentativeTransaction.getTransactionIdString(),
                     DDLChange.TentativeType.CREATE_INDEX);
             ddlChange.setTentativeIndexDesc(tentativeIndexDesc);
             ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
 
-						final long tableConglomId = td.getHeapConglomerateId();
-						HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
-						try{
-								// Add the indexes to the exisiting regions
-								createIndex(activation, ddlChange, table);
+            final long tableConglomId = td.getHeapConglomerateId();
+            HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
+            try{
+                // Add the indexes to the exisiting regions
+                createIndex(activation, ddlChange, table, td);
 
-								TransactionId indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, transactor,tableConglomId);
+                TransactionId indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, transactor,tableConglomId);
 
-								populateIndex(activation, baseColumnPositions, descColumns, tableConglomId, table, indexTransaction);
-								//only commit the index transaction if the job actually completed
-								transactor.commit(indexTransaction);
-						}finally{
-								Closeables.closeQuietly(table);
-						}
-				} catch (StandardException se) {
-						tc.abort();
-						throw se;
-				} catch (Throwable t) {
-						tc.abort();
-						throw Exceptions.parseException(t);
-				}
-			tc.commit();
-	}
+                populateIndex(activation, baseColumnPositions, descColumns, tableConglomId, table, indexTransaction);
+                //only commit the index transaction if the job actually completed
+                transactor.commit(indexTransaction);
+            }finally{
+                Closeables.closeQuietly(table);
+            }
+        } catch (StandardException se) {
+            tc.abort();
+            throw se;
+        } catch (Throwable t) {
+            tc.abort();
+            throw Exceptions.parseException(t);
+        }
+        try {
+            HTransactorFactory.getTransactionManager().commit(new TransactionId(getTransactionId(tc)));
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
 
-		protected TransactionId getIndexTransaction(TransactionController parent, TransactionController tc, TransactionId tentativeTransaction, TransactionManager transactor, long tableConglomId) throws StandardException {
-				final TransactionId parentTransactionId =  new TransactionId(getTransactionId(parent));
-				final TransactionId wrapperTransactionId =  new TransactionId(getTransactionId(tc));
-				TransactionId indexTransaction;
-				try {
-						indexTransaction = transactor.beginChildTransaction(wrapperTransactionId, true, true, false, false, false, tentativeTransaction);
-				} catch (IOException e) {
-						LOG.error("Couldn't commit transaction for tentative DDL operation");
-						// TODO must cleanup tentative DDL change
-						throw Exceptions.parseException(e);
-				}
+    protected TransactionId getIndexTransaction(TransactionController parent, TransactionController tc, TransactionId tentativeTransaction, TransactionManager transactor, long tableConglomId) throws StandardException {
+        final TransactionId parentTransactionId =  new TransactionId(getTransactionId(parent));
+        final TransactionId wrapperTransactionId =  new TransactionId(getTransactionId(tc));
+        TransactionId indexTransaction;
+        try {
+            indexTransaction = transactor.beginChildTransaction(wrapperTransactionId, true, true, false, false, false, tentativeTransaction);
+        } catch (IOException e) {
+            LOG.error("Couldn't commit transaction for tentative DDL operation");
+            // TODO must cleanup tentative DDL change
+            throw Exceptions.parseException(e);
+        }
 
-				// Wait for past transactions to die
-				List<TransactionId> active;
-				List<TransactionId> toIgnore = Arrays.asList(parentTransactionId, wrapperTransactionId, indexTransaction);
-				try {
-						active = waitForConcurrentTransactions(indexTransaction, toIgnore,tableConglomId);
-				} catch (IOException e) {
-						LOG.error("Unexpected error while waiting for past transactions to complete", e);
-						throw Exceptions.parseException(e);
-				}
-				if (!active.isEmpty()) {
-						throw StandardException.newException(SQLState.LANG_SERIALIZABLE,
-										new RuntimeException(String.format("There are active transactions %s", active)));
-				}
-				return indexTransaction;
-		}
+        // Wait for past transactions to die
+        List<TransactionId> active;
+        List<TransactionId> toIgnore = Arrays.asList(parentTransactionId, wrapperTransactionId, indexTransaction);
+        try {
+            active = waitForConcurrentTransactions(indexTransaction, toIgnore,tableConglomId);
+        } catch (IOException e) {
+            LOG.error("Unexpected error while waiting for past transactions to complete", e);
+            throw Exceptions.parseException(e);
+        }
+        if (!active.isEmpty()) {
+            throw StandardException.newException(SQLState.LANG_SERIALIZABLE,
+                    new RuntimeException(String.format("There are active transactions %s", active)));
+        }
+        return indexTransaction;
+    }
 
-		protected void populateIndex(Activation activation, int[] baseColumnPositions, boolean[] descColumns,
-																 long tableConglomId, HTableInterface table, TransactionId indexTransaction) throws StandardException {
-				String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+    protected void populateIndex(Activation activation, int[] baseColumnPositions, boolean[] descColumns,
+                                 long tableConglomId, HTableInterface table, TransactionId indexTransaction) throws StandardException {
+        String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 				/*
 				 * Backfill the index with any existing data.
 				 *
 				 * It's possible that the index will be created on the same node as some system tables are located.
 				 * This means that there
 				 */
-				//TODO -sf- replace this name with the actual SQL being issued
-				StatementInfo statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
-								activation.getTransactionController().getActiveStateTxIdString(),1, SpliceDriver.driver().getUUIDGenerator());
-				OperationInfo populateIndexOp = new OperationInfo(statementInfo.getStatementUuid(),
-								SpliceDriver.driver().getUUIDGenerator().nextUUID(), "PopulateIndex", false,-1l);
-				statementInfo.setOperationInfo(Arrays.asList(populateIndexOp));
-				SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
-				JobFuture future = null;
-				try{
-						PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction.getTransactionIdString(),
-										conglomId, tableConglomId, baseColumnPositions, unique, uniqueWithDuplicateNulls, descColumns,
-										statementInfo.getStatementUuid(),populateIndexOp.getOperationUuid(),activation.getLanguageConnectionContext().getXplainSchema());
-						long start = System.currentTimeMillis();
-						future = SpliceDriver.driver().getJobScheduler().submit(job);
-						JobInfo info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
-						info.setJobFuture(future);
-						statementInfo.addRunningJob(populateIndexOp.getOperationUuid(),info);
-						try{
-								future.completeAll(info); //TODO -sf- add status information
-						}catch(ExecutionException e){
-								info.failJob();
-								throw e;
-						}catch(CancellationException ce){
-								throw Exceptions.parseException(ce);
-						}
-						statementInfo.completeJob(info);
-				} catch (ExecutionException e) {
-						throw Exceptions.parseException(e.getCause());
-				} catch (InterruptedException e) {
-						throw Exceptions.parseException(e);
-				} finally {
-						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-						boolean explain = xplainSchema !=null &&
-										activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
-						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema: null);
-						cleanupFuture(future);
-				}
-		}
+        //TODO -sf- replace this name with the actual SQL being issued
+        StatementInfo statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
+                activation.getTransactionController().getActiveStateTxIdString(),1, SpliceDriver.driver().getUUIDGenerator());
+        OperationInfo populateIndexOp = new OperationInfo(statementInfo.getStatementUuid(),
+                SpliceDriver.driver().getUUIDGenerator().nextUUID(), "PopulateIndex", false,-1l);
+        statementInfo.setOperationInfo(Arrays.asList(populateIndexOp));
+        SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
+        JobFuture future = null;
+        try{
+            SpliceConglomerate conglomerate = (SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(tableConglomId);
+            PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction.getTransactionIdString(),
+                    conglomId, tableConglomId, baseColumnPositions, unique, uniqueWithDuplicateNulls, descColumns,
+                    statementInfo.getStatementUuid(),populateIndexOp.getOperationUuid(),
+                    activation.getLanguageConnectionContext().getXplainSchema(), conglomerate.getColumnOrdering(), conglomerate.getFormat_ids());
 
-		private void cleanupFuture(JobFuture future) throws StandardException {
-				if (future!=null) {
-						try {
-								future.cleanup();
-						} catch (ExecutionException e) {
-								LOG.error("Couldn't cleanup future", e);
-								//noinspection ThrowFromFinallyBlock
-								throw Exceptions.parseException(e.getCause());
-						}
-				}
-		}
+            long start = System.currentTimeMillis();
+            future = SpliceDriver.driver().getJobScheduler().submit(job);
+            JobInfo info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
+            info.setJobFuture(future);
+            statementInfo.addRunningJob(populateIndexOp.getOperationUuid(),info);
+            try{
+                future.completeAll(info); //TODO -sf- add status information
+            }catch(ExecutionException e){
+                info.failJob();
+                throw e;
+            }catch(CancellationException ce){
+                throw Exceptions.parseException(ce);
+            }
+            statementInfo.completeJob(info);
+        } catch (ExecutionException e) {
+            throw Exceptions.parseException(e.getCause());
+        } catch (InterruptedException e) {
+            throw Exceptions.parseException(e);
+        } finally {
+            String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
+            boolean explain = xplainSchema !=null &&
+                    activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
+            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema: null);
+            cleanupFuture(future);
+        }
+    }
 
-		protected void createIndex(Activation activation, DDLChange ddlChange, HTableInterface table) throws StandardException {
-				String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-				JobFuture future = null;
-				JobInfo info = null;
-				StatementInfo statementInfo = new StatementInfo(String.format("create index on %s",tableName),userId,
-								activation.getTransactionController().getActiveStateTxIdString(),1, SpliceDriver.driver().getUUIDGenerator());
+    private void cleanupFuture(JobFuture future) throws StandardException {
+        if (future!=null) {
+            try {
+                future.cleanup();
+            } catch (ExecutionException e) {
+                LOG.error("Couldn't cleanup future", e);
+                //noinspection ThrowFromFinallyBlock
+                throw Exceptions.parseException(e.getCause());
+            }
+        }
+    }
 
-				statementInfo.setOperationInfo(Arrays.asList(new OperationInfo(statementInfo.getStatementUuid(),
-								SpliceDriver.driver().getUUIDGenerator().nextUUID(), "CreateIndex", false, -1l)));
-				try {
-						long start = System.currentTimeMillis();
-						CreateIndexJob job = new CreateIndexJob(table, ddlChange);
-						future = SpliceDriver.driver().getJobScheduler().submit(job);
-						info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
-						info.setJobFuture(future);
-						try{
-								future.completeAll(info); //TODO -sf- add status information
-						}catch(CancellationException ce){
-								throw Exceptions.parseException(ce);
-						}catch(Throwable t){
-								info.failJob();
-								throw t;
-						}
-						statementInfo.completeJob(info);
-				} catch (Throwable e) {
-						if(info!=null) info.failJob();
-						LOG.error("Couldn't create indexes on existing regions", e);
-						try {
-								table.close();
-						} catch (IOException e1) {
-								LOG.warn("Couldn't close table", e1);
-						}
-						throw Exceptions.parseException(e);
-				}finally {
-						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-						boolean explain = xplainSchema !=null &&
-										activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
-						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema:null);
-						cleanupFuture(future);
-				}
-		}
+    protected void createIndex(Activation activation, DDLChange ddlChange,
+                               HTableInterface table, TableDescriptor td) throws StandardException {
+        String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+        JobFuture future = null;
+        JobInfo info = null;
+        StatementInfo statementInfo = new StatementInfo(String.format("create index on %s",tableName),userId,
+                activation.getTransactionController().getActiveStateTxIdString(),1, SpliceDriver.driver().getUUIDGenerator());
 
-		/**
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        int[] columnOrdering = null;
+        int[] formatIds= null;
+        ColumnDescriptorList cdList = td.getColumnDescriptorList();
+        int numCols =  cdList.size();
+        formatIds = new int[numCols];
+        for (int j = 0; j < numCols; ++j) {
+            ColumnDescriptor columnDescriptor = cdList.elementAt(j);
+            formatIds[j] = columnDescriptor.getType().getNull().getTypeFormatId();
+        }
+        ConstraintDescriptorList constraintDescriptors = dd.getConstraintDescriptors(td);
+        for(int i=0;i<constraintDescriptors.size();i++){
+            ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);
+            if (cDescriptor.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT){
+                int[] referencedColumns = cDescriptor.getReferencedColumns();
+                columnOrdering = new int[referencedColumns.length];
+                for (int j = 0; j < referencedColumns.length; ++j){
+                    columnOrdering[j] = referencedColumns[j] - 1;
+                }
+            }
+        }
+
+        statementInfo.setOperationInfo(Arrays.asList(new OperationInfo(statementInfo.getStatementUuid(),
+                SpliceDriver.driver().getUUIDGenerator().nextUUID(), "CreateIndex", false, -1l)));
+        try {
+            long start = System.currentTimeMillis();
+            CreateIndexJob job = new CreateIndexJob(table, ddlChange, columnOrdering, formatIds);
+            future = SpliceDriver.driver().getJobScheduler().submit(job);
+            info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
+            info.setJobFuture(future);
+            try{
+                future.completeAll(info); //TODO -sf- add status information
+            }catch(CancellationException ce){
+                throw Exceptions.parseException(ce);
+            }catch(Throwable t){
+                info.failJob();
+                throw t;
+            }
+            statementInfo.completeJob(info);
+        } catch (Throwable e) {
+            if(info!=null) info.failJob();
+            LOG.error("Couldn't create indexes on existing regions", e);
+            try {
+                table.close();
+            } catch (IOException e1) {
+                LOG.warn("Couldn't close table", e1);
+            }
+            throw Exceptions.parseException(e);
+        }finally {
+            String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
+            boolean explain = xplainSchema !=null &&
+                    activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
+            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema:null);
+            cleanupFuture(future);
+        }
+    }
+
+    /**
      * Determines if a statistics entry is to be added for the index.
      * <p>
      * As an optimization, it may be better to not write a statistics entry to

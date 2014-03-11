@@ -398,6 +398,8 @@ public class DerbyBytesUtil {
             rowDecoder.skipDouble();
         else if(isFloatType(dvd))
             rowDecoder.skipFloat();
+        else if(isScalarType(dvd))
+            rowDecoder.skipLong();
         else
             rowDecoder.skip();
     }

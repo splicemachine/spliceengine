@@ -7,18 +7,21 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
+import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.hbase.writer.Writer;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.sql.Date;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
@@ -512,14 +515,25 @@ public class ImportTaskTest {
 				when(fakeBufferFactory.writeBuffer(any(byte[].class),any(String.class),any(Writer.WriteConfiguration.class))).thenReturn(testingBuffer);
         final Snowflake snowflake = new Snowflake((short)1);
 				KryoPool kryoPool = KryoPool.defaultPool();
-				Importer importer = new SequentialImporter(ctx,template,"TEXT_TXN",fakeBufferFactory, kryoPool){
+				Importer importer = new SequentialImporter(ctx,template,"TEXT_TXN",fakeBufferFactory, kryoPool,FailAlwaysReporter.INSTANCE){
 						@Override
 						protected Snowflake.Generator getRandomGenerator() {
 								return snowflake.newGenerator(lines.size());
 						}
 				};
 
-        ImportTask importTask = new ImportTask("TEST_JOB",ctx,reader,importer,1,"TEST_TXN");
+        ImportTask importTask = new ImportTask("TEST_JOB",ctx,reader,importer,1,"TEST_TXN", Bytes.toBytes(-1l)){
+						@Override
+						protected RowErrorLogger getErrorLogger() {
+								return new RowErrorLogger() {
+										@Override public void report(String row, WriteResult result) throws IOException {  }
+										@Override public void deleteLog() throws IOException {  }
+										@Override public void open() throws IOException {  }
+
+										@Override public void close() throws IOException {  }
+								};
+						}
+				};
         importTask.doExecute();
 
         /*
@@ -558,7 +572,7 @@ public class ImportTaskTest {
     private List<ExecRow> getCorrectExecRows(List<String[]> lines,
                                              final ImportContext ctx,
                                              ExecRow template) {
-        final RowParser parser = new RowParser(template,null,null,null);
+        final RowParser parser = new RowParser(template,null,null,null,FailAlwaysReporter.INSTANCE);
         return Lists.newArrayList(Lists.transform(lines, new Function<String[], ExecRow>() {
             @Override
             public ExecRow apply(@Nullable String[] input) {

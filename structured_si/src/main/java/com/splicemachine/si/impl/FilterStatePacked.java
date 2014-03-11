@@ -32,10 +32,7 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
         simpleFilter.setKeyValue(dataKeyValue);
         final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
         switch (simpleFilter.type) {
-            case TOMBSTONE:
-            case ANTI_TOMBSTONE:
             case COMMIT_TIMESTAMP:
-            case OTHER:
                 return returnCode; // These are always skip...
             case USER_DATA:
                 switch (returnCode) {
@@ -56,6 +53,11 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
                     default:
                     	throw new RuntimeException("unknown return code");
                 }
+            case TOMBSTONE:
+            case ANTI_TOMBSTONE:
+            case OTHER:
+                return returnCode; // These are always skip...
+
             default:
             	throw new RuntimeException("unknown key value type");
         }

@@ -1,11 +1,18 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.marshall.KeyMarshaller;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -14,6 +21,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
@@ -34,6 +42,15 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 	public boolean isConstraint;
 	public boolean forUpdate;	
     protected ExecRow currentTemplate;
+    protected int[] columnOrdering;
+    protected ExecRow keyTemplate;
+    protected int[] getColumnOrdering;
+    protected DataValueDescriptor[] kdvds;
+    protected KeyMarshaller keyMarshaller;
+    protected EntryDecoder rowDecoder;
+    protected MultiFieldDecoder keyDecoder;
+    protected EntryPredicateFilter predicateFilter;
+    private boolean cachedPredicateFilter = false;
 
     public ScanOperation () {
 		super();
@@ -75,6 +92,53 @@ public abstract class ScanOperation extends SpliceBaseOperation {
         this.scanInformation = scanInformation;
     }
 
+    protected KeyMarshaller getKeyMarshaller () {
+        if (keyMarshaller == null)
+            keyMarshaller = new KeyMarshaller();
+
+        return keyMarshaller;
+    }
+
+    protected MultiFieldDecoder getKeyDecoder() {
+        if (keyDecoder == null)
+            keyDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+        return keyDecoder;
+    }
+
+    protected EntryDecoder getRowDecoder() {
+        if(rowDecoder==null)
+            rowDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
+        return rowDecoder;
+    }
+
+    protected int[] getColumnOrdering() throws StandardException{
+        if (columnOrdering == null) {
+            columnOrdering = scanInformation.getColumnOrdering();
+        }
+        return columnOrdering;
+    }
+
+    protected DataValueDescriptor[] getColumnDVDs() throws StandardException{
+        if (kdvds == null) {
+            int[] columnOrdering = getColumnOrdering();
+            int[] format_ids = scanInformation.getConglomerate().getFormat_ids();
+            kdvds = new DataValueDescriptor[columnOrdering.length];
+            for (int i = 0; i < columnOrdering.length; ++i) {
+                kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
+            }
+        }
+
+        return kdvds;
+    }
+
+    protected EntryPredicateFilter getPredicateFilter(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException{
+        if (!cachedPredicateFilter) {
+            Scan scan = getScan(spliceRuntimeContext);
+            predicateFilter = EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
+            cachedPredicateFilter = true;
+        }
+        return predicateFilter;
+    }
     @Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 		super.readExternal(in);
@@ -101,7 +165,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
             FormatableBitSet accessedCols = scanInformation.getAccessedColumns();
             boolean isKeyed = scanInformation.isKeyed();
             //TODO -sf- remove this call to getLanguageConnectionContext()
-            currentRow = operationInformation.compactRow(candidate, accessedCols, isKeyed);
+            currentRow = operationInformation.compactRow(candidate, scanInformation);
             currentTemplate = currentRow.getClone();
             if (currentRowLocation == null)
             	currentRowLocation = new HBaseRowLocation();

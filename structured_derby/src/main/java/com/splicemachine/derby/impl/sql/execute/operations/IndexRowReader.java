@@ -9,10 +9,12 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.KeyMarshaller;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.stats.*;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -27,6 +29,7 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -41,6 +44,8 @@ import java.util.concurrent.*;
  * Created on: 9/4/13
  */
 class IndexRowReader {
+    protected static Logger LOG = Logger.getLogger(IndexRowReader.class);
+
     private final ExecutorService lookupService;
     private final SpliceOperation sourceOperation;
     private final int batchSize;
@@ -60,8 +65,13 @@ class IndexRowReader {
     private boolean populated = false;
 
     private EntryDecoder entryDecoder;
-		private MetricFactory metricFactory;
-		private SpliceRuntimeContext runtimeContext;
+    private MetricFactory metricFactory;
+    private SpliceRuntimeContext runtimeContext;
+    private int[] columnOrdering;
+    private int[] format_ids;
+    KeyMarshaller keyMarshaller;
+    MultiFieldDecoder keyDecoder;
+    DataValueDescriptor[] kdvds;
 
     IndexRowReader(ExecutorService lookupService,
                    HTableInterface table,
@@ -74,7 +84,9 @@ class IndexRowReader {
                    long mainTableConglomId,
                    int[] adjustedBaseColumnMap,
                    byte[] predicateFilterBytes,
-									 SpliceRuntimeContext runtimeContext) {
+				   SpliceRuntimeContext runtimeContext,
+                   int[] columnOrdering,
+                   int[] format_ids) throws StandardException{
         this.lookupService = lookupService;
         this.sourceOperation = sourceOperation;
         this.batchSize = batchSize;
@@ -86,28 +98,36 @@ class IndexRowReader {
         this.adjustedBaseColumnMap = adjustedBaseColumnMap;
         this.resultFutures = Lists.newArrayListWithExpectedSize(numBlocks);
         this.table = table;
-				this.runtimeContext = runtimeContext;
+        this.runtimeContext = runtimeContext;
 
         this.predicateFilterBytes = predicateFilterBytes;
-				if(runtimeContext.shouldRecordTraceMetrics()){
-						metricFactory = Metrics.atomicTimer();
-				}else
-						metricFactory = Metrics.noOpMetricFactory();
+        if(runtimeContext.shouldRecordTraceMetrics()){
+            metricFactory = Metrics.atomicTimer();
+        }else
+            metricFactory = Metrics.noOpMetricFactory();
+        this.columnOrdering = columnOrdering;
+        this.format_ids = format_ids;
+        if (columnOrdering != null) {
+            getColumnDVDs();
+        }
     }
 
     IndexRowReader(ExecutorService lookupService,
-                          SpliceOperation sourceOperation,
-                          int batchSize,
-                          int numBlocks,
-                          ExecRow template,
-                          String txnId,
-                          int[] indexCols,
-                          long mainTableConglomId,
-                          int[] adjustedBaseColumnMap,
-                          byte[] predicateFilterBytes,
-													SpliceRuntimeContext runtimeContext) {
+                   SpliceOperation sourceOperation,
+                   int batchSize,
+                   int numBlocks,
+                   ExecRow template,
+                   String txnId,
+                   int[] indexCols,
+                   long mainTableConglomId,
+                   int[] adjustedBaseColumnMap,
+                   byte[] predicateFilterBytes,
+                   SpliceRuntimeContext runtimeContext,
+                   int[] columnOrdering,
+                   int[] format_ids) throws StandardException{
         this(lookupService,null,sourceOperation,batchSize,numBlocks,template,
-                txnId,indexCols,mainTableConglomId,adjustedBaseColumnMap,predicateFilterBytes,runtimeContext);
+             txnId,indexCols,mainTableConglomId,adjustedBaseColumnMap,
+             predicateFilterBytes,runtimeContext, columnOrdering, format_ids);
     }
 
     public static IndexRowReader create(SpliceOperation sourceOperation,
@@ -117,7 +137,9 @@ class IndexRowReader {
                                         int[] indexCols,
                                         int[] adjustedBaseColumnMap,
                                         FormatableBitSet heapOnlyCols,
-																				SpliceRuntimeContext runtimeContext){
+										SpliceRuntimeContext runtimeContext,
+                                        int[] columnOrdering,
+                                        int[] format_ids) throws StandardException{
         int numBlocks = SpliceConstants.indexLookupBlocks;
         int batchSize = SpliceConstants.indexBatchSize;
 
@@ -138,7 +160,9 @@ class IndexRowReader {
                 template,txnId,
                 indexCols,mainTableConglomId,
                 adjustedBaseColumnMap,predicateFilterBytes,
-								runtimeContext);
+                runtimeContext,
+                columnOrdering,
+                format_ids);
     }
 
     public void close() throws IOException {
@@ -166,12 +190,46 @@ class IndexRowReader {
             entryDecoder = new EntryDecoder(runtimeContext.getKryoPool());
 
         for(KeyValue kv:nextFetchedData.raw()){
+            if (pkColumsAccessed()) {
+                getKeyMarshaller().decode(kv, nextScannedRow.row.getRowArray(), adjustedBaseColumnMap, getKeyDecoder(), columnOrdering, kdvds);
+            }
             RowMarshaller.sparsePacked().decode(kv,nextScannedRow.row.getRowArray(),adjustedBaseColumnMap,entryDecoder);
         }
 
         return nextScannedRow;
     }
 
+    private KeyMarshaller getKeyMarshaller () {
+        if (keyMarshaller == null)
+            keyMarshaller = new KeyMarshaller();
+
+        return keyMarshaller;
+    }
+
+    private MultiFieldDecoder getKeyDecoder() {
+        if (keyDecoder == null)
+            keyDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+        return keyDecoder;
+    }
+
+    private void getColumnDVDs() throws StandardException{
+        if (kdvds == null) {
+            kdvds = new DataValueDescriptor[columnOrdering.length];
+            for (int i = 0; i < columnOrdering.length; ++i) {
+                kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
+            }
+        }
+    }
+
+    private boolean pkColumsAccessed() {
+        if (columnOrdering != null && columnOrdering.length > 0) {
+            for (int col:columnOrdering) {
+                if (col < adjustedBaseColumnMap.length && adjustedBaseColumnMap[col] > -1)
+                    return true;
+            }
+        }
+        return false;
+    }
 		public long getTotalRows(){
 				/*
 				 * We do the type checking like this (even though it's ugly), so that

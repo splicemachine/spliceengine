@@ -58,6 +58,22 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .varchar("dateFormat",32672)
                             .varchar("timeFormat",32672).build();
                     procedures.set(i,newImport);
+
+										Procedure importWithBadRecords = Procedure.newBuilder().name("IMPORT_DATA")
+														.numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+														.catalog("schemaName")
+														.catalog("tableName")
+														.varchar("insertColumnList",32672)
+														.varchar("fileName",32672)
+														.varchar("columnDelimiter",5)
+														.charType("characterDelimiter",5)
+														.varchar("timestampFormat",32672)
+														.varchar("dateFormat",32672)
+														.varchar("timeFormat",32672)
+														.bigint("maxBadRecords")
+														.varchar("badRecordDirectory",32672)
+														.build();
+										procedures.add(importWithBadRecords);
 										Procedure getAutoIncLocs = Procedure.newBuilder().name("SYSCS_GET_AUTO_INCREMENT_ROW_LOCATIONS")
 														.numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
 														.catalog("schemaName")

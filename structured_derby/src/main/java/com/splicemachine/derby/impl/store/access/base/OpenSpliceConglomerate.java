@@ -57,6 +57,11 @@ public class OpenSpliceConglomerate  {
         return conglomerate.getFormat_ids();
     }
 
+    public int[] getColumnOrdering() {
+        return conglomerate.getColumnOrdering();
+    }
+
+
     public int[] getCollationIds() {
         return conglomerate.getCollation_ids();
     }

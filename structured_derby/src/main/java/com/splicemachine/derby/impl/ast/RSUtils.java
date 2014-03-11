@@ -57,10 +57,12 @@ public class RSUtils {
     };
 
     /**
-     * Return list of node and its ResultSetNode descendants, as returned by depth-first, pre-order traversal
+     * Return list of node and its ResultSetNode descendants, as returned by depth-first,
+     * pre-order traversal. Does not descend into expression nodes (therefore doesn't
+     * consider ResultSetNodes in subqueries descendents).
      */
     public static List<ResultSetNode> getSelfAndDescendants(ResultSetNode rsn) throws StandardException {
-        return collectNodes(rsn, ResultSetNode.class);
+        return CollectNodes.collector(ResultSetNode.class).onAxis(isRSN).collect(rsn);
     }
 
     /**
@@ -155,10 +157,29 @@ public class RSUtils {
         final Set<Integer> rsns = Sets.newHashSet(Iterables.transform(getSelfAndDescendants(rsn), rsNum));
         return new Predicate<ResultColumn>() {
             @Override
-            public boolean apply(ResultColumn rc) {
-                return rsns.contains(rc.getResultSetNumber());
+            public boolean apply(@Nullable ResultColumn rc) {
+                return rc !=null && rsns.contains(rc.getResultSetNumber());
             }
         };
+    }
+
+    public static final Function<ValueNode,ResultColumn> refToRC = new Function<ValueNode, ResultColumn>() {
+        @Override
+        public ResultColumn apply(@Nullable ValueNode vn) {
+            if (vn instanceof ColumnReference) {
+                ColumnReference cr = (ColumnReference) vn;
+                return cr.getSource();
+            } else if (vn instanceof VirtualColumnNode) {
+                VirtualColumnNode vcn = (VirtualColumnNode) vn;
+                return vcn.getSourceColumn();
+            }
+            return null;
+        }
+    };
+
+    public static Predicate<ValueNode> refPointsTo(ResultSetNode rsn)
+            throws StandardException {
+        return Predicates.compose(pointsTo(rsn), refToRC);
     }
 
     public static AccessPath ap(JoinNode j){

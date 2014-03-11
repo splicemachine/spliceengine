@@ -71,7 +71,7 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 				notNullFields.clear();
 				int i=0;
 				for(DataValueDescriptor dvd:row.getRowArray()){
-						if(!dvd.isNull())
+						if(!dvd.isNull() && (i >= keyColumns.length || keyColumns[i] != -1)) // skip primary key columns
 								notNullFields.set(i);
 						i++;
 				}
@@ -80,7 +80,7 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 
 		@Override
 		public KeyHashDecoder getDecoder() {
-				return null;  //To change body of implemented methods use File | Settings | File Templates.
+				return new EntryDataDecoder(keyColumns,keySortOrder);
 		}
 
 		public void close() throws IOException {

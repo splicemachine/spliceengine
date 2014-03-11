@@ -2,6 +2,7 @@ package com.splicemachine.mapreduce;
 
 import au.com.bytecode.opencsv.CSVParser;
 import com.google.gson.Gson;
+import com.splicemachine.derby.impl.load.FailAlwaysReporter;
 import com.splicemachine.derby.impl.load.ImportContext;
 import com.splicemachine.derby.impl.load.ImportTask;
 import com.splicemachine.derby.impl.load.RowParser;
@@ -73,7 +74,7 @@ public class HBaseBulkLoadMapper extends Mapper<LongWritable, Text,
 				try {
 						ExecRow row = ImportTask.getExecRow(importContext);
 						entryEncoder = newEntryEncoder(row);
-						rowParser = new RowParser(row,importContext);
+						rowParser = new RowParser(row,importContext, FailAlwaysReporter.INSTANCE);
 						txnId = Long.parseLong(importContext.getTransactionId());
 				} catch (StandardException e) {
 						throw new IOException(e);

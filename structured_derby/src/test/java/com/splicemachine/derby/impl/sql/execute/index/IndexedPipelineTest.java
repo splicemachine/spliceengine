@@ -17,6 +17,7 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -524,6 +525,7 @@ public class IndexedPipelineTest {
         boolean uniqueWithDuplicateNulls = false;
         int expectedWrites = 10;
         byte[] indexConglomBytes = Bytes.toBytes("1184");
+        int[] format_ids = new int[]{80};
 
         Snowflake snowflake = new Snowflake((short)1);
         Snowflake.Generator generator = snowflake.newGenerator(100);
@@ -533,7 +535,7 @@ public class IndexedPipelineTest {
                 indexConglomBytes,
                 descColumns,
                 keepState,unique,
-                uniqueWithDuplicateNulls,expectedWrites);
+                uniqueWithDuplicateNulls,expectedWrites,null,format_ids);
 
         return writeHandler;
     }
@@ -542,7 +544,7 @@ public class IndexedPipelineTest {
     											ObjectArrayList<KVPair> indexedRows,
     											ObjectArrayList<KVPair> mainTablePairs,
                                              Map<KVPair, WriteResult> finishedResults,
-                                             IndexTransformer transformer) throws IOException {
+                                             IndexTransformer transformer) throws IOException, StandardException {
     	Object[] pairBuffer = mainTablePairs.buffer;
     	for (int i = 0; i<mainTablePairs.size();i++) {
         	KVPair mainTablePair = (KVPair) pairBuffer[i];

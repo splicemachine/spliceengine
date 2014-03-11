@@ -2,6 +2,8 @@ package com.splicemachine.hbase.batch;
 
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.si.api.RollForwardQueue;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+
 import java.io.IOException;
 
 /**
@@ -27,5 +29,5 @@ public interface WriteContextFactory<T> {
 
     void dropIndex(long indexConglomId);
 
-    void addIndex(DDLChange ddlChange);
+    void addIndex(DDLChange ddlChange, int[] columnOrdring, int[] typeIds);
 }

@@ -17,7 +17,8 @@ import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.TieredTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.TieredTaskSchedulerSetup;
-import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
+import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequenceKey;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
@@ -47,6 +48,7 @@ import com.splicemachine.utils.logging.LogManager;
 import com.splicemachine.utils.logging.Logging;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
+
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -62,6 +64,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
 import javax.annotation.Nullable;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
@@ -69,7 +72,9 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
+
 import net.sf.ehcache.Cache;
+
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.db.OptimizerTrace;
 import org.apache.derby.iapi.error.StandardException;
@@ -87,14 +92,13 @@ public class SpliceDriver extends SIConstants {
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     protected SpliceCache cache;
     private JmxReporter metricsReporter;
-		private Connection connection;
+	private Connection connection;
+	private XplainTaskReporter taskReporter;
+	public XplainTaskReporter getTaskReporter() {
+		return taskReporter;
+	}
 
-		private XplainTaskReporter taskReporter;
-		public XplainTaskReporter getTaskReporter() {
-				return taskReporter;
-		}
-
-		public static enum State{
+	public static enum State{
         NOT_STARTED,
         INITIALIZING,
         RUNNING,
@@ -102,47 +106,37 @@ public class SpliceDriver extends SIConstants {
     }
 
     public static interface Service{
-
-        boolean start();
-
-        boolean shutdown();
+    	boolean start();
+    	boolean shutdown();
     }
 
-    private String startNode;
     private static final SpliceDriver INSTANCE = new SpliceDriver();
-
     private AtomicReference<State> stateHolder = new AtomicReference<State>(State.NOT_STARTED);
-
     private volatile Properties props = new Properties();
-
     private volatile NetworkServerControl server;
-
     private volatile WriteCoordinator writerPool;
     private volatile CountDownLatch initalizationLatch = new CountDownLatch(1);
-
     private ExecutorService executor;
     private TaskScheduler threadTaskScheduler;
     private JobScheduler jobScheduler;
     private TaskMonitor taskMonitor;
-		private SnowflakeLoader snowLoader;
+	private SnowflakeLoader snowLoader;
     private volatile Snowflake snowflake;
     private final MetricsRegistry spliceMetricsRegistry = new MetricsRegistry();
-		//-sf- when we need to, replace this with a list
-		private final TempTable tempTable;
-		private StatementManager statementManager;
+	//-sf- when we need to, replace this with a list
+	private final TempTable tempTable;
+	private StatementManager statementManager;
     private Logging logging;
 
-    private ResourcePool<Sequence,Sequence.Key> sequences = CachedResourcePool.
-            Builder.<Sequence,Sequence.Key>newBuilder().expireAfterAccess(1l,TimeUnit.MINUTES).generator(new ResourcePool.Generator<Sequence,Sequence.Key>() {
+    private ResourcePool<SpliceSequence,SpliceSequenceKey> sequences = CachedResourcePool.
+            Builder.<SpliceSequence,SpliceSequenceKey>newBuilder().expireAfterAccess(1l,TimeUnit.MINUTES).generator(new ResourcePool.Generator<SpliceSequence,SpliceSequenceKey>() {
         @Override
-        public Sequence makeNew(Sequence.Key refKey) throws StandardException {
-            return new Sequence(refKey.getTable(),
-                    SpliceConstants.sequenceBlockSize,refKey.getSysColumnsRow(),
-                    refKey.getStartingValue(),refKey.getIncrementSize());
+        public SpliceSequence makeNew(SpliceSequenceKey refKey) throws StandardException {
+        	return refKey.makeNew();
         }
 
         @Override
-        public void close(Sequence entity) throws Exception{
+        public void close(SpliceSequence entity) throws Exception{
             entity.close();
         }
     }).build();
@@ -166,7 +160,7 @@ public class SpliceDriver extends SIConstants {
             threadTaskScheduler = new TieredTaskScheduler(setup,overflowHandler,overflowScheduler);
             jobScheduler = new DistributedJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
             taskMonitor = new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());
-						tempTable = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
+			tempTable = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
         }
@@ -346,7 +340,7 @@ public class SpliceDriver extends SIConstants {
         }
     }
 
-    public ResourcePool<Sequence,Sequence.Key> getSequencePool(){
+    public ResourcePool<SpliceSequence,SpliceSequenceKey> getSequencePool(){
         return sequences;
     }
 

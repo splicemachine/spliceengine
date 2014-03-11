@@ -6,13 +6,14 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.hadoop.hbase.client.Scan;
-
+import org.apache.derby.iapi.types.DataValueDescriptor;
 /**
  * Represents metadata around Scanning operations. One implementation will delegate down to Derby,
  * another to some other method, depending on the shape of the implementation.
@@ -30,16 +31,26 @@ interface ScanInformation<T> {
 
     FormatableBitSet getAccessedColumns() throws StandardException;
 
+    FormatableBitSet getAccessedNonPkColumns() throws StandardException;
+
+    FormatableBitSet getAccessedPkColumns() throws StandardException;
+
     Scan getScan(String txnId) throws StandardException;
     Scan getScan(String txnId, T startKeyHint) throws StandardException;
 
     Qualifier[][] getScanQualifiers() throws StandardException;
 
-    public String printStartPosition(int numOpens) throws StandardException;
+    String printStartPosition(int numOpens) throws StandardException;
 
-    public String printStopPosition(int numOpens) throws StandardException;
+    String printStopPosition(int numOpens) throws StandardException;
 
     long getConglomerateId();
     
-    public List<Scan> getScans(String txnId, ExecRow startKeyOverride, Activation activation, SpliceOperation top, SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+    List<Scan> getScans(String txnId, ExecRow startKeyOverride, Activation activation, SpliceOperation top, SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+
+    int[] getColumnOrdering() throws StandardException;
+
+    SpliceConglomerate getConglomerate() throws StandardException;
+
+    DataValueDescriptor[] getKeyColumnDVDs() throws StandardException;
 }

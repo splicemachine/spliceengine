@@ -5,6 +5,8 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -580,6 +582,36 @@ public class IndexIT extends SpliceUnitTest {
             } catch (SQLException se) {
                 Assert.assertEquals("Expected constraint violation exception", "23505", se.getSQLState());
             }
+        }
+    }
+
+    @Test
+    public void testRolledBackIndexDisappears() throws Exception {
+        try {
+            methodWatcher.prepareStatement("drop index ic").execute();
+        } catch (Exception e1) {
+            // ignore
+        }
+        try {
+            methodWatcher.prepareStatement(String.format("drop table %s.c", SCHEMA_NAME)).execute();
+        } catch (Exception e1) {
+            // ignore
+        }
+        methodWatcher.prepareStatement(String.format("create table %s.c (i int)", SCHEMA_NAME)).execute();
+        Connection connection1 = methodWatcher.createConnection();
+        connection1.setAutoCommit(false);
+        PreparedStatement ps = connection1.prepareStatement(String.format("insert into %s.c values 1", SCHEMA_NAME));
+        PreparedStatement createStmt = connection1.prepareStatement(String.format("create index ic on %s.c (i)", SCHEMA_NAME));
+        PreparedStatement countStmt = connection1.prepareStatement(String.format("select count(*) from %s.c", SCHEMA_NAME));
+        for (int i = 0; i < 5; ++i) {
+            createStmt.execute();
+            ps.execute();
+            ps.execute();
+            ps.execute();
+            ResultSet rs = countStmt.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(3, rs.getInt(1));
+            connection1.rollback();
         }
     }
 
