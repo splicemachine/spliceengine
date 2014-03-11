@@ -174,4 +174,8 @@ public class BulkWriteResult implements Externalizable {
 		public WriteResult getGlobalResult() {
 				return globalStatus;
 		}
+
+		public void setFailedRows(IntObjectOpenHashMap<WriteResult> failedRows) {
+				this.failedRows = failedRows;
+		}
 }

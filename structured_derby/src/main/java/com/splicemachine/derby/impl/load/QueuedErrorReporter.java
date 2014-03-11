@@ -176,28 +176,29 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 				@Override
 				public void run() {
 						//read data off the queue in bulk, then feed it forward to the logger. More efficient
-						while(!Thread.currentThread().isInterrupted() &&!closed){
+						while(true){
 								try {
-										//get the next entry. Wait only for 1 second so that we can check the closed variable periodically
-										ErrorRow poll = queue.poll(1, TimeUnit.SECONDS);
-										if(poll!=null){
-												try {
-														poll.log(this);
-												} catch (IOException e) {
-														WORKER_LOG.error("Unexpected error logging bad row",e);
+										WORKER_LOG.trace("Taking  entry");
+										ErrorRow poll = queue.take();
+										try {
+												WORKER_LOG.trace("logging row before interruption");
+												poll.log(this);
+										} catch (IOException e) {
+												WORKER_LOG.error("Unexpected error logging bad row",e);
 														/*
 												 		 * We couldn't log the row. Bail on the entire import.
 												 		 */
-														failed = true;
-														return;
-												}
+												failed = true;
+												return;
 										}
 								} catch (InterruptedException e) {
+										WORKER_LOG.trace("Interrupted");
 										//we have been shutdown, so move on
-										Thread.currentThread().interrupt();
+//										Thread.currentThread().interrupt();
 										break;
 								}
 						}
+
 						//empty the queue
 						ErrorRow poll;
 						while((poll = queue.poll())!=null){
