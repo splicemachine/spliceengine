@@ -23,33 +23,33 @@ import java.util.List;
  * An HBase filter that applies SI logic when reading data values.
  */
 public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
-    private static Logger LOG = Logger.getLogger(SIFilterPacked.class);
-    private String tableName;
-	private TransactionReadController<Get,Scan> readController;
-	private TransactionManager transactionManager;
-    protected String transactionIdString;
-    protected RollForwardQueue rollForwardQueue;
-    private EntryPredicateFilter predicateFilter;
-    private IFilterState filterState = null;
-    private boolean countStar = false;
+		private static Logger LOG = Logger.getLogger(SIFilterPacked.class);
+		private String tableName;
+		private TransactionReadController<Get,Scan> readController;
+		private TransactionManager transactionManager;
+		protected String transactionIdString;
+		protected RollForwardQueue rollForwardQueue;
+		private EntryPredicateFilter predicateFilter;
+		private IFilterState filterState = null;
+		private boolean countStar = false;
 
-    public SIFilterPacked() {
-    }
+		public SIFilterPacked() {
+		}
 
-    public SIFilterPacked(String tableName,
+		public SIFilterPacked(String tableName,
 													TransactionId transactionId,
 													TransactionManager transactionManager,
 													RollForwardQueue rollForwardQueue,
 													EntryPredicateFilter predicateFilter,
 													TransactionReadController<Get, Scan> readController, boolean countStar) throws IOException {
-        this.tableName = tableName;
-		this.transactionManager = transactionManager;
-		this.transactionIdString = transactionId.getTransactionIdString();
-        this.rollForwardQueue = rollForwardQueue;
-        this.predicateFilter = predicateFilter;
-		this.readController = readController;
-		this.countStar = countStar;
- 	}
+				this.tableName = tableName;
+				this.transactionManager = transactionManager;
+				this.transactionIdString = transactionId.getTransactionIdString();
+				this.rollForwardQueue = rollForwardQueue;
+				this.predicateFilter = predicateFilter;
+				this.readController = readController;
+				this.countStar = countStar;
+		}
 
 		@Override
 		public long getBytesVisited(){
@@ -64,59 +64,59 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 				return predicateFilter;
 		}
 
-    @Override
-    public ReturnCode filterKeyValue(KeyValue keyValue) {
-        try {
-            initFilterStateIfNeeded();
-            return filterState.filterKeyValue(keyValue);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+		@Override
+		public ReturnCode filterKeyValue(KeyValue keyValue) {
+				try {
+						initFilterStateIfNeeded();
+						return filterState.filterKeyValue(keyValue);
+				} catch (IOException e) {
+						throw new RuntimeException(e);
+				}
+		}
 
-    @SuppressWarnings("unchecked")
+		@SuppressWarnings("unchecked")
 		private void initFilterStateIfNeeded() throws IOException {
-        if (filterState == null) {
-            filterState = readController.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
-                    transactionManager.transactionIdFromString(transactionIdString), countStar);
-        }
-    }
+				if (filterState == null) {
+						filterState = readController.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
+										transactionManager.transactionIdFromString(transactionIdString), countStar);
+				}
+		}
 
-    @Override 
-    public boolean filterRow() { 
-    	return filterState.getExcludeRow(); 	
-    }
+		@Override
+		public boolean filterRow() {
+				return filterState.getExcludeRow();
+		}
 
-    @Override 
-    public boolean hasFilterRow() { 
-    	return true; 
-    }
+		@Override
+		public boolean hasFilterRow() {
+				return true;
+		}
 
-    @Override
-    public void filterRow(List<KeyValue> keyValues) {
-        try {
-            initFilterStateIfNeeded();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    	if (!filterRow())
-    		keyValues.remove(0);
-        final KeyValue accumulatedValue = filterState.produceAccumulatedKeyValue();
-        if (accumulatedValue != null) {
-            keyValues.add(accumulatedValue);
-        }
-    }
+		@Override
+		public void filterRow(List<KeyValue> keyValues) {
+				try {
+						initFilterStateIfNeeded();
+				} catch (IOException e) {
+						throw new RuntimeException(e);
+				}
+				if (!filterRow())
+						keyValues.remove(0);
+				final KeyValue accumulatedValue = filterState.produceAccumulatedKeyValue();
+				if (accumulatedValue != null) {
+						keyValues.add(accumulatedValue);
+				}
+		}
 
-    @Override
-    public void reset() {
-        if (filterState != null)
-        	filterState.nextRow();
-    }
+		@Override
+		public void reset() {
+				if (filterState != null)
+						filterState.nextRow();
+		}
 
-    @Override public void readFields(DataInput in) throws IOException { }
+		@Override public void readFields(DataInput in) throws IOException { }
 
-    @Override
-    public void write(DataOutput out) throws IOException {
-        throw new UnsupportedOperationException("This filter should not be serialized");
-    }
+		@Override
+		public void write(DataOutput out) throws IOException {
+				throw new UnsupportedOperationException("This filter should not be serialized");
+		}
 }

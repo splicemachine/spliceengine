@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.ArrayInputStream;
@@ -8,6 +10,7 @@ import org.apache.derby.iapi.types.BooleanDataValue;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLBoolean;
+import org.apache.hadoop.hbase.util.ByteBufferUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -44,7 +47,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     /*
      * One or the other is always non-null, but not both
      */
-    protected byte[] dvdBytes;
+		protected ByteSlice bytes;
 
     protected DVDSerializer dvdSerializer;
     protected boolean deserialized;
@@ -58,7 +61,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     //this.getTypeFormatId
     protected int typeFormatId;
 
-    public LazyDataValueDescriptor(){
+		public LazyDataValueDescriptor(){
 
     }
 
@@ -80,27 +83,29 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     }
 
     protected void updateNullFlag(){
-        isNull = dvd.isNull() && (dvdBytes == null || dvdBytes.length == 0) ;
+        isNull = dvd.isNull() && (bytes == null || bytes.length() == 0) ;
     }
 
     public void initForDeserialization(byte[] bytes){
-        this.dvdBytes = bytes;
-        dvd.setToNull();
-        deserialized = false;
-        updateNullFlag();
+				initForDeserialization(bytes,0,bytes.length,false);
     }
 
+		public void initForDeserialization(byte[] bytes,int offset,int length, boolean desc){
+				if(this.bytes==null)
+						this.bytes = new ByteSlice();
+				this.bytes.set(bytes,offset,length);
+				dvd.setToNull();
+				deserialized = false;
+				updateNullFlag();
+				this.descendingOrder = desc;
+		}
+
     public void initForDeserialization(byte[] bytes,boolean desc){
-        this.dvdBytes = bytes;
-        descendingOrder = desc;
-        dvd.setToNull();
-        deserialized = false;
-        isNull = bytes==null || bytes.length==0;
-        descendingOrder = desc;
+				initForDeserialization(bytes,0,bytes.length,desc);
     }
 
     public boolean isSerialized(){
-        return dvdBytes!=null;
+				return bytes!=null && bytes.length()>0;
     }
 
     public boolean isDeserialized(){
@@ -110,7 +115,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     protected void forceDeserialization()  {
         if( !isDeserialized() && isSerialized()){
             try{
-                dvdSerializer.deserialize(dvdBytes,dvd,descendingOrder);
+                dvdSerializer.deserialize(dvd,bytes.array(),bytes.offset(),bytes.length(),descendingOrder);
                 deserialized=true;
             }catch(Exception e){
                 SpliceLogUtils.error(LOG, "Error lazily deserializing bytes", e);
@@ -118,19 +123,29 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
         }
     }
 
-    protected void forceSerialization(){
+		protected void forceSerialization(){
+			forceSerialization(descendingOrder);
+		}
+    protected void forceSerialization(boolean desc){
         if(!isSerialized()){
             try{
-                dvdBytes = dvdSerializer.serialize(dvd);
-                descendingOrder=false;
+								if(bytes==null)
+										bytes = new ByteSlice();
+								byte[] serialize = dvdSerializer.serialize(dvd,desc);
+								bytes.set(serialize,0,serialize.length);
+                descendingOrder=desc;
             }catch(Exception e){
                 SpliceLogUtils.error(LOG, "Error serializing DataValueDescriptor to bytes", e);
             }
-        }
+        }else if(desc!=descendingOrder){
+						bytes.reverse();
+						descendingOrder = desc;
+				}
     }
 
     protected void resetForSerialization(){
-        dvdBytes = null;
+				if(bytes!=null)
+						bytes.reset();
         deserialized = true;
         updateNullFlag();
     }
@@ -204,7 +219,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     @Override
     public byte[] getBytes() throws StandardException {
         forceSerialization();
-        return dvdBytes;
+				return bytes.getByteCopy();
     }
 
     @Override
@@ -683,17 +698,22 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
         if(!in.readBoolean()) return;
 
         int numBytes = in.readInt();
-
-        dvdBytes = new byte[numBytes];
-        in.readFully(dvdBytes);
+				byte[] data = new byte[numBytes];
+				in.readFully(data);
+				if(bytes==null)
+						bytes = new ByteSlice();
+				bytes.set(data,0,data.length);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         typeFormatId = in.readInt();
         if(!in.readBoolean()){
-            dvdBytes = new byte[in.readInt()];
-            in.readFully(dvdBytes);
+						byte[] data = new byte[in.readInt()];
+						in.readFully(data);
+						if(bytes==null)
+								bytes = new ByteSlice();
+						bytes.set(data,0,data.length);
         }else{
             isNull = true;
         }
@@ -748,9 +768,9 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
             if(otherDVD.isLazy()){
                 LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) otherDVD;
 
-                if(dvdBytes!=null && ldvd.dvdBytes!=null
+                if(bytes!=null && ldvd.bytes!=null
                         && descendingOrder == ldvd.descendingOrder){
-                    return Arrays.equals(dvdBytes, ldvd.dvdBytes);
+										return bytes.equals(ldvd.bytes);
                     //return dvdBytes.equals(ldvd.dvdBytes);
                 } else {
                     ldvd.forceDeserialization();
@@ -785,5 +805,24 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
         }
         return retBytes;
     }
+
+		public void serializeIfNeeded(boolean desc) {
+				forceSerialization(desc);
+		}
+
+		public byte[] getRawBytes() {
+				if(bytes==null) return null;
+				return bytes.array();
+		}
+
+		public int getByteOffset() {
+				if(bytes==null) return 0;
+				return bytes.offset();
+		}
+
+		public int getByteLength(){
+				if(bytes==null) return 0;
+				return bytes.length();
+		}
 }
 

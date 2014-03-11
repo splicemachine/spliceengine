@@ -17,10 +17,20 @@ public class StringDVDSerializer implements DVDSerializer {
         dvd.setValue(Encoding.decodeString(bytes,desc));
     }
 
-    @Override
+		@Override
+		public void deserialize(DataValueDescriptor ldvd, byte[] bytes, int offset, int length, boolean desc) throws Exception {
+				ldvd.setValue(Encoding.decodeString(bytes,offset,length,desc));
+		}
+
+		@Override
     public byte[] serialize(DataValueDescriptor dvd) throws Exception {
         return Encoding.encode(dvd.getString());
     }
+
+		@Override
+		public byte[] serialize(DataValueDescriptor obj, boolean desc) throws Exception {
+				return Encoding.encode(obj.getString(),desc);
+		}
 
 
 }

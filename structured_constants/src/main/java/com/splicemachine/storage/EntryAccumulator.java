@@ -8,7 +8,7 @@ import com.splicemachine.utils.ByteSlice;
  * @author Scott Fines
  *         Created on: 7/9/13
  */
-public interface EntryAccumulator {
+public interface EntryAccumulator<T extends EntryAccumulator<T>> {
 
 		void add(int position, byte[] data, int offset,int length);
 
@@ -26,13 +26,13 @@ public interface EntryAccumulator {
 
     void reset();
 
-    boolean fieldsMatch(EntryAccumulator oldKeyAccumulator);
+    boolean fieldsMatch(T oldKeyAccumulator);
 
     boolean hasField(int myFields);
 
-		ByteSlice getFieldSlice(int myField);
+//		ByteSlice getFieldSlice(int myField);
 
-		ByteSlice getField(int myField, boolean create);
+//		ByteSlice getField(int myField, boolean create);
 
 		long getFinishCount();
 

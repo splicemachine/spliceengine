@@ -34,8 +34,8 @@ public class IndexTransformer {
     private final boolean isUniqueWithDuplicateNulls;
     private final int[] mainColToIndexPosMap;
     private final BitSet descColumns;
-    private EntryAccumulator indexKeyAccumulator;
-    private EntryAccumulator indexRowAccumulator;
+    private ByteEntryAccumulator indexKeyAccumulator;
+    private ByteEntryAccumulator indexRowAccumulator;
     private EntryDecoder mainPutDecoder;
     private int[] columnOrdering;
     private int[] format_ids;
@@ -291,7 +291,7 @@ public class IndexTransformer {
     }
 
 
-    public EntryAccumulator getRowAccumulator() {
+    public ByteEntryAccumulator getRowAccumulator() {
         if (indexRowAccumulator == null)
             indexRowAccumulator = new ByteEntryAccumulator(null, true, nonUniqueIndexedColumns);
         else
@@ -299,7 +299,7 @@ public class IndexTransformer {
         return indexRowAccumulator;
     }
 
-    public EntryAccumulator getKeyAccumulator() {
+    public ByteEntryAccumulator getKeyAccumulator() {
         if (indexKeyAccumulator == null)
             indexKeyAccumulator = new ByteEntryAccumulator(null, false, isUnique ? translatedIndexedColumns : nonUniqueIndexedColumns);
         else

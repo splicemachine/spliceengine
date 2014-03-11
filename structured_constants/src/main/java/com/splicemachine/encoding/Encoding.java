@@ -686,4 +686,11 @@ public final class Encoding {
     public static void main(String... args) throws Exception{
 				System.out.println(Arrays.toString(encode("3                             ")));
     }
+
+		public static boolean isNullDOuble(byte[] data, int offset, int length) {
+				return length == DecimalEncoding.NULL_DOUBLE_BYTES.length;
+		}
+		public static boolean isNullFloat(byte[] data, int offset,int length){
+				return length == DecimalEncoding.NULL_FLOAT_BYTES.length;
+		}
 }

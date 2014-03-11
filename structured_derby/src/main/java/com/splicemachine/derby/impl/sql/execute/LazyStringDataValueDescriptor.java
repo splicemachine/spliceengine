@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.jdbc.CharacterStreamDescriptor;
 import org.apache.derby.iapi.reference.SQLState;
@@ -80,8 +81,12 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
                     result[i] = sourceBytes[i];
                 }
             }
-            this.dvdBytes = result;
-            this.isNull = (this.dvdBytes == null);
+						this.isNull = result == null;
+						if(!isNull){
+								if(bytes==null)
+										bytes = new ByteSlice();
+								bytes.set(result,0,result.length);
+						}
         } else {
             dvd.normalize(dtd, source);
             resetForSerialization();
