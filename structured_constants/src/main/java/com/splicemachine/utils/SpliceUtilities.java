@@ -1,11 +1,8 @@
 package com.splicemachine.utils;
 
-import com.google.common.io.Closeables;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
-
 import java.io.IOException;
 
+import com.google.common.io.Closeables;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -13,11 +10,13 @@ import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.io.hfile.Compression;
+import org.apache.hadoop.hbase.io.compress.Compression;
+import org.apache.hadoop.hbase.regionserver.BloomType;
 import org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy;
-import org.apache.hadoop.hbase.regionserver.StoreFile;
-import org.apache.hadoop.hbase.regionserver.StoreFile.BloomType;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
 
 public class SpliceUtilities extends SIConstants {
 	private static final Logger LOG = Logger.getLogger(SpliceUtilities.class);
@@ -30,8 +29,10 @@ public class SpliceUtilities extends SIConstants {
 			throw new RuntimeException(e);
 		} catch (ZooKeeperConnectionException e) {
 			throw new RuntimeException(e);
-		}
-	}
+		} catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 	public static Configuration getConfig() {
 		return config;
@@ -44,7 +45,9 @@ public class SpliceUtilities extends SIConstants {
 			throw new RuntimeException(e);
 		} catch (ZooKeeperConnectionException e) {
 			throw new RuntimeException(e);
-		}
+		} catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 	}
 
 	
@@ -78,7 +81,7 @@ public class SpliceUtilities extends SIConstants {
         columnDescriptor.setCompressionType(Compression.Algorithm.valueOf(compression.toUpperCase()));
         columnDescriptor.setInMemory(DEFAULT_IN_MEMORY);
         columnDescriptor.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
-        columnDescriptor.setBloomFilterType(StoreFile.BloomType.valueOf(DEFAULT_BLOOMFILTER.toUpperCase()));
+        columnDescriptor.setBloomFilterType(BloomType.valueOf(DEFAULT_BLOOMFILTER.toUpperCase()));
         columnDescriptor.setTimeToLive(DEFAULT_TTL);
         desc.addFamily(columnDescriptor);
         desc.addFamily(new HColumnDescriptor(SI_PERMISSION_FAMILY.getBytes()));

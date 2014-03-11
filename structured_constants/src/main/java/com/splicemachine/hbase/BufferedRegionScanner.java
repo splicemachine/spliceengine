@@ -1,15 +1,12 @@
 package com.splicemachine.hbase;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+
 import com.google.common.collect.Lists;
-import com.splicemachine.stats.Counter;
-import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.stats.TimeView;
-import com.splicemachine.stats.Timer;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.HasPredicateFilter;
-import com.splicemachine.utils.ConcurrentRingBuffer;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
@@ -18,9 +15,12 @@ import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import com.splicemachine.stats.Counter;
+import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.TimeView;
+import com.splicemachine.stats.Timer;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.HasPredicateFilter;
 
 /**
  * Buffers Region writes.
@@ -56,7 +56,7 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 		private final Filter scanFilters;
 
 		//buffer filling stuff
-		private List<KeyValue>[] buffer;
+		private List<Cell>[] buffer;
 		private int bufferPosition;
 		private final int maxBufferSize;
 
@@ -101,23 +101,23 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 						initialBufferSize = s;
 				}
 				//noinspection unchecked
-				this.buffer = (List<KeyValue>[])new List[initialBufferSize];
+				this.buffer = (List<Cell>[])new List[initialBufferSize];
 				this.readTimer = metricFactory.newTimer();
 				this.bytesReadCounter = metricFactory.newCounter();
 		}
 
 		@Override public HRegionInfo getRegionInfo() { return delegate.getRegionInfo(); }
-		@Override public boolean isFilterDone() { return delegate.isFilterDone(); }
+		@Override public boolean isFilterDone() throws IOException { return delegate.isFilterDone(); }
 		@Override public boolean reseek(byte[] row) throws IOException { return delegate.reseek(row); }
 		@Override public long getMvccReadPoint() { return delegate.getMvccReadPoint(); }
-		@Override public boolean nextRaw(List<KeyValue> result, String metric) throws IOException { return next(result); }
-		@Override public boolean nextRaw(List<KeyValue> result, int limit, String metric) throws IOException { return next(result); }
+		@Override public boolean nextRaw(List<Cell> result) throws IOException { return next(result); }
+		@Override public boolean nextRaw(List<Cell> result, int limit) throws IOException { return next(result); }
 		@Override
-		public KeyValue next() throws IOException {
+		public Cell next() throws IOException {
 			if(bufferPosition==0)
 				refill();
-			KeyValue keyValue = null;
-			List<KeyValue> next = buffer[bufferPosition];
+            Cell keyValue = null;
+			List<Cell> next = buffer[bufferPosition];
 			if(next!=null) {
 				if (next.isEmpty()) {
 					bufferPosition = (bufferPosition+1)&(buffer.length-1);
@@ -134,7 +134,7 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 		}
 		
 		@Override
-		public boolean next(List<KeyValue> results) throws IOException {
+		public boolean next(List<Cell> results) throws IOException {
        /*
         * The basic HBase next(results) method generally does the following steps:
         *
@@ -162,7 +162,7 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 				if(bufferPosition==0)
 						refill();
 
-				List<KeyValue> next = buffer[bufferPosition];
+				List<Cell> next = buffer[bufferPosition];
 				if(next!=null){
 						results.addAll(next);
 						bufferPosition = (bufferPosition+1)&(buffer.length-1);
@@ -170,12 +170,15 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 				}else return false;
 		}
 
-		@Override public boolean next(List<KeyValue> results, String metric) throws IOException { return next(results); }
-		@Override public boolean next(List<KeyValue> result, int limit) throws IOException { return next(result); }
-		@Override public boolean next(List<KeyValue> result, int limit, String metric) throws IOException { return next(result); }
+		@Override public boolean next(List<Cell> result, int limit) throws IOException { return next(result); }
 		@Override public void close() throws IOException { delegate.close(); }
 
-		private void refill() throws IOException{
+    @Override
+    public long getMaxResultSize() {
+        return delegate.getMaxResultSize();
+    }
+
+    private void refill() throws IOException{
 				region.startRegionOperation();
 				MultiVersionConsistencyControl.setThreadReadPoint(delegate.getMvccReadPoint());
 				int bufferPos = 0;
@@ -185,7 +188,7 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 								if(bufferPos>=buffer.length){
 										buffer = Arrays.copyOf(buffer,Math.min(maxBufferSize,2*buffer.length));
 								}
-								List<KeyValue> kvs = buffer[bufferPos];
+								List<Cell> kvs = buffer[bufferPos];
 								if(kvs==null){
 										kvs = Lists.newArrayListWithCapacity(2);
 										buffer[bufferPos] = kvs;
@@ -193,7 +196,7 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 										kvs.clear();
 								}
 
-								delegate.nextRaw(kvs,null);
+								delegate.nextRaw(kvs);
 								if(kvs.isEmpty()){
 										buffer[bufferPos] =null;
 										return;
@@ -204,8 +207,8 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 										 * the check.
 										 */
 										if(bytesReadCounter.isActive()){
-												for (KeyValue kv : kvs) { //TODO -sf- does this create an extra object?
-														bytesReadCounter.add(kv.getLength());
+												for (Cell kv : kvs) { //TODO -sf- does this create an extra object?
+														bytesReadCounter.add(kv.getRowLength());
 												}
 										}
 										bufferPos++;

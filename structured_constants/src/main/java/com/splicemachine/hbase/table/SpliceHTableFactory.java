@@ -1,21 +1,27 @@
 package com.splicemachine.hbase.table;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.hbase.HBaseRegionCache;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.HTableInterfaceFactory;
+import org.apache.hadoop.hbase.client.SpliceHConnection;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.hbase.HBaseRegionCache;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceHTableFactory implements HTableInterfaceFactory {
 	private static Logger LOG = Logger.getLogger(SpliceHTableFactory.class);
@@ -35,13 +41,15 @@ public class SpliceHTableFactory implements HTableInterfaceFactory {
         
         for (int i = 0; i< 10; i++) {
         	Configuration configuration = new Configuration(SpliceConstants.config);
-						configuration.setInt(HConstants.HBASE_CLIENT_INSTANCE_ID,i);
-						try {
-								connections.put(i, SpliceHConnection.createConnection(configuration));
-						} catch (ZooKeeperConnectionException e) {
-								throw new RuntimeException(e);
-						}
-				}
+                configuration.setInt(HConstants.HBASE_CLIENT_INSTANCE_ID,i);
+                try {
+                        connections.put(i, SpliceHConnection.createConnection(configuration));
+                } catch (ZooKeeperConnectionException e) {
+                        throw new RuntimeException(e);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+        }
 	}
 
     private ThreadPoolExecutor getExecutor(Configuration config) {
@@ -62,7 +70,7 @@ public class SpliceHTableFactory implements HTableInterfaceFactory {
 			SpliceLogUtils.trace(LOG, "createHTableInterface for %s",Bytes.toString(tableName));
 	    try {
 	    	final HTable htable =new SpliceHTable(tableName,connections.get(increment.incrementAndGet()%10),tableExecutor, HBaseRegionCache.getInstance());
-	    	htable.setAutoFlush(autoFlush);
+	    	htable.setAutoFlushTo(autoFlush);
 	    	return htable;
 	    } catch (IOException ioe) {
 	      throw new RuntimeException(ioe);

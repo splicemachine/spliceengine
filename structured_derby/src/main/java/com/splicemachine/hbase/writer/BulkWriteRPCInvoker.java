@@ -5,7 +5,7 @@ import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.NoRetryExecRPCInvoker;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 
 import java.io.IOException;
 import java.lang.reflect.Proxy;
@@ -16,7 +16,7 @@ import java.lang.reflect.Proxy;
  */
 public class BulkWriteRPCInvoker implements BulkWriteInvoker {
 		private static final Class<BatchProtocol> batchProtocolClass = BatchProtocol.class;
-		private static final Class<? extends CoprocessorProtocol>[] protoClassArray = new Class[]{batchProtocolClass};
+		private static final Class<? extends CoprocessorService>[] protoClassArray = new Class[]{batchProtocolClass};
 
 		private final HConnection connection;
 		private final byte[] tableName;

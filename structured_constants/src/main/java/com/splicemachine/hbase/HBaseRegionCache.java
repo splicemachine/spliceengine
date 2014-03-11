@@ -1,25 +1,34 @@
 package com.splicemachine.hbase;
 
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.SortedSet;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.catalog.MetaReader;
 import org.apache.hadoop.hbase.client.MetaScanner;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Writables;
 import org.apache.log4j.Logger;
-import javax.management.*;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.SortedSet;
-import java.util.concurrent.*;
+
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * @author Scott Fines
@@ -117,17 +126,18 @@ public class HBaseRegionCache implements RegionCache {
 //                    	SpliceLogUtils.error(CACHE_LOG, "Error processing row with null bytes row={%s}", rowResult);
 //                        return true;
 //                    }
-                    HRegionInfo info = MetaReader.parseHRegionInfoFromCatalogResult(rowResult,HConstants.REGIONINFO_QUALIFIER);
+//                    HRegionInfo info = MetaReader.parseHRegionInfoFromCatalogResult(rowResult,HConstants.REGIONINFO_QUALIFIER);
+                    HRegionInfo info = MetaScanner.getHRegionInfo(rowResult);
                     if (lastByte==null) {
-                    	lastByte = info.getTableName();
+                    	lastByte = info.getTable().getName();
                     	regionInfos.add(info);
                     }	
-                    else if (Arrays.equals(lastByte,info.getTableName())) {
+                    else if (Arrays.equals(lastByte,info.getTable().getName())) {
 												if(!info.isOffline() &&!info.isSplitParent() &&!info.isSplit())
                         	regionInfos.add(info);
                     } else {
                     	regionCache.put(Bytes.mapKey(lastByte), regionInfos);
-                    	lastByte = info.getTableName();
+                    	lastByte = info.getTable().getName();
                     	regionInfos = new ConcurrentSkipListSet<HRegionInfo>();
 												if(!info.isOffline() &&!info.isSplitParent() &&!info.isSplit())
                         	regionInfos.add(info);
@@ -164,14 +174,15 @@ public class HBaseRegionCache implements RegionCache {
             final MetaScanner.MetaScannerVisitor visitor = new MetaScanner.MetaScannerVisitor() {
                 @Override
                 public boolean processRow(Result rowResult) throws IOException {
-										HRegionInfo info = MetaReader.parseHRegionInfoFromCatalogResult(rowResult,HConstants.REGIONINFO_QUALIFIER);
+//                    HRegionInfo info = MetaReader.parseHRegionInfoFromCatalogResult(rowResult,HConstants.REGIONINFO_QUALIFIER);
+                    HRegionInfo info = MetaScanner.getHRegionInfo(rowResult);
 //                    byte[] bytes = rowResult.getValue(HConstants.CATALOG_FAMILY,HConstants.REGIONINFO_QUALIFIER);
 //                    if(bytes==null){
 //                    	SpliceLogUtils.error(CACHE_LOG, "Error processing row with null bytes row={%s}", rowResult);
 //                        return true;
 //                    }
 //                    HRegionInfo info = Writables.getHRegionInfo(bytes);
-                    Integer tableKey = Bytes.mapKey(info.getTableName());
+                    Integer tableKey = Bytes.mapKey(info.getTable().getName());
                     if(key.equals(tableKey)
 														&& !info.isOffline()
 														&&!info.isSplit()

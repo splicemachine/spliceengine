@@ -1,21 +1,18 @@
 package com.splicemachine.hbase;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.RemoteExceptionHandler;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.ServerCallable;
-import org.apache.hadoop.hbase.client.coprocessor.Exec;
-import org.apache.hadoop.hbase.client.coprocessor.ExecResult;
-import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.ipc.RemoteException;
-import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.RegionServerCallable;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.ipc.RemoteException;
+import org.apache.log4j.Logger;
 
 /**
  * ExecRPCInvoker which does not automatically retry failed invocations.
@@ -30,7 +27,7 @@ public class NoRetryExecRPCInvoker implements InvocationHandler {
 
     private Configuration conf;
     private final HConnection connection;
-    private Class<? extends CoprocessorProtocol> protocol;
+    private Class<? extends CoprocessorService> protocol;
     private final byte[] table;
     private final byte[] row;
     private final boolean refreshConnectionCache;
@@ -38,7 +35,7 @@ public class NoRetryExecRPCInvoker implements InvocationHandler {
 
     public NoRetryExecRPCInvoker(Configuration conf,
                           HConnection connection,
-                          Class<? extends CoprocessorProtocol> protocol,
+                          Class<? extends CoprocessorService> protocol,
                           byte[] table,
                           byte[] row,
                           boolean refreshConnectionCache) {
@@ -58,8 +55,8 @@ public class NoRetryExecRPCInvoker implements InvocationHandler {
 
         if (row != null) {
             final Exec exec = new Exec(conf, row, protocol, method, args);
-            ServerCallable<ExecResult> callable =
-                    new ServerCallable<ExecResult>(connection, table, row) {
+            RegionServerCallable<ExecResult> callable =
+                    new RegionServerCallable<ExecResult>(connection, table, row) {
                         public ExecResult call() throws Exception {
                             return server.execCoprocessor(location.getRegionInfo().getRegionName(),
                                     exec);
@@ -81,7 +78,7 @@ public class NoRetryExecRPCInvoker implements InvocationHandler {
 
 /****************************************************************************************************************/
     /*private helper method*/
-    private ExecResult executeWithoutRetries(ServerCallable<ExecResult> callable) throws IOException {
+    private ExecResult executeWithoutRetries(RegionServerCallable<ExecResult> callable) throws IOException {
         /*
          * This block is taken from HConnectionImplementation.getRegionServerWithoutRetries. We can't
          * use that method directly, because it does not allow us to specify whether or not to invalidate
@@ -103,7 +100,6 @@ public class NoRetryExecRPCInvoker implements InvocationHandler {
         }
     }
 
-    @SuppressWarnings("deprecation")
 	private Throwable translateException(Throwable t) throws IOException {
         /*
          * Convenience error interpreter taken from HConnectionImplementation because the method isn't
@@ -115,7 +111,7 @@ public class NoRetryExecRPCInvoker implements InvocationHandler {
         }
         if (t instanceof RemoteException) {
             RemoteException re = (RemoteException)t;
-            t = RemoteExceptionHandler.decodeRemoteException(re);
+            t = re.unwrapRemoteException();
         }
         if (t instanceof DoNotRetryIOException) {
             throw (DoNotRetryIOException)t;

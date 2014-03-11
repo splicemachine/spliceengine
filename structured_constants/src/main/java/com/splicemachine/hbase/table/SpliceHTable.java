@@ -1,7 +1,32 @@
 package com.splicemachine.hbase.table;
 
+import java.io.IOException;
+import java.lang.reflect.Proxy;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.SortedSet;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HRegionLocation;
+import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.RetriesExhaustedException;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.client.Row;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.concurrent.KeyedCompletionService;
 import com.splicemachine.concurrent.KeyedFuture;
 import com.splicemachine.constants.SpliceConstants;
@@ -9,22 +34,6 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.NoRetryExecRPCInvoker;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HRegionLocation;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.lang.reflect.Proxy;
-import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 
 /**
  * @author Scott Fines
@@ -66,30 +75,7 @@ public class SpliceHTable extends HTable {
         }
     }
 
-    @Override
-    public <T extends CoprocessorProtocol, R> void coprocessorExec(final Class<T> protocol,
-                                                                   byte[] startKey,
-                                                                   byte[] endKey,
-                                                                   final Batch.Call<T, R> callable, final Batch.Callback<R> callback) throws Throwable {
-
-				/*
-				 * There are situations where someone submits a coprocessor exec, but they give it the same start and stop key. This means
-				 * that it is invoked against only a single row, which can only be in 1 region at a time. Thus, if the exec is failed
-				 * and needs to be retried, then the retry should only be retried against a single row
-				 *
-				 * However, it someone submits a RANGE of rows (e.g. a start key which differs from stop, or an empty start and empty end key),
-				 * then the retry should retry against ALL regions which may be contained within that region (meaning that more regions could
-				 * be submitted the second time around).
-				 *
-				 * As a result, we have to make a distinction between executing on a single row, and executing against a range.
-				 */
-				if((startKey.length!=0 || endKey.length!=0) && Arrays.equals(startKey,endKey))
-						execOnSingleRow(protocol,startKey,callable,callback);
-				else
-						submitOnRange(protocol, startKey, endKey, callable, callback);
-    }
-
-		private <T extends CoprocessorProtocol, R> void execOnSingleRow(Class<T> protocol, byte[] startKey, Batch.Call<T, R> callable, Batch.Callback<R> callback) throws Throwable {
+		private <T extends CoprocessorService, R> void execOnSingleRow(Class<T> protocol, byte[] startKey, Batch.Call<T, R> callable, Batch.Callback<R> callback) throws Throwable {
 				Pair<byte[], byte[]> containingRegionBounds = getContainingRegion(startKey,0);
 
 				if(LOG.isDebugEnabled())
@@ -130,7 +116,7 @@ public class SpliceHTable extends HTable {
 				}
 		}
 
-		protected <T extends CoprocessorProtocol, R> void submitOnRange(Class<T> protocol,
+		protected <T extends CoprocessorService, R> void submitOnRange(Class<T> protocol,
 																																		byte[] startKey,
 																																		byte[] endKey,
 																																		Batch.Call<T, R> callable, Batch.Callback<R> callback) throws Throwable {
@@ -294,7 +280,7 @@ public class SpliceHTable extends HTable {
         return keysToUse;
     }
 
-    private <T extends CoprocessorProtocol, R> void submit(final Class<T> protocol,
+    private <T extends CoprocessorService, R> void submit(final Class<T> protocol,
                                                            final Batch.Call<T, R> callable,
                                                            final Batch.Callback<R> callback,
                                                            KeyedCompletionService<ExecContext,R> completionService,
@@ -310,7 +296,7 @@ public class SpliceHTable extends HTable {
 				});
     }
 
-		private <T extends CoprocessorProtocol, R> R doExecute(Class<T> protocol,Batch.Call<T,R> callable, Batch.Callback<R> callback,
+		private <T extends CoprocessorService, R> R doExecute(Class<T> protocol,Batch.Call<T,R> callable, Batch.Callback<R> callback,
 																														 ExecContext context) throws IOException {
 				Pair<byte[],byte[]> keys = context.keyBoundary;
 				 byte[] startKeyToUse = keys.getFirst();

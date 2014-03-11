@@ -1,23 +1,47 @@
 package com.splicemachine.hbase.table;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HRegionLocation;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.google.common.collect.Lists;
+import com.google.protobuf.Service;
+import com.google.protobuf.ServiceException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HRegionLocation;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Append;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Durability;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.HTableInterfaceFactory;
+import org.apache.hadoop.hbase.client.Increment;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Row;
+import org.apache.hadoop.hbase.client.RowMutations;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * Better implementation of an HTablePool.
@@ -168,6 +192,22 @@ public class BetterHTablePool {
         }
 
         @Override
+        public CoprocessorRpcChannel coprocessorService(byte[] row) {
+            return table.coprocessorService(row);
+        }
+
+        @Override
+        public <T extends Service, R> Map<byte[], R> coprocessorService(Class<T> service, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable) throws ServiceException, Throwable {
+            return table.coprocessorService(service, startKey, endKey, callable);
+        }
+
+        @Override
+        public <T extends Service, R> void coprocessorService(Class<T> service, byte[] startKey, byte[] endKey,
+                                                              Batch.Call<T, R> callable, Batch.Callback<R> callback) throws ServiceException, Throwable {
+            table.coprocessorService(service, startKey, endKey, callable, callback);
+        }
+
+        @Override
         public HTableDescriptor getTableDescriptor() throws IOException {
             return table.getTableDescriptor();
         }
@@ -189,8 +229,15 @@ public class BetterHTablePool {
         }
 
         @Override public byte[] getTableName() { return table.getTableName(); }
+
+        @Override
+        public TableName getName() {
+            return table.getName();
+        }
+
         @Override public Configuration getConfiguration() { return table.getConfiguration(); }
         @Override public boolean exists(Get get) throws IOException { return table.exists(get); }
+        @Override public Boolean[] exists(List<Get> gets) throws IOException { return table.exists(gets); }
         @Override public Result get(Get get) throws IOException { return table.get(get); }
         @Override public Result[] get(List<Get> gets) throws IOException { return table.get(gets); }
         @Override public ResultScanner getScanner(Scan scan) throws IOException { return table.getScanner(scan); }
@@ -199,8 +246,6 @@ public class BetterHTablePool {
         @Override public void put(List<Put> puts) throws IOException { table.put(puts); }
         @Override public boolean isAutoFlush() { return table.isAutoFlush(); }
         @Override public void flushCommits() throws IOException { table.flushCommits(); }
-		@Override public RowLock lockRow(byte[] row) throws IOException { return table.lockRow(row); }
-		@Override public void unlockRow( RowLock rl) throws IOException { table.unlockRow(rl); }
         @Override public void delete(Delete delete) throws IOException { table.delete(delete); }
         @Override public void delete(List<Delete> deletes) throws IOException { table.delete(deletes); }
 
@@ -222,28 +267,14 @@ public class BetterHTablePool {
         }
 
         @Override
+        public long incrementColumnValue(byte[] row, byte[] family, byte[] qualifier, long amount, Durability
+                durability) throws IOException {
+            return table.incrementColumnValue(row, family, qualifier, amount, durability);
+        }
+
+        @Override
         public long incrementColumnValue(byte[] row, byte[] family, byte[] qualifier, long amount, boolean writeToWAL) throws IOException {
             return table.incrementColumnValue(row, family, qualifier, amount, writeToWAL);
-        }
-
-        @Override
-        public <T extends CoprocessorProtocol> T coprocessorProxy(Class<T> protocol, byte[] row) {
-            return table.coprocessorProxy(protocol, row);
-        }
-
-        @Override
-        public <T extends CoprocessorProtocol, R> Map<byte[], R> coprocessorExec(Class<T> protocol, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable) throws IOException, Throwable {
-            if(startKey==null)
-                startKey = new byte[]{};
-            if(endKey==null)
-                endKey = new byte[]{};
-
-            return table.coprocessorExec(protocol, startKey, endKey, callable);
-        }
-
-        @Override
-        public <T extends CoprocessorProtocol, R> void coprocessorExec(Class<T> protocol, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable, Batch.Callback<R> callback) throws IOException, Throwable {
-            table.coprocessorExec(protocol, startKey, endKey, callable, callback);
         }
 
 		@Override
@@ -256,7 +287,18 @@ public class BetterHTablePool {
 			return table.batch(actions);
 		}
 
-		@Override
+        @Override
+        public <R> void batchCallback(List<? extends Row> actions, Object[] results, Batch.Callback<R> callback)
+                throws IOException, InterruptedException {
+            table.batchCallback(actions, results, callback);
+        }
+
+        @Override
+        public <R> Object[] batchCallback(List<? extends Row> actions, Batch.Callback<R> callback) throws IOException, InterruptedException {
+            return table.batchCallback(actions, callback);
+        }
+
+        @Override
 		public void mutateRow(RowMutations rm) throws IOException {
 			table.mutateRow(rm);
 		}
@@ -276,7 +318,12 @@ public class BetterHTablePool {
 			table.setAutoFlush(autoFlush, clearBufferOnFail);			
 		}
 
-		@Override
+        @Override
+        public void setAutoFlushTo(boolean autoFlush) {
+            table.setAutoFlushTo(autoFlush);
+        }
+
+        @Override
 		public long getWriteBufferSize() {
 			return table.getWriteBufferSize();
 		}
