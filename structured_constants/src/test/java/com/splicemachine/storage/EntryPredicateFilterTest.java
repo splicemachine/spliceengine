@@ -93,7 +93,7 @@ public class EntryPredicateFilterTest {
         EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
         decoder.set(bytes);
 
-        EntryAccumulator accumulator = new SparseEntryAccumulator(epf,retCols);
+        EntryAccumulator accumulator = new ByteEntryAccumulator(epf,retCols);
 
         Assert.assertTrue("Incorrectly does not match row!",epf.match(decoder,accumulator));
 

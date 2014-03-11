@@ -1,27 +1,23 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-
 import com.carrotsearch.hppc.BitSet;
-
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.storage.ByteEntryAccumulator;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.SparseEntryAccumulator;
 import com.splicemachine.storage.index.BitIndex;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.log4j.Logger;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.KryoPool;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
 /**
  * Class responsible for transforming an incoming main table row
  * into an index row
@@ -297,7 +293,7 @@ public class IndexTransformer {
 
     public EntryAccumulator getRowAccumulator() {
         if (indexRowAccumulator == null)
-            indexRowAccumulator = new SparseEntryAccumulator(null, nonUniqueIndexedColumns, true);
+            indexRowAccumulator = new ByteEntryAccumulator(null, true, nonUniqueIndexedColumns);
         else
             indexRowAccumulator.reset();
         return indexRowAccumulator;
@@ -305,7 +301,7 @@ public class IndexTransformer {
 
     public EntryAccumulator getKeyAccumulator() {
         if (indexKeyAccumulator == null)
-            indexKeyAccumulator = new SparseEntryAccumulator(null, isUnique ? translatedIndexedColumns : nonUniqueIndexedColumns, false);
+            indexKeyAccumulator = new ByteEntryAccumulator(null, false, isUnique ? translatedIndexedColumns : nonUniqueIndexedColumns);
         else
             indexKeyAccumulator.reset();
         return indexKeyAccumulator;

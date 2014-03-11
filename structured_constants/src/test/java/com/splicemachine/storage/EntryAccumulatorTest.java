@@ -19,7 +19,7 @@ public class EntryAccumulatorTest {
         fields.set(0);
         fields.set(2);
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fields, new ObjectArrayList<Predicate>());
-        SparseEntryAccumulator accumulator = new SparseEntryAccumulator(predicateFilter,fields);
+        EntryAccumulator accumulator = new ByteEntryAccumulator(predicateFilter,false,fields);
 				byte[] encodedOne = Encoding.encode(1);
 				accumulator.add(2, encodedOne,0,encodedOne.length);
 				byte[] encodedTwo = Encoding.encode(2);
@@ -37,7 +37,7 @@ public class EntryAccumulatorTest {
         fields.set(0);
         fields.set(2);
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fields, new ObjectArrayList<Predicate>());
-        EntryAccumulator accumulator = new AlwaysAcceptEntryAccumulator(predicateFilter);
+        EntryAccumulator accumulator = new ByteEntryAccumulator(predicateFilter,false,null);
 				byte[] encodedOne = Encoding.encode(1);
 				accumulator.add(2, encodedOne,0,encodedOne.length);
 				byte[] encodedTwo = Encoding.encode(2);

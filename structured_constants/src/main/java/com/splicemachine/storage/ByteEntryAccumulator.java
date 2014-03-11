@@ -2,83 +2,85 @@ package com.splicemachine.storage;
 
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.storage.index.BitIndexing;
 import com.splicemachine.utils.ByteSlice;
 
 /**
  * @author Scott Fines
  * Created on: 10/2/13
  */
-abstract class GenericEntryAccumulator implements EntryAccumulator{
+public class ByteEntryAccumulator implements EntryAccumulator{
 
-    protected BitSet occupiedFields;
+		protected EntryAccumulationSet accumulationSet;
 
     protected ByteSlice[] fields;
     private final boolean returnIndex;
 
-    private BitSet scalarFields;
-    private BitSet floatFields;
-    private BitSet doubleFields;
     private EntryPredicateFilter predicateFilter;
 		private long finishCount;
 
-    protected GenericEntryAccumulator(EntryPredicateFilter filter,boolean returnIndex) {
-        this.returnIndex = returnIndex;
-        this.predicateFilter =filter;
-        
-        if(returnIndex){
-            scalarFields = new BitSet();
-            floatFields = new BitSet();
-            doubleFields = new BitSet();
-        }
-        occupiedFields = new BitSet();
-    }
+		public ByteEntryAccumulator(EntryPredicateFilter filter, boolean returnIndex, BitSet fieldsToCollect){
+				this.returnIndex = returnIndex;
+				this.predicateFilter = filter;
+				if(fieldsToCollect!=null && !fieldsToCollect.isEmpty()){
+						this.accumulationSet = new SparseAccumulationSet(fieldsToCollect);
+						this.fields = new ByteSlice[(int)fieldsToCollect.length()];
+				}else
+						this.accumulationSet = new AlwaysAcceptAccumulationSet();
+		}
 
-    protected GenericEntryAccumulator(EntryPredicateFilter filter,int size,boolean returnIndex) {
-        this.returnIndex = returnIndex;
+		public ByteEntryAccumulator(EntryPredicateFilter filter, boolean returnIndex) {
+				this(filter,returnIndex,null);
+		}
 
-        this.predicateFilter = filter;
-        if(returnIndex){
-            scalarFields = new BitSet(size);
-            floatFields = new BitSet(size);
-            doubleFields = new BitSet(size);
-        }
-        occupiedFields = new BitSet(size);
-        fields = new ByteSlice[size];
-    }
+		public ByteEntryAccumulator(EntryPredicateFilter filter, BitSet bitSet) {
+				this(filter,false,bitSet);
+		}
 
 		@Override
 		public void add(int position, byte[] data, int offset, int length) {
-				if(occupiedFields.get(position)) return; //already populated that field
+				if(occupy(position, data, offset, length))
+						accumulationSet.addUntyped(position);
+		}
 
+		protected boolean occupy(int position, byte[] data, int offset, int length) {
+				if(accumulationSet.get(position)) return false; //already populated that field
+
+				growFields(position);
 				ByteSlice slice = fields[position];
 				if(slice==null){
 						slice = ByteSlice.wrap(data,offset,length);
 						fields[position] = slice;
 				}else
 					slice.set(data,offset,length);
-				occupiedFields.set(position);
+				return true;
 		}
 
 		@Override
 		public void addScalar(int position, byte[] data, int offset, int length) {
-			add(position,data,offset,length);
-				if(returnIndex)
-						scalarFields.set(position);
+				if(occupy(position,data,offset,length))
+						accumulationSet.addScalar(position);
 		}
 
 		@Override
 		public void addFloat(int position, byte[] data, int offset, int length) {
-				add(position,data,offset,length);
-				if(returnIndex)
-						floatFields.set(position);
+				if(occupy(position,data,offset,length))
+						accumulationSet.addFloat(position);
 		}
 
 		@Override
 		public void addDouble(int position, byte[] data, int offset, int length) {
-				add(position, data, offset, length);
-				if(returnIndex)
-						doubleFields.set(position);
+				if(occupy(position,data,offset,length))
+						accumulationSet.addDouble(position);
+		}
+
+		@Override
+		public BitSet getRemainingFields() {
+				return accumulationSet.remainingFields();
+		}
+
+		@Override
+		public boolean isFinished() {
+				return accumulationSet.isFinished();
 		}
 
 		@Override
@@ -108,7 +110,7 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
 
         byte[] dataBytes = getDataBytes();
         if(returnIndex){
-						byte[] indexBytes = getIndex();
+						byte[] indexBytes = accumulationSet.encode();
 
             byte[] finalBytes = new byte[indexBytes.length+dataBytes.length+1];
             System.arraycopy(indexBytes,0,finalBytes,0,indexBytes.length);
@@ -118,14 +120,14 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
         return dataBytes;
     }
 
-		protected byte[] getIndex() {
-				BitIndex index = BitIndexing.uncompressedBitMap(occupiedFields, scalarFields, floatFields, doubleFields);
-				return index.encode();
-		}
+//		protected byte[] getIndex() {
+//				BitIndex index = BitIndexing.uncompressedBitMap(occupiedFields, scalarFields, floatFields, doubleFields);
+//				return index.encode();
+//		}
 
 		@Override
     public void reset() {
-        occupiedFields.clear();
+				accumulationSet.reset();
         if(fields!=null){
 						for (ByteSlice field : fields) {
 								if (field != null)
@@ -139,7 +141,7 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
 
     @Override
     public boolean hasField(int myFields) {
-        return occupiedFields.get(myFields);
+				return accumulationSet.get(myFields);
     }
 
 		@Override
@@ -162,6 +164,7 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
 		protected byte[] getDataBytes() {
         int size=0;
         boolean isFirst=true;
+				BitSet occupiedFields = accumulationSet.occupiedFields;
         for(int n = occupiedFields.nextSetBit(0);n>=0;n=occupiedFields.nextSetBit(n+1)){
             if(isFirst)isFirst=false;
             else
@@ -192,6 +195,7 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
 
     @Override
     public boolean fieldsMatch(EntryAccumulator oldKeyAccumulator) {
+				BitSet occupiedFields = accumulationSet.occupiedFields;
         for(int myFields=occupiedFields.nextSetBit(0);myFields>=0;myFields=occupiedFields.nextSetBit(myFields+1)){
             if(!oldKeyAccumulator.hasField(myFields)) return false;
 
@@ -205,30 +209,42 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
     }
 
 		@Override public long getFinishCount() { return finishCount; }
+		@Override public void markOccupiedScalar(int position) { accumulationSet.addScalar(position); }
+		@Override public void markOccupiedFloat(int position) { accumulationSet.addFloat(position); }
+		@Override public void markOccupiedDouble(int position) { accumulationSet.addDouble(position); }
+		@Override public void markOccupiedUntyped(int position) { accumulationSet.addUntyped(position); }
 
-		@Override
-		public void markOccupiedScalar(int position) {
-				markOccupiedUntyped(position);
-				if(returnIndex)
-						scalarFields.set(position);
+		@Override public boolean isInteresting(BitIndex potentialIndex) {
+				return accumulationSet.isInteresting(potentialIndex);
 		}
 
-		@Override
-		public void markOccupiedFloat(int position) {
-				markOccupiedUntyped(position);
-				if(returnIndex)
-						floatFields.set(position);
+		@Override public void complete() { accumulationSet.complete(); }
+
+		private void growFields(int position) {
+        /*
+         * Make sure that the fields array is large enough to hold elements up to position.
+         */
+				if(fields==null){
+						fields = new ByteSlice[position+1];
+				}else if(fields.length<=position && !accumulationSet.isFinished()){ //if completed, we know how many to return
+						//grow the fields list to be big enough to hold the position
+
+            /*
+             * In Normal circumstances, we would grow by some efficient factor
+             * like 3/2 or something, so that we don't have to copy out entries over and over again.
+             *
+             * However, in this case, we can't grow past what we need, because that would place additional
+             * null entries at the end of our return array. Instead, we must only be as large as needed
+             * to hold position.
+             *
+             * This isn't so bad, though--once the first row has been resolved, we should never have
+             * to grow again, so we'll pay a penalty on the first row only.
+             */
+						int newSize = position+1;
+						ByteSlice[] oldFields = fields;
+						fields = new ByteSlice[newSize];
+						System.arraycopy(oldFields,0,fields,0,oldFields.length);
+				}
 		}
 
-		@Override
-		public void markOccupiedDouble(int position) {
-				markOccupiedUntyped(position);
-				if(returnIndex)
-						doubleFields.set(position);
-		}
-
-		@Override
-		public void markOccupiedUntyped(int position) {
-				occupiedFields.set(position);
-		}
 }

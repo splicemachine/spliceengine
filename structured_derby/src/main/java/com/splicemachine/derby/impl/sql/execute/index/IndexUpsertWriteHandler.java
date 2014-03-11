@@ -7,6 +7,7 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
@@ -24,11 +25,6 @@ import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.storage.EntryAccumulator;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
-import com.splicemachine.storage.SparseEntryAccumulator;
 import com.splicemachine.storage.index.BitIndex;
 
 /**
@@ -243,7 +239,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 oldDataDecoder.set(r.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
                 BitIndex oldIndex = oldDataDecoder.getCurrentIndex();
                 oldDecoder = oldDataDecoder.getEntryDecoder();
-                oldKeyAccumulator = new SparseEntryAccumulator(null,transformer.isUnique()?translatedIndexColumns:nonUniqueIndexColumn);
+                oldKeyAccumulator = new ByteEntryAccumulator(null,transformer.isUnique()?translatedIndexColumns:nonUniqueIndexColumn);
 
                 buildKeyMap(mutation);
                 // fill in index columns that are being changed by the mutation. We can assume here that no primary key column is being

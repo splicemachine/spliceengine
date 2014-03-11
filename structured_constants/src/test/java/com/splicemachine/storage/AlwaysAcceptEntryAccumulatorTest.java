@@ -12,7 +12,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Random;
 
@@ -54,7 +53,7 @@ public class AlwaysAcceptEntryAccumulatorTest {
 //        System.out.println(Arrays.toString(dataTypes));
         Random random = new Random(0l);
         int missingField = random.nextInt(dataTypes.length);
-        EntryAccumulator accumulator = new AlwaysAcceptEntryAccumulator(null,true);
+        EntryAccumulator accumulator = new ByteEntryAccumulator(null,true);
 
         Object[] correctData = new Object[dataTypes.length];
         MultiFieldEncoder encoder = MultiFieldEncoder.create(kryoPool,1);
@@ -112,7 +111,7 @@ public class AlwaysAcceptEntryAccumulatorTest {
     public void testCanAccumulateColumns() throws Exception {
 //        System.out.println(Arrays.toString(dataTypes));
         Random random = new Random(0l);
-        EntryAccumulator accumulator = new AlwaysAcceptEntryAccumulator(null,true);
+        EntryAccumulator accumulator = new ByteEntryAccumulator(null,true);
 
         Object[] correctData = new Object[dataTypes.length];
         MultiFieldEncoder encoder = MultiFieldEncoder.create(kryoPool,1);
@@ -158,4 +157,7 @@ public class AlwaysAcceptEntryAccumulatorTest {
             type.check(decoder,correct,false);
         }
     }
+
+
+
 }
