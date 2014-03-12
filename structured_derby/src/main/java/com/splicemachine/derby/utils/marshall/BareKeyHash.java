@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils.marshall;
 
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -33,7 +34,7 @@ public class BareKeyHash{
 		}
 
 		public static DataHash encoder(int[] keyColumns, boolean[] keySortOrder){
-				return encoder(keyColumns, keySortOrder, SpliceDriver.getKryoPool());
+				return encoder(keyColumns, keySortOrder, SpliceKryoRegistry.getInstance());
 		}
 
 		public static DataHash encoder(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool){

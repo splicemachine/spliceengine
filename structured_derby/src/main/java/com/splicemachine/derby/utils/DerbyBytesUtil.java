@@ -63,19 +63,20 @@ public class DerbyBytesUtil {
         @Override
         public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
             LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor)dvd;
-            int colFormatId = ldvd.getTypeFormatId();
 
-            byte[] bytes;
-            if(colFormatId==StoredFormatIds.SQL_DOUBLE_ID)
-                bytes = decoder.getNextRawDouble();
-            else if(colFormatId==StoredFormatIds.SQL_REAL_ID)
-                bytes = decoder.getNextRawFloat();
-            else if (colFormatId==StoredFormatIds.SQL_TIMESTAMP_ID)
-                bytes = decoder.getNextRawLong();
+            byte[] bytes = decoder.array();
+						int offset = decoder.offset();
+            if(DerbyBytesUtil.isDoubleType(dvd))
+								decoder.skipDouble();
+            else if(DerbyBytesUtil.isFloatType(dvd))
+								decoder.skipFloat();
+            else if (DerbyBytesUtil.isScalarType(dvd))
+								decoder.skipLong();
             else
-                bytes = decoder.getNextRaw();
+								decoder.skip();
 
-            ldvd.initForDeserialization(bytes, desc);
+						int length = decoder.offset()-offset-1;
+            ldvd.initForDeserialization(bytes, offset,length,desc);
         }
 
         @Override

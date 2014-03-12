@@ -113,7 +113,7 @@ public class SortOperationIT extends SpliceUnitTest {
 			
 		})
             .around(TestUtils.createStringDataWatcher(spliceClassWatcher,
-                    "create table sort_on_null (id int, name varchar(25)); " +
+                    "drop table if exists sort_on_null; create table sort_on_null (id int, name varchar(25)); " +
                             "insert into sort_on_null values (1, NULL);",
                     CLASS_NAME));
 	

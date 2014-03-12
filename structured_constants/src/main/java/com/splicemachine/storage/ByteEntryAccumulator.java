@@ -153,7 +153,7 @@ public class ByteEntryAccumulator extends BaseEntryAccumulator<ByteEntryAccumula
          */
 				if(fields==null){
 						fields = new ByteSlice[position+1];
-				}else if(fields.length<=position && !accumulationSet.isFinished()){ //if completed, we know how many to return
+				}else if(fields.length<=position){ //if completed, we know how many to return
 						//grow the fields list to be big enough to hold the position
 
             /*

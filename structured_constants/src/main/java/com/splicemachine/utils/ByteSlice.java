@@ -19,6 +19,15 @@ public class ByteSlice implements Externalizable {
 
 		public ByteSlice() {  }
 
+		public ByteSlice(ByteSlice other) {
+				if(other!=null){
+						this.buffer = other.buffer;
+						this.offset = other.offset;
+						this.length = other.length;
+				}
+		}
+
+
 		public static ByteSlice empty(){
 				return new ByteSlice(null,0,0);
 		}
@@ -134,7 +143,7 @@ public class ByteSlice implements Externalizable {
 				ByteSlice that = (ByteSlice) o;
 
 				if (length != that.length) return false;
-				if (offset != that.offset) return false;
+//				if (offset != that.offset) return false;
 				return ArrayUtil.equals(buffer, offset, that.buffer, that.offset, length);
 		}
 

@@ -115,6 +115,7 @@ public class PairEncoderTest {
 		private final DataValueDescriptor[] row;
 
 		public PairEncoderTest(TestingDataType[] dataTypes, DataValueDescriptor[] row) {
+				System.out.println(Arrays.toString(dataTypes));
 				this.dataTypes = dataTypes;
 				this.row = row;
 		}

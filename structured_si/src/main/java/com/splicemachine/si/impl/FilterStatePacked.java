@@ -42,7 +42,7 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
                     case SKIP:
                     case NEXT_COL:
                     case NEXT_ROW:
-                    	return Filter.ReturnCode.SKIP;
+                    	return skipRow();
                     default:
                     	throw new RuntimeException("unknown return code");
                 }
@@ -55,6 +55,10 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
             	throw new RuntimeException("unknown key value type");
         }
     }
+
+		protected Filter.ReturnCode skipRow() {
+				return Filter.ReturnCode.SKIP;
+		}
 
 		protected Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
 				if (!accumulator.isFinished() && !excludeRow && accumulator.isOfInterest(dataKeyValue)) {
