@@ -164,19 +164,36 @@ public class TableScanOperation extends ScanOperation {
 		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				SpliceLogUtils.trace(LOG, "getMapRowProvider");
 				beginTime = System.currentTimeMillis();
+				Scan scan = getNonSIScan(spliceRuntimeContext);
+				SpliceUtils.setInstructions(scan, activation, top,spliceRuntimeContext);
+				ClientScanProvider provider = new ClientScanProvider("tableScan",Bytes.toBytes(tableName),scan, decoder,spliceRuntimeContext);
+				nextTime += System.currentTimeMillis() - beginTime;
+				return provider;
+		}
+
+		protected Scan getNonSIScan(SpliceRuntimeContext spliceRuntimeContext) {
+				/*
+				 * Intended to get a scan which does NOT set up SI underneath us (since
+				 * we are doing it ourselves).
+				 */
 				Scan scan = buildScan(spliceRuntimeContext);
+				deSiify(scan);
+				return scan;
+		}
+
+		protected void deSiify(Scan scan) {
+				/*
+				 * Remove SI-specific behaviors from the scan, so that we can handle it ourselves correctly.
+				 */
 				//exclude this from SI treatment, since we're doing it internally
 				scan.setAttribute(SIConstants.SI_NEEDED,null);
+				scan.setMaxVersions();
 				Map<byte[], NavigableSet<byte[]>> familyMap = scan.getFamilyMap();
 				if(familyMap!=null){
 						NavigableSet<byte[]> bytes = familyMap.get(SpliceConstants.DEFAULT_FAMILY_BYTES);
 						if(bytes!=null)
 								bytes.clear(); //make sure we get all columns
 				}
-				SpliceUtils.setInstructions(scan, activation, top,spliceRuntimeContext);
-				ClientScanProvider provider = new ClientScanProvider("tableScan",Bytes.toBytes(tableName),scan, decoder,spliceRuntimeContext);
-				nextTime += System.currentTimeMillis() - beginTime;
-				return provider;
 		}
 
 		@Override
@@ -350,18 +367,23 @@ public class TableScanOperation extends ScanOperation {
 		}
 
 		protected boolean filterRow(FilterStatePacked filter) throws IOException {
-				for(KeyValue kv:keyValues){
+				filter.nextRow();
+				Iterator<KeyValue> kvIter = keyValues.iterator();
+				while(kvIter.hasNext()){
+						KeyValue kv = kvIter.next();
 						Filter.ReturnCode returnCode = filter.filterKeyValue(kv);
 						switch(returnCode){
 								case NEXT_COL:
 								case NEXT_ROW:
 								case SEEK_NEXT_USING_HINT:
-										return false;
+										return false; //failed the predicate
+								case SKIP:
+										kvIter.remove();
 								default:
 										//these are okay--they mean the encoding is good
 						}
 				}
-				return filter.getAccumulator().result()!=null;
+				return filter.getAccumulator().result() != null && keyValues.size()>0;
 		}
 
 		@SuppressWarnings("unchecked")
@@ -374,8 +396,9 @@ public class TableScanOperation extends ScanOperation {
 						ExecRowAccumulator rowAccumulator = ExecRowAccumulator.newAccumulator(epf,false,currentRow, baseColumnMap);
 
 						HRowAccumulator accumulator = new HRowAccumulator(epf, getRowDecoder(), rowAccumulator, isCountStar);
-						siFilter = new FilterStatePacked((FilterState)iFilterState,
-										accumulator){
+						siFilter = new FilterStatePacked((FilterState)iFilterState, accumulator){
+//								@Override protected Filter.ReturnCode skipRow() { return Filter.ReturnCode.NEXT_COL; }
+
 								@Override
 								protected Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
 										if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {

@@ -15,6 +15,7 @@ import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.compile.RowOrdering;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 // These are for javadoc "@see" tags.
 import java.io.IOException;
@@ -22,6 +23,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Result set that fetches rows from a scan by "probing" the underlying
@@ -202,7 +204,13 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 	@Override
 	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		beginTime = System.currentTimeMillis();
-		MultiProbeClientScanProvider provider = new MultiProbeClientScanProvider("tableScan",Bytes.toBytes(tableName),scanInformation.getScans(getTransactionID(), null, activation, top, spliceRuntimeContext), decoder,spliceRuntimeContext);
+			List<Scan> scans = scanInformation.getScans(getTransactionID(), null, activation, top, spliceRuntimeContext);
+			for(Scan scan:scans){
+					//remove SI behavior from scan to make sure that we do it ourselves
+					deSiify(scan);
+			}
+			MultiProbeClientScanProvider provider = new MultiProbeClientScanProvider("tableScan",Bytes.toBytes(tableName),
+							scans, decoder,spliceRuntimeContext);
 		nextTime += System.currentTimeMillis() - beginTime;
 		return provider;
 	}

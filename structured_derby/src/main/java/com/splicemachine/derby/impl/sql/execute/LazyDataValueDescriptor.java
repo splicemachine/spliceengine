@@ -138,7 +138,11 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
                 SpliceLogUtils.error(LOG, "Error serializing DataValueDescriptor to bytes", e);
             }
         }else if(desc!=descendingOrder){
-						bytes.reverse();
+						byte[] data = bytes.getByteCopy();
+						for(int i=0;i<data.length;i++){
+								data[i]^=0xff;
+						}
+						bytes.set(data,0,data.length);
 						descendingOrder = desc;
 				}
     }

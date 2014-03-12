@@ -43,7 +43,7 @@ public class SparseAccumulationSet extends EntryAccumulationSet {
 
 		@Override public BitSet remainingFields() { return remainingFields; }
 
-		@Override public boolean isFinished() { return remainingFields.size()<=0; }
+		@Override public boolean isFinished() { return remainingFields.cardinality()<=0; }
 
 		@Override
 		public boolean isInteresting(BitIndex potentialIndex) {
