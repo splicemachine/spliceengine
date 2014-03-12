@@ -169,7 +169,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
 		protected class NestedLoopIterator implements Iterator<ExecRow> {
 				protected ExecRow leftRow;
-				protected SpliceNoPutResultSet probeResultSet;
+				protected OperationResultSet probeResultSet;
 				private boolean populated;
 				private boolean returnedRight=false;
 				private boolean outerJoin = false;
@@ -177,9 +177,8 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin,SpliceRuntimeContext context) throws StandardException {
 						SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
 						this.leftRow = leftRow;
-						OperationResultSet ors = getRightResultSet();
-						ors.open(hash);
-						probeResultSet = ors.getDelegate();
+						probeResultSet = getRightResultSet();
+						probeResultSet.open(hash);
 //						if (hash) {
 //								SpliceLogUtils.trace(LOG, "Iterator - executeProbeScan on %s",getRightResultSet());
 //						}
@@ -286,10 +285,10 @@ public class NestedLoopJoinOperation extends JoinOperation {
 						beginTime = getCurrentTimeMillis();
 						if(xplainSchema!=null){
 								//have to set a unique Task id each time to ensure all the rows are written
-								probeResultSet.setTaskId(SpliceDriver.driver().getUUIDGenerator().nextUUID());
-								probeResultSet.setScrollId(Bytes.toLong(uniqueSequenceID));
+								probeResultSet.getDelegate().setTaskId(SpliceDriver.driver().getUUIDGenerator().nextUUID());
+								probeResultSet.getDelegate().setScrollId(Bytes.toLong(uniqueSequenceID));
 								if(region!=null)
-										probeResultSet.setRegionName(region.getRegionNameAsString());
+										probeResultSet.getDelegate().setRegionName(region.getRegionNameAsString());
 								activation.getLanguageConnectionContext().setStatisticsTiming(true);
 								activation.getLanguageConnectionContext().setXplainSchema(xplainSchema);
 						}
