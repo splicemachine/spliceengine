@@ -19,6 +19,7 @@ import org.apache.hadoop.hbase.client.RowLock;
 import org.apache.hadoop.hbase.client.RowMutations;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 
 import java.io.IOException;
@@ -58,6 +59,11 @@ public class MemoryHTable implements HTableInterface {
     @Override
     public boolean exists(Get get) throws IOException {
         return delegate.exists(get);
+    }
+
+    @Override
+    public Boolean[] exists(List<Get> gets) throws IOException {
+        return delegate.exists(gets);
     }
 
     @Override
@@ -187,18 +193,18 @@ public class MemoryHTable implements HTableInterface {
     }
 
     @Override
-    public <T extends CoprocessorProtocol> T coprocessorProxy(Class<T> protocol, byte[] row) {
-        return delegate.coprocessorProxy(protocol, row);
+    public <T extends CoprocessorService> T coprocessorService(Class<T> protocol, byte[] row) {
+        return delegate.coprocessorService(protocol, row);
     }
 
     @Override
-    public <T extends CoprocessorProtocol, R> Map<byte[], R> coprocessorExec(Class<T> protocol, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable) throws IOException, Throwable {
-        return delegate.coprocessorExec(protocol, startKey, endKey, callable);
+    public <T extends CoprocessorService, R> Map<byte[], R> coprocessorService(Class<T> protocol, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable) throws IOException, Throwable {
+        return delegate.coprocessorService(protocol, startKey, endKey, callable);
     }
 
     @Override
-    public <T extends CoprocessorProtocol, R> void coprocessorExec(Class<T> protocol, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable, Batch.Callback<R> callback) throws IOException, Throwable {
-        delegate.coprocessorExec(protocol, startKey, endKey, callable, callback);
+    public <T extends CoprocessorService, R> void coprocessorExec(Class<T> protocol, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable, Batch.Callback<R> callback) throws IOException, Throwable {
+        delegate.coprocessorService(protocol, startKey, endKey, callable, callback);
     }
 
     @Override

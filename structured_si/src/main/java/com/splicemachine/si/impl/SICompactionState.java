@@ -67,7 +67,7 @@ public class SICompactionState<Result,  Mutation,
      * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
      */
     private void mutate(KeyValue keyValue) throws IOException {
-        final KeyValueType keyValueType = dataStore.getKeyValueType(keyValue);
+        final CellType keyValueType = dataStore.getKeyValueType(keyValue);
     	ByteBuffer buffer = ByteBuffer.wrap(keyValue.getBuffer(),keyValue.getTimestampOffset(),KeyValue.TIMESTAMP_SIZE);
         switch (keyValueType) {
     		case COMMIT_TIMESTAMP:

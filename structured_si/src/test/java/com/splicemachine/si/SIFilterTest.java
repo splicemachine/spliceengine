@@ -76,7 +76,7 @@ public class SIFilterTest extends SIConstants {
         Result row = readEntireTuple("bill");
         final List<KeyValue> keyValues = row.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES), dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
         for (KeyValue kv : keyValues) {
-						filterState.filterKeyValue(kv);
+						filterState.filterCell(kv);
         }
     }
 

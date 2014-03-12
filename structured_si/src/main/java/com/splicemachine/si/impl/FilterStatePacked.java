@@ -1,11 +1,13 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.hbase.KeyValueUtils;
-import org.apache.hadoop.hbase.KeyValue;
+import java.io.IOException;
+
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
-import java.io.IOException;
+
+import com.splicemachine.hbase.CellUtils;
 
 public class FilterStatePacked<Result, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
         Scan, Lock, OperationStatus, Mutation, IHTable> implements IFilterState {
@@ -13,7 +15,7 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
     protected final FilterState<Result, Put, Delete, Get, Scan, Lock, OperationStatus,
 						Mutation, IHTable> simpleFilter;
     protected final RowAccumulator accumulator;
-    private KeyValue lastValidKeyValue;
+    private Cell lastValidKeyValue;
     protected boolean excludeRow = false;
 
     public FilterStatePacked(FilterState<Result, Put, Delete, Get, Scan, Lock,
@@ -28,7 +30,7 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
 		}
 
     @Override
-    public Filter.ReturnCode filterKeyValue(org.apache.hadoop.hbase.KeyValue dataKeyValue) throws IOException {
+    public Filter.ReturnCode filterCell(Cell dataKeyValue) throws IOException {
         simpleFilter.setKeyValue(dataKeyValue);
         final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
         switch (simpleFilter.type) {
@@ -38,7 +40,7 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
                 switch (returnCode) {
                 	case INCLUDE:
                 	case INCLUDE_AND_NEXT_COL:
-											return doAccumulate(dataKeyValue);
+						return doAccumulate(dataKeyValue);
                     case SKIP:
                     case NEXT_COL:
                     case NEXT_ROW:
@@ -60,7 +62,7 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
 				return Filter.ReturnCode.SKIP;
 		}
 
-		protected Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
+		protected Filter.ReturnCode doAccumulate(Cell dataKeyValue) throws IOException {
 				if (!accumulator.isFinished() && !excludeRow && accumulator.isOfInterest(dataKeyValue)) {
 						if (!accumulator.accumulate(simpleFilter.keyValue.keyValue())) {
 								excludeRow = true;
@@ -75,14 +77,14 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
 
 
 		@Override
-		public KeyValue produceAccumulatedKeyValue() {
+		public Cell produceAccumulatedCell() {
 				if (accumulator.isCountStar())
 						return lastValidKeyValue;
 				if (lastValidKeyValue == null)
 						return null;
 				final byte[] resultData = accumulator.result();
 				if (resultData != null) {
-						return KeyValueUtils.newKeyValue(lastValidKeyValue, resultData);
+						return CellUtils.newKeyValue(lastValidKeyValue, resultData);
 				} else {
 						return null;
 				}

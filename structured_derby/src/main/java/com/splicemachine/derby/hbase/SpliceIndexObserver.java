@@ -11,9 +11,11 @@ import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
@@ -60,7 +62,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     }
 
     @Override
-    public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, boolean writeToWAL) throws IOException {
+    public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, Durability writeToWAL) throws IOException {
     	if (LOG.isTraceEnabled())
     			SpliceLogUtils.trace(LOG, "prePut %s",put);
         if(conglomId>0){
@@ -68,7 +70,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
             //we can't update an index if the conglomerate id isn't positive--it's probably a temp table or something
             byte[] row = put.getRow();
-            List<KeyValue> data = put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
+            List<Cell> data = put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
             KVPair kv;
             if(data!=null&&data.size()>0){
                 byte[] value = data.get(0).getValue();
@@ -86,7 +88,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
     @Override
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,
-                          Delete delete, WALEdit edit, boolean writeToWAL) throws IOException {
+                          Delete delete, WALEdit edit, Durability writeToWAL) throws IOException {
     	if (LOG.isTraceEnabled())
     		SpliceLogUtils.trace(LOG, "preDelete %s",delete);
         if(conglomId>0){

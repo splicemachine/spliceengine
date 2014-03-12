@@ -1,6 +1,8 @@
 package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.utils.CloseableIterator;
+
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -23,7 +25,7 @@ import static com.splicemachine.constants.SpliceConstants.CHECK_BLOOM_ATTRIBUTE_
  */
 public class HbRegion implements IHTable {
     static final Logger LOG = Logger.getLogger(HbRegion.class);
-    static final Result EMPTY_RESULT = new Result(Collections.<KeyValue>emptyList());
+    static final Result EMPTY_RESULT = Result.create(Collections.<Cell>emptyList());
     
     final HRegion region;
 
@@ -79,7 +81,6 @@ public class HbRegion implements IHTable {
         region.put(put);
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public void put(Put put, Integer rowLock) throws IOException {
         region.put(put, rowLock);
@@ -105,7 +106,6 @@ public class HbRegion implements IHTable {
         throw new RuntimeException("not implemented");
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public void delete(Delete delete, Integer rowLock) throws IOException {
         region.delete(delete, rowLock, true);

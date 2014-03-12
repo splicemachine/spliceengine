@@ -1,12 +1,16 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.hbase.KeyValueUtils;
-import com.splicemachine.si.api.RollForwardQueue;
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.STableReader;
-import com.splicemachine.si.data.api.STableWriter;
+import static com.splicemachine.constants.SpliceConstants.CHECK_BLOOM_ATTRIBUTE_NAME;
+import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
+import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
@@ -15,15 +19,12 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static com.splicemachine.constants.SpliceConstants.CHECK_BLOOM_ATTRIBUTE_NAME;
-import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
-import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE;
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.si.api.RollForwardQueue;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.api.STableReader;
+import com.splicemachine.si.data.api.STableWriter;
 
 /**
  * Library of functions used by the SI module when accessing rows from data tables (data tables as opposed to the
@@ -151,35 +152,35 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 				operation.setAttribute(CHECK_BLOOM_ATTRIBUTE_NAME, userColumnFamily);
     }
 
-    boolean isAntiTombstone(KeyValue keyValue) {
-				byte[] buffer = keyValue.getBuffer();
+    boolean isAntiTombstone(Cell keyValue) {
+				byte[] buffer = ((KeyValue)keyValue).getBuffer();
 				int valueOffset = keyValue.getValueOffset();
 				int valueLength = keyValue.getValueLength();
 				return Bytes.equals(siAntiTombstoneValue,0,siAntiTombstoneValue.length,buffer,valueOffset,valueLength);
 		}
 
-    public KeyValueType getKeyValueType(KeyValue keyValue) {
-				if(KeyValueUtils.singleMatchingQualifier(keyValue,commitTimestampQualifier)){
-					return KeyValueType.COMMIT_TIMESTAMP;
-				} else if(KeyValueUtils.singleMatchingQualifier(keyValue,SIConstants.PACKED_COLUMN_BYTES)){
-					   return KeyValueType.USER_DATA;
+    public CellType getKeyValueType(Cell keyValue) {
+				if(CellUtils.singleMatchingQualifier(keyValue, commitTimestampQualifier)){
+					return CellType.COMMIT_TIMESTAMP;
+				} else if(CellUtils.singleMatchingQualifier(keyValue, SIConstants.PACKED_COLUMN_BYTES)){
+					   return CellType.USER_DATA;
 				} else { // Took out the check...
-		            if (KeyValueUtils.matchingValue(keyValue, siNull)) {
-		                return KeyValueType.TOMBSTONE;
-		            } else if (KeyValueUtils.matchingValue(keyValue, siAntiTombstoneValue)) {
-		                return KeyValueType.ANTI_TOMBSTONE;
+		            if (CellUtils.matchingValue(keyValue, siNull)) {
+		                return CellType.TOMBSTONE;
+		            } else if (CellUtils.matchingValue(keyValue, siAntiTombstoneValue)) {
+		                return CellType.ANTI_TOMBSTONE;
 		            } else {
-		                return KeyValueType.OTHER;
+		                return CellType.OTHER;
 		            }
 	        }
     }
 
-    public boolean isSINull(KeyValue keyValue) {
-        return KeyValueUtils.matchingValue(keyValue, siNull);
+    public boolean isSINull(Cell keyValue) {
+        return CellUtils.matchingValue(keyValue, siNull);
     }
 
-    public boolean isSIFail(KeyValue keyValue) {
-        return KeyValueUtils.matchingValue(keyValue, siFail);
+    public boolean isSIFail(Cell keyValue) {
+        return CellUtils.matchingValue(keyValue, siFail);
     }
 
     public void recordRollForward(RollForwardQueue rollForwardQueue, long transactionId, byte[] row, Boolean knownToBeCommitted) {

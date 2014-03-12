@@ -1,7 +1,8 @@
 package com.splicemachine.si.impl.translate;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.hbase.KeyValueUtils;
+
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
@@ -88,11 +89,11 @@ public class Translator<Data1, Result1, Put1 extends OperationWithAttributes, De
     public Result translateResult(Result result) {
         List<KeyValue> values = Lists.newArrayList();
 				for(KeyValue kv : dataLib2.listResult(result)) {
-            final KeyValue newKV = KeyValueUtils.newKeyValue(kv.getRow(),
-										kv.getFamily(),
-										kv.getQualifier(),
-										kv.getTimestamp(),
-										kv.getValue());
+            final KeyValue newKV = CellUtils.newKeyValue(kv.getRow(),
+                                                         kv.getFamily(),
+                                                         kv.getQualifier(),
+                                                         kv.getTimestamp(),
+                                                         kv.getValue());
             values.add(newKV);
         }
 				return new Result(values);

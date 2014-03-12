@@ -6,7 +6,7 @@ import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.KeyValueUtils;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
 import org.apache.derby.iapi.error.StandardException;
@@ -62,7 +62,7 @@ public class RowMarshaller {
     private static final RowMarshall SPARSE_PACKED = new RowMarshall() {
         @Override
         public void decode(KeyValue value, DataValueDescriptor[] fields, int[] columns,EntryDecoder entryDecoder) throws StandardException {
-            if(!KeyValueUtils.singleMatchingColumn(value, SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
+            if(!CellUtils.singleMatchingColumn(value, SpliceConstants.DEFAULT_FAMILY_BYTES, PACKED_COLUMN_KEY)) return;
             entryDecoder.set(value.getBuffer(),value.getValueOffset(),value.getValueLength());
             unpack(fields, columns,entryDecoder);
         }
@@ -90,7 +90,7 @@ public class RowMarshaller {
         @Override
         public void decode(KeyValue value, DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder) throws StandardException {
             //data is packed in the single value
-            if(!KeyValueUtils.singleMatchingColumn(value, SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
+            if(!CellUtils.singleMatchingColumn(value, SpliceConstants.DEFAULT_FAMILY_BYTES, PACKED_COLUMN_KEY)) return;
             unpack(fields, reversedKeyColumns, rowDecoder, value.getBuffer(), value.getValueOffset(), value.getValueLength());
         }
 
@@ -126,13 +126,13 @@ public class RowMarshaller {
         @Override
         public void decode(KeyValue value, DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder) throws StandardException {
             //data is packed in the single value
-            if(!KeyValueUtils.singleMatchingColumn(value, SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
+            if(!CellUtils.singleMatchingColumn(value, SpliceConstants.DEFAULT_FAMILY_BYTES, PACKED_COLUMN_KEY)) return;
             unpack(fields, reversedKeyColumns, rowDecoder, value.getBuffer(),value.getValueOffset(), value.getValueLength());
         }
 
         @Override
         public void decode(KeyValue value, DataValueDescriptor[] fields, int[] columns, EntryDecoder entryDecoder) throws StandardException {
-            if(!KeyValueUtils.singleMatchingColumn(value,SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
+            if(!CellUtils.singleMatchingColumn(value, SpliceConstants.DEFAULT_FAMILY_BYTES, PACKED_COLUMN_KEY)) return;
             entryDecoder.set(value.getBuffer(),value.getValueOffset(),value.getValueLength());
             unpack(fields,columns,entryDecoder);
         }

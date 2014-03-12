@@ -97,7 +97,7 @@ public class SITransactionReadController<
 		@Override
 		@SuppressWarnings("unchecked")
 		public Filter.ReturnCode filterKeyValue(IFilterState filterState, KeyValue keyValue) throws IOException {
-				return filterState.filterKeyValue(keyValue);
+				return filterState.filterCell(keyValue);
 		}
 
 		@Override
@@ -118,7 +118,7 @@ public class SITransactionReadController<
 							filterKeyValue(filterState, kv);
 						}
 						if (!filterState.getExcludeRow())
-							filteredCells.add(filterState.produceAccumulatedKeyValue());
+							filteredCells.add(filterState.produceAccumulatedCell());
 				}
 				if (filteredCells.isEmpty()) {
 					return null;

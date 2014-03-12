@@ -95,6 +95,7 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(jobId);
+        // FIXME: Part of old Writable interface
         scan.write(out);
         out.writeObject(instructions);
     }
@@ -103,6 +104,7 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         jobId = (String)in.readObject();
         scan = new Scan();
+        // FIXME: Part of old Writable interface
         scan.readFields(in);
         instructions = (SpliceObserverInstructions)in.readObject();
     }

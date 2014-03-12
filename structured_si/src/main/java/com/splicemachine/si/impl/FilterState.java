@@ -1,14 +1,19 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.api.RollForwardQueue;
-import com.splicemachine.si.api.TransactionStatus;
-import com.splicemachine.si.data.api.SDataLib;
-import org.apache.hadoop.hbase.KeyValue;
+import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.INCLUDE;
+import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.NEXT_COL;
+import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
+
+import java.io.IOException;
+
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
-import java.io.IOException;
-import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.*;
+
+import com.splicemachine.si.api.RollForwardQueue;
+import com.splicemachine.si.api.TransactionStatus;
+import com.splicemachine.si.data.api.SDataLib;
 
 /**
  * Contains the logic for performing an HBase-style filter using "snapshot isolation" logic. This means it filters out
@@ -29,8 +34,8 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
     final FilterRowState<Result, Put, Delete, Get, Scan, Lock, OperationStatus> rowState;
-    final DecodedKeyValue keyValue;
-    KeyValueType type;
+    final DecodedCell keyValue;
+    CellType type;
     private final TransactionSource transactionSource;
     FilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
                 RollForwardQueue rollForwardQueue,ImmutableTransaction myTransaction) {
@@ -41,7 +46,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
             }
         };
         this.dataLib = dataLib;
-        this.keyValue = new DecodedKeyValue();
+        this.keyValue = new DecodedCell();
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
         this.rollForwardQueue = rollForwardQueue;
@@ -59,12 +64,12 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
 		 * @param dataKeyValue
 		 */
     @Override
-    public Filter.ReturnCode filterKeyValue(KeyValue dataKeyValue) throws IOException {
+    public Filter.ReturnCode filterCell(Cell dataKeyValue) throws IOException {
         setKeyValue(dataKeyValue);
         return filterByColumnType();
     }
 
-    void setKeyValue(KeyValue dataKeyValue) {
+    void setKeyValue(Cell dataKeyValue) {
         keyValue.setKeyValue(dataKeyValue);
         rowState.updateCurrentRow(keyValue);
         type = dataStore.getKeyValueType(keyValue.keyValue());
@@ -349,7 +354,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
     }
 
     @Override
-    public org.apache.hadoop.hbase.KeyValue produceAccumulatedKeyValue() {
+    public org.apache.hadoop.hbase.Cell produceAccumulatedCell() {
         return null;
     }
 

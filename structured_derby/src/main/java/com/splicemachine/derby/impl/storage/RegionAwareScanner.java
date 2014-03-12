@@ -1,6 +1,25 @@
 package com.splicemachine.derby.impl.storage;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+
 import com.google.common.collect.Lists;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
@@ -15,24 +34,6 @@ import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.SpliceLogUtils;
-
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.FilterList;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * RowProvider which uses Key-matching to ensure safe execution
@@ -61,7 +62,7 @@ public class RegionAwareScanner implements SpliceResultScanner {
     private boolean lookBehindExhausted = false;
     private boolean localExhausted = false;
     private boolean lookAheadExhausted = false;
-    private List<KeyValue> keyValues = Lists.newArrayList();
+    private List<Cell> keyValues = Lists.newArrayList();
     private byte[] remoteFinish;
     private byte[] remoteStart;
     private byte[] localStart;
@@ -154,7 +155,7 @@ public class RegionAwareScanner implements SpliceResultScanner {
             keyValues.clear();
             localExhausted = !localScanner.next(keyValues);
 						if(keyValues.size()>0){
-								return new Result(keyValues);
+								return Result.create(keyValues);
 						}else
 								localExhausted=true;
         }
@@ -352,7 +353,7 @@ public class RegionAwareScanner implements SpliceResultScanner {
             RegionScanner localScanner = null;
             try{
             	localScanner = new BufferedRegionScanner(region,region.getScanner(startScan),startScan,startScan.getCaching(),metricFactory);
-                List<KeyValue> keyValues = Lists.newArrayList();
+                List<Cell> keyValues = Lists.newArrayList();
                 localScanner.next(keyValues);
                 if (keyValues.isEmpty()) {
                 	// need to do something here...
@@ -360,7 +361,7 @@ public class RegionAwareScanner implements SpliceResultScanner {
                     lookBehindExhausted=true;
                     return;
                 }
-                Result behindResult = new Result(keyValues);
+                Result behindResult = Result.create(keyValues);
                 byte[] startKey = boundary.getStartKey(behindResult);
                 if (startKey == null) {
                     localStart = regionStart;

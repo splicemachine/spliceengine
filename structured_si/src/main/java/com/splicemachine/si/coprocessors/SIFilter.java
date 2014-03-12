@@ -6,14 +6,13 @@ import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.KeyValue;
+
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.log4j.Logger;
 
-import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
 
 /**
@@ -38,13 +37,13 @@ public class SIFilter extends FilterBase {
 
 		@Override
 		@SuppressWarnings("unchecked")
-    public ReturnCode filterKeyValue(KeyValue keyValue) {
+    public ReturnCode filterKeyValue(Cell keyValue) {
         if (LOG.isTraceEnabled()) {
-            SpliceLogUtils.trace(LOG, "filterKeyValue %s", keyValue);
+            SpliceLogUtils.trace(LOG, "filterCell %s", keyValue);
         }
         try {
             initFilterStateIfNeeded();
-						return filterState.filterKeyValue(keyValue);
+						return filterState.filterCell(keyValue);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -57,7 +56,7 @@ public class SIFilter extends FilterBase {
     }
 
     @Override
-    public boolean filterRow() {
+    public boolean filterRow() throws IOException {
         return super.filterRow();
     }
 
@@ -66,15 +65,5 @@ public class SIFilter extends FilterBase {
         if (filterState != null) {
 						filterState.nextRow();
         }
-    }
-
-    @Override
-    public void readFields(DataInput in) throws IOException {
-        transactionIdString = in.readUTF();
-    }
-
-    @Override
-    public void write(DataOutput out) throws IOException {
-        out.writeUTF(transactionIdString);
     }
 }

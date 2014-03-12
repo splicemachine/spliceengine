@@ -1,6 +1,32 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableSet;
+import java.util.Properties;
+
 import com.google.common.collect.Lists;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -16,8 +42,17 @@ import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.EntryPredicateUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StandardSupplier;
-import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
+import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import com.splicemachine.derby.utils.marshall.KeyMarshaller;
+import com.splicemachine.derby.utils.marshall.NoOpPostfix;
+import com.splicemachine.derby.utils.marshall.NoOpPrefix;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.derby.utils.marshall.SuppliedDataHash;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.FilterState;
@@ -29,25 +64,6 @@ import com.splicemachine.stats.TimeView;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.*;
 
 public class TableScanOperation extends ScanOperation {
 		private static final long serialVersionUID = 3l;
@@ -68,7 +84,7 @@ public class TableScanOperation extends ScanOperation {
 		private int[] baseColumnMap;
 		private int[] keyColumns;
 
-		private List<KeyValue> keyValues;
+		private List<Cell> keyValues;
 		private FilterStatePacked siFilter;
 		private Scan scan;
 
@@ -352,7 +368,7 @@ public class TableScanOperation extends ScanOperation {
 				return currentRow;
 		}
 
-		protected void setRowLocation(KeyValue sampleKv) throws StandardException {
+		protected void setRowLocation(Cell sampleKv) throws StandardException {
 				if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
 					 /*
 						* If indexName !=null, then we are currently scanning an index,
@@ -361,17 +377,17 @@ public class TableScanOperation extends ScanOperation {
 						*/
 						currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
 				} else {
-						slice.set(sampleKv.getBuffer(), sampleKv.getRowOffset(), sampleKv.getRowLength());
+						slice.set(CellUtils.getBuffer(sampleKv), sampleKv.getRowOffset(), sampleKv.getRowLength());
 						currentRowLocation.setValue(slice);
 				}
 		}
 
 		protected boolean filterRow(FilterStatePacked filter) throws IOException {
 				filter.nextRow();
-				Iterator<KeyValue> kvIter = keyValues.iterator();
+				Iterator<Cell> kvIter = keyValues.iterator();
 				while(kvIter.hasNext()){
-						KeyValue kv = kvIter.next();
-						Filter.ReturnCode returnCode = filter.filterKeyValue(kv);
+						Cell kv = kvIter.next();
+						Filter.ReturnCode returnCode = filter.filterCell(kv);
 						switch(returnCode){
 								case NEXT_COL:
 								case NEXT_ROW:
@@ -400,7 +416,7 @@ public class TableScanOperation extends ScanOperation {
 //								@Override protected Filter.ReturnCode skipRow() { return Filter.ReturnCode.NEXT_COL; }
 
 								@Override
-								protected Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
+								protected Filter.ReturnCode doAccumulate(Cell dataKeyValue) throws IOException {
 										if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
 												if (!accumulator.accumulate(dataKeyValue)) {
 														return Filter.ReturnCode.NEXT_ROW;
@@ -419,7 +435,7 @@ public class TableScanOperation extends ScanOperation {
 
 
 		protected boolean filterRowKey(SpliceRuntimeContext spliceRuntimeContext,
-																	 KeyValue keyValue,
+																	 Cell keyValue,
 																	 int[] columnOrder,
 																	 MultiFieldDecoder keyDecoder) throws StandardException, IOException {
 				return columnOrder != null &&

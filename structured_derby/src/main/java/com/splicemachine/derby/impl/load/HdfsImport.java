@@ -307,8 +307,10 @@ public class HdfsImport {
 						throw StandardException.newException(SQLState.COMMUNICATION_ERROR,e);
 				} catch (ZooKeeperConnectionException e) {
 						throw StandardException.newException(SQLState.COMMUNICATION_ERROR,e);
-				}
-				try{
+				} catch (IOException e) {
+                    throw StandardException.newException(SQLState.COMMUNICATION_ERROR,e);
+                }
+            try{
 						ImportFile file = new ImportFile(context.getFilePath().toString());
 						//check that the badLogDirectory exists and is writable
 						Path badLogDir = context.getBadLogDirectory();

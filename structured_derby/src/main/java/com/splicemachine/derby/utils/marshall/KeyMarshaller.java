@@ -1,13 +1,12 @@
 package com.splicemachine.derby.utils.marshall;
 
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.hadoop.hbase.Cell;
+
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.KeyValue;
-
-import java.io.IOException;
+import com.splicemachine.hbase.CellUtils;
 
 /**
  * Created with IntelliJ IDEA.
@@ -18,11 +17,11 @@ import java.io.IOException;
  */
 public class KeyMarshaller {
 
-    public void decode(KeyValue value, DataValueDescriptor[] fields,
+    public void decode(Cell value, DataValueDescriptor[] fields,
                        int[] reversedKeyColumns, MultiFieldDecoder keyDecoder,
                        int[] columnOrdering, DataValueDescriptor[] kdvds) throws StandardException {
         //data is packed in the single row
-        unpack(fields, reversedKeyColumns, keyDecoder, value.getBuffer(), value.getRowOffset(),
+        unpack(fields, reversedKeyColumns, keyDecoder, CellUtils.getBuffer(value), value.getRowOffset(),
                 value.getRowLength(), columnOrdering, kdvds);
     }
 

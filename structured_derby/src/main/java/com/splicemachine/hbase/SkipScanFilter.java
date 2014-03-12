@@ -7,6 +7,7 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.si.api.TransactionalFilter;
 import com.yammer.metrics.core.Counter;
 import com.yammer.metrics.core.MetricName;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -44,13 +45,14 @@ public class SkipScanFilter extends FilterBase implements TransactionalFilter {
     }
 
     @Override
-    public boolean filterRowKey(byte[] buffer, int offset, int length) {
-        return super.filterRowKey(buffer, offset, length);    //To change body of overridden methods use File | Settings | File Templates.
+    public boolean filterRowKey(byte[] buffer, int offset, int length) throws IOException {
+        return super.filterRowKey(buffer, offset, length);
     }
 
     @Override
-    public ReturnCode filterKeyValue(KeyValue ignored) {
-        if(!ignored.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY))
+    public ReturnCode filterKeyValue(Cell ignored) {
+        // FIXME: KeyValue cast
+        if(!((KeyValue)ignored).matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY))
             return ReturnCode.INCLUDE;
         if(position>=rowsToReturn.length){
             isDone=true;
@@ -72,7 +74,7 @@ public class SkipScanFilter extends FilterBase implements TransactionalFilter {
             do{
                 position++;
                 rowToCheck = rowsToReturn[position];
-                shouldContinue = Bytes.compareTo(rowToCheck,0,rowToCheck.length,ignored.getBuffer(),ignored.getRowOffset(),ignored.getRowLength())<0;
+                shouldContinue = Bytes.compareTo(rowToCheck,0,rowToCheck.length,CellUtils.getBuffer(ignored),ignored.getRowOffset(),ignored.getRowLength())<0;
             }while(position<rowsToReturn.length &&shouldContinue);
         }
 
@@ -85,7 +87,7 @@ public class SkipScanFilter extends FilterBase implements TransactionalFilter {
          * 3. rowsToReturn[position] > currentRow --we haven't yet found this row, skip forward until we reach it
          */
         byte[] rowToCheck = rowsToReturn[position];
-        int compareState = Bytes.compareTo(rowToCheck,0,rowToCheck.length,ignored.getBuffer(),ignored.getRowOffset(),ignored.getRowLength());
+        int compareState = Bytes.compareTo(rowToCheck,0,rowToCheck.length,CellUtils.getBuffer(ignored),ignored.getRowOffset(),ignored.getRowLength());
         if(compareState<0){
             //this row wasn't found. Blow up if so instructed. Otherwise, skip past it
             if(failOnMissingRow)
@@ -141,6 +143,7 @@ public class SkipScanFilter extends FilterBase implements TransactionalFilter {
         Arrays.sort(this.rowsToReturn,Bytes.BYTES_COMPARATOR);
     }
 
+    // FIXME: part of old Writable interface - remove
     @Override
     public void write(DataOutput out) throws IOException {
         out.writeInt(rowsToReturn.length);
@@ -150,6 +153,7 @@ public class SkipScanFilter extends FilterBase implements TransactionalFilter {
         }
     }
 
+    // FIXME: part of old Writable interface - remove
     @Override
     public void readFields(DataInput in) throws IOException {
         int rowSize = in.readInt();

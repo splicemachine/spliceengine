@@ -16,9 +16,8 @@ public interface SpliceOperationProtocol extends CoprocessorProtocol {
 	/**
 	 * Method to run the topOperations sink method in parallel
 	 * 
-	 * @param statement
 	 * @param scan
-	 * @param topOperation
+	 * @param instructions
 	 * @return
 	 * @throws IOException
 	 * @throws StandardException

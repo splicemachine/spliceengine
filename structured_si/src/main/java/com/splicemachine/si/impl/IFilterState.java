@@ -1,13 +1,13 @@
 package com.splicemachine.si.impl;
 
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.filter.Filter;
-
 import java.io.IOException;
 
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.filter.Filter;
+
 public interface IFilterState {
-    Filter.ReturnCode filterKeyValue(KeyValue keyValue) throws IOException;
+    Filter.ReturnCode filterCell(Cell keyValue) throws IOException;
     void nextRow();
-    KeyValue produceAccumulatedKeyValue();
+    Cell produceAccumulatedCell();
     boolean getExcludeRow();
 }

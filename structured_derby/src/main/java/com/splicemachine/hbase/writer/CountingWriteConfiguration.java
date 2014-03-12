@@ -1,11 +1,11 @@
 package com.splicemachine.hbase.writer;
 
+import java.util.concurrent.ExecutionException;
+
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.ipc.HBaseClient;
+import org.apache.hadoop.hbase.ipc.RpcClient;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
-
-import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -22,7 +22,7 @@ class CountingWriteConfiguration extends ForwardingWriteConfiguration {
     @Override
     public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
         statusReporter.globalFailures.incrementAndGet();
-        if(t instanceof HBaseClient.CallTimeoutException)
+        if(t instanceof RpcClient.CallTimeoutException)
             statusReporter.timedOutFlushes.incrementAndGet();
         else if(t instanceof NotServingRegionException)
             statusReporter.notServingRegionFlushes.incrementAndGet();
