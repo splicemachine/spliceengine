@@ -272,7 +272,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
             int[] baseColumnMap = operationInformation.getBaseColumnMap();
             for (int i = 0; i <keyColumns.length; ++i)
                 keyColumns[i] = -1;
-            for (int i = 0; i < keyColumns.length; ++i) {
+            for (int i = 0; i < keyColumns.length && columnOrdering[i] < baseColumnMap.length; ++i) {
                 keyColumns[i] = baseColumnMap[columnOrdering[i]];
             }
 			/*
