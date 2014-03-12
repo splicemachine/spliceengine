@@ -744,6 +744,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             ddlChange.setTentativeIndexDesc(tentativeIndexDesc);
             ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
 
+            notifyMetadataChange(ddlChange);
+
             final long tableConglomId = td.getHeapConglomerateId();
             HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
             try{
