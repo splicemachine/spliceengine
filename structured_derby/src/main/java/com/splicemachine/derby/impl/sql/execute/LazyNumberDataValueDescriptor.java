@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.NumberDataValue;
@@ -100,7 +101,7 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
     @Override
     public DataValueDescriptor cloneHolder() {
         LazyNumberDataValueDescriptor newDvd = new LazyNumberDataValueDescriptor((NumberDataValue) ndv.cloneHolder(), dvdSerializer);
-        newDvd.dvdBytes = this.dvdBytes;
+        newDvd.bytes = new ByteSlice(this.bytes);
         newDvd.deserialized = this.deserialized;
         newDvd.updateNullFlag();
 
@@ -111,7 +112,7 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
     public DataValueDescriptor cloneValue(boolean forceMaterialization) {
 
         LazyNumberDataValueDescriptor newDvd = new LazyNumberDataValueDescriptor((NumberDataValue) ndv.cloneValue(forceMaterialization), dvdSerializer);
-        newDvd.dvdBytes = this.dvdBytes;
+        newDvd.bytes = new ByteSlice(this.bytes);
         newDvd.deserialized = this.deserialized;
         newDvd.updateNullFlag();
 

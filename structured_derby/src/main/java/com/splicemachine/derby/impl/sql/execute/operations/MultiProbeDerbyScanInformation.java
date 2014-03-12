@@ -81,16 +81,16 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
             for(int i=accessedCols.anySetBit();i>=0;i=accessedCols.anySetBit(i)){
                 colsToReturn.set(i);
             }
-        }
-        List<Scan> scans = new ArrayList<Scan>(probeValues.length);
-        for (int i = 0; i<probeValues.length;i++) {
-            	probeValue = probeValues[i];
-                Scan scan = getScan(txnId);
-        		SpliceUtils.setInstructions(scan, activation, top,spliceRuntimeContext);		
-                scans.add(scan);
-        }
-        return scans;
-    }
+				}
+			List<Scan> scans = new ArrayList<Scan>(probeValues.length);
+			for (int i = 0; i<probeValues.length;i++) {
+					probeValue = probeValues[i];
+					Scan scan = getScan(txnId);
+					SpliceUtils.setInstructions(scan, activation, top,spliceRuntimeContext);
+					scans.add(scan);
+			}
+			return scans;
+	}
 
 	@Override
     protected Qualifier[][] populateQualifiers() throws StandardException {

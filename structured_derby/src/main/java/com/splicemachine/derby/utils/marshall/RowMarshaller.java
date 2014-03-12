@@ -178,6 +178,11 @@ public class RowMarshaller {
         if(reversedKeyColumns!=null){
             for(int i=index.nextSetBit(0);i>=0 && i<reversedKeyColumns.length;i=index.nextSetBit(i+1)){
                 int pos = reversedKeyColumns[i];
+                if (pos == -1 || pos > fields.length)
+                {
+                    entryDecoder.seekForward(decoder,i);
+                    continue;
+                }
                 DataValueDescriptor dvd = fields[pos];
                 if(dvd==null){
                     entryDecoder.seekForward(decoder,i);

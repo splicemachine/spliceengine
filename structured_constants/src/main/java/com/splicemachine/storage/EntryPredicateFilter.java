@@ -83,8 +83,8 @@ public class EntryPredicateFilter {
                  * there actually IS data to add before adding. In that case, we've finished, so
                  * tell the accumulator
                  */
-                if(accumulator instanceof AlwaysAcceptEntryAccumulator)
-                    ((AlwaysAcceptEntryAccumulator)accumulator).complete();
+                if(fieldsToReturn==null||fieldsToReturn.isEmpty())
+                    accumulator.complete();
                 return true;
             }
             entry.seekForward(decoder, encodedPos);
@@ -164,10 +164,11 @@ public class EntryPredicateFilter {
 
     public EntryAccumulator newAccumulator(){
 				if(accumulator==null){
-						if(fieldsToReturn.isEmpty())
-								accumulator = new AlwaysAcceptEntryAccumulator(this,returnIndex);
-						else
-								accumulator = new SparseEntryAccumulator(this,fieldsToReturn,returnIndex);
+						return new ByteEntryAccumulator(this,returnIndex,fieldsToReturn);
+//						if(fieldsToReturn.isEmpty())
+//								accumulator = new AlwaysAcceptEntryAccumulator(this,returnIndex);
+//						else
+//								accumulator = new SparseEntryAccumulator(this,fieldsToReturn,returnIndex);
 				}
 				return accumulator;
     }

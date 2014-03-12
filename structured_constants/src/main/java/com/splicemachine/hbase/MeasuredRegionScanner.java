@@ -1,6 +1,7 @@
 package com.splicemachine.hbase;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;

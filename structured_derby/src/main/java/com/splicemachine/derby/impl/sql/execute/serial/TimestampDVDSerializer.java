@@ -24,8 +24,18 @@ public class TimestampDVDSerializer implements DVDSerializer {
         dvd.setValue(new DateTime(Encoding.decodeLong(bytes, desc)));
     }
 
-    @Override
+		@Override
+		public void deserialize(DataValueDescriptor ldvd, byte[] bytes, int offset, int length, boolean desc) throws Exception {
+				ldvd.setValue(new DateTime(Encoding.decodeLong(bytes,offset,desc)));
+		}
+
+		@Override
     public byte[] serialize(DataValueDescriptor dvd) throws Exception {
         return Encoding.encode(dvd.getDateTime().getMillis());
     }
+
+		@Override
+		public byte[] serialize(DataValueDescriptor obj, boolean desc) throws Exception {
+				return Encoding.encode(obj.getDateTime().getMillis(),desc);
+		}
 }

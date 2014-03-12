@@ -1,27 +1,34 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.Lists;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.EntryPredicateUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.data.hbase.HRowAccumulator;
+import com.splicemachine.si.impl.FilterState;
+import com.splicemachine.si.impl.FilterStatePacked;
+import com.splicemachine.si.impl.IFilterState;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.stats.Counter;
 import com.splicemachine.stats.TimeView;
-import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.derby.utils.EntryPredicateUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -33,8 +40,10 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -54,11 +63,16 @@ public class TableScanOperation extends ScanOperation {
 		public String stopPositionString;
 		public ByteSlice slice;
 
-        static {
-				nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN);
-		}
+		static { nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN); }
 
 		private int[] baseColumnMap;
+		private int[] keyColumns;
+
+		private List<KeyValue> keyValues;
+		private FilterStatePacked siFilter;
+		private Scan scan;
+
+		private Counter filterCount;
 
 		public TableScanOperation() { super(); }
 
@@ -136,6 +150,7 @@ public class TableScanOperation extends ScanOperation {
 				this.baseColumnMap = operationInformation.getBaseColumnMap();
 				this.slice = ByteSlice.empty();
 				this.startExecutionTime = System.currentTimeMillis();
+				this.scan = context.getScan();
 		}
 
 		@Override
@@ -147,11 +162,36 @@ public class TableScanOperation extends ScanOperation {
 		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				SpliceLogUtils.trace(LOG, "getMapRowProvider");
 				beginTime = System.currentTimeMillis();
-				Scan scan = buildScan(spliceRuntimeContext);
+				Scan scan = getNonSIScan(spliceRuntimeContext);
 				SpliceUtils.setInstructions(scan, activation, top,spliceRuntimeContext);
 				ClientScanProvider provider = new ClientScanProvider("tableScan",Bytes.toBytes(tableName),scan, decoder,spliceRuntimeContext);
 				nextTime += System.currentTimeMillis() - beginTime;
 				return provider;
+		}
+
+		protected Scan getNonSIScan(SpliceRuntimeContext spliceRuntimeContext) {
+				/*
+				 * Intended to get a scan which does NOT set up SI underneath us (since
+				 * we are doing it ourselves).
+				 */
+				Scan scan = buildScan(spliceRuntimeContext);
+				deSiify(scan);
+				return scan;
+		}
+
+		protected void deSiify(Scan scan) {
+				/*
+				 * Remove SI-specific behaviors from the scan, so that we can handle it ourselves correctly.
+				 */
+				//exclude this from SI treatment, since we're doing it internally
+				scan.setAttribute(SIConstants.SI_NEEDED,null);
+				scan.setMaxVersions();
+				Map<byte[], NavigableSet<byte[]>> familyMap = scan.getFamilyMap();
+				if(familyMap!=null){
+						NavigableSet<byte[]> bytes = familyMap.get(SpliceConstants.DEFAULT_FAMILY_BYTES);
+						if(bytes!=null)
+								bytes.clear(); //make sure we get all columns
+				}
 		}
 
 		@Override
@@ -163,15 +203,8 @@ public class TableScanOperation extends ScanOperation {
 		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 
             columnOrdering = scanInformation.getColumnOrdering();
-            int[] keyColumns = null;
             if(columnOrdering != null && columnOrdering.length > 0) {
-                keyColumns = new int[columnOrdering.length];
-                for (int i = 0; i < keyColumns.length; ++i) {
-                    keyColumns[i] = -1;
-                }
-                for (int i = 0; i < keyColumns.length && columnOrdering[i] < baseColumnMap.length; ++i) {
-                    keyColumns[i] = baseColumnMap[columnOrdering[i]];
-                }
+								getKeyColumns();
             }
 		    /*
 			 * Table Scans only use a key encoder when encoding to SpliceOperationRegionScanner,
@@ -190,19 +223,32 @@ public class TableScanOperation extends ScanOperation {
             return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
 		}
 
-        private int[] getDecodingColumns(int n) {
+		protected int[] getKeyColumns() throws StandardException {
+				if(keyColumns==null){
+						columnOrdering = scanInformation.getColumnOrdering();
+						keyColumns = new int[columnOrdering.length];
+						for (int i = 0; i < keyColumns.length; ++i) {
+								keyColumns[i] = -1;
+						}
+						for (int i = 0; i < keyColumns.length && columnOrdering[i] < baseColumnMap.length; ++i) {
+								keyColumns[i] = baseColumnMap[columnOrdering[i]];
+						}
+				}
+				return keyColumns;
+		}
 
-            int[] columns = new int[baseColumnMap.length];
-            for (int i = 0; i < columns.length; ++i)
-                columns[i] = baseColumnMap[i];
-            // Skip primary key columns to save space
-            for(int pkCol:columnOrdering) {
-                if (pkCol < n)
-                    columns[pkCol] = -1;
-            }
+		private int[] getDecodingColumns(int n) {
+				int[] columns = new int[baseColumnMap.length];
+				System.arraycopy(baseColumnMap, 0, columns, 0, columns.length);
+				// Skip primary key columns to save space
+				for(int pkCol:columnOrdering) {
+						if (pkCol < n)
+								columns[pkCol] = -1;
+				}
 
-        return columns;
-    }
+				return columns;
+		}
+
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
                 columnOrdering = scanInformation.getColumnOrdering();
@@ -232,67 +278,70 @@ public class TableScanOperation extends ScanOperation {
 		protected void updateStats(OperationRuntimeStats stats) {
 				if(regionScanner!=null){
 						TimeView readTimer = regionScanner.getReadTime();
-						long bytesRead = regionScanner.getBytesOutput();
+//						long bytesRead = regionScanner.getBytesOutput();
 						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsVisited());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,regionScanner.getBytesVisited());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTimer.getCpuTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTimer.getUserTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,readTimer.getWallClockTime());
-                        stats.addMetric(OperationMetric.FILTERED_ROWS,regionScanner.getRowsFiltered());
+						long filtered = regionScanner.getRowsFiltered();
+						if(filterCount !=null)
+								filtered+= filterCount.getTotal();
+						stats.addMetric(OperationMetric.FILTERED_ROWS,filtered);
 				}
 		}
 
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException {
-				if(timer==null)
+				if(timer==null){
 						timer = spliceRuntimeContext.newTimer();
+						filterCount = spliceRuntimeContext.newCounter();
+				}
 
 				timer.startTiming();
 
-                KeyValue keyValue = null;
-                do{
-                    keyValue = regionScanner.next();
+				int[] columnOrder = getColumnOrdering();
+				KeyMarshaller marshaller = getKeyMarshaller();
+				MultiFieldDecoder keyDecoder = getKeyDecoder();
+				if(keyValues==null)
+						keyValues = Lists.newArrayListWithExpectedSize(2);
 
-                    if (keyValue == null) {
-                        if (LOG.isTraceEnabled())
-                            SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",tableName);
-                        currentRow = null;
-                        currentRowLocation = null;
-                    } else {
-                        currentRow.resetRowArray();
-                        DataValueDescriptor[] fields = currentRow.getRowArray();
-                        if (fields.length != 0) {
-                            // Apply predicate to the row key first
-                            if (getColumnOrdering() != null && getPredicateFilter(spliceRuntimeContext) != null) {
-                                boolean passed = EntryPredicateUtils.qualify(predicateFilter, keyValue.getRow(), getColumnDVDs(),
-                                        getColumnOrdering(),getKeyDecoder());
-                                if (!passed)
-                                    continue;
-                            }
-                            // Decode row data
-                            RowMarshaller.sparsePacked().decode(keyValue,fields,baseColumnMap, getRowDecoder());
-                            // Decode key data if primary key is accessed
-                            if (scanInformation.getAccessedPkColumns() != null &&
-                                scanInformation.getAccessedPkColumns().getNumBitsSet() > 0) {
-                                getKeyMarshaller().decode(keyValue, fields, baseColumnMap,
-                                        getKeyDecoder(), getColumnOrdering(), getColumnDVDs());
-                            }
-                        }
-                        if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
-                            /*
-                             * If indexName !=null, then we are currently scanning an index,
-                             * so our RowLocation should point to the main table, and not to the
-                             * index (that we're actually scanning)
-                             */
-                            currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
-                        } else {
-                            slice.set(keyValue.getBuffer(), keyValue.getRowOffset(), keyValue.getRowLength());
-                            currentRowLocation.setValue(slice);
-                        }
-                        break;
-                    }
-                } while (keyValue != null);
-				setCurrentRow(currentRow);
+				FilterStatePacked filter = getSIFilter();
+				boolean hasRow;
+				do{
+						keyValues.clear();
+						hasRow = regionScanner.next(keyValues);
+
+						if (keyValues.size()<=0) {
+								if (LOG.isTraceEnabled())
+										SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",tableName);
+								currentRow = null;
+								currentRowLocation = null;
+						} else {
+								currentRow.resetRowArray();
+								DataValueDescriptor[] fields = currentRow.getRowArray();
+								if (fields.length != 0) {
+										// Apply predicate to the row key first
+										if (!filterRowKey(spliceRuntimeContext, keyValues.get(0), columnOrder, keyDecoder)||!filterRow(filter)){
+												filterCount.increment();
+												continue;
+										}
+
+										// Decode key data if primary key is accessed
+										if (scanInformation.getAccessedPkColumns() != null &&
+														scanInformation.getAccessedPkColumns().getNumBitsSet() > 0) {
+												marshaller.decode(keyValues.get(0), fields, baseColumnMap, keyDecoder, columnOrder, getColumnDVDs());
+										}
+								}
+								setRowLocation(keyValues.get(0));
+								break;
+						}
+				}while(hasRow);
+				if(!hasRow){
+						clearCurrentRow();
+				}else{
+						setCurrentRow(currentRow);
+				}
 
 				//measure time
 				if(currentRow==null){
@@ -301,6 +350,82 @@ public class TableScanOperation extends ScanOperation {
 				}else
 						timer.tick(1);
 				return currentRow;
+		}
+
+		protected void setRowLocation(KeyValue sampleKv) throws StandardException {
+				if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
+					 /*
+						* If indexName !=null, then we are currently scanning an index,
+						* so our RowLocation should point to the main table, and not to the
+						* index (that we're actually scanning)
+						*/
+						currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
+				} else {
+						slice.set(sampleKv.getBuffer(), sampleKv.getRowOffset(), sampleKv.getRowLength());
+						currentRowLocation.setValue(slice);
+				}
+		}
+
+		protected boolean filterRow(FilterStatePacked filter) throws IOException {
+				filter.nextRow();
+				Iterator<KeyValue> kvIter = keyValues.iterator();
+				while(kvIter.hasNext()){
+						KeyValue kv = kvIter.next();
+						Filter.ReturnCode returnCode = filter.filterKeyValue(kv);
+						switch(returnCode){
+								case NEXT_COL:
+								case NEXT_ROW:
+								case SEEK_NEXT_USING_HINT:
+										return false; //failed the predicate
+								case SKIP:
+										kvIter.remove();
+								default:
+										//these are okay--they mean the encoding is good
+						}
+				}
+				return filter.getAccumulator().result() != null && keyValues.size()>0;
+		}
+
+		@SuppressWarnings("unchecked")
+		private FilterStatePacked getSIFilter() throws IOException, StandardException {
+				if(siFilter==null){
+						boolean isCountStar = scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null;
+						EntryPredicateFilter epf = decodePredicateFilter();
+						TransactionId txnId= new TransactionId(this.transactionID);
+						IFilterState iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, txnId);
+						ExecRowAccumulator rowAccumulator = ExecRowAccumulator.newAccumulator(epf,false,currentRow, baseColumnMap);
+
+						HRowAccumulator accumulator = new HRowAccumulator(epf, getRowDecoder(), rowAccumulator, isCountStar);
+						siFilter = new FilterStatePacked((FilterState)iFilterState, accumulator){
+//								@Override protected Filter.ReturnCode skipRow() { return Filter.ReturnCode.NEXT_COL; }
+
+								@Override
+								protected Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
+										if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
+												if (!accumulator.accumulate(dataKeyValue)) {
+														return Filter.ReturnCode.NEXT_ROW;
+												}
+												return Filter.ReturnCode.INCLUDE;
+										}else return Filter.ReturnCode.INCLUDE;
+								}
+						};
+				}
+				return siFilter;
+		}
+
+		private EntryPredicateFilter decodePredicateFilter() throws IOException {
+				return EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
+		}
+
+
+		protected boolean filterRowKey(SpliceRuntimeContext spliceRuntimeContext,
+																	 KeyValue keyValue,
+																	 int[] columnOrder,
+																	 MultiFieldDecoder keyDecoder) throws StandardException, IOException {
+				return columnOrder != null &&
+								getPredicateFilter(spliceRuntimeContext) != null &&
+								EntryPredicateUtils.qualify(predicateFilter, keyValue.getRow(),
+												getColumnDVDs(), columnOrder, keyDecoder);
 		}
 
 		@Override
