@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -9,30 +8,27 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.EntryPredicateUtils;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.FilterState;
 import com.splicemachine.si.impl.FilterStatePacked;
 import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.StandardSupplier;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.stats.Counter;
 import com.splicemachine.stats.TimeView;
-import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
-import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.derby.utils.EntryPredicateUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -45,9 +41,9 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.thrift.generated.Hbase;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -75,6 +71,8 @@ public class TableScanOperation extends ScanOperation {
 		private List<KeyValue> keyValues;
 		private FilterStatePacked siFilter;
 		private Scan scan;
+
+		private Counter filterCount;
 
 		public TableScanOperation() { super(); }
 
@@ -240,18 +238,17 @@ public class TableScanOperation extends ScanOperation {
 		}
 
 		private int[] getDecodingColumns(int n) {
+				int[] columns = new int[baseColumnMap.length];
+				System.arraycopy(baseColumnMap, 0, columns, 0, columns.length);
+				// Skip primary key columns to save space
+				for(int pkCol:columnOrdering) {
+						if (pkCol < n)
+								columns[pkCol] = -1;
+				}
 
-            int[] columns = new int[baseColumnMap.length];
-            for (int i = 0; i < columns.length; ++i)
-                columns[i] = baseColumnMap[i];
-            // Skip primary key columns to save space
-            for(int pkCol:columnOrdering) {
-                if (pkCol < n)
-                    columns[pkCol] = -1;
-            }
+				return columns;
+		}
 
-        return columns;
-    }
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
                 columnOrdering = scanInformation.getColumnOrdering();
@@ -281,20 +278,25 @@ public class TableScanOperation extends ScanOperation {
 		protected void updateStats(OperationRuntimeStats stats) {
 				if(regionScanner!=null){
 						TimeView readTimer = regionScanner.getReadTime();
-						long bytesRead = regionScanner.getBytesOutput();
+//						long bytesRead = regionScanner.getBytesOutput();
 						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsVisited());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,regionScanner.getBytesVisited());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTimer.getCpuTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTimer.getUserTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,readTimer.getWallClockTime());
-                        stats.addMetric(OperationMetric.FILTERED_ROWS,regionScanner.getRowsFiltered());
+						long filtered = regionScanner.getRowsFiltered();
+						if(filterCount !=null)
+								filtered+= filterCount.getTotal();
+						stats.addMetric(OperationMetric.FILTERED_ROWS,filtered);
 				}
 		}
 
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException {
-				if(timer==null)
+				if(timer==null){
 						timer = spliceRuntimeContext.newTimer();
+						filterCount = spliceRuntimeContext.newCounter();
+				}
 
 				timer.startTiming();
 
@@ -305,7 +307,7 @@ public class TableScanOperation extends ScanOperation {
 						keyValues = Lists.newArrayListWithExpectedSize(2);
 
 				FilterStatePacked filter = getSIFilter();
-				boolean hasRow = true;
+				boolean hasRow;
 				do{
 						keyValues.clear();
 						hasRow = regionScanner.next(keyValues);
@@ -320,12 +322,11 @@ public class TableScanOperation extends ScanOperation {
 								DataValueDescriptor[] fields = currentRow.getRowArray();
 								if (fields.length != 0) {
 										// Apply predicate to the row key first
-										if (!filterRowKey(spliceRuntimeContext, keyValues.get(0), columnOrder, keyDecoder)) continue;
-										if (!filterRow(filter)) continue;
+										if (!filterRowKey(spliceRuntimeContext, keyValues.get(0), columnOrder, keyDecoder)||!filterRow(filter)){
+												filterCount.increment();
+												continue;
+										}
 
-
-										// Decode row data
-//										RowMarshaller.sparsePacked().decode(keyValue,fields,baseColumnMap, getRowDecoder());
 										// Decode key data if primary key is accessed
 										if (scanInformation.getAccessedPkColumns() != null &&
 														scanInformation.getAccessedPkColumns().getNumBitsSet() > 0) {
@@ -360,8 +361,7 @@ public class TableScanOperation extends ScanOperation {
 						*/
 						currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
 				} else {
-						KeyValue kv = sampleKv;
-						slice.set(kv.getBuffer(), kv.getRowOffset(), kv.getRowLength());
+						slice.set(sampleKv.getBuffer(), sampleKv.getRowOffset(), sampleKv.getRowLength());
 						currentRowLocation.setValue(slice);
 				}
 		}
