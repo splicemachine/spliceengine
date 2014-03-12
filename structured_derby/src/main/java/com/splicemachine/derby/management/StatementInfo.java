@@ -140,9 +140,12 @@ public class StatementInfo {
 
 		public void cancel() throws ExecutionException {
 				isCancelled=true;
+				if(runningJobIds==null) return;
+
 				for(JobInfo runningJob:runningJobIds){
 						runningJob.cancel();
-						completedJobIds.add(runningJob);
+						if(completedJobIds!=null)
+								completedJobIds.add(runningJob);
 				}
 				runningJobIds.clear();
 		}
