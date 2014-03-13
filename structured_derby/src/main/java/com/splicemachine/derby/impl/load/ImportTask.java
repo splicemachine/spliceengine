@@ -173,8 +173,10 @@ public class ImportTask extends ZkTask{
 
 				PairDecoder decoder = ImportUtils.newEntryEncoder(rowTemplate,importContext,getUuidGenerator()).getDecoder(rowTemplate);
 
-				QueuedErrorReporter delegate = new QueuedErrorReporter(
-								Math.min((int) maxBadRecords, SpliceConstants.importLogQueueSize),
+				long queueSize = maxBadRecords;
+				if(maxBadRecords==0|| maxBadRecords > SpliceConstants.importLogQueueSize)
+						queueSize = SpliceConstants.importLogQueueSize;
+				QueuedErrorReporter delegate = new QueuedErrorReporter( (int)queueSize,
 								SpliceConstants.importLogQueueWaitTimeMs, errorLogger, decoder);
 				/*
 				 * When maxBadRecords = 0, then we want to log everything and never fail. This is to match
