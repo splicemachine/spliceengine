@@ -4,15 +4,23 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.UUIDGenerator;
+import com.splicemachine.utils.file.DefaultFileInfo;
+import com.splicemachine.utils.file.FileInfo;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -201,6 +209,56 @@ public class ImportUtils {
 						return pkCols;
 				}finally{
 						if(rs!=null)rs.close();
+				}
+		}
+
+		public static void validateReadable(ImportFile file) throws StandardException{
+				try {
+						List<Path> paths = file.getPaths();
+						FileSystem fs = file.getFileSystem();
+						for(Path path:paths){
+								validateReadable(path,fs,false);
+						}
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+		}
+
+		public static void validateReadable(Path path,FileSystem fileSystem,boolean checkDirectory) throws StandardException {
+				//check that the badLogDirectory exists and is writable
+				if(path!=null){
+						FileInfo badLogInfo = new DefaultFileInfo(fileSystem);
+						try{
+								if(checkDirectory && !badLogInfo.isDirectory(path))
+										throw ErrorState.LANG_FILE_DOES_NOT_EXIST.newException(path.toString());
+								if(!badLogInfo.isReadable(path)){
+										String[] ugi = badLogInfo.getUserAndGroup();
+										throw ErrorState.LANG_NO_READ_PERMISSION.newException(ugi[0],ugi[1],path.toString());
+								}
+						}catch(FileNotFoundException fnfe){
+								throw Exceptions.parseException(fnfe);
+						}catch(IOException ioe){
+								throw Exceptions.parseException(ioe);
+						}
+				}
+		}
+
+		public static void validateWritable(Path path,FileSystem fileSystem,boolean checkDirectory) throws StandardException {
+				//check that the badLogDirectory exists and is writable
+				if(path!=null){
+						FileInfo badLogInfo = new DefaultFileInfo(fileSystem);
+						try{
+								if(checkDirectory && !badLogInfo.isDirectory(path))
+										throw ErrorState.LANG_NOT_A_DIRECTORY.newException(path.toString());
+								if(!badLogInfo.isWritable(path)){
+										String[] ugi = badLogInfo.getUserAndGroup();
+										throw ErrorState.LANG_NO_WRITE_PERMISSION.newException(ugi[0],ugi[1],path.toString());
+								}
+						}catch(FileNotFoundException fnfe){
+								throw Exceptions.parseException(fnfe);
+						}catch(IOException ioe){
+								throw Exceptions.parseException(ioe);
+						}
 				}
 		}
 }

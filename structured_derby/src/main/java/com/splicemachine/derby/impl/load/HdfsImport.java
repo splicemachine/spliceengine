@@ -14,6 +14,8 @@ import java.util.concurrent.ExecutionException;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
+import com.splicemachine.utils.file.DefaultFileInfo;
+import com.splicemachine.utils.file.FileInfo;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -34,7 +36,6 @@ import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
 import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HConstants;
@@ -312,18 +313,12 @@ public class HdfsImport {
                 }
             try{
 						ImportFile file = new ImportFile(context.getFilePath().toString());
-						//check that the badLogDirectory exists and is writable
-						Path badLogDir = context.getBadLogDirectory();
-						if(badLogDir!=null){
-								FileSystem fileSystem = file.getFileSystem();
-								try{
-										FileStatus status = fileSystem.getFileStatus(badLogDir);
-										if(!status.isDir())
-												throw ErrorState.LANG_FILE_DOES_NOT_EXIST.newException(badLogDir.toString());
-								}catch(FileNotFoundException fnfe){
-										throw Exceptions.parseException(fnfe);
-								}
-						}
+						FileSystem fileSystem = file.getFileSystem();
+						//make sure that we can read and write as needed
+						ImportUtils.validateReadable(context.getFilePath(),fileSystem,false);
+						ImportUtils.validateReadable(file);
+						ImportUtils.validateWritable(context.getBadLogDirectory(),fileSystem,true);
+
 						byte[] tableName = context.getTableName().getBytes();
 						try {
 								splitToFit(tableName,file);
@@ -400,6 +395,8 @@ public class HdfsImport {
 								Closeables.closeQuietly(admin);
 				}
 		}
+
+
 
 		private void splitToFit(byte[] tableName, ImportFile file) throws IOException {
 				/*

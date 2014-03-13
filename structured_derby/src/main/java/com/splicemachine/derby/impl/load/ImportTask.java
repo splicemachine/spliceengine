@@ -172,7 +172,7 @@ public class ImportTask extends ZkTask{
 				return SpliceDriver.driver().getUUIDGenerator().newGenerator(128);
 		}
 
-		protected RowErrorLogger getErrorLogger() {
+		protected RowErrorLogger getErrorLogger() throws StandardException {
 				if(importContext.getMaxBadRecords()<=0)
 						return NoopErrorLogger.INSTANCE;
 
@@ -180,8 +180,12 @@ public class ImportTask extends ZkTask{
 				 * Made protected so that it can be easily overridden for testing.
 				 */
 				Path directory = importContext.getBadLogDirectory();
-				if(directory==null)
+				if(directory==null){
 						directory = importContext.getFilePath().getParent();
+						//make sure that we can write to this directory, otherwise it's no good either
+						ImportUtils.validateWritable(directory,fileSystem,false);
+				}
+
 				Path badLogFile = new Path(directory,"_BAD_"+importContext.getFilePath().getName()+"_"+Bytes.toLong(taskId));
 
 				return new FileErrorLogger(fileSystem,badLogFile);
