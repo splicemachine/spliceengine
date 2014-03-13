@@ -7,6 +7,7 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -834,6 +835,10 @@ public class SpliceConstants {
 				constraintsEnabled = config.getBoolean(CONSTRAINTS_ENABLED,DEFAULT_CONSTRAINTS_ENABLED);
 
 				importLogQueueSize = config.getInt(IMPORT_LOG_QUEUE_SIZE, DEFAULT_IMPORT_LOG_QUEUE_SIZE);
+				if(importLogQueueSize<=0){
+						Logger.getRootLogger().error("Unable to set import log queue size to a value <= 0. Setting it to the default of "+ DEFAULT_IMPORT_LOG_QUEUE_SIZE);
+						importLogQueueSize = DEFAULT_IMPORT_LOG_QUEUE_SIZE;
+				}
 
 				importLogQueueWaitTimeMs = config.getLong(IMPORT_LOG_QUEUE_WAIT_TIME,DEFAULT_IMPORT_LOG_QUEUE_WAIT_TIME);
 		}
