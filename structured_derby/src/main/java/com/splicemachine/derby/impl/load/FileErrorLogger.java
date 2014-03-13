@@ -23,9 +23,17 @@ public class FileErrorLogger implements RowErrorLogger{
 		private FSDataOutputStream outputStream;
 		private BufferedWriter writer;
 
-		public FileErrorLogger(FileSystem fs, Path outputFile) {
+		private long rowsWritten = 0l;
+		private long syncBufferInterval;
+
+		public FileErrorLogger(FileSystem fs, Path outputFile, long syncBufferInterval) {
 				this.fs = fs;
 				this.outputFile = outputFile;
+				long sbi = 1l;
+				while(sbi<syncBufferInterval){
+					sbi<<=1;
+				}
+				this.syncBufferInterval = sbi-1; //power of 2 for uber efficiency
 		}
 
 		@Override
@@ -81,6 +89,12 @@ public class FileErrorLogger implements RowErrorLogger{
 
 				LOG.trace("Writing line to writer "+ writer );
 				writer.write(sb.toString());
+				rowsWritten++;
+				if((rowsWritten & syncBufferInterval)==0){
+						writer.flush();
+						outputStream.hsync();
+				}
+
 				writer.newLine();
 		}
 
