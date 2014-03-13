@@ -121,6 +121,17 @@ public class ImportTask extends ZkTask{
 												String[][] lines = reader.nextRowBatch();
 
 												shouldContinue = importer.processBatch(lines);
+												if(shouldContinue)
+														rowsRead+=lines.length;
+												else if(lines!=null && lines[0]!=null){
+														for(int i=0;i<lines.length;i++){
+																if(lines[i]==null){
+																		rowsRead+=(i-1);
+																		break;
+																}
+														}
+												}
+
 										}while(shouldContinue);
 								} catch (Exception e) {
 										throw new ExecutionException(e);
