@@ -26,12 +26,36 @@ public class ThresholdErrorReporter implements ImportErrorReporter {
 
 		@Override
 		public boolean reportError(KVPair kvPair, WriteResult result) {
-				return delegate.reportError(kvPair, result) && errors.getAndIncrement() < maxErrorCount;
+				/*
+				 * This is written this way to tolerate multiple concurrent access.
+				 *
+				 * With this structure, up to maxErrorCount rows will be recorded, but the
+				 * import will be failed WHEN the number reported equals maxErrorCount.
+				 *
+				 * Thus, for example, if the maxErrorCount is 10, then 10 row will be recorded,
+				 * but the 10th logged error will fail the import.
+				 */
+				long errorCount = errors.incrementAndGet();
+				if(errorCount> maxErrorCount) return false;
+				delegate.reportError(kvPair,result);
+				return errorCount< maxErrorCount;
 		}
 
 		@Override
 		public boolean reportError(String row, WriteResult result) {
-				return errors.getAndIncrement() <= maxErrorCount && delegate.reportError(row, result);
+				/*
+				 * This is written this way to tolerate multiple concurrent access.
+				 *
+				 * With this structure, up to maxErrorCount rows will be recorded, but the
+				 * import will be failed WHEN the number reported equals maxErrorCount.
+				 *
+				 * Thus, for example, if the maxErrorCount is 10, then 10 row will be recorded,
+				 * but the 10th logged error will fail the import.
+				 */
+				long errorCount = errors.incrementAndGet();
+				if(errorCount> maxErrorCount) return false;
+				delegate.reportError(row,result);
+				return errorCount< maxErrorCount;
 		}
 
 		@Override public long errorsReported() { return errors.get(); }
