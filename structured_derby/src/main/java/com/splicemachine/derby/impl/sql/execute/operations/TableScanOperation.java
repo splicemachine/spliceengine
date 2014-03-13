@@ -348,6 +348,10 @@ public class TableScanOperation extends ScanOperation {
 														scanInformation.getAccessedPkColumns().getNumBitsSet() > 0) {
 												marshaller.decode(keyValues.get(0), fields, baseColumnMap, keyDecoder, columnOrder, getColumnDVDs());
 										}
+								}else if(!filterRow(filter)){
+										//still need to filter rows to deal with transactional issue
+										filterCount.increment();
+										continue;
 								}
 								setRowLocation(keyValues.get(0));
 								break;
