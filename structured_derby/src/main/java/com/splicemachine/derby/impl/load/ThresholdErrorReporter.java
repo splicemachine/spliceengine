@@ -31,7 +31,7 @@ public class ThresholdErrorReporter implements ImportErrorReporter {
 
 		@Override
 		public boolean reportError(String row, WriteResult result) {
-				return errors.incrementAndGet() < maxErrorCount && delegate.reportError(row, result);
+				return errors.getAndIncrement() <= maxErrorCount && delegate.reportError(row, result);
 		}
 
 		@Override public long errorsReported() { return errors.get(); }
