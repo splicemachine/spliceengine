@@ -100,6 +100,9 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 		}
 
 		public void open(boolean useProbe) throws StandardException{
+			open(useProbe,true);
+		}
+		public void open(boolean useProbe,boolean showStatementInfo) throws StandardException{
 				SpliceLogUtils.trace(LOG,"openCore");
 				closed=false;
 				if(delegate!=null) delegate.close();
@@ -107,7 +110,8 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 						SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation);
 						topOperation.init(operationContext);
 						topOperation.open();
-						statementInfo = initStatmentInfo(statementInfo, operationContext);
+						if(showStatementInfo)
+								statementInfo = initStatmentInfo(statementInfo, operationContext);
 
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
@@ -115,7 +119,8 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
 				try{
 						SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
-						runtimeContext.setStatementInfo(statementInfo);
+						if(showStatementInfo)
+								runtimeContext.setStatementInfo(statementInfo);
 						if(activation.getLanguageConnectionContext().getStatisticsTiming()){
 								runtimeContext.recordTraceMetrics();
 								String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
