@@ -145,8 +145,15 @@ public class SequentialImporter implements Importer{
 				return closed;
 		}
 
-		@Override public WriteStats getWriteStats() { return writeBuffer.getWriteStats(); }
-		@Override public TimeView getTotalTime() { return writeTimer.getTime(); }
+		@Override public WriteStats getWriteStats() {
+				if(writeBuffer==null) return WriteStats.NOOP_WRITE_STATS;
+				return writeBuffer.getWriteStats();
+		}
+		@Override
+		public TimeView getTotalTime() {
+				if(writeTimer==null) return Metrics.noOpTimeView();
+				return writeTimer.getTime();
+		}
 
 		@Override
 		public void close() throws IOException {
