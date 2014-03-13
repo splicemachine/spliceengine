@@ -85,7 +85,7 @@ public class ImportErrorIT {
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!","XIE04",se.getSQLState());
 
-                String correctErrorMessage = "Data file not found: ["+location+"]";
+                String correctErrorMessage = String.format("Data file not found: File %s does not exist",location);
                 Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });

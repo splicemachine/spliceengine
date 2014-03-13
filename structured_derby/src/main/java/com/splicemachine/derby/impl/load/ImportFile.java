@@ -4,6 +4,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.utils.SpliceUtils;
 
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -86,6 +87,7 @@ class ImportFile {
 				this.inputPath = inputPath;
 				fileSystem = FileSystem.get(SpliceUtils.config);
 		}
+
 
 		public List<Path> getPaths() throws IOException {
 				if(fileStatus==null)

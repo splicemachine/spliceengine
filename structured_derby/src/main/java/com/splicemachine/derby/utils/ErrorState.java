@@ -1875,7 +1875,10 @@ public enum ErrorState {
 						return StandardException.newException(getSqlState());
 				}
 		},
-		LANG_IMPORT_TOO_MANY_BAD_RECORDS("SE009");
+		LANG_IMPORT_TOO_MANY_BAD_RECORDS("SE009"),
+		LANG_NO_WRITE_PERMISSION("SE010"),
+		LANG_NO_READ_PERMISSION("SE011"),
+		LANG_NOT_A_DIRECTORY("SE012");
 
 		private final String sqlState;
 
