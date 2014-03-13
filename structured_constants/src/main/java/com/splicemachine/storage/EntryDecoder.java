@@ -48,7 +48,8 @@ public class EntryDecoder {
         dataOffset = 0;
         // Short Circuit the bit index if I look like the last one.        
         if (lastBitIndex != null && data != null && lastBitIndex.getEncodedBitMap() != null && length > lastBitIndex.getEncodedBitMapLength()) {
-        	if (Bytes.equals(data, offset, length, lastBitIndex.getEncodedBitMap(), lastBitIndex.getEncodedBitMapOffset(), lastBitIndex.getEncodedBitMapLength())) {
+        	if (Bytes.equals(data, offset, lastBitIndex.getEncodedBitMapLength(), lastBitIndex.getEncodedBitMap(), lastBitIndex.getEncodedBitMapOffset(), lastBitIndex.getEncodedBitMapLength()) &&
+        			data[lastBitIndex.getEncodedBitMapOffset()+lastBitIndex.getEncodedBitMapLength()] == 0x00) {
         		dataOffset = lastBitIndex.getEncodedBitMapLength()+1;
         		bitIndex = lastBitIndex;
         		return;
