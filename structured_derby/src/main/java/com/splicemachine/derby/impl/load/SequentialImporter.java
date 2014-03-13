@@ -82,22 +82,17 @@ public class SequentialImporter implements Importer{
 								IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
 								IntObjectOpenHashMap<WriteResult> filteredRows = IntObjectOpenHashMap.newInstance();
 								for(IntObjectCursor<WriteResult> resultCursor:failedRows){
-										switch(resultCursor.value.getCode()){
-												case FAILED:
-												case WRITE_CONFLICT:
-												case PRIMARY_KEY_VIOLATION:
-												case UNIQUE_VIOLATION:
-												case FOREIGN_KEY_VIOLATION:
-												case CHECK_VIOLATION:
-														if(!errorReporter.reportError((KVPair)request.getBuffer()[resultCursor.key],resultCursor.value)){
-																if(errorReporter ==FailAlwaysReporter.INSTANCE)
-																		return super.partialFailure(result,request);
-																else
-																		throw new ExecutionException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException());
-														}
-														break;
-												default:
-														filteredRows.put(resultCursor.index,resultCursor.value);
+										WriteResult value = resultCursor.value;
+										int rowNum = resultCursor.key;
+										if(!value.canRetry()){
+												if(!errorReporter.reportError((KVPair)request.getBuffer()[rowNum],value)){
+														if(errorReporter ==FailAlwaysReporter.INSTANCE)
+																return super.partialFailure(result,request);
+														else
+																throw new ExecutionException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException());
+												}
+										}else{
+												filteredRows.put(rowNum,value);
 										}
 								}
 								result.setFailedRows(filteredRows);
