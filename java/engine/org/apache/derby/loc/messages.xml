@@ -8414,6 +8414,25 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 							<name>SE009</name>
 							<text>Too many bad records in import</text>
 						</msg>
+						<msg>
+							<name>SE010</name>
+							<text>User:Group {0}:{1} does not have write priviledges for file/directory {2}</text>
+							<arg>user</arg>
+							<arg>group</arg>
+							<arg>file</arg>
+						</msg>
+						<msg>
+							<name>SE011</name>
+							<text>User:Group {0}:{1} does not have read priviledges for file/directory {2}</text>
+							<arg>user</arg>
+							<arg>group</arg>
+							<arg>file</arg>
+						</msg>
+						<msg>
+							<name>SE012</name>
+							<text>file {0} must be a directory</text>
+							<arg>file</arg>
+						</msg>
        </family>
     </section>
 
