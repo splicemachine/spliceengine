@@ -176,6 +176,7 @@ public class ImportTask extends ZkTask{
 				long queueSize = maxBadRecords;
 				if(maxBadRecords==0|| maxBadRecords > SpliceConstants.importLogQueueSize)
 						queueSize = SpliceConstants.importLogQueueSize;
+
 				QueuedErrorReporter delegate = new QueuedErrorReporter( (int)queueSize,
 								SpliceConstants.importLogQueueWaitTimeMs, errorLogger, decoder);
 				/*
