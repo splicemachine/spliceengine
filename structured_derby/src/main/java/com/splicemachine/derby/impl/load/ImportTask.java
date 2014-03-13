@@ -199,7 +199,7 @@ public class ImportTask extends ZkTask{
 
 				Path badLogFile = new Path(directory,"_BAD_"+importContext.getFilePath().getName()+"_"+Bytes.toLong(taskId));
 
-				return new FileErrorLogger(fileSystem,badLogFile);
+				return new FileErrorLogger(fileSystem,badLogFile,128);
 		}
 
 		protected void reportStats(long startTimeMs, long stopTimeMs,TimeView processTime,TimeView totalTimeView) {
