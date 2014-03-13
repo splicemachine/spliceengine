@@ -4,10 +4,9 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
-import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.hbase.writer.Writer;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
@@ -21,7 +20,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.sql.Date;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
@@ -525,13 +523,12 @@ public class ImportTaskTest {
         ImportTask importTask = new ImportTask("TEST_JOB",ctx,reader,importer,1,"TEST_TXN", Bytes.toBytes(-1l)){
 						@Override
 						protected RowErrorLogger getErrorLogger() {
-								return new RowErrorLogger() {
-										@Override public void report(String row, WriteResult result) throws IOException {  }
-										@Override public void deleteLog() throws IOException {  }
-										@Override public void open() throws IOException {  }
+								return NoopErrorLogger.INSTANCE;
+						}
 
-										@Override public void close() throws IOException {  }
-								};
+						@Override
+						protected ImportErrorReporter getErrorReporter(ExecRow rowTemplate, RowErrorLogger errorLogger) {
+								return FailAlwaysReporter.INSTANCE;
 						}
 				};
         importTask.doExecute();

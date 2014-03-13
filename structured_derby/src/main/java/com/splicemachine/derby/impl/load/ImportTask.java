@@ -167,7 +167,7 @@ public class ImportTask extends ZkTask{
 				}
 		}
 
-		private ImportErrorReporter getErrorReporter(ExecRow rowTemplate,RowErrorLogger errorLogger) {
+		protected ImportErrorReporter getErrorReporter(ExecRow rowTemplate,RowErrorLogger errorLogger) {
 				long maxBadRecords = importContext.getMaxBadRecords();
 				if(maxBadRecords<0) return FailAlwaysReporter.INSTANCE;
 
