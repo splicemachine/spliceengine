@@ -163,7 +163,7 @@ public class HdfsImport {
 																				 String timestampFormat,
 																				 String dateFormat,
 																				 String timeFormat) throws SQLException {
-			IMPORT_DATA(schemaName,tableName,insertColumnList,fileName,columnDelimiter,characterDelimiter,timestampFormat,dateFormat,timeFormat,0,null,new ResultSet[1]);
+			IMPORT_DATA(schemaName,tableName,insertColumnList,fileName,columnDelimiter,characterDelimiter,timestampFormat,dateFormat,timeFormat,-1,null,new ResultSet[1]);
 		}
 
 		private static final ResultColumnDescriptor[] IMPORT_RESULT_COLUMNS = new GenericColumnDescriptor[]{

@@ -169,14 +169,22 @@ public class ImportTask extends ZkTask{
 
 		private ImportErrorReporter getErrorReporter(ExecRow rowTemplate,RowErrorLogger errorLogger) {
 				long maxBadRecords = importContext.getMaxBadRecords();
-				if(maxBadRecords<=0) return FailAlwaysReporter.INSTANCE;
-
-
+				if(maxBadRecords<0) return FailAlwaysReporter.INSTANCE;
 
 				PairDecoder decoder = ImportUtils.newEntryEncoder(rowTemplate,importContext,getUuidGenerator()).getDecoder(rowTemplate);
-				return new ThresholdErrorReporter(maxBadRecords,new QueuedErrorReporter(
-								Math.min((int)maxBadRecords,SpliceConstants.importLogQueueSize),
-								SpliceConstants.importLogQueueWaitTimeMs,errorLogger,decoder));
+
+				QueuedErrorReporter delegate = new QueuedErrorReporter(
+								Math.min((int) maxBadRecords, SpliceConstants.importLogQueueSize),
+								SpliceConstants.importLogQueueWaitTimeMs, errorLogger, decoder);
+				/*
+				 * When maxBadRecords = 0, then we want to log everything and never fail. This is to match
+				 * Oracle etc.'s behavior (and thus be more like what people expect). Otherwise, we have a maximum
+				 * threshold that we need to adhere to.
+				 */
+				if(maxBadRecords==0)
+						return delegate;
+				else
+						return new ThresholdErrorReporter(maxBadRecords, delegate);
 		}
 
 		protected UUIDGenerator getUuidGenerator() {
@@ -184,7 +192,7 @@ public class ImportTask extends ZkTask{
 		}
 
 		protected RowErrorLogger getErrorLogger() throws StandardException {
-				if(importContext.getMaxBadRecords()<=0)
+				if(importContext.getMaxBadRecords()<0)
 						return NoopErrorLogger.INSTANCE;
 
 				/*
