@@ -37,8 +37,6 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
@@ -169,9 +167,12 @@ public class RowProviders {
 						info = new JobInfo(job.getJobId(), jobFuture.getNumTasks(), startTimeMs);
 						info.setJobFuture(jobFuture);
 						info.tasksRunning(jobFuture.getAllTaskIds());
-						stmtInfo.addRunningJob(Bytes.toLong(instructions.getTopOperation().getUniqueSequenceID()),info);
+						if(stmtInfo!=null){
+								stmtInfo.addRunningJob(Bytes.toLong(instructions.getTopOperation().getUniqueSequenceID()),info);
+								jobFuture.addCleanupTask(StatementInfo.completeOnClose(stmtInfo, info));
+						}
 						jobFuture.addCleanupTask(table);
-						jobFuture.addCleanupTask(StatementInfo.completeOnClose(stmtInfo, info));
+
 						return Pair.newPair(jobFuture, info);
 
 				} catch (ExecutionException e) {
@@ -194,7 +195,9 @@ public class RowProviders {
 				if (scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS) == null)
 						SpliceUtils.setInstructions(scan, instructions);
 				boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
-				long statementId = instructions.getSpliceRuntimeContext().getStatementInfo().getStatementUuid();
+				StatementInfo info = instructions.getSpliceRuntimeContext().getStatementInfo();
+
+				long statementId = info!=null? info.getStatementUuid(): -1l;
 				Activation activation = instructions.getTopOperation().getActivation();
 				LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 				return new OperationJob(scan, instructions, table, readOnly,lcc.getRunTimeStatisticsMode(),statementId,lcc.getXplainSchema());
