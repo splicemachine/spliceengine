@@ -171,7 +171,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	@Test
 	public void testImportISODateFormat() throws Exception{
 		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
-				",',','\"','yyyy-MM-dd''T''hh:mm:ss.SSS',null,null)",spliceSchemaWatcher.schemaName,TABLE_9));
+				",',','\"','yyyy-MM-dd''T''HH:mm:ss.SSS',null,null)",spliceSchemaWatcher.schemaName,TABLE_9));
         ps.setString(1,getResourceDirectory()+"iso_order_date.csv");
 		ps.execute();
 
@@ -214,7 +214,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 				methodWatcher.executeUpdate("delete from "+spliceTableWatcher9);
 
 				PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
-								",',','\"','yyyy-MM-dd hh:mm:ssZ',null,null)",spliceSchemaWatcher.schemaName,TABLE_9));
+								",',','\"','yyyy-MM-dd HH:mm:ssZ',null,null)",spliceSchemaWatcher.schemaName,TABLE_9));
 				ps.setString(1,getResourceDirectory()+"tz_order_date.cs");
 				ps.execute();
 
