@@ -1,9 +1,11 @@
 package com.splicemachine.derby.impl.ast;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -11,7 +13,6 @@ import org.apache.derby.impl.sql.compile.*;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 
@@ -22,6 +23,7 @@ import java.util.*;
 public class PlanPrinter extends AbstractSpliceVisitor {
 
     public static Logger LOG = Logger.getLogger(PlanPrinter.class);
+    public static Logger PLAN_LOG = Logger.getLogger(PlanPrinter.class.getName() + ".JSONLog");
 
     public static final String spaces = "  ";
 
@@ -40,11 +42,18 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     @Override
     public Visitable defaultVisit(Visitable node) throws StandardException {
         ResultSetNode rsn;
-        if (LOG.isInfoEnabled() &&
+        if ((LOG.isInfoEnabled() || PLAN_LOG.isTraceEnabled()) &&
                 node instanceof DMLStatementNode &&
                 (rsn = ((DMLStatementNode) node).getResultSetNode()) != null) {
-            LOG.info(String.format("Plan nodes for query <<\n\t%s\n>>\n%s",
-                    query, treeToString(rsn)));
+            if (LOG.isInfoEnabled()){
+                LOG.info(String.format("Plan nodes for query <<\n\t%s\n>>\n%s",
+                        query, treeToString(rsn)));
+            }
+            if (PLAN_LOG.isTraceEnabled()){
+                Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                PLAN_LOG.trace(gson.toJson(
+                                              ImmutableMap.of("query", query, "plan", nodeInfo(rsn, 0))));
+            }
         }
         return node;
     }
@@ -80,15 +89,26 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         return String.format("%s%s (%s)",
                 Strings.repeat(spaces, level),
                 clazz,
-                prune(without(copy, "class", "level", "subqueries")));
+                prune(without(copy, "class", "level", "subqueries", "children")));
     }
 
-    public static Map<String,Object> nodeInfo(ResultSetNode rsn, int level)
+    public static Map<String,Object> nodeInfo(final ResultSetNode rsn, final int level)
             throws StandardException {
         Map<String,Object> info = new HashMap<String, Object>();
         info.put("class", JoinInfo.className.apply(rsn));
         info.put("n", rsn.getResultSetNumber());
         info.put("level", level);
+        List<ResultSetNode> children = RSUtils.getChildren(rsn);
+        info.put("children", Lists.transform(children, new Function<ResultSetNode, Map<String,Object>>() {
+            @Override
+            public Map<String,Object> apply(ResultSetNode child) {
+                try {
+                    return nodeInfo(child, level + 1);
+                } catch (StandardException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }));
         List<SubqueryNode> subs = RSUtils.collectExpressionNodes(rsn, SubqueryNode.class);
         info.put("subqueries", Lists.transform(subs, new Function<SubqueryNode, Map>() {
             @Override
@@ -136,13 +156,13 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         return info;
     }
 
-    public static List<Map<String,Object>> treeToInfoNodes(int level, ResultSetNode node)
+    public static List<Map<String,Object>> linearizeNodeInfoTree(Map<String, Object> info)
             throws StandardException {
-        List<ResultSetNode> children = RSUtils.getChildren(node);
+        List<Map<String,Object>> children = (List<Map<String,Object>>)info.get("children");
         List<Map<String,Object>> nodes = new LinkedList<Map<String, Object>>();
-        nodes.add(nodeInfo(node, level));
-        for (ResultSetNode child : Lists.reverse(children)) {
-            nodes.addAll(treeToInfoNodes(level + 1, child));
+        nodes.add(info);
+        for (Map<String,Object> child : Lists.reverse(children)) {
+            nodes.addAll(linearizeNodeInfoTree(child));
         }
         return nodes;
     }
@@ -151,7 +171,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             throws StandardException {
         List<Pair<Integer,Map>> subs = new LinkedList<Pair<Integer, Map>>();
         StringBuilder sb = new StringBuilder();
-        List<Map<String,Object>> nodes = treeToInfoNodes(initLevel, rsn);
+        List<Map<String,Object>> nodes = linearizeNodeInfoTree(nodeInfo(rsn, initLevel));
         for (Map<String,Object> node: nodes){
             List<Map> subqs = (List<Map>)node.get("subqueries");
             if (subqs != null){
