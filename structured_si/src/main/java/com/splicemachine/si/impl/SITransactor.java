@@ -1,33 +1,43 @@
 package com.splicemachine.si.impl;
 
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.lang.reflect.Array;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.api.*;
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.STableWriter;
-
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nullable;
-
-import java.io.IOException;
-import java.lang.reflect.Array;
-import java.util.*;
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.api.Clock;
+import com.splicemachine.si.api.RollForwardQueue;
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.TransactionStatus;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.api.STableWriter;
 
 /**
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
@@ -36,34 +46,36 @@ import java.util.*;
 @SuppressWarnings("unchecked")
 
 public class SITransactor<Table,
-				Mutation extends OperationWithAttributes,
-				Put extends Mutation,
-				Get extends OperationWithAttributes,
+        Mutation extends OperationWithAttributes,
+        Put extends Mutation,
+        Get extends OperationWithAttributes,
         Scan extends OperationWithAttributes,
-				Delete extends OperationWithAttributes>
-        implements Transactor<Table, Mutation,Put> {
-    static final Logger LOG = Logger.getLogger(SITransactor.class);
+        Delete extends OperationWithAttributes>
+        implements Transactor<Table, Mutation, Put> {
     public static final int MAX_ACTIVE_COUNT = 1000;
-
-		private final SDataLib<Put, Delete, Get, Scan> dataLib;
+    static final Logger LOG = Logger.getLogger(SITransactor.class);
+    private static final boolean unsafeWrites = Boolean.getBoolean("splice.unsafe.writes");
+    private final SDataLib<Put, Delete, Get, Scan> dataLib;
     private final STableWriter<Table, Mutation, Put, Delete> dataWriter;
     private final DataStore<Mutation, Put, Delete, Get, Scan, Table> dataStore;
     private final TransactionStore transactionStore;
     private final Clock clock;
     private final int transactionTimeoutMS;
+    private final TransactionSource transactionSource;
+    private final TransactionManager transactionManager;
 
-		private final TransactionSource transactionSource;
+    // Operation pre-processing. These are to be called "server-side" when we are about to process an operation.
 
-		private final TransactionManager transactionManager;
+    // Process update operations
 
-		private SITransactor(SDataLib dataLib,
-												 STableWriter dataWriter,
-												 DataStore dataStore,
-												 final TransactionStore transactionStore,
-												 Clock clock,
-												 int transactionTimeoutMS,
-												 TransactionManager transactionManager) {
-				transactionSource = new TransactionSource() {
+    private SITransactor(SDataLib dataLib,
+                         STableWriter dataWriter,
+                         DataStore dataStore,
+                         final TransactionStore transactionStore,
+                         Clock clock,
+                         int transactionTimeoutMS,
+                         TransactionManager transactionManager) {
+        transactionSource = new TransactionSource() {
             @Override
             public Transaction getTransaction(long timestamp) throws IOException {
                 return transactionStore.getTransaction(timestamp);
@@ -75,42 +87,38 @@ public class SITransactor<Table,
         this.transactionStore = transactionStore;
         this.clock = clock;
         this.transactionTimeoutMS = transactionTimeoutMS;
-		this.transactionManager = transactionManager;
+        this.transactionManager = transactionManager;
     }
-
-		// Operation pre-processing. These are to be called "server-side" when we are about to process an operation.
-
-		// Process update operations
 
     @Override
     public boolean processPut(Table table, RollForwardQueue rollForwardQueue, Put put) throws IOException {
-    			if(!isFlaggedForSITreatment(put)) return false;
-				final Put[] mutations = (Put[])Array.newInstance(put.getClass(),1);
-				mutations[0] = put;
-				OperationStatus[] operationStatuses = processPutBatch(table,rollForwardQueue,mutations);
-				switch(operationStatuses[0].getOperationStatusCode()){
-						case NOT_RUN:
-								return false;
-						case BAD_FAMILY:
-								throw new NoSuchColumnFamilyException(operationStatuses[0].getExceptionMsg());
-						case SANITY_CHECK_FAILURE:
-								throw new IOException("Sanity Check failure:" +operationStatuses[0].getExceptionMsg());
-						case FAILURE:
-								throw new IOException(operationStatuses[0].getExceptionMsg());
-						default:
-								return true;
-				}
+        if (!isFlaggedForSITreatment(put)) return false;
+        final Put[] mutations = (Put[]) Array.newInstance(put.getClass(), 1);
+        mutations[0] = put;
+        OperationStatus[] operationStatuses = processPutBatch(table, rollForwardQueue, mutations);
+        switch (operationStatuses[0].getOperationStatusCode()) {
+            case NOT_RUN:
+                return false;
+            case BAD_FAMILY:
+                throw new NoSuchColumnFamilyException(operationStatuses[0].getExceptionMsg());
+            case SANITY_CHECK_FAILURE:
+                throw new IOException("Sanity Check failure:" + operationStatuses[0].getExceptionMsg());
+            case FAILURE:
+                throw new IOException(operationStatuses[0].getExceptionMsg());
+            default:
+                return true;
+        }
     }
 
-		@Override
+    @Override
     public OperationStatus[] processPutBatch(Table table, RollForwardQueue rollForwardQueue, Put[] mutations)
             throws IOException {
         if (mutations.length == 0) {
             //short-circuit special case of empty batch
-						//noinspection unchecked
-						return dataStore.writeBatch(table, new Pair[0]);
+            //noinspection unchecked
+            return dataStore.writeBatch(table, new Pair[0]);
         }
-				/*
+                /*
 				 * Here we convert a Put into a KVPair.
 				 *
 				 * Each Put represents a single row, but a KVPair represents a single column. Each row
@@ -135,164 +143,173 @@ public class SITransactor<Table,
 				 * To be frank, this is only here to support legacy code without needing to rewrite everything under
 				 * the sun. You should almost certainly NOT use it.
 				 */
-				Map<String,Map<byte[],Map<byte[],List<KVPair>>>> kvPairMap = Maps.newHashMap();
-				for(Put mutation:mutations){
-						String txnId = dataStore.getTransactionid(mutation);
-						boolean isDelete = dataStore.getDeletePutAttribute(mutation);
-						byte[] row = dataLib.getPutKey(mutation);
-						Iterable<KeyValue> keyValues = dataLib.listPut(mutation);
-						boolean isSIDataOnly = true;
-						for(KeyValue keyValue:keyValues){
-								byte[] family = keyValue.getFamily();
-								byte[] column = keyValue.getQualifier();
-								if(!Bytes.equals(column,SIConstants.PACKED_COLUMN_BYTES)) {
-										continue; //skip SI columns
-								}
+        Map<String, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap = Maps.newHashMap();
+        for (Put mutation : mutations) {
+            String txnId = dataStore.getTransactionid(mutation);
+            boolean isDelete = dataStore.getDeletePutAttribute(mutation);
+            byte[] row = dataLib.getPutKey(mutation);
+            Iterable<Cell> keyValues = dataLib.listPut(mutation);
+            boolean isSIDataOnly = true;
+            for (Cell keyValue : keyValues) {
+                byte[] family = keyValue.getFamily();
+                byte[] column = keyValue.getQualifier();
+                if (!Bytes.equals(column, SIConstants.PACKED_COLUMN_BYTES)) {
+                    continue; //skip SI columns
+                }
 
-								isSIDataOnly = false;
-								byte[] value = keyValue.getValue();
-								Map<byte[],Map<byte[],List<KVPair>>> familyMap = kvPairMap.get(txnId);
-								if(familyMap==null){
-										familyMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
-										kvPairMap.put(txnId,familyMap);
-								}
-								Map<byte[],List<KVPair>> columnMap = familyMap.get(family);
-								if(columnMap==null){
-										columnMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
-										familyMap.put(family,columnMap);
-								}
-								List<KVPair> kvPairs = columnMap.get(column);
-								if(kvPairs==null){
-										kvPairs = Lists.newArrayList();
-										columnMap.put(column,kvPairs);
-								}
-								kvPairs.add(new KVPair(row,value,isDelete? KVPair.Type.DELETE : KVPair.Type.INSERT));
-						}
-						if(isSIDataOnly){
+                isSIDataOnly = false;
+                byte[] value = keyValue.getValue();
+                Map<byte[], Map<byte[], List<KVPair>>> familyMap = kvPairMap.get(txnId);
+                if (familyMap == null) {
+                    familyMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+                    kvPairMap.put(txnId, familyMap);
+                }
+                Map<byte[], List<KVPair>> columnMap = familyMap.get(family);
+                if (columnMap == null) {
+                    columnMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+                    familyMap.put(family, columnMap);
+                }
+                List<KVPair> kvPairs = columnMap.get(column);
+                if (kvPairs == null) {
+                    kvPairs = Lists.newArrayList();
+                    columnMap.put(column, kvPairs);
+                }
+                kvPairs.add(new KVPair(row, value, isDelete ? KVPair.Type.DELETE : KVPair.Type.INSERT));
+            }
+            if (isSIDataOnly) {
 							/*
 							 * Someone attempted to write only SI data, which means that the values column is empty.
 							 * Put a KVPair which is an empty byte[] for all the columns in the data
 							 */
-								byte[] family = SpliceConstants.DEFAULT_FAMILY_BYTES;
-								byte[] column = SpliceConstants.PACKED_COLUMN_BYTES;
-								byte[] value = new byte[]{};
-								Map<byte[],Map<byte[],List<KVPair>>> familyMap = kvPairMap.get(txnId);
-								if(familyMap==null){
-										familyMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
-										kvPairMap.put(txnId,familyMap);
-								}
-								Map<byte[],List<KVPair>> columnMap = familyMap.get(family);
-								if(columnMap==null){
-										columnMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
-										familyMap.put(family,columnMap);
-								}
-								List<KVPair> kvPairs = columnMap.get(column);
-								if(kvPairs==null){
-										kvPairs = Lists.newArrayList();
-										columnMap.put(column,kvPairs);
-								}
-								kvPairs.add(new KVPair(row,value,isDelete? KVPair.Type.DELETE : KVPair.Type.EMPTY_COLUMN));
-						}
-				}
-				final Map<byte[],OperationStatus> statusMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
-				for(Map.Entry<String,Map<byte[],Map<byte[],List<KVPair>>>> entry:kvPairMap.entrySet()){
-						String txnId = entry.getKey();
-						Map<byte[],Map<byte[],List<KVPair>>> familyMap = entry.getValue();
-						for(Map.Entry<byte[],Map<byte[],List<KVPair>>> familyEntry:familyMap.entrySet()){
-								byte[] family = familyEntry.getKey();
-								Map<byte[],List<KVPair>> columnMap = familyEntry.getValue();
-								for(Map.Entry<byte[],List<KVPair>>columnEntry:columnMap.entrySet()){
-										byte[] qualifier = columnEntry.getKey();
-										List<KVPair> kvPairs = Lists.newArrayList(Collections2.filter(columnEntry.getValue(), new Predicate<KVPair>() {
-												@Override
-												public boolean apply(@Nullable KVPair input) {
-														assert input != null;
-														return !statusMap.containsKey(input.getRow()) || statusMap.get(input.getRow()).getOperationStatusCode() == HConstants.OperationStatusCode.SUCCESS;
-												}
-										}));										
-										OperationStatus[] statuses = processKvBatch(table,rollForwardQueue,family,qualifier,kvPairs,txnId);
-										for(int i=0;i<statuses.length;i++){
-												byte[] row = kvPairs.get(i).getRow();
-												OperationStatus status = statuses[i];
-												if(statusMap.containsKey(row)){
-														OperationStatus oldStatus = statusMap.get(row);
-														status = getCorrectStatus(status,oldStatus);
-												}
-												statusMap.put(row,status);
-										}
-								}
-						}
-				}
-				OperationStatus[] retStatuses = new OperationStatus[mutations.length];
-				for(int i=0;i<mutations.length;i++){
-						Put put = mutations[i];
-						retStatuses[i] = statusMap.get(dataLib.getPutKey(put));
-				}
-				return retStatuses;
+                byte[] family = SpliceConstants.DEFAULT_FAMILY_BYTES;
+                byte[] column = SpliceConstants.PACKED_COLUMN_BYTES;
+                byte[] value = new byte[]{};
+                Map<byte[], Map<byte[], List<KVPair>>> familyMap = kvPairMap.get(txnId);
+                if (familyMap == null) {
+                    familyMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+                    kvPairMap.put(txnId, familyMap);
+                }
+                Map<byte[], List<KVPair>> columnMap = familyMap.get(family);
+                if (columnMap == null) {
+                    columnMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+                    familyMap.put(family, columnMap);
+                }
+                List<KVPair> kvPairs = columnMap.get(column);
+                if (kvPairs == null) {
+                    kvPairs = Lists.newArrayList();
+                    columnMap.put(column, kvPairs);
+                }
+                kvPairs.add(new KVPair(row, value, isDelete ? KVPair.Type.DELETE : KVPair.Type.EMPTY_COLUMN));
+            }
+        }
+        final Map<byte[], OperationStatus> statusMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+        for (Map.Entry<String, Map<byte[], Map<byte[], List<KVPair>>>> entry : kvPairMap.entrySet()) {
+            String txnId = entry.getKey();
+            Map<byte[], Map<byte[], List<KVPair>>> familyMap = entry.getValue();
+            for (Map.Entry<byte[], Map<byte[], List<KVPair>>> familyEntry : familyMap.entrySet()) {
+                byte[] family = familyEntry.getKey();
+                Map<byte[], List<KVPair>> columnMap = familyEntry.getValue();
+                for (Map.Entry<byte[], List<KVPair>> columnEntry : columnMap.entrySet()) {
+                    byte[] qualifier = columnEntry.getKey();
+                    List<KVPair> kvPairs = Lists.newArrayList(Collections2.filter(columnEntry.getValue(),
+                                                                                  new Predicate<KVPair>() {
+                        @Override
+                        public boolean apply(@Nullable KVPair input) {
+                            assert input != null;
+                            return !statusMap.containsKey(input.getRow()) || statusMap.get(input.getRow())
+                                                                                      .getOperationStatusCode() ==
+                                    HConstants.OperationStatusCode.SUCCESS;
+                        }
+                    }));
+                    OperationStatus[] statuses = processKvBatch(table, rollForwardQueue, family, qualifier, kvPairs,
+                                                                txnId);
+                    for (int i = 0; i < statuses.length; i++) {
+                        byte[] row = kvPairs.get(i).getRow();
+                        OperationStatus status = statuses[i];
+                        if (statusMap.containsKey(row)) {
+                            OperationStatus oldStatus = statusMap.get(row);
+                            status = getCorrectStatus(status, oldStatus);
+                        }
+                        statusMap.put(row, status);
+                    }
+                }
+            }
+        }
+        OperationStatus[] retStatuses = new OperationStatus[mutations.length];
+        for (int i = 0; i < mutations.length; i++) {
+            Put put = mutations[i];
+            retStatuses[i] = statusMap.get(dataLib.getPutKey(put));
+        }
+        return retStatuses;
     }
 
-		private OperationStatus getCorrectStatus(OperationStatus status, OperationStatus oldStatus) {
-				switch(oldStatus.getOperationStatusCode()){
-						case SUCCESS:
-								return status;
-						case NOT_RUN:
-						case BAD_FAMILY:
-						case SANITY_CHECK_FAILURE:
-						case FAILURE:
-								return oldStatus;
-				}
-				return null;
-		}
+    @Override
+    public OperationStatus[] processKvBatch(Table table, RollForwardQueue rollForwardQueue,
+                                            byte[] family, byte[] qualifier,
+                                            Collection<KVPair> mutations, String txnId) throws IOException {
 
-		@Override
-		public OperationStatus[] processKvBatch(Table table,
-																						RollForwardQueue rollForwardQueue,
-																						TransactionId txnId,
-																						byte[] family, byte[] qualifier,
-																						Collection<KVPair> mutations) throws IOException {
-				ImmutableTransaction transaction = transactionStore.getImmutableTransaction(txnId);
-				ensureTransactionAllowsWrites(transaction);
+        if (mutations.size() <= 0)
+            //noinspection unchecked
+            return dataStore.writeBatch(table, new Pair[]{});
 
-				Pair<KVPair,Integer>[] lockPairs = null;
-				try {
-						lockPairs = lockRows(table, mutations);
+        //ensure the transaction is in good shape
+        TransactionId txn = transactionManager.transactionIdFromString(txnId);
+        return processKvBatch(table, rollForwardQueue, txn, family, qualifier, mutations);
+    }
 
-						@SuppressWarnings("unchecked") final Set<Long>[] conflictingChildren = new Set[mutations.size()];
-						dataStore.startLowLevelOperation(table);
-						Pair<Mutation,Integer>[] writes;
-						try {
-								writes = checkConflictsForKvBatch(table, rollForwardQueue, lockPairs,
-												conflictingChildren, transaction,family,qualifier);
-						} finally {
-								dataStore.closeLowLevelOperation(table);
-						}
+    @Override
+    public OperationStatus[] processKvBatch(Table table,
+                                            RollForwardQueue rollForwardQueue,
+                                            TransactionId txnId,
+                                            byte[] family, byte[] qualifier,
+                                            Collection<KVPair> mutations) throws IOException {
+        ImmutableTransaction transaction = transactionStore.getImmutableTransaction(txnId);
+        ensureTransactionAllowsWrites(transaction);
 
-						final OperationStatus[] status = dataStore.writeBatch(table, writes);
+        Pair<KVPair, HRegion.RowLock>[] lockPairs = null;
+        try {
+            lockPairs = lockRows(table, mutations);
 
-						resolveConflictsForKvBatch(table, writes, conflictingChildren, status);
+            @SuppressWarnings("unchecked") final Set<Long>[] conflictingChildren = new Set[mutations.size()];
+            dataStore.startLowLevelOperation(table);
+            Pair<Mutation, HRegion.RowLock>[] writes;
+            try {
+                writes = checkConflictsForKvBatch(table, rollForwardQueue, lockPairs,
+                                                  conflictingChildren, transaction, family, qualifier);
+            } finally {
+                dataStore.closeLowLevelOperation(table);
+            }
 
-						return status;
-				} finally {
-						releaseLocksForKvBatch(table, lockPairs);
-				}
-		}
+            final OperationStatus[] status = dataStore.writeBatch(table, writes);
 
-		@Override
-		public OperationStatus[] processKvBatch(Table table, RollForwardQueue rollForwardQueue,
-																						byte[] family, byte[] qualifier,
-																						Collection<KVPair> mutations, String txnId) throws IOException {
-			
-				if(mutations.size()<=0)
-						//noinspection unchecked
-						return dataStore.writeBatch(table,new Pair[]{});
+            resolveConflictsForKvBatch(table, writes, conflictingChildren, status);
 
-				//ensure the transaction is in good shape
-				TransactionId txn = transactionManager.transactionIdFromString(txnId);
-				return processKvBatch(table,rollForwardQueue,txn,family,qualifier,mutations);
-		}
+            return status;
+        } finally {
+            releaseLocksForKvBatch(table, lockPairs);
+        }
+    }
 
-		@SuppressWarnings("UnusedDeclaration")
-		private void checkPermission(Table table, Mutation[] mutations) throws IOException {
+    @Override
+    public SICompactionState newCompactionState() {
+        return new SICompactionState(dataLib, dataStore, transactionStore);
+    }
+
+    private OperationStatus getCorrectStatus(OperationStatus status, OperationStatus oldStatus) {
+        switch (oldStatus.getOperationStatusCode()) {
+            case SUCCESS:
+                return status;
+            case NOT_RUN:
+            case BAD_FAMILY:
+            case SANITY_CHECK_FAILURE:
+            case FAILURE:
+                return oldStatus;
+        }
+        return null;
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    private void checkPermission(Table table, Mutation[] mutations) throws IOException {
         final String tableName = dataStore.getTableName(table);
         for (TransactionId t : getTransactionIds(mutations)) {
             transactionStore.confirmPermission(t, tableName);
@@ -307,75 +324,78 @@ public class SITransactor<Table,
         return writingTransactions;
     }
 
-		private void releaseLocksForKvBatch(Table table, Pair<KVPair, Integer>[] locks){
-				if(locks==null) return;
-				for(Pair<KVPair,Integer>lock:locks){
-						try {
-								dataWriter.unLockRow(table,lock.getSecond());
-						} catch (IOException e) {
-								LOG.error("Unable to unlock row "+ Bytes.toStringBinary(lock.getFirst().getRow()),e);
-								//ignore otherwise
-						}
-				}
-		}
+    private void releaseLocksForKvBatch(Table table, Pair<KVPair, HRegion.RowLock>[] locks) {
+        if (locks == null) return;
+        for (Pair<KVPair, HRegion.RowLock> lock : locks) {
+            try {
+                dataWriter.unLockRow(table, lock.getSecond());
+            } catch (IOException e) {
+                LOG.error("Unable to unlock row " + Bytes.toStringBinary(lock.getFirst().getRow()), e);
+                //ignore otherwise
+            }
+        }
+    }
 
-		private void resolveConflictsForKvBatch(Table table, Pair<Mutation, Integer>[] mutations, Set<Long>[] conflictingChildren, OperationStatus[] status){
-				for(int i=0;i<mutations.length;i++){
-						try{
-								Put put = (Put)mutations[i].getFirst();
-								Integer lock = mutations[i].getSecond();
-								resolveChildConflicts(table,put,lock,conflictingChildren[i]);
-						}catch(Exception ex){
-							ex.printStackTrace();
-								status[i]= new OperationStatus(HConstants.OperationStatusCode.FAILURE, ex.getMessage());
-						}
-				}
-		}
+    private void resolveConflictsForKvBatch(Table table, Pair<Mutation, HRegion.RowLock>[] mutations,
+                                            Set<Long>[] conflictingChildren, OperationStatus[] status) {
+        for (int i = 0; i < mutations.length; i++) {
+            try {
+                Put put = (Put) mutations[i].getFirst();
+                HRegion.RowLock lock = mutations[i].getSecond();
+                resolveChildConflicts(table, put, lock, conflictingChildren[i]);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                status[i] = new OperationStatus(HConstants.OperationStatusCode.FAILURE, ex.getMessage());
+            }
+        }
+    }
 
-		private Pair<Mutation, Integer>[] checkConflictsForKvBatch(Table table, RollForwardQueue rollForwardQueue,
-																															 Pair<KVPair, Integer>[] dataAndLocks,
-																															 Set<Long>[] conflictingChildren,
-																															 ImmutableTransaction transaction, byte[] family, byte[] qualifier) throws IOException{
-				@SuppressWarnings("unchecked") Pair<Mutation,Integer>[] finalPuts = new Pair[dataAndLocks.length];
-				for(int i=0;i<dataAndLocks.length;i++){
-						ConflictResults conflictResults;
-						conflictResults = ConflictResults.NO_CONFLICT;
-						if(unsafeWrites) {
-	
-						} else{
-								Result possibleConflicts = dataStore.getCommitTimestampsAndTombstonesSingle(table, dataAndLocks[i].getFirst().getRow());
-								if (possibleConflicts != null) {
-									conflictResults = ensureNoWriteConflict(transaction,possibleConflicts);
-								}
-						}
-						conflictingChildren[i] = conflictResults.childConflicts;
-						finalPuts[i] = Pair.newPair(getMutationToRun(table,rollForwardQueue,
-										dataAndLocks[i].getFirst(), family, qualifier,transaction, conflictResults),dataAndLocks[i].getSecond());						
-				}
-				return finalPuts;
-		}
+    private Pair<Mutation, HRegion.RowLock>[] checkConflictsForKvBatch(Table table, RollForwardQueue rollForwardQueue,
+                                                                       Pair<KVPair, HRegion.RowLock>[] dataAndLocks,
+                                                                       Set<Long>[] conflictingChildren,
+                                                                       ImmutableTransaction transaction,
+                                                                       byte[] family,
+                                                                       byte[] qualifier) throws IOException {
+        @SuppressWarnings("unchecked") Pair<Mutation, HRegion.RowLock>[] finalPuts = new Pair[dataAndLocks.length];
+        for (int i = 0; i < dataAndLocks.length; i++) {
+            ConflictResults conflictResults;
+            conflictResults = ConflictResults.NO_CONFLICT;
+            if (unsafeWrites) {
 
-		private static final boolean unsafeWrites = Boolean.getBoolean("splice.unsafe.writes");
+            } else {
+                Result possibleConflicts = dataStore.getCommitTimestampsAndTombstonesSingle(table,
+                                                                                            dataAndLocks[i].getFirst
+                                                                                                    ().getRow());
+                if (possibleConflicts != null) {
+                    conflictResults = ensureNoWriteConflict(transaction, possibleConflicts);
+                }
+            }
+            conflictingChildren[i] = conflictResults.childConflicts;
+            finalPuts[i] = Pair.newPair(getMutationToRun(table, rollForwardQueue,
+                                                         dataAndLocks[i].getFirst(), family, qualifier, transaction,
+                                                         conflictResults), dataAndLocks[i].getSecond());
+        }
+        return finalPuts;
+    }
 
+    private Pair<KVPair, HRegion.RowLock>[] lockRows(Table table, Collection<KVPair> mutations) throws IOException {
+        @SuppressWarnings("unchecked") Pair<KVPair, HRegion.RowLock>[] mutationsAndLocks = new Pair[mutations.size()];
 
-		private Pair<KVPair, Integer>[] lockRows(Table table, Collection<KVPair> mutations) throws IOException {
-				@SuppressWarnings("unchecked") Pair<KVPair,Integer>[] mutationsAndLocks = new Pair[mutations.size()];
+        int i = 0;
+        for (KVPair pair : mutations) {
+            mutationsAndLocks[i] = Pair.newPair(pair, dataWriter.lockRow(table, pair.getRow()));
+            i++;
+        }
+        return mutationsAndLocks;
+    }
 
-				int i=0;
-				for(KVPair pair:mutations){
-						mutationsAndLocks[i] = Pair.newPair(pair,dataWriter.lockRow(table, pair.getRow()));
-						i++;
-				}
-				return mutationsAndLocks;
-		}
-
-
-		private Mutation getMutationToRun(Table table,RollForwardQueue rollForwardQueue, KVPair kvPair,
-																			byte[] family, byte[] column,
-																			ImmutableTransaction transaction, ConflictResults conflictResults) throws IOException{
-				long txnIdLong = transaction.getLongTransactionId();
-				Put newPut;
-				if(kvPair.getType() == KVPair.Type.EMPTY_COLUMN){
+    private Mutation getMutationToRun(Table table, RollForwardQueue rollForwardQueue, KVPair kvPair,
+                                      byte[] family, byte[] column,
+                                      ImmutableTransaction transaction, ConflictResults conflictResults) throws
+            IOException {
+        long txnIdLong = transaction.getLongTransactionId();
+        Put newPut;
+        if (kvPair.getType() == KVPair.Type.EMPTY_COLUMN) {
 						/*
 						 * WARNING: This requires a read of column data to populate! Try not to use
 						 * it unless no other option presents itself.
@@ -385,31 +405,31 @@ public class SITransactor<Table,
 						 * from actual Splice system, we end up with a KVPair that has a non-empty byte[]
 						 * for the values column (but which is nulls everywhere)
 						 */
-						newPut = dataLib.newPut(kvPair.getRow());
-						dataStore.setTombstonesOnColumns(table,txnIdLong,newPut);
-				}else if(kvPair.getType()== KVPair.Type.DELETE){
-						newPut = dataLib.newPut(kvPair.getRow());
-						dataStore.setTombstoneOnPut(newPut,txnIdLong);
-				}else
-						newPut = dataLib.toPut(kvPair,family, column,transaction.getLongTransactionId());
+            newPut = dataLib.newPut(kvPair.getRow());
+            dataStore.setTombstonesOnColumns(table, txnIdLong, newPut);
+        } else if (kvPair.getType() == KVPair.Type.DELETE) {
+            newPut = dataLib.newPut(kvPair.getRow());
+            dataStore.setTombstoneOnPut(newPut, txnIdLong);
+        } else
+            newPut = dataLib.toPut(kvPair, family, column, transaction.getLongTransactionId());
 
-				dataStore.suppressIndexing(newPut);
-				if(kvPair.getType()!= KVPair.Type.DELETE && conflictResults.hasTombstone)
-						dataStore.setAntiTombstoneOnPut(newPut, txnIdLong);
+        dataStore.suppressIndexing(newPut);
+        if (kvPair.getType() != KVPair.Type.DELETE && conflictResults.hasTombstone)
+            dataStore.setAntiTombstoneOnPut(newPut, txnIdLong);
 
-				byte[]row = kvPair.getRow();
-				dataStore.recordRollForward(rollForwardQueue,txnIdLong, row,false);
-				if(conflictResults.toRollForward!=null){
-						for(Long txnIdToRollForward : conflictResults.toRollForward){
-								dataStore.recordRollForward(rollForwardQueue,txnIdToRollForward,row,false);
-						}
-				}
-				return newPut;
-		}
+        byte[] row = kvPair.getRow();
+        dataStore.recordRollForward(rollForwardQueue, txnIdLong, row, false);
+        if (conflictResults.toRollForward != null) {
+            for (Long txnIdToRollForward : conflictResults.toRollForward) {
+                dataStore.recordRollForward(rollForwardQueue, txnIdToRollForward, row, false);
+            }
+        }
+        return newPut;
+    }
 
-
-		private void resolveChildConflicts(Table table, Put put, Integer lock, Set<Long> conflictingChildren) throws IOException {
-        if (conflictingChildren!=null && !conflictingChildren.isEmpty()) {
+    private void resolveChildConflicts(Table table, Put put, HRegion.RowLock lock, Set<Long> conflictingChildren) throws
+            IOException {
+        if (conflictingChildren != null && !conflictingChildren.isEmpty()) {
             Delete delete = dataStore.copyPutToDelete(put, conflictingChildren);
             dataStore.suppressIndexing(delete);
             dataWriter.delete(table, delete, lock);
@@ -420,25 +440,31 @@ public class SITransactor<Table,
      * While we hold the lock on the row, check to make sure that no transactions have updated the row since the
      * updating transaction started.
      */
-    private ConflictResults ensureNoWriteConflict(ImmutableTransaction updateTransaction, Result result) throws IOException {
-    	// XXX TODO jleach: Create a filter to determine this conflict, no reason to materialize a lot of data across the wire.
-    	final ConflictResults timestampConflicts = checkTimestampsHandleNull(updateTransaction,result.getColumnLatest(
-    			SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES),
-    			result.getColumnLatest(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES),
-    			result.getColumnLatest(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES)
-    			);	
+    private ConflictResults ensureNoWriteConflict(ImmutableTransaction updateTransaction,
+                                                  Result result) throws IOException {
+        // XXX TODO jleach: Create a filter to determine this conflict, no reason to materialize a lot of data across
+        // the wire.
+        final ConflictResults timestampConflicts = checkTimestampsHandleNull(updateTransaction, result.getColumnLatest(
+                SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES),
+                                                                             result.getColumnLatest(SIConstants
+                                                                                                            .DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES),
+                                                                             result.getColumnLatest(SIConstants
+                                                                                                            .DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES)
+        );
         boolean hasTombstone = hasCurrentTransactionTombstone(updateTransaction.getLongTransactionId(),
-        		result.getColumnLatest(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES));        
+                                                              result.getColumnLatest(SIConstants
+                                                                                             .DEFAULT_FAMILY_BYTES,
+                                                                                     SIConstants
+                                                                                             .SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES));
         return new ConflictResults(timestampConflicts.toRollForward, timestampConflicts.childConflicts, hasTombstone);
     }
 
     private boolean hasCurrentTransactionTombstone(long transactionId, KeyValue tombstoneValue) {
-           if (tombstoneValue != null && tombstoneValue.getTimestamp() == transactionId)
-                    return !dataStore.isAntiTombstone(tombstoneValue);
-           return false;
+        if (tombstoneValue != null && tombstoneValue.getTimestamp() == transactionId)
+            return !dataStore.isAntiTombstone(tombstoneValue);
+        return false;
     }
 
-    
     private boolean hasCurrentTransactionTombstone(long transactionId, List<KeyValue> tombstoneValues) {
         if (tombstoneValues != null) {
             for (KeyValue tombstone : tombstoneValues) {
@@ -450,35 +476,41 @@ public class SITransactor<Table,
         return false;
     }
 
-    private ConflictResults checkTimestampsHandleNull(ImmutableTransaction updateTransaction, KeyValue dataCommitKeyValue, KeyValue tombstoneKeyValue, KeyValue dataKeyValue) throws IOException {
+    private ConflictResults checkTimestampsHandleNull(ImmutableTransaction updateTransaction,
+                                                      KeyValue dataCommitKeyValue, KeyValue tombstoneKeyValue,
+                                                      KeyValue dataKeyValue) throws IOException {
         if (dataCommitKeyValue == null && dataKeyValue == null && tombstoneKeyValue == null) {
-            return new ConflictResults(Collections.<Long>emptySet(),Collections.<Long>emptySet(), null);
+            return new ConflictResults(Collections.<Long>emptySet(), Collections.<Long>emptySet(), null);
         } else {
-            return checkCommitTimestampsForConflicts(updateTransaction, dataCommitKeyValue, tombstoneKeyValue, dataKeyValue);
+            return checkCommitTimestampsForConflicts(updateTransaction, dataCommitKeyValue, tombstoneKeyValue,
+                                                     dataKeyValue);
         }
     }
 
     /**
      * Look at all of the values in the "commitTimestamp" column to see if there are write collisions.
      */
-    private ConflictResults checkCommitTimestampsForConflicts(ImmutableTransaction updateTransaction, KeyValue dataCommitKeyValue, KeyValue tombstoneKeyValue, KeyValue dataKeyValue)
+    private ConflictResults checkCommitTimestampsForConflicts(ImmutableTransaction updateTransaction,
+                                                              KeyValue dataCommitKeyValue,
+                                                              KeyValue tombstoneKeyValue, KeyValue dataKeyValue)
             throws IOException {
-				@SuppressWarnings("unchecked") Set<Long>[] conflicts = new Set[2]; // auto boxing XXX TODO Jleach
-			if (dataCommitKeyValue != null) {		
-				checkCommitTimestampForConflict(updateTransaction, conflicts, dataCommitKeyValue);
-			}
-			if (tombstoneKeyValue != null) {
-            	checkDataForConflict(updateTransaction, conflicts, tombstoneKeyValue);				
-			}
-            if (dataKeyValue != null) {
-            	checkDataForConflict(updateTransaction, conflicts, dataKeyValue);
-            }
-            
+        @SuppressWarnings("unchecked") Set<Long>[] conflicts = new Set[2]; // auto boxing XXX TODO Jleach
+        if (dataCommitKeyValue != null) {
+            checkCommitTimestampForConflict(updateTransaction, conflicts, dataCommitKeyValue);
+        }
+        if (tombstoneKeyValue != null) {
+            checkDataForConflict(updateTransaction, conflicts, tombstoneKeyValue);
+        }
+        if (dataKeyValue != null) {
+            checkDataForConflict(updateTransaction, conflicts, dataKeyValue);
+        }
+
         return new ConflictResults(conflicts[0], conflicts[1], null);
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
-		private void checkCommitTimestampForConflict(ImmutableTransaction updateTransaction,Set<Long>[] conflicts, KeyValue dataCommitKeyValue)
+    private void checkCommitTimestampForConflict(ImmutableTransaction updateTransaction, Set<Long>[] conflicts,
+                                                 KeyValue dataCommitKeyValue)
             throws IOException {
         final long dataTransactionId = dataCommitKeyValue.getTimestamp();
         if (!updateTransaction.sameTransaction(dataTransactionId)) {
@@ -488,22 +520,24 @@ public class SITransactor<Table,
                 final Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
                 if (dataTransaction.getEffectiveStatus().isFinished()) {
                     // Transaction is now in a final state so asynchronously update the data row with the status
-										if(conflicts[0]==null)
-												conflicts[0] = Sets.newHashSetWithExpectedSize(1);
+                    if (conflicts[0] == null)
+                        conflicts[0] = Sets.newHashSetWithExpectedSize(1);
                     conflicts[0].add(dataTransactionId);
                 }
-                if(dataTransaction.getEffectiveStatus()== TransactionStatus.ROLLED_BACK)
+                if (dataTransaction.getEffectiveStatus() == TransactionStatus.ROLLED_BACK)
                     return; //can't conflict with a rolled back transaction
                 final ConflictType conflictType = checkTransactionConflict(updateTransaction, dataTransaction);
                 switch (conflictType) {
                     case CHILD:
-												if(conflicts[1]==null)
-														conflicts[1] = Sets.newHashSetWithExpectedSize(1);
+                        if (conflicts[1] == null)
+                            conflicts[1] = Sets.newHashSetWithExpectedSize(1);
                         conflicts[1].add(dataTransactionId);
                         break;
                     case SIBLING:
                         if (doubleCheckConflict(updateTransaction, dataTransaction)) {
-                            throw new WriteConflict("Write conflict detected between active transactions "+ dataTransactionId+" and "+ updateTransaction.getTransactionId());
+                            throw new WriteConflict("Write conflict detected between active transactions " +
+                                                            dataTransactionId + " and " + updateTransaction
+                                    .getTransactionId());
                         }
                         break;
                 }
@@ -513,53 +547,58 @@ public class SITransactor<Table,
                 // Committed transaction
                 final long dataCommitTimestamp = dataLib.decode(commitTimestampValue, Long.class);
                 if (dataCommitTimestamp > updateTransaction.getEffectiveBeginTimestamp()) {
-                    throw new WriteConflict("Write transaction "+ updateTransaction.getTransactionId()+" conflicts with committed transaction " + dataTransactionId);
+                    throw new WriteConflict("Write transaction " + updateTransaction.getTransactionId() + " conflicts" +
+                                                    " with committed transaction " + dataTransactionId);
                 }
             }
         }
     }
 
-	private void checkDataForConflict(ImmutableTransaction updateTransaction,Set<Long>[] conflicts, KeyValue dataCommitKeyValue)
+    private void checkDataForConflict(ImmutableTransaction updateTransaction, Set<Long>[] conflicts,
+                                      KeyValue dataCommitKeyValue)
             throws IOException {
         final long dataTransactionId = dataCommitKeyValue.getTimestamp();
         if (!updateTransaction.sameTransaction(dataTransactionId)) {
-                final Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
-                if (dataTransaction.getEffectiveStatus().isFinished()) {
-                    // Transaction is now in a final state so asynchronously update the data row with the status
-										if(conflicts[0]==null)
-												conflicts[0] = Sets.newHashSetWithExpectedSize(1);
-                    conflicts[0].add(dataTransactionId);
-                }
-                if(dataTransaction.getEffectiveStatus()== TransactionStatus.ROLLED_BACK)
-                    return; //can't conflict with a rolled back transaction
-                final ConflictType conflictType = checkTransactionConflict(updateTransaction, dataTransaction);
-                switch (conflictType) {
-                    case CHILD:
-												if(conflicts[1]==null)
-														conflicts[1] = Sets.newHashSetWithExpectedSize(1);
-                        conflicts[1].add(dataTransactionId);
-                        break;
-                    case SIBLING:
-                        if (doubleCheckConflict(updateTransaction, dataTransaction)) {
-                            throw new WriteConflict("Write conflict detected between active transactions "+ dataTransactionId+" and "+ updateTransaction.getTransactionId());
-                        }
-                        break;
-                }
+            final Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
+            if (dataTransaction.getEffectiveStatus().isFinished()) {
+                // Transaction is now in a final state so asynchronously update the data row with the status
+                if (conflicts[0] == null)
+                    conflicts[0] = Sets.newHashSetWithExpectedSize(1);
+                conflicts[0].add(dataTransactionId);
+            }
+            if (dataTransaction.getEffectiveStatus() == TransactionStatus.ROLLED_BACK)
+                return; //can't conflict with a rolled back transaction
+            final ConflictType conflictType = checkTransactionConflict(updateTransaction, dataTransaction);
+            switch (conflictType) {
+                case CHILD:
+                    if (conflicts[1] == null)
+                        conflicts[1] = Sets.newHashSetWithExpectedSize(1);
+                    conflicts[1].add(dataTransactionId);
+                    break;
+                case SIBLING:
+                    if (doubleCheckConflict(updateTransaction, dataTransaction)) {
+                        throw new WriteConflict("Write conflict detected between active transactions " +
+                                                        dataTransactionId + " and " + updateTransaction
+                                .getTransactionId());
+                    }
+                    break;
             }
         }
+    }
 
-    
     /**
      * @param updateTransaction the transaction for the new change
-     * @param dataTransaction the transaction for the existing data
+     * @param dataTransaction   the transaction for the existing data
      * @return true if there is a conflict
      * @throws IOException if something goes wrong fetching transaction information
      */
-    private boolean doubleCheckConflict(ImmutableTransaction updateTransaction, Transaction dataTransaction) throws IOException {
+    private boolean doubleCheckConflict(ImmutableTransaction updateTransaction, Transaction dataTransaction) throws
+            IOException {
         // If the transaction has timed out then it might be possible to make it fail and proceed without conflict.
         if (checkTransactionTimeout(dataTransaction)) {
             // Double check for conflict if there was a transaction timeout
-            final Transaction dataTransaction2 = transactionStore.getTransaction(dataTransaction.getLongTransactionId());
+            final Transaction dataTransaction2 = transactionStore.getTransaction(dataTransaction.getLongTransactionId
+                    ());
             final ConflictType conflictType2 = checkTransactionConflict(updateTransaction, dataTransaction2);
             if (conflictType2.equals(ConflictType.NONE)) {
                 return false;
@@ -582,24 +621,20 @@ public class SITransactor<Table,
         } else return !dataTransaction.isRootTransaction() && checkTransactionTimeout(dataTransaction.getParent());
     }
 
+
+    // Roll-forward / compaction
+
     /**
      * Determine if the dataTransaction conflicts with the updateTransaction.
      */
     private ConflictType checkTransactionConflict(ImmutableTransaction updateTransaction, Transaction dataTransaction)
             throws IOException {
-        if (updateTransaction.sameTransaction(dataTransaction) || updateTransaction.isAdditive() || dataTransaction.isAdditive()) {
+        if (updateTransaction.sameTransaction(dataTransaction) || updateTransaction.isAdditive() || dataTransaction
+                .isAdditive()) {
             return ConflictType.NONE;
         } else {
             return updateTransaction.isInConflictWith(dataTransaction, transactionSource);
         }
-    }
-
-
-		// Roll-forward / compaction
-
-    @Override
-    public SICompactionState newCompactionState() {
-        return new SICompactionState(dataLib, dataStore, transactionStore);
     }
 
 // Helpers
@@ -611,7 +646,7 @@ public class SITransactor<Table,
         return dataStore.getSINeededAttribute(operation) != null;
     }
 
-		/**
+    /**
      * Throw an exception if this is a read-only transaction.
      */
     private void ensureTransactionAllowsWrites(ImmutableTransaction transaction) throws IOException {
@@ -620,72 +655,72 @@ public class SITransactor<Table,
         }
     }
 
-		public static class Builder<
-						Mutation extends OperationWithAttributes,
-						Put extends Mutation,Delete extends OperationWithAttributes,Get extends OperationWithAttributes,Scan extends OperationWithAttributes,
-						Table>{
-				private SDataLib<
-								Put,  Delete,  Get,  Scan
-								> dataLib;
-				private STableWriter<Table, Mutation, Put, Delete> dataWriter;
-				private DataStore<
-								Mutation, Put, Delete, Get, Scan,
-								Table> dataStore;
-				private TransactionStore transactionStore;
-				private Clock clock;
-				private int transactionTimeoutMS;
-				private TransactionManager control;
+    public static class Builder<
+            Mutation extends OperationWithAttributes,
+            Put extends Mutation, Delete extends OperationWithAttributes, Get extends OperationWithAttributes, Scan extends OperationWithAttributes,
+            Table> {
+        private SDataLib<
+                Put, Delete, Get, Scan
+                > dataLib;
+        private STableWriter<Table, Mutation, Put, Delete> dataWriter;
+        private DataStore<
+                Mutation, Put, Delete, Get, Scan,
+                Table> dataStore;
+        private TransactionStore transactionStore;
+        private Clock clock;
+        private int transactionTimeoutMS;
+        private TransactionManager control;
 
-				public Builder() {
-				}
+        public Builder() {
+        }
 
-				public Builder control(TransactionManager control) {
-						this.control = control;
-						return this;
-				}
+        public Builder control(TransactionManager control) {
+            this.control = control;
+            return this;
+        }
 
-				public Builder dataLib(SDataLib<
-								Put, Delete, Get, Scan> dataLib) {
-						this.dataLib = dataLib;
-						return this;
-				}
+        public Builder dataLib(SDataLib<
+                Put, Delete, Get, Scan> dataLib) {
+            this.dataLib = dataLib;
+            return this;
+        }
 
-				public Builder dataWriter(
-								STableWriter<Table, Mutation, Put, Delete
-												> dataWriter) {
-						this.dataWriter = dataWriter;
-						return this;
-				}
+        public Builder dataWriter(
+                STableWriter<Table, Mutation, Put, Delete
+                        > dataWriter) {
+            this.dataWriter = dataWriter;
+            return this;
+        }
 
-				public Builder dataStore(DataStore<
-								Mutation, Put, Delete, Get, Scan, Table> dataStore) {
-						this.dataStore = dataStore;
-						return this;
-				}
+        public Builder dataStore(DataStore<
+                Mutation, Put, Delete, Get, Scan, Table> dataStore) {
+            this.dataStore = dataStore;
+            return this;
+        }
 
-				public Builder transactionStore(TransactionStore transactionStore) {
-						this.transactionStore = transactionStore;
-						return this;
-				}
+        public Builder transactionStore(TransactionStore transactionStore) {
+            this.transactionStore = transactionStore;
+            return this;
+        }
 
-				public Builder clock(Clock clock) {
-						this.clock = clock;
-						return this;
-				}
+        public Builder clock(Clock clock) {
+            this.clock = clock;
+            return this;
+        }
 
-				public Builder transactionTimeout(int transactionTimeoutMS) {
-						this.transactionTimeoutMS = transactionTimeoutMS;
-						return this;
-				}
+        public Builder transactionTimeout(int transactionTimeoutMS) {
+            this.transactionTimeoutMS = transactionTimeoutMS;
+            return this;
+        }
 
-				public SITransactor<Table,
-								Mutation, Put,Get,
-								Scan, Delete> build(){
-						return new SITransactor<Table,
-										Mutation, Put,Get,Scan,
-										Delete> (dataLib,dataWriter,
-										dataStore,transactionStore,clock,transactionTimeoutMS, control);
-				}
+        public SITransactor<Table,
+                Mutation, Put, Get,
+                Scan, Delete> build() {
+            return new SITransactor<Table,
+                    Mutation, Put, Get, Scan,
+                    Delete>(dataLib, dataWriter,
+                            dataStore, transactionStore, clock, transactionTimeoutMS, control);
+        }
 
-		}
+    }
 }

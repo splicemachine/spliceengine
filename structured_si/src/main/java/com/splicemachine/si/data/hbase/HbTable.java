@@ -1,7 +1,8 @@
 package com.splicemachine.si.data.hbase;
 
-import com.splicemachine.utils.CloseableIterator;
-import com.splicemachine.utils.ForwardingCloseableIterator;
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -10,12 +11,13 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
+
+import com.splicemachine.utils.CloseableIterator;
+import com.splicemachine.utils.ForwardingCloseableIterator;
 
 /**
  * Wrapper that makes an HBase table comply with an interface that allows regions and tables to be used in a uniform manner.
@@ -107,12 +109,12 @@ public class HbTable implements IHTable {
     }
 
     @Override
-    public Integer lockRow(byte[] rowKey) throws IOException {
+    public HRegion.RowLock lockRow(byte[] rowKey) throws IOException {
         throw new RuntimeException("not implemented");
     }
 
     @Override
-    public void unLockRow(Integer lock) throws IOException {
+    public void unLockRow(HRegion.RowLock lock) throws IOException {
         throw new RuntimeException("not implemented");
     }
 }

@@ -1,14 +1,15 @@
 package com.splicemachine.si.data.hbase;
 
+import java.io.IOException;
+
+import org.apache.hadoop.hbase.Cell;
+
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.impl.RowAccumulator;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.index.BitIndex;
-
-import java.io.IOException;
-
-import org.apache.hadoop.hbase.KeyValue;
 
 public class HRowAccumulator implements RowAccumulator {
     private final EntryPredicateFilter predicateFilter;
@@ -30,17 +31,17 @@ public class HRowAccumulator implements RowAccumulator {
     }
 
     @Override
-    public boolean isOfInterest(KeyValue keyValue) {
+    public boolean isOfInterest(Cell keyValue) {
     	if (countStar)
     		return false;
-        decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());
+        decoder.set(CellUtils.getBuffer(keyValue),keyValue.getValueOffset(),keyValue.getValueLength());
         final BitIndex currentIndex = decoder.getCurrentIndex();
 		return entryAccumulator.isInteresting(currentIndex);
     }
 
     @Override
-    public boolean accumulate(KeyValue keyValue) throws IOException {
-		bytesAccumulated+=keyValue.getLength();
+    public boolean accumulate(Cell keyValue) throws IOException {
+		bytesAccumulated+= CellUtils.getLength(keyValue);
 //        decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength()); //do we need to do this twice?
         boolean pass = predicateFilter.match(decoder, entryAccumulator);
         if(!pass)

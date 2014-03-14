@@ -1,10 +1,15 @@
 package com.splicemachine.si.data.hbase;
 
-import com.splicemachine.utils.CloseableIterator;
+import static com.splicemachine.constants.SpliceConstants.CHECK_BLOOM_ATTRIBUTE_NAME;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -15,10 +20,8 @@ import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import static com.splicemachine.constants.SpliceConstants.CHECK_BLOOM_ATTRIBUTE_NAME;
+
+import com.splicemachine.utils.CloseableIterator;
 
 /**
  * Wrapper that makes an HBase region comply with a standard interface that abstracts across regions and tables.
@@ -82,7 +85,7 @@ public class HbRegion implements IHTable {
     }
 
     @Override
-    public void put(Put put, Integer rowLock) throws IOException {
+    public void put(Put put, HRegion.RowLock rowLock) throws IOException {
         region.put(put, rowLock);
     }
 
@@ -97,7 +100,7 @@ public class HbRegion implements IHTable {
     }
 
     @Override
-    public OperationStatus[] batchPut(Pair<Mutation, Integer>[] puts) throws IOException {
+    public OperationStatus[] batchPut(Pair<Mutation,  HRegion.RowLock>[] puts) throws IOException {
         return region.batchMutate(puts);
     }
 
@@ -107,13 +110,13 @@ public class HbRegion implements IHTable {
     }
 
     @Override
-    public void delete(Delete delete, Integer rowLock) throws IOException {
+    public void delete(Delete delete,  HRegion.RowLock rowLock) throws IOException {
         region.delete(delete, rowLock, true);
     }
 
     @Override
-    public Integer lockRow(byte[] rowKey) throws IOException {
-        final Integer lock = region.obtainRowLock(rowKey);
+    public  HRegion.RowLock lockRow(byte[] rowKey) throws IOException {
+        final HRegion.RowLock lock = region.getRowLock(rowKey, true);
         if (lock == null) {
             throw new RuntimeException("Unable to obtain row lock on region of table " + region.getTableDesc().getNameAsString());
         }
@@ -121,8 +124,8 @@ public class HbRegion implements IHTable {
     }
 
     @Override
-    public void unLockRow(Integer lock) throws IOException {
-        region.releaseRowLock(lock);
+    public void unLockRow( HRegion.RowLock lock) throws IOException {
+        region.releaseRowLocks(Arrays.asList(lock));
     }
 
 }

@@ -8,9 +8,7 @@ import java.lang.reflect.UndeclaredThrowableException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.RegionServerCallable;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.log4j.Logger;
 
@@ -53,53 +51,53 @@ public class NoRetryExecRPCInvoker implements InvocationHandler {
             LOG.trace("Call: " + method.getName() + ", " + (args != null ? args.length : 0));
         }
 
-        if (row != null) {
-            final Exec exec = new Exec(conf, row, service, method, args);
-            RegionServerCallable<ExecResult> callable =
-                    new RegionServerCallable<ExecResult>(connection, table, row) {
-                        public ExecResult call() throws Exception {
-                            return server.execCoprocessor(location.getRegionInfo().getRegionName(),
-                                    exec);
-                        }
-                    };
-
-            ExecResult result = executeWithoutRetries(callable);
-
-            this.regionName = result.getRegionName();
-            if(LOG.isTraceEnabled()){
-                LOG.trace("Result is region="+ Bytes.toStringBinary(regionName) +
-                        ", value="+result.getValue());
-            }
-            return result.getValue();
-        }
-
+        // FIXME: jc - how to replace this functionality
+//        if (row != null) {
+//            final Exec exec = new Exec(conf, row, service, method, args);
+//            RegionServerCallable<ExecResult> callable =
+//                    new RegionServerCallable<ExecResult>(connection, table, row) {
+//                        public ExecResult call() throws Exception {
+//                            return server.execCoprocessor(location.getRegionInfo().getRegionName(),
+//                                    exec);
+//                        }
+//                    };
+//
+//            ExecResult result = executeWithoutRetries(callable);
+//
+//            this.regionName = result.getRegionName();
+//            if(LOG.isTraceEnabled()){
+//                LOG.trace("Result is region="+ Bytes.toStringBinary(regionName) +
+//                        ", value="+result.getValue());
+//            }
+//            return result.getValue();
+//        }
         return null;
     }
 
 /****************************************************************************************************************/
     /*private helper method*/
-    private ExecResult executeWithoutRetries(RegionServerCallable<ExecResult> callable) throws IOException {
-        /*
-         * This block is taken from HConnectionImplementation.getRegionServerWithoutRetries. We can't
-         * use that method directly, because it does not allow us to specify whether or not to invalidate
-         * the connection's region cache if an error occurs. Thus, we have to manually do the operation.
-         */
-        try {
-            callable.beforeCall();
-            callable.connect(refreshConnectionCache);
-            return callable.call();
-        } catch (Throwable t) {
-            Throwable t2 = translateException(t);
-            if (t2 instanceof IOException) {
-                throw (IOException)t2;
-            } else {
-                throw new RuntimeException(t2);
-            }
-        } finally {
-            callable.afterCall();
-        }
-    }
-
+// FIXME: jc - how to replace this functionality
+//    private ExecResult executeWithoutRetries(RegionServerCallable<ExecResult> callable) throws IOException {
+//        /*
+//         * This block is taken from HConnectionImplementation.getRegionServerWithoutRetries. We can't
+//         * use that method directly, because it does not allow us to specify whether or not to invalidate
+//         * the connection's region cache if an error occurs. Thus, we have to manually do the operation.
+//         */
+//        try {
+//            callable.beforeCall();
+//            callable.connect(refreshConnectionCache);
+//            return callable.call();
+//        } catch (Throwable t) {
+//            Throwable t2 = translateException(t);
+//            if (t2 instanceof IOException) {
+//                throw (IOException)t2;
+//            } else {
+//                throw new RuntimeException(t2);
+//            }
+//        } finally {
+//            callable.afterCall();
+//        }
+//    }
 	private Throwable translateException(Throwable t) throws IOException {
         /*
          * Convenience error interpreter taken from HConnectionImplementation because the method isn't

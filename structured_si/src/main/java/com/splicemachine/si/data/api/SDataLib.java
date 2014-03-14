@@ -1,13 +1,13 @@
 package com.splicemachine.si.data.api;
 
 import java.util.List;
-import java.util.Map;
 
-import com.splicemachine.hbase.KVPair;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+
+import com.splicemachine.hbase.KVPair;
 
 /**
  * Defines an abstraction over the construction and manipulate of HBase operations. Having this abstraction allows an
@@ -22,12 +22,12 @@ public interface SDataLib<
 		byte[] encode(Object value);
     <T> T decode(byte[] value, Class<T> type);
 
-		List<KeyValue> listResult(Result result);
+		List<Cell> listResult(Result result);
 
 		Put newPut(byte[] key);
-    Put newPut(byte[] key, Integer lock);
+    Put newPut(byte[] key, HRegion.RowLock lock);
     void addKeyValueToPut(Put put, byte[] family, byte[] qualifier, long timestamp, byte[] value);
-    Iterable<KeyValue> listPut(Put put);
+    Iterable<Cell> listPut(Put put);
     byte[] getPutKey(Put put);
 
 	Get newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp);

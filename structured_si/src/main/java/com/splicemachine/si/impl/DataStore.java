@@ -14,6 +14,7 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
@@ -113,7 +114,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 		}
 
     void copyPutKeyValues(Put put, Put newPut, long timestamp) {
-        for (KeyValue keyValue : dataLib.listPut(put)) {
+        for (Cell keyValue : dataLib.listPut(put)) {
             final byte[] qualifier = keyValue.getQualifier();
             dataLib.addKeyValueToPut(newPut, keyValue.getFamily(),
                     qualifier,
@@ -125,7 +126,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
     public Delete copyPutToDelete(Put put, Set<Long> transactionIdsToDelete) {
         Delete delete = dataLib.newDelete(dataLib.getPutKey(put));
         for (Long transactionId : transactionIdsToDelete) {
-            for (KeyValue keyValue : dataLib.listPut(put)) {
+            for (Cell keyValue : dataLib.listPut(put)) {
                 dataLib.addKeyValueToDelete(delete, keyValue.getFamily(),
                         keyValue.getQualifier(), transactionId);
             }
@@ -245,7 +246,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
         return null;
     }
 
-    public OperationStatus[] writeBatch(IHTable table, Pair<Mutation, Integer>[] mutationsAndLocks) throws IOException {
+    public OperationStatus[] writeBatch(IHTable table, Pair<Mutation, HRegion.RowLock>[] mutationsAndLocks) throws IOException {
             return writer.writeBatch(table, mutationsAndLocks);
     }
 

@@ -4,8 +4,10 @@ import com.google.common.collect.Lists;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.data.api.SDataLib;
 
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.util.*;
@@ -106,8 +108,8 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
     }
 
     @Override
-    public LTuple newPut(byte[] key, Integer lock) {
-        return new LTuple(key, new ArrayList<KeyValue>(), lock);
+    public LTuple newPut(byte[] key, HRegion.RowLock lock) {
+        return new LTuple(key, new ArrayList<Cell>(), lock);
     }
 
 		@Override
@@ -188,11 +190,11 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
         return ((LTuple) result).key;
     }
 
-    private List<KeyValue> getValuesForColumn(Result tuple, byte[] family, byte[] qualifier) {
-        KeyValue[] values = tuple.raw();
-        List<KeyValue> results = Lists.newArrayList();
-				for (KeyValue v : values) {
-						if(v.matchingColumn(family,qualifier)){
+    private List<Cell> getValuesForColumn(Result tuple, byte[] family, byte[] qualifier) {
+        Cell[] values = tuple.rawCells();
+        List<Cell> results = Lists.newArrayList();
+				for (Cell v : values) {
+						if(((KeyValue)v).matchingColumn(family,qualifier)){
 								results.add(v);
 						}
             if (valuesMatch(v.getFamily(), family) && valuesMatch(v.getFamily(), qualifier)) {
@@ -214,15 +216,15 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
     }
 
 		@Override
-		public List<KeyValue> listResult(Result result) {
-				List<KeyValue> values = Lists.newArrayList(result.raw());
+		public List<Cell> listResult(Result result) {
+				List<Cell> values = Lists.newArrayList(result.rawCells());
 				LStore.sortValues(values);
 				return values;
     }
 
     @Override
-    public Iterable<KeyValue> listPut(LTuple put) {
-				List<KeyValue> values = Lists.newArrayList(put.values);
+    public Iterable<Cell> listPut(LTuple put) {
+				List<Cell> values = Lists.newArrayList(put.values);
 				LStore.sortValues(values);
 				return values;
     }
@@ -245,7 +247,7 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
 
 		@Override
 		public LTuple toPut(KVPair kvPair, byte[] family, byte[] column, long longTransactionId) {
-				KeyValue kv = new KeyValue(kvPair.getRow(),family,column,longTransactionId,kvPair.getValue());
+				Cell kv = new KeyValue(kvPair.getRow(),family,column,longTransactionId,kvPair.getValue());
 				LTuple tuple = new LTuple(kvPair.getRow(),Lists.newArrayList(kv));
 				return tuple;
 		}

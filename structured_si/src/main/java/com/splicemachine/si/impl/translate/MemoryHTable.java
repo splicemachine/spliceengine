@@ -1,13 +1,17 @@
 package com.splicemachine.si.impl.translate;
 
-import com.splicemachine.si.data.api.STableReader;
-import com.splicemachine.si.data.light.LGet;
-import com.splicemachine.si.data.light.LStore;
-import com.splicemachine.si.data.light.LTable;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+import com.google.protobuf.Service;
+import com.google.protobuf.ServiceException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Append;
 import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Increment;
@@ -15,16 +19,17 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Row;
-import org.apache.hadoop.hbase.client.RowLock;
 import org.apache.hadoop.hbase.client.RowMutations;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
-import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
+import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import com.splicemachine.si.data.api.STableReader;
+import com.splicemachine.si.data.light.LGet;
+import com.splicemachine.si.data.light.LStore;
+import com.splicemachine.si.data.light.LTable;
 
 public class MemoryHTable implements HTableInterface {
     private final HTableInterface delegate;
@@ -44,6 +49,11 @@ public class MemoryHTable implements HTableInterface {
     @Override
     public byte[] getTableName() {
         return delegate.getTableName();
+    }
+
+    @Override
+    public TableName getName() {
+        return delegate.getName();
     }
 
     @Override
@@ -74,6 +84,18 @@ public class MemoryHTable implements HTableInterface {
     @Override
     public Object[] batch(List<? extends Row> actions) throws IOException, InterruptedException {
         return delegate.batch(actions);
+    }
+
+    @Override
+    public <R> void batchCallback(List<? extends Row> actions, Object[] results, Batch.Callback<R> callback) throws
+            IOException, InterruptedException {
+        delegate.batchCallback(actions, results, callback);
+    }
+
+    @Override
+    public <R> Object[] batchCallback(List<? extends Row> actions, Batch.Callback<R> callback) throws IOException,
+            InterruptedException {
+        return delegate.batchCallback(actions, callback);
     }
 
     @Override
@@ -163,6 +185,11 @@ public class MemoryHTable implements HTableInterface {
     }
 
     @Override
+    public long incrementColumnValue(byte[] row, byte[] family, byte[] qualifier, long amount, Durability durability) throws IOException {
+        return delegate.incrementColumnValue(row, family, qualifier, amount, durability);
+    }
+
+    @Override
     public long incrementColumnValue(byte[] row, byte[] family, byte[] qualifier, long amount, boolean writeToWAL) throws IOException {
         return delegate.incrementColumnValue(row, family, qualifier, amount, writeToWAL);
     }
@@ -183,28 +210,38 @@ public class MemoryHTable implements HTableInterface {
     }
 
     @Override
-    public RowLock lockRow(byte[] row) throws IOException {
-        return delegate.lockRow(row);
+    public CoprocessorRpcChannel coprocessorService(byte[] row) {
+        return null;
     }
 
     @Override
-    public void unlockRow(RowLock rl) throws IOException {
+    public <T extends Service, R> void coprocessorService(Class<T> service, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable, Batch.Callback<R> callback) throws ServiceException, Throwable {
+
+    }
+
+    @Override
+    public HRegion.RowLock getRowLock(byte[] row) throws IOException {
+        return delegate.getRowLock(row,false);
+    }
+
+    @Override
+    public void unlockRow(HRegion.RowLock rl) throws IOException {
         delegate.unlockRow(rl);
     }
 
     @Override
-    public <T extends CoprocessorService> T coprocessorService(Class<T> protocol, byte[] row) {
-        return delegate.coprocessorService(protocol, row);
+    public <T extends Service> T coprocessorService(Class<T> service, byte[] row) {
+        return delegate.coprocessorService(service, row);
     }
 
     @Override
-    public <T extends CoprocessorService, R> Map<byte[], R> coprocessorService(Class<T> protocol, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable) throws IOException, Throwable {
-        return delegate.coprocessorService(protocol, startKey, endKey, callable);
+    public <T extends CoprocessorService, R> Map<byte[], R> coprocessorService(Class<T> service, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable) throws IOException, Throwable {
+        return delegate.coprocessorService(service, startKey, endKey, callable);
     }
 
     @Override
-    public <T extends CoprocessorService, R> void coprocessorExec(Class<T> protocol, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable, Batch.Callback<R> callback) throws IOException, Throwable {
-        delegate.coprocessorService(protocol, startKey, endKey, callable, callback);
+    public <T extends CoprocessorService, R> void coprocessorExec(Class<T> service, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable, Batch.Callback<R> callback) throws IOException, Throwable {
+        delegate.coprocessorService(service, startKey, endKey, callable, callback);
     }
 
     @Override
@@ -215,6 +252,11 @@ public class MemoryHTable implements HTableInterface {
     @Override
     public void setAutoFlush(boolean autoFlush, boolean clearBufferOnFail) {
         delegate.setAutoFlush(autoFlush, clearBufferOnFail);
+    }
+
+    @Override
+    public void setAutoFlushTo(boolean autoFlush) {
+
     }
 
     @Override

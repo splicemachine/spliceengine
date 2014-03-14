@@ -16,6 +16,7 @@ import com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.RetriesExhaustedException;
@@ -189,12 +190,13 @@ public class SpliceHTable extends HTable {
     }
 
     private Pair<byte[], byte[]> getContainingRegion(byte[] startKey, int attemptCount) throws IOException {
-        HRegionLocation regionLocation = this.connection.getRegionLocation(tableName, startKey, attemptCount > 0);
+        HRegionLocation regionLocation = this.connection.getRegionLocation(TableName.valueOf(tableName), startKey,
+                                                                           attemptCount > 0);
 				for(int i=0;i<5;i++){
 						if(!regionLocation.getRegionInfo().isSplitParent())
 								break;
 						else
-								this.connection.getRegionLocation(tableName,startKey,true);
+								this.connection.getRegionLocation(TableName.valueOf(tableName),startKey,true);
 				}
 				Preconditions.checkArgument(!regionLocation.getRegionInfo().isSplitParent(),"Unable to get a region that is not split!");
         return Pair.newPair(regionLocation.getRegionInfo().getStartKey(), regionLocation.getRegionInfo().getEndKey());

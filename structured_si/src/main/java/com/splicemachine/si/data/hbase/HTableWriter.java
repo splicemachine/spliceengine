@@ -1,14 +1,16 @@
 package com.splicemachine.si.data.hbase;
 
-import com.splicemachine.si.data.api.STableWriter;
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
 
-import java.io.IOException;
-import java.util.List;
+import com.splicemachine.si.data.api.STableWriter;
 
 public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete> {
 
@@ -18,7 +20,7 @@ public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete
     }
 
     @Override
-    public void write(IHTable table, Put put, Integer rowLock) throws IOException {
+    public void write(IHTable table, Put put,  HRegion.RowLock rowLock) throws IOException {
         table.put(put, rowLock);
     }
 
@@ -33,12 +35,12 @@ public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete
     }
 
     @Override
-    public OperationStatus[] writeBatch(IHTable table, Pair<Mutation, Integer>[] puts) throws IOException {
+    public OperationStatus[] writeBatch(IHTable table, Pair<Mutation,  HRegion.RowLock>[] puts) throws IOException {
         return table.batchPut(puts);
     }
 
     @Override
-    public void delete(IHTable table, Delete delete, Integer rowLock) throws IOException {
+    public void delete(IHTable table, Delete delete, HRegion.RowLock rowLock) throws IOException {
         table.delete(delete, rowLock);
     }
 
@@ -48,12 +50,12 @@ public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete
     }
 
     @Override
-    public Integer lockRow(IHTable table, byte[] rowKey) throws IOException {
+    public  HRegion.RowLock lockRow(IHTable table, byte[] rowKey) throws IOException {
         return table.lockRow(rowKey);
     }
 
     @Override
-    public void unLockRow(IHTable table, Integer lock) throws IOException {
+    public void unLockRow(IHTable table,  HRegion.RowLock lock) throws IOException {
         table.unLockRow(lock);
     }
 }

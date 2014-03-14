@@ -7,6 +7,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.MasterNotRunningException;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -53,20 +54,20 @@ public class SpliceUtilities extends SIConstants {
 	
 
 	public static HTableDescriptor generateDefaultSIGovernedTable(String tableName) {
-		HTableDescriptor desc = new HTableDescriptor(tableName);
+		HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(tableName));
 		desc.addFamily(createDataFamily());
         //desc.addFamily(createTransactionFamily()); // Removed transaction family
         return desc;
 	}
 	
 	public static HTableDescriptor generateNonSITable(String tableName) {
-		HTableDescriptor desc = new HTableDescriptor(tableName);
+        HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(tableName));
 		desc.addFamily(createDataFamily());
         return desc;
 	}
 
 	public static HTableDescriptor generateTempTable(String tableName) {
-		HTableDescriptor desc = new HTableDescriptor(tableName);
+        HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(tableName));
 		desc.addFamily(createTempDataFamily());
 		desc.setValue(HTableDescriptor.SPLIT_POLICY, ConstantSizeRegionSplitPolicy.class.getName());
 		desc.setMaxFileSize(SpliceConstants.tempTableMaxFileSize);
@@ -75,7 +76,7 @@ public class SpliceUtilities extends SIConstants {
 
 	
     public static HTableDescriptor generateTransactionTable() {
-        HTableDescriptor desc = new HTableDescriptor(SpliceConstants.TRANSACTION_TABLE_BYTES);
+        HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(SpliceConstants.TRANSACTION_TABLE_BYTES));
         HColumnDescriptor columnDescriptor = new HColumnDescriptor(DEFAULT_FAMILY.getBytes());
         columnDescriptor.setMaxVersions(5);
         columnDescriptor.setCompressionType(Compression.Algorithm.valueOf(compression.toUpperCase()));

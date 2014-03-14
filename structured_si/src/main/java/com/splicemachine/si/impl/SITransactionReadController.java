@@ -1,6 +1,14 @@
 package com.splicemachine.si.impl;
 
+import java.io.IOException;
+import java.util.List;
+
 import com.google.common.collect.Lists;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.filter.Filter;
+
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.TransactionReadController;
@@ -9,12 +17,6 @@ import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.kryo.KryoPool;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.OperationWithAttributes;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.filter.Filter;
-import java.io.IOException;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -94,9 +96,9 @@ public class SITransactionReadController<
 								new HRowAccumulator(predicateFilter, new EntryDecoder(KryoPool.defaultPool()), countStar ));
 		}
 
-		@Override
+    @Override
 		@SuppressWarnings("unchecked")
-		public Filter.ReturnCode filterKeyValue(IFilterState filterState, KeyValue keyValue) throws IOException {
+		public Filter.ReturnCode filterKeyValue(IFilterState filterState, Cell keyValue) throws IOException {
 				return filterState.filterCell(keyValue);
 		}
 
@@ -110,11 +112,11 @@ public class SITransactionReadController<
 		public Result filterResult(IFilterState filterState, Result result) throws IOException {
 				//TODO -sf- this is only used in testing--ignore when production tuning
 				final SDataLib<Put, Delete, Get, Scan> dataLib = dataStore.dataLib;
-				final List<KeyValue> filteredCells = Lists.newArrayList();
-				final List<KeyValue> KVs = dataLib.listResult(result);
+				final List<Cell> filteredCells = Lists.newArrayList();
+				final List<Cell> KVs = dataLib.listResult(result);
 				if (KVs != null) {
 						byte[] currentRowKey = null;
-						for (KeyValue kv : KVs) {
+						for (Cell kv : KVs) {
 							filterKeyValue(filterState, kv);
 						}
 						if (!filterState.getExcludeRow())
@@ -123,7 +125,7 @@ public class SITransactionReadController<
 				if (filteredCells.isEmpty()) {
 					return null;
 				} else {
-					return new Result(filteredCells);
+					return Result.create(filteredCells);
 				}
 		}
 

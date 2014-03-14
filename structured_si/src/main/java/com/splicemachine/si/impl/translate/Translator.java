@@ -1,18 +1,18 @@
 package com.splicemachine.si.impl.translate;
 
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+
 import com.google.common.collect.Lists;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.client.Result;
 
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.OperationWithAttributes;
-import org.apache.hadoop.hbase.client.Result;
-
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * Convert data and operations from one "data store" to another.
@@ -62,8 +62,8 @@ public class Translator<Data1, Result1, Put1 extends OperationWithAttributes, De
         Scan1 scan = dataLib1.newScan(null, null, null, null, null);
         final Iterator<Result> results = reader1.scan(table1, scan);
         while (results.hasNext()) {
-            final List<KeyValue> keyValues = dataLib1.listResult(results.next());
-            for (KeyValue kv : keyValues) {
+            final List<Cell> keyValues = dataLib1.listResult(results.next());
+            for (Cell kv : keyValues) {
 								byte[] k2 = kv.getRow();
 								byte[] f2 = kv.getFamily();
 								byte[] q2 = kv.getQualifier();
@@ -87,15 +87,15 @@ public class Translator<Data1, Result1, Put1 extends OperationWithAttributes, De
      * Convert a Result object from store 2 representation into a store 1 representation.
      */
     public Result translateResult(Result result) {
-        List<KeyValue> values = Lists.newArrayList();
-				for(KeyValue kv : dataLib2.listResult(result)) {
-            final KeyValue newKV = CellUtils.newKeyValue(kv.getRow(),
+        List<Cell> values = Lists.newArrayList();
+				for(Cell kv : dataLib2.listResult(result)) {
+            final Cell newKV = CellUtils.newKeyValue(kv.getRow(),
                                                          kv.getFamily(),
                                                          kv.getQualifier(),
                                                          kv.getTimestamp(),
                                                          kv.getValue());
             values.add(newKV);
         }
-				return new Result(values);
+				return Result.create(values);
     }
 }

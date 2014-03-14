@@ -1,14 +1,15 @@
 package com.splicemachine.si.api;
 
+import java.io.IOException;
+
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.filter.Filter;
+
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryPredicateFilter;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.filter.Filter;
-
-import java.io.IOException;
 
 /**
  * Manages lifecycle and setup for Transactional reads.
@@ -44,7 +45,7 @@ public interface TransactionReadController<Get,Scan> {
 		/**
 		 * Consider whether to use a key value in light of a given filterState.
 		 */
-		Filter.ReturnCode filterKeyValue(IFilterState filterState, KeyValue keyValue) throws IOException;
+		Filter.ReturnCode filterKeyValue(IFilterState filterState, Cell keyValue) throws IOException;
 
 		/**
 		 * Indicate that the filterState is now going to be used to process a new row.

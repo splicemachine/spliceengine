@@ -1,26 +1,29 @@
 package com.splicemachine.si.data.light;
 
+import java.util.List;
+import java.util.Map;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
-import java.util.*;
 
 public class LTuple extends OperationWithAttributes{
     final byte[] key;
-    final List<KeyValue> values;
-    final Integer lock;
+    final List<Cell> values;
+    final HRegion.RowLock lock;
 
-    public LTuple(byte[] key, List<KeyValue> values) {
+    public LTuple(byte[] key, List<Cell> values) {
 				this(key,values,Maps.<String,byte[]>newHashMap(),null);
     }
 
-    public LTuple(byte[] key, List<KeyValue> values, Map<String, byte[]> attributes) {
+    public LTuple(byte[] key, List<Cell> values, Map<String, byte[]> attributes) {
 				this(key,values,attributes,null);
     }
 
-		public LTuple(byte[] key, List<KeyValue> values, Map<String, byte[]> attributes, Integer lock) {
+		public LTuple(byte[] key, List<Cell> values, Map<String, byte[]> attributes, HRegion.RowLock lock) {
 				this.key = key;
 				this.values = values;
 				this.lock = lock;
@@ -29,7 +32,7 @@ public class LTuple extends OperationWithAttributes{
 				}
 		}
 
-    public LTuple(byte[] key, List<KeyValue> values, Integer lock) {
+    public LTuple(byte[] key, List<Cell> values, HRegion.RowLock lock) {
 				this(key,values,Maps.<String,byte[]>newHashMap(),lock);
     }
 
@@ -39,8 +42,8 @@ public class LTuple extends OperationWithAttributes{
 		@Override public Map<String, Object> getFingerprint() { throw new UnsupportedOperationException(); }
 		@Override public Map<String, Object> toMap(int maxCols) { throw new UnsupportedOperationException(); }
 
-		public List<KeyValue> getValues(){
-				List<KeyValue> keyValues = Lists.newArrayList(values);
+		public List<Cell> getValues(){
+				List<Cell> keyValues = Lists.newArrayList(values);
 				LStore.sortValues(keyValues);
 				return keyValues;
 		}

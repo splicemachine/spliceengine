@@ -50,7 +50,15 @@ public class CellUtils {
 
 
     public static byte[] getBuffer(Cell keyValue) {
+        // TODO: jc- not really sure getRowArray() gives back the same thing as getBuffer() did
+//        return keyValue.getRowArray();
         return ((KeyValue)keyValue).getBuffer();
+    }
+
+    public static int getLength(Cell keyValue) {
+        if (keyValue == null)
+            return 0;
+        return getBuffer(keyValue).length;
     }
 
 

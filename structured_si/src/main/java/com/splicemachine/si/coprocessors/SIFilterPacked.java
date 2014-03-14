@@ -1,12 +1,7 @@
 package com.splicemachine.si.coprocessors;
 
-import com.splicemachine.si.api.*;
-import com.splicemachine.si.impl.FilterStatePacked;
-import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.impl.RowAccumulator;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.HasPredicateFilter;
+import java.io.IOException;
+import java.util.List;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
@@ -15,8 +10,15 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.util.List;
+import com.splicemachine.si.api.RollForwardQueue;
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.TransactionReadController;
+import com.splicemachine.si.impl.FilterStatePacked;
+import com.splicemachine.si.impl.IFilterState;
+import com.splicemachine.si.impl.RowAccumulator;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.HasPredicateFilter;
 
 /**
  * An HBase filter that applies SI logic when reading data values.
@@ -93,6 +95,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 
     @Override
     public void filterRow(List<KeyValue> keyValues) {
+        // FIXME: this is scary
         try {
             initFilterStateIfNeeded();
         } catch (IOException e) {
@@ -100,7 +103,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
         }
     	if (!filterRow())
     		keyValues.remove(0);
-        final KeyValue accumulatedValue = filterState.produceAccumulatedCell();
+        final KeyValue accumulatedValue = (KeyValue) filterState.produceAccumulatedCell();
         if (accumulatedValue != null) {
             keyValues.add(accumulatedValue);
         }

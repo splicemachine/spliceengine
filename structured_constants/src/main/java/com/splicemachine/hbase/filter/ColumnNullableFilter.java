@@ -1,12 +1,14 @@
 package com.splicemachine.hbase.filter;
 
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.filter.FilterBase;
-import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.filter.FilterBase;
+import org.apache.hadoop.hbase.util.Bytes;
 
 /**
  * This filter is used to filter rows based on whether or not the column key exists
@@ -75,7 +77,7 @@ public class ColumnNullableFilter extends FilterBase {
 		return columnQualifier;
 	}
 
-	public ReturnCode filterKeyValue(KeyValue keyValue) {
+	public ReturnCode filterKeyValue(Cell keyValue) {
         if (this.foundColumn) {
 			return ReturnCode.INCLUDE;
         }
@@ -85,7 +87,7 @@ public class ColumnNullableFilter extends FilterBase {
             return ReturnCode.NEXT_ROW;
         }
 
-        this.foundColumn = keyValue.matchingColumn(this.columnFamily, this.columnQualifier) && keyValue.getValue().length > 0;
+        this.foundColumn = ((KeyValue)keyValue).matchingColumn(this.columnFamily, this.columnQualifier) && CellUtil.cloneValue(keyValue).length > 0;
 
         return ReturnCode.INCLUDE;
     }
