@@ -782,7 +782,7 @@ public class InnerJoinIT extends SpliceUnitTest {
 
     @Test
     public void testJoinOverAggregates() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select a.* from monthly_hits a join monthly_hits b --DERBY-PROPERTIES joinStrategy=SORTMERGE \n" +
+        ResultSet rs = methodWatcher.executeQuery("select a.* from monthly_hits a join monthly_hits b --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n" +
                 "on a.month = b.month ");
         List results = TestUtils.resultSetToArrays(rs);
 
