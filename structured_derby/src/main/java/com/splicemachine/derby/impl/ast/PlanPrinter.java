@@ -115,7 +115,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             public Map apply(SubqueryNode subq) {
                 try {
                     HashMap<String, Object> subInfo = new HashMap<String, Object>();
-                    subInfo.put("node", subq);
+                    subInfo.put("node", nodeInfo(subq.getResultSet(), 1));
                     subInfo.put("expression?", subq.getSubqueryType() ==
                             SubqueryNode.EXPRESSION_SUBQUERY);
                     subInfo.put("correlated?", subq.hasCorrelatedCRs());
@@ -167,11 +167,11 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         return nodes;
     }
 
-    public static String treeToString(ResultSetNode rsn, int initLevel)
+    public static String treeToString(Map<String,Object> nodeInfo)
             throws StandardException {
         List<Pair<Integer,Map>> subs = new LinkedList<Pair<Integer, Map>>();
         StringBuilder sb = new StringBuilder();
-        List<Map<String,Object>> nodes = linearizeNodeInfoTree(nodeInfo(rsn, initLevel));
+        List<Map<String,Object>> nodes = linearizeNodeInfoTree(nodeInfo);
         for (Map<String,Object> node: nodes){
             List<Map> subqs = (List<Map>)node.get("subqueries");
             if (subqs != null){
@@ -184,14 +184,19 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         }
         for (Pair<Integer,Map> sub: subs){
             Map subInfo = sub.getSecond();
-            SubqueryNode subq = (SubqueryNode)subInfo.get("node");
+            Map<String,Object> subqInfoNode = (Map<String,Object>)subInfo.get("node");
             sb.append(String.format(
-                    "\nSubquery n=%s: expression?=%s, invariant?=%s, correlated?=%s\n",
-                    subq.getResultSet().getResultSetNumber(), subInfo.get("expression?"),
-                    subInfo.get("invariant?"), subInfo.get("correlated?")));
-            sb.append(treeToString(subq.getResultSet(), 1));
+                                       "\nSubquery n=%s: expression?=%s, invariant?=%s, correlated?=%s\n",
+                                       subqInfoNode.get("n"), subInfo.get("expression?"),
+                                       subInfo.get("invariant?"), subInfo.get("correlated?")));
+            sb.append(treeToString(subqInfoNode));
         }
         return sb.toString();
+    }
+
+    public static String treeToString(ResultSetNode rsn, int initLevel)
+            throws StandardException {
+        return treeToString(nodeInfo(rsn, initLevel));
     }
 
     public static String treeToString(ResultSetNode rsn) throws StandardException {
