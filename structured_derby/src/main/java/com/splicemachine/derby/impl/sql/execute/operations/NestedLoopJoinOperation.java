@@ -178,7 +178,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 						SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
 						this.leftRow = leftRow;
 						probeResultSet = getRightResultSet();
-						probeResultSet.open(hash);
+						probeResultSet.open(hash,false);
 //						if (hash) {
 //								SpliceLogUtils.trace(LOG, "Iterator - executeProbeScan on %s",getRightResultSet());
 //						}

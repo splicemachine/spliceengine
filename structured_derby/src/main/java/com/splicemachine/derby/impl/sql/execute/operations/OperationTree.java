@@ -3,18 +3,17 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.Activation;
+import org.apache.hadoop.hdfs.server.namenode.status_jsp;
 import org.apache.log4j.Logger;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NavigableMap;
@@ -53,13 +52,16 @@ public class OperationTree {
 
         //The levelMap is sorted so that lower level number means higher on the tree, so
         //since we need to execute from bottom up, we go in descending order
-        long statementUuid = runtimeContext.getStatementInfo().getStatementUuid();
+				StatementInfo info = runtimeContext.getStatementInfo();
+				boolean setStatement = info !=null;
+				long statementUuid = setStatement? info.getStatementUuid():0l;
         for(Integer level:levelMap.descendingKeySet()){
             List<SpliceOperation> levelOps = levelMap.get(level);
             if(levelOps.size()>1){
                 List<Future<Void>> shuffleFutures = Lists.newArrayListWithCapacity(levelOps.size());
                 for(final SpliceOperation opToShuffle:levelOps){
-										opToShuffle.setStatementId(statementUuid);
+										if(setStatement)
+												opToShuffle.setStatementId(statementUuid);
                     shuffleFutures.add(levelExecutor.submit(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
@@ -82,7 +84,8 @@ public class OperationTree {
                 }
             }else{
                 for(SpliceOperation op:levelOps){
-										op.setStatementId(statementUuid);
+										if(setStatement)
+												op.setStatementId(statementUuid);
                     op.executeShuffle(runtimeContext);
                 }
             }

@@ -49,7 +49,7 @@ public class ImportErrorIT {
     private static final String TABLE = "errorTable";
 
     private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
-    private static final SpliceTableWatcher tableWatcher = new SpliceTableWatcher(TABLE,schema.schemaName,"(a int not null, b bigint, c real, d double, e varchar(5),f date,g time, h timestamp)");
+    private static final SpliceTableWatcher tableWatcher = new SpliceTableWatcher(TABLE,schema.schemaName,"(a int not null, b bigint, c real, d double, e varchar(5),f date not null,g time not null, h timestamp not null)");
     private static final SpliceTableWatcher decimalTable = new SpliceTableWatcher("DECIMALTABLE", schema.schemaName, "(d decimal(2))");
 		private static final SpliceTableWatcher incrementTable = new SpliceTableWatcher("INCREMENT", schema.schemaName, "(a int generated always as identity, b int)");
     @ClassRule
@@ -204,6 +204,48 @@ public class ImportErrorIT {
             }
         });
     }
+
+		@Test(expected = SQLException.class)
+		public void testCannotInsertNullDateIntoDateField() throws Exception{
+				runImportTest("null_date.csv",new ErrorCheck() {
+						@Override
+						public void check(String table, String location, SQLException se) {
+								//make sure the error code is correct
+								Assert.assertEquals("Incorrect sql state!","23502",se.getSQLState());
+
+								String correctErrorMessage = "Column 'F'  cannot accept a NULL value.";
+								Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
+						}
+				});
+		}
+
+		@Test(expected = SQLException.class)
+		public void testCannotInsertNullTimeIntoTimeField() throws Exception{
+				runImportTest("null_time.csv",new ErrorCheck() {
+						@Override
+						public void check(String table, String location, SQLException se) {
+								//make sure the error code is correct
+								Assert.assertEquals("Incorrect sql state!","23502",se.getSQLState());
+
+								String correctErrorMessage = "Column 'G'  cannot accept a NULL value.";
+								Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
+						}
+				});
+		}
+
+		@Test(expected = SQLException.class)
+		public void testCannotInsertNullTimestampIntoTimestampField() throws Exception{
+				runImportTest("null_timestamp.csv",new ErrorCheck() {
+						@Override
+						public void check(String table, String location, SQLException se) {
+								//make sure the error code is correct
+								Assert.assertEquals("Incorrect sql state!","23502",se.getSQLState());
+
+								String correctErrorMessage = "Column 'H'  cannot accept a NULL value.";
+								Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
+						}
+				});
+		}
 
     @Test(expected =  SQLException.class)
     public void testCannotInsertAPoorlyFormatedTimestamp() throws Exception {

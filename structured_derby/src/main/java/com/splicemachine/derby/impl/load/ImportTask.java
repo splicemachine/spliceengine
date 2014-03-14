@@ -121,6 +121,17 @@ public class ImportTask extends ZkTask{
 												String[][] lines = reader.nextRowBatch();
 
 												shouldContinue = importer.processBatch(lines);
+												if(shouldContinue)
+														rowsRead+=lines.length;
+												else if(lines!=null && lines[0]!=null){
+														for(int i=0;i<lines.length;i++){
+																if(lines[i]==null){
+																		rowsRead+=(i-1);
+																		break;
+																}
+														}
+												}
+
 										}while(shouldContinue);
 								} catch (Exception e) {
 										throw new ExecutionException(e);
@@ -156,16 +167,27 @@ public class ImportTask extends ZkTask{
 				}
 		}
 
-		private ImportErrorReporter getErrorReporter(ExecRow rowTemplate,RowErrorLogger errorLogger) {
+		protected ImportErrorReporter getErrorReporter(ExecRow rowTemplate,RowErrorLogger errorLogger) {
 				long maxBadRecords = importContext.getMaxBadRecords();
-				if(maxBadRecords<=0) return FailAlwaysReporter.INSTANCE;
-
-
+				if(maxBadRecords<0) return FailAlwaysReporter.INSTANCE;
 
 				PairDecoder decoder = ImportUtils.newEntryEncoder(rowTemplate,importContext,getUuidGenerator()).getDecoder(rowTemplate);
-				return new ThresholdErrorReporter(maxBadRecords,new QueuedErrorReporter(
-								Math.min((int)maxBadRecords,SpliceConstants.importLogQueueSize),
-								SpliceConstants.importLogQueueWaitTimeMs,errorLogger,decoder));
+
+				long queueSize = maxBadRecords;
+				if(maxBadRecords==0|| maxBadRecords > SpliceConstants.importLogQueueSize)
+						queueSize = SpliceConstants.importLogQueueSize;
+
+				QueuedErrorReporter delegate = new QueuedErrorReporter( (int)queueSize,
+								SpliceConstants.importLogQueueWaitTimeMs, errorLogger, decoder);
+				/*
+				 * When maxBadRecords = 0, then we want to log everything and never fail. This is to match
+				 * Oracle etc.'s behavior (and thus be more like what people expect). Otherwise, we have a maximum
+				 * threshold that we need to adhere to.
+				 */
+				if(maxBadRecords==0)
+						return delegate;
+				else
+						return new ThresholdErrorReporter(maxBadRecords, delegate);
 		}
 
 		protected UUIDGenerator getUuidGenerator() {
@@ -173,7 +195,7 @@ public class ImportTask extends ZkTask{
 		}
 
 		protected RowErrorLogger getErrorLogger() throws StandardException {
-				if(importContext.getMaxBadRecords()<=0)
+				if(importContext.getMaxBadRecords()<0)
 						return NoopErrorLogger.INSTANCE;
 
 				/*
@@ -188,7 +210,7 @@ public class ImportTask extends ZkTask{
 
 				Path badLogFile = new Path(directory,"_BAD_"+importContext.getFilePath().getName()+"_"+Bytes.toLong(taskId));
 
-				return new FileErrorLogger(fileSystem,badLogFile);
+				return new FileErrorLogger(fileSystem,badLogFile,128);
 		}
 
 		protected void reportStats(long startTimeMs, long stopTimeMs,TimeView processTime,TimeView totalTimeView) {
