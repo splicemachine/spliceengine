@@ -11,9 +11,14 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.*;
 
+import com.splicemachine.derby.impl.db.SpliceDatabase;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.store.access.AccessFactory;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
@@ -38,7 +43,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
     private static final long MAXIMUM_DDL_WAIT = 90000; // in ms
 
     private static Gson gson = new Gson();
-    private Map<String, String> currentDDLChanges = new HashMap<String, String>();
+    private Map<String, DDLChange> currentDDLChanges = new HashMap<String, DDLChange>();
     private Set<String> seenDDLChanges = new HashSet<String>();
     private Map<String, Long> changesTimeouts = new HashMap<String, Long>();
     private List<LanguageConnectionContext> contexts = new ArrayList<LanguageConnectionContext>();
@@ -46,12 +51,33 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
     private ScheduledExecutorService executor = Executors.newScheduledThreadPool(1, 
             new ThreadFactoryBuilder().setNameFormat("ZookeeperDDLWatcherRefresh").build());
     private Map<String, DDLChange> tentativeIndexes = new ConcurrentHashMap<String, DDLChange>();
+    private SpliceAccessManager accessManager;
     
     @Override
     public synchronized void registerLanguageConnectionContext(LanguageConnectionContext lcc) {
         contexts.add(lcc);
         if (!currentDDLChanges.isEmpty()) {
             lcc.startGlobalDDLChange();
+        }
+    }
+
+    private void initializeAccessManager() throws StandardException {
+        if (accessManager != null) {
+            // already initialized
+            return;
+        }
+        if (Monitor.getMonitor() == null) {
+            // can't initialize yet
+            return;
+        }
+        SpliceDatabase db = ((SpliceDatabase) Monitor.findService(Property.DATABASE_MODULE, SpliceConstants.SPLICE_DB));
+        if (db == null) {
+            // can't initialize yet
+            return;
+        }
+        accessManager = (SpliceAccessManager) Monitor.findServiceModule(db, AccessFactory.MODULE);
+        for (DDLChange change : currentDDLChanges.values()) {
+            accessManager.startDDLChange(change);
         }
     }
 
@@ -114,6 +140,8 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
     }
 
     private synchronized void refresh() throws StandardException {
+        initializeAccessManager();
+
         // Get all ongoing DDL changes
         List<String> children;
         try {
@@ -133,6 +161,10 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
                 currentDDLChanges.remove(entry);
                 tentativeIndexes.remove(entry);
                 iterator.remove();
+                // notify access manager
+                if (accessManager != null) {
+                    accessManager.finishDDLChange(entry);
+                }
             }
         }
         for (Iterator<String> iterator = children.iterator(); iterator.hasNext();) {
@@ -153,8 +185,12 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
                 if (ddlChange.isTentative()) {
                     processTentativeDDLChange(changeId, ddlChange);
                 } else {
-                    currentDDLChanges.put(changeId, ddlChange.getTransactionId());
+                    currentDDLChanges.put(changeId, ddlChange);
                     changesTimeouts.put(changeId, System.currentTimeMillis());
+                    // notify access manager
+                    if (accessManager != null) {
+                        accessManager.startDDLChange(ddlChange);
+                    }
                 }
             }
         }
@@ -213,7 +249,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
 
     private void killDDLTransaction(String changeId) {
         try {
-            String transactionId = currentDDLChanges.get(changeId);
+            String transactionId = currentDDLChanges.get(changeId).getTransactionId();
             LOG.warn("We are killing transaction " + transactionId + " since it exceeds the maximum wait period for"
                     + " the DDL change " + changeId + " publication");
             HTransactorFactory.getTransactionManager().fail(new TransactionId(transactionId));

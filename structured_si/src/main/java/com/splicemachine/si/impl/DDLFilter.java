@@ -2,7 +2,7 @@ package com.splicemachine.si.impl;
 
 import java.io.IOException;
 
-public class DDLFilter {
+public class DDLFilter implements Comparable<DDLFilter> {
     private final Transaction myTransaction;
     private final TransactionStore transactionStore;
 
@@ -38,5 +38,25 @@ public class DDLFilter {
 
     public Transaction getTransaction() {
         return myTransaction;
+    }
+
+    @Override
+    public int compareTo(DDLFilter o) {
+        if (o == null) {
+            return 1;
+        }
+        if (myTransaction.getStatus().isCommitted()) {
+            if (o.getTransaction().getStatus().isCommitted()) {
+                return Long.compare(myTransaction.getCommitTimestampDirect(), o.getTransaction().getCommitTimestampDirect());
+            } else {
+                return 1;
+            }
+        } else {
+            if (o.getTransaction().getStatus().isCommitted()) {
+                return -1;
+            } else {
+                return Long.compare(myTransaction.getEffectiveBeginTimestamp(), o.getTransaction().getEffectiveCommitTimestamp());
+            }
+        }
     }
 }

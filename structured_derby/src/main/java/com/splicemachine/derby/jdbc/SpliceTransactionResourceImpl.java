@@ -2,6 +2,8 @@ package com.splicemachine.derby.jdbc;
 
 import java.sql.SQLException;
 import java.util.Properties;
+
+import com.splicemachine.constants.SpliceConstants;
 import org.apache.derby.iapi.db.Database;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
@@ -34,7 +36,7 @@ public final class SpliceTransactionResourceImpl {
 	protected LanguageConnectionContext lcc;
 
 	public SpliceTransactionResourceImpl() throws SQLException {
-		this ("jdbc:derby:spliceDB;create=true", new Properties());
+		this ("jdbc:derby:"+ SpliceConstants.SPLICE_DB + ";create=true", new Properties());
 	}
 	
 	public SpliceTransactionResourceImpl(String url, Properties info) throws SQLException {
