@@ -9,6 +9,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
@@ -28,7 +29,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME, tableDef);
     protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME, "(i int)");
     protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4,CLASS_NAME, tableDef);
-    protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME, tableDef);
+    protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME, "(i int)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -36,8 +37,8 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
             .around(spliceTableWatcher1)
             .around(spliceTableWatcher2)
             .around(spliceTableWatcher3)
-            .around(spliceTableWatcher4);
-//            .around(spliceTableWatcher5);
+            .around(spliceTableWatcher4)
+            .around(spliceTableWatcher5);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -140,5 +141,25 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         Assert.assertEquals("Expected to see an additional row.",1, resultSetSize(resultSet));
         Assert.assertEquals("Expected to see another column.", 5, columnWidth(resultSet));
         connection2.commit();
+    }
+
+    @Test
+    public void testAddColumnDefaultIsReadable() throws Exception {
+        Connection connection1 = methodWatcher.createConnection();
+        connection1.createStatement().execute(String.format("insert into %s values 1,2,3", this.getTableReference(TABLE_NAME_5)));
+
+        PreparedStatement ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_5)));
+        ResultSet resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have only 1 column.", 1, columnWidth(resultSet));
+        connection1.createStatement().execute(String.format("alter table %s add column j int default 5", this.getTableReference(TABLE_NAME_5)));
+
+        resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 2 columns.", 2, columnWidth(resultSet));
+        int count = 0;
+        while(resultSet.next()) {
+            Assert.assertEquals("Second column should have the default value", 5, resultSet.getInt(2));
+            count ++;
+        }
+        Assert.assertEquals("Wrong number of results", 3, count);
     }
 }
