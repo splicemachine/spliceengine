@@ -47,7 +47,7 @@ public class DDLFilter implements Comparable<DDLFilter> {
         }
         if (myTransaction.getStatus().isCommitted()) {
             if (o.getTransaction().getStatus().isCommitted()) {
-                return Long.compare(myTransaction.getCommitTimestampDirect(), o.getTransaction().getCommitTimestampDirect());
+                return Long.compare(myTransaction.getCommitTimestampDirect().longValue(), o.getTransaction().getCommitTimestampDirect().longValue());
             } else {
                 return 1;
             }
@@ -55,7 +55,7 @@ public class DDLFilter implements Comparable<DDLFilter> {
             if (o.getTransaction().getStatus().isCommitted()) {
                 return -1;
             } else {
-                return Long.compare(myTransaction.getEffectiveBeginTimestamp(), o.getTransaction().getEffectiveCommitTimestamp());
+                return Long.compare(myTransaction.getEffectiveBeginTimestamp(), o.getTransaction().getEffectiveBeginTimestamp());
             }
         }
     }
