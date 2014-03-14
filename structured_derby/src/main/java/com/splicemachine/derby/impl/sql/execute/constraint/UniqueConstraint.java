@@ -62,8 +62,11 @@ public class UniqueConstraint implements Constraint {
     public boolean validate(KVPair mutation,String txnId, RegionCoprocessorEnvironment rce,Collection<KVPair> priorValues) throws IOException {
         if(!stripDeletes.apply(mutation)) return true; //no need to validate this mutation
         //if prior visited values has it, it's in the same batch mutation, so fail it
-        if(priorValues.contains(mutation))
+        if(priorValues.contains(mutation)){
+						if (logger.isTraceEnabled())
+								SpliceLogUtils.trace(logger, "row %s",BytesUtil.toHex(mutation.getRow()));
             return false;
+				}
         Get get = createGet(mutation,txnId);
 
         HRegion region = rce.getRegion();

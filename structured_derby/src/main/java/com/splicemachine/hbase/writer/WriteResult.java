@@ -97,12 +97,12 @@ public class WriteResult implements Externalizable{
         return code.canRetry();
     }
 
-		private static WriteResult NOT_RUN_RESULT = new WriteResult(Code.NOT_RUN);
+		private static final WriteResult NOT_RUN_RESULT = new WriteResult(Code.NOT_RUN);
     public static WriteResult notRun() {
 				return NOT_RUN_RESULT;
     }
 
-		private static WriteResult SUCCESS_RESULT = new WriteResult(Code.SUCCESS);
+		private static final WriteResult SUCCESS_RESULT = new WriteResult(Code.SUCCESS);
     public static WriteResult success() {
 				return SUCCESS_RESULT;
     }

@@ -112,9 +112,10 @@ public class BulkWriteResult implements Externalizable {
 						int rowNum = in.readInt();
 						if(in.readBoolean()){
 								failedRows.put(rowNum,(WriteResult)in.readObject());
-						}else{
-								failedRows.put(rowNum,new WriteResult(WriteResult.Code.FAILED, "Unknown exception"));
 						}
+//						else{
+//								failedRows.put(rowNum,new WriteResult(WriteResult.Code.FAILED, "Unknown exception"));
+//						}
 				}
 		}
 

@@ -125,7 +125,7 @@ public class PipelineWriteContext implements WriteContext{
 
     public PipelineWriteContext(String txnId,RegionCoprocessorEnvironment rce,boolean keepState,boolean useAsyncWriteBuffers) {
         this.rce = rce;
-        this.resultsMap = Maps.newHashMap();
+        this.resultsMap = Maps.newIdentityHashMap();
         this.keepState = keepState;
         this.useAsyncWriteBuffers= useAsyncWriteBuffers;
         this.txnId = txnId;

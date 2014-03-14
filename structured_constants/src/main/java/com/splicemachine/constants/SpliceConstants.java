@@ -307,7 +307,7 @@ public class SpliceConstants {
 		 * Default is 1000
 		 */
 		@Parameter private static final String BUFFER_ENTRIES = "hbase.client.write.buffer.maxentries";
-		@DefaultValue(BUFFER_ENTRIES)public static final int DEFAULT_MAX_BUFFER_ENTRIES = 1000;
+		@DefaultValue(BUFFER_ENTRIES)public static final int DEFAULT_MAX_BUFFER_ENTRIES = 1024;
 		public static int maxBufferEntries;
 
 		/**

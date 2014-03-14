@@ -115,37 +115,38 @@ public class BulkWrite implements Externalizable {
 				Output output = new Output(1024,-1);
 				output.writeString(txnId);
 
-				List<KVPair> inserts = Lists.newArrayList();
-				List<KVPair> updates = Lists.newArrayList();
-				List<KVPair> deletes = Lists.newArrayList();
+//				List<KVPair> inserts = Lists.newArrayList();
+//				List<KVPair> updates = Lists.newArrayList();
+//				List<KVPair> deletes = Lists.newArrayList();
 				Object[] buffer = mutations.buffer;
 				int size = mutations.size();
 				for(int i=0;i< size;i++){
 						KVPair pair = (KVPair)buffer[i];
-						switch (pair.getType()) {
-								case INSERT:
-										inserts.add(pair);
-										break;
-								case UPDATE:
-										updates.add(pair);
-										break;
-								case DELETE:
-										deletes.add(pair);
-										break;
-						}
+						pair.toBytes(output);
+//						switch (pair.getType()) {
+//								case INSERT:
+//										inserts.add(pair);
+//										break;
+//								case UPDATE:
+//										updates.add(pair);
+//										break;
+//								case DELETE:
+//										deletes.add(pair);
+//										break;
+//						}
 				}
-				if(inserts.size()>0){
-						output.writeByte(KVPair.Type.INSERT.asByte());
-						writeKvs(output, inserts);
-				}
-				if(updates.size()>0){
-						output.writeByte(KVPair.Type.UPDATE.asByte());
-						writeKvs(output,updates);
-				}
-				if(deletes.size()>0){
-						output.writeByte(KVPair.Type.DELETE.asByte());
-						writeKvs(output,deletes);
-				}
+//				if(inserts.size()>0){
+//						output.writeByte(KVPair.Type.INSERT.asByte());
+//						writeKvs(output, inserts);
+//				}
+//				if(updates.size()>0){
+//						output.writeByte(KVPair.Type.UPDATE.asByte());
+//						writeKvs(output,updates);
+//				}
+//				if(deletes.size()>0){
+//						output.writeByte(KVPair.Type.DELETE.asByte());
+//						writeKvs(output,deletes);
+//				}
 				output.flush();
 				return output.toBytes();
 		}
@@ -153,13 +154,18 @@ public class BulkWrite implements Externalizable {
 		private void writeKvs(Output output, List<KVPair> kvs) {
 				output.writeInt(kvs.size());
 				for(KVPair kvPair:kvs){
-						byte[] key = kvPair.getRow();
-						byte[] value = kvPair.getValue();
-						output.writeInt(key.length);
-						output.write(key);
-						output.writeInt(value.length);
-						output.write(value);
+						writeKv(output, kvPair);
 				}
+		}
+
+		private void writeKv(Output output, KVPair kvPair) {
+				kvPair.toBytes(output);
+//				byte[] key = kvPair.getRow();
+//				byte[] value = kvPair.getValue();
+//				output.writeInt(key.length);
+//				output.write(key);
+//				output.writeInt(value.length);
+//				output.write(value);
 		}
 
 		public static BulkWrite fromBytes(byte[] bulkWriteBytes) throws IOException {
@@ -168,9 +174,10 @@ public class BulkWrite implements Externalizable {
 				String txnId = input.readString();
 				ObjectArrayList<KVPair> mutations = new ObjectArrayList<KVPair>();
 				while(input.available()>0){
-						byte typeByte = input.readByte();
-						int length = input.readInt();
-						readKvs(input, length, mutations, KVPair.Type.decode(typeByte));
+						mutations.add(KVPair.fromBytes(input));
+//						byte typeByte = input.readByte();
+//						int length = input.readInt();
+//						readKvs(input, length, mutations, KVPair.Type.decode(typeByte));
 				}
 				return new BulkWrite(mutations,txnId,null);
 		}
