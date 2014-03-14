@@ -1,13 +1,21 @@
 package com.splicemachine.hbase.table;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.SortedSet;
+import java.util.concurrent.ExecutorService;
+
 import com.google.common.collect.Sets;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.hbase.RegionCache;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
+import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
@@ -16,14 +24,9 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.util.List;
-import java.util.SortedSet;
-import java.util.concurrent.ExecutorService;
-
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.hbase.RegionCache;
 
 /**
  * @author Scott Fines
@@ -36,7 +39,7 @@ public class SpliceHTableTest {
         RegionCache cache = mock(RegionCache.class);
 
         final SortedSet<HRegionInfo> regions = Sets.newTreeSet();
-        byte[] tableName = Bytes.toBytes("1184");
+        TableName tableName = TableName.valueOf(Bytes.toBytes("1184"));
         byte[] startKey = new byte[]{};
         for(int i=0;i<10;i++){
             byte[] endKey = Encoding.encode(i);
@@ -46,7 +49,7 @@ public class SpliceHTableTest {
         }
         byte[] endKey = HConstants.EMPTY_END_ROW;
         regions.add(new HRegionInfo(tableName,startKey,endKey));
-        when(cache.getRegions(tableName)).thenReturn(regions);
+        when(cache.getRegions(tableName.getName())).thenReturn(regions);
 
         HConnection connection = mock(HConnection.class);
         Configuration config  = SpliceConstants.config;
@@ -59,9 +62,9 @@ public class SpliceHTableTest {
                 for(HRegionInfo regionInfo:regions){
                     byte[] endKey = regionInfo.getEndKey();
                     if(endKey.length==0){
-                        return new HRegionLocation(regionInfo,"localhost",8180);
+                        return new HRegionLocation(regionInfo, ServerName.parseServerName("localhost"),8180);
                     }else if(Bytes.compareTo(endKey,startKey)>0){
-                        return new HRegionLocation(regionInfo,"localhost",8180);
+                        return new HRegionLocation(regionInfo,ServerName.parseServerName("localhost"),8180);
                     }
                 }
                 return null;
@@ -69,7 +72,7 @@ public class SpliceHTableTest {
         });
 
         ExecutorService executor = mock(ExecutorService.class);
-        SpliceHTable table = new SpliceHTable(tableName,connection,executor,cache);
+        SpliceHTable table = new SpliceHTable(tableName.getName(),connection,executor,cache);
 
         byte[] testStart = HConstants.EMPTY_START_ROW;
         byte[] testEnd = testStart;
@@ -84,7 +87,7 @@ public class SpliceHTableTest {
         RegionCache cache = mock(RegionCache.class);
 
         final SortedSet<HRegionInfo> regions = Sets.newTreeSet();
-        byte[] tableName = Bytes.toBytes("1184");
+        TableName tableName = TableName.valueOf(Bytes.toBytes("1184"));
         byte[] startKey = new byte[]{};
         for(int i=0;i<10;i++){
             byte[] endKey = Encoding.encode(i);
@@ -94,7 +97,7 @@ public class SpliceHTableTest {
         }
         byte[] endKey = HConstants.EMPTY_END_ROW;
         regions.add(new HRegionInfo(tableName,startKey,endKey));
-        when(cache.getRegions(tableName)).thenReturn(regions);
+        when(cache.getRegions(tableName.getName())).thenReturn(regions);
 
         HConnection connection = mock(HConnection.class);
         Configuration config  = SpliceConstants.config;
@@ -107,9 +110,9 @@ public class SpliceHTableTest {
                 for(HRegionInfo regionInfo:regions){
                     byte[] endKey = regionInfo.getEndKey();
                     if(endKey.length==0){
-                        return new HRegionLocation(regionInfo,"localhost",8180);
+                        return new HRegionLocation(regionInfo,ServerName.parseServerName("localhost"),8180);
                     }else if(Bytes.compareTo(endKey,startKey)>0){
-                        return new HRegionLocation(regionInfo,"localhost",8180);
+                        return new HRegionLocation(regionInfo,ServerName.parseServerName("localhost"),8180);
                     }
                 }
                 return null;
@@ -117,7 +120,7 @@ public class SpliceHTableTest {
         });
 
         ExecutorService executor = mock(ExecutorService.class);
-        SpliceHTable table = new SpliceHTable(tableName,connection,executor,cache);
+        SpliceHTable table = new SpliceHTable(tableName.getName(),connection,executor,cache);
 
         byte[] testStart = Encoding.encode(1);
         byte[] testEnd = testStart;
@@ -131,7 +134,7 @@ public class SpliceHTableTest {
         RegionCache cache = mock(RegionCache.class);
 
         SortedSet<HRegionInfo> regions = Sets.newTreeSet();
-        byte[] tableName = Bytes.toBytes("1184");
+        TableName tableName = TableName.valueOf(Bytes.toBytes("1184"));
         byte[] startKey = new byte[]{};
         for(int i=0;i<10;i++){
             byte[] endKey = Encoding.encode(i);
@@ -141,13 +144,13 @@ public class SpliceHTableTest {
         }
         byte[] endKey = HConstants.EMPTY_END_ROW;
         regions.add(new HRegionInfo(tableName,startKey,endKey));
-        when(cache.getRegions(tableName)).thenReturn(regions);
+        when(cache.getRegions(tableName.getName())).thenReturn(regions);
 
         HConnection connection = mock(HConnection.class);
         Configuration config  = SpliceConstants.config;
         when(connection.getConfiguration()).thenReturn(config);
         ExecutorService executor = mock(ExecutorService.class);
-        SpliceHTable table = new SpliceHTable(tableName,connection,executor,cache);
+        SpliceHTable table = new SpliceHTable(tableName.getName(),connection,executor,cache);
 
         byte[] testStart = Encoding.encode(1);
         byte[] testEnd = Encoding.encode(3);

@@ -1,17 +1,12 @@
 package com.splicemachine.hbase.table;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
-import org.junit.Test;
+import static org.mockito.Mockito.mock;
 
-import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 
-import static org.mockito.Mockito.mock;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
+import org.junit.Test;
 
 /**
  * @author Scott Fines
@@ -40,7 +35,7 @@ public class SpliceHTableFactoryTest {
 
     }
 
-    private static interface TestProtocol extends CoprocessorProtocol {
+    private static interface TestProtocol extends CoprocessorService {
 
         void test();
     }
