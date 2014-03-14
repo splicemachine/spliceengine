@@ -1,5 +1,6 @@
 package com.splicemachine.derby.hbase;
 
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
@@ -40,6 +41,7 @@ import org.cliffc.high_scale_lib.NonBlockingHashMap;
 
 import javax.management.*;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
@@ -168,7 +170,6 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 								throw new IOException(e);
 						}
 
-
 						Object[] bufferArray = bulkWrite.getBuffer();
 						int size = bulkWrite.getSize();
 						for (int i = 0; i<size; i++) {
@@ -177,18 +178,16 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 						Map<KVPair,WriteResult> resultMap = context.finish();
 
 						BulkWriteResult response = new BulkWriteResult();
-						int pos=0;
 						int failed=0;
-						size = bulkWrite.getSize();
 						for (int i = 0; i<size; i++) {
 								@SuppressWarnings("RedundantCast") WriteResult result = resultMap.get((KVPair)bufferArray[i]);
 								if(result.getCode()== WriteResult.Code.FAILED){
 										failed++;
 								}
-								response.addResult(pos,result);
-								pos++;
+								response.addResult(i,result);
 						}
 
+						SpliceLogUtils.trace(LOG,"Returning response %s",response);
 						int numSuccessWrites = size-failed;
 						throughputMeter.mark(numSuccessWrites);
 						failedMeter.mark(failed);

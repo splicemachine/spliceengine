@@ -95,6 +95,7 @@ public class RowParser {
         int pos=0;
         for(ColumnContext context:columnContexts){
             String value = pos>=line.length ||line[pos]==null||line[pos].length()==0?null: line[pos];
+						//TODO -sf- this seems really inefficient, make this more better
             if (timestampFormatStr != null && timestampFormatStr.contains("@") && context.getColumnType() == 93 && context.getColumnNumber() == pos) {
             	String tmpstr = columnTimestampFormats.get(String.valueOf(context.getColumnNumber()+1));
             	if (tmpstr.equals("null") || tmpstr.equals("NULL") || tmpstr == null) {

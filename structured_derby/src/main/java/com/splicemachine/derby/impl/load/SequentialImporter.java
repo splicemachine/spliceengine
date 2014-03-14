@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.load;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.google.common.collect.Sets;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
@@ -13,11 +14,16 @@ import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.Snowflake;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -26,6 +32,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Date: 1/31/14
  */
 public class SequentialImporter implements Importer{
+		private static final Logger LOG = Logger.getLogger(SequentialImporter.class);
 		private final ImportContext importContext;
 		private final MetricFactory metricFactory;
 
@@ -80,27 +87,38 @@ public class SequentialImporter implements Importer{
 								if(isFailed()) return Writer.WriteResponse.IGNORE;
 								//filter out and report bad records
 								IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
-								IntObjectOpenHashMap<WriteResult> filteredRows = IntObjectOpenHashMap.newInstance();
+								@SuppressWarnings("MismatchedReadAndWriteOfArray") Object[] fRows = failedRows.values;
+								boolean ignore = true;
 								for(IntObjectCursor<WriteResult> resultCursor:failedRows){
 										WriteResult value = resultCursor.value;
 										int rowNum = resultCursor.key;
-										if(!value.canRetry()){
-												if(!errorReporter.reportError((KVPair)request.getBuffer()[rowNum],value)){
-														if(errorReporter ==FailAlwaysReporter.INSTANCE)
-																return super.partialFailure(result,request);
-														else
-																throw new ExecutionException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException());
-												}
-										}else{
-												filteredRows.put(rowNum,value);
+										switch(value.getCode()){
+												case FAILED:
+												case WRITE_CONFLICT:
+												case PRIMARY_KEY_VIOLATION:
+												case UNIQUE_VIOLATION:
+												case FOREIGN_KEY_VIOLATION:
+												case CHECK_VIOLATION:
+												case NOT_NULL:
+														if(!errorReporter.reportError((KVPair)request.getBuffer()[rowNum],value)){
+																if(errorReporter ==FailAlwaysReporter.INSTANCE)
+																		return Writer.WriteResponse.THROW_ERROR;
+																else
+																		throw new ExecutionException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException());
+														}
+														failedRows.allocated[resultCursor.index] = false;
+														fRows[resultCursor.index] = null;
+														break;
+												default:
+														ignore = false;
 										}
 								}
-								result.setFailedRows(filteredRows);
-								return super.partialFailure(result,request);
+								if(ignore)
+										return Writer.WriteResponse.IGNORE;
+								else
+										return Writer.WriteResponse.RETRY;
 						}
-
-						@Override
-						public MetricFactory getMetricFactory() {
+						@Override public MetricFactory getMetricFactory() {
 								return metricFactory;
 						}
 				};
@@ -123,9 +141,13 @@ public class SequentialImporter implements Importer{
 					writeTimer = metricFactory.newTimer();
 
 				writeTimer.startTiming();
+				SpliceLogUtils.trace(LOG,"processing %d parsed rows",parsedRows.length);
 				int count=0;
 				for(String[] line:parsedRows){
-						if(line==null) break;
+						if(line==null) {
+								SpliceLogUtils.trace(LOG,"actually processing %d rows",count);
+								break;
+						}
 						ExecRow row = rowParser.process(line,importContext.getColumnInformation());
 						if(row==null) continue; //unable to parse the row, so skip it.
 						if(entryEncoder==null)

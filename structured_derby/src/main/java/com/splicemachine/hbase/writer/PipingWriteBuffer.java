@@ -3,10 +3,13 @@ package com.splicemachine.hbase.writer;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.Metrics;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
@@ -60,6 +63,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
 
     private final BufferConfiguration bufferConfiguration;
     private final WriteCoordinator.PreFlushHook preFlushHook;
+
 
     public PipingWriteBuffer(byte[] tableName,
                       String txnId,
@@ -252,7 +256,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
         public void add(KVPair element) throws Exception {
             buffer.add(element);
             heapSize+=element.getSize();
-            if(buffer.size()>maxEntries)
+            if(buffer.size()>=maxEntries)
                 flushBuffer();
         }
 
@@ -289,6 +293,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
 						}
 						ObjectArrayList<KVPair> newBuffer = ObjectArrayList.newInstance();
 						ObjectArrayList<KVPair> copy = buffer;
+						Object[] buf =  copy.buffer;
 						buffer = newBuffer;
 
 						//update heap size metrics
