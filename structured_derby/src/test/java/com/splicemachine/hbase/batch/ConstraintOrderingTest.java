@@ -75,7 +75,7 @@ public class ConstraintOrderingTest {
         when(constraintCtx.getConstraintName()).thenReturn("unique");
         when(uniqueConstraint.getConstraintContext()).thenReturn(constraintCtx);
         when(uniqueConstraint.getType()).thenReturn(Constraint.Type.UNIQUE);
-        testContext.addLast(new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100));
+        testContext.addLast(new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100,null));
         testContext.addLast(new ConstraintHandler(uniqueConstraint));
 
         List<KVPair> pairs = Lists.newArrayList();

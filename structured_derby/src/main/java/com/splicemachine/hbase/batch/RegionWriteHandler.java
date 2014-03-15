@@ -10,6 +10,7 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.si.api.ConstraintChecker;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.coprocessors.RollForwardQueueMap;
@@ -49,21 +50,23 @@ public class RegionWriteHandler implements WriteHandler {
     private final ResettableCountDownLatch writeLatch;
     private final int writeBatchSize;
     private RollForwardQueue queue;
+		private BatchConstraintChecker constraintChecker;
 
-    public RegionWriteHandler(HRegion region, ResettableCountDownLatch writeLatch, int writeBatchSize) {
-        this.region = region;
-        this.writeLatch = writeLatch;
-        this.writeBatchSize = writeBatchSize;
+    public RegionWriteHandler(HRegion region, ResettableCountDownLatch writeLatch, int writeBatchSize,
+															BatchConstraintChecker constraintChecker) {
+				this(region,writeLatch,writeBatchSize,null,constraintChecker);
     }
 
     public RegionWriteHandler(HRegion region,
                               ResettableCountDownLatch writeLatch,
                               int writeBatchSize,
-                              RollForwardQueue queue){
+                              RollForwardQueue queue,
+															BatchConstraintChecker constraintChecker){
         this.region = region;
         this.writeLatch = writeLatch;
         this.writeBatchSize = writeBatchSize;
         this.queue = queue;
+				this.constraintChecker = constraintChecker;
     }
 
     @Override
@@ -197,6 +200,12 @@ public class RegionWriteHandler implements WriteHandler {
 								case SUCCESS:
 										ctx.success(mutation);
 										break;
+								case FAILURE:
+										//see if it's due to constraints, otherwise just pass it through
+										if(constraintChecker!=null && constraintChecker.matches(stat)){
+												ctx.result(mutation,constraintChecker.asWriteResult(stat));
+												break;
+										}
 								default:
                     failed++;
                     ctx.failed(mutation,WriteResult.failed(stat.getExceptionMsg()));
@@ -225,7 +234,9 @@ public class RegionWriteHandler implements WriteHandler {
         final String tableName = region.getTableDesc().getNameAsString();
         if(queue==null)
             queue =  RollForwardQueueMap.lookupRollForwardQueue(tableName);
-				return transactor.processKvBatch(new HbRegion(region),queue,SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,toProcess,ctx.getTransactionId());
+				return transactor.processKvBatch(new HbRegion(region),queue,
+								SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,
+								toProcess,ctx.getTransactionId(),constraintChecker);
     }
 
 	@Override

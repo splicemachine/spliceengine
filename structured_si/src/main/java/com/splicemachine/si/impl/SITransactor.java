@@ -1,5 +1,7 @@
 package com.splicemachine.si.impl;
 
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -250,28 +252,53 @@ public class SITransactor<Table,
 																						TransactionId txnId,
 																						byte[] family, byte[] qualifier,
 																						Collection<KVPair> mutations) throws IOException {
+			return processKvBatch(table,rollForwardQueue,txnId,family,qualifier,mutations,null);
+		}
+
+		@Override
+		public OperationStatus[] processKvBatch(Table table,
+																						RollForwardQueue rollForwardQueue,
+																						TransactionId txnId,
+																						byte[] family, byte[] qualifier,
+																						Collection<KVPair> mutations,ConstraintChecker constraintChecker) throws IOException {
 				ImmutableTransaction transaction = transactionStore.getImmutableTransaction(txnId);
 				ensureTransactionAllowsWrites(transaction);
 
 				Pair<KVPair,Integer>[] lockPairs = null;
 				try {
-						lockPairs = lockRows(table, mutations);
+						lockPairs = lockRows(table, mutations,constraintChecker);
 
 						@SuppressWarnings("unchecked") final Set<Long>[] conflictingChildren = new Set[mutations.size()];
 						dataStore.startLowLevelOperation(table);
-						Pair<Mutation,Integer>[] writes;
+						IntObjectOpenHashMap<Pair<Mutation,Integer>> writes;
+						OperationStatus[] opStatus = new OperationStatus[mutations.size()];
 						try {
 								writes = checkConflictsForKvBatch(table, rollForwardQueue, lockPairs,
-												conflictingChildren, transaction,family,qualifier);
+												conflictingChildren, transaction,family,qualifier,constraintChecker,opStatus);
 						} finally {
 								dataStore.closeLowLevelOperation(table);
 						}
 
-						final OperationStatus[] status = dataStore.writeBatch(table, writes);
+						//TODO -sf- this can probably be made more efficient
+						//convert into array for usefulness
+						Pair<Mutation,Integer>[] toWrite = new Pair[writes.size()];
+						int i=0;
+						for(IntObjectCursor<Pair<Mutation,Integer>> write:writes){
+								toWrite[i] = write.value;
+								i++;
+						}
+						final OperationStatus[] status = dataStore.writeBatch(table, toWrite);
 
-						resolveConflictsForKvBatch(table, writes, conflictingChildren, status);
+						resolveConflictsForKvBatch(table, toWrite, conflictingChildren, status);
 
-						return status;
+						//convert the status back into the larger array
+						i=0;
+						for(IntObjectCursor<Pair<Mutation,Integer>> write:writes){
+								opStatus[write.key] = status[i];
+								i++;
+						}
+
+						return opStatus;
 				} finally {
 						releaseLocksForKvBatch(table, lockPairs);
 				}
@@ -280,15 +307,25 @@ public class SITransactor<Table,
 		@Override
 		public OperationStatus[] processKvBatch(Table table, RollForwardQueue rollForwardQueue,
 																						byte[] family, byte[] qualifier,
-																						Collection<KVPair> mutations, String txnId) throws IOException {
-			
+																						Collection<KVPair> mutations,
+																						String txnId) throws IOException {
+			return processKvBatch(table,rollForwardQueue,family,qualifier,mutations,txnId,null);
+		}
+
+		@Override
+		public OperationStatus[] processKvBatch(Table table,
+																						RollForwardQueue rollForwardQueue,
+																						byte[] family,
+																						byte[] qualifier,
+																						Collection<KVPair> mutations,
+																						String txnId, ConstraintChecker constraintChecker) throws IOException {
 				if(mutations.size()<=0)
 						//noinspection unchecked
 						return dataStore.writeBatch(table,new Pair[]{});
 
 				//ensure the transaction is in good shape
 				TransactionId txn = transactionManager.transactionIdFromString(txnId);
-				return processKvBatch(table,rollForwardQueue,txn,family,qualifier,mutations);
+				return processKvBatch(table,rollForwardQueue,txn,family,qualifier,mutations,constraintChecker);
 		}
 
 		@SuppressWarnings("UnusedDeclaration")
@@ -332,39 +369,65 @@ public class SITransactor<Table,
 				}
 		}
 
-		private Pair<Mutation, Integer>[] checkConflictsForKvBatch(Table table, RollForwardQueue rollForwardQueue,
+		private IntObjectOpenHashMap<Pair<Mutation, Integer>> checkConflictsForKvBatch(Table table, RollForwardQueue rollForwardQueue,
 																															 Pair<KVPair, Integer>[] dataAndLocks,
 																															 Set<Long>[] conflictingChildren,
-																															 ImmutableTransaction transaction, byte[] family, byte[] qualifier) throws IOException{
-				@SuppressWarnings("unchecked") Pair<Mutation,Integer>[] finalPuts = new Pair[dataAndLocks.length];
+																															 ImmutableTransaction transaction,
+																															 byte[] family, byte[] qualifier,
+																															 ConstraintChecker constraintChecker,
+																															 OperationStatus[] failures) throws IOException{
+//				@SuppressWarnings("unchecked") Pair<Mutation,Integer>[] finalPuts = new Pair[dataAndLocks.length];
+				IntObjectOpenHashMap<Pair<Mutation,Integer>> finalMutationsToWrite = IntObjectOpenHashMap.newInstance();
 				for(int i=0;i<dataAndLocks.length;i++){
 						ConflictResults conflictResults;
 						conflictResults = ConflictResults.NO_CONFLICT;
-						if(unsafeWrites) {
-	
+						if(unsafeWrites && constraintChecker!=null){
+								//still have to check the constraint
+								Result row = dataStore.getCommitTimestampsAndTombstonesSingle(table, dataAndLocks[i].getFirst().getRow());
+								OperationStatus operationStatus = constraintChecker.checkConstraint(row);
+								if(operationStatus!=null && operationStatus.getOperationStatusCode()== HConstants.OperationStatusCode.FAILURE){
+										failures[i] = operationStatus;
+										continue;
+								}
 						} else{
 								Result possibleConflicts = dataStore.getCommitTimestampsAndTombstonesSingle(table, dataAndLocks[i].getFirst().getRow());
 								if (possibleConflicts != null) {
-									conflictResults = ensureNoWriteConflict(transaction,possibleConflicts);
+										conflictResults = ensureNoWriteConflict(transaction,possibleConflicts);
+										//if we've got this far, we have no write conflicts
+										if(constraintChecker!=null){
+												OperationStatus opStatus = constraintChecker.checkConstraint(possibleConflicts);
+												if(opStatus !=null && opStatus.getOperationStatusCode()== HConstants.OperationStatusCode.FAILURE){
+														failures[i] = opStatus;
+														continue;
+												}
+										}
 								}
 						}
 						conflictingChildren[i] = conflictResults.childConflicts;
-						finalPuts[i] = Pair.newPair(getMutationToRun(table,rollForwardQueue,
-										dataAndLocks[i].getFirst(), family, qualifier,transaction, conflictResults),dataAndLocks[i].getSecond());						
+						finalMutationsToWrite.put(i, Pair.newPair(getMutationToRun(table,rollForwardQueue,
+										dataAndLocks[i].getFirst(), family, qualifier,transaction, conflictResults),dataAndLocks[i].getSecond()));
 				}
-				return finalPuts;
+				return finalMutationsToWrite;
 		}
 
 		private static final boolean unsafeWrites = Boolean.getBoolean("splice.unsafe.writes");
 
 
-		private Pair<KVPair, Integer>[] lockRows(Table table, Collection<KVPair> mutations) throws IOException {
+		private Pair<KVPair, Integer>[] lockRows(Table table, Collection<KVPair> mutations,
+																						 ConstraintChecker constraintChecker,
+																						 OperationStatus[] opStatus) throws IOException {
 				@SuppressWarnings("unchecked") Pair<KVPair,Integer>[] mutationsAndLocks = new Pair[mutations.size()];
 
 				int i=0;
 				for(KVPair pair:mutations){
-						mutationsAndLocks[i] = Pair.newPair(pair,dataWriter.lockRow(table, pair.getRow()));
-						i++;
+						try{
+								Integer lockRow = dataWriter.lockRow(table, pair.getRow());
+								mutationsAndLocks[i] = Pair.newPair(pair, lockRow);
+								i++;
+						}catch(IOException ioe){
+							opStatus
+
+						}
 				}
 				return mutationsAndLocks;
 		}

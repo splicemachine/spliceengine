@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
+import com.splicemachine.hbase.batch.BatchConstraintChecker;
+import com.splicemachine.hbase.batch.UniqueConstraintChecker;
 import org.apache.log4j.Logger;
 
 /**
@@ -15,7 +17,12 @@ public class PrimaryKey extends UniqueConstraint {
         super(cc);
     }
 
-    @Override
+		@Override
+		public BatchConstraintChecker asChecker() {
+				return new UniqueConstraintChecker(true,getConstraintContext());
+		}
+
+		@Override
     public Type getType() {
         return Type.PRIMARY_KEY;
     }

@@ -31,7 +31,7 @@ public class RegionWriteHandlerTest {
         when(rce.getRegion()).thenReturn(testRegion);
 
         PipelineWriteContext testContext = new PipelineWriteContext("1",rce);
-        testContext.addLast(new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100));
+        testContext.addLast(new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100,null));
 
         ObjectArrayList<KVPair> pairs = ObjectArrayList.newInstance();
         for(int i=0;i<10;i++){
@@ -91,7 +91,7 @@ public class RegionWriteHandlerTest {
         when(rce.getRegion()).thenReturn(testRegion);
 
         PipelineWriteContext testContext = new PipelineWriteContext("1",rce);
-        testContext.addLast(new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100));
+        testContext.addLast(new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100,null));
 
         ObjectArrayList<KVPair> pairs = ObjectArrayList.newInstance();
         for(int i=0;i<10;i++){
@@ -120,7 +120,7 @@ public class RegionWriteHandlerTest {
         when(rce.getRegion()).thenReturn(testRegion);
 
         PipelineWriteContext testContext = new PipelineWriteContext("1",rce);
-        testContext.addLast(new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100));
+        testContext.addLast(new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100,null));
 
         ObjectArrayList<KVPair> pairs = ObjectArrayList.newInstance();
         for(int i=0;i<10;i++){
@@ -151,7 +151,7 @@ public class RegionWriteHandlerTest {
         when(rce.getRegion()).thenReturn(testRegion);
 
         PipelineWriteContext testContext = new PipelineWriteContext("1",rce);
-        testContext.addLast(new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100));
+        testContext.addLast(new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100,null));
 
         ObjectArrayList<KVPair> successfulPairs = ObjectArrayList.newInstance();
         for(int i=0;i<10;i++){
@@ -219,7 +219,7 @@ public class RegionWriteHandlerTest {
         when(rce.getRegion()).thenReturn(testRegion);
 
         PipelineWriteContext testContext = new PipelineWriteContext("1",rce);
-        testContext.addLast(new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100));
+        testContext.addLast(new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100,null));
 
         ObjectArrayList<KVPair> successfulPairs = ObjectArrayList.newInstance();
         for(int i=0;i<10;i++){
