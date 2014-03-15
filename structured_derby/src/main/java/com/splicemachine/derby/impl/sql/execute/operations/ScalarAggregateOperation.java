@@ -145,7 +145,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 						PairDecoder decoder = OperationUtils.getPairDecoder(this,spliceRuntimeContext);
 						ScalarAggregateScan scan = new ScalarAggregateScan(decoder,spliceRuntimeContext,transactionID,region,reduceScan);
 						scanAggregator = new ScalarAggregator(scan,
-										aggregates,true,false,singleInputRow);
+										aggregates,true,false,false);
 						timer = spliceRuntimeContext.newTimer();
 				}
 
