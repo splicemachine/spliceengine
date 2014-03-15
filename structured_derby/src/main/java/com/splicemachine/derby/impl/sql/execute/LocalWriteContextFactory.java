@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
@@ -9,6 +10,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.carrotsearch.hppc.BitSet;
+import com.google.common.collect.Lists;
+import com.splicemachine.hbase.batch.*;
 import com.splicemachine.si.api.*;
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.catalog.UUID;
@@ -36,11 +39,6 @@ import com.splicemachine.derby.impl.sql.execute.index.IndexUpsertWriteHandler;
 import com.splicemachine.derby.impl.sql.execute.index.SnapshotIsolatedWriteHandler;
 import com.splicemachine.derby.impl.sql.execute.index.UniqueIndexUpsertWriteHandler;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.hbase.batch.PipelineWriteContext;
-import com.splicemachine.hbase.batch.RegionWriteHandler;
-import com.splicemachine.hbase.batch.WriteContext;
-import com.splicemachine.hbase.batch.WriteContextFactory;
-import com.splicemachine.hbase.batch.WriteHandler;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.ResettableCountDownLatch;
@@ -95,12 +93,21 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     public WriteContext create(String txnId, RegionCoprocessorEnvironment rce,
                                RollForwardQueue queue,int expectedWrites) throws IOException, InterruptedException {
         PipelineWriteContext context = new PipelineWriteContext(txnId,rce);
-        context.addLast(new RegionWriteHandler(rce.getRegion(), tableWriteLatch, writeBatchSize, queue));
+				BatchConstraintChecker checker = buildConstraintChecker();
+        context.addLast(new RegionWriteHandler(rce.getRegion(), tableWriteLatch, writeBatchSize, queue,checker));
         addIndexInformation(expectedWrites, context);
         return context;
     }
 
-    private void addIndexInformation(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
+		private BatchConstraintChecker buildConstraintChecker() {
+				List<BatchConstraintChecker> checkers = Lists.newArrayListWithCapacity(constraintFactories.size());
+				for(ConstraintFactory factory:constraintFactories){
+						checkers.add(factory.getConstraintChecker());
+				}
+				return new ChainConstraintChecker(checkers);
+		}
+
+		private void addIndexInformation(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
         String transactionId = context.getTransactionId();
         switch (state.get()) {
             case READY_TO_START:
@@ -482,7 +489,11 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         public int hashCode() {
             return localConstraint.hashCode();
         }
-    }
+
+				public BatchConstraintChecker getConstraintChecker() {
+						return localConstraint.asChecker();
+				}
+		}
 
     private static class IndexFactory{
         private final long indexConglomId;

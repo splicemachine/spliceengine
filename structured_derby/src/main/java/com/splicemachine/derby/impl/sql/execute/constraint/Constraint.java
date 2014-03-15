@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
+import com.splicemachine.hbase.batch.BatchConstraintChecker;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import com.splicemachine.hbase.KVPair;
@@ -18,7 +19,9 @@ public interface Constraint {
 
     String DELETE_BEFORE_WRITE = "dbw";
 
-    /**
+		BatchConstraintChecker asChecker();
+
+		/**
      * The type of the Constraint
      */
     public static enum Type{

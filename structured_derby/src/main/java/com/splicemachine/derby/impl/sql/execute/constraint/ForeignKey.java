@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.constraint;
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.hbase.KVPair;
 
+import com.splicemachine.hbase.batch.BatchConstraintChecker;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -82,7 +83,12 @@ public class ForeignKey implements Constraint{
 //        table.incrementColumnValue(FOREIGN_KEY_FAMILY,FOREIGN_KEY_COLUMN,referencedRowKey,-1l);
     }
 
-    @Override
+		@Override
+		public BatchConstraintChecker asChecker() {
+				throw new UnsupportedOperationException();
+		}
+
+		@Override
     public Type getType() {
         return Type.FOREIGN_KEY;
     }
