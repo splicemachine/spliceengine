@@ -1,11 +1,32 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+
+import com.google.common.io.Closeables;
+import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.TentativeIndexDesc;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.management.OperationInfo;
+import com.splicemachine.derby.management.StatementInfo;
+import com.splicemachine.derby.utils.DataDictionaryUtils;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.TransactionUtils;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.impl.TransactionId;
 import org.apache.derby.catalog.DefaultInfo;
 import org.apache.derby.catalog.Dependable;
 import org.apache.derby.catalog.DependableFinder;
@@ -72,9 +93,12 @@ import org.apache.derby.impl.sql.execute.BasicSortObserver;
 import org.apache.derby.impl.sql.execute.CardinalityCounter;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
-
+import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.derby.impl.job.AlterTable.LoadConglomerateJob;
+import com.splicemachine.derby.impl.job.AlterTable.DropColumnJob;
 
 /**
  *	This class  describes actions that are ALWAYS performed for an
@@ -82,7 +106,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  *
  */
 
-public class AlterTableConstantOperation extends DDLSingleTableConstantOperation implements RowLocationRetRowSource {
+public class AlterTableConstantOperation extends IndexConstantOperation implements RowLocationRetRowSource {
 	private static final Logger LOG = Logger.getLogger(AlterTableConstantOperation.class);
     // copied from constructor args and stored locally.
     private	    SchemaDescriptor			sd;
@@ -400,7 +424,7 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
 				/* Is this new column non-nullable?  
 				 * If so, it can only be added to an
 				 * empty table if it does not have a default value.	
-				 * We need to scan the table to find out how many rows 
+				 * We need to scan the table to find out how many rows
 				 * there are.
 				 */
 				if ((columnInfo[ix].action == ColumnInfo.CREATE) && !(columnInfo[ix].dataType.isNullable()) &&
@@ -1143,7 +1167,7 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
          */
 		td = dd.getTableDescriptor(tableId);
 
-        compressTable();
+        spliceDropColumn();
 
 		ColumnDescriptorList tab_cdl = td.getColumnDescriptorList();
 
@@ -1591,11 +1615,14 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
      * Handles rebuilding of base conglomerate and all necessary indexes.
      **/
     private void compressTable() throws StandardException {
+
+    }
+    private void spliceDropColumn() throws StandardException {
        	SpliceLogUtils.trace(LOG, "compressTable"); 
 		long					newHeapConglom;
 		Properties				properties = new Properties();
 		RowLocation				rl;
-
+        TransactionController transactionController = lcc.getTransactionExecute().startNestedUserTransaction(false, true);
 		if (SanityManager.DEBUG) {
 			if (lockGranularity != '\0') {
 				SanityManager.THROWASSERT(
@@ -1611,8 +1638,8 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
 		ExecRow emptyHeapRow  = td.getEmptyExecRow();
         int[]   collation_ids = td.getColumnCollationIds();
 
-		compressHeapCC = 
-            tc.openConglomerate(
+		compressHeapCC =
+                transactionController.openConglomerate(
                 td.getHeapConglomerateId(),
                 false,
                 TransactionController.OPENMODE_FORUPDATE,
@@ -1680,22 +1707,82 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
 			compressRL[i] = compressHeapGSC.newRowLocationTemplate();
 		}
 
-
-		newHeapConglom = 
-            tc.createAndLoadConglomerate(
+        // calculate column order for new table
+        String parentTxnId = SpliceObserverInstructions.getTransactionId(lcc);
+        String txnId = TransactionUtils.getTransactionId(transactionController);
+        int[] co = DataDictionaryUtils.getColumnOrdering(parentTxnId, tableId);
+        int[] newco = DataDictionaryUtils.getColumnOrderingAfterDropColumn(co, droppedColumnPosition);
+        IndexColumnOrder[] columnOrdering = null;
+        if (newco != null && newco.length > 0) {
+            columnOrdering = new IndexColumnOrder[newco.length];
+            for (int i = 0; i < newco.length; ++i) {
+                columnOrdering[i] = new IndexColumnOrder(newco[i]);
+            }
+        }
+        // Create a new table
+		newHeapConglom =
+                transactionController.createAndLoadConglomerate(
                 "heap",
                 emptyHeapRow.getRowArray(),
-                null, //column sort order - not required for heap
+                columnOrdering,
                 collation_ids,
                 properties,
                 TransactionController.IS_DEFAULT,
                 this,
                 (long[]) null);
 
+        // Start a tentative txn to notify DDL('alter table drop column') change
+        TransactionId tentativeTransaction;
+        TransactionManager transactor = HTransactorFactory.getTransactionManager();
+        try {
+            tentativeTransaction = transactor.beginTransaction();
+        } catch (IOException e) {
+            LOG.error("Couldn't start transaction for tentative DDL operation");
+            throw Exceptions.parseException(e);
+        }
+        final long tableConglomId = td.getHeapConglomerateId();
+
+        ColumnInfo[] allColumnInfo = DataDictionaryUtils.getColumnInfo(td);
+        TentativeDropColumnDesc tentativeDropColumnDesc =
+                new TentativeDropColumnDesc(
+                        tableId,
+                        newHeapConglom,
+                        td.getHeapConglomerateId(),
+                        allColumnInfo,
+                        droppedColumnPosition);
+
+        DDLChange ddlChange = new DDLChange(tentativeTransaction.getTransactionIdString(),
+                DDLChange.TentativeType.DROP_COLUMN);
+        ddlChange.setTentativeDDLDesc(tentativeDropColumnDesc);
+        ddlChange.setParentTransactionId(transactionController.getActiveStateTxIdString());
+
+        notifyMetadataChange(ddlChange);
+
+        HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
+        try {
+            //Add a handler to drop a column to all regions
+            tentativeDropColumn(table, newHeapConglom, tableConglomId, ddlChange);
+
+            //wait for all past txns to complete
+            TransactionId dropColumnTransaction = getDropColumnTransaction(parentTxnId, txnId,
+                    tentativeTransaction, transactor, tableConglomId);
+
+            // Copy data from old table to the new table
+            copyToConglomerate(newHeapConglom, tentativeTransaction.getTransactionIdString());
+
+            transactor.commit(dropColumnTransaction);
+        }
+        catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        finally{
+            Closeables.closeQuietly(table);
+        }
+
 		closeBulkFetchScan();
 
 		// Set the "estimated" row count
-		ScanController compressHeapSC = tc.openScan(
+		ScanController compressHeapSC = transactionController.openScan(
 							newHeapConglom,
 							false,
 							TransactionController.OPENMODE_FORUPDATE,
@@ -1747,10 +1834,157 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
         dm.invalidateFor(td, DependencyManager.COMPRESS_TABLE, lcc);
 
 		// Drop the old conglomerate
-		tc.dropConglomerate(oldHeapConglom);
-		cleanUp();
+        tc.dropConglomerate(oldHeapConglom);
+
+        try {
+            HTransactorFactory.getTransactionManager().commit(new TransactionId(TransactionUtils.getTransactionId(transactionController)));
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+
+        cleanUp();
 	}
-	
+
+    private TransactionId getDropColumnTransaction(String parentTransaction,
+                                                   String wrapperTransaction,
+                                                   TransactionId tentativeTransaction,
+                                                   TransactionManager transactor,
+                                                   long tableConglomId) throws StandardException {
+        TransactionId parentTransactionId = new TransactionId(parentTransaction);
+        TransactionId wrapperTransactionId = new TransactionId(wrapperTransaction);
+        TransactionId dropColumnTransaction;
+        try {
+            dropColumnTransaction = transactor.beginChildTransaction(wrapperTransactionId,
+                    true, true, false, false, true, tentativeTransaction);
+        } catch (IOException e) {
+            LOG.error("Couldn't commit transaction for tentative DDL operation");
+            // TODO must cleanup tentative DDL change
+            throw Exceptions.parseException(e);
+        }
+
+        // Wait for past transactions to die
+        List<TransactionId> active;
+        List<TransactionId> toIgnore = Arrays.asList(parentTransactionId, wrapperTransactionId, dropColumnTransaction);
+        try {
+            active = waitForConcurrentTransactions(dropColumnTransaction, toIgnore,tableConglomId);
+        } catch (IOException e) {
+            LOG.error("Unexpected error while waiting for past transactions to complete", e);
+            throw Exceptions.parseException(e);
+        }
+        if (!active.isEmpty()) {
+            throw StandardException.newException(SQLState.LANG_SERIALIZABLE,
+                    new RuntimeException(String.format("There are active transactions %s", active)));
+        }
+        return dropColumnTransaction;
+    }
+    private void tentativeDropColumn(HTableInterface table,
+                                     long newConglomId,
+                                     long oldConglomId,
+                                     DDLChange ddlChange) throws StandardException{
+        String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+        JobFuture future = null;
+        JobInfo info = null;
+        TentativeDropColumnDesc desc = (TentativeDropColumnDesc)ddlChange.getTentativeDDLDesc();
+        ColumnInfo[] columnInfos = desc.getColumnInfos();
+        StatementInfo statementInfo = new StatementInfo(String.format("alter table %s drop column %s",tableName,
+                columnInfos[droppedColumnPosition-1].name),userId,
+                activation.getTransactionController().getActiveStateTxIdString(),1, SpliceDriver.driver().getUUIDGenerator());
+        statementInfo.setOperationInfo(Arrays.asList(new OperationInfo(statementInfo.getStatementUuid(),
+                SpliceDriver.driver().getUUIDGenerator().nextUUID(), "DropColumn", false, -1l)));
+        try{
+            long start = System.currentTimeMillis();
+            DropColumnJob job = new DropColumnJob(table, oldConglomId, newConglomId, ddlChange);
+            future = SpliceDriver.driver().getJobScheduler().submit(job);
+            info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
+            info.setJobFuture(future);
+            try{
+                future.completeAll(info); //TODO -sf- add status information
+            }catch(CancellationException ce){
+                throw Exceptions.parseException(ce);
+            }catch(Throwable t){
+                info.failJob();
+                throw t;
+            }
+            statementInfo.completeJob(info);
+        }catch (Throwable e) {
+            if(info!=null) info.failJob();
+            LOG.error("Couldn't drop column on existing regions", e);
+            try {
+                table.close();
+            } catch (IOException e1) {
+                LOG.warn("Couldn't close table", e1);
+            }
+            throw Exceptions.parseException(e);
+        }finally {
+            String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
+            boolean explain = xplainSchema !=null &&
+                    activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
+            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema:null);
+            cleanupFuture(future);
+        }
+
+    }
+
+    private void cleanupFuture(JobFuture future) throws StandardException {
+        if (future!=null) {
+            try {
+                future.cleanup();
+            } catch (ExecutionException e) {
+                LOG.error("Couldn't cleanup future", e);
+                //noinspection ThrowFromFinallyBlock
+                throw Exceptions.parseException(e.getCause());
+            }
+        }
+    }
+
+    private void copyToConglomerate(long toConglomId, String DropColumnTxnId) throws StandardException {
+
+        String user = lcc.getSessionUserId();
+        StatementInfo statementInfo =
+                new StatementInfo(String.format("alter table %s.%s drop %s", td.getSchemaName(), td.getName(), columnInfo[0].name),
+                        user,DropColumnTxnId, 1, SpliceDriver.driver().getUUIDGenerator());
+        OperationInfo opInfo = new OperationInfo(
+                SpliceDriver.driver().getUUIDGenerator().nextUUID(), statementInfo.getStatementUuid(),"Alter Table Drop Column", false, -1l);
+        statementInfo.setOperationInfo(Arrays.asList(opInfo));
+        SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
+
+        JobFuture future = null;
+        JobInfo info = null;
+        try{
+            long fromConglomId = td.getHeapConglomerateId();
+            HTableInterface table = SpliceAccessManager.getHTable(Long.toString(fromConglomId).getBytes());
+
+            ColumnInfo[] allColumnInfo = DataDictionaryUtils.getColumnInfo(td);
+            LoadConglomerateJob job = new LoadConglomerateJob(table, tableId, fromConglomId, toConglomId, allColumnInfo, droppedColumnPosition, DropColumnTxnId,
+                    statementInfo.getStatementUuid(), opInfo.getOperationUuid(), activation.getLanguageConnectionContext().getXplainSchema());
+            long start = System.currentTimeMillis();
+            future = SpliceDriver.driver().getJobScheduler().submit(job);
+            info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
+            info.setJobFuture(future);
+            statementInfo.addRunningJob(opInfo.getOperationUuid(),info);
+            try{
+                future.completeAll(info);
+            }catch(ExecutionException e){
+                info.failJob();
+                throw e;
+            }catch(CancellationException ce){
+                throw Exceptions.parseException(ce);
+            }
+            statementInfo.completeJob(info);
+
+        } catch (ExecutionException e) {
+            throw Exceptions.parseException(e.getCause());
+        } catch (InterruptedException e) {
+            throw Exceptions.parseException(e);
+        }finally {
+            String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
+            boolean explain = xplainSchema !=null &&
+                    activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
+            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema: null);
+
+        }
+
+    }
 	/* 
 	 * TRUNCATE TABLE  TABLENAME; (quickly removes all the rows from table and
 	 * it's correctponding indexes).
@@ -1924,7 +2158,7 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
 		long[] newIndexCongloms = new long[numIndexes];
 
 		/* Populate each index (one at a time or all at once). */
-		if (sequential)
+		/*if (sequential)
 		{
 			// First sorter populated during heap compression
 			if (numIndexes >= 1)
@@ -1944,7 +2178,7 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
 				closeBulkFetchScan();
 			}
 		}
-		else
+		else  */
 		{
 			for (int index = 0; index < numIndexes; index++)
 			{
@@ -1959,7 +2193,8 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
     int             index, 
     long[]          newIndexCongloms) throws StandardException {
 		SpliceLogUtils.trace(LOG, "updateIndex on new heap conglom %d for index %d with newIndexCongloms %s",newHeapConglom, index, Arrays.toString(newIndexCongloms));
-
+        TransactionController parent = lcc.getTransactionExecute();
+        TransactionController transactionController = lcc.getTransactionExecute().startNestedUserTransaction(false, true);
 		Properties properties = new Properties();
 
 		// Get the ConglomerateDescriptor for the index
@@ -1990,6 +2225,7 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
 		}
 		else
 		{
+
 			properties.put(
                 "nUniqueColumns", Integer.toString(indexRowLength));
 		}
@@ -2096,6 +2332,57 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
 			if (td.statisticsExist(cd))
 				dd.dropStatisticsDescriptors(td.getUUID(), cd.getUUID(), tc);
 		}
+        try{
+            // Populate indexes
+            IndexDescriptor indexDescriptor = cd.getIndexDescriptor();
+            int[] baseColumnPositions = indexDescriptor.baseColumnPositions();
+            boolean unique = indexDescriptor.isUnique();
+            boolean uniqueWithDuplicateNulls = indexDescriptor.isUniqueWithDuplicateNulls();
+            boolean[] isAscending = indexDescriptor.isAscending();
+            boolean[] descColumns = new boolean[isAscending.length];
+            for(int i=0;i<isAscending.length;i++){
+                descColumns[i] = !isAscending[i];
+            }
+            TransactionId tentativeTransaction;
+            TransactionManager transactor = HTransactorFactory.getTransactionManager();
+            try {
+                tentativeTransaction = transactor.beginTransaction();
+            } catch (IOException e) {
+                LOG.error("Couldn't start transaction for tentative DDL operation");
+                throw Exceptions.parseException(e);
+            }
+            TentativeIndexDesc tentativeIndexDesc = new TentativeIndexDesc(newIndexCongloms[index], td.getHeapConglomerateId(),
+                    baseColumnPositions, unique,
+                    uniqueWithDuplicateNulls,
+                    SpliceUtils.bitSetFromBooleanArray(descColumns));
+            DDLChange ddlChange = new DDLChange(tentativeTransaction.getTransactionIdString(),
+                    DDLChange.TentativeType.CREATE_INDEX);
+            ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
+            ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
+
+            notifyMetadataChange(ddlChange);
+
+            final long tableConglomId = td.getHeapConglomerateId();
+            HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
+            try{
+                // Add the indexes to the exisiting regions
+                createIndex(activation, ddlChange, table, td);
+
+                TransactionId indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, transactor,tableConglomId);
+
+                populateIndex(activation, baseColumnPositions, descColumns, tableConglomId, table, indexTransaction, tentativeIndexDesc);
+                //only commit the index transaction if the job actually completed
+                transactor.commit(indexTransaction);
+            }finally{
+                Closeables.closeQuietly(table);
+            }
+        } catch (StandardException se) {
+            transactionController.abort();
+            throw se;
+        } catch (Throwable t) {
+            transactionController.abort();
+            throw Exceptions.parseException(t);
+        }
 
 		/* Update the DataDictionary
 		 *
@@ -2105,11 +2392,16 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
 		 */
 		dd.updateConglomerateDescriptor(
             td.getConglomerateDescriptors(indexConglomerateNumbers[index]),
-            newIndexCongloms[index], 
-            tc);
+            newIndexCongloms[index],
+                tc);
 
 		// Drop the old conglomerate
-		tc.dropConglomerate(indexConglomerateNumbers[index]);
+        tc.dropConglomerate(indexConglomerateNumbers[index]);
+        try {
+            HTransactorFactory.getTransactionManager().commit(new TransactionId(getTransactionId(transactionController)));
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
 	}
 
 

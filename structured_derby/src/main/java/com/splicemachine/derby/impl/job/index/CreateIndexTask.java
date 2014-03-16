@@ -94,7 +94,7 @@ public class CreateIndexTask extends ZkTask {
     public void doExecute() throws ExecutionException, InterruptedException {
         try{
             //add index to table watcher
-            TentativeIndexDesc tentativeIndexDesc = ddlChange.getTentativeIndexDesc();
+            TentativeIndexDesc tentativeIndexDesc = (TentativeIndexDesc)ddlChange.getTentativeDDLDesc();
             LocalWriteContextFactory contextFactory = SpliceIndexEndpoint.getContextFactory(tentativeIndexDesc.getBaseConglomerateNumber());
             contextFactory.addIndex(ddlChange, columnOrdering, formatIds);
         } catch (Exception e) {

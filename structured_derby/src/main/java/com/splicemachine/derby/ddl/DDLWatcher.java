@@ -8,5 +8,5 @@ import java.util.Set;
 public interface DDLWatcher {
     public void registerLanguageConnectionContext(LanguageConnectionContext lcc);
     public void start() throws StandardException;
-    public Set<DDLChange> getTentativeIndexes();
+    public Set<DDLChange> getTentativeDDLs();
 }

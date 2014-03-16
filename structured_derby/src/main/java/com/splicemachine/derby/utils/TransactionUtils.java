@@ -1,11 +1,14 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.hbase.writer.WriteUtils;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -122,5 +125,10 @@ public class TransactionUtils {
             }
             return getTransactionStatus(txnId,txnControl,tryCount+1,maxTries);
         }
+    }
+
+    public static String getTransactionId(TransactionController tc) {
+        Transaction td = ((SpliceTransactionManager)tc).getRawTransaction();
+        return SpliceUtils.getTransID(td);
     }
 }

@@ -5,14 +5,14 @@ import java.io.Serializable;
 public class DDLChange implements Serializable {
 
     public enum TentativeType {
-        CHANGE_PK, ADD_CHECK, CREATE_FK, CREATE_INDEX, ADD_NOT_NULL, ADD_COLUMN
+        CHANGE_PK, ADD_CHECK, CREATE_FK, CREATE_INDEX, ADD_NOT_NULL, ADD_COLUMN, DROP_COLUMN
     }
 
     private String transactionId;
     private String parentTransactionId;
     private TentativeType type;
     private boolean tentative;
-    private TentativeIndexDesc tentativeIndexDesc;
+    private TentativeDDLDesc tentativeDDLDesc;
     private String identifier;
 
     public DDLChange(String transactionId) {
@@ -37,12 +37,12 @@ public class DDLChange implements Serializable {
         return tentative;
     }
 
-    public TentativeIndexDesc getTentativeIndexDesc() {
-        return tentativeIndexDesc;
+    public TentativeDDLDesc getTentativeDDLDesc() {
+        return tentativeDDLDesc;
     }
 
-    public void setTentativeIndexDesc(TentativeIndexDesc tentativeIndexDesc) {
-        this.tentativeIndexDesc = tentativeIndexDesc;
+    public void setTentativeDDLDesc(TentativeDDLDesc tentativeDDLDesc) {
+        this.tentativeDDLDesc = tentativeDDLDesc;
     }
 
     public String getParentTransactionId() {

@@ -13,6 +13,7 @@ import java.util.concurrent.*;
 
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.google.gson.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.reference.SQLState;
@@ -30,29 +31,32 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.ZooDefs;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.google.gson.Gson;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.ZkUtils;
+import org.apache.derby.catalog.UUID;
 
 public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
     private static final Logger LOG = Logger.getLogger(ZookeeperDDLWatcher.class);
     private static final long REFRESH_TIMEOUT = 30000; // in ms
     private static final long MAXIMUM_DDL_WAIT = 90000; // in ms
 
-    private static Gson gson = new Gson();
     private Map<String, DDLChange> currentDDLChanges = new HashMap<String, DDLChange>();
+    private Gson gson = new GsonBuilder().
+            registerTypeAdapter(TentativeDDLDesc.class, new DDLChangeSerializer<TentativeDDLDesc>()).
+            registerTypeAdapter(UUID.class, new DDLChangeSerializer<UUID>()).
+            create();
     private Set<String> seenDDLChanges = new HashSet<String>();
     private Map<String, Long> changesTimeouts = new HashMap<String, Long>();
     private List<LanguageConnectionContext> contexts = new ArrayList<LanguageConnectionContext>();
     private String id;
     private ScheduledExecutorService executor = Executors.newScheduledThreadPool(1, 
             new ThreadFactoryBuilder().setNameFormat("ZookeeperDDLWatcherRefresh").build());
-    private Map<String, DDLChange> tentativeIndexes = new ConcurrentHashMap<String, DDLChange>();
     private SpliceAccessManager accessManager;
-    
+    private Map<String, DDLChange> tentativeDDLs = new ConcurrentHashMap<String, DDLChange>();
+
     @Override
     public synchronized void registerLanguageConnectionContext(LanguageConnectionContext lcc) {
         contexts.add(lcc);
@@ -159,7 +163,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
                 LOG.debug("Removing change with id " + entry);
                 changesTimeouts.remove(entry);
                 currentDDLChanges.remove(entry);
-                tentativeIndexes.remove(entry);
+                tentativeDDLs.remove(entry);
                 iterator.remove();
                 // notify access manager
                 if (accessManager != null) {
@@ -240,7 +244,8 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
     private void processTentativeDDLChange(String changeId, DDLChange ddlChange) throws StandardException {
         switch (ddlChange.getType()) {
             case CREATE_INDEX:
-                tentativeIndexes.put(changeId, ddlChange);
+            case DROP_COLUMN:
+                tentativeDDLs.put(changeId, ddlChange);
                 break;
             default:
                 throw StandardException.newException(SQLState.UNSUPPORTED_TYPE);
@@ -264,7 +269,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         }
     }
 
-    public Set<DDLChange> getTentativeIndexes() {
-        return new HashSet<DDLChange>(tentativeIndexes.values());
+    public Set<DDLChange> getTentativeDDLs() {
+        return new HashSet<DDLChange>(tentativeDDLs.values());
     }
 }
