@@ -99,6 +99,6 @@ public class FileErrorLogger implements RowErrorLogger{
 
 		@Override
 		public void deleteLog() throws IOException {
-			fs.delete(outputFile);
+			fs.delete(outputFile,false);
 		}
 }
