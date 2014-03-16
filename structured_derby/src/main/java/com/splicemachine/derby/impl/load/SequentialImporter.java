@@ -113,7 +113,8 @@ public class SequentialImporter implements Importer{
 														ignore = false;
 										}
 								}
-								if(ignore)
+								//can only ignore if we don't need to retry notRunRows
+								if(ignore && result.getNotRunRows().size()<=0)
 										return Writer.WriteResponse.IGNORE;
 								else
 										return Writer.WriteResponse.RETRY;

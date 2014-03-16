@@ -1,6 +1,6 @@
-drop table if exists apollo_mv_minute;
+drop table if exists <SCHEMA>.apollo_mv_minute;
 
-CREATE TABLE apollo_mv_minute (
+CREATE TABLE <SCHEMA>.apollo_mv_minute (
   row_id bigint NOT NULL ,
   ad_id bigint NOT NULL,
   campaign_id bigint NOT NULL,

@@ -74,7 +74,16 @@ public class HbRegion implements IHTable {
         region.closeRegionOperation();
     }
 
-    @Override
+		@Override
+		public Integer tryLock(byte[] rowKey) {
+				try {
+						return region.getLock(null, rowKey, false);
+				} catch (IOException e) {
+						throw new RuntimeException("Unexpected IOException acquiring lock",e);
+				}
+		}
+
+		@Override
     public void put(Put put) throws IOException {
         region.put(put);
     }
