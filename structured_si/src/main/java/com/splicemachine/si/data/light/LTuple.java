@@ -7,13 +7,14 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
+
+import com.splicemachine.si.data.api.SRowLock;
 
 public class LTuple extends OperationWithAttributes{
     final byte[] key;
     final List<Cell> values;
-    final HRegion.RowLock lock;
+    final SRowLock lock;
 
     public LTuple(byte[] key, List<Cell> values) {
 				this(key,values,Maps.<String,byte[]>newHashMap(),null);
@@ -23,7 +24,7 @@ public class LTuple extends OperationWithAttributes{
 				this(key,values,attributes,null);
     }
 
-		public LTuple(byte[] key, List<Cell> values, Map<String, byte[]> attributes, HRegion.RowLock lock) {
+		public LTuple(byte[] key, List<Cell> values, Map<String, byte[]> attributes, SRowLock lock) {
 				this.key = key;
 				this.values = values;
 				this.lock = lock;
@@ -32,7 +33,7 @@ public class LTuple extends OperationWithAttributes{
 				}
 		}
 
-    public LTuple(byte[] key, List<Cell> values, HRegion.RowLock lock) {
+    public LTuple(byte[] key, List<Cell> values, SRowLock lock) {
 				this(key,values,Maps.<String,byte[]>newHashMap(),lock);
     }
 

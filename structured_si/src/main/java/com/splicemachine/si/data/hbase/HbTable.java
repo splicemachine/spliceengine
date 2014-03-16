@@ -11,10 +11,10 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.utils.CloseableIterator;
 import com.splicemachine.utils.ForwardingCloseableIterator;
 
@@ -89,12 +89,12 @@ public class HbTable implements IHTable {
     }
 
     @Override
-    public HRegion.RowLock lockRow(byte[] rowKey) throws IOException {
+    public SRowLock lockRow(byte[] rowKey) throws IOException {
         throw new RuntimeException("not implemented");
     }
 
     @Override
-    public void unLockRow(HRegion.RowLock lock) throws IOException {
+    public void unLockRow(SRowLock lock) throws IOException {
         throw new RuntimeException("not implemented");
     }
 
@@ -109,7 +109,7 @@ public class HbTable implements IHTable {
     }
 
     @Override
-    public HRegion.RowLock tryLock(byte[] rowKey) {
+    public SRowLock tryLock(byte[] rowKey) {
         try {
             return lockRow(rowKey);
         } catch (IOException e) {

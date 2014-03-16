@@ -3,6 +3,7 @@ package com.splicemachine.si.impl;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -24,7 +25,6 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -41,6 +41,7 @@ import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableWriter;
 
 /**
@@ -122,7 +123,7 @@ public class SITransactor<Table,
         if (mutations.length == 0) {
             //short-circuit special case of empty batch
             //noinspection unchecked
-            return dataStore.writeBatch(table, new Pair[0]);
+            return dataStore.writeBatch(table, mutations);
         }
                 /*
 				 * Here we convert a Put into a KVPair.
@@ -157,14 +158,14 @@ public class SITransactor<Table,
             Iterable<Cell> keyValues = dataLib.listPut(mutation);
             boolean isSIDataOnly = true;
             for (Cell keyValue : keyValues) {
-                byte[] family = keyValue.getFamily();
-                byte[] column = keyValue.getQualifier();
+                byte[] family = keyValue.getFamilyArray();
+                byte[] column = keyValue.getQualifierArray();
                 if (!Bytes.equals(column, SIConstants.PACKED_COLUMN_BYTES)) {
                     continue; //skip SI columns
                 }
 
                 isSIDataOnly = false;
-                byte[] value = keyValue.getValue();
+                byte[] value = keyValue.getValueArray();
                 Map<byte[], Map<byte[], List<KVPair>>> familyMap = kvPairMap.get(txnId);
                 if (familyMap == null) {
                     familyMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
@@ -266,7 +267,7 @@ public class SITransactor<Table,
                                             String txnId, ConstraintChecker constraintChecker) throws IOException {
         if (mutations.size() <= 0)
             //noinspection unchecked
-            return dataStore.writeBatch(table, new Pair[]{});
+            return dataStore.writeBatch(table, null);
 
         //ensure the transaction is in good shape
         TransactionId txn = transactionManager.transactionIdFromString(txnId);
@@ -293,7 +294,7 @@ public class SITransactor<Table,
         ensureTransactionAllowsWrites(transaction);
 
         OperationStatus[] finalStatus = new OperationStatus[mutations.size()];
-        Pair<KVPair, HRegion.RowLock>[] lockPairs = new Pair[mutations.size()];
+        Pair<KVPair, SRowLock>[] lockPairs = new Pair[mutations.size()];
         FilterState constraintState = null;
         if (constraintChecker != null)
             constraintState = new FilterState(dataLib, dataStore, transactionStore, rollForwardQueue, transaction);
@@ -302,7 +303,7 @@ public class SITransactor<Table,
 
             @SuppressWarnings("unchecked") final Set<Long>[] conflictingChildren = new Set[mutations.size()];
             dataStore.startLowLevelOperation(table);
-            IntObjectOpenHashMap<Pair<Mutation, HRegion.RowLock>> writes;
+            IntObjectOpenHashMap<Pair<Mutation, SRowLock>> writes;
             try {
                 writes = checkConflictsForKvBatch(table, rollForwardQueue, lockPairs,
                                                   conflictingChildren, transaction, family, qualifier,
@@ -313,19 +314,21 @@ public class SITransactor<Table,
 
             //TODO -sf- this can probably be made more efficient
             //convert into array for usefulness
-            Pair<Mutation, HRegion.RowLock>[] toWrite = new Pair[writes.size()];
+            List<Mutation> mutations1 = new ArrayList<Mutation>(writes.size());
+            Pair<Mutation, SRowLock>[] toWrite = new Pair[writes.size()];
             int i = 0;
-            for (IntObjectCursor<Pair<Mutation, HRegion.RowLock>> write : writes) {
+            for (IntObjectCursor<Pair<Mutation, SRowLock>> write : writes) {
                 toWrite[i] = write.value;
+                mutations1.add(write.value.getFirst());
                 i++;
             }
-            final OperationStatus[] status = dataStore.writeBatch(table, toWrite);
+            final OperationStatus[] status = dataStore.writeBatch(table, (Mutation[])mutations1.toArray());
 
             resolveConflictsForKvBatch(table, toWrite, conflictingChildren, status);
 
             //convert the status back into the larger array
             i = 0;
-            for (IntObjectCursor<Pair<Mutation, HRegion.RowLock>> write : writes) {
+            for (IntObjectCursor<Pair<Mutation, SRowLock>> write : writes) {
                 finalStatus[write.key] = status[i];
                 i++;
             }
@@ -370,9 +373,9 @@ public class SITransactor<Table,
         return writingTransactions;
     }
 
-    private void releaseLocksForKvBatch(Table table, Pair<KVPair, HRegion.RowLock>[] locks) {
+    private void releaseLocksForKvBatch(Table table, Pair<KVPair, SRowLock>[] locks) {
         if (locks == null) return;
-        for (Pair<KVPair, HRegion.RowLock> lock : locks) {
+        for (Pair<KVPair, SRowLock> lock : locks) {
             if (lock == null) continue;
             try {
                 dataWriter.unLockRow(table, lock.getSecond());
@@ -383,13 +386,13 @@ public class SITransactor<Table,
         }
     }
 
-    private void resolveConflictsForKvBatch(Table table, Pair<Mutation, HRegion.RowLock>[] mutations,
+    private void resolveConflictsForKvBatch(Table table, Pair<Mutation, SRowLock>[] mutations,
                                             Set<Long>[] conflictingChildren, OperationStatus[] status) {
         for (int i = 0; i < mutations.length; i++) {
             try {
                 Put put = (Put) mutations[i].getFirst();
-                HRegion.RowLock lock = mutations[i].getSecond();
-                resolveChildConflicts(table, put, lock, conflictingChildren[i]);
+                SRowLock lock = mutations[i].getSecond();
+                resolveChildConflicts(table, put, conflictingChildren[i]);
             } catch (Exception ex) {
                 ex.printStackTrace();
                 status[i] = new OperationStatus(HConstants.OperationStatusCode.FAILURE, ex.getMessage());
@@ -397,11 +400,11 @@ public class SITransactor<Table,
         }
     }
 
-    private IntObjectOpenHashMap<Pair<Mutation, HRegion.RowLock>> checkConflictsForKvBatch(Table table,
+    private IntObjectOpenHashMap<Pair<Mutation, SRowLock>> checkConflictsForKvBatch(Table table,
                                                                                            RollForwardQueue
                                                                                                    rollForwardQueue,
                                                                                            Pair<KVPair,
-                                                                                                   HRegion.RowLock>[]
+                                                                                                   SRowLock>[]
                                                                                                    dataAndLocks,
                                                                                            Set<Long>[]
                                                                                                    conflictingChildren,
@@ -416,10 +419,10 @@ public class SITransactor<Table,
                                                                                            OperationStatus[]
                                                                                                    finalStatus)
             throws IOException {
-        IntObjectOpenHashMap<Pair<Mutation, HRegion.RowLock>> finalMutationsToWrite = IntObjectOpenHashMap
+        IntObjectOpenHashMap<Pair<Mutation, SRowLock>> finalMutationsToWrite = IntObjectOpenHashMap
                 .newInstance();
         for (int i = 0; i < dataAndLocks.length; i++) {
-            Pair<KVPair, HRegion.RowLock> baseDataAndLock = dataAndLocks[i];
+            Pair<KVPair, SRowLock> baseDataAndLock = dataAndLocks[i];
             if (baseDataAndLock == null) continue;
 
             ConflictResults conflictResults = ConflictResults.NO_CONFLICT;
@@ -482,7 +485,7 @@ public class SITransactor<Table,
     }
 
     private void lockRows(Table table, Collection<KVPair> mutations, Pair<KVPair,
-            HRegion.RowLock>[] mutationsAndLocks, OperationStatus[] finalStatus) {
+            SRowLock>[] mutationsAndLocks, OperationStatus[] finalStatus) {
 				/*
 				 * We attempt to lock each row in the collection.
 				 *
@@ -495,7 +498,7 @@ public class SITransactor<Table,
 				 */
         int position = 0;
         for (KVPair mutation : mutations) {
-            HRegion.RowLock lock = dataWriter.tryLock(table, mutation.getRow());
+            SRowLock lock = dataWriter.tryLock(table, mutation.getRow());
             if (lock != null)
                 mutationsAndLocks[position] = Pair.newPair(mutation, lock);
             else
@@ -512,15 +515,15 @@ public class SITransactor<Table,
         long txnIdLong = transaction.getLongTransactionId();
         Put newPut;
         if (kvPair.getType() == KVPair.Type.EMPTY_COLUMN) {
-						/*
-						 * WARNING: This requires a read of column data to populate! Try not to use
-						 * it unless no other option presents itself.
-						 *
-						 * In point of fact, this only occurs if someone sends over a non-delete Put
-						 * which has only SI data. In the event that we send over a row with all nulls
-						 * from actual Splice system, we end up with a KVPair that has a non-empty byte[]
-						 * for the values column (but which is nulls everywhere)
-						 */
+            /*
+             * WARNING: This requires a read of column data to populate! Try not to use
+             * it unless no other option presents itself.
+             *
+             * In point of fact, this only occurs if someone sends over a non-delete Put
+             * which has only SI data. In the event that we send over a row with all nulls
+             * from actual Splice system, we end up with a KVPair that has a non-empty byte[]
+             * for the values column (but which is nulls everywhere)
+             */
             newPut = dataLib.newPut(kvPair.getRow());
             dataStore.setTombstonesOnColumns(table, txnIdLong, newPut);
         } else if (kvPair.getType() == KVPair.Type.DELETE) {
@@ -543,12 +546,11 @@ public class SITransactor<Table,
         return newPut;
     }
 
-    private void resolveChildConflicts(Table table, Put put, HRegion.RowLock lock,
-                                       Set<Long> conflictingChildren) throws IOException {
+    private void resolveChildConflicts(Table table, Put put, Set<Long> conflictingChildren) throws IOException {
         if (conflictingChildren != null && !conflictingChildren.isEmpty()) {
             Delete delete = dataStore.copyPutToDelete(put, conflictingChildren);
             dataStore.suppressIndexing(delete);
-            dataWriter.delete(table, delete, lock);
+            dataWriter.delete(table, delete);
         }
     }
 

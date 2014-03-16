@@ -3,7 +3,6 @@ package com.splicemachine.si.data.api;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
 /**
@@ -24,12 +23,12 @@ public interface STableWriter<Table, Mutation, Put, Delete> {
      * @param rowKey the row to lock
      * @return the id of the lock acquired, or {@code null} if the lock was not able to be acquired.
      */
-    HRegion.RowLock tryLock(Table table, byte[] rowKey);
+    SRowLock tryLock(Table table, byte[] rowKey);
 
     //TODO -sf- can we replace this with an actual Lock abstraction?
-    HRegion.RowLock lockRow(Table Table, byte[] rowKey) throws IOException;
+    SRowLock lockRow(Table Table, byte[] rowKey) throws IOException;
 
-    void unLockRow(Table Table, HRegion.RowLock lock) throws IOException;
+    void unLockRow(Table Table, SRowLock lock) throws IOException;
 
     boolean checkAndPut(Table Table, byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException;
 }

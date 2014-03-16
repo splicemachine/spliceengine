@@ -9,9 +9,9 @@ import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
+import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.utils.CloseableIterator;
 
 /**
@@ -27,9 +27,9 @@ public interface IHTable {
     OperationStatus[] batchPut(Mutation[] puts) throws IOException;
     boolean checkAndPut(byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException;
     void delete(Delete delete) throws IOException;
-    HRegion.RowLock lockRow(byte[] rowKey) throws IOException;
-    void unLockRow(HRegion.RowLock lock) throws IOException;
+    SRowLock lockRow(byte[] rowKey) throws IOException;
+    void unLockRow(SRowLock lock) throws IOException;
     void startOperation() throws IOException;
     void closeOperation() throws IOException;
-	HRegion.RowLock tryLock(byte[] rowKey);
+    SRowLock tryLock(byte[] rowKey);
 }

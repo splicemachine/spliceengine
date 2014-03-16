@@ -245,7 +245,9 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
     }
 
     public OperationStatus[] writeBatch(IHTable table, Mutation[] mutations) throws IOException {
-            return writer.writeBatch(table, mutations);
+        if (mutations == null || mutations.length == 0)
+            return new OperationStatus[] {};
+        return writer.writeBatch(table, mutations);
     }
 
     public void closeLowLevelOperation(IHTable table) throws IOException {

@@ -1,31 +1,54 @@
 package com.splicemachine.si;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.si.api.*;
-import com.splicemachine.si.coprocessors.RegionRollForwardAction;
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.STableReader;
-import com.splicemachine.si.data.light.*;
-import com.splicemachine.si.impl.*;
-import com.splicemachine.si.impl.translate.Transcoder;
-import com.splicemachine.si.impl.translate.Translator;
-import com.splicemachine.utils.Providers;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.OperationWithAttributes;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.junit.*;
-
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.si.api.Clock;
+import com.splicemachine.si.api.TimestampSource;
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.TransactionStatus;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.coprocessors.RegionRollForwardAction;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.api.STableReader;
+import com.splicemachine.si.data.light.IncrementingClock;
+import com.splicemachine.si.data.light.LDataLib;
+import com.splicemachine.si.data.light.LGet;
+import com.splicemachine.si.data.light.LStore;
+import com.splicemachine.si.data.light.LTable;
+import com.splicemachine.si.impl.IFilterState;
+import com.splicemachine.si.impl.ImmutableTransaction;
+import com.splicemachine.si.impl.PermissionFailure;
+import com.splicemachine.si.impl.RollForwardAction;
+import com.splicemachine.si.impl.SITransactor;
+import com.splicemachine.si.impl.SynchronousRollForwardQueue;
+import com.splicemachine.si.impl.Tracer;
+import com.splicemachine.si.impl.Transaction;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.impl.WriteConflict;
+import com.splicemachine.si.impl.translate.Transcoder;
+import com.splicemachine.si.impl.translate.Translator;
+import com.splicemachine.utils.Providers;
 
 @SuppressWarnings("unchecked")
 @Ignore
@@ -3001,9 +3024,9 @@ public class SITransactorTest extends SIConstants {
         final LTable table2 = store2.open(storeSetup.getPersonTableName());
         final Result result = store2.get(table2, get);
         Assert.assertNotNull(result);
-        final List<KeyValue> results = dataLib2.listResult(result);
+        final List<Cell> results = dataLib2.listResult(result);
         Assert.assertEquals(2, results.size());
-        final KeyValue kv = results.get(1);
+        final Cell kv = results.get(1);
         Assert.assertEquals("joe70", Bytes.toString(kv.getRow()));
         Assert.assertEquals("V", Bytes.toString(kv.getFamily()));
         Assert.assertEquals("age", Bytes.toString(kv.getQualifier()));

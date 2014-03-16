@@ -21,14 +21,13 @@ import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
 
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.impl.SICompactionState;
@@ -37,8 +36,8 @@ import com.splicemachine.utils.ForwardingCloseableIterator;
 
 public class LStore implements STableReader<LTable, LGet, LGet>,
         STableWriter<LTable, LTuple, LTuple, LTuple> {
-    private final Map<String, Map<byte[], HRegion.RowLock>> locks = Maps.newTreeMap();
-    private final Map<String, Map<HRegion.RowLock, byte[]>> reverseLocks = Maps.newTreeMap();
+    private final Map<String, Map<byte[], SRowLock>> locks = Maps.newTreeMap();
+    private final Map<String, Map<SRowLock, byte[]>> reverseLocks = Maps.newTreeMap();
     private final Map<String, List<LTuple>> relations = Maps.newTreeMap();
     private final Clock clock;
 
@@ -226,27 +225,26 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
     @Override
-    public HRegion.RowLock tryLock(LTable lTable, byte[] rowKey) {
+    public SRowLock tryLock(LTable lTable, byte[] rowKey) {
         return lockRow(lTable, rowKey);
     }
 
     @Override
-    public HRegion.RowLock lockRow(LTable sTable, byte[] rowKey) {
+    public SRowLock lockRow(LTable sTable, byte[] rowKey) {
         synchronized (this) {
             String table = sTable.relationIdentifier;
-            Map<byte[], HRegion.RowLock> lockTable = locks.get(table);
-            Map<HRegion.RowLock, byte[]> reverseLockTable = reverseLocks.get(table);
+            Map<byte[], SRowLock> lockTable = locks.get(table);
+            Map<SRowLock, byte[]> reverseLockTable = reverseLocks.get(table);
             if (lockTable == null) {
                 lockTable = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
                 reverseLockTable = Maps.newHashMap();
                 locks.put(table, lockTable);
                 reverseLocks.put(table, reverseLockTable);
             }
-            HRegion.RowLock currentLock = lockTable.get(rowKey);
+            SRowLock currentLock = lockTable.get(rowKey);
             if (currentLock == null) {
                 // FIXME: jc - need to acquire a lock from HRegion
-				currentLock = lockIdGenerator.incrementAndGet();
-
+				currentLock = new LRowLock(lockIdGenerator.incrementAndGet());
                 lockTable.put(rowKey, currentLock);
                 reverseLockTable.put(currentLock, rowKey);
                 return currentLock;
@@ -256,11 +254,11 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
     @Override
-    public void unLockRow(LTable sTable, HRegion.RowLock lock) {
+    public void unLockRow(LTable sTable, SRowLock lock) {
         synchronized (this) {
             String table = sTable.relationIdentifier;
-            Map<byte[], HRegion.RowLock> lockTable = locks.get(table);
-            Map<HRegion.RowLock, byte[]> reverseLockTable = reverseLocks.get(table);
+            Map<byte[], SRowLock> lockTable = locks.get(table);
+            Map<SRowLock, byte[]> reverseLockTable = reverseLocks.get(table);
             if (lockTable == null) {
                 throw new RuntimeException("unlocking unknown lock: " + table);
             }
@@ -276,7 +274,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     @Override
     public boolean checkAndPut(LTable table, final byte[] family, final byte[] qualifier, byte[] expectedValue,
                                LTuple put) throws IOException {
-        HRegion.RowLock lock = null;
+        SRowLock lock = null;
         try {
             lock = lockRow(table, put.key);
             LGet get = new LGet(put.key, put.key, null, null, null);

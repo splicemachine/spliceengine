@@ -10,6 +10,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
 
+import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableWriter;
 
 public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete> {
@@ -35,17 +36,17 @@ public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete
     }
 
     @Override
-    public HRegion.RowLock tryLock(IHTable ihTable, byte[] rowKey) {
+    public SRowLock tryLock(IHTable ihTable, byte[] rowKey) {
         return ihTable.tryLock(rowKey);
     }
 
     @Override
-    public HRegion.RowLock lockRow(IHTable table, byte[] rowKey) throws IOException {
+    public SRowLock lockRow(IHTable table, byte[] rowKey) throws IOException {
         return table.lockRow(rowKey);
     }
 
     @Override
-    public void unLockRow(IHTable table, HRegion.RowLock lock) throws IOException {
+    public void unLockRow(IHTable table, SRowLock lock) throws IOException {
         table.unLockRow(lock);
     }
 

@@ -1,14 +1,20 @@
 package com.splicemachine.si;
 
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.light.*;
-import org.apache.hadoop.hbase.KeyValue;
+import java.util.List;
+
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.List;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.light.LDataLib;
+import com.splicemachine.si.data.light.LGet;
+import com.splicemachine.si.data.light.LStore;
+import com.splicemachine.si.data.light.LTable;
+import com.splicemachine.si.data.light.LTuple;
+import com.splicemachine.si.data.light.ManualClock;
 
 public class LStoreTest {
     @Test
@@ -24,9 +30,9 @@ public class LStoreTest {
         LGet get = dataLib.newGet(testKey, null, null, null);
         final Result outputTuple = store.get(table, get);
         Assert.assertEquals("joe", Bytes.toString(outputTuple.getRow()));
-        final List<KeyValue> outputCells = dataLib.listResult(outputTuple);
+        final List<Cell> outputCells = dataLib.listResult(outputTuple);
         Assert.assertEquals(1, outputCells.size());
-        final KeyValue outputCell = outputCells.get(0);
+        final Cell outputCell = outputCells.get(0);
         Assert.assertEquals("foo", Bytes.toString(outputCell.getFamily()));
         Assert.assertEquals("age", Bytes.toString(outputCell.getQualifier()));
         Assert.assertEquals(23, Bytes.toInt(outputCell.getValue()));
@@ -45,9 +51,9 @@ public class LStoreTest {
         LGet get = dataLib.newGet(testKey, null, null, null);
         final Result outputTuple = store.get(store.open("table1"), get);
         Assert.assertEquals("joe", Bytes.toString(outputTuple.getRow()));
-        final List<KeyValue> outputCells = dataLib.listResult(outputTuple);
+        final List<Cell> outputCells = dataLib.listResult(outputTuple);
         Assert.assertEquals(1, outputCells.size());
-        final KeyValue outputCell = outputCells.get(0);
+        final Cell outputCell = outputCells.get(0);
         Assert.assertEquals("foo", Bytes.toString(outputCell.getFamily()));
         Assert.assertEquals("age", Bytes.toString(outputCell.getQualifier()));
         Assert.assertEquals(21, Bytes.toInt(outputCell.getValue()));

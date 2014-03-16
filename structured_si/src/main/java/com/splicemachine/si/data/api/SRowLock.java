@@ -1,5 +1,7 @@
 package com.splicemachine.si.data.api;
 
+import org.apache.hadoop.hbase.regionserver.HRegion;
+
 public interface SRowLock {
-    Integer toInteger();
+    HRegion.RowLock getDelegate();
 }

@@ -19,6 +19,7 @@ import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.log4j.Logger;
 
+import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.utils.CloseableIterator;
 
 /**
@@ -85,8 +86,8 @@ public class HbRegion implements IHTable {
     }
 
     @Override
-    public HRegion.RowLock lockRow(byte[] rowKey) throws IOException {
-        final HRegion.RowLock lock = region.getRowLock(rowKey, true);
+    public SRowLock lockRow(byte[] rowKey) throws IOException {
+        final SRowLock lock = new HRowLock(region.getRowLock(rowKey, true));
         if (lock == null) {
             throw new RuntimeException("Unable to obtain row lock on region of table " + region.getTableDesc()
                                                                                                .getNameAsString());
@@ -95,8 +96,8 @@ public class HbRegion implements IHTable {
     }
 
     @Override
-    public void unLockRow(HRegion.RowLock lock) throws IOException {
-        region.releaseRowLocks(Arrays.asList(lock));
+    public void unLockRow(SRowLock lock) throws IOException {
+        region.releaseRowLocks(Arrays.asList(lock.getDelegate()));
     }
 
     @Override
@@ -110,9 +111,9 @@ public class HbRegion implements IHTable {
     }
 
     @Override
-    public HRegion.RowLock tryLock(byte[] rowKey) {
+    public SRowLock tryLock(byte[] rowKey) {
         try {
-            return region.getRowLock(rowKey, false);
+            return new HRowLock(region.getRowLock(rowKey, false));
         } catch (IOException e) {
             throw new RuntimeException("Unexpected IOException acquiring lock", e);
         }
