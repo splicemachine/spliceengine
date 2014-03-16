@@ -353,7 +353,12 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
         relations.put(relationIdentifier, newTuples);
     }
 
-    /**
+		@Override
+		public Integer tryLock(LTable lTable, byte[] rowKey) {
+				return lockRow(lTable, rowKey);
+		}
+
+		/**
      * Only carry over KeyValues that are not being replaced by incoming KeyValues.
      */
     private void filterOutKeyValuesBeingReplaced(List<KeyValue> values, LTuple t, List<KeyValue> newValues) {

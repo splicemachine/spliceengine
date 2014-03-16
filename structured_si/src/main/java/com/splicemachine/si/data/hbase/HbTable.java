@@ -71,7 +71,16 @@ public class HbTable implements IHTable {
         throw new RuntimeException("not implemented");
     }
 
-    @Override
+		@Override
+		public Integer tryLock(byte[] rowKey) {
+				try {
+						return lockRow(rowKey);
+				} catch (IOException e) {
+						throw new RuntimeException(e);
+				}
+		}
+
+		@Override
     public void put(Put put) throws IOException {
         table.put(put);
     }

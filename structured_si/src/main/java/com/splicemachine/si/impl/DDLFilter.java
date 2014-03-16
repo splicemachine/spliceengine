@@ -1,20 +1,30 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.TransactionStatus;
+
 import java.io.IOException;
 
 public class DDLFilter implements Comparable<DDLFilter> {
     private final Transaction myTransaction;
+		private final Transaction myParentTransaction;
     private final TransactionStore transactionStore;
 
     public DDLFilter(
             Transaction myTransaction,
+						Transaction myParentTransaction,
             TransactionStore transactionStore) {
         super();
         this.myTransaction = myTransaction;
         this.transactionStore = transactionStore;
+				this.myParentTransaction = myParentTransaction;
     }
 
     public boolean isVisibleBy(String transactionId) throws IOException {
+				//if I didn't succeed, don't do anything
+				if(myTransaction.getEffectiveStatus()!= TransactionStatus.COMMITTED) return false;
+				//if I have a parent, and he was rolled back, don't do anything
+				if(myParentTransaction!=null && myParentTransaction.getEffectiveStatus()==TransactionStatus.ROLLED_BACK) return false;
+
         Transaction transaction = transactionStore.getTransaction(new TransactionId(transactionId));
 				/*
 				 * For the purposes of DDL, we intercept any writes which occur AFTER us, regardless of

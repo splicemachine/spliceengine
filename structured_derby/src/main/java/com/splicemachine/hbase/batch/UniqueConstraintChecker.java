@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.batch;
 
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.api.ConstraintChecker;
 import org.apache.hadoop.hbase.HConstants;
@@ -14,6 +15,7 @@ import java.io.IOException;
  * Date: 3/14/14
  */
 public class UniqueConstraintChecker implements BatchConstraintChecker {
+		private static final OperationStatus SUCCESS = new OperationStatus(HConstants.OperationStatusCode.SUCCESS);
 		private final boolean isPrimaryKey;
 
 		private final ConstraintContext constraintContext;
@@ -24,8 +26,11 @@ public class UniqueConstraintChecker implements BatchConstraintChecker {
 		}
 
 		@Override
-		public OperationStatus checkConstraint(Result result) throws IOException {
-				return new OperationStatus(HConstants.OperationStatusCode.FAILURE,isPrimaryKey? "PrimaryKey":"UniqueConstraint");
+		public OperationStatus checkConstraint(KVPair mutation, Result result) throws IOException {
+				//unique constraint checking only applies for INSERT operations
+				if(mutation.getType()== KVPair.Type.INSERT)
+						return new OperationStatus(HConstants.OperationStatusCode.FAILURE,isPrimaryKey? "PrimaryKey":"UniqueConstraint");
+				return SUCCESS;
 		}
 
 		@Override

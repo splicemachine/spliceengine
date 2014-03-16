@@ -128,9 +128,10 @@ public class SITransactionReadController<
 		}
 
 		@Override
-		public DDLFilter newDDLFilter(String transactionId) throws IOException {
+		public DDLFilter newDDLFilter(String parentTransactionId, String transactionId) throws IOException {
 				return new DDLFilter(
 								transactionStore.getTransaction(control.transactionIdFromString(transactionId)),
+								transactionStore.getTransaction(control.transactionIdFromString(parentTransactionId)),
 								transactionStore
 				);
 		}

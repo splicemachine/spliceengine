@@ -42,7 +42,12 @@ public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete
         table.delete(delete, rowLock);
     }
 
-    @Override
+		@Override
+		public Integer tryLock(IHTable ihTable, byte[] rowKey) {
+				return ihTable.tryLock(rowKey);
+		}
+
+		@Override
     public boolean checkAndPut(IHTable table, byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException {
         return table.checkAndPut(family, qualifier, expectedValue, put);
     }

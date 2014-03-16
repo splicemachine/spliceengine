@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.batch;
 
 import com.splicemachine.hbase.BatchProtocol;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.api.ConstraintChecker;
 import org.apache.hadoop.hbase.HConstants;
@@ -22,11 +23,11 @@ public class ChainConstraintChecker implements BatchConstraintChecker {
 		}
 
 		@Override
-		public OperationStatus checkConstraint(Result result) throws IOException {
+		public OperationStatus checkConstraint(KVPair mutation, Result existingRow) throws IOException {
 				HConstants.OperationStatusCode code = HConstants.OperationStatusCode.SUCCESS;
 				OperationStatus status;
 				for(ConstraintChecker delegate:delegates){
-						status = delegate.checkConstraint(result);
+						status = delegate.checkConstraint(mutation, existingRow);
 						if(status!=null)
 								code = status.getOperationStatusCode();
 						if(code!= HConstants.OperationStatusCode.SUCCESS)
