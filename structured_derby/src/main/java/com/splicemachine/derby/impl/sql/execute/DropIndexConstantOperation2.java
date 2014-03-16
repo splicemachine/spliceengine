@@ -89,7 +89,7 @@ public class DropIndexConstantOperation2 extends IndexConstantOperation{
 				TransactionId metaTxnId = drop(cd, td, sd, dd, lcc);
 
 				//create a second nested transaction
-				TransactionId parent = getTransactionId(tc);
+				TransactionId parent = new TransactionId(getTransactionId(tc));
 				try {
 						TransactionId pipelineTxn = HTransactorFactory.getTransactionManager().beginChildTransaction(parent, true,false);
 						List<TransactionId> toIgnore = Arrays.asList(parent, pipelineTxn);
@@ -161,10 +161,6 @@ public class DropIndexConstantOperation2 extends IndexConstantOperation{
 
 				td.removeConglomerateDescriptor(cd);
 				metaTxn.commit();
-				return getTransactionId(metaTxn);
-		}
-
-		private TransactionId getTransactionId(TransactionController txn) {
-				return ((SpliceTransaction)((SpliceTransactionManager)txn).getRawTransaction()).getTransactionId();
+				return new TransactionId(getTransactionId(metaTxn));
 		}
 }

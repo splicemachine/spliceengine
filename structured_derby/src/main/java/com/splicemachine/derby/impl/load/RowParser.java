@@ -7,7 +7,6 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.writer.WriteResult;
-import org.apache.commons.lang.time.FastDateFormat;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -96,11 +95,13 @@ public class RowParser {
         int pos=0;
         for(ColumnContext context:columnContexts){
             String value = pos>=line.length ||line[pos]==null||line[pos].length()==0?null: line[pos];
+						//TODO -sf- this seems really inefficient, make this more better
             if (timestampFormatStr != null && timestampFormatStr.contains("@") && context.getColumnType() == 93 && context.getColumnNumber() == pos) {
             	String tmpstr = columnTimestampFormats.get(String.valueOf(context.getColumnNumber()+1));
-            	if (tmpstr.equals("null") || tmpstr == null)
+            	if (tmpstr.equals("null") || tmpstr.equals("NULL") || tmpstr == null) {
+            		System.out.println("Null?");
             	    context.setFormatStr(null);
-            	else
+            	} else
             		context.setFormatStr(tmpstr);
             }
 						try{
@@ -231,7 +232,7 @@ public class RowParser {
 						//this represents a programmer error, don't try and log this
 						throw Exceptions.parseException(new IllegalStateException("Unable to determine date format for type " + dvd.getClass()));
 				}
-
+				format.setLenient(false);
 				return format;
 		}
 }

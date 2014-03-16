@@ -22,9 +22,7 @@ import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.client.RowMutations;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.light.LGet;
@@ -211,36 +209,16 @@ public class MemoryHTable implements HTableInterface {
 
     @Override
     public CoprocessorRpcChannel coprocessorService(byte[] row) {
-        return null;
+        return delegate.coprocessorService(row);
     }
 
     @Override
-    public <T extends Service, R> void coprocessorService(Class<T> service, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable, Batch.Callback<R> callback) throws ServiceException, Throwable {
-
-    }
-
-    @Override
-    public HRegion.RowLock getRowLock(byte[] row) throws IOException {
-        return delegate.getRowLock(row,false);
-    }
-
-    @Override
-    public void unlockRow(HRegion.RowLock rl) throws IOException {
-        delegate.unlockRow(rl);
-    }
-
-    @Override
-    public <T extends Service> T coprocessorService(Class<T> service, byte[] row) {
-        return delegate.coprocessorService(service, row);
-    }
-
-    @Override
-    public <T extends CoprocessorService, R> Map<byte[], R> coprocessorService(Class<T> service, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable) throws IOException, Throwable {
+    public <T extends Service, R> Map<byte[], R> coprocessorService(Class<T> service, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable) throws ServiceException, Throwable {
         return delegate.coprocessorService(service, startKey, endKey, callable);
     }
 
     @Override
-    public <T extends CoprocessorService, R> void coprocessorExec(Class<T> service, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable, Batch.Callback<R> callback) throws IOException, Throwable {
+    public <T extends Service, R> void coprocessorService(Class<T> service, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable, Batch.Callback<R> callback) throws ServiceException, Throwable {
         delegate.coprocessorService(service, startKey, endKey, callable, callback);
     }
 
@@ -256,7 +234,7 @@ public class MemoryHTable implements HTableInterface {
 
     @Override
     public void setAutoFlushTo(boolean autoFlush) {
-
+        delegate.setAutoFlushTo(autoFlush);
     }
 
     @Override

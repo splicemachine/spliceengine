@@ -12,10 +12,10 @@ import java.io.IOException;
  */
 public class PairEncoder {
 		private final KeyEncoder keyEncoder;
-		private final DataHash rowEncoder;
+		private final DataHash<ExecRow> rowEncoder;
 		private final KVPair.Type pairType;
 
-		public PairEncoder(KeyEncoder keyEncoder, DataHash rowEncoder, KVPair.Type pairType) {
+		public PairEncoder(KeyEncoder keyEncoder, DataHash<ExecRow> rowEncoder, KVPair.Type pairType) {
 				this.keyEncoder = keyEncoder;
 				this.rowEncoder = rowEncoder;
 				this.pairType = pairType;

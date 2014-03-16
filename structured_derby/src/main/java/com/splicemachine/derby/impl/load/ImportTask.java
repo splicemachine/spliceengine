@@ -105,7 +105,7 @@ public class ImportTask extends ZkTask{
 						totalTimer.startTiming();
 						long startTime = System.currentTimeMillis();
 						RowErrorLogger errorLogger = getErrorLogger();
-						ImportErrorReporter errorReporter = getErrorReporter(row,errorLogger);
+						ImportErrorReporter errorReporter = getErrorReporter(row.getClone(),errorLogger);
 						try{
 								errorLogger.open();
 								reader.setup(fileSystem,importContext);
@@ -124,7 +124,8 @@ public class ImportTask extends ZkTask{
 												if(shouldContinue)
 														rowsRead+=lines.length;
 												else if(lines!=null && lines[0]!=null){
-														for(int i=0;i<lines.length;i++){
+														rowsRead++;
+														for(int i=1;i<lines.length;i++){
 																if(lines[i]==null){
 																		rowsRead+=(i-1);
 																		break;
@@ -258,7 +259,7 @@ public class ImportTask extends ZkTask{
 				if(shouldParallelize) {
 						return  new ParallelImporter(importContext,row, transactionId,errorReporter);
 				} else
-//					return new SequentialImporter(importContext,row,transactionId);
+//						return new SequentialImporter(importContext,row,transactionId,errorReporter);
 						return new ParallelImporter(importContext,row,1,SpliceConstants.maxImportReadBufferSize,transactionId,errorReporter);
 		}
 

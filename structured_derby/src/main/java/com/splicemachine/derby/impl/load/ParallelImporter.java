@@ -91,51 +91,7 @@ public class ParallelImporter implements Importer{
 				}else
 						metricFactory = Metrics.noOpMetricFactory();
 
-//        String tableName = importContext.getTableName();
         futures = Lists.newArrayList();
-//				/*
-//				 * We need a write configuration that will not attempt to retry any writes if the task
-//				 * itself has failed.
-//				 */
-//				Writer.WriteConfiguration writeConfiguration = new ForwardingWriteConfiguration(factory.defaultWriteConfiguration()){
-//						@Override
-//						public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
-//								if(LOG.isTraceEnabled())
-//										SpliceLogUtils.trace(LOG,"Received a global write error: ",t);
-//								if(isFailed())
-//										return Writer.WriteResponse.IGNORE; //we're already dead, so stop writing
-//								else
-//										return super.globalError(t);
-//						}
-//
-//						@Override
-//						public Writer.WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
-//								if(isFailed())
-//										return Writer.WriteResponse.IGNORE; //we're already dead, so stop writing
-//								else{
-//										//filter out and report bad records
-//										IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
-//										for(IntObjectCursor<WriteResult> resultCursor:failedRows){
-//												switch(resultCursor.value.getCode()){
-//														case FAILED:
-//														case WRITE_CONFLICT:
-//														case PRIMARY_KEY_VIOLATION:
-//														case UNIQUE_VIOLATION:
-//														case FOREIGN_KEY_VIOLATION:
-//														case CHECK_VIOLATION:
-//																if(errorReporter.reportError((KVPair)request.getBuffer()[resultCursor.index],resultCursor.value))
-//																		failedRows.remove(resultCursor.index); //remove the row to prevent retrying the write
-//																else
-//																		throw new ExecutionException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException());
-//																break;
-//												}
-//										}
-//								}
-//								return super.partialFailure(result, request);
-//						}
-//
-//						@Override public MetricFactory getMetricFactory() { return metricFactory; }
-//				};
         for(int i=0;i<numProcessingThreads;i++){
 						SequentialImporter importer = new SequentialImporter(importCtx,template.getClone(),txnId,errorReporter,
 										factory,kryoPool){
@@ -144,7 +100,6 @@ public class ParallelImporter implements Importer{
 										return ParallelImporter.this.isFailed();
 								}
 						};
-//						RecordingCallBuffer<KVPair> writeDest = factory.writeBuffer(tableName.getBytes(),txnId,writeConfiguration);
             futures.add(processingPool.submit(new Processor(processingQueue,importer)));
         }
     }

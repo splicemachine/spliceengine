@@ -36,14 +36,13 @@ public class ConstraintHandler implements WriteHandler {
         }
         try {
             if(!localConstraint.validate(mutation,ctx.getTransactionId(),ctx.getCoprocessorEnvironment(),visitedRows)){
-                failed = true;
+//                failed = true;
                 ctx.result(mutation,
                         new WriteResult(WriteResult.convertType(localConstraint.getType()), localConstraint.getConstraintContext()));
-                visitedRows.add(mutation);
             }else{
                 ctx.sendUpstream(mutation);
-                visitedRows.add(mutation);
             }
+						visitedRows.add(mutation);
         }catch(NotServingRegionException nsre){
             ctx.failed(mutation,WriteResult.notServingRegion());
 						failed=true;

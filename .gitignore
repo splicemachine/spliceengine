@@ -25,3 +25,5 @@ rebuild.sh
 out
 redeployDerby.sh
 .DS*
+**/*_BAD*
+**/*._BAD*

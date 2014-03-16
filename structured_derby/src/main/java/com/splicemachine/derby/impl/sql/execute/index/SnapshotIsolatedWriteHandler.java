@@ -27,7 +27,8 @@ public class SnapshotIsolatedWriteHandler implements WriteHandler {
         try {
             if (ddlFilter.isVisibleBy(ctx.getTransactionId())) {
                 delegate.next(mutation, ctx);
-            }
+            }else
+								ctx.sendUpstream(mutation);
         } catch (IOException e) {
             LOG.error("Couldn't asses the visibility of the DDL operation", e);
             ctx.failed(mutation, WriteResult.failed(e.getMessage()));
@@ -39,7 +40,8 @@ public class SnapshotIsolatedWriteHandler implements WriteHandler {
         try {
             if (ddlFilter.isVisibleBy(ctx.getTransactionId())) {
                 delegate.next(mutations, ctx);
-            }
+            }else
+								ctx.sendUpstream(mutations);
         } catch (IOException e) {
             LOG.error("Couldn't asses the visibility of the DDL operation", e);
             for (KVPair mutation : mutations) {

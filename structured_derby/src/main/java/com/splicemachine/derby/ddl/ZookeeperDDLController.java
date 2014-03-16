@@ -3,7 +3,6 @@ package com.splicemachine.derby.ddl;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.TimeoutException;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.shared.common.reference.SQLState;
@@ -17,9 +16,11 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.ZooDefs;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.ZkUtils;
+import org.apache.derby.catalog.UUID;
 
 public class ZookeeperDDLController implements DDLController, Watcher {
     private static final Logger LOG = Logger.getLogger(ZookeeperDDLController.class);
@@ -27,7 +28,10 @@ public class ZookeeperDDLController implements DDLController, Watcher {
     private final Object lock = new Object();
     private static final long REFRESH_TIMEOUT = 2000; // timeout to refresh the info, in case some server is dead or a new server came up
     private static final long MAXIMUM_WAIT = 60000; // maximum wait for everybody to respond, after this we fail the DDL change
-    private static Gson gson = new Gson();
+    private Gson gson = new GsonBuilder().
+            registerTypeAdapter(TentativeDDLDesc.class, new DDLChangeSerializer<TentativeDDLDesc>()).
+            registerTypeAdapter(UUID.class, new DDLChangeSerializer<UUID>()).
+            create();
 
     @Override
     public String notifyMetadataChange(DDLChange change) throws StandardException {

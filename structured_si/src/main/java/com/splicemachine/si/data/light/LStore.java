@@ -26,6 +26,7 @@ import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.STableReader;
@@ -172,7 +173,8 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
         if (families != null) {
             for (Cell c : t.values) {
                 for (byte[] family : families) {
-                    if (((KeyValue)c).matchingFamily(family) && c.getTimestamp() <= effectiveTimestamp) {
+
+                    if (CellUtil.matchingFamily(c, family) && c.getTimestamp() <= effectiveTimestamp) {
                         newCells.add(c);
                         break;
                     }
@@ -184,7 +186,8 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
 
     private boolean columnsContain(List<List<byte[]>> columns, Cell c) {
         for (List<byte[]> column : columns) {
-            if (((KeyValue)c).matchingColumn(column.get(0), column.get(1)))
+
+            if (CellUtils.singleMatchingColumn(c, column.get(0), column.get(1)))
                 return true;
         }
         return false;
@@ -192,16 +195,6 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
 
     @Override
     public void write(LTable table, LTuple put) throws IOException {
-        write(table, Arrays.asList(put));
-    }
-
-    @Override
-    public void write(LTable table, LTuple put, HRegion.RowLock rowLock) throws IOException {
-        write(table, put);
-    }
-
-    @Override
-    public void write(LTable table, LTuple put, boolean durable) throws IOException {
         write(table, Arrays.asList(put));
     }
 
@@ -221,9 +214,9 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
     @Override
-    public OperationStatus[] writeBatch(LTable table, Pair<LTuple, HRegion.RowLock>[] puts) throws IOException {
-        for (Pair<LTuple, HRegion.RowLock> p : puts) {
-            write(table, p.getFirst());
+    public OperationStatus[] writeBatch(LTable table, LTuple[] puts) throws IOException {
+        for (LTuple p : puts) {
+            write(table, p);
         }
         OperationStatus[] result = new OperationStatus[puts.length];
         for (int i = 0; i < result.length; i++) {
@@ -233,35 +226,8 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
     @Override
-    public void delete(LTable table, LTuple delete, HRegion.RowLock lock) throws IOException {
-        final String relationIdentifier = table.relationIdentifier;
-        final List<LTuple> tuples = relations.get(relationIdentifier);
-        final List<LTuple> newTuples = Lists.newArrayList();
-        for (LTuple tuple : tuples) {
-            LTuple newTuple = tuple;
-            if (Arrays.equals(tuple.key, delete.key)) {
-                final List<Cell> values = tuple.values;
-                final List<Cell> newValues = Lists.newArrayList();
-                if (!delete.values.isEmpty()) {
-                    for (Cell value : values) {
-                        boolean keep = true;
-                        for (Cell deleteValue : (delete).values) {
-                            if (((KeyValue)deleteValue).matchingColumn(value.getFamily(),
-                                                           value.getQualifier()) && value.getTimestamp() ==
-                                    deleteValue.getTimestamp()) {
-                                keep = false;
-                            }
-                        }
-                        if (keep) {
-                            newValues.add(value);
-                        }
-                    }
-                }
-                newTuple = new LTuple(tuple.key, newValues);
-            }
-            newTuples.add(newTuple);
-        }
-        relations.put(relationIdentifier, newTuples);
+    public HRegion.RowLock tryLock(LTable lTable, byte[] rowKey) {
+        return lockRow(lTable, rowKey);
     }
 
     @Override
@@ -278,8 +244,9 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
             }
             HRegion.RowLock currentLock = lockTable.get(rowKey);
             if (currentLock == null) {
-                // TODO: jc - not needed anymore?
-//				currentLock = lockIdGenerator.incrementAndGet();
+                // FIXME: jc - need to acquire a lock from HRegion
+				currentLock = lockIdGenerator.incrementAndGet();
+
                 lockTable.put(rowKey, currentLock);
                 reverseLockTable.put(currentLock, rowKey);
                 return currentLock;
@@ -322,16 +289,15 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
                 ArrayList<Cell> results = Lists.newArrayList(result.rawCells());
                 sortValues(results);
                 for (Cell kv : results) {
-                    // TODO: jc - check cast is correct
-                    if (((KeyValue)kv).matchingColumn(family, qualifier)) {
-                        match = Arrays.equals(kv.getValue(), expectedValue);
+                    if (CellUtils.singleMatchingColumn(kv, family, qualifier)) {
+                        match = Arrays.equals(kv.getValueArray(), expectedValue);
                         found = true;
                         break;
                     }
                 }
             }
             if (match || (expectedValue == null && !found)) {
-                write(table, put, lock);
+                write(table, put);
                 return true;
             } else {
                 return false;
@@ -351,8 +317,8 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
         List<Cell> newValues = Lists.newArrayList();
         for (Cell c : newTuple.values) {
             if (c.getTimestamp() < 0) {
-                newValues.add(new KeyValue(newTuple.key, c.getFamily(), c.getQualifier(), getCurrentTimestamp(),
-                                           c.getValue()));
+                newValues.add(new KeyValue(newTuple.key, c.getFamilyArray(), c.getQualifierArray(),
+                                           getCurrentTimestamp(), c.getValue()));
             } else {
                 newValues.add(c);
             }
@@ -378,6 +344,39 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
         return newTuples;
     }
 
+    @Override
+    public void delete(LTable table, LTuple delete) throws IOException {
+        final String relationIdentifier = table.relationIdentifier;
+        final List<LTuple> tuples = relations.get(relationIdentifier);
+        final List<LTuple> newTuples = Lists.newArrayList();
+        for (LTuple tuple : tuples) {
+            LTuple newTuple = tuple;
+            if (Arrays.equals(tuple.key, delete.key)) {
+                final List<Cell> values = tuple.values;
+                final List<Cell> newValues = Lists.newArrayList();
+                if (!delete.values.isEmpty()) {
+                    for (Cell value : values) {
+                        boolean keep = true;
+                        for (Cell deleteValue : (delete).values) {
+
+                            if (CellUtils.singleMatchingColumn(deleteValue, value.getFamilyArray(),
+                                                               value.getQualifierArray()) && value.getTimestamp() ==
+                                    deleteValue.getTimestamp()) {
+                                keep = false;
+                            }
+                        }
+                        if (keep) {
+                            newValues.add(value);
+                        }
+                    }
+                }
+                newTuple = new LTuple(tuple.key, newValues);
+            }
+            newTuples.add(newTuple);
+        }
+        relations.put(relationIdentifier, newTuples);
+    }
+
     /**
      * Only carry over KeyValues that are not being replaced by incoming KeyValues.
      */
@@ -385,7 +384,8 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
         for (Cell currentKv : t.values) {
             boolean collides = false;
             for (Cell newKv : newValues) {
-                if (((KeyValue)currentKv).matchingColumn(newKv.getFamilyArray(), CellUtil.cloneQualifier(newKv)) &&
+
+                if (CellUtils.singleMatchingColumn(currentKv, newKv.getFamilyArray(), newKv.getQualifierArray()) &&
                         currentKv.getTimestamp() == newKv.getTimestamp()) {
                     collides = true;
                 }

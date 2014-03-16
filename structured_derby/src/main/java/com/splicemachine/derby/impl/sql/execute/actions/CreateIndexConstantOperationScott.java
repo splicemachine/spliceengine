@@ -230,11 +230,6 @@ public class CreateIndexConstantOperationScott extends IndexConstantOperation im
         }
     }
 
-    private String getTransactionId(TransactionController tc) {
-        Transaction td = ((SpliceTransactionManager)tc).getRawTransaction();
-        return SpliceUtils.getTransID(td);
-    }
-
     private TableDescriptor getActiveTableDescriptor(Activation activation, DataDictionary dd, LanguageConnectionContext lcc) throws StandardException {
         TableDescriptor td = activation.getDDLTableDescriptor();
         TransactionController tc = lcc.getTransactionExecute();

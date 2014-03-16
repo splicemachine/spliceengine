@@ -52,7 +52,6 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 
 		@Override
 		public void close() throws IOException {
-				LOG.trace("Close called");
 				closed = true;
 				loggerThreads.shutdownNow();
 				try {
@@ -66,7 +65,6 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 						//ensure interrupt flag is set
 						Thread.currentThread().interrupt();
 				}
-				LOG.trace("Close completed");
 		}
 
 		@Override
@@ -178,10 +176,8 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 						//read data off the queue in bulk, then feed it forward to the logger. More efficient
 						while(true){
 								try {
-										WORKER_LOG.trace("Taking  entry");
 										ErrorRow poll = queue.take();
 										try {
-												WORKER_LOG.trace("logging row before interruption");
 												poll.log(this);
 										} catch (IOException e) {
 												WORKER_LOG.error("Unexpected error logging bad row",e);
@@ -192,7 +188,6 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 												return;
 										}
 								} catch (InterruptedException e) {
-										WORKER_LOG.trace("Interrupted");
 										//we have been shutdown, so move on
 //										Thread.currentThread().interrupt();
 										break;

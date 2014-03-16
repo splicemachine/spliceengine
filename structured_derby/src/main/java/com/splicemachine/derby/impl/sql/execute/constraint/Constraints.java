@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.constraint;
 
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.batch.BatchConstraintChecker;
 import com.splicemachine.hbase.writer.WriteResult;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
@@ -37,11 +38,10 @@ public class Constraints {
             return Collections.emptyList();
         }
 
-        @Override
-        public ConstraintContext getConstraintContext() {
-            return null;
-        }
-    };
+        @Override public ConstraintContext getConstraintContext() { return null; }
+
+				@Override public BatchConstraintChecker asChecker() { return null; }
+		};
 
 
     /**

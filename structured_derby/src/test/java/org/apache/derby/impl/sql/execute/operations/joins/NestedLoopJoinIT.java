@@ -12,6 +12,7 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.sql.ResultSet;
 import java.util.*;
 
@@ -104,4 +105,23 @@ public class NestedLoopJoinIT {
 						Assert.assertArrayEquals("Incorrect row!",correctLine,next);
 				}
 		}
+		
+		@Test 
+		public void testNestedLoopIteratorCloseStatements() throws Exception {  // JIRA DB-1129
+			Statement s = methodWatcher.getStatement();
+			ResultSet rs = s.executeQuery("call SYSCS_UTIL.SYSCS_GET_STATEMENT_SUMMARY()");
+			int countstatementsbefore = 0;
+			while (rs.next()) {
+				countstatementsbefore += 1;
+			}
+			String query = String.format("select * from %1$s a, %1$s b --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP", b2);
+			s.executeQuery(query);
+			rs = s.executeQuery("call SYSCS_UTIL.SYSCS_GET_STATEMENT_SUMMARY()");
+			int countstatementsafter = 0;
+			while (rs.next()) {
+				countstatementsafter += 1;
+			}
+			Assert.assertEquals(countstatementsbefore,countstatementsafter);
+		}
+
 }

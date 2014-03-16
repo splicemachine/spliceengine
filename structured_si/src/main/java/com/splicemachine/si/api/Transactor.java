@@ -1,6 +1,7 @@
 package com.splicemachine.si.api;
 
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
@@ -24,7 +25,13 @@ public interface Transactor<Table, Mutation extends OperationWithAttributes,Put 
 
 		OperationStatus[] processKvBatch(Table table, RollForwardQueue rollForwardQueue, byte[] family, byte[] qualifier, Collection<KVPair> mutations, String txnId) throws IOException;
 
+		OperationStatus[] processKvBatch(Table table, RollForwardQueue queue, byte[] defaultFamilyBytes, byte[] packedColumnBytes, Collection<KVPair> toProcess, String transactionId, ConstraintChecker constraintChecker) throws IOException;
+
 		OperationStatus[] processKvBatch(Table table, RollForwardQueue rollForwardQueue, TransactionId txnId, byte[] family, byte[] qualifier, Collection<KVPair> mutations) throws IOException;
+
+		OperationStatus[] processKvBatch(Table table, RollForwardQueue rollForwardQueue, TransactionId txnId,
+																		 byte[] family, byte[] qualifier,
+																		 Collection<KVPair> mutations,ConstraintChecker constraintChecker) throws IOException;
 
     /**
      * Create an object to keep track of the state of an HBase table compaction operation.

@@ -8,6 +8,8 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.batch.BatchConstraintChecker;
+import com.splicemachine.hbase.batch.UniqueConstraintChecker;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -54,7 +56,12 @@ public class UniqueConstraint implements Constraint {
         return get;
     }
 
-    public Type getType(){
+		@Override
+		public BatchConstraintChecker asChecker() {
+				return new UniqueConstraintChecker(false,constraintContext);
+		}
+
+		public Type getType(){
         return Type.UNIQUE;
     }
 
@@ -62,28 +69,32 @@ public class UniqueConstraint implements Constraint {
     public boolean validate(KVPair mutation,String txnId, RegionCoprocessorEnvironment rce,Collection<KVPair> priorValues) throws IOException {
         if(!stripDeletes.apply(mutation)) return true; //no need to validate this mutation
         //if prior visited values has it, it's in the same batch mutation, so fail it
-        if(priorValues.contains(mutation))
-            return false;
-        Get get = createGet(mutation,txnId);
-
-        HRegion region = rce.getRegion();
-        //check the Bloom Filter first--if it's not present, then we know we're good
-        if (!HRegionUtil.keyExists(region.getStore(SIConstants.DEFAULT_FAMILY_BYTES), mutation.getRow()))
-        		return true;
-
-        Result result = region.get(get);
-        boolean rowPresent = result!=null && !result.isEmpty();
-        if(rowPresent){
-            KeyValue[] raw = result.raw();
-            rowPresent=false;
-            for(KeyValue kv:raw){
-                    rowPresent=true;
-                    if (logger.isTraceEnabled())
-                    	SpliceLogUtils.trace(logger, "row %s,CF %s present",BytesUtil.toHex(mutation.getRow()),BytesUtil.toHex(kv.getFamily()));
-                    break;
-            }
-        }
-        return !rowPresent;
+				return !priorValues.contains(mutation);
+//        if(priorValues.contains(mutation)){
+//						if (logger.isTraceEnabled())
+//								SpliceLogUtils.trace(logger, "row %s",BytesUtil.toHex(mutation.getRow()));
+//            return false;
+//				}
+//        Get get = createGet(mutation,txnId);
+//
+//        HRegion region = rce.getRegion();
+//        //check the Bloom Filter first--if it's not present, then we know we're good
+//        if (!HRegionUtil.keyExists(region.getStore(SIConstants.DEFAULT_FAMILY_BYTES), mutation.getRow()))
+//        		return true;
+//
+//        Result result = region.get(get);
+//        boolean rowPresent = result!=null && !result.isEmpty();
+//        if(rowPresent){
+//            KeyValue[] raw = result.raw();
+//            rowPresent=false;
+//            for(KeyValue kv:raw){
+//                    rowPresent=true;
+//                    if (logger.isTraceEnabled())
+//                    	SpliceLogUtils.trace(logger, "row %s,CF %s present",BytesUtil.toHex(mutation.getRow()),BytesUtil.toHex(kv.getFamily()));
+//                    break;
+//            }
+//        }
+//        return !rowPresent;
     }
 
     @Override

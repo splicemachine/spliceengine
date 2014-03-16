@@ -14,13 +14,13 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
 
 import com.splicemachine.utils.CloseableIterator;
 import com.splicemachine.utils.ForwardingCloseableIterator;
 
 /**
- * Wrapper that makes an HBase table comply with an interface that allows regions and tables to be used in a uniform manner.
+ * Wrapper that makes an HBase table comply with an interface that allows regions and tables to be used in a uniform
+ * manner.
  */
 public class HbTable implements IHTable {
     final HTableInterface table;
@@ -43,7 +43,7 @@ public class HbTable implements IHTable {
     public Result get(Get get) throws IOException {
         final Result result = table.get(get);
         if (result.isEmpty()) {
-           return null;
+            return null;
         } else {
             return result;
         }
@@ -51,16 +51,51 @@ public class HbTable implements IHTable {
 
     @Override
     public CloseableIterator<Result> scan(Scan scan) throws IOException {
-        if(scan.getStartRow() == null) {
+        if (scan.getStartRow() == null) {
             scan.setStartRow(new byte[]{});
         }
         final ResultScanner scanner = table.getScanner(scan);
-				return new ForwardingCloseableIterator<Result>(scanner.iterator()) {
-						@Override
-						public void close() throws IOException {
-							scanner.close();
-						}
-				};
+        return new ForwardingCloseableIterator<Result>(scanner.iterator()) {
+            @Override
+            public void close() throws IOException {
+                scanner.close();
+            }
+        };
+    }
+
+    @Override
+    public void put(Put put) throws IOException {
+        table.put(put);
+    }
+
+    @Override
+    public void put(List<Put> puts) throws IOException {
+        table.put(puts);
+    }
+
+    @Override
+    public OperationStatus[] batchPut(Mutation[] puts) throws IOException {
+        throw new RuntimeException("not implemented");
+    }
+
+    @Override
+    public boolean checkAndPut(byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException {
+        return table.checkAndPut(put.getRow(), family, qualifier, expectedValue, put);
+    }
+
+    @Override
+    public void delete(Delete delete) throws IOException {
+        throw new RuntimeException("not implemented");
+    }
+
+    @Override
+    public HRegion.RowLock lockRow(byte[] rowKey) throws IOException {
+        throw new RuntimeException("not implemented");
+    }
+
+    @Override
+    public void unLockRow(HRegion.RowLock lock) throws IOException {
+        throw new RuntimeException("not implemented");
     }
 
     @Override
@@ -74,47 +109,11 @@ public class HbTable implements IHTable {
     }
 
     @Override
-    public void put(Put put) throws IOException {
-        table.put(put);
-    }
-
-    @Override
-    public void put(Put put, Integer rowLock) throws IOException {
-        table.put(put);
-    }
-
-    @Override
-    public void put(Put put, boolean durable) throws IOException {
-        table.put(put);
-    }
-
-    @Override
-    public void put(List<Put> puts) throws IOException {
-        table.put(puts);
-    }
-
-    @Override
-    public OperationStatus[] batchPut(Pair<Mutation, Integer>[] puts) throws IOException {
-        throw new RuntimeException("not implemented");
-    }
-
-    @Override
-    public boolean checkAndPut(byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException {
-        return table.checkAndPut(put.getRow(), family, qualifier, expectedValue, put);
-    }
-
-    @Override
-    public void delete(Delete delete, Integer rowLock) throws IOException {
-        throw new RuntimeException("not implemented");
-    }
-
-    @Override
-    public HRegion.RowLock lockRow(byte[] rowKey) throws IOException {
-        throw new RuntimeException("not implemented");
-    }
-
-    @Override
-    public void unLockRow(HRegion.RowLock lock) throws IOException {
-        throw new RuntimeException("not implemented");
+    public HRegion.RowLock tryLock(byte[] rowKey) {
+        try {
+            return lockRow(rowKey);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

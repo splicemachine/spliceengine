@@ -20,42 +20,38 @@ public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete
     }
 
     @Override
-    public void write(IHTable table, Put put,  HRegion.RowLock rowLock) throws IOException {
-        table.put(put, rowLock);
-    }
-
-    @Override
-    public void write(IHTable table, Put put, boolean durable) throws IOException {
-        table.put(put, durable);
-    }
-
-    @Override
     public void write(IHTable table, List<Put> puts) throws IOException {
         table.put(puts);
     }
 
     @Override
-    public OperationStatus[] writeBatch(IHTable table, Pair<Mutation,  HRegion.RowLock>[] puts) throws IOException {
+    public OperationStatus[] writeBatch(IHTable table, Mutation[] puts) throws IOException {
         return table.batchPut(puts);
     }
 
     @Override
-    public void delete(IHTable table, Delete delete, HRegion.RowLock rowLock) throws IOException {
-        table.delete(delete, rowLock);
+    public void delete(IHTable table, Delete delete) throws IOException {
+        table.delete(delete);
     }
 
     @Override
-    public boolean checkAndPut(IHTable table, byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException {
-        return table.checkAndPut(family, qualifier, expectedValue, put);
+    public HRegion.RowLock tryLock(IHTable ihTable, byte[] rowKey) {
+        return ihTable.tryLock(rowKey);
     }
 
     @Override
-    public  HRegion.RowLock lockRow(IHTable table, byte[] rowKey) throws IOException {
+    public HRegion.RowLock lockRow(IHTable table, byte[] rowKey) throws IOException {
         return table.lockRow(rowKey);
     }
 
     @Override
-    public void unLockRow(IHTable table,  HRegion.RowLock lock) throws IOException {
+    public void unLockRow(IHTable table, HRegion.RowLock lock) throws IOException {
         table.unLockRow(lock);
+    }
+
+    @Override
+    public boolean checkAndPut(IHTable table, byte[] family, byte[] qualifier, byte[] expectedValue,
+                               Put put) throws IOException {
+        return table.checkAndPut(family, qualifier, expectedValue, put);
     }
 }

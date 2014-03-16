@@ -64,5 +64,5 @@ public interface TransactionReadController<Get,Scan> {
      * @param transactionId Transaction ID which identifies the DDL change
      * @return Object that tracks visibility
      */
-    DDLFilter newDDLFilter(String transactionId) throws IOException;
+    DDLFilter newDDLFilter(String parentTxnId, String transactionId) throws IOException;
 }

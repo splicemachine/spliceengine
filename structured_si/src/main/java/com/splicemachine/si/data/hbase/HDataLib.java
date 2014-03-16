@@ -1,13 +1,11 @@
 package com.splicemachine.si.data.hbase;
 
-import com.google.common.collect.Iterables;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.data.api.SDataLib;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.apache.hadoop.hbase.KeyValue;
+import com.google.common.collect.Iterables;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
@@ -15,9 +13,11 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.data.api.SDataLib;
 
 /**
  * Implementation of SDataLib that is specific to the HBase operation and result types.
@@ -39,13 +39,13 @@ public class HDataLib implements SDataLib<Put, Delete, Get, Scan> {
     }
 
 		@Override
-    public List<KeyValue> listResult(Result result) {
-        return result.list();
+    public List<Cell> listResult(Result result) {
+        return result.listCells();
     }
 
     @Override
-    public Iterable<KeyValue> listPut(Put put) {
-        return Iterables.concat(put.getFamilyMap().values());
+    public Iterable<Cell> listPut(Put put) {
+        return Iterables.concat(put.getFamilyCellMap().values());
     }
 
 		@Override
@@ -92,11 +92,6 @@ public class HDataLib implements SDataLib<Put, Delete, Get, Scan> {
 		@Override
     public Put newPut(byte[] key) {
         return new Put(key);
-    }
-
-    @Override
-    public Put newPut(byte[] key, Integer lock) {
-        return new Put(key, lock);
     }
 
 		@Override

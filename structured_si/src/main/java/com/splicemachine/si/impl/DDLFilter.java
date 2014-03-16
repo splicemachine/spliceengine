@@ -1,20 +1,30 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.TransactionStatus;
+
 import java.io.IOException;
 
-public class DDLFilter {
+public class DDLFilter implements Comparable<DDLFilter> {
     private final Transaction myTransaction;
+		private final Transaction myParentTransaction;
     private final TransactionStore transactionStore;
 
     public DDLFilter(
             Transaction myTransaction,
+						Transaction myParentTransaction,
             TransactionStore transactionStore) {
         super();
         this.myTransaction = myTransaction;
         this.transactionStore = transactionStore;
+				this.myParentTransaction = myParentTransaction;
     }
 
     public boolean isVisibleBy(String transactionId) throws IOException {
+				//if I didn't succeed, don't do anything
+				if(myTransaction.getEffectiveStatus()!= TransactionStatus.COMMITTED) return false;
+				//if I have a parent, and he was rolled back, don't do anything
+				if(myParentTransaction!=null && myParentTransaction.getEffectiveStatus()==TransactionStatus.ROLLED_BACK) return false;
+
         Transaction transaction = transactionStore.getTransaction(new TransactionId(transactionId));
 				/*
 				 * For the purposes of DDL, we intercept any writes which occur AFTER us, regardless of
@@ -38,5 +48,35 @@ public class DDLFilter {
 
     public Transaction getTransaction() {
         return myTransaction;
+    }
+
+    @Override
+    public int compareTo(DDLFilter o) {
+        if (o == null) {
+            return 1;
+        }
+        if (myTransaction.getStatus().isCommitted()) {
+            if (o.getTransaction().getStatus().isCommitted()) {
+                return compare(myTransaction.getCommitTimestampDirect(), o.getTransaction().getCommitTimestampDirect());
+            } else {
+                return 1;
+            }
+        } else {
+            if (o.getTransaction().getStatus().isCommitted()) {
+                return -1;
+            } else {
+                return compare(myTransaction.getEffectiveBeginTimestamp(), o.getTransaction().getEffectiveBeginTimestamp());
+            }
+        }
+    }
+
+    private static int compare(long my, long other) {
+        if (my > other) {
+            return 1;
+        } else if (my < other) {
+            return -1;
+        } else {
+            return 0;
+        }
     }
 }

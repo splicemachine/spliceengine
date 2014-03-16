@@ -9,7 +9,6 @@ import java.util.List;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -18,7 +17,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.CloseableIterator;
@@ -29,7 +27,7 @@ import com.splicemachine.utils.CloseableIterator;
 public class HbRegion implements IHTable {
     static final Logger LOG = Logger.getLogger(HbRegion.class);
     static final Result EMPTY_RESULT = Result.create(Collections.<Cell>emptyList());
-    
+
     final HRegion region;
 
     public HbRegion(HRegion region) {
@@ -56,17 +54,49 @@ public class HbRegion implements IHTable {
         }
     }
 
-    private boolean rowExists(byte[] checkBloomFamily, byte[] rowKey) throws IOException {
-        return HRegionUtil.keyExists(region.getStore(checkBloomFamily), rowKey);
-    }
-
-    private Result emptyResult() {
-        return EMPTY_RESULT;
-    }
-
     @Override
     public CloseableIterator<Result> scan(Scan scan) throws IOException {
         throw new RuntimeException("not implemented");
+    }
+
+    @Override
+    public void put(Put put) throws IOException {
+        region.put(put);
+    }
+
+    @Override
+    public void put(List<Put> puts) throws IOException {
+        throw new RuntimeException("not implemented");
+    }
+
+    @Override
+    public OperationStatus[] batchPut(Mutation[] puts) throws IOException {
+        return region.batchMutate(puts);
+    }
+
+    @Override
+    public boolean checkAndPut(byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException {
+        throw new RuntimeException("not implemented");
+    }
+
+    @Override
+    public void delete(Delete delete) throws IOException {
+        region.delete(delete);
+    }
+
+    @Override
+    public HRegion.RowLock lockRow(byte[] rowKey) throws IOException {
+        final HRegion.RowLock lock = region.getRowLock(rowKey, true);
+        if (lock == null) {
+            throw new RuntimeException("Unable to obtain row lock on region of table " + region.getTableDesc()
+                                                                                               .getNameAsString());
+        }
+        return lock;
+    }
+
+    @Override
+    public void unLockRow(HRegion.RowLock lock) throws IOException {
+        region.releaseRowLocks(Arrays.asList(lock));
     }
 
     @Override
@@ -80,52 +110,20 @@ public class HbRegion implements IHTable {
     }
 
     @Override
-    public void put(Put put) throws IOException {
-        region.put(put);
-    }
-
-    @Override
-    public void put(Put put, HRegion.RowLock rowLock) throws IOException {
-        region.put(put, rowLock);
-    }
-
-    @Override
-    public void put(Put put, boolean durable) throws IOException {
-        region.put(put, durable);
-    }
-
-    @Override
-    public void put(List<Put> puts) throws IOException {
-        throw new RuntimeException("not implemented");
-    }
-
-    @Override
-    public OperationStatus[] batchPut(Pair<Mutation,  HRegion.RowLock>[] puts) throws IOException {
-        return region.batchMutate(puts);
-    }
-
-    @Override
-    public boolean checkAndPut(byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException {
-        throw new RuntimeException("not implemented");
-    }
-
-    @Override
-    public void delete(Delete delete,  HRegion.RowLock rowLock) throws IOException {
-        region.delete(delete, rowLock, true);
-    }
-
-    @Override
-    public  HRegion.RowLock lockRow(byte[] rowKey) throws IOException {
-        final HRegion.RowLock lock = region.getRowLock(rowKey, true);
-        if (lock == null) {
-            throw new RuntimeException("Unable to obtain row lock on region of table " + region.getTableDesc().getNameAsString());
+    public HRegion.RowLock tryLock(byte[] rowKey) {
+        try {
+            return region.getRowLock(rowKey, false);
+        } catch (IOException e) {
+            throw new RuntimeException("Unexpected IOException acquiring lock", e);
         }
-        return lock;
     }
 
-    @Override
-    public void unLockRow( HRegion.RowLock lock) throws IOException {
-        region.releaseRowLocks(Arrays.asList(lock));
+    private boolean rowExists(byte[] checkBloomFamily, byte[] rowKey) throws IOException {
+        return HRegionUtil.keyExists(region.getStore(checkBloomFamily), rowKey);
+    }
+
+    private Result emptyResult() {
+        return EMPTY_RESULT;
     }
 
 }

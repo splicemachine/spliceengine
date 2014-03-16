@@ -14,10 +14,8 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SIConstants;
@@ -202,7 +200,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
         Put put = dataLib.newPut(rowKey);
         suppressIndexing(put);
         dataLib.addKeyValueToPut(put, userColumnFamily, commitTimestampQualifier, transactionId, timestampValue);
-        writer.write(table, put, false);
+        writer.write(table, put);
     }
 
     /**
@@ -246,8 +244,8 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
         return null;
     }
 
-    public OperationStatus[] writeBatch(IHTable table, Pair<Mutation, HRegion.RowLock>[] mutationsAndLocks) throws IOException {
-            return writer.writeBatch(table, mutationsAndLocks);
+    public OperationStatus[] writeBatch(IHTable table, Mutation[] mutations) throws IOException {
+            return writer.writeBatch(table, mutations);
     }
 
     public void closeLowLevelOperation(IHTable table) throws IOException {

@@ -1,16 +1,16 @@
 package com.splicemachine.si.data.light;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.data.api.SDataLib;
+import java.util.Arrays;
+import java.util.List;
 
+import com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.util.*;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.data.api.SDataLib;
 
 public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
 
@@ -104,12 +104,7 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
 
 		@Override
     public LTuple newPut(byte[] key) {
-        return newPut(key, null);
-    }
-
-    @Override
-    public LTuple newPut(byte[] key, HRegion.RowLock lock) {
-        return new LTuple(key, new ArrayList<Cell>(), lock);
+        return newPut(key);
     }
 
 		@Override
@@ -232,7 +227,7 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
 
 		@Override
     public LTuple newDelete(byte[] rowKey) {
-        return newPut(rowKey, null);
+        return newPut(rowKey);
     }
 
     @Override

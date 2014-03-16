@@ -2,15 +2,17 @@ package com.splicemachine.derby.impl.store.access;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Dictionary;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Properties;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import com.google.common.base.Preconditions;
+import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.hbase.table.BetterHTablePool;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.impl.DDLFilter;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Property;
@@ -65,6 +67,9 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 	protected LockingPolicy record_level_policy[];
 	protected ConglomerateFactory conglom_map[];
 	private CacheManager    conglom_cache;
+    private volatile DDLFilter ddlDemarcationPoint = null;
+    private volatile boolean cacheDisabled = false;
+    private ConcurrentMap<String, DDLChange> ongoingDDLChanges = new ConcurrentHashMap<String, DDLChange>();
 
 	public SpliceAccessManager() {
 		implhash   = new Hashtable();
@@ -228,6 +233,11 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 	/* package */ Conglomerate conglomCacheFind(TransactionManager xact_mgr,long conglomid) throws StandardException {
 		Conglomerate conglom       = null;
 		Long         conglomid_obj = new Long(conglomid);
+        boolean bypassCache = cacheDisabled || !canSeeDDLDemarcationPoint(xact_mgr);
+        if (bypassCache) {
+            return getFactoryFromConglomId(conglomid).readConglomerate(xact_mgr, new ContainerKey(0, conglomid));
+        }
+
 		synchronized (conglom_cache) {
 			CacheableConglomerate cache_entry = 
 					(CacheableConglomerate) conglom_cache.findCached(conglomid_obj);
@@ -248,7 +258,17 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 		return(conglom);
 	}
 
-	/**
+    private boolean canSeeDDLDemarcationPoint(TransactionManager xact_mgr) {
+        try {
+            // If the transaction is older than the latest DDL operation (can't see it), bypass the cache
+            return ddlDemarcationPoint == null || ddlDemarcationPoint.isVisibleBy(xact_mgr.getActiveStateTxIdString());
+        } catch (IOException e) {
+            // Stay on the safe side, assume it's not visible
+            return false;
+        }
+    }
+
+    /**
 	 * Invalide the current Conglomerate Cache.
 	 * <p>
 	 * Abort of certain operations will invalidate the contents of the 
@@ -258,9 +278,9 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 	 *
 	 * @exception  StandardException  Standard exception policy.
 	 **/
-	/* package */ protected void conglomCacheInvalidate() throws StandardException {
+	/* package */ protected void conglomCacheInvalidate() {
 		synchronized (conglom_cache) {
-			conglom_cache.ageOut();
+			conglom_cache.discard(null);
 		}
 		return;
 	}
@@ -455,7 +475,28 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 		return getAndNameTransaction(cm, AccessFactoryGlobals.USER_TRANS_NAME);
 	}
 
-	public TransactionController getAndNameTransaction( ContextManager cm, String transName) throws StandardException {
+    public void startDDLChange(DDLChange ddlChange) {
+        cacheDisabled = true;
+        ongoingDDLChanges.put(ddlChange.getIdentifier(), ddlChange);
+        conglomCacheInvalidate();
+    }
+
+    public void finishDDLChange(String identifier) {
+        DDLChange ddlChange = ongoingDDLChanges.remove(identifier);
+        if (ddlChange != null) {
+            try {
+                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getParentTransactionId(),ddlChange.getTransactionId());
+                if (ddlFilter.compareTo(ddlDemarcationPoint) > 0) {
+                    ddlDemarcationPoint = ddlFilter;
+                }
+            } catch (IOException e) {
+                LOG.error("Couldn't create ddlFilter", e);
+            }
+        }
+        cacheDisabled = ongoingDDLChanges.size() > 0;
+    }
+
+    public TransactionController getAndNameTransaction( ContextManager cm, String transName) throws StandardException {
 		if (LOG.isDebugEnabled())
 			LOG.debug("in SpliceAccessManager - getAndNameTransaction, transName="+transName);
 		if (cm == null)
@@ -987,6 +1028,6 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 //			LOG.trace("Getting HTable " + Bytes.toString(tableName));
 		return flushablePool.getTable(Bytes.toString(tableName));
 	}
-	
+
 }
 

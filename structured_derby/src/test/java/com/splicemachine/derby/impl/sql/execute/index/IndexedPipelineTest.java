@@ -103,7 +103,7 @@ public class IndexedPipelineTest {
         BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns, new BitSet(), new BitSet(), new BitSet());
 
 
-        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100);
+        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100,null);
         testCtx.addLast(regionHandler);
         testCtx.addLast(writeHandler);
 
@@ -182,7 +182,7 @@ public class IndexedPipelineTest {
         BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns, new BitSet(), new BitSet(), new BitSet());
 
 
-        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100);
+        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100,null);
         testCtx.addLast(regionHandler);
         testCtx.addLast(writeHandler);
 
@@ -276,7 +276,7 @@ public class IndexedPipelineTest {
         BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns, new BitSet(), new BitSet(), new BitSet());
 
 
-        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100);
+        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100,null);
         testCtx.addLast(regionHandler);
         testCtx.addLast(writeHandler);
 
@@ -369,7 +369,7 @@ public class IndexedPipelineTest {
         BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns, new BitSet(), new BitSet(), new BitSet());
 
 
-        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100);
+        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100,null);
         testCtx.addLast(regionHandler);
         testCtx.addLast(writeHandler);
 
@@ -449,7 +449,7 @@ public class IndexedPipelineTest {
         BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns, new BitSet(), new BitSet(), new BitSet());
 
 
-        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100);
+        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100,null);
         testCtx.addLast(regionHandler);
         testCtx.addLast(writeHandler);
 

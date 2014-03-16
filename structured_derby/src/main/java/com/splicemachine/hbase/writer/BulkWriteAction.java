@@ -231,6 +231,8 @@ final class BulkWriteAction implements Callable<WriteStats> {
 														//add in all the non-empty new BulkWrites to try again
 														writesToPerform.addAll(Collections2.filter(doPartialRetry(nextWrite, response), nonEmptyPredicate));
 												default:
+														if(LOG.isTraceEnabled())
+																SpliceLogUtils.trace(LOG,"[%d] Ignoring write after receiving partial error %s",id,response);
 														//return
 										}
 								}
@@ -327,17 +329,20 @@ final class BulkWriteAction implements Callable<WriteStats> {
 						for(IntObjectCursor<WriteResult> failedCursor:failedRows){
 								errorCounts[failedCursor.value.getCode().ordinal()]++;
 						}
-						SpliceLogUtils.trace(LOG,"[%d] partial failure types: %s",id,Arrays.toString(errorCounts));
+						SpliceLogUtils.trace(LOG,"[%d] %d failures with types: %s",id,failedRows.size(),Arrays.toString(errorCounts));
 				}
-				for(IntObjectCursor<WriteResult> cursor:failedRows){
-						errorMsgs.add(cursor.value.getErrorMessage());
-        }
+				if(failedRows.size()>0){
+						for(IntObjectCursor<WriteResult> cursor:failedRows){
+								errorMsgs.add(cursor.value.getErrorMessage());
+						}
 
-        errors.add(new WriteFailedException(errorMsgs));
+						if(errorMsgs.size()>0)
+								errors.add(new WriteFailedException(errorMsgs));
 
-				for(IntObjectCursor<WriteResult> cursor: failedRows){
-						if(cursor.value.canRetry())
-								toRetry.add((KVPair) allWritesBuffer[cursor.key]);
+						for(IntObjectCursor<WriteResult> cursor: failedRows){
+								if(cursor.value.canRetry())
+										toRetry.add((KVPair) allWritesBuffer[cursor.key]);
+						}
 				}
 
         if(toRetry.size()>0){

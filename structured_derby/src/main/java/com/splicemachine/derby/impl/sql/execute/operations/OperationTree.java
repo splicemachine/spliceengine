@@ -11,9 +11,7 @@ import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.hadoop.hdfs.server.namenode.status_jsp;
 import org.apache.log4j.Logger;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.NavigableMap;

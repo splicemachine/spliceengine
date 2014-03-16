@@ -1,5 +1,7 @@
 package com.splicemachine.hbase;
 
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -31,7 +33,25 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
         return rowKey.length+value.length;
     }
 
-    public enum Type{
+		public void toBytes(Output output) {
+				output.writeByte(type.asByte());
+				output.writeInt(rowKey.length);
+				output.write(rowKey);
+				output.writeInt(value.length);
+				output.write(value);
+		}
+
+		public static KVPair fromBytes(Input input){
+				Type type = Type.decode(input.readByte());
+				byte[] rowKey = new byte[input.readInt()];
+				input.read(rowKey);
+				byte[] value = new byte[input.readInt()];
+				input.read(value);
+				return new KVPair(rowKey,value,type);
+		}
+
+
+		public enum Type{
         INSERT((byte)0x01),
         UPDATE((byte)0x02),
         DELETE((byte)0x03),

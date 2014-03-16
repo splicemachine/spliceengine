@@ -4,7 +4,6 @@ import com.splicemachine.hbase.writer.WriteResult;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -17,7 +16,7 @@ import java.io.OutputStreamWriter;
  * Date: 3/7/14
  */
 public class FileErrorLogger implements RowErrorLogger{
-		private static final Logger LOG = Logger.getLogger(FileErrorLogger.class);
+//		private static final Logger LOG = Logger.getLogger(FileErrorLogger.class);
 		private final FileSystem fs;
 		private final Path outputFile;
 		private FSDataOutputStream outputStream;
@@ -45,13 +44,13 @@ public class FileErrorLogger implements RowErrorLogger{
 
 		@Override
 		public void close() throws IOException {
-				LOG.trace("Close called");
+//				LOG.trace("Close called");
 				//close the stream
 				writer.flush();
 				writer.close();
 				outputStream.flush();
 				outputStream.close();
-				LOG.trace("close completed");
+//				LOG.trace("close completed");
 		}
 
 		@Override
@@ -87,19 +86,19 @@ public class FileErrorLogger implements RowErrorLogger{
 				}
 				sb = sb.append("---").append(row);
 
-				LOG.trace("Writing line to writer "+ writer );
+//				LOG.trace("Writing line to writer "+ writer );
 				writer.write(sb.toString());
 				rowsWritten++;
-				if((rowsWritten & syncBufferInterval)==0){
-						writer.flush();
-						outputStream.hsync();
-				}
+//				if((rowsWritten & syncBufferInterval)==0){
+//						writer.flush();
+//						outputStream.hsync();
+//				}
 
 				writer.newLine();
 		}
 
 		@Override
 		public void deleteLog() throws IOException {
-			fs.delete(outputFile);
+			fs.delete(outputFile,false);
 		}
 }
