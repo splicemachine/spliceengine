@@ -30,4 +30,6 @@ public interface WriteContextFactory<T> {
     void dropIndex(long indexConglomId);
 
     void addIndex(DDLChange ddlChange, int[] columnOrdring, int[] typeIds);
+
+    void addDDLChange(DDLChange ddlChange);
 }

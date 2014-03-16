@@ -7,7 +7,7 @@ import java.io.ObjectOutput;
 
 import com.carrotsearch.hppc.BitSet;
 
-public class TentativeIndexDesc implements Externalizable {
+public class TentativeIndexDesc implements TentativeDDLDesc, Externalizable {
     long conglomerateNumber;
     long baseConglomerateNumber;
     int[] indexColsToMainColMap;
@@ -17,6 +17,7 @@ public class TentativeIndexDesc implements Externalizable {
 
     /** For serialization, don't use */
     public TentativeIndexDesc() {
+        super();
     }
 
     public TentativeIndexDesc(long conglomerateNumber, long baseConglomerateNumber, int[] indexColsToMainColMap, boolean unique, boolean uniqueWithDuplicateNulls, BitSet descColumns) {

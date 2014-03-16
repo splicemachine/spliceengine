@@ -423,10 +423,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
                         entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
 
 					if (results[i] != null) {
-						if (i == 0)
-							template = RowUtil.newRowFromTemplate(row_array[i]);
-						row_array[i] = RowUtil.newRowFromTemplate(template);
-                        for(KeyValue kv:results[i].raw()){
+						for(KeyValue kv:results[i].raw()){
                             RowMarshaller.sparsePacked().decode(kv, row_array[i], null, entryDecoder);
                         }
 //						SpliceUtils.populate(results[i], scanColumnList, row_array[i]);
