@@ -63,7 +63,7 @@ public class RocketfuelIT {
 								long numRowsReported =resultSet.getLong(3);
 								Assert.assertEquals("Incorrect number of rows reported imported!",correctAdIds.size(),numRowsReported);
 								//TODO -sf- read the 5000 number from somewhere
-								Assert.assertEquals("Incorrect number of bad rows reported", 5000, resultSet.getLong(4));
+								Assert.assertEquals("Incorrect number of bad rows reported",2711, resultSet.getLong(4));
 						}finally{
 								resultSet.close();
 						}

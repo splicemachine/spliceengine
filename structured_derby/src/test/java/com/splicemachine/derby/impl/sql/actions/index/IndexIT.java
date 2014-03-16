@@ -593,7 +593,7 @@ public class IndexIT extends SpliceUnitTest {
             // ignore
         }
         try {
-            methodWatcher.prepareStatement(String.format("drop table %s.c", SCHEMA_NAME)).execute();
+            methodWatcher.prepareStatement(String.format("drop table if exists %s.c", SCHEMA_NAME)).execute();
         } catch (Exception e1) {
             // ignore
         }

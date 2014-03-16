@@ -100,6 +100,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
 		private BatchConstraintChecker buildConstraintChecker() {
+				if(constraintFactories.size()<=0) return null;
 				List<BatchConstraintChecker> checkers = Lists.newArrayListWithCapacity(constraintFactories.size());
 				for(ConstraintFactory factory:constraintFactories){
 						checkers.add(factory.getConstraintChecker());
@@ -320,7 +321,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
     private void startDirect(DataDictionary dataDictionary,TableDescriptor td,ConglomerateDescriptor cd) throws StandardException,IOException{
-        indexFactories.clear();
+//        indexFactories.clear();
         boolean isSysConglomerate = td.getSchemaDescriptor().getSchemaName().equals("SYS");
         if(isSysConglomerate){
             SpliceLogUtils.trace(LOG,"Index management for SYS tables disabled, relying on external index management");
@@ -375,7 +376,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 if (conglomDesc.getConglomerateNumber() == congomId) {
                     //we are an index, so just map a constraint rather than an attached index
                     addIndexConstraint(td, conglomDesc);
-                    indexFactories.clear();
+                    indexFactories.clear(); //safe to clear here because we don't chain indices
                     break;
                 } else {
                     indexFactories.add(buildIndex(conglomDesc,constraintDescriptors,columnOrdering,formatIds));
@@ -604,7 +605,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 ctx.addLast(deleteHandler);
                 ctx.addLast(writeHandler);
             } else {
-                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getTransactionId());
+                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getParentTransactionId(),ddlChange.getTransactionId());
                 ctx.addLast(new SnapshotIsolatedWriteHandler(deleteHandler, ddlFilter));
                 ctx.addLast(new SnapshotIsolatedWriteHandler(writeHandler, ddlFilter));
             }
@@ -671,7 +672,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             if (ddlChange == null) {
                 ctx.addLast(handler);
             } else {
-                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getTransactionId());
+                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getParentTransactionId(),ddlChange.getTransactionId());
                 ctx.addLast(new SnapshotIsolatedWriteHandler(handler, ddlFilter));
             }
         }

@@ -485,7 +485,7 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
         DDLChange ddlChange = ongoingDDLChanges.remove(identifier);
         if (ddlChange != null) {
             try {
-                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getTransactionId());
+                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getParentTransactionId(),ddlChange.getTransactionId());
                 if (ddlFilter.compareTo(ddlDemarcationPoint) > 0) {
                     ddlDemarcationPoint = ddlFilter;
                 }
