@@ -232,13 +232,12 @@ final class BulkWriteAction implements Callable<WriteStats> {
 														writesToPerform.addAll(Collections2.filter(doPartialRetry(nextWrite, response), nonEmptyPredicate));
 														break;
 												default:
-														if(LOG.isTraceEnabled())
-																SpliceLogUtils.trace(LOG,"[%d] Ignoring write after receiving partial error %s",id,response);
+														if(LOG.isDebugEnabled())
+																SpliceLogUtils.debug(LOG,"[%d] Ignoring write after receiving partial error %s",id,response);
 														//return
 										}
 								}
 						} catch (Throwable e) {
-								e.printStackTrace();
 								globalErrorCounter.increment();
 								if(thrown)
 										throw new ExecutionException(e);

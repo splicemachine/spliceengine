@@ -1,9 +1,7 @@
 package com.splicemachine.derby.impl.load;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.google.common.collect.Sets;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
@@ -17,15 +15,10 @@ import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Scott Fines
@@ -88,33 +81,24 @@ public class SequentialImporter implements Importer{
 								//filter out and report bad records
 								IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
 								@SuppressWarnings("MismatchedReadAndWriteOfArray") Object[] fRows = failedRows.values;
-								boolean ignore = true;
+								boolean ignore = result.getNotRunRows().size()<=0;
 								for(IntObjectCursor<WriteResult> resultCursor:failedRows){
 										WriteResult value = resultCursor.value;
 										int rowNum = resultCursor.key;
-										switch(value.getCode()){
-												case FAILED:
-												case WRITE_CONFLICT:
-												case PRIMARY_KEY_VIOLATION:
-												case UNIQUE_VIOLATION:
-												case FOREIGN_KEY_VIOLATION:
-												case CHECK_VIOLATION:
-												case NOT_NULL:
-														if(!errorReporter.reportError((KVPair)request.getBuffer()[rowNum],value)){
-																if(errorReporter ==FailAlwaysReporter.INSTANCE)
-																		return Writer.WriteResponse.THROW_ERROR;
-																else
-																		throw new ExecutionException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException());
-														}
-														failedRows.allocated[resultCursor.index] = false;
-														fRows[resultCursor.index] = null;
-														break;
-												default:
-														ignore = false;
-										}
+										if(!value.canRetry()){
+												if(!errorReporter.reportError((KVPair)request.getBuffer()[rowNum],value)){
+														if(errorReporter ==FailAlwaysReporter.INSTANCE)
+																return Writer.WriteResponse.THROW_ERROR;
+														else
+																throw new ExecutionException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException());
+												}
+												failedRows.allocated[resultCursor.index] = false;
+												fRows[resultCursor.index] = null;
+										}else
+											ignore = false;
 								}
 								//can only ignore if we don't need to retry notRunRows
-								if(ignore && result.getNotRunRows().size()<=0)
+								if(ignore)
 										return Writer.WriteResponse.IGNORE;
 								else
 										return Writer.WriteResponse.RETRY;

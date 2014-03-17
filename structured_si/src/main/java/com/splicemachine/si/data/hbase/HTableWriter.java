@@ -43,7 +43,7 @@ public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete
     }
 
 		@Override
-		public Integer tryLock(IHTable ihTable, byte[] rowKey) {
+		public Integer tryLock(IHTable ihTable, byte[] rowKey) throws IOException{
 				return ihTable.tryLock(rowKey);
 		}
 
