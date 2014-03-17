@@ -256,8 +256,16 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 		DependencyManager dm = dd.getDependencyManager();
         TransactionController parent = lcc.getTransactionExecute();
         TransactionController tc = lcc.getTransactionExecute().startNestedUserTransaction(false, true);
-		SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true) ;
         dd.startWriting(lcc);
+		SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true) ;
+        ConglomerateDescriptor existingIndex = dd.getConglomerateDescriptor(indexName, sd, false);
+        if (existingIndex != null) {
+            throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
+                    existingIndex.getDescriptorType(),
+                    existingIndex.getDescriptorName(),
+                    sd.getDescriptorType(),
+                    sd.getDescriptorName());
+        }
 		td = activation.getDDLTableDescriptor();
 		if (td == null) {
 			td = tableId != null?dd.getTableDescriptor(tableId):dd.getTableDescriptor(tableName, sd, tc);
