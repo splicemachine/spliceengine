@@ -21,6 +21,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
+import org.apache.derby.impl.tools.ij.ijMultipleResultSetResult;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -146,7 +147,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 				BulkWrite bulkWrite = BulkWrite.fromBytes(bulkWriteBytes);
 				assert bulkWrite.getTxnId()!=null;
 
-				SpliceLogUtils.trace(LOG,"batchMutate %s",bulkWrite);
+//				SpliceLogUtils.trace(LOG,"batchMutate %s",bulkWrite);
 				RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
 				HRegion region = rce.getRegion();
 

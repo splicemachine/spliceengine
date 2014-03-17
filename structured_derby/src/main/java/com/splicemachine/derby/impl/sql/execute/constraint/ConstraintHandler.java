@@ -19,14 +19,16 @@ public class ConstraintHandler implements WriteHandler {
     private final Constraint localConstraint;
     private boolean failed=false;
     private Collection<KVPair> visitedRows;
+		private final WriteResult invalidResult;
 
     public ConstraintHandler(Constraint localConstraint) {
         this.localConstraint = localConstraint;
+				 invalidResult = new WriteResult(WriteResult.convertType(localConstraint.getType()), localConstraint.getConstraintContext());
     }
 
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
-        if(visitedRows==null) visitedRows = Sets.newTreeSet();
+        if(visitedRows==null) visitedRows = Sets.newHashSet();
         if(failed)
             ctx.notRun(mutation);
         if(!HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(),mutation.getRow())){
@@ -36,9 +38,7 @@ public class ConstraintHandler implements WriteHandler {
         }
         try {
             if(!localConstraint.validate(mutation,ctx.getTransactionId(),ctx.getCoprocessorEnvironment(),visitedRows)){
-//                failed = true;
-                ctx.result(mutation,
-                        new WriteResult(WriteResult.convertType(localConstraint.getType()), localConstraint.getConstraintContext()));
+								ctx.result(mutation, invalidResult);
             }else{
                 ctx.sendUpstream(mutation);
             }
@@ -49,7 +49,6 @@ public class ConstraintHandler implements WriteHandler {
         }catch (Exception e) {
             failed=true;
             ctx.failed(mutation,WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
-//            visitedRows.add(mutation);
         }
     }
 

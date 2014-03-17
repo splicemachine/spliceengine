@@ -29,7 +29,6 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.*;
 
 import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
 
@@ -37,11 +36,6 @@ import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTR
  * An HBase coprocessor that applies SI logic to HBase read/write operations.
  */
 public class SIObserver extends BaseRegionObserver {
-		private static final ScheduledExecutorService timedRoller = Executors.newSingleThreadScheduledExecutor();
-		private static final ThreadPoolExecutor rollerPool = new ThreadPoolExecutor(0,4,60, TimeUnit.SECONDS,new LinkedBlockingDeque<Runnable>());
-		static{
-				rollerPool.allowCoreThreadTimeOut(true);
-		}
 		private static Logger LOG = Logger.getLogger(SIObserver.class);
     protected HRegion region;
     private boolean tableEnvMatch = false;
@@ -83,27 +77,21 @@ public class SIObserver extends BaseRegionObserver {
     public void preGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get, List<KeyValue> results) throws IOException {
         SpliceLogUtils.trace(LOG, "preGet %s", get);
         if (tableEnvMatch && shouldUseSI(get)) {
-            final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
             HTransactorFactory.getTransactionReadController().preProcessGet(get);
             assert (get.getMaxVersions() == Integer.MAX_VALUE);
-            addSIFilterToGet(e, get);
+            addSIFilterToGet(get);
         }
         SpliceLogUtils.trace(LOG, "preGet after %s", get);        
         super.preGet(e, get, results);
-    }
-
-    private void logEvent(String event) {
-        LOG.warn("SIObserver " + event + " " + tableEnvMatch + " " + "_" + " " + tableName + " " + Thread.currentThread().getName() + " " + Thread.currentThread().getId());
     }
 
     @Override
     public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan, RegionScanner s) throws IOException {
         SpliceLogUtils.trace(LOG, "preScannerOpen %s", scan);
         if (tableEnvMatch && shouldUseSI(scan)) {
-            final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
             HTransactorFactory.getTransactionReadController().preProcessScan(scan);
             assert (scan.getMaxVersions() == Integer.MAX_VALUE);
-            addSIFilterToScan(e, scan);
+            addSIFilterToScan(scan);
         }
         return super.preScannerOpen(e, scan, s);
     }
@@ -116,16 +104,14 @@ public class SIObserver extends BaseRegionObserver {
         return HTransactorFactory.getTransactionReadController().isFilterNeededScan(scan);
     }
 
-    private void addSIFilterToGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get) throws IOException {
-        final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
+    private void addSIFilterToGet(Get get) throws IOException {
 
         final Filter newFilter = makeSIFilter(HTransactorFactory.getClientTransactor().transactionIdFromGet(get), get.getFilter(),
 								getPredicateFilter(get),false);
         get.setFilter(newFilter);
     }
 
-    private void addSIFilterToScan(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan) throws IOException {
-        final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
+    private void addSIFilterToScan(Scan scan) throws IOException {
         final Filter newFilter = makeSIFilter(HTransactorFactory.getClientTransactor().transactionIdFromScan(scan), scan.getFilter(),
 								getPredicateFilter(scan),scan.getAttribute(SIConstants.SI_COUNT_STAR) != null);
         scan.setFilter(newFilter);
@@ -137,7 +123,6 @@ public class SIObserver extends BaseRegionObserver {
     }
 
     private Filter makeSIFilter(TransactionId transactionId, Filter currentFilter, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
-        final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
         final SIFilterPacked siFilter = new SIFilterPacked(tableName,
 								transactionId, HTransactorFactory.getTransactionManager(),
 								rollForwardQueue, predicateFilter,HTransactorFactory.getTransactionReadController(), countStar);
