@@ -1908,7 +1908,24 @@ public class SystemProcedures  {
             throw PublicAPI.wrapStandardException(se);
         }
     }
-    
+
+    /**
+     * Invalidate all the stored statements so they will get recompiled when
+     *  executed next time around.
+     */
+    public static void SYSCS_INVALIDATE_STORED_STATEMENTS()
+       throws SQLException
+    {
+    	LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+
+        DataDictionary dd = lcc.getDataDictionary();
+        try {
+        	dd.invalidateAllSPSPlans(lcc);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
+
     /**
      * Empty as much of the cache as possible. It is not guaranteed 
      * that the cache is empty after this call, as statements may be kept

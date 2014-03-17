@@ -401,6 +401,12 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .catalog("TABLENAME")
                 .catalog("INDEXNAME")
                 .build()
+            ,
+            Procedure.newBuilder().name("SYSCS_INVALIDATE_STORED_STATEMENTS")
+                .numOutputParams(0).numResultSets(0).modifiesSql()
+                .returnType(null).isDeterministic(false)
+                .ownerClass(SYSTEM_PROCEDURES)
+                .build()
     }));
 
     private static final List/*<Procedure>*/ sqlJProcedures = Arrays.asList(new Procedure[]{

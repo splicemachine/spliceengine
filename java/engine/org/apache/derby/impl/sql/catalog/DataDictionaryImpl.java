@@ -4283,9 +4283,14 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 		}
 		else 
 		{
-			updCols = new int[]	{SYSSTATEMENTSRowFactory.SYSSTATEMENTS_VALID} ;
+			// This is an invalidation request.
+			// Update the VALID column (to false) and clear the plan stored in the CONSTANTSTATE column.
+			updCols = new int[]	{
+					SYSSTATEMENTSRowFactory.SYSSTATEMENTS_VALID,
+					SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE,
+			};
 		}
-			
+
 		idOrderable = getIDValueAsCHAR(spsd.getUUID());
 
 		/* Set up the start/stop position for the scan */
@@ -4303,15 +4308,11 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 		/*
 		** Partial update
 		*/
-		try {
-			ti.updateRow(keyRow1, row, 
-					 SYSSTATEMENTSRowFactory.SYSSTATEMENTS_INDEX1_ID,
-					 bArray,
-					 updCols,
-					 tc);
-		} catch (StandardException e) {
-			
-		}
+		ti.updateRow(keyRow1, row, 
+				 SYSSTATEMENTSRowFactory.SYSSTATEMENTS_INDEX1_ID,
+				 bArray,
+				 updCols,
+				 tc);
 
 		/*
 		** If we don't need to update the parameter
@@ -4394,6 +4395,15 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	{
 		LanguageConnectionContext lcc = (LanguageConnectionContext) 
 			ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+		invalidateAllSPSPlans(lcc);
+	}
+
+	/**
+	 * @see DataDictionary#invalidateAllSPSPlans
+	 * @exception StandardException		Thrown on error
+	 */
+	public void invalidateAllSPSPlans(LanguageConnectionContext lcc) throws StandardException
+	{
 		startWriting(lcc);
 
 		for (java.util.Iterator li = getAllSPSDescriptors().iterator(); li.hasNext(); )
