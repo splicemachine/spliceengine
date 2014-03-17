@@ -85,15 +85,8 @@ public class FileErrorLogger implements RowErrorLogger{
 								break;
 				}
 				sb = sb.append("---").append(row);
-
-//				LOG.trace("Writing line to writer "+ writer );
 				writer.write(sb.toString());
 				rowsWritten++;
-//				if((rowsWritten & syncBufferInterval)==0){
-//						writer.flush();
-//						outputStream.hsync();
-//				}
-
 				writer.newLine();
 		}
 

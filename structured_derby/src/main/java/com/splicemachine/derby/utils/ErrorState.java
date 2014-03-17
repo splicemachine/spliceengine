@@ -1,14 +1,5 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
-import com.splicemachine.si.impl.WriteConflict;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.RegionTooBusyException;
-import org.apache.hadoop.hbase.client.RetriesExhaustedException;
-import org.apache.hadoop.hbase.ipc.HBaseClient;
-import org.apache.hadoop.hbase.regionserver.WrongRegionException;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ConnectException;
@@ -17,6 +8,16 @@ import java.net.SocketTimeoutException;
 import java.util.concurrent.CancellationException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.RegionTooBusyException;
+import org.apache.hadoop.hbase.client.RetriesExhaustedException;
+import org.apache.hadoop.hbase.ipc.RpcClient;
+import org.apache.hadoop.hbase.regionserver.WrongRegionException;
+
+import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
+import com.splicemachine.si.impl.WriteConflict;
 
 /**
  * @author Scott Fines
@@ -1811,7 +1812,7 @@ public enum ErrorState {
         public boolean accepts(Throwable t) {
             return t instanceof NotServingRegionException
                     || t instanceof WrongRegionException
-                    || t instanceof HBaseClient.FailedServerException
+                    || t instanceof RpcClient.FailedServerException
                     || super.accepts(t);
         }
 

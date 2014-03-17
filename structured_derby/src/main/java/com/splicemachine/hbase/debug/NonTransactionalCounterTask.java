@@ -1,18 +1,18 @@
 package com.splicemachine.hbase.debug;
 
-import com.google.common.collect.Lists;
-import com.google.common.io.Closeables;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+
+import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
+
+import com.splicemachine.constants.SIConstants;
 
 /**
  * @author Scott Fines
@@ -44,13 +44,13 @@ public class NonTransactionalCounterTask extends DebugTask{
         long totalCount=0l;
         try{
             scanner = region.getScanner(scan);
-            List<KeyValue> keyValues = Lists.newArrayList();
+            List<Cell> keyValues = Lists.newArrayList();
             region.startRegionOperation();
             try{
                 boolean shouldContinue;
                 do{
                     keyValues.clear();
-                    shouldContinue = scanner.nextRaw(keyValues,null);
+                    shouldContinue = scanner.nextRaw(keyValues);
                     if(keyValues.size()>0)
                         totalCount++;
                 }while(shouldContinue);

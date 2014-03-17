@@ -23,7 +23,7 @@ public interface STableWriter<Table, Mutation, Put, Delete> {
      * @param rowKey the row to lock
      * @return the id of the lock acquired, or {@code null} if the lock was not able to be acquired.
      */
-    SRowLock tryLock(Table table, byte[] rowKey);
+    SRowLock tryLock(Table table, byte[] rowKey) throws IOException;
 
     //TODO -sf- can we replace this with an actual Lock abstraction?
     SRowLock lockRow(Table Table, byte[] rowKey) throws IOException;

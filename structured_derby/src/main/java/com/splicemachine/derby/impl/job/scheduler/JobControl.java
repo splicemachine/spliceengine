@@ -1,20 +1,19 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.LinkedBlockingQueue;
+
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.coprocessor.SpliceSchedulerProtocol;
-import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
-import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.AttemptsExhaustedException;
-import com.splicemachine.hbase.table.BoundCall;
-import com.splicemachine.job.JobFuture;
-import com.splicemachine.job.JobStats;
-import com.splicemachine.job.Status;
-import com.splicemachine.job.TaskFuture;
-import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -25,13 +24,20 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.AsyncCallback;
 import org.apache.zookeeper.ZooKeeper;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.NavigableSet;
-import java.util.Set;
-import java.util.concurrent.*;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.impl.job.coprocessor.SpliceSchedulerService;
+import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
+import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.AttemptsExhaustedException;
+import com.splicemachine.hbase.table.BoundCall;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobStats;
+import com.splicemachine.job.Status;
+import com.splicemachine.job.TaskFuture;
+import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 
 /**
  * @author Scott Fines
@@ -344,15 +350,15 @@ class JobControl implements JobFuture {
         final byte[] stop = range.getSecond();
 
         try{
-            table.coprocessorExec(SpliceSchedulerProtocol.class,start,stop,
-                    new BoundCall<SpliceSchedulerProtocol, TaskFutureContext>() {
+            table.coprocessorService(SpliceSchedulerService.class,start,stop,
+                    new BoundCall<SpliceSchedulerService, TaskFutureContext>() {
                         @Override
-                        public TaskFutureContext call(SpliceSchedulerProtocol instance) throws IOException {
+                        public TaskFutureContext call(SpliceSchedulerService instance) throws IOException {
                             throw new UnsupportedOperationException();
                         }
 
                         @Override
-                        public TaskFutureContext call(byte[] startKey, byte[] stopKey, SpliceSchedulerProtocol instance) throws IOException {
+                        public TaskFutureContext call(byte[] startKey, byte[] stopKey, SpliceSchedulerService instance) throws IOException {
                             return instance.submit(startKey,stopKey,task);
                         }
                     }, new Batch.Callback<TaskFutureContext>() {

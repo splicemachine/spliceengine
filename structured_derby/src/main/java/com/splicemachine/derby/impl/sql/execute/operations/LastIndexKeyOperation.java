@@ -10,9 +10,6 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
-import com.splicemachine.derby.utils.marshall.KeyMarshaller;
-import com.splicemachine.encoding.MultiFieldDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -20,13 +17,12 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -46,7 +42,7 @@ public class LastIndexKeyOperation extends ScanOperation{
 
 		private static Logger LOG = Logger.getLogger(LastIndexKeyOperation.class);
 		private EntryDecoder rowDecoder;
-		private List<KeyValue> keyValues;
+		private List<Cell> keyValues;
 		private int[] baseColumnMap;
 		protected static List<NodeType> nodeTypes;
 		private boolean returnedRow;
@@ -88,7 +84,7 @@ public class LastIndexKeyOperation extends ScanOperation{
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException{
 				super.init(context);
-				keyValues = new ArrayList<KeyValue>(1);
+				keyValues = new ArrayList<Cell>(1);
 				this.baseColumnMap = operationInformation.getBaseColumnMap();
 				startExecutionTime = System.currentTimeMillis();
 		}
@@ -109,7 +105,7 @@ public class LastIndexKeyOperation extends ScanOperation{
 				if(timer==null)
 						timer = spliceRuntimeContext.newTimer();
 
-				KeyValue [] prev = new KeyValue[2];
+				Cell [] prev = new Cell[2];
 
 				if (returnedRow) {
 						currentRow = null;
@@ -136,7 +132,7 @@ public class LastIndexKeyOperation extends ScanOperation{
 						currentRow.resetRowArray();
 						DataValueDescriptor[] fields = currentRow.getRowArray();
 
-						for(KeyValue kv:keyValues){
+						for(Cell kv:keyValues){
 								//should only be 1
                             if (kv != null) {
 								RowMarshaller.sparsePacked().decode(kv,fields,baseColumnMap,getRowDecoder());

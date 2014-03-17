@@ -1,11 +1,10 @@
 package com.splicemachine.hbase;
 
-import com.splicemachine.hbase.writer.*;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
-
 import java.io.IOException;
-import java.util.Collection;
+
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
+
+import com.splicemachine.hbase.writer.WriteResult;
 
 /**
  * Protocol for implementing Batch mutations as coprocessor execs.
@@ -13,7 +12,7 @@ import java.util.Collection;
  * @author Scott Fines
  * Created on: 3/11/13
  */
-public interface BatchProtocol extends CoprocessorProtocol {
+public interface BatchProtocol extends CoprocessorService {
 
     /**
      * Apply all the Mutations in a single, synchronous, bulk operation.

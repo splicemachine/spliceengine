@@ -1,22 +1,19 @@
 package com.splicemachine.derby.impl.storage;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.job.JobStatsUtils;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.util.NoSuchElementException;
+
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.util.NoSuchElementException;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  *
@@ -68,7 +65,7 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 
         Result result = getResult();
         if(result!=null && !result.isEmpty()){
-            currentRow = decoder.decode(KeyValueUtils.matchDataColumn(result.raw()));
+            currentRow = decoder.decode(CellUtils.matchDataColumn(result.raw()));
             SpliceLogUtils.trace(LOG, "after populate, currentRow=%s", currentRow);
             currentRowLocation = new HBaseRowLocation(result.getRow());
             populated = true;

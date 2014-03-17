@@ -1,7 +1,12 @@
 package com.splicemachine.hbase;
 
+import java.util.List;
+
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
+
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
 
 /**
  * @author Scott Fines
@@ -61,5 +66,41 @@ public class CellUtils {
         return getBuffer(keyValue).length;
     }
 
+    public static int getTimestampOffset(Cell keyValue) {
+        // TODO: jc - timestamp value is now a dedicated long value in Cell (see Cell#getTimestamp()). Keeping
+        // this cast to preserve our current packed-row semantics. We should consider accommodating the new Cell
+        // interface
+        return ((KeyValue)keyValue).getTimestampOffset();
+    }
+
+    // =========================
+    // Moved from KeyValueUtils
+    // =========================
+
+    public static Cell matchKeyValue(Iterable<Cell> kvs, byte[] columnFamily, byte[] qualifier) {
+        for (Cell kv : kvs) {
+            if (CellUtils.singleMatchingColumn(kv, columnFamily, qualifier))
+                return kv;
+        }
+        return null;
+    }
+
+    public static Cell matchKeyValue(Cell[] kvs, byte[] columnFamily, byte[] qualifier) {
+        for (Cell kv : kvs) {
+            if (CellUtils.singleMatchingColumn(kv, columnFamily, qualifier))
+                return kv;
+        }
+        return null;
+    }
+
+    public static Cell matchDataColumn(Cell[] kvs) {
+        return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES,
+                             SIConstants.PACKED_COLUMN_BYTES);
+    }
+
+    public static Cell matchDataColumn(List<Cell> kvs) {
+        return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES,
+                             SIConstants.PACKED_COLUMN_BYTES);
+    }
 
 }

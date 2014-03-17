@@ -1,31 +1,32 @@
 package com.splicemachine.derby.impl.sql.execute;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+
 import com.google.common.io.Closeables;
-import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.utils.ErrorState;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.impl.TransactionId;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.depend.DependencyManager;
-import org.apache.derby.iapi.sql.dictionary.*;
+import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
+import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.util.Bytes;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexService;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.impl.TransactionId;
 
 /**
  * DDL operation to drop an index. The approach is as follows:
@@ -114,15 +115,15 @@ public class DropIndexConstantOperation2 extends IndexConstantOperation{
 				//drop the index trigger from the main table
 				HTableInterface mainTable = SpliceAccessManager.getHTable(tableConglomId);
 				try {
-						mainTable.coprocessorExec(SpliceIndexProtocol.class,
+						mainTable.coprocessorService(SpliceIndexService.class,
 										HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW,
-										new Batch.Call<SpliceIndexProtocol, Void>() {
+										new Batch.Call<SpliceIndexService, Void>() {
 												@Override
-												public Void call(SpliceIndexProtocol instance) throws IOException {
+												public Void call(SpliceIndexService instance) throws IOException {
 														instance.dropIndex(indexConglomId,tableConglomId);
 														return null;
 												}
-										}) ;
+										}); ;
 				} catch (Throwable throwable) {
 						throw Exceptions.parseException(throwable);
 				}finally{

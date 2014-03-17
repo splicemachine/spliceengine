@@ -7,6 +7,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.*;
 
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.ipc.HBaseServer;
@@ -182,7 +183,9 @@ public class PipelineWriteContext implements WriteContext{
         HTableInterface table = tableCache.get(indexConglomBytes);
         if(table==null){
             try {
-                table = getCoprocessorEnvironment().getTable(indexConglomBytes);
+//                table = getCoprocessorEnvironment().getTable(indexConglomBytes);
+                // FIXME: jc - equivalent?
+                table = getCoprocessorEnvironment().getTable(TableName.valueOf(indexConglomBytes));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

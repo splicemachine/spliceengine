@@ -1,8 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
-
 import java.io.IOException;
+
+import com.google.protobuf.Service;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 
 /**
  * Protocol for performing maintenance tasks on an Indexed table.
@@ -10,7 +11,7 @@ import java.io.IOException;
  * @author Scott Fines
  * Created on: 3/7/13
  */
-public interface SpliceIndexProtocol extends CoprocessorProtocol{
+public interface SpliceIndexService extends CoprocessorService, Service {
 
     /**
      * Drop the specified index from the specified table.

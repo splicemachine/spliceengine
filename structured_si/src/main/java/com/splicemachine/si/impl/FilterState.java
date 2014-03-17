@@ -232,6 +232,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      * transaction up in the transaction table again the next time this row is read.
      */
     private void rollForward(Transaction transaction) throws IOException {
+				LOG.trace("Rolling forward");
         TransactionStatus status = transaction.getEffectiveStatus();
         if (rollForwardQueue != null && status.isFinished()) {
             // TODO: revisit this in light of nested independent transactions

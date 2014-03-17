@@ -36,6 +36,7 @@ public class CreateIndexConstantOperationIT extends SpliceUnitTest {
     public static final String TABLE_NAME_5 = "E";
     public static final String TABLE_NAME_6 = "F";
     public static final String TABLE_NAME_7 = "G";
+    public static final String TABLE_NAME_8 = "H";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static String tableDef = "(TaskId INT NOT NULL, empId Varchar(3) NOT NULL, StartedAt INT NOT NULL, FinishedAt INT NOT NULL)";
@@ -49,6 +50,7 @@ public class CreateIndexConstantOperationIT extends SpliceUnitTest {
     		"(col1 int, col2 int, col3 int, col4 int, col5 int, col6 int, col7 int, col8 int, col9 int,"
     		+ "col10 int, col11 int, col12 int, col13 int, col14 int, col15 int, col16 int, col17 int, col18 int,"
     		+ "col19 int, col20 int)");
+    protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8,CLASS_NAME, tableDef);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -59,7 +61,8 @@ public class CreateIndexConstantOperationIT extends SpliceUnitTest {
             .around(spliceTableWatcher4)
             .around(spliceTableWatcher5)
             .around(spliceTableWatcher6)
-    		.around(spliceTableWatcher7);
+            .around(spliceTableWatcher7)
+            .around(spliceTableWatcher8);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -89,29 +92,29 @@ public class CreateIndexConstantOperationIT extends SpliceUnitTest {
 
     @Test(expected=SQLIntegrityConstraintViolationException.class)
     public void testCreateUniqueIndexInsertDupRow() throws Exception {
-        methodWatcher.getStatement().execute("create unique index taskIndex on "+this.getPaddedTableReference(TABLE_NAME_3)+"(taskid)");
+        methodWatcher.getStatement().execute("create unique index taskIndex2 on "+this.getPaddedTableReference(TABLE_NAME_3)+"(taskid)");
         methodWatcher.getStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_3)+"(TaskId, empId, StartedAt, FinishedAt) values (1234,'JC',0500,0600)");
         methodWatcher.getStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_3)+"(TaskId, empId, StartedAt, FinishedAt) values (1234,'JC',0601,0630)");
     }
 
     @Test
     public void testCreateIndexInsertGoodRowDropIndex() throws Exception {
-        methodWatcher.getStatement().execute("create index empIndex on "+this.getPaddedTableReference(TABLE_NAME_4)+"(empId)");
+        methodWatcher.getStatement().execute("create index empIndex2 on "+this.getPaddedTableReference(TABLE_NAME_4)+"(empId)");
         methodWatcher.getStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_4)+"(TaskId, empId, StartedAt, FinishedAt) values (1234,'JC',0500,0600)");
-        methodWatcher.getStatement().execute("drop index "+this.getSchemaName()+".empIndex");
+        methodWatcher.getStatement().execute("drop index "+this.getSchemaName()+".empIndex2");
     }
 
     @Test
     public void testIndexDrop() throws Exception {
-        methodWatcher.getStatement().execute("create index empIndex on "+this.getPaddedTableReference(TABLE_NAME_5)+"(empId)");
+        methodWatcher.getStatement().execute("create index empIndex2 on "+this.getPaddedTableReference(TABLE_NAME_5)+"(empId)");
         methodWatcher.getStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_5)+"(TaskId, empId, StartedAt, FinishedAt) values (1234,'JC',0500,0600)");
-        methodWatcher.getStatement().execute("drop index "+this.getSchemaName()+".empIndex");
+        methodWatcher.getStatement().execute("drop index "+this.getSchemaName()+".empIndex2");
         methodWatcher.getStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_5)+"(TaskId, empId, StartedAt, FinishedAt) values (1234,'JC',0500,0600)");
     }
 
     @Test
     public void testCreateUniqueIndexInsertDupRowConcurrent() throws Exception {
-        methodWatcher.getStatement().execute("create unique index taskIndex on "+this.getPaddedTableReference(TABLE_NAME_6)+"(empId,StartedAt)");
+        methodWatcher.getStatement().execute("create unique index taskIndex3 on "+this.getPaddedTableReference(TABLE_NAME_6)+"(empId,StartedAt)");
         Connection c1 = methodWatcher.createConnection();
         c1.setAutoCommit(false);
         c1.createStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_6)+"(TaskId, empId, StartedAt, FinishedAt) values (1234,'JC',0500,0600)");
@@ -133,24 +136,37 @@ public class CreateIndexConstantOperationIT extends SpliceUnitTest {
             Assert.assertTrue("Didn't detect write-write conflict", e.getCause().getMessage().contains("serializable"));
         }
     }
-    
+
     @Test
     public void testCreateIndexWithMoreThan20Columns() throws Exception {
         methodWatcher.getStatement().execute("create index twentyplusindex on "+this.getPaddedTableReference(TABLE_NAME_7)+
-        		"(col1, col2, col3, col4, col5, col6, col7, col8, col9,"
-        		+ "col10, col11, col12, col13, col14, col15, col16, col17, col18,"
-        		+ "col19, col20)");
+                "(col1, col2, col3, col4, col5, col6, col7, col8, col9,"
+                + "col10, col11, col12, col13, col14, col15, col16, col17, col18,"
+                + "col19, col20)");
         Connection c1 = methodWatcher.createConnection();
         c1.setAutoCommit(false);
         c1.createStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_7)+
-        		"(col1, col2, col3, col4, col5, col6, col7, col8, col9,"
-        		+ "col10, col11, col12, col13, col14, col15, col16, col17, col18,"
-        		+ "col19, col20) values (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20)");
-        PreparedStatement ps = methodWatcher.prepareStatement("select * from "+this.getPaddedTableReference(TABLE_NAME_7) + 
-        		"--SPLICE-PROPERTIES index=twentyplusindex\n" +
-        		"where col1=1 and col2=2 and col3=3 and col4=4 and col5=5 and col6=6 and col7=7 and col8=8"
-        		+ " and col9=9 and col10=10");
+                "(col1, col2, col3, col4, col5, col6, col7, col8, col9,"
+                + "col10, col11, col12, col13, col14, col15, col16, col17, col18,"
+                + "col19, col20) values (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20)");
+        PreparedStatement ps = methodWatcher.prepareStatement("select * from "+this.getPaddedTableReference(TABLE_NAME_7) +
+                "--SPLICE-PROPERTIES index=twentyplusindex\n" +
+                "where col1=1 and col2=2 and col3=3 and col4=4 and col5=5 and col6=6 and col7=7 and col8=8"
+                + " and col9=9 and col10=10");
         ResultSet resultSet = ps.executeQuery();
         Assert.assertTrue("index did not return result",resultSet.next());
+    }
+
+    @Test
+    public void testCantCreateIndexWithSameName() throws Exception {
+        methodWatcher.getStatement().execute("create index duplicateIndex on "+this.getPaddedTableReference(TABLE_NAME_8)+
+                "(taskId)");
+        try {
+            methodWatcher.getStatement().execute("create index duplicateIndex on "+this.getPaddedTableReference(TABLE_NAME_8)+
+                    "(empId)");
+            Assert.fail("Shouldn't create an index with a duplicate name");
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getCause().getMessage().contains("already exists"));
+        }
     }
 }

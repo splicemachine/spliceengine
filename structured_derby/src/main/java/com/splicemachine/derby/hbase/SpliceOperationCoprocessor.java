@@ -1,11 +1,5 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Properties;
@@ -15,10 +9,17 @@ import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
+import org.apache.hadoop.hbase.coprocessor.BaseRowProcessorEndpoint;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
+import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * 
@@ -27,10 +28,11 @@ import org.apache.log4j.Logger;
  * @author johnleach
  *
  */
-public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implements SpliceOperationProtocol{
+public class SpliceOperationCoprocessor extends BaseRowProcessorEndpoint implements SpliceOperationService {
 	private static Logger LOG = Logger.getLogger(SpliceOperationCoprocessor.class);
 	public static byte[] TEMP_TABLE = SpliceConstants.TEMP_TABLE_BYTES;
 	protected static ContextManager contextManager;
+    // TODO: jc - not sure why this is ThreadLocal.  The one it was getting from the former base was not.
 	public static final ThreadLocal<CoprocessorEnvironment> threadLocalEnvironment = new ThreadLocal<CoprocessorEnvironment>();
 
 	static {
@@ -39,13 +41,14 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 
 	}
 	/**
-	 * Start the hbase coprocessor (empty)
+	 * Start the hbase coprocessor
 	 * 
 	 */
 	@Override
-	public void start(CoprocessorEnvironment env) {
+	public void start(CoprocessorEnvironment env) throws IOException{
 		SpliceLogUtils.info(LOG, "starting coprocessor");
-		super.start(env);
+        threadLocalEnvironment.set(env);
+        super.start(env);
 	}
 
 	/**
@@ -53,7 +56,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	 * 
 	 */
 	@Override
-	public void stop(CoprocessorEnvironment env) {
+	public void stop(CoprocessorEnvironment env) throws IOException{
 		SpliceLogUtils.info(LOG, "stopping coprocessor");
 		super.stop(env);
 	}
@@ -64,11 +67,13 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
 	 */
     @Override
     public TaskStats run(final Scan scan, final SpliceObserverInstructions instructions) throws IOException {
-        threadLocalEnvironment.set(getEnvironment());
+        // TODO: jc - see ThreadLocal TODO above
+//        threadLocalEnvironment.set(getEnvironment());
         IOException exception = null;
         final Boolean[] successHolder = new Boolean[] {false};
         final SpliceOperationContext[] contextHolder = new SpliceOperationContext[] {null};
-        final HRegion region = ((RegionCoprocessorEnvironment)this.getEnvironment()).getRegion();
+//        final HRegion region = ((RegionCoprocessorEnvironment)this.getEnvironment()).getRegion();
+        final HRegion region = ((RegionCoprocessorEnvironment)this.threadLocalEnvironment).getRegion();
         SpliceTransactionResourceImpl imp = null;
         try {
             try {

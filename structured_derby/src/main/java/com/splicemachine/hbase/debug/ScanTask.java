@@ -1,18 +1,14 @@
 package com.splicemachine.hbase.debug;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.io.Writer;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.storage.EntryAccumulator;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.utils.SpliceZooKeeperManager;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.FilterBase;
@@ -20,9 +16,18 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.io.*;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.storage.EntryAccumulator;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 
 /**
  * @author Scott Fines
@@ -83,7 +88,7 @@ public class ScanTask extends DebugTask{
 
             writer = getWriter();
             scanner = region.getScanner(scan);
-            List<KeyValue> keyValues = Lists.newArrayList();
+            List<Cell> keyValues = Lists.newArrayList();
             region.startRegionOperation();
             System.out.println("Starting scan task");
             try{
@@ -91,7 +96,7 @@ public class ScanTask extends DebugTask{
                 boolean shouldContinue;
                 do{
                     keyValues.clear();
-                    shouldContinue = scanner.nextRaw(keyValues,null);
+                    shouldContinue = scanner.nextRaw(keyValues);
                     if(keyValues.size()>0){
                         writeRow(writer,keyValues);
                     }
@@ -111,14 +116,14 @@ public class ScanTask extends DebugTask{
     }
 
     private static final String outputPattern = "%-20s\t%8d\t%s%n";
-    private void writeRow(Writer writer,List<KeyValue> keyValues) throws IOException {
-        for(KeyValue kv:keyValues){
-            if(!kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY))
+    private void writeRow(Writer writer,List<Cell> keyValues) throws IOException {
+        for(Cell kv:keyValues){
+            if(!CellUtils.singleMatchingColumn(kv,SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY))
                 continue;
-            String row = BytesUtil.toHex(kv.getRow());
+            String row = BytesUtil.toHex(kv.getRowArray());
             long txnId = kv.getTimestamp();
 
-            byte[] value = kv.getValue();
+            byte[] value = kv.getValueArray();
             //split by separator
             decoder.set(value);
             StringBuilder valueStr = new StringBuilder();
@@ -176,8 +181,8 @@ public class ScanTask extends DebugTask{
         }
 
         @Override
-        public ReturnCode filterKeyValue(KeyValue ignored) {
-            if(!ignored.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY))
+        public ReturnCode filterKeyValue(Cell ignored) {
+            if(! CellUtils.singleMatchingColumn(ignored,SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY))
                 return ReturnCode.INCLUDE;
 
             try {
@@ -199,14 +204,6 @@ public class ScanTask extends DebugTask{
                 filterRow=true;
                 return ReturnCode.NEXT_COL;
             }
-        }
-
-        @Override
-        public void write(DataOutput out) throws IOException {
-        }
-
-        @Override
-        public void readFields(DataInput in) throws IOException {
         }
     }
 }

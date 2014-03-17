@@ -26,7 +26,7 @@ import com.splicemachine.utils.CloseableIterator;
  * Wrapper that makes an HBase region comply with a standard interface that abstracts across regions and tables.
  */
 public class HbRegion implements IHTable {
-    static final Logger LOG = Logger.getLogger(HbRegion.class);
+//    static final Logger LOG = Logger.getLogger(HbRegion.class);
     static final Result EMPTY_RESULT = Result.create(Collections.<Cell>emptyList());
 
     final HRegion region;

@@ -1,40 +1,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.base.Strings;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.SourceIterator;
-import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
-import com.splicemachine.derby.impl.sql.execute.operations.sort.SinkSortIterator;
-import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.Scans;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.StandardSupplier;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.job.JobResults;
-import com.splicemachine.utils.IntArrays;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableArrayHolder;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.store.access.ColumnOrdering;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -42,6 +8,58 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+
+import com.google.common.base.Strings;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.store.access.ColumnOrdering;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.job.operation.SuccessFilter;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SourceIterator;
+import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
+import com.splicemachine.derby.impl.sql.execute.operations.sort.SinkSortIterator;
+import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.FixedBucketPrefix;
+import com.splicemachine.derby.utils.marshall.FixedPrefix;
+import com.splicemachine.derby.utils.marshall.HashPrefix;
+import com.splicemachine.derby.utils.marshall.KeyDecoder;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
+import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import com.splicemachine.derby.utils.marshall.KeyPostfix;
+import com.splicemachine.derby.utils.marshall.NoOpKeyHashDecoder;
+import com.splicemachine.derby.utils.marshall.NoOpPostfix;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.derby.utils.marshall.SuppliedDataHash;
+import com.splicemachine.derby.utils.marshall.UniquePostfix;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.job.JobResults;
+import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public class SortOperation extends SpliceBaseOperation implements SinkingOperation {
 		private static final long serialVersionUID = 2l;
@@ -214,12 +232,12 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 		}
 
 		private ExecRow getNextRowFromScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				List<KeyValue> keyValues = new ArrayList<KeyValue>();
+				List<Cell> keyValues = new ArrayList<Cell>();
 				regionScanner.next(keyValues);
 				if(keyValues.isEmpty()) return null;
 				if(rowDecoder==null)
 						rowDecoder =getTempDecoder();
-				return rowDecoder.decode(KeyValueUtils.matchDataColumn(keyValues));
+				return rowDecoder.decode(CellUtils.matchDataColumn(keyValues));
 		}
 
 		@Override

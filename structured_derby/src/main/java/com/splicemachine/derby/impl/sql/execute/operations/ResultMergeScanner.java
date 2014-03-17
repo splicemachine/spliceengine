@@ -1,22 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.storage.ClientResultScanner;
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
-import com.splicemachine.derby.impl.storage.RegionAwareScanner;
-import com.splicemachine.derby.impl.storage.SpliceResultScanner;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.JoinSideExecRow;
-import com.splicemachine.derby.utils.StandardIterator;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.stats.TimeView;
+import java.io.IOException;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -24,7 +8,20 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
-import java.io.IOException;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.storage.ClientResultScanner;
+import com.splicemachine.derby.impl.storage.RegionAwareScanner;
+import com.splicemachine.derby.impl.storage.SpliceResultScanner;
+import com.splicemachine.derby.utils.JoinSideExecRow;
+import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.TimeView;
 
 /**
  * @author Scott Fines
@@ -81,7 +78,7 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
 				int ordinalOffset = rowKey.length - 17;
 				int ordinal = Encoding.decodeInt(rowKey, ordinalOffset);
         if(ordinal == JoinUtils.JoinSide.RIGHT.ordinal()){
-            ExecRow rightRow = rightDecoder.decode(KeyValueUtils.matchDataColumn(result.raw()));
+            ExecRow rightRow = rightDecoder.decode(CellUtils.matchDataColumn(result.raw()));
             if(rightSideRow==null){
                 rightKeyDecoder = MultiFieldDecoder.wrap(rowKey, SpliceDriver.getKryoPool());
                 rightSideRow = new JoinSideExecRow(rightRow, JoinUtils.JoinSide.RIGHT);
@@ -95,7 +92,7 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
             rightSideRow.setRowKey(rowKey);
             return rightSideRow;
         }else{
-            ExecRow leftRow = leftDecoder.decode(KeyValueUtils.matchDataColumn(result.raw()));
+            ExecRow leftRow = leftDecoder.decode(CellUtils.matchDataColumn(result.raw()));
             if(leftSideRow==null){
                 leftKeyDecoder = MultiFieldDecoder.wrap(rowKey, SpliceDriver.getKryoPool());
                 leftSideRow = new JoinSideExecRow(leftRow, JoinUtils.JoinSide.LEFT);

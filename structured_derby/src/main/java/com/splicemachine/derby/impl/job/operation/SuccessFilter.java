@@ -1,18 +1,18 @@
 package com.splicemachine.derby.impl.job.operation;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.utils.SpliceLogUtils;
-
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.filter.Filter.ReturnCode;
-import org.apache.hadoop.hbase.filter.FilterBase;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.List;
+
+import com.google.common.collect.Lists;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.filter.FilterBase;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * @author Scott Fines
@@ -47,11 +47,11 @@ public class SuccessFilter extends FilterBase {
      * 
      */
     @Override
-	public ReturnCode filterKeyValue(KeyValue keyValue) {
+	public ReturnCode filterKeyValue(Cell keyValue) {
     	postfixOffset = keyValue.getRowOffset()+keyValue.getRowLength();
         for(byte[] failedTask:failedTasks){
             int postOffset = postfixOffset-failedTask.length;
-            if(Bytes.compareTo(keyValue.getBuffer(),postOffset,failedTask.length,failedTask,0,failedTask.length)==0){
+            if(Bytes.compareTo(CellUtils.getBuffer(keyValue),postOffset,failedTask.length,failedTask,0,failedTask.length)==0){
                 SpliceLogUtils.trace(LOG,"Found a row from a failed task, skipping");
                 //we have a task which failed
                 return ReturnCode.SKIP;
@@ -82,7 +82,8 @@ public class SuccessFilter extends FilterBase {
         return this.filterRow;
     }
 
-    @Override
+    // FIXME: Part of old Writable interface - use protoBuf
+//    @Override
     public void write(DataOutput out) throws IOException {
         out.writeInt(failedTasks.size());
         for(byte[] failedTask: failedTasks){
@@ -91,7 +92,8 @@ public class SuccessFilter extends FilterBase {
         }
     }
 
-    @Override
+    // FIXME: Part of old Writable interface - use protoBuf
+//    @Override
     public void readFields(DataInput in) throws IOException {
         int size = in.readInt();
         failedTasks = Lists.newArrayListWithExpectedSize(size);

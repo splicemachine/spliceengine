@@ -36,8 +36,13 @@ public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete
     }
 
     @Override
-    public SRowLock tryLock(IHTable ihTable, byte[] rowKey) {
+    public SRowLock tryLock(IHTable ihTable, byte[] rowKey) throws IOException {
         return ihTable.tryLock(rowKey);
+    }
+
+    @Override
+    public boolean checkAndPut(IHTable table, byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException {
+        return table.checkAndPut(family, qualifier, expectedValue, put);
     }
 
     @Override
@@ -48,11 +53,5 @@ public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete
     @Override
     public void unLockRow(IHTable table, SRowLock lock) throws IOException {
         table.unLockRow(lock);
-    }
-
-    @Override
-    public boolean checkAndPut(IHTable table, byte[] family, byte[] qualifier, byte[] expectedValue,
-                               Put put) throws IOException {
-        return table.checkAndPut(family, qualifier, expectedValue, put);
     }
 }
