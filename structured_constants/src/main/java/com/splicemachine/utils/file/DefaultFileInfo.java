@@ -102,7 +102,7 @@ public class DefaultFileInfo implements FileInfo{
 								 */
 								String user = DEFAULT_USER;
 								String group = DEFAULT_GROUP;
-								Path homeDirectory = fs.getHomeDirectory();
+								Path homeDirectory = new Path(fs.getConf().get("hbase.rootdir")); // XXX JLEACH TODO Needs to be configurable.
 								if(homeDirectory==null){
 										userGroupInfo = new String[]{user,group};
 										return userGroupInfo;
