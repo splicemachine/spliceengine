@@ -145,14 +145,15 @@ public class SnowflakeLoader {
             this.foundMatch=false;
         }
 
-        // TODO JC - protobuf
-        @Override
+        // TODO: old Writable interface - use protobuf
+//        @Override
         public void write(DataOutput out) throws IOException {
             out.writeInt(addressMatch.length);
             out.write(addressMatch);
         }
 
-        @Override
+        // TODO: old Writable interface - use protobuf
+//        @Override
         public void readFields(DataInput in) throws IOException {
             addressMatch = new byte[in.readInt()];
             in.readFully(addressMatch);

@@ -25,7 +25,7 @@ public class ChainConstraintChecker implements BatchConstraintChecker {
 		@Override
 		public OperationStatus checkConstraint(KVPair mutation, Result existingRow) throws IOException {
 				HConstants.OperationStatusCode code = HConstants.OperationStatusCode.SUCCESS;
-				OperationStatus status;
+				OperationStatus status = null;
 				for(ConstraintChecker delegate:delegates){
 						status = delegate.checkConstraint(mutation, existingRow);
 						if(status!=null)
@@ -33,7 +33,7 @@ public class ChainConstraintChecker implements BatchConstraintChecker {
 						if(code!= HConstants.OperationStatusCode.SUCCESS)
 								return status;
 				}
-				return null;
+				return status;
 		}
 
 		@Override

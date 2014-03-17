@@ -1,19 +1,21 @@
 package com.splicemachine.derby.hbase;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.BaseRowProcessorEndpoint;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 /**
  * Coprocessor for starting the derby services on top of HBase.
  *
  * @author John Leach
  */
-public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
+public class SpliceDerbyCoprocessor extends BaseRowProcessorEndpoint {
     private static final AtomicLong runningCoprocessors = new AtomicLong(0l);
     private boolean tableEnvMatch;
 
@@ -24,7 +26,7 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
      * 
      */
     @Override
-    public void start(CoprocessorEnvironment e) {
+    public void start(CoprocessorEnvironment e) throws IOException {
         tableEnvMatch = EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.USER_TABLE)
                 || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.USER_INDEX_TABLE)
                 || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE)

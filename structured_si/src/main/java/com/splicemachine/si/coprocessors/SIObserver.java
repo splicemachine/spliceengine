@@ -110,7 +110,8 @@ public class SIObserver extends BaseRegionObserver {
     }
 
     private void logEvent(String event) {
-        LOG.warn("SIObserver " + event + " " + tableEnvMatch + " " + "_" + " " + tableName + " " + Thread.currentThread().getName() + " " + Thread.currentThread().getId());
+        LOG.warn("SIObserver " + event + " " + tableEnvMatch + " " + "_" + " " + tableName + " " + Thread
+                .currentThread().getName() + " " + Thread.currentThread().getId());
     }
 
     @Override

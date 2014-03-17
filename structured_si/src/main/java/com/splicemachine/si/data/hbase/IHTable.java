@@ -31,5 +31,5 @@ public interface IHTable {
     void unLockRow(SRowLock lock) throws IOException;
     void startOperation() throws IOException;
     void closeOperation() throws IOException;
-    SRowLock tryLock(byte[] rowKey);
+    SRowLock tryLock(byte[] rowKey) throws IOException;
 }

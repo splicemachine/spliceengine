@@ -93,16 +93,10 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		setupScan();
 		attachFilter();
 		tableName = Bytes.toString(SpliceOperationCoprocessor.TEMP_TABLE);
-        this.rowColumns = new int[scanColumnList.size()];
-        int pos=0;
-        for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
-            rowColumns[pos] = i;
-            pos++;
-        }
+        setupRowColumns();
 //		table = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 	}
 
-	
 	public SpliceScan(OpenSpliceConglomerate spliceConglomerate,
 			FormatableBitSet scanColumnList,
 			DataValueDescriptor[] startKeyValue,
@@ -125,16 +119,24 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		setupScan();
 		attachFilter();
 		tableName = spliceConglomerate.getConglomerate().getContainerid() + "";
-        if(scanColumnList!=null){
-            this.rowColumns = new int[scanColumnList.size()];
-            int pos=0;
-            for(int i=scanColumnList.anySetBit();i!=-1;i=scanColumnList.anySetBit(i)){
-                rowColumns[pos] = i;
-                pos++;
+        setupRowColumns();
+	}
+
+	/**
+	 * Initialize the row columns for this scanner.  The index of the array is the position of the field in the HBase "record".
+	 * The value of the array element is the position in the returned row (ExecRow).  If the field is not present in the returned row,
+	 * -1 is set as the value.
+	 */
+	private void setupRowColumns() {
+		if (scanColumnList != null) {
+			int size = scanColumnList.size();
+            rowColumns = new int[size];
+            for (int i=0; i<size; i++) {
+                rowColumns[i] = (scanColumnList.isSet(i) ? i : -1);
             }
         }
 	}
-	
+
 	public void close() throws StandardException {
         if(entryDecoder!=null)
             entryDecoder.close();

@@ -3,7 +3,6 @@ package com.splicemachine.hbase.batch;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.si.api.ConstraintChecker;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
