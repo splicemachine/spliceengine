@@ -428,17 +428,23 @@ public class SITransactor<Table,
 				if(row==null || row.size()<=0) return false; //you can't apply a constraint on a non-existent row
 
 				//we need to make sure that this row is visible to the current transaction
-				for(KeyValue kv: row.raw()){
+				List<KeyValue> visibleColumns = Lists.newArrayListWithExpectedSize(row.size());
+				for(KeyValue kv:row.raw()){
 						Filter.ReturnCode code = constraintStateFilter.filterKeyValue(kv);
 						switch(code){
 								case NEXT_COL:
 								case NEXT_ROW:
 								case SEEK_NEXT_USING_HINT:
-										return false; //row is not visible
+										return false;
+								case SKIP:
+										continue;
+								default:
+										visibleColumns.add(kv);
 						}
 				}
+				if(visibleColumns.size()<=0) return false; //no visible values to check
 
-				OperationStatus operationStatus = constraintChecker.checkConstraint(mutation, row);
+				OperationStatus operationStatus = constraintChecker.checkConstraint(mutation, new Result(visibleColumns));
 				if(operationStatus!=null && operationStatus.getOperationStatusCode()!= HConstants.OperationStatusCode.SUCCESS){
 						finalStatus[rowPosition] = operationStatus;
 						return true;
@@ -449,7 +455,7 @@ public class SITransactor<Table,
 		private static final boolean unsafeWrites = Boolean.getBoolean("splice.unsafe.writes");
 
 
-		private void lockRows(Table table, Collection<KVPair> mutations, Pair<KVPair,Integer>[] mutationsAndLocks,OperationStatus[] finalStatus){
+		private void lockRows(Table table, Collection<KVPair> mutations, Pair<KVPair,Integer>[] mutationsAndLocks,OperationStatus[] finalStatus) throws IOException {
 				/*
 				 * We attempt to lock each row in the collection.
 				 *
