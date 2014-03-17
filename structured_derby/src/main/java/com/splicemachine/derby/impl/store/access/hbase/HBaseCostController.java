@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
-import com.splicemachine.hbase.HBaseRegionCache;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 
 import org.apache.derby.iapi.error.StandardException; 
@@ -11,11 +10,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.util.Bytes;
-
-import java.util.SortedSet;
-import java.util.concurrent.ExecutionException;
 
 
 /**
@@ -123,8 +117,25 @@ public class HBaseCostController implements StoreCostController
     int         access_type)
 		throws StandardException
     {
-        // Assign arbitrary non-zero cost
-        return 1d;
+        /*double ret_cost;
+
+        // get "per-byte" cost of fetching a row from the page.
+        ret_cost = row_size * BASE_ROW_PER_BYTECOST;
+
+        long num_pages_per_row = (row_size / (page_size+1)) + 1;
+
+        if ((access_type & StoreCostController.STORECOST_CLUSTERED) == 0)
+        {
+            // this is the "base" unit case.
+            ret_cost += (BASE_UNCACHED_ROW_FETCH_COST * num_pages_per_row);
+        }
+        else
+        {
+            ret_cost += (BASE_CACHED_ROW_FETCH_COST * num_pages_per_row);
+        }
+
+        return(ret_cost);*/
+    	return 0d;
     }
 
     /**
@@ -278,55 +289,52 @@ public class HBaseCostController implements StoreCostController
     StoreCostResult         cost_result)
         throws StandardException
     {
-        // Splice approach: scale Derby's calculation by the number of regions for
-        // table in HBase
-
-        // Derby logic (see its HeapCostController for comments)
-        if (SanityManager.DEBUG) {
+        if (SanityManager.DEBUG)
+        {
             SanityManager.ASSERT(
                 scan_type == StoreCostController.STORECOST_SCAN_NORMAL ||
                 scan_type == StoreCostController.STORECOST_SCAN_SET);
         }
 
-        long derby_estimated_row_count = ((row_count < 0) ?  num_rows : row_count);
-        double derbyCost = (num_pages * BASE_UNCACHED_ROW_FETCH_COST);
-        derbyCost += (derby_estimated_row_count * row_size) * BASE_ROW_PER_BYTECOST;
-        long cached_row_count = derby_estimated_row_count - num_pages;
+        long estimated_row_count = ((row_count < 0) ?  num_rows : row_count);
+
+        // This cost is if the caller has to go in and out of access for
+        // every row in the table.  The cost will be significantly less if
+        // group fetch is used, or if qualifiers
+
+        // first the base cost of bringing each page in from cache:
+        double cost = (num_pages * BASE_UNCACHED_ROW_FETCH_COST);
+
+        // the cost associated with the number of bytes in each row:
+        cost += (estimated_row_count * row_size) * BASE_ROW_PER_BYTECOST;
+
+        // the base cost of getting each of the rows from a page assumed
+        // to already be cached (by the scan fetch) - this is only for all
+        // rows after the initial row on the page has been accounted for
+        // under the BASE_UNCACHED_ROW_FETCH_COST cost.:
+        long cached_row_count = estimated_row_count - num_pages;
         if (cached_row_count < 0)
             cached_row_count = 0;
 
         if (scan_type == StoreCostController.STORECOST_SCAN_NORMAL)
-            derbyCost += cached_row_count * BASE_GROUPSCAN_ROW_COST;
+            cost += cached_row_count * BASE_GROUPSCAN_ROW_COST;
         else
-            derbyCost += cached_row_count * .02;
+            cost += cached_row_count * .02;
 
-        if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(derbyCost >= 0);
-            SanityManager.ASSERT(derby_estimated_row_count >= 0);
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(cost >= 0);
+            SanityManager.ASSERT(estimated_row_count >= 0);
         }
 
-        // Scale by number of regions
-        int numregions = getNumberOfRegions(open_conglom
-                                                .getConglomerate().getContainerid());
+        cost_result.setEstimatedCost(cost);
 
-        cost_result.setEstimatedCost(derbyCost * numregions);
-        cost_result.setEstimatedRowCount(derby_estimated_row_count * numregions);
+        // return that all rows will be scanned.
+        cost_result.setEstimatedRowCount(estimated_row_count);
 
         return;
     }
-
-    private static int getNumberOfRegions(long conglomId) {
-        String table = Long.toString(conglomId);
-        int numregions = 1;
-        try {
-            numregions = HBaseRegionCache.getInstance()
-                             .getRegions(Bytes.toBytes(table)).size();
-        } catch (ExecutionException e) {
-        }
-        return numregions;
-    }
-
-
+	
 	/**
      * Close the controller.
      * <p>
@@ -396,7 +404,7 @@ public class HBaseCostController implements StoreCostController
     FormatableBitSet     validColumns,
     int         access_type)
 		throws StandardException {
-        return 1d;
+    	return 1d;
     }
 
 
