@@ -129,27 +129,27 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         } else {
             reduceScan = context.getScan();
         }
-				JoinUtils.getMergedRow(leftRow, rightRow, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
-				startExecutionTime = System.currentTimeMillis();
+        JoinUtils.getMergedRow(leftRow, rightRow, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
+        startExecutionTime = System.currentTimeMillis();
     }
 
     @Override
     public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				if(timer==null)
-						timer = spliceRuntimeContext.newTimer();
-				timer.startTiming();
-				ExecRow next;
+        if (timer == null)
+            timer = spliceRuntimeContext.newTimer();
+        timer.startTiming();
+        ExecRow next;
         if (spliceRuntimeContext.isLeft(resultSetNumber))
             next = leftResultSet.nextRow(spliceRuntimeContext);
-				else
-						next = rightResultSet.nextRow(spliceRuntimeContext);
-				if(next==null){
-						timer.tick(0);
-						stopExecutionTime = System.currentTimeMillis();
-				}else
-						timer.tick(1);
+        else
+            next = rightResultSet.nextRow(spliceRuntimeContext);
+        if (next == null) {
+            timer.tick(0);
+            stopExecutionTime = System.currentTimeMillis();
+        } else
+            timer.tick(1);
 
-				return next;
+        return next;
     }
 
     @Override
@@ -249,26 +249,30 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
 		@Override
     public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
-        byte[] start = uniqueSequenceID;
-        byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);
-        reduceScan = Scans.newScan(start, finish, SpliceUtils.NA_TRANSACTION_ID);
-        if (failedTasks.size() > 0) {
-            reduceScan.setFilter(new SuccessFilter(failedTasks));
+            byte[] start = uniqueSequenceID;
+            byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);
+            reduceScan = Scans.newScan(start, finish, SpliceUtils.NA_TRANSACTION_ID);
+            if (failedTasks.size() > 0) {
+                reduceScan.setFilter(new SuccessFilter(failedTasks));
+            }
+            if (top != this && top instanceof SinkingOperation) {
+                //don't serialize the underlying operations, since we're just reading from TEMP anyway
+                // (If we don't serialize the left & right ops, then we rely on the values of the leftRow,
+                // rightRow, and mergedRow fields having already been populated; in order to ensure that
+                // they have been, we have to invoke init()
+                init(SpliceOperationContext.newContext(activation));
+                serializeLeftResultSet = false;
+                serializeRightResultSet = false;
+                SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
+                //reset the fields just in case
+                serializeLeftResultSet = true;
+                serializeRightResultSet = true;
+                return new DistributedClientScanProvider("mergeSortJoin", SpliceOperationCoprocessor.TEMP_TABLE, reduceScan, decoder, spliceRuntimeContext);
+            } else {
+                //we need to scan the data directly on the client
+                return RowProviders.openedSourceProvider(top, LOG, spliceRuntimeContext);
+            }
         }
-        if (top != this && top instanceof SinkingOperation) {
-						//don't serialize the underlying operations, since we're just reading from TEMP anyway
-						serializeLeftResultSet = false;
-						serializeRightResultSet = false;
-            SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
-						//reset the fields just in case
-						serializeLeftResultSet =true;
-						serializeRightResultSet=true;
-            return new DistributedClientScanProvider("mergeSortJoin", SpliceOperationCoprocessor.TEMP_TABLE, reduceScan, decoder, spliceRuntimeContext);
-        } else {
-            //we need to scan the data directly on the client
-            return RowProviders.openedSourceProvider(top, LOG, spliceRuntimeContext);
-        }
-    }
 
     @Override
     public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
