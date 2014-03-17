@@ -14,6 +14,7 @@ import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableWriter;
 
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -272,18 +273,17 @@ public class SITransactor<Table,
 				FilterState constraintState = null;
 				if(constraintChecker!=null)
 						constraintState = new FilterState(dataLib,dataStore,transactionStore,rollForwardQueue,transaction);
+				@SuppressWarnings("unchecked") final Set<Long>[] conflictingChildren = new Set[mutations.size()];
 				try {
 						lockRows(table,mutations,lockPairs,finalStatus);
 
-						@SuppressWarnings("unchecked") final Set<Long>[] conflictingChildren = new Set[mutations.size()];
-						dataStore.startLowLevelOperation(table);
-						IntObjectOpenHashMap<Pair<Mutation,Integer>> writes;
-						try {
-								writes = checkConflictsForKvBatch(table, rollForwardQueue, lockPairs,
+						/*
+						 * You don't need a low-level operation check here, because this code can only be called from
+						 * 1 of 2 paths (bulk write pipeline and SIObserver). Since both of those will externally ensure that
+						 * the region can't close until after this method is complete, we don't need the calls.
+						 */
+						IntObjectOpenHashMap<Pair<Mutation,Integer>> writes = checkConflictsForKvBatch(table, rollForwardQueue, lockPairs,
 												conflictingChildren, transaction,family,qualifier,constraintChecker,constraintState,finalStatus);
-						} finally {
-								dataStore.closeLowLevelOperation(table);
-						}
 
 						//TODO -sf- this can probably be made more efficient
 						//convert into array for usefulness
@@ -439,7 +439,7 @@ public class SITransactor<Table,
 				}
 
 				OperationStatus operationStatus = constraintChecker.checkConstraint(mutation, row);
-				if(operationStatus!=null && operationStatus.getOperationStatusCode()== HConstants.OperationStatusCode.FAILURE){
+				if(operationStatus!=null && operationStatus.getOperationStatusCode()!= HConstants.OperationStatusCode.SUCCESS){
 						finalStatus[rowPosition] = operationStatus;
 						return true;
 				}
