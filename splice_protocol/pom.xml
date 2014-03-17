@@ -23,6 +23,13 @@
         <artifactId>protobuf-java</artifactId>
         <version>${protobuf.version}</version>
       </dependency>
+      
+      <dependency>
+          <groupId>org.apache.hbase</groupId>
+          <artifactId>hbase-protocol</artifactId>
+          <version>${hbase.version}</version>
+        </dependency>
+      
   </dependencies>
   <build>
 

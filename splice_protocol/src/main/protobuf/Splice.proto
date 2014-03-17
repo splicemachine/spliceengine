@@ -50,6 +50,15 @@ message BulkWriteRequest {
 	optional bytes bytes = 1;
 }
 
+message DropIndexRequest {
+	optional uint64 indexConglomId = 1;
+	optional uint64 baseConglomId = 2;
+}
+
+message DropIndexResponse {
+}
+
+
 service SpliceIndex {
 	rpc bulkWrite(BulkWriteRequest)
 	  returns (BulkWriteResponse);
@@ -58,7 +67,8 @@ service SpliceIndex {
 }
 
 service SpliceIndexManagement {
-	
+	rpc dropIndex(DropIndexRequest) 
+	  returns (DropIndexResponse);	
 }
 
 service SpliceOperation {

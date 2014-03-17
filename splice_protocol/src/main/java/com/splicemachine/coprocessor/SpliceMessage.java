@@ -3944,6 +3944,868 @@ public final class SpliceMessage {
     // @@protoc_insertion_point(class_scope:BulkWriteRequest)
   }
 
+  public interface DropIndexRequestOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // optional uint64 indexConglomId = 1;
+    /**
+     * <code>optional uint64 indexConglomId = 1;</code>
+     */
+    boolean hasIndexConglomId();
+    /**
+     * <code>optional uint64 indexConglomId = 1;</code>
+     */
+    long getIndexConglomId();
+
+    // optional uint64 baseConglomId = 2;
+    /**
+     * <code>optional uint64 baseConglomId = 2;</code>
+     */
+    boolean hasBaseConglomId();
+    /**
+     * <code>optional uint64 baseConglomId = 2;</code>
+     */
+    long getBaseConglomId();
+  }
+  /**
+   * Protobuf type {@code DropIndexRequest}
+   */
+  public static final class DropIndexRequest extends
+      com.google.protobuf.GeneratedMessage
+      implements DropIndexRequestOrBuilder {
+    // Use DropIndexRequest.newBuilder() to construct.
+    private DropIndexRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private DropIndexRequest(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final DropIndexRequest defaultInstance;
+    public static DropIndexRequest getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public DropIndexRequest getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private DropIndexRequest(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 8: {
+              bitField0_ |= 0x00000001;
+              indexConglomId_ = input.readUInt64();
+              break;
+            }
+            case 16: {
+              bitField0_ |= 0x00000002;
+              baseConglomId_ = input.readUInt64();
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.splicemachine.coprocessor.SpliceMessage.internal_static_DropIndexRequest_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.splicemachine.coprocessor.SpliceMessage.internal_static_DropIndexRequest_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest.class, com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<DropIndexRequest> PARSER =
+        new com.google.protobuf.AbstractParser<DropIndexRequest>() {
+      public DropIndexRequest parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new DropIndexRequest(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<DropIndexRequest> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    // optional uint64 indexConglomId = 1;
+    public static final int INDEXCONGLOMID_FIELD_NUMBER = 1;
+    private long indexConglomId_;
+    /**
+     * <code>optional uint64 indexConglomId = 1;</code>
+     */
+    public boolean hasIndexConglomId() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>optional uint64 indexConglomId = 1;</code>
+     */
+    public long getIndexConglomId() {
+      return indexConglomId_;
+    }
+
+    // optional uint64 baseConglomId = 2;
+    public static final int BASECONGLOMID_FIELD_NUMBER = 2;
+    private long baseConglomId_;
+    /**
+     * <code>optional uint64 baseConglomId = 2;</code>
+     */
+    public boolean hasBaseConglomId() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>optional uint64 baseConglomId = 2;</code>
+     */
+    public long getBaseConglomId() {
+      return baseConglomId_;
+    }
+
+    private void initFields() {
+      indexConglomId_ = 0L;
+      baseConglomId_ = 0L;
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeUInt64(1, indexConglomId_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeUInt64(2, baseConglomId_);
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeUInt64Size(1, indexConglomId_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeUInt64Size(2, baseConglomId_);
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest)) {
+        return super.equals(obj);
+      }
+      com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest other = (com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest) obj;
+
+      boolean result = true;
+      result = result && (hasIndexConglomId() == other.hasIndexConglomId());
+      if (hasIndexConglomId()) {
+        result = result && (getIndexConglomId()
+            == other.getIndexConglomId());
+      }
+      result = result && (hasBaseConglomId() == other.hasBaseConglomId());
+      if (hasBaseConglomId()) {
+        result = result && (getBaseConglomId()
+            == other.getBaseConglomId());
+      }
+      result = result &&
+          getUnknownFields().equals(other.getUnknownFields());
+      return result;
+    }
+
+    private int memoizedHashCode = 0;
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasIndexConglomId()) {
+        hash = (37 * hash) + INDEXCONGLOMID_FIELD_NUMBER;
+        hash = (53 * hash) + hashLong(getIndexConglomId());
+      }
+      if (hasBaseConglomId()) {
+        hash = (37 * hash) + BASECONGLOMID_FIELD_NUMBER;
+        hash = (53 * hash) + hashLong(getBaseConglomId());
+      }
+      hash = (29 * hash) + getUnknownFields().hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code DropIndexRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements com.splicemachine.coprocessor.SpliceMessage.DropIndexRequestOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.splicemachine.coprocessor.SpliceMessage.internal_static_DropIndexRequest_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.splicemachine.coprocessor.SpliceMessage.internal_static_DropIndexRequest_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest.class, com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest.Builder.class);
+      }
+
+      // Construct using com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
+
+      public Builder clear() {
+        super.clear();
+        indexConglomId_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        baseConglomId_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        return this;
+      }
+
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.splicemachine.coprocessor.SpliceMessage.internal_static_DropIndexRequest_descriptor;
+      }
+
+      public com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest getDefaultInstanceForType() {
+        return com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest.getDefaultInstance();
+      }
+
+      public com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest build() {
+        com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest buildPartial() {
+        com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest result = new com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.indexConglomId_ = indexConglomId_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.baseConglomId_ = baseConglomId_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest) {
+          return mergeFrom((com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest other) {
+        if (other == com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest.getDefaultInstance()) return this;
+        if (other.hasIndexConglomId()) {
+          setIndexConglomId(other.getIndexConglomId());
+        }
+        if (other.hasBaseConglomId()) {
+          setBaseConglomId(other.getBaseConglomId());
+        }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      // optional uint64 indexConglomId = 1;
+      private long indexConglomId_ ;
+      /**
+       * <code>optional uint64 indexConglomId = 1;</code>
+       */
+      public boolean hasIndexConglomId() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>optional uint64 indexConglomId = 1;</code>
+       */
+      public long getIndexConglomId() {
+        return indexConglomId_;
+      }
+      /**
+       * <code>optional uint64 indexConglomId = 1;</code>
+       */
+      public Builder setIndexConglomId(long value) {
+        bitField0_ |= 0x00000001;
+        indexConglomId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional uint64 indexConglomId = 1;</code>
+       */
+      public Builder clearIndexConglomId() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        indexConglomId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // optional uint64 baseConglomId = 2;
+      private long baseConglomId_ ;
+      /**
+       * <code>optional uint64 baseConglomId = 2;</code>
+       */
+      public boolean hasBaseConglomId() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>optional uint64 baseConglomId = 2;</code>
+       */
+      public long getBaseConglomId() {
+        return baseConglomId_;
+      }
+      /**
+       * <code>optional uint64 baseConglomId = 2;</code>
+       */
+      public Builder setBaseConglomId(long value) {
+        bitField0_ |= 0x00000002;
+        baseConglomId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional uint64 baseConglomId = 2;</code>
+       */
+      public Builder clearBaseConglomId() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        baseConglomId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:DropIndexRequest)
+    }
+
+    static {
+      defaultInstance = new DropIndexRequest(true);
+      defaultInstance.initFields();
+    }
+
+    // @@protoc_insertion_point(class_scope:DropIndexRequest)
+  }
+
+  public interface DropIndexResponseOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+  }
+  /**
+   * Protobuf type {@code DropIndexResponse}
+   */
+  public static final class DropIndexResponse extends
+      com.google.protobuf.GeneratedMessage
+      implements DropIndexResponseOrBuilder {
+    // Use DropIndexResponse.newBuilder() to construct.
+    private DropIndexResponse(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private DropIndexResponse(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final DropIndexResponse defaultInstance;
+    public static DropIndexResponse getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public DropIndexResponse getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private DropIndexResponse(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.splicemachine.coprocessor.SpliceMessage.internal_static_DropIndexResponse_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.splicemachine.coprocessor.SpliceMessage.internal_static_DropIndexResponse_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse.class, com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<DropIndexResponse> PARSER =
+        new com.google.protobuf.AbstractParser<DropIndexResponse>() {
+      public DropIndexResponse parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new DropIndexResponse(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<DropIndexResponse> getParserForType() {
+      return PARSER;
+    }
+
+    private void initFields() {
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse)) {
+        return super.equals(obj);
+      }
+      com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse other = (com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse) obj;
+
+      boolean result = true;
+      result = result &&
+          getUnknownFields().equals(other.getUnknownFields());
+      return result;
+    }
+
+    private int memoizedHashCode = 0;
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptorForType().hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code DropIndexResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements com.splicemachine.coprocessor.SpliceMessage.DropIndexResponseOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.splicemachine.coprocessor.SpliceMessage.internal_static_DropIndexResponse_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.splicemachine.coprocessor.SpliceMessage.internal_static_DropIndexResponse_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse.class, com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse.Builder.class);
+      }
+
+      // Construct using com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
+
+      public Builder clear() {
+        super.clear();
+        return this;
+      }
+
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.splicemachine.coprocessor.SpliceMessage.internal_static_DropIndexResponse_descriptor;
+      }
+
+      public com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse getDefaultInstanceForType() {
+        return com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse.getDefaultInstance();
+      }
+
+      public com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse build() {
+        com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse buildPartial() {
+        com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse result = new com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse(this);
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse) {
+          return mergeFrom((com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse other) {
+        if (other == com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse.getDefaultInstance()) return this;
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:DropIndexResponse)
+    }
+
+    static {
+      defaultInstance = new DropIndexResponse(true);
+      defaultInstance.initFields();
+    }
+
+    // @@protoc_insertion_point(class_scope:DropIndexResponse)
+  }
+
   /**
    * Protobuf service {@code SpliceDerbyCoprocessor}
    */
@@ -4416,11 +5278,27 @@ public final class SpliceMessage {
     protected SpliceIndexManagement() {}
 
     public interface Interface {
+      /**
+       * <code>rpc dropIndex(.DropIndexRequest) returns (.DropIndexResponse);</code>
+       */
+      public abstract void dropIndex(
+          com.google.protobuf.RpcController controller,
+          com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest request,
+          com.google.protobuf.RpcCallback<com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse> done);
+
     }
 
     public static com.google.protobuf.Service newReflectiveService(
         final Interface impl) {
       return new SpliceIndexManagement() {
+        @java.lang.Override
+        public  void dropIndex(
+            com.google.protobuf.RpcController controller,
+            com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest request,
+            com.google.protobuf.RpcCallback<com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse> done) {
+          impl.dropIndex(controller, request, done);
+        }
+
       };
     }
 
@@ -4443,6 +5321,8 @@ public final class SpliceMessage {
               "wrong service type.");
           }
           switch(method.getIndex()) {
+            case 0:
+              return impl.dropIndex(controller, (com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest)request);
             default:
               throw new java.lang.AssertionError("Can't get here.");
           }
@@ -4457,6 +5337,8 @@ public final class SpliceMessage {
               "descriptor for wrong service type.");
           }
           switch(method.getIndex()) {
+            case 0:
+              return com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest.getDefaultInstance();
             default:
               throw new java.lang.AssertionError("Can't get here.");
           }
@@ -4471,6 +5353,8 @@ public final class SpliceMessage {
               "descriptor for wrong service type.");
           }
           switch(method.getIndex()) {
+            case 0:
+              return com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse.getDefaultInstance();
             default:
               throw new java.lang.AssertionError("Can't get here.");
           }
@@ -4478,6 +5362,14 @@ public final class SpliceMessage {
 
       };
     }
+
+    /**
+     * <code>rpc dropIndex(.DropIndexRequest) returns (.DropIndexResponse);</code>
+     */
+    public abstract void dropIndex(
+        com.google.protobuf.RpcController controller,
+        com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest request,
+        com.google.protobuf.RpcCallback<com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse> done);
 
     public static final
         com.google.protobuf.Descriptors.ServiceDescriptor
@@ -4501,6 +5393,11 @@ public final class SpliceMessage {
           "service type.");
       }
       switch(method.getIndex()) {
+        case 0:
+          this.dropIndex(controller, (com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest)request,
+            com.google.protobuf.RpcUtil.<com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse>specializeCallback(
+              done));
+          return;
         default:
           throw new java.lang.AssertionError("Can't get here.");
       }
@@ -4515,6 +5412,8 @@ public final class SpliceMessage {
           "descriptor for wrong service type.");
       }
       switch(method.getIndex()) {
+        case 0:
+          return com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest.getDefaultInstance();
         default:
           throw new java.lang.AssertionError("Can't get here.");
       }
@@ -4529,6 +5428,8 @@ public final class SpliceMessage {
           "descriptor for wrong service type.");
       }
       switch(method.getIndex()) {
+        case 0:
+          return com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse.getDefaultInstance();
         default:
           throw new java.lang.AssertionError("Can't get here.");
       }
@@ -4549,6 +5450,21 @@ public final class SpliceMessage {
       public com.google.protobuf.RpcChannel getChannel() {
         return channel;
       }
+
+      public  void dropIndex(
+          com.google.protobuf.RpcController controller,
+          com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest request,
+          com.google.protobuf.RpcCallback<com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse> done) {
+        channel.callMethod(
+          getDescriptor().getMethods().get(0),
+          controller,
+          request,
+          com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse.getDefaultInstance(),
+          com.google.protobuf.RpcUtil.generalizeCallback(
+            done,
+            com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse.class,
+            com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse.getDefaultInstance()));
+      }
     }
 
     public static BlockingInterface newBlockingStub(
@@ -4556,7 +5472,12 @@ public final class SpliceMessage {
       return new BlockingStub(channel);
     }
 
-    public interface BlockingInterface {}
+    public interface BlockingInterface {
+      public com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse dropIndex(
+          com.google.protobuf.RpcController controller,
+          com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest request)
+          throws com.google.protobuf.ServiceException;
+    }
 
     private static final class BlockingStub implements BlockingInterface {
       private BlockingStub(com.google.protobuf.BlockingRpcChannel channel) {
@@ -4564,6 +5485,18 @@ public final class SpliceMessage {
       }
 
       private final com.google.protobuf.BlockingRpcChannel channel;
+
+      public com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse dropIndex(
+          com.google.protobuf.RpcController controller,
+          com.splicemachine.coprocessor.SpliceMessage.DropIndexRequest request)
+          throws com.google.protobuf.ServiceException {
+        return (com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse) channel.callBlockingMethod(
+          getDescriptor().getMethods().get(0),
+          controller,
+          request,
+          com.splicemachine.coprocessor.SpliceMessage.DropIndexResponse.getDefaultInstance());
+      }
+
     }
 
     // @@protoc_insertion_point(class_scope:SpliceIndexManagement)
@@ -5078,6 +6011,16 @@ public final class SpliceMessage {
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_BulkWriteRequest_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_DropIndexRequest_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_DropIndexRequest_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_DropIndexResponse_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_DropIndexResponse_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -5096,17 +6039,20 @@ public final class SpliceMessage {
       "iceSchedulerRequest\"\031\n\027SpliceSchedulerRe" +
       "sponse\"\031\n\027DeleteFirstAfterRequest\"\r\n\013Wri" +
       "teResult\"\"\n\021BulkWriteResponse\022\r\n\005bytes\030\001" +
-      " \001(\014\"!\n\020BulkWriteRequest\022\r\n\005bytes\030\001 \001(\0142",
-      "\030\n\026SpliceDerbyCoprocessor2}\n\013SpliceIndex" +
-      "\0222\n\tbulkWrite\022\021.BulkWriteRequest\032\022.BulkW" +
-      "riteResponse\022:\n\020deleteFirstAfter\022\030.Delet" +
-      "eFirstAfterRequest\032\014.WriteResult2\027\n\025Spli" +
-      "ceIndexManagement2=\n\017SpliceOperation\022*\n\003" +
-      "run\022\027.SpliceOperationRequest\032\n.TaskStats" +
-      "2N\n\017SpliceScheduler\022;\n\006submit\022\027.SpliceSc" +
-      "hedulerRequest\032\030.SpliceSchedulerResponse" +
-      "B6\n\035com.splicemachine.coprocessorB\rSplic" +
-      "eMessageH\001\210\001\001\240\001\001"
+      " \001(\014\"!\n\020BulkWriteRequest\022\r\n\005bytes\030\001 \001(\014\"",
+      "A\n\020DropIndexRequest\022\026\n\016indexConglomId\030\001 " +
+      "\001(\004\022\025\n\rbaseConglomId\030\002 \001(\004\"\023\n\021DropIndexR" +
+      "esponse2\030\n\026SpliceDerbyCoprocessor2}\n\013Spl" +
+      "iceIndex\0222\n\tbulkWrite\022\021.BulkWriteRequest" +
+      "\032\022.BulkWriteResponse\022:\n\020deleteFirstAfter" +
+      "\022\030.DeleteFirstAfterRequest\032\014.WriteResult" +
+      "2K\n\025SpliceIndexManagement\0222\n\tdropIndex\022\021" +
+      ".DropIndexRequest\032\022.DropIndexResponse2=\n" +
+      "\017SpliceOperation\022*\n\003run\022\027.SpliceOperatio" +
+      "nRequest\032\n.TaskStats2N\n\017SpliceScheduler\022",
+      ";\n\006submit\022\027.SpliceSchedulerRequest\032\030.Spl" +
+      "iceSchedulerResponseB6\n\035com.splicemachin" +
+      "e.coprocessorB\rSpliceMessageH\001\210\001\001\240\001\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -5167,6 +6113,18 @@ public final class SpliceMessage {
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_BulkWriteRequest_descriptor,
               new java.lang.String[] { "Bytes", });
+          internal_static_DropIndexRequest_descriptor =
+            getDescriptor().getMessageTypes().get(9);
+          internal_static_DropIndexRequest_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_DropIndexRequest_descriptor,
+              new java.lang.String[] { "IndexConglomId", "BaseConglomId", });
+          internal_static_DropIndexResponse_descriptor =
+            getDescriptor().getMessageTypes().get(10);
+          internal_static_DropIndexResponse_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_DropIndexResponse_descriptor,
+              new java.lang.String[] { });
           return null;
         }
       };
