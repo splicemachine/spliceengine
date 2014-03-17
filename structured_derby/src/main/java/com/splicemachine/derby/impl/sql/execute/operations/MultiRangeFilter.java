@@ -1,17 +1,25 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.List;
+
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.si.api.TransactionalFilter;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.io.*;
-import java.util.Arrays;
-import java.util.List;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.si.api.TransactionalFilter;
 
 /**
  * Filter that filter's out data which doesn't fit within a group of
@@ -57,15 +65,15 @@ public class MultiRangeFilter extends FilterBase implements TransactionalFilter 
     }
 
     @Override
-    public ReturnCode filterKeyValue(KeyValue currentKV) {
-        if(!currentKV.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY))
+    public ReturnCode filterKeyValue(Cell currentKV) {
+        if(!CellUtils.singleMatchingColumn(currentKV,SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY))
             return ReturnCode.INCLUDE; //only consider data elements
         if(position>=keyRanges.length){
             isDone=true;
             return ReturnCode.NEXT_ROW;
         }
 
-        byte[] data = currentKV.getBuffer();
+        byte[] data = CellUtils.getBuffer(currentKV);
         int rowKeyOffset = currentKV.getRowOffset();
         int rowKeyLength = currentKV.getRowLength();
         if(position<0){
@@ -130,7 +138,8 @@ public class MultiRangeFilter extends FilterBase implements TransactionalFilter 
         return isDone;
     }
 
-    @Override
+    // FIXME: old Writable interface - use protobuff
+//    @Override
     public void write(DataOutput out) throws IOException {
         out.writeInt(keyRanges.length);
         for(KeyRange range:keyRanges){
@@ -138,7 +147,8 @@ public class MultiRangeFilter extends FilterBase implements TransactionalFilter 
         }
     }
 
-    @Override
+    // FIXME: old Writable interface - use protobuff
+//    @Override
     public void readFields(DataInput in) throws IOException {
         keyRanges = new KeyRange[in.readInt()];
         for(int i=0;i<keyRanges.length;i++){

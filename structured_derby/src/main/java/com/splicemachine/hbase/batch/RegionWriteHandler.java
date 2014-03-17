@@ -220,10 +220,10 @@ public class RegionWriteHandler implements WriteHandler {
     }
 
     private OperationStatus[] doNonSIWrite(Collection<KVPair> toProcess,WriteContext ctx) throws IOException {
-        Pair<Mutation, Integer>[] pairsToProcess = new Pair[toProcess.size()];
+        Mutation[] pairsToProcess = new Mutation[toProcess.size()];
         int i=0;
         for(KVPair pair:toProcess){
-            pairsToProcess[i] = new Pair<Mutation, Integer>(getMutation(pair,ctx,false), null);
+            pairsToProcess[i] = getMutation(pair,ctx,false);
             i++;
         }
         return region.batchMutate(pairsToProcess);

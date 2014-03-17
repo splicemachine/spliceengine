@@ -1,32 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.EntryPredicateUtils;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
-import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
-import com.splicemachine.derby.impl.sql.execute.operations.sort.SinkSortIterator;
-import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.*;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.job.JobResults;
-import com.splicemachine.stats.TimeView;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.utils.IntArrays;
-import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.hash.HashFunctions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
@@ -36,18 +17,60 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
+import com.splicemachine.derby.impl.sql.execute.operations.sort.SinkSortIterator;
+import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.utils.EntryPredicateUtils;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.FormatableBitSetUtils;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.BucketingPrefix;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.FixedPrefix;
+import com.splicemachine.derby.utils.marshall.HashPrefix;
+import com.splicemachine.derby.utils.marshall.KeyDecoder;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
+import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import com.splicemachine.derby.utils.marshall.KeyMarshaller;
+import com.splicemachine.derby.utils.marshall.KeyPostfix;
+import com.splicemachine.derby.utils.marshall.NoOpPostfix;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.derby.utils.marshall.SuppliedDataHash;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.job.JobResults;
+import com.splicemachine.stats.TimeView;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.hash.HashFunctions;
 
 /**
  * @author Scott Fines
@@ -60,7 +83,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
     private Scan reduceScan;
 		private byte[] groupingKey;
-		private List<KeyValue> keyValues;
+		private List<Cell> keyValues;
 
 		@SuppressWarnings("UnusedDeclaration")
 		public DistinctScanOperation() { }
@@ -211,7 +234,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         if(rowDecoder==null){
 						rowDecoder = getTempDecoder();
 				}
-				ExecRow decodedRow = rowDecoder.decode(KeyValueUtils.matchDataColumn(keyValues));
+				ExecRow decodedRow = rowDecoder.decode(CellUtils.matchDataColumn(keyValues));
 				setCurrentRow(decodedRow);
 				timer.tick(1);
 				return decodedRow;
@@ -364,7 +387,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
         private EntryDecoder rowDecoder;
         private MultiFieldDecoder keyDecoder;
-        private List<KeyValue> values = Lists.newArrayListWithExpectedSize(2);
+        private List<Cell> values = Lists.newArrayListWithExpectedSize(2);
 
         private ScannerIterator(RegionScanner regionScanner, ExecRow template,
                                 int[] columnMap, ScanInformation scanInformation) {
@@ -383,11 +406,11 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
             getKeyDecoder();
             do {
                 values.clear();
-                regionScanner.nextRaw(values,null);
+                regionScanner.nextRaw(values);
                 if(values.size()<=0) return null;
 
                 template.resetRowArray();
-                KeyValue kv = KeyValueUtils.matchKeyValue(values,SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
+                Cell kv = CellUtils.matchKeyValue(values,SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
                 if (getColumnOrdering() != null && getPredicateFilter(spliceRuntimeContext) != null) {
                     boolean passed = EntryPredicateUtils.qualify(predicateFilter, kv.getRow(), getColumnDVDs(),
                             getColumnOrdering(),getKeyDecoder());

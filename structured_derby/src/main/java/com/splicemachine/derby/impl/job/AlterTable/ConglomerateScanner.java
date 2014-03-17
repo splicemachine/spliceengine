@@ -8,7 +8,21 @@ package com.splicemachine.derby.impl.job.AlterTable;
  * To change this template use File | Settings | File Templates.
  */
 
+import java.io.IOException;
+import java.util.List;
+
 import com.google.common.collect.Lists;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.impl.sql.execute.ColumnInfo;
+import org.apache.derby.impl.sql.execute.ValueRow;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -19,19 +33,6 @@ import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.impl.sql.execute.ColumnInfo;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.impl.sql.execute.ValueRow;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.util.List;
 
 public class ConglomerateScanner {
 
@@ -93,7 +94,7 @@ public class ConglomerateScanner {
         }
     }
 
-    public List<KeyValue> next() {
+    public List<Cell> next() {
         if (brs == null) {
             initScanner();
         }
@@ -102,15 +103,15 @@ public class ConglomerateScanner {
             entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
         }
 
-        List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(16);
+        List<Cell> nextRow = Lists.newArrayListWithExpectedSize(16);
         boolean more = true;
         try {
             nextRow.clear();
-            more = brs.nextRaw(nextRow, null);
+            more = brs.nextRaw(nextRow);
             if (!more) return null;
 
         } catch (Exception e) {
-
+            // FIXME: jc - should we be swallowing this?
         }
         return nextRow;
     }

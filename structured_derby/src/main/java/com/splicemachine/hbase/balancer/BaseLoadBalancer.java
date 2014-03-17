@@ -156,11 +156,6 @@ public abstract class BaseLoadBalancer implements LoadBalancer {
         return assignments;
     }
 
-    @Override
-    public ServerName randomAssignment(List<ServerName> servers) {
-        return randomAssignment(null,servers);
-    }
-
     /**
      * Used to assign a single region to a random server.
      */

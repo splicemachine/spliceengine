@@ -73,7 +73,6 @@ class ClientScanner implements ResultScanner {
         return null;
     }
 
-    @SuppressWarnings("deprecation")
 	private void fillCache() throws IOException {
         //if there is still data in the cache, don't try and fill it up
         if(cache.size()>0) return;
@@ -165,7 +164,6 @@ class ClientScanner implements ResultScanner {
         }while(remainingResultSize>0 && cacheSpace>0 && nextScanner(cacheSpace,values==null));
     }
 
-    @SuppressWarnings("deprecation")
 	private boolean nextScanner(int nbRows, boolean finished) throws IOException {
             /*
              * Gets a Scanner for the next region in the list, unless we are out of
@@ -245,7 +243,6 @@ class ClientScanner implements ResultScanner {
         return resultSets.toArray(new Result[resultSets.size()]);
     }
 
-    @SuppressWarnings("deprecation")
 	@Override
     public void close() {
         if(callable!=null){

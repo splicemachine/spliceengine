@@ -1,20 +1,21 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scalar;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
-import com.splicemachine.derby.impl.storage.RegionAwareScanner;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.stats.MetricFactory;
+import java.io.IOException;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
-import java.io.IOException;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
+import com.splicemachine.derby.impl.storage.RegionAwareScanner;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.stats.MetricFactory;
 
 /**
  * @author Scott Fines
@@ -68,6 +69,6 @@ public class ScalarAggregateScan implements ScalarAggregateSource{
 
 //				if(keyValues.isEmpty())
 //            return null;
-        return (ExecIndexRow)scanDecoder.decode(KeyValueUtils.matchDataColumn(next.raw()));
+        return (ExecIndexRow)scanDecoder.decode(CellUtils.matchDataColumn(next.raw()));
     }
 }

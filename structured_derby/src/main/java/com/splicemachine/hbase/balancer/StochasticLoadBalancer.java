@@ -513,7 +513,7 @@ public class StochasticLoadBalancer extends BaseLoadBalancer {
 
             // For all of the regions count how many are from each table
             for (HRegionInfo region : entry.getValue()) {
-                String tableName = region.getTableNameAsString();
+                String tableName = region.getTable().getNameAsString();
 
                 // See if this table already has a count on this server
                 MutableInt regionsOnServerCount = tableRegionsOnCurrentServer.get(tableName);

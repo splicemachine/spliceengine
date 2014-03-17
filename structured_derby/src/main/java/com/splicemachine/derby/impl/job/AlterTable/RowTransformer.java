@@ -7,25 +7,36 @@ package com.splicemachine.derby.impl.job.AlterTable;
  * Time: 11:12 AM
  * To change this template use File | Settings | File Templates.
  */
+import java.io.IOException;
+import java.sql.SQLException;
+
+import org.apache.derby.catalog.UUID;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.impl.sql.execute.ColumnInfo;
+import org.apache.derby.impl.sql.execute.ValueRow;
+import org.apache.hadoop.hbase.Cell;
+
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
-import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.EntryDataHash;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
+import com.splicemachine.derby.utils.marshall.KeyMarshaller;
+import com.splicemachine.derby.utils.marshall.NoOpDataHash;
+import com.splicemachine.derby.utils.marshall.NoOpPostfix;
+import com.splicemachine.derby.utils.marshall.NoOpPrefix;
+import com.splicemachine.derby.utils.marshall.PairEncoder;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.derby.utils.marshall.SaltedPrefix;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Snowflake;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.impl.sql.execute.ColumnInfo;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import com.splicemachine.hbase.KVPair;
-import org.apache.derby.impl.sql.execute.ValueRow;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.derby.catalog.UUID;
-
-import java.sql.SQLException;
-import java.io.IOException;
 public class RowTransformer {
 
     private UUID tableId;
@@ -116,7 +127,7 @@ public class RowTransformer {
         initialized = true;
     }
 
-    public KVPair transform(KeyValue kv) throws StandardException, SQLException, IOException{
+    public KVPair transform(Cell kv) throws StandardException, SQLException, IOException{
         if (!initialized) {
             initialize();
         }

@@ -1,16 +1,5 @@
 package com.splicemachine.si;
 
-import com.google.common.io.Closeables;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.si.api.TransactionStatus;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -23,6 +12,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
+
+import com.google.common.io.Closeables;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
+
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.si.api.TransactionStatus;
 
 public class SIBrowser extends SIConstants {
 
@@ -158,7 +162,7 @@ public class SIBrowser extends SIConstants {
 
 
     private static TransactionStatus getStatus(Result r, byte[] qualifier) {
-        final KeyValue columnLatest = r.getColumnLatest(TRANSACTION_FAMILY_BYTES, qualifier);
+        final Cell columnLatest = r.getColumnLatestCell(TRANSACTION_FAMILY_BYTES, qualifier);
         columnLatest.getTimestamp();
         final byte[] statusValue = r.getValue(TRANSACTION_FAMILY_BYTES, qualifier);
         TransactionStatus status = null;
@@ -169,12 +173,12 @@ public class SIBrowser extends SIConstants {
     }
 
     private static String getStatusTimestamp(Result r, byte[] qualifier) {
-        final KeyValue keyValue = r.getColumnLatest(TRANSACTION_FAMILY_BYTES, qualifier);
+        final Cell keyValue = r.getColumnLatestCell(TRANSACTION_FAMILY_BYTES, qualifier);
         return toTimestampString(keyValue.getTimestamp());
     }
 
     private static String getStartTimestamp(Result r, byte[] qualifier) {
-        final List<KeyValue> keyValueList = r.getColumn(TRANSACTION_FAMILY_BYTES, qualifier);
+        final List<Cell> keyValueList = r.getColumnCells(TRANSACTION_FAMILY_BYTES, qualifier);
         return toTimestampString(keyValueList.get(keyValueList.size()-1).getTimestamp());
     }
 
@@ -188,7 +192,7 @@ public class SIBrowser extends SIConstants {
     }
 
     private static String getTimestampString(Result r, byte[] qualifier) {
-        final KeyValue keepAlive = r.getColumnLatest(TRANSACTION_FAMILY_BYTES, qualifier);
+        final Cell keepAlive = r.getColumnLatestCell(TRANSACTION_FAMILY_BYTES, qualifier);
         String keepAliveValue = null;
         if (keepAlive != null) {
             keepAliveValue = toTimestampString(keepAlive.getTimestamp());
@@ -229,12 +233,12 @@ public class SIBrowser extends SIConstants {
                 i++;
                 System.out.println(i + " " + bytesToString(row));
 
-                final List<KeyValue> list = r.list();
-                for (KeyValue kv : list) {
-                    final byte[] f = kv.getFamily();
+                final List<Cell> list = r.listCells();
+                for (Cell kv : list) {
+                    final byte[] f = kv.getFamilyArray();
                     String family = Bytes.toString(f);
-                    final byte[] q = kv.getQualifier();
-                    final byte[] v = kv.getValue();
+                    final byte[] q = kv.getQualifierArray();
+                    final byte[] v = CellUtil.cloneValue(kv);
                     final long ts = kv.getTimestamp();
                     if (Arrays.equals(DEFAULT_FAMILY_BYTES, f)
                             && Arrays.equals(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, q)) {

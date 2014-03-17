@@ -1,25 +1,22 @@
 package com.splicemachine.hbase;
 
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.si.api.TransactionalFilter;
-import com.yammer.metrics.core.Counter;
-import com.yammer.metrics.core.MetricName;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.FilterBase;
-import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+
+import com.yammer.metrics.core.Counter;
+import com.yammer.metrics.core.MetricName;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.filter.FilterBase;
+import org.apache.hadoop.hbase.util.Bytes;
+
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.si.api.TransactionalFilter;
 
 /**
  * Scan filter-based replacement for Multi-Get operations. Use a scan with this filter attached
@@ -143,8 +140,8 @@ public class SkipScanFilter extends FilterBase implements TransactionalFilter {
         Arrays.sort(this.rowsToReturn,Bytes.BYTES_COMPARATOR);
     }
 
-    // FIXME: part of old Writable interface - remove
-    @Override
+    // FIXME: part of old Writable interface - use protobuf
+//    @Override
     public void write(DataOutput out) throws IOException {
         out.writeInt(rowsToReturn.length);
         for(byte[] row:rowsToReturn){
@@ -153,8 +150,8 @@ public class SkipScanFilter extends FilterBase implements TransactionalFilter {
         }
     }
 
-    // FIXME: part of old Writable interface - remove
-    @Override
+    // FIXME: part of old Writable interface - use protobuf
+//    @Override
     public void readFields(DataInput in) throws IOException {
         int rowSize = in.readInt();
         rowsToReturn = new byte[rowSize][];

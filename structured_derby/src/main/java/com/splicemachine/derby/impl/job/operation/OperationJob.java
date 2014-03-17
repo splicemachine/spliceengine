@@ -1,5 +1,16 @@
 package com.splicemachine.derby.impl.job.operation;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Collections;
+import java.util.Map;
+
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Pair;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -9,15 +20,6 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.job.Task;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionId;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Pair;
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.Collections;
-import java.util.Map;
 
 /**
  * @author Scott Fines
@@ -92,20 +94,20 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
         return readOnly;
     }
 
+    // FIXME: Part of old Writable interface - use protoBuf
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(jobId);
-        // FIXME: Part of old Writable interface
-        scan.write(out);
+//        scan.write(out);
         out.writeObject(instructions);
     }
 
+    // FIXME: Part of old Writable interface - use protoBuf
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         jobId = (String)in.readObject();
         scan = new Scan();
-        // FIXME: Part of old Writable interface
-        scan.readFields(in);
+//        scan.readFields(in);
         instructions = (SpliceObserverInstructions)in.readObject();
     }
 

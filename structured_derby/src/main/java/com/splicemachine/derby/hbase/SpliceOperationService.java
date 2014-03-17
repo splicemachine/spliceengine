@@ -1,18 +1,19 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.derby.stats.TaskStats;
+import java.io.IOException;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 
-import java.io.IOException;
+import com.splicemachine.derby.stats.TaskStats;
 /**
  * Interface for SpliceOperationCoprocessor
  * 
  * @author johnleach
  *
  */
-public interface SpliceOperationProtocol extends CoprocessorProtocol {
+public interface SpliceOperationService extends CoprocessorService {
 	/**
 	 * Method to run the topOperations sink method in parallel
 	 * 

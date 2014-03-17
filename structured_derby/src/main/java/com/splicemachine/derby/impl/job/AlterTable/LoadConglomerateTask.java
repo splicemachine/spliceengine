@@ -1,34 +1,33 @@
 package com.splicemachine.derby.impl.job.AlterTable;
 
-import com.splicemachine.constants.SIConstants;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
+import org.apache.derby.catalog.UUID;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.impl.sql.execute.ColumnInfo;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.util.Bytes;
+
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.derby.impl.sql.execute.ColumnInfo;
-import org.apache.derby.catalog.UUID;
-import org.apache.hadoop.hbase.util.Bytes;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Created with IntelliJ IDEA.
@@ -96,12 +95,12 @@ public class LoadConglomerateTask extends ZkTask {
             MetricFactory metricFactory = xplainSchema!=null? Metrics.basicMetricFactory(): Metrics.noOpMetricFactory();
             writeTimer = metricFactory.newTimer();
             long numRecordsRead = 0l;
-            List<KeyValue> result = null;
+            List<Cell> result = null;
 
             do {
                 result = scanner.next();
                 if (result == null) break;
-                KeyValue kv = KeyValueUtils.matchDataColumn(result);
+                Cell kv = CellUtils.matchDataColumn(result);
                 SpliceBaseOperation.checkInterrupt(numRecordsRead, SpliceConstants.interruptLoopCheck);
                 newPair = transformer.transform(kv);
                 loader.add(newPair);

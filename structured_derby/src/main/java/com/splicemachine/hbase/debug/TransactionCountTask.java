@@ -1,19 +1,21 @@
 package com.splicemachine.hbase.debug;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.tools.LongHashMap;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+
+import com.google.common.collect.Lists;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
+
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.tools.LongHashMap;
 
 /**
  * @author Scott Fines
@@ -47,11 +49,11 @@ public class TransactionCountTask extends DebugTask{
             region.startRegionOperation();
             try{
                 writer.write(String.format("%d%n",System.currentTimeMillis()));
-                List<KeyValue> keyValues = Lists.newArrayList();
+                List<Cell> keyValues = Lists.newArrayList();
                 boolean shouldContinue;
                 do{
                     keyValues.clear();
-                    shouldContinue = scanner.nextRaw(keyValues,null);
+                    shouldContinue = scanner.nextRaw(keyValues);
                     if(keyValues.size()>0){
                         putRow(keyValues, txnHashMap, writer);
                     }
@@ -74,41 +76,45 @@ public class TransactionCountTask extends DebugTask{
         }
     }
 
-    private static final Comparator<KeyValue> kvComparator = new Comparator<KeyValue>() {
+    private static final Comparator<Cell> kvComparator = new Comparator<Cell>() {
         @Override
-        public int compare(KeyValue o1, KeyValue o2) {
+        public int compare(Cell o1, Cell o2) {
             if(o1==null){
                 if(o2==null) return 0;
                 return -1;
             }else if(o2==null)
                 return 1;
             else{
-                byte[] buffer1 = o1.getBuffer();
-                int offset1 = o1.getTimestampOffset();
+                byte[] buffer1 = CellUtils.getBuffer(o1);
+                // TODO: see comment in CellUtils#getTimestampOffset()
+                int offset1 = CellUtils.getTimestampOffset(o1);
 
-                byte[] b2 = o2.getBuffer();
-                int off2 = o2.getTimestampOffset();
+                byte[] b2 = CellUtils.getBuffer(o2);
+                // TODO: see comment in CellUtils#getTimestampOffset()
+                int off2 = CellUtils.getTimestampOffset(o2);
 
                 return Bytes.compareTo(buffer1,offset1,Bytes.SIZEOF_LONG,b2,off2,Bytes.SIZEOF_LONG);
             }
         }
     };
 
-    private void putRow(List<KeyValue> keyValues,LongHashMap<Long> counterMap,Writer writer) throws IOException {
+    private void putRow(List<Cell> keyValues,LongHashMap<Long> counterMap,Writer writer) throws IOException {
         Collections.sort(keyValues,kvComparator);
 
         byte[] oldBuffer = null;
         int oldOffset = 0;
         int count =0;
-        for(KeyValue kv:keyValues){
+        for(Cell kv:keyValues){
             if(oldBuffer==null){
-                oldBuffer = kv.getBuffer();
-                oldOffset = kv.getTimestampOffset();
+                oldBuffer = CellUtils.getBuffer(kv);
+                // TODO: see comment in CellUtils#getTimestampOffset()
+                oldOffset = CellUtils.getTimestampOffset(kv);
                 count = 1;
                 continue;
             }
-            byte[] newBuff = kv.getBuffer();
-            int newOff = kv.getTimestampOffset();
+            byte[] newBuff = CellUtils.getBuffer(kv);
+            // TODO: see comment in CellUtils#getTimestampOffset()
+            int newOff = CellUtils.getTimestampOffset(kv);
             if(Bytes.equals(oldBuffer, oldOffset, Bytes.SIZEOF_LONG, newBuff, newOff, Bytes.SIZEOF_LONG)){
                 count++;
             }else{

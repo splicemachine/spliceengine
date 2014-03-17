@@ -28,6 +28,7 @@ import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
+import org.apache.hadoop.hbase.coprocessor.BaseRowProcessorEndpoint;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionServer;
@@ -55,7 +56,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Scott Fines
  * Created on: 3/11/13
  */
-public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements BatchProtocol{
+public class SpliceIndexEndpoint extends BaseRowProcessorEndpoint implements BatchProtocol{
     private static final Logger LOG = Logger.getLogger(SpliceIndexEndpoint.class);
     protected static AtomicInteger activeWriteThreads = new AtomicInteger(0); 
     public static volatile int ipcReserved = 10;

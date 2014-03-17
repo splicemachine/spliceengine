@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.Exceptions;
+import java.io.IOException;
+import java.util.Properties;
+
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -19,8 +19,9 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 
-import java.io.IOException;
-import java.util.Properties;
+import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexService;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.Exceptions;
 
 /**
  * Drops an index from a table.
@@ -80,15 +81,15 @@ public class DropIndexOperationScott implements ConstantAction {
         //drop the index trigger from the main table
         HTableInterface mainTable = SpliceAccessManager.getHTable(tableConglomId);
         try {
-            mainTable.coprocessorExec(SpliceIndexProtocol.class,
-                    HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW,
-                    new Batch.Call<SpliceIndexProtocol, Void>() {
-                        @Override
-                        public Void call(SpliceIndexProtocol instance) throws IOException {
-                            instance.dropIndex(indexConglomId,tableConglomId);
-                            return null;
-                        }
-                    }) ;
+            mainTable.coprocessorService(SpliceIndexService.class,
+                                         HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW,
+                                         new Batch.Call<SpliceIndexService, Void>() {
+                                             @Override
+                                             public Void call(SpliceIndexService instance) throws IOException {
+                                                 instance.dropIndex(indexConglomId, tableConglomId);
+                                                 return null;
+                                             }
+                                         }); ;
         } catch (Throwable throwable) {
             throw Exceptions.parseException(throwable);
         }

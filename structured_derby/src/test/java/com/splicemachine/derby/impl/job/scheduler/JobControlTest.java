@@ -4,7 +4,7 @@ import com.google.common.collect.Maps;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.coprocessor.SpliceSchedulerProtocol;
+import com.splicemachine.derby.impl.job.coprocessor.SpliceSchedulerService;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.table.BoundCall;
@@ -30,8 +30,6 @@ import org.mockito.stubbing.Answer;
 
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Set;
-import java.util.SortedSet;
 import java.util.concurrent.*;
 
 import static org.mockito.Matchers.any;
@@ -273,7 +271,7 @@ public class JobControlTest {
                 return null;  //To change body of implemented methods use File | Settings | File Templates.
             }
         }).when(mockTable).coprocessorExec(
-                eq(SpliceSchedulerProtocol.class),
+                eq(SpliceSchedulerService.class),
                 eq(startKey),
                 eq(endKey),
                 any(BoundCall.class), any(Batch.Callback.class));
