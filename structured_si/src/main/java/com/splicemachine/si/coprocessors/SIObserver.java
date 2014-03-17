@@ -10,8 +10,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Get;
@@ -97,7 +97,7 @@ public class SIObserver extends BaseRegionObserver {
     }
 
     @Override
-    public void preGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get, List<KeyValue> results) throws IOException {
+    public void preGetOp(ObserverContext<RegionCoprocessorEnvironment> e, Get get, List<Cell> results) throws IOException {
         SpliceLogUtils.trace(LOG, "preGet %s", get);
         if (tableEnvMatch && shouldUseSI(get)) {
             final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
@@ -106,7 +106,7 @@ public class SIObserver extends BaseRegionObserver {
             addSIFilterToGet(e, get);
         }
         SpliceLogUtils.trace(LOG, "preGet after %s", get);        
-        super.preGet(e, get, results);
+        super.preGetOp(e, get, results);
     }
 
     private void logEvent(String event) {

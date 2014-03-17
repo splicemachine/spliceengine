@@ -1,6 +1,27 @@
 package com.splicemachine.si;
 
+import static com.splicemachine.constants.SIConstants.DEFAULT_FAMILY_BYTES;
+import static com.splicemachine.constants.SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN;
+import static com.splicemachine.constants.SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
+
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 import com.google.common.base.Function;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.Result;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.coprocessors.RegionRollForwardAction;
@@ -12,23 +33,6 @@ import com.splicemachine.si.impl.SynchronousRollForwardQueue;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.Providers;
-import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.Result;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import static com.splicemachine.constants.SIConstants.*;
 
 /**
  * @author Scott Fines
@@ -77,9 +81,9 @@ public class CompactionTest {
 						public Object apply(@Nullable Object[] input) {
 								Assert.assertTrue(input!=null && input[0]!=null);
 								TransactionId t = (TransactionId) input[0];
-								KeyValue cell = (KeyValue)input[1];
+								Cell cell = (Cell)input[1];
 								final SDataLib dataLib = storeSetup.getDataLib();
-								final long timestamp = (Long) dataLib.decode(cell.getValue(), Long.class);
+								final long timestamp = (Long) dataLib.decode(CellUtil.cloneValue(cell), Long.class);
 								Assert.assertEquals(t.getId() + 1, timestamp);
 								return null;
 						}
@@ -92,9 +96,9 @@ public class CompactionTest {
 						@Override
 						public Object apply(@Nullable Object[] input) {
 								Assert.assertTrue(input!=null && input[1]!=null);
-								KeyValue cell = (KeyValue)input[1];
+								Cell cell = (Cell)input[1];
 								final SDataLib dataLib = storeSetup.getDataLib();
-								final int timestamp = (Integer) dataLib.decode(cell.getValue(), Integer.class);
+								final int timestamp = (Integer) dataLib.decode(CellUtil.cloneValue(cell), Integer.class);
 								Assert.assertEquals(-1, timestamp);
 								return null;
 						}
@@ -107,9 +111,9 @@ public class CompactionTest {
 						@Override
 						public Object apply(@Nullable Object[] input) {
 								Assert.assertTrue(input!=null && input[1]!=null);
-								KeyValue cell = (KeyValue)input[1];
+								Cell cell = (Cell)input[1];
 								final SDataLib dataLib = storeSetup.getDataLib();
-								final int timestamp = (Integer) dataLib.decode(cell.getValue(), Integer.class);
+								final int timestamp = (Integer) dataLib.decode(CellUtil.cloneValue(cell), Integer.class);
 								Assert.assertEquals(-1, timestamp);
 								return null;
 						}
@@ -122,9 +126,9 @@ public class CompactionTest {
 						@Override
 						public Object apply(@Nullable Object[] input) {
 								Assert.assertTrue(input!=null && input[1]!=null);
-								KeyValue cell = (KeyValue)input[1];
+								Cell cell = (Cell)input[1];
 								final SDataLib dataLib = storeSetup.getDataLib();
-								final int timestamp = (Integer) dataLib.decode(cell.getValue(), Integer.class);
+								final int timestamp = (Integer) dataLib.decode(CellUtil.cloneValue(cell), Integer.class);
 								Assert.assertEquals(-1, timestamp);
 								return null;
 						}
@@ -172,9 +176,9 @@ public class CompactionTest {
 				if (!commit) {
 					Assert.assertTrue("no raw results should return after compaction - it is gone",result == null || result.isEmpty());
 				} else {
-					final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES),
+					final List<Cell> commitTimestamps = result.getColumnCells(dataLib.encode(DEFAULT_FAMILY_BYTES),
 									dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
-					for (KeyValue c : commitTimestamps) {
+					for (Cell c : commitTimestamps) {
 							timestampProcessor.apply(new Object[]{t0, c});
 							Assert.assertEquals(t0.getId(), c.getTimestamp());
 					}
@@ -199,9 +203,9 @@ public class CompactionTest {
 				Assert.assertNotNull(t0);
 				Result result = testUtility.readRaw(testKey + "-0");
 				final SDataLib dataLib = storeSetup.getDataLib();
-				final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES),
+				final List<Cell> commitTimestamps = result.getColumnCells(dataLib.encode(DEFAULT_FAMILY_BYTES),
 								dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN));
-				for (KeyValue c : commitTimestamps) {
+				for (Cell c : commitTimestamps) {
 						timestampProcessor.apply(new Object[]{t0, c});
 						Assert.assertEquals(t0.getId(), c.getTimestamp());
 				}

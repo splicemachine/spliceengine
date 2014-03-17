@@ -1,20 +1,7 @@
 package com.splicemachine.si;
 
-import com.google.common.base.Function;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.coprocessors.RegionRollForwardAction;
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.STableReader;
-import com.splicemachine.si.impl.*;
-import com.splicemachine.utils.Providers;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import static com.splicemachine.constants.SIConstants.DEFAULT_FAMILY_BYTES;
+import static com.splicemachine.constants.SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -22,8 +9,28 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import static com.splicemachine.constants.SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
-import static com.splicemachine.constants.SIConstants.DEFAULT_FAMILY_BYTES;
+
+import com.google.common.base.Function;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.coprocessors.RegionRollForwardAction;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.api.STableReader;
+import com.splicemachine.si.impl.RollForwardAction;
+import com.splicemachine.si.impl.SynchronousRollForwardQueue;
+import com.splicemachine.si.impl.Tracer;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.impl.WriteConflict;
+import com.splicemachine.utils.Providers;
 /**
  * Tests surrounding Asynchronous roll-foward queue testing
  * @author Scott Fines
@@ -182,9 +189,9 @@ public class AsyncRollForwardTest {
 						public Object apply(@Nullable Object[] input) {
 								Assert.assertTrue(input!=null && input[0] !=null);
 								TransactionId t = (TransactionId) input[0];
-								KeyValue cell = (KeyValue)input[1];
+								Cell cell = (Cell)input[1];
 								final SDataLib dataLib = storeSetup.getDataLib();
-								final long timestamp = (Long) dataLib.decode(cell.getValue(), Long.class);
+								final long timestamp = (Long) dataLib.decode(CellUtil.cloneValue(cell), Long.class);
 								Assert.assertEquals(t.getId() + 1, timestamp);
 								return null;
 						}
@@ -205,9 +212,9 @@ public class AsyncRollForwardTest {
 		}
 
 		protected long getTimestamp(Object[] input) {
-				KeyValue cell = (KeyValue)input[1];
+				Cell cell = (Cell)input[1];
 				final SDataLib dataLib = storeSetup.getDataLib();
-				final byte[] keyValueValue = cell.getValue();
+				final byte[] keyValueValue = CellUtil.cloneValue(cell);
 				if(keyValueValue.length==8)
 						return (Long)dataLib.decode(keyValueValue,Long.class);
 				else
@@ -233,10 +240,10 @@ public class AsyncRollForwardTest {
 						}
 						Result result = testUtility.readRaw(testRow);
 						final SDataLib dataLib = storeSetup.getDataLib();
-						final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES),
+						final List<Cell> commitTimestamps = result.getColumnCells(dataLib.encode(DEFAULT_FAMILY_BYTES),
 										dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
-						for (KeyValue c : commitTimestamps) {
-								final int timestamp = (Integer) dataLib.decode(c.getValue(), Integer.class);
+						for (Cell c : commitTimestamps) {
+								final int timestamp = (Integer) dataLib.decode(CellUtil.cloneValue(c), Integer.class);
 								Assert.assertEquals(-1, timestamp);
 								Assert.assertEquals(t1.getId(), c.getTimestamp());
 						}
@@ -252,9 +259,9 @@ public class AsyncRollForwardTest {
 
 						Result result2 = testUtility.readRaw(testRow);
 
-						final List<KeyValue> commitTimestamps2 = result2.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES),
+						final List<Cell> commitTimestamps2 = result2.getColumnCells(dataLib.encode(DEFAULT_FAMILY_BYTES),
 										dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
-						for (KeyValue c2 : commitTimestamps2) {
+						for (Cell c2 : commitTimestamps2) {
 								timestampProcessor.apply(new Object[]{t1, c2});
 								Assert.assertEquals(t1.getId(), c2.getTimestamp());
 						}
@@ -327,9 +334,9 @@ public class AsyncRollForwardTest {
 						final SDataLib dataLib = storeSetup.getDataLib();
 						latch.await();
 						Result result2 = testUtility.readRaw(testRow,false);
-						final List<KeyValue> commitTimestamps2 = result2.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES),
+						final List<Cell> commitTimestamps2 = result2.getColumnCells(dataLib.encode(DEFAULT_FAMILY_BYTES),
 										dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
-						for (KeyValue c2 : commitTimestamps2) {
+						for (Cell c2 : commitTimestamps2) {
 								long timestamp = getTimestamp(new Object[]{t1,c2});
 								checker.check(t1,timestamp);
 								Assert.assertEquals(t1.getId(), c2.getTimestamp());

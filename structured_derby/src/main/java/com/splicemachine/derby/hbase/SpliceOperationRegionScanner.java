@@ -49,7 +49,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     protected SpliceOperation topOperation;
     protected RegionScanner regionScanner;
     protected Iterator<ExecRow> currentRows;
-    protected List<KeyValue> currentResult;
+    protected List<Cell> currentResult;
     protected Activation activation; // has to be passed by reference... jl
     private TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
     private TaskStats finalStats;
@@ -175,7 +175,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                     Iterator<Pair<byte[],byte[]>> addColIter = additionalColumns.iterator();
                     while(addColIter.hasNext()){
                         Pair<byte[],byte[]> additionalCol = addColIter.next();
-                        KeyValue kv = new KeyValue(HConstants.EMPTY_START_ROW,
+                        Cell kv = new KeyValue(HConstants.EMPTY_START_ROW,
                                 SpliceConstants.DEFAULT_FAMILY_BYTES,
                                 additionalCol.getFirst(), System.currentTimeMillis(), KeyValue.Type.Put,
                                 additionalCol.getSecond());

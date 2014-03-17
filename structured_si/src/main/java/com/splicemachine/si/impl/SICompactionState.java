@@ -1,12 +1,5 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.si.SpliceReusableHashmap;
-import com.splicemachine.si.api.TransactionStatus;
-import com.splicemachine.si.data.api.SDataLib;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.OperationWithAttributes;
-import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Comparator;
@@ -15,6 +8,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.util.Bytes;
+
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.si.SpliceReusableHashmap;
+import com.splicemachine.si.api.TransactionStatus;
+import com.splicemachine.si.data.api.SDataLib;
 
 /**
  * Captures the SI logic to perform when a data table is compacted (without explicit HBase dependencies). Provides the
@@ -27,8 +31,8 @@ public class SICompactionState<Result,  Mutation,
     private final SDataLib<Put, Delete, Get, Scan> dataLib;
     private final DataStore<Mutation, Put, Delete, Get, Scan, IHTable> dataStore;
     private final TransactionStore transactionStore;
-    private SpliceReusableHashmap<ByteBuffer,KeyValue> evaluatedTransactions;
-    public SortedSet<KeyValue> dataToReturn;
+    private SpliceReusableHashmap<ByteBuffer,Cell> evaluatedTransactions;
+    public SortedSet<Cell> dataToReturn;
 
     /**
      * Cache of transactions that have been read during the execution of this compaction.
@@ -39,13 +43,13 @@ public class SICompactionState<Result,  Mutation,
         this.dataLib = dataLib;
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
-        this.dataToReturn  = new TreeSet<KeyValue>(new Comparator<KeyValue>(){
+        this.dataToReturn  = new TreeSet<Cell>(new Comparator<Cell>(){
     		@Override
-    		public int compare(KeyValue first, KeyValue second) {
+    		public int compare(Cell first, Cell second) {
     			return KeyValue.COMPARATOR.compare(first, second);
     		}
     	});
-        this.evaluatedTransactions = new SpliceReusableHashmap<ByteBuffer,KeyValue>();
+        this.evaluatedTransactions = new SpliceReusableHashmap<ByteBuffer,Cell>();
     }
 
     /**
@@ -54,7 +58,7 @@ public class SICompactionState<Result,  Mutation,
 	 * @param rawList - the input of key values to process
 	 * @param results - the output key values
 	 */
-    public void mutate(List<KeyValue> rawList, List<KeyValue> results) throws IOException {
+    public void mutate(List<Cell> rawList, List<Cell> results) throws IOException {
     	evaluatedTransactions.reset();
     	dataToReturn.clear();
     	for (int i = 0; i< rawList.size(); i++) {
@@ -66,9 +70,9 @@ public class SICompactionState<Result,  Mutation,
     /**
      * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
      */
-    private void mutate(KeyValue keyValue) throws IOException {
+    private void mutate(Cell keyValue) throws IOException {
         final CellType keyValueType = dataStore.getKeyValueType(keyValue);
-    	ByteBuffer buffer = ByteBuffer.wrap(keyValue.getBuffer(),keyValue.getTimestampOffset(),KeyValue.TIMESTAMP_SIZE);
+    	ByteBuffer buffer = ByteBuffer.wrap(CellUtils.getBuffer(keyValue),CellUtils.getTimestampOffset(keyValue),KeyValue.TIMESTAMP_SIZE);
         switch (keyValueType) {
     		case COMMIT_TIMESTAMP:
     			evaluatedTransactions.add(buffer, keyValue);
@@ -93,7 +97,7 @@ public class SICompactionState<Result,  Mutation,
     /**
      * Replace unknown commit timestamps with actual commit times.
      */
-    private void mutateCommitTimestamp(ByteBuffer buffer, KeyValue keyValue) throws IOException {
+    private void mutateCommitTimestamp(ByteBuffer buffer, Cell keyValue) throws IOException {
     		if (evaluatedTransactions.contains(buffer)) {
 				if (isFailedCommitTimestamp(evaluatedTransactions.get(buffer))) {
 					return;// No Op failed a commit
@@ -126,25 +130,25 @@ public class SICompactionState<Result,  Mutation,
         return result;
     }
 
-	public static KeyValue newTransactionTimeStampKeyValue(KeyValue keyValue, byte[] value) {
-		return new KeyValue(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength(),SIConstants.DEFAULT_FAMILY_BYTES,0,1,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,0,1,keyValue.getTimestamp(), KeyValue.Type.Put,value,0,value==null ? 0 : value.length);
+	public static Cell newTransactionTimeStampKeyValue(Cell keyValue, byte[] value) {
+		return new KeyValue(CellUtils.getBuffer(keyValue),keyValue.getRowOffset(),keyValue.getRowLength(),SIConstants.DEFAULT_FAMILY_BYTES,0,1,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,0,1,keyValue.getTimestamp(), KeyValue.Type.Put,value,0,value==null ? 0 : value.length);
 	}
 	
 	public void close() {
 		evaluatedTransactions.close();
 	}
  
-    public static boolean isFailedCommitTimestamp(KeyValue keyValue) {
-    	return keyValue.getValueLength() == 1 && keyValue.getBuffer()[keyValue.getValueOffset()] == SIConstants.SNAPSHOT_ISOLATION_FAILED_TIMESTAMP[0];
+    public static boolean isFailedCommitTimestamp(Cell keyValue) {
+    	return keyValue.getValueLength() == 1 && CellUtils.getBuffer(keyValue)[keyValue.getValueOffset()] == SIConstants.SNAPSHOT_ISOLATION_FAILED_TIMESTAMP[0];
     }
     
-	public static int compareKeyValuesByTimestamp(KeyValue first, KeyValue second) {
-		return Bytes.compareTo(first.getBuffer(), first.getTimestampOffset(), KeyValue.TIMESTAMP_SIZE, 
-				second.getBuffer(), second.getTimestampOffset(), KeyValue.TIMESTAMP_SIZE);
+	public static int compareKeyValuesByTimestamp(Cell first, Cell second) {
+		return Bytes.compareTo(CellUtils.getBuffer(first), CellUtils.getTimestampOffset(first), KeyValue.TIMESTAMP_SIZE,
+				CellUtils.getBuffer(second), CellUtils.getTimestampOffset(second), KeyValue.TIMESTAMP_SIZE);
 	}
-	public static int compareKeyValuesByColumnAndTimestamp(KeyValue first, KeyValue second) {
-		int compare = Bytes.compareTo(first.getBuffer(), first.getQualifierOffset(), first.getQualifierLength(), 
-				second.getBuffer(), second.getQualifierOffset(), second.getQualifierLength());
+	public static int compareKeyValuesByColumnAndTimestamp(Cell first, Cell second) {
+		int compare = Bytes.compareTo(CellUtils.getBuffer(first), first.getQualifierOffset(), first.getQualifierLength(),
+                                      CellUtils.getBuffer(second), second.getQualifierOffset(), second.getQualifierLength());
 		if (compare != 0)
 			return compare;
 		return compareKeyValuesByTimestamp(first,second);

@@ -4,11 +4,9 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.FilterBase;
-import org.apache.log4j.Logger;
 
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.api.TransactionManager;
@@ -24,7 +22,7 @@ import com.splicemachine.storage.HasPredicateFilter;
  * An HBase filter that applies SI logic when reading data values.
  */
 public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
-    private static Logger LOG = Logger.getLogger(SIFilterPacked.class);
+//    private static Logger LOG = Logger.getLogger(SIFilterPacked.class);
     private String tableName;
 	private TransactionReadController<Get,Scan> readController;
 	private TransactionManager transactionManager;
@@ -94,7 +92,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
     }
 
     @Override
-    public void filterRow(List<KeyValue> keyValues) {
+    public void filterRowCells(List<Cell> keyValues) {
         // FIXME: this is scary
         try {
             initFilterStateIfNeeded();
@@ -103,7 +101,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
         }
     	if (!filterRow())
     		keyValues.remove(0);
-        final KeyValue accumulatedValue = (KeyValue) filterState.produceAccumulatedCell();
+        final Cell accumulatedValue = filterState.produceAccumulatedCell();
         if (accumulatedValue != null) {
             keyValues.add(accumulatedValue);
         }

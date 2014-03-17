@@ -1,22 +1,25 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Random;
+
 import com.carrotsearch.hppc.BitSet;
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.derby.utils.test.TestingDataType;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.storage.EntryEncoder;
-import com.splicemachine.utils.kryo.KryoPool;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Pair;
@@ -28,11 +31,16 @@ import org.junit.runners.Parameterized;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.io.IOException;
-import java.util.*;
-
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.derby.utils.test.TestingDataType;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.utils.kryo.KryoPool;
 
 /**
  * Unit tests to verify that TableScanOperation works correctly
@@ -111,8 +119,8 @@ public class TableScanOperationTest {
         when(mockOpInfo.getBaseColumnMap()).thenReturn(baseColumMap);
         when(mockOpInfo.compactRow(any(ExecRow.class),any(FormatableBitSet.class),any(Boolean.class))).thenReturn(testRow);
 
-        Pair<List<KeyValue>,List<ExecRow>> serializedRows = createRepresentativeRows(10,dataTypes);
-        final List<KeyValue> actualRows = Lists.newArrayList(serializedRows.getFirst());
+        Pair<List<Cell>,List<ExecRow>> serializedRows = createRepresentativeRows(10,dataTypes);
+        final List<Cell> actualRows = Lists.newArrayList(serializedRows.getFirst());
 
         MeasuredRegionScanner mockScanner = mock(MeasuredRegionScanner.class);
         //noinspection unchecked
@@ -122,13 +130,13 @@ public class TableScanOperationTest {
                 if (actualRows.size() <= 0)
                     return false;
 
-                @SuppressWarnings("unchecked") List<KeyValue> destList = (List<KeyValue>) invocation.getArguments()[0];
+                @SuppressWarnings("unchecked") List<Cell> destList = (List<Cell>) invocation.getArguments()[0];
                 destList.add(actualRows.remove(0));
 
                 return true;
             }
         };
-        when(mockScanner.nextRaw(any(List.class), any(String.class))).thenAnswer(answer);
+        when(mockScanner.nextRaw(any(List.class))).thenAnswer(answer);
         when(mockScanner.next(any(List.class))).thenAnswer(answer);
 
         HRegion mockRegion = mock(HRegion.class);
@@ -198,8 +206,8 @@ public class TableScanOperationTest {
         }
     }
 
-    private Pair<List<KeyValue>,List<ExecRow>> createRepresentativeRows(int size,TestingDataType... dataTypes) throws StandardException, IOException {
-        List<KeyValue> retList = Lists.newArrayListWithCapacity(size);
+    private Pair<List<Cell>,List<ExecRow>> createRepresentativeRows(int size,TestingDataType... dataTypes) throws StandardException, IOException {
+        List<Cell> retList = Lists.newArrayListWithCapacity(size);
         ExecRow template = getExecRow(dataTypes);
         List<ExecRow> correctRows = Lists.newArrayListWithCapacity(size);
 

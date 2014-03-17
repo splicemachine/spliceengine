@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.NoSuchElementException;
 import java.util.SortedSet;
 
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.regionserver.StoreFile.Reader;
@@ -51,12 +53,12 @@ public class HRegionUtil {
         return keyExists.keyExists(store, key);
     }
 
-    protected static boolean checkMemstoreSet(SortedSet<KeyValue> set, byte[] key, KeyValue kv) {
-        KeyValue placeHolder;
+    protected static boolean checkMemstoreSet(SortedSet<Cell> set, byte[] key, Cell kv) {
+        Cell placeHolder;
         try {
-            SortedSet<KeyValue> kvset = set.tailSet(kv);
+            SortedSet<Cell> kvset = set.tailSet(kv);
             placeHolder = kvset.isEmpty() ? null : kvset.first();
-            if (placeHolder != null && placeHolder.matchingRow(key))
+            if (placeHolder != null && CellUtil.matchingRow(placeHolder,key))
                 return true;
         } catch (NoSuchElementException ignored) {
         } // This keeps us from constantly performing key value comparisons for empty set
@@ -247,7 +249,7 @@ public class HRegionUtil {
                  * to the memstore, where SOMETHING (and I don't know what) causes it to mistakenly return
                  * false,
                  * which tells the writing code that it's safe to write, resulting in some missing Primary Key
-                  * errors.
+                 * errors.
                  *
                  * And in practice, it doesn't do you much good to check the memstore if there are no store
                  * files,
@@ -268,11 +270,11 @@ public class HRegionUtil {
                             return true;
                     }
                 }
-                KeyValue kv = new KeyValue(key,
-                                           SIConstants.DEFAULT_FAMILY_BYTES,
-                                           SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
-                                           0l, HConstants.EMPTY_BYTE_ARRAY);
-                kv.setMemstoreTS(HConstants.LATEST_TIMESTAMP);
+                Cell kv = new KeyValue(key,
+                                       SIConstants.DEFAULT_FAMILY_BYTES,
+                                       SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
+                                       HConstants.LATEST_TIMESTAMP,
+                                       HConstants.EMPTY_BYTE_ARRAY);
                 return checkMemstore(hstore.memstore.kvset, key, kv) || checkMemstore(hstore.memstore.snapshot, key, kv);
             } catch (IOException ioe) {
                 ioe.printStackTrace();
@@ -282,12 +284,13 @@ public class HRegionUtil {
             }
         }
 
-        protected boolean checkMemstore(KeyValueSkipListSet kvSet, byte[] key, KeyValue kv) {
-            KeyValue placeHolder;
+        protected boolean checkMemstore(KeyValueSkipListSet kvSet, byte[] key, Cell kv) {
+            Cell placeHolder;
             try {
-                SortedSet<KeyValue> kvset = kvSet.tailSet(kv);
+                // FIXME: remove ref to private audience KeyValueSkipListSet and so remove cast
+                SortedSet<KeyValue> kvset = kvSet.tailSet((KeyValue)kv);
                 placeHolder = kvset.isEmpty() ? null : kvset.first();
-                if (placeHolder != null && placeHolder.matchingRow(key))
+                if (placeHolder != null && CellUtil.matchingRow(placeHolder, key))
                     return true;
             } catch (NoSuchElementException ignored) {
             } // This keeps us from constantly performing key value comparisons for empty set

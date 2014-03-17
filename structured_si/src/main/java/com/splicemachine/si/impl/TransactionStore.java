@@ -1,9 +1,17 @@
 package com.splicemachine.si.impl;
 
-import com.google.common.collect.Iterators;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
-import com.google.common.primitives.Longs;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.si.api.TransactionStatus;
@@ -16,24 +24,21 @@ import com.splicemachine.si.impl.iterator.ContiguousIteratorFunctions;
 import com.splicemachine.si.impl.iterator.DataIDDecoder;
 import com.splicemachine.si.impl.iterator.OrderedMuxer;
 import com.splicemachine.utils.CloseableIterator;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.OperationWithAttributes;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.util.Pair;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.util.*;
 
 /**
  * Library of functions used by the SI module when accessing the transaction table. Encapsulates low-level data access
  * calls so the other classes can be expressed at a higher level. The intent is to capture mechanisms here rather than
  * policy.
  */
-public class TransactionStore<Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, Table> {
+public class TransactionStore<Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan,
+        Table> {
     static final Logger LOG = Logger.getLogger(TransactionStore.class);
-
+    final DataIDDecoder<Long, Result> decoder = new DataIDDecoder<Long, Result>() {
+        @Override
+        public Long getID(Result result) {
+            return decodeLong(result, encodedSchema.idQualifier);
+        }
+    };
     // Plugins for creating gets/puts against the transaction table and for running the operations.
     private final SDataLib<Put, Delete, Get, Scan> dataLib;
     private final STableReader<Table, Get, Scan> reader;
@@ -42,10 +47,6 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
     private final EncodedTransactionSchema encodedSchema;
     private final List<byte[]> siFamilyList = Lists.newArrayListWithCapacity(1);
     private final List<byte[]> permissionFamilyList = Lists.newArrayListWithCapacity(1);
-
-    // Configure how long to wait in the event of a commit race.
-    private int waitForCommittingMS;
-
     // Callback for transaction status change events.
     private final TransactorListener listener;
 
@@ -61,18 +62,22 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
     private final Map<Long, ActiveTransactionCacheEntry> activeTransactionCache;
 
     /**
-     * Cache for transactions that have reached a final state. They are now fully immutable and can be cached aggressively.
+     * Cache for transactions that have reached a final state. They are now fully immutable and can be cached
+     * aggressively.
      */
     private final Map<Long, Transaction> completedTransactionCache;
 
     /**
      * In some cases, all that we care about for committed/failed transactions is their global begin/end timestamps and
-     * their status. These caches are for these "stub" transaction objects. These objects are immutable and can be cached.
+     * their status. These caches are for these "stub" transaction objects. These objects are immutable and can be
+     * cached.
      */
     private final Map<Long, Transaction> stubCommittedTransactionCache;
     private final Map<Long, Transaction> stubFailedTransactionCache;
 
     private final Map<PermissionArgs, Byte> permissionCache;
+    // Configure how long to wait in the event of a commit race.
+    private int waitForCommittingMS;
 
     public TransactionStore(TransactionSchema transactionSchema, SDataLib dataLib,
                             STableReader reader, STableWriter writer,
@@ -99,19 +104,21 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         setupFamilyLists();
     }
 
+    // Write (i.e. "record") transaction information to the transaction table.
+
     private void setupFamilyLists() {
         this.siFamilyList.add(this.encodedSchema.siFamily);
         this.permissionFamilyList.add(this.encodedSchema.permissionFamily);
     }
 
-    // Write (i.e. "record") transaction information to the transaction table.
-
     public void recordNewTransaction(final long startTransactionTimestamp, final TransactionParams params,
-                                     final TransactionStatus status, final long beginTimestamp, final long counter) throws IOException {
+                                     final TransactionStatus status, final long beginTimestamp,
+                                     final long counter) throws IOException {
         withTransactionTable(new TransactionStoreCallback<Void, Table>() {
             @Override
             public Void withTable(Table transactionTable) throws IOException {
-                if (!recordNewTransactionDirect(transactionTable, startTransactionTimestamp, params, status, beginTimestamp, counter)) {
+                if (!recordNewTransactionDirect(transactionTable, startTransactionTimestamp, params, status,
+                                                beginTimestamp, counter)) {
                     throw new RuntimeException("create transaction failed");
                 }
                 return null;
@@ -119,9 +126,12 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         });
     }
 
-    public boolean recordNewTransactionDirect(Table transactionTable, long startTransactionTimestamp, TransactionParams params,
-                                              TransactionStatus status, long beginTimestamp, long counter) throws IOException {
-        return writePut(transactionTable, buildCreatePut(startTransactionTimestamp, params, status, beginTimestamp, counter));
+    public boolean recordNewTransactionDirect(Table transactionTable, long startTransactionTimestamp,
+                                              TransactionParams params,
+                                              TransactionStatus status, long beginTimestamp,
+                                              long counter) throws IOException {
+        return writePut(transactionTable, buildCreatePut(startTransactionTimestamp, params, status, beginTimestamp,
+                                                         counter));
     }
 
     public boolean recordTransactionCommit(final long startTransactionTimestamp, final long commitTimestamp,
@@ -132,8 +142,9 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
             return withTransactionTable(new TransactionStoreCallback<Boolean, Table>() {
                 @Override
                 public Boolean withTable(Table transactionTable) throws IOException {
-                    return writePut(transactionTable, buildCommitPut(startTransactionTimestamp, commitTimestamp, globalCommitTimestamp, newStatus),
-                            (expectedStatus == null) ? null : encodeStatus(expectedStatus));
+                    return writePut(transactionTable, buildCommitPut(startTransactionTimestamp, commitTimestamp,
+                                                                     globalCommitTimestamp, newStatus),
+                                    (expectedStatus == null) ? null : encodeStatus(expectedStatus));
                 }
             });
         } finally {
@@ -141,7 +152,8 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         }
     }
 
-    public boolean recordTransactionStatusChange(final long startTransactionTimestamp, final TransactionStatus expectedStatus,
+    public boolean recordTransactionStatusChange(final long startTransactionTimestamp,
+                                                 final TransactionStatus expectedStatus,
                                                  final TransactionStatus newStatus)
             throws IOException {
         Tracer.traceStatus(startTransactionTimestamp, newStatus, true);
@@ -149,7 +161,8 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
             return withTransactionTable(new TransactionStoreCallback<Boolean, Table>() {
                 @Override
                 public Boolean withTable(Table transactionTable) throws IOException {
-                    return writePut(transactionTable, buildStatusUpdatePut(startTransactionTimestamp, newStatus), encodeStatus(expectedStatus));
+                    return writePut(transactionTable, buildStatusUpdatePut(startTransactionTimestamp, newStatus),
+                                    encodeStatus(expectedStatus));
                 }
             });
         } finally {
@@ -157,20 +170,22 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         }
     }
 
+    // Internal functions to construct operations to update the transaction table.
+
     public void recordTransactionKeepAlive(final long startTransactionTimestamp)
             throws IOException {
         withTransactionTable(new TransactionStoreCallback<Void, Table>() {
             @Override
             public Void withTable(Table transactionTable) throws IOException {
-                writePut(transactionTable, buildKeepAlivePut(startTransactionTimestamp), encodeStatus(TransactionStatus.ACTIVE));
+                writePut(transactionTable, buildKeepAlivePut(startTransactionTimestamp),
+                         encodeStatus(TransactionStatus.ACTIVE));
                 return null;
             }
         });
     }
 
-    // Internal functions to construct operations to update the transaction table.
-
-    private Put buildCreatePut(long transactionId, TransactionParams params, TransactionStatus status,long beginTimestamp, long counter) {
+    private Put buildCreatePut(long transactionId, TransactionParams params, TransactionStatus status,
+                               long beginTimestamp, long counter) {
         Put put = buildBasePut(transactionId);
         addFieldToPut(put, encodedSchema.dependentQualifier, params.dependent);
         addFieldToPut(put, encodedSchema.startQualifier, beginTimestamp);
@@ -187,9 +202,9 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         if (params.readCommitted != null) {
             addFieldToPut(put, encodedSchema.readCommittedQualifier, params.readCommitted);
         }
-				if(params.writeTable!=null){
-						addFieldToPut(put,encodedSchema.writeTableQualifier,params.writeTable);
-				}
+        if (params.writeTable != null) {
+            addFieldToPut(put, encodedSchema.writeTableQualifier, params.writeTable);
+        }
         if (status != null) {
             addFieldToPut(put, encodedSchema.statusQualifier, status.ordinal());
         }
@@ -228,11 +243,11 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         return dataLib.newRowKey(transactionIdToRowKey(transactionId));
     }
 
+    // Apply operations to the transaction table
+
     private void addFieldToPut(Put put, byte[] qualifier, Object value) {
         dataLib.addKeyValueToPut(put, encodedSchema.siFamily, qualifier, -1l, dataLib.encode(value));
     }
-
-    // Apply operations to the transaction table
 
     private boolean writePut(Table transactionTable, Put put) throws IOException {
         return writePut(transactionTable, put, null);
@@ -247,16 +262,17 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         }
     }
 
+    // Load transactions from the cache or the underlying transaction table.
+
     private boolean writePut(Table transactionTable, Put put, byte[] expectedStatus) throws IOException {
-        final boolean result = writer.checkAndPut(transactionTable, encodedSchema.siFamily, encodedSchema.statusQualifier,
-                expectedStatus, put);
+        final boolean result = writer.checkAndPut(transactionTable, encodedSchema.siFamily,
+                                                  encodedSchema.statusQualifier,
+                                                  expectedStatus, put);
         if (expectedStatus == null && result) {
             listener.writeTransaction();
         }
         return result;
     }
-
-    // Load transactions from the cache or the underlying transaction table.
 
     public ImmutableTransaction getImmutableTransaction(long beginTimestamp) throws IOException {
         return getImmutableTransaction(new TransactionId(beginTimestamp));
@@ -278,6 +294,8 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
     public Transaction getTransaction(long transactionId) throws IOException {
         return getTransactionDirect(transactionId, false);
     }
+
+    // Internal helper functions for retrieving transactions from the caches or the transaction table.
 
     /**
      * Retrieve the transaction object for the given transactionId. Specifically retrieve a representation that is no
@@ -306,8 +324,6 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         return transaction;
     }
 
-    // Internal helper functions for retrieving transactions from the caches or the transaction table.
-
     private ImmutableTransaction getImmutableTransactionFromCache(long transactionId) throws IOException {
         ImmutableTransaction immutableCachedTransaction = immutableTransactionCache.get(transactionId);
         if (immutableCachedTransaction != null) {
@@ -328,62 +344,63 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         return immutableCachedTransaction;
     }
 
-		private Transaction getImmutableTransactionDirect(long transactionId) throws IOException {
-				return getTransactionDirect(transactionId, true);
-		}
+    private Transaction getImmutableTransactionDirect(long transactionId) throws IOException {
+        return getTransactionDirect(transactionId, true);
+    }
 
-		private Transaction getTransactionDirect(long transactionId, boolean immutableOnly) throws IOException {
-				// If the transaction is completed then we will use the cached value, otherwise load it from the transaction table.
-				final Transaction cachedTransaction = completedTransactionCache.get(transactionId);
-				if (cachedTransaction != null) {
-						//LOG.warn("cache HIT " + transactionId.getTransactionIdString());
-						return cachedTransaction;
-				}
-				return loadTransaction(transactionId, immutableOnly);
-		}
+    private Transaction getTransactionDirect(long transactionId, boolean immutableOnly) throws IOException {
+        // If the transaction is completed then we will use the cached value, otherwise load it from the transaction
+        // table.
+        final Transaction cachedTransaction = completedTransactionCache.get(transactionId);
+        if (cachedTransaction != null) {
+            //LOG.warn("cache HIT " + transactionId.getTransactionIdString());
+            return cachedTransaction;
+        }
+        return loadTransaction(transactionId, immutableOnly);
+    }
 
-		private Transaction loadTransaction(long transactionId, boolean immutableOnly) throws IOException {
-				if (immutableOnly) {
-						return loadTransactionDirect(transactionId);
-				} else {
-						Transaction transaction = loadTransactionDirect(transactionId);
-						if(!transaction.status.isCommitting())
-								return transaction;
+    private Transaction loadTransaction(long transactionId, boolean immutableOnly) throws IOException {
+        if (immutableOnly) {
+            return loadTransactionDirect(transactionId);
+        } else {
+            Transaction transaction = loadTransactionDirect(transactionId);
+            if (!transaction.status.isCommitting())
+                return transaction;
 
 						/*
-						 * The transaction is in the COMMITTING state, so we have
+                         * The transaction is in the COMMITTING state, so we have
 						 * to spin-wait for the transaction to move to it's latest state.
 						 * Each time we
 						 */
-						int maxRetries = SpliceConstants.numRetries;
-						int commitTry=0;
-						boolean isInterrupted=false;
-						try{
-								while(commitTry<maxRetries){
-										commitTry++;
-										Tracer.traceWaiting(transactionId);
-										try {
-												Thread.sleep(SpliceHTableUtil.getWaitTime(commitTry, waitForCommittingMS));
-										} catch (InterruptedException e) {
-												isInterrupted=true;
-												Thread.interrupted(); //clear interrupted status so that we can continue
-										}
-										transaction = loadTransactionDirect(transactionId);
-										if(!transaction.status.isCommitting())
-												return transaction;
-								}
+            int maxRetries = SpliceConstants.numRetries;
+            int commitTry = 0;
+            boolean isInterrupted = false;
+            try {
+                while (commitTry < maxRetries) {
+                    commitTry++;
+                    Tracer.traceWaiting(transactionId);
+                    try {
+                        Thread.sleep(SpliceHTableUtil.getWaitTime(commitTry, waitForCommittingMS));
+                    } catch (InterruptedException e) {
+                        isInterrupted = true;
+                        Thread.interrupted(); //clear interrupted status so that we can continue
+                    }
+                    transaction = loadTransactionDirect(transactionId);
+                    if (!transaction.status.isCommitting())
+                        return transaction;
+                }
 								/*
 								 * If we reach this point, it means that we were unable to wait long
 								 * enough for the transaction to be moved out of COMMITTING and into
 								 * COMMITTED within our specified SLA, so we have to bail.
 								 */
-								throw new TransactionCommittingException(transactionId);
-						}finally{
-								if(isInterrupted){
-										//restore interrupted status
-										Thread.currentThread().interrupt();
-								}
-						}
+                throw new TransactionCommittingException(transactionId);
+            } finally {
+                if (isInterrupted) {
+                    //restore interrupted status
+                    Thread.currentThread().interrupt();
+                }
+            }
         }
     }
 
@@ -430,6 +447,8 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         return result;
     }
 
+    // Decoding results from the transaction table.
+
     public void cacheCompletedTransactions(long transactionId, Transaction result) {
         if (result.getEffectiveStatus().isFinished()) {
             // If a transaction has reached a terminal status, then we can cache it for future reference.
@@ -438,44 +457,43 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         }
     }
 
-    // Decoding results from the transaction table.
-
     /**
      * Read the contents of a R object (representing a row from the transaction table) and produce a Transaction
      * object.
      *
-     *
-		 * @param transactionId
-		 * @param resultTuple
-		 * @return
+     * @param transactionId
+     * @param resultTuple
+     * @return
      * @throws IOException
      */
     public Transaction decodeTransactionResults(long transactionId, Result resultTuple) throws IOException {
-        // TODO: create optimized versions of this code block that only load the data required by the caller, or make the loading lazy
+        // TODO: create optimized versions of this code block that only load the data required by the caller, or make
+        // the loading lazy
         final Boolean dependent = decodeBoolean(resultTuple, encodedSchema.dependentQualifier);
         final TransactionBehavior transactionBehavior = dependent ?
                 StubTransactionBehavior.instance :
                 IndependentTransactionBehavior.instance;
 
         return new Transaction(transactionBehavior, transactionId,
-                decodeLong(resultTuple, encodedSchema.startQualifier),
-                decodeKeepAlive(resultTuple),
-                decodeParent(resultTuple),
-                dependent,
-                decodeBoolean(resultTuple, encodedSchema.allowWritesQualifier),
-                decodeBoolean(resultTuple, encodedSchema.additiveQualifier),
-                decodeBoolean(resultTuple, encodedSchema.readUncommittedQualifier),
-                decodeBoolean(resultTuple, encodedSchema.readCommittedQualifier),
-                decodeStatus(resultTuple, encodedSchema.statusQualifier),
-                decodeLong(resultTuple, encodedSchema.commitQualifier),
-                decodeLong(resultTuple, encodedSchema.globalCommitQualifier),
-                decodeLong(resultTuple, encodedSchema.counterQualifier),
-								resultTuple.getValue(encodedSchema.siFamily,encodedSchema.writeTableQualifier));
+                               decodeLong(resultTuple, encodedSchema.startQualifier),
+                               decodeKeepAlive(resultTuple),
+                               decodeParent(resultTuple),
+                               dependent,
+                               decodeBoolean(resultTuple, encodedSchema.allowWritesQualifier),
+                               decodeBoolean(resultTuple, encodedSchema.additiveQualifier),
+                               decodeBoolean(resultTuple, encodedSchema.readUncommittedQualifier),
+                               decodeBoolean(resultTuple, encodedSchema.readCommittedQualifier),
+                               decodeStatus(resultTuple, encodedSchema.statusQualifier),
+                               decodeLong(resultTuple, encodedSchema.commitQualifier),
+                               decodeLong(resultTuple, encodedSchema.globalCommitQualifier),
+                               decodeLong(resultTuple, encodedSchema.counterQualifier),
+                               resultTuple.getValue(encodedSchema.siFamily, encodedSchema.writeTableQualifier));
     }
 
     private long decodeKeepAlive(Result resultTuple) {
-        final List<KeyValue> keepAliveValues = resultTuple.getColumn(encodedSchema.siFamily, encodedSchema.keepAliveQualifier);
-        final KeyValue keepAliveValue = keepAliveValues.get(0);
+        final List<Cell> keepAliveValues = resultTuple.getColumnCells(encodedSchema.siFamily,
+                                                                      encodedSchema.keepAliveQualifier);
+        final Cell keepAliveValue = keepAliveValues.get(0);
         return keepAliveValue.getTimestamp();
     }
 
@@ -518,6 +536,8 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         return result;
     }
 
+    // Misc
+
     private Byte decodeByte(Result resultTuple, byte[] family, byte[] columnQualifier) {
         final byte[] columnValue = resultTuple.getValue(family, columnQualifier);
         Byte result = null;
@@ -527,7 +547,8 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         return result;
     }
 
-    // Misc
+    // Pseudo Transaction constructors for transactions that are known to have committed or failed. These return "stub"
+    // transaction records that can only be relied on to have correct begin/end timestamps and status.
 
     /**
      * Generate a unique, monotonically increasing timestamp within the context of the given transaction ID. (i.e. it
@@ -548,7 +569,7 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
                 final Put put = buildBasePut(transactionId);
                 addFieldToPut(put, encodedSchema.counterQualifier, next);
                 if (writer.checkAndPut(transactionTable, encodedSchema.siFamily, encodedSchema.counterQualifier,
-                        dataLib.encode(current), put)) {
+                                       dataLib.encode(current), put)) {
                     return next;
                 } else {
                     current = next;
@@ -560,34 +581,33 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         throw new IOException("Unable to obtain timestamp");
     }
 
-    // Pseudo Transaction constructors for transactions that are known to have committed or failed. These return "stub"
-    // transaction records that can only be relied on to have correct begin/end timestamps and status.
-
     public Transaction makeStubCommittedTransaction(final long timestamp, final long globalCommitTimestamp) {
-        // avoid using the cache get() that takes a loader to avoid the object creation cost of the anonymous inner class
+        // avoid using the cache get() that takes a loader to avoid the object creation cost of the anonymous inner
+        // class
         Transaction result = stubCommittedTransactionCache.get(timestamp);
         if (result == null) {
             result = new Transaction(StubTransactionBehavior.instance, timestamp,
-                    timestamp, 0, Transaction.rootTransaction, true, false, false, false, false,
-                    TransactionStatus.COMMITTED, globalCommitTimestamp, null, null);
+                                     timestamp, 0, Transaction.rootTransaction, true, false, false, false, false,
+                                     TransactionStatus.COMMITTED, globalCommitTimestamp, null, null);
             stubCommittedTransactionCache.put(timestamp, result);
         }
         return result;
     }
 
+    // Internal utilities
+
     public Transaction makeStubFailedTransaction(final long timestamp) {
-        // avoid using the cache get() that takes a loader to avoid the object creation cost of the anonymous inner class
+        // avoid using the cache get() that takes a loader to avoid the object creation cost of the anonymous inner
+        // class
         Transaction result = stubFailedTransactionCache.get(timestamp);
         if (result == null) {
             result = new Transaction(StubTransactionBehavior.instance, timestamp,
-                    timestamp, 0, Transaction.rootTransaction, true, false, false, false, false,
-                    TransactionStatus.ERROR, null, null, null);
+                                     timestamp, 0, Transaction.rootTransaction, true, false, false, false, false,
+                                     TransactionStatus.ERROR, null, null, null);
             stubFailedTransactionCache.put(timestamp, result);
         }
         return result;
     }
-
-    // Internal utilities
 
     /**
      * Convert a transaction ID into the format/value used for the corresponding row key in the transaction table.
@@ -604,9 +624,8 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
     /**
      * Convert a TransactionStatus into the representation used for it in the transaction table.
      *
-     *
-		 * @param status
-		 * @return
+     * @param status
+     * @return
      */
     private byte[] encodeStatus(TransactionStatus status) {
         if (status == null) {
@@ -616,68 +635,70 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         }
     }
 
-    final DataIDDecoder<Long, Result> decoder = new DataIDDecoder<Long, Result>() {
-        @Override
-        public Long getID(Result result) {
-            return decodeLong(result, encodedSchema.idQualifier);
-        }
-    };
+    public List<Transaction> getOldestActiveTransactions(final long startTransactionId, final long maxTransactionId,
+                                                         final int maxCount, final TransactionParams missingParams,
+                                                         final TransactionStatus missingStatus)
+            throws IOException {
+        return withTransactionTable(new TransactionStoreCallback<List<Transaction>, Table>() {
+            @Override
+            public List<Transaction> withTable(Table table) throws IOException {
+                final TransactionTableIterator<Table, Scan> iterator = new TransactionTableIterator<Table,
+                        Scan>(true, false,
+                                                                                                                 startTransactionId, encodedSchema, dataLib, table, reader, TransactionStore.this);
+                try {
+                    final List<Transaction> results = Lists.newArrayList();
+                    while (iterator.hasNext() && results.size() < maxCount) {
+                        Transaction next = iterator.next();
+                        if (next.getLongTransactionId() > maxTransactionId) continue;
 
-		public List<Transaction> getOldestActiveTransactions(final long startTransactionId, final long maxTransactionId,
-																												 final int maxCount, final TransactionParams missingParams,
-																												 final TransactionStatus missingStatus)
-						throws IOException {
-				return withTransactionTable(new TransactionStoreCallback<List<Transaction>, Table>() {
-						@Override
-						public List<Transaction> withTable(Table table) throws IOException {
-								final TransactionTableIterator<Table,Scan> iterator = new TransactionTableIterator<Table, Scan>(true,false,
-												startTransactionId,encodedSchema,dataLib,table,reader,TransactionStore.this);
-								try{
-										final List<Transaction> results = Lists.newArrayList();
-										while(iterator.hasNext() && results.size()<maxCount){
-												Transaction next = iterator.next();
-												if(next.getLongTransactionId()> maxTransactionId) continue;
-
-												if(next.getStatus().isActive() && next.getEffectiveStatus().isActive())
-														results.add(next);
-										}
-										return results;
-								}finally{
-										Closeables.closeQuietly(iterator);
-								}
-						}
-				});
-		}
-
-		public List<Transaction> getAllTransactions() throws IOException {
-
-				return withTransactionTable(new TransactionStoreCallback<List<Transaction>, Table>() {
-						@Override
-						public List<Transaction> withTable(Table table) throws IOException {
-								final TransactionTableIterator<Table,Scan> iterator = new TransactionTableIterator<Table, Scan>(true,true,
-												0l,encodedSchema,dataLib,table,reader,TransactionStore.this);
-								try{
-										final List<Transaction> results = Lists.newArrayList();
-										while(iterator.hasNext()){
-												Transaction next = iterator.next();
-
-												results.add(next);
-										}
-										return results;
-								}finally{
-										Closeables.closeQuietly(iterator);
-								}
-						}
-				});
-		}
-
-    private ContiguousIterator<Long, Result> makeContiguousIterator(Table transactionTable, long startTransactionId, TransactionParams missingParams, TransactionStatus missingStatus) throws IOException {
-        List<CloseableIterator<Result>> scanners = makeScanners(transactionTable, startTransactionId);
-        return new ContiguousIterator<Long, Result>(startTransactionId,
-                new OrderedMuxer<Long, Result>(scanners, decoder), decoder, makeCallbacks(transactionTable, missingParams, missingStatus));
+                        if (next.getStatus().isActive() && next.getEffectiveStatus().isActive())
+                            results.add(next);
+                    }
+                    return results;
+                } finally {
+                    Closeables.closeQuietly(iterator);
+                }
+            }
+        });
     }
 
-    private ContiguousIteratorFunctions<Long, Result> makeCallbacks(final Table transactionTable, final TransactionParams missingParams, final TransactionStatus missingStatus) {
+    public List<Transaction> getAllTransactions() throws IOException {
+
+        return withTransactionTable(new TransactionStoreCallback<List<Transaction>, Table>() {
+            @Override
+            public List<Transaction> withTable(Table table) throws IOException {
+                final TransactionTableIterator<Table, Scan> iterator = new TransactionTableIterator<Table,
+                        Scan>(true, true,
+                                                                                                                 0l,
+                                                                                                                 encodedSchema, dataLib, table, reader, TransactionStore.this);
+                try {
+                    final List<Transaction> results = Lists.newArrayList();
+                    while (iterator.hasNext()) {
+                        Transaction next = iterator.next();
+
+                        results.add(next);
+                    }
+                    return results;
+                } finally {
+                    Closeables.closeQuietly(iterator);
+                }
+            }
+        });
+    }
+
+    private ContiguousIterator<Long, Result> makeContiguousIterator(Table transactionTable, long startTransactionId,
+                                                                    TransactionParams missingParams,
+                                                                    TransactionStatus missingStatus) throws
+            IOException {
+        List<CloseableIterator<Result>> scanners = makeScanners(transactionTable, startTransactionId);
+        return new ContiguousIterator<Long, Result>(startTransactionId,
+                                                    new OrderedMuxer<Long, Result>(scanners, decoder), decoder,
+                                                    makeCallbacks(transactionTable, missingParams, missingStatus));
+    }
+
+    private ContiguousIteratorFunctions<Long, Result> makeCallbacks(final Table transactionTable,
+                                                                    final TransactionParams missingParams,
+                                                                    final TransactionStatus missingStatus) {
         return new ContiguousIteratorFunctions<Long, Result>() {
             @Override
             public Long increment(Long transactionId) {
@@ -686,17 +707,20 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
 
             @Override
             public Result missing(Long transactionId) throws IOException {
-                recordNewTransactionDirect(transactionTable, transactionId, missingParams, missingStatus, transactionId, 0);
+                recordNewTransactionDirect(transactionTable, transactionId, missingParams, missingStatus,
+                                           transactionId, 0);
                 return readTransaction(transactionTable, transactionId);
             }
         };
     }
 
-    private List<CloseableIterator<Result>> makeScanners(Table transactionTable, long startTransactionId) throws IOException {
+    private List<CloseableIterator<Result>> makeScanners(Table transactionTable,
+                                                         long startTransactionId) throws IOException {
         List<CloseableIterator<Result>> scanners = Lists.newArrayList();
         for (byte i = 0; i < SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT; i++) {
             final byte[] rowKey = dataLib.newRowKey(new Object[]{i, startTransactionId});
-            final byte[] endKey = i == (SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT-1) ? null : dataLib.newRowKey(new Object[]{(byte) (i + 1)});
+            final byte[] endKey = i == (SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT - 1) ? null : dataLib
+                    .newRowKey(new Object[]{(byte) (i + 1)});
             final Scan scan = dataLib.newScan(rowKey, endKey, null, null, null);
             scanners.add(reader.scan(transactionTable, scan));
         }
@@ -737,7 +761,8 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         });
     }
 
-    private Byte readPermissionBody(Table transactionTable, TransactionId transactionId, String tableName) throws IOException {
+    private Byte readPermissionBody(Table transactionTable, TransactionId transactionId,
+                                    String tableName) throws IOException {
         byte[] tupleKey = transactionIdToRowKeyObject(transactionId.getId());
         final byte[] qualifier = dataLib.encode(tableName);
         @SuppressWarnings("unchecked") final List<List<byte[]>> columnList = Arrays.asList(

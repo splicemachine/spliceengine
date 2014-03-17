@@ -1,16 +1,25 @@
 package com.splicemachine.si;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import com.google.common.collect.Maps;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
+
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.util.Bytes;
-import java.io.IOException;
-import java.util.*;
 
 /**
  * @author Scott Fines
@@ -68,12 +77,12 @@ public class SIErrorCounter {
             rowsSeen++;
             if(rowsSeen%1000==0)
                 System.out.printf("Visited %d rows%n",rowsSeen);
-            List<KeyValue> column = result.getColumn(SIConstants.DEFAULT_FAMILY_BYTES, qual);
+            List<Cell> column = result.getColumnCells(SIConstants.DEFAULT_FAMILY_BYTES, qual);
             if(column==null||column.size()<=0){
                 System.out.printf("Result %s did not have a timestamp column%n",result);
                 badRowCount++;
             }else{
-                KeyValue kv= column.get(0);
+                Cell kv= column.get(0);
                 long txnId = kv.getTimestamp();
                 if(!txnIdMap.containsKey(txnId))
                     System.out.printf("Seen transaction id %d%n",txnId);
@@ -117,8 +126,8 @@ public class SIErrorCounter {
             while (results.hasNext()) {
                 Result r = results.next();
                 final byte[] row = r.getRow();
-                final List<KeyValue> list = r.list();
-                for (KeyValue kv : list) {
+                final List<Cell> list = r.listCells();
+                for (Cell kv : list) {
                     final byte[] f = kv.getFamily();
                     String family = Bytes.toString(f);
                     final byte[] q = kv.getQualifier();

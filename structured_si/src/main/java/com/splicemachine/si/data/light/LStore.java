@@ -112,11 +112,11 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
     @SuppressWarnings({"unchecked", "UnusedDeclaration"})
-    private Iterator<List<KeyValue>> scanRegion(LTable table, LGet scan) throws IOException {
+    private Iterator<List<Cell>> scanRegion(LTable table, LGet scan) throws IOException {
         final Iterator<Result> iterator = runScan(table, scan);
-        List<List<KeyValue>> results = Lists.newArrayList();
+        List<List<Cell>> results = Lists.newArrayList();
         while (iterator.hasNext()) {
-            results.add(Lists.newArrayList(iterator.next().raw()));
+            results.add(Lists.newArrayList(iterator.next().rawCells()));
         }
         return results.iterator();
     }

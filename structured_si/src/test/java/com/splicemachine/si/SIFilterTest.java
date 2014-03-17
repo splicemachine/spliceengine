@@ -1,21 +1,22 @@
 package com.splicemachine.si;
 
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.si.api.TransactionReadController;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.STableReader;
-import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.impl.TransactionId;
-import org.apache.hadoop.hbase.KeyValue;
+import java.io.IOException;
+import java.util.List;
+
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Result;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.List;
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.TransactionReadController;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.api.STableReader;
+import com.splicemachine.si.impl.IFilterState;
+import com.splicemachine.si.impl.TransactionId;
 
 @SuppressWarnings("unchecked")
 public class SIFilterTest extends SIConstants {
@@ -74,8 +75,8 @@ public class SIFilterTest extends SIConstants {
         insertAge(t2, "bill", 30);
 
         Result row = readEntireTuple("bill");
-        final List<KeyValue> keyValues = row.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES), dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
-        for (KeyValue kv : keyValues) {
+        final List<Cell> keyValues = row.getColumnCells(dataLib.encode(DEFAULT_FAMILY_BYTES), dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
+        for (Cell kv : keyValues) {
 						filterState.filterCell(kv);
         }
     }

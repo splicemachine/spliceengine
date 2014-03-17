@@ -1,17 +1,24 @@
 package com.splicemachine.si.impl.translate;
 
+import java.io.IOException;
+import java.util.List;
+
 import com.google.common.collect.Lists;
-import com.splicemachine.si.api.Clock;
-import com.splicemachine.si.data.light.*;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.List;
+import com.splicemachine.si.api.Clock;
+import com.splicemachine.si.data.light.IncrementingClock;
+import com.splicemachine.si.data.light.LDataLib;
+import com.splicemachine.si.data.light.LGet;
+import com.splicemachine.si.data.light.LStore;
+import com.splicemachine.si.data.light.LTable;
+import com.splicemachine.si.data.light.LTuple;
 
 public class TranslatorTest {
     @Test
@@ -59,13 +66,13 @@ public class TranslatorTest {
         final LTable table2 = store2.open("people");
         final Result result = store2.get(table2, get);
         Assert.assertNotNull(result);
-        final List<KeyValue> results = Lists.newArrayList(result.raw());
+        final List<Cell> results = Lists.newArrayList(result.rawCells());
         Assert.assertEquals(1, results.size());
-        final KeyValue kv = results.get(0);
-        Assert.assertEquals("joe", Bytes.toString(kv.getRow()));
-        Assert.assertEquals("family1", Bytes.toString(kv.getFamily()));
-        Assert.assertEquals("age", Bytes.toString(kv.getQualifier()));
+        final Cell kv = results.get(0);
+        Assert.assertEquals("joe", Bytes.toString(kv.getRowArray()));
+        Assert.assertEquals("family1", Bytes.toString(kv.getFamilyArray()));
+        Assert.assertEquals("age", Bytes.toString(kv.getQualifierArray()));
         Assert.assertEquals(100L, kv.getTimestamp());
-        Assert.assertEquals(20, Bytes.toInt(kv.getValue()));
+        Assert.assertEquals(20, Bytes.toInt(CellUtil.cloneValue(kv)));
     }
 }

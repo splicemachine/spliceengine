@@ -4,7 +4,6 @@ import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.LongObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectArrayList;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.filter.Filter;
 
@@ -34,7 +33,7 @@ public class FilterRowState<Result, Put extends OperationWithAttributes, Delete,
      */
     LongObjectOpenHashMap<Transaction> transactionCache = new LongObjectOpenHashMap<Transaction>();
 
-    ObjectArrayList<KeyValue> commitTimestamps = ObjectArrayList.newInstance();
+    ObjectArrayList<Cell> commitTimestamps = ObjectArrayList.newInstance();
 
     boolean siTombstoneIncluded = false;
 
@@ -80,11 +79,11 @@ public class FilterRowState<Result, Put extends OperationWithAttributes, Delete,
         }
     }
 
-    public void rememberCommitTimestamp(KeyValue keyValue) {
+    public void rememberCommitTimestamp(Cell keyValue) {
         commitTimestamps.add(keyValue);
     }
 
-    public ObjectArrayList<KeyValue> getCommitTimestamps() {
+    public ObjectArrayList<Cell> getCommitTimestamps() {
         return commitTimestamps;
     }
 
