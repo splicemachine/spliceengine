@@ -2,20 +2,21 @@ package com.splicemachine.derby.hbase;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
-
+import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.coprocessor.BaseRowProcessorEndpoint;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-
+import com.google.protobuf.Service;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
+import com.splicemachine.coprocessor.SpliceMessage.*;
 
 /**
  * Coprocessor for starting the derby services on top of HBase.
  *
  * @author John Leach
  */
-public class SpliceDerbyCoprocessor extends BaseRowProcessorEndpoint {
+public class SpliceDerbyCoprocessor extends SpliceDerbyCoprocessorService implements CoprocessorService, Coprocessor {
     private static final AtomicLong runningCoprocessors = new AtomicLong(0l);
     private boolean tableEnvMatch;
 
@@ -36,7 +37,6 @@ public class SpliceDerbyCoprocessor extends BaseRowProcessorEndpoint {
             SpliceDriver.driver().start();
             runningCoprocessors.incrementAndGet();
         }
-        super.start(e);
     }
 
     /**
@@ -53,6 +53,11 @@ public class SpliceDerbyCoprocessor extends BaseRowProcessorEndpoint {
             }
         }
     }
+
+	@Override
+	public Service getService() {
+		return this;
+	}
 
 }
 
