@@ -1,15 +1,14 @@
 package com.splicemachine.derby.utils.marshall;
 
+import java.util.List;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.hadoop.hbase.Cell;
+
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.EntryDecoder;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Put;
-
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -30,16 +29,16 @@ public interface RowMarshall {
                                 byte[] rowKey,
                                 int[] rowColumns,
                                 MultiFieldEncoder rowEncoder,
-                                List<KeyValue> kvResults) throws StandardException;
+                                List<Cell> kvResults) throws StandardException;
 
     public void fill(DataValueDescriptor[] row,int[] rowColumns,MultiFieldEncoder encoder) throws StandardException;
 
-    void decode(KeyValue value,
+    void decode(Cell value,
                 DataValueDescriptor[] fields,
                 int[] reversedKeyColumns,
                 MultiFieldDecoder rowDecoder) throws StandardException;
 
-    void decode(KeyValue value,
+    void decode(Cell value,
                 DataValueDescriptor[] fields,
                 int[] reversedKeyColumns,
                 EntryDecoder entryDecoder) throws StandardException;

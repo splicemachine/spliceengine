@@ -1,5 +1,27 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.io.FormatableIntHolder;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.store.access.Qualifier;
+import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
@@ -19,26 +41,6 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableArrayHolder;
-import org.apache.derby.iapi.services.io.FormatableIntHolder;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
 
 public class HashScanOperation extends ScanOperation implements SinkingOperation {
 		private static Logger LOG = Logger.getLogger(HashScanOperation.class);
@@ -222,14 +224,14 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				SpliceLogUtils.trace(LOG, "nextRow");
-				List<KeyValue> keyValues = new ArrayList<KeyValue>();
+				List<Cell> keyValues = new ArrayList<Cell>();
 				try {
 						regionScanner.next(keyValues);
 						if (!keyValues.isEmpty()) {
 								SpliceLogUtils.trace(LOG, "nextRow retrieved hbase values %s", keyValues);
 
 								DataValueDescriptor[] rowArray = currentRow.getRowArray();
-								for(KeyValue kv:keyValues){
+								for(Cell kv:keyValues){
 										RowMarshaller.sparsePacked().decode(kv, rowArray, baseColumnMap, (MultiFieldDecoder)null);
 								}
 								SpliceLogUtils.trace(LOG, "nextRow retrieved derby row %s", currentRow);

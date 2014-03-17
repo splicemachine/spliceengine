@@ -1,19 +1,5 @@
 package com.splicemachine.hbase.debug;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.index.BitIndex;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -21,6 +7,22 @@ import java.io.Writer;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+
+import com.google.common.collect.Lists;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
+
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.index.BitIndex;
 
 /**
  * @author Scott Fines
@@ -66,7 +68,7 @@ public class ColumnDumpTask extends DebugTask{
 
             writer = getWriter();
             scanner = region.getScanner(scan);
-            List<KeyValue> keyValues = Lists.newArrayList();
+            List<Cell> keyValues = Lists.newArrayList();
             region.startRegionOperation();
             System.out.println("Starting scan task");
             try{
@@ -74,7 +76,7 @@ public class ColumnDumpTask extends DebugTask{
                 boolean shouldContinue;
                 do{
                     keyValues.clear();
-                    shouldContinue = scanner.nextRaw(keyValues,null);
+                    shouldContinue = scanner.nextRaw(keyValues);
                     if(keyValues.size()>0){
                         writeRow(writer,keyValues);
                     }
@@ -99,13 +101,13 @@ public class ColumnDumpTask extends DebugTask{
     }
 
     private static final String outputPattern = "%-20s\t%8d\t%s%n";
-    private void writeRow(Writer writer,List<KeyValue> keyValues) throws IOException {
-        for(KeyValue kv:keyValues){
-            if(!kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY))
+    private void writeRow(Writer writer,List<Cell> keyValues) throws IOException {
+        for(Cell kv:keyValues){
+            if(! CellUtils.singleMatchingColumn(kv, SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY))
                 continue;
             long txnId = kv.getTimestamp();
 
-            byte[] value = kv.getValue();
+            byte[] value = kv.getValueArray();
             //split by separator
             decoder.set(value);
             BitIndex encodedIndex = decoder.getCurrentIndex();
@@ -121,7 +123,7 @@ public class ColumnDumpTask extends DebugTask{
             ByteBuffer buffer = decoder.nextAsBuffer(fieldDecoder, pos);
             byte[] bufferBytes = new byte[buffer.remaining()];
             buffer.get(bufferBytes);
-            String data = String.format(outputPattern, BytesUtil.toHex(kv.getRow()),txnId,BytesUtil.toHex(bufferBytes));
+            String data = String.format(outputPattern, BytesUtil.toHex(kv.getRowArray()),txnId,BytesUtil.toHex(bufferBytes));
 
             writer.write(data);
         }

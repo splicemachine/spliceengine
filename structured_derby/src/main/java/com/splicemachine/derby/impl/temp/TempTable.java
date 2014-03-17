@@ -1,21 +1,20 @@
 package com.splicemachine.derby.impl.temp;
 
-import com.google.common.primitives.Longs;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.marshall.SpreadBucket;
-import com.splicemachine.utils.Snowflake;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.coprocessor.ObserverContext;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
-import org.apache.hadoop.hbase.regionserver.StoreFile;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
+
+import com.google.common.primitives.Longs;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.regionserver.InternalScanner;
+import org.apache.hadoop.hbase.regionserver.StoreFile;
+
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.utils.marshall.SpreadBucket;
+import com.splicemachine.utils.Snowflake;
 
 /**
  * Representation of the current state of a TempTable.
@@ -103,13 +102,9 @@ public class TempTable {
 
 		private static class NoOpInternalScanner implements InternalScanner{
 
-				@Override public boolean next(List<KeyValue> results) throws IOException { return false;   }
+				@Override public boolean next(List<Cell> results) throws IOException { return false;   }
 
-				@Override public boolean next(List<KeyValue> results, String metric) throws IOException { return false;}
-
-				@Override public boolean next(List<KeyValue> result, int limit) throws IOException { return false;}
-
-				@Override public boolean next(List<KeyValue> result, int limit, String metric) throws IOException { return false; }
+				@Override public boolean next(List<Cell> result, int limit) throws IOException { return false;}
 
 				@Override public void close() throws IOException { }
 		}

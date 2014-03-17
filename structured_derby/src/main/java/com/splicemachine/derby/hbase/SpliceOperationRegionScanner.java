@@ -1,6 +1,28 @@
 package com.splicemachine.derby.hbase;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
 import com.google.common.collect.Lists;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -8,7 +30,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.management.XplainTaskReporter;
-import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stats.TimeUtils;
@@ -18,29 +39,8 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.WriteStats;
-import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
-import org.apache.log4j.Logger;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 public class SpliceOperationRegionScanner implements RegionScanner {
     private static Logger LOG = Logger.getLogger(SpliceOperationRegionScanner.class);
@@ -116,7 +116,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
 
     @Override
-	public boolean next(final List<KeyValue> results) throws IOException {
+	public boolean next(final List<Cell> results) throws IOException {
 		SpliceLogUtils.trace(LOG, "next ");
         if(finished)return false;
         impl.prepareContextManager();
@@ -211,7 +211,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
 
     @Override
-	public boolean next(List<KeyValue> result, int limit) throws IOException {
+	public boolean next(List<Cell> result, int limit) throws IOException {
 		throw new RuntimeException("Not Implemented");
 	}
 
@@ -253,7 +253,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	}
 
 	@Override
-	public boolean isFilterDone() {
+	public boolean isFilterDone() throws IOException {
 		SpliceLogUtils.trace(LOG,"isFilterDone");
 		return regionScanner.isFilterDone();
 	}
@@ -279,16 +279,6 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     }
 
 	@Override
-	public boolean next(List<KeyValue> results, String metric)throws IOException {
-		return next(results);
-	}
-
-	@Override
-	public boolean next(List<KeyValue> result, int limit, String metric) throws IOException {
-		throw new IOException("next with metric not supported " + metric);
-	}
-
-	@Override
 	public boolean reseek(byte[] row) throws IOException {
 		throw new IOException("reseek not supported");
 	}
@@ -298,20 +288,23 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     }
 	@Override
 	public long getMvccReadPoint() {
-		return 0;
+        // TODO: impl
+        throw new RuntimeException("Not Implemented");
 	}
 
-	@Override
-	public boolean nextRaw(List<KeyValue> keyValues, String metric) throws IOException {
-		return nextRaw(keyValues);
-	}
+    @Override
+    public long getMaxResultSize() {
+        // TODO:
+        throw new RuntimeException("Not Implemented");
+    }
 
-	@Override
-	public boolean nextRaw(List<KeyValue> arg0, int arg1, String arg2) throws IOException {
-		throw new IOException("Not Implemented");
-	}
+    @Override
+    public boolean nextRaw(List<Cell> result, int limit) throws IOException {
+        throw new RuntimeException("Not Implemented");
+    }
 
-	public boolean nextRaw(List<KeyValue> keyValues) throws IOException {
+    @Override
+	public boolean nextRaw(List<Cell> keyValues) throws IOException {
 		return next(keyValues);
 	}
 

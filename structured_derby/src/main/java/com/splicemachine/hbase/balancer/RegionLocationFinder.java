@@ -19,8 +19,6 @@
 //this class may become unnecessary and undesirable
 package com.splicemachine.hbase.balancer;
 
-import org.apache.hadoop.hbase.ServerName;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,6 +29,9 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -39,13 +40,9 @@ import org.apache.hadoop.hbase.HDFSBlocksDistribution;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.master.MasterServices;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.util.Bytes;
-
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 
 /**
  * This will find where data for a region is located in HDFS. It ranks
@@ -126,10 +123,10 @@ public class RegionLocationFinder {
     protected List<ServerName> internalGetTopBlockLocation(HRegionInfo region) {
         List<ServerName> topServerNames = null;
         try {
-            HTableDescriptor tableDescriptor = getTableDescriptor(region.getTableName());
+            HTableDescriptor tableDescriptor = getTableDescriptor(region.getTable());
             if (tableDescriptor != null) {
                 HDFSBlocksDistribution blocksDistribution =
-                        HRegion.computeHDFSBlocksDistribution(getConf(), tableDescriptor, region.getEncodedName());
+                        HRegion.computeHDFSBlocksDistribution(getConf(), tableDescriptor, region);
                 List<String> topHosts = blocksDistribution.getTopHosts();
                 topServerNames = mapHostNameToServerName(topHosts);
             }
@@ -148,15 +145,15 @@ public class RegionLocationFinder {
      * @return HTableDescriptor
      * @throws IOException
      */
-    protected HTableDescriptor getTableDescriptor(byte[] tableName) throws IOException {
+    protected HTableDescriptor getTableDescriptor(TableName tableName) throws IOException {
         HTableDescriptor tableDescriptor = null;
         try {
             if (this.services != null) {
-                tableDescriptor = this.services.getTableDescriptors().get(Bytes.toString(tableName));
+                tableDescriptor = this.services.getTableDescriptors().get(tableName);
             }
         } catch (FileNotFoundException fnfe) {
             LOG.debug("FileNotFoundException during getTableDescriptors." + " Current table name = "
-                    + Bytes.toStringBinary(tableName), fnfe);
+                    + tableName.getNameAsString(), fnfe);
         }
 
         return tableDescriptor;

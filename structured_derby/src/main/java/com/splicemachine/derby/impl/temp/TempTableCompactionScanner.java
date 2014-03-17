@@ -1,10 +1,10 @@
 package com.splicemachine.derby.impl.temp;
 
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
-
 import java.io.IOException;
 import java.util.List;
+
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.regionserver.InternalScanner;
 
 /**
  * Scanner for use with the TEMP table compaction.
@@ -55,22 +55,12 @@ import java.util.List;
  */
 public class TempTableCompactionScanner implements InternalScanner {
 		@Override
-		public boolean next(List<KeyValue> results) throws IOException {
+		public boolean next(List<Cell> results) throws IOException {
 				return false;  //To change body of implemented methods use File | Settings | File Templates.
 		}
 
 		@Override
-		public boolean next(List<KeyValue> results, String metric) throws IOException {
-				return false;  //To change body of implemented methods use File | Settings | File Templates.
-		}
-
-		@Override
-		public boolean next(List<KeyValue> result, int limit) throws IOException {
-				return false;  //To change body of implemented methods use File | Settings | File Templates.
-		}
-
-		@Override
-		public boolean next(List<KeyValue> result, int limit, String metric) throws IOException {
+		public boolean next(List<Cell> result, int limit) throws IOException {
 				return false;  //To change body of implemented methods use File | Settings | File Templates.
 		}
 

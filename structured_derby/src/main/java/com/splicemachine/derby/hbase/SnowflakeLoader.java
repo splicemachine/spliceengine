@@ -1,21 +1,27 @@
 package com.splicemachine.derby.hbase;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.utils.Snowflake;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.filter.FilterBase;
-import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
+
+import com.google.common.collect.Lists;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.FilterBase;
+import org.apache.hadoop.hbase.util.Bytes;
+
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.utils.Snowflake;
 
 /**
  * @author Scott Fines
@@ -51,15 +57,15 @@ public class SnowflakeLoader {
                 List<byte[]> availableIds = Lists.newArrayList();
                 while((result = scanner.next())!=null){
                     //we found an entry!
-                    KeyValue[] raw = result.raw();
-                    for(KeyValue kv:raw){
-                        if(Bytes.equals(localAddress, kv.getValue())){
+                    Cell[] raw = result.rawCells();
+                    for(Cell kv:raw){
+                        if(Bytes.equals(localAddress, kv.getValueArray())){
                             //this is ours already! we're done!
-                            machineId = Encoding.decodeShort(kv.getQualifier());
+                            machineId = Encoding.decodeShort(kv.getQualifierArray());
                             snowflake = new Snowflake(machineId);
                             return snowflake;
                         }else{
-                            availableIds.add(kv.getQualifier());
+                            availableIds.add(kv.getQualifierArray());
                         }
                     }
                 }
@@ -139,6 +145,7 @@ public class SnowflakeLoader {
             this.foundMatch=false;
         }
 
+        // TODO JC - protobuf
         @Override
         public void write(DataOutput out) throws IOException {
             out.writeInt(addressMatch.length);
@@ -152,10 +159,10 @@ public class SnowflakeLoader {
         }
 
         @Override
-        public ReturnCode filterKeyValue(KeyValue ignored) {
+        public ReturnCode filterKeyValue(Cell ignored) {
             if(foundMatch)
                 return ReturnCode.NEXT_ROW; //can skip the remainder, because we've already got an entry allocated
-            byte[] value = ignored.getValue();
+            byte[] value = CellUtil.cloneValue(ignored);
             if(Bytes.equals(addressMatch,value)){
                 foundMatch= true;
                 return ReturnCode.INCLUDE;

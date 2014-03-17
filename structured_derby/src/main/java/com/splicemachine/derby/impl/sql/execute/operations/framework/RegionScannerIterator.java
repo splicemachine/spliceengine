@@ -4,22 +4,24 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.splicemachine.utils.ByteSlice;
+import com.yammer.metrics.core.Timer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.storage.EntryDecoder;
-import com.yammer.metrics.core.Timer;
+import com.splicemachine.utils.ByteSlice;
 /**
  * Iterator over the source provided utilizing the sources nextRow(SpliceRuntimeContext) method.
  * 
@@ -28,7 +30,7 @@ import com.yammer.metrics.core.Timer;
  */
 public class RegionScannerIterator implements StandardIterator<ExecRow> {
 	protected RegionScanner regionScanner;
-		protected List<KeyValue> keyValues;
+		protected List<Cell> keyValues;
 		protected long rowsRead;
 		protected GroupedRow groupedRow;
 		protected EntryDecoder rowDecoder;
@@ -39,7 +41,7 @@ public class RegionScannerIterator implements StandardIterator<ExecRow> {
 		protected ByteSlice slice;
 		protected Timer timer;
 
-		public RegionScannerIterator(RegionScanner regionScanner, List<KeyValue> keyValues, ExecRow currentRow, RowLocation currentRowLocation, int[] baseColumnMap, boolean isIndex, Timer timer) {
+		public RegionScannerIterator(RegionScanner regionScanner, List<Cell> keyValues, ExecRow currentRow, RowLocation currentRowLocation, int[] baseColumnMap, boolean isIndex, Timer timer) {
 			this.regionScanner = regionScanner;
 			this.keyValues = keyValues;
 			this.groupedRow = new GroupedRow();
@@ -76,7 +78,7 @@ public class RegionScannerIterator implements StandardIterator<ExecRow> {
                        currentRow.resetRowArray();
                        DataValueDescriptor[] fields = currentRow.getRowArray();
                        if (fields.length != 0) {
-                       	for(KeyValue kv:keyValues){
+                       	for(Cell kv:keyValues){
                                //should only be 1
                        		RowMarshaller.sparsePacked().decode(kv,fields,baseColumnMap,rowDecoder);
                        	}
@@ -89,7 +91,7 @@ public class RegionScannerIterator implements StandardIterator<ExecRow> {
                             */
                            currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
                        } else {
-                       	slice.set(keyValues.get(0).getBuffer(), keyValues.get(0).getRowOffset(), keyValues.get(0).getRowLength());
+                       	slice.set(CellUtils.getBuffer(keyValues.get(0)), keyValues.get(0).getRowOffset(), keyValues.get(0).getRowLength());
                        	currentRowLocation.setValue(slice);
                        }
                        rowsRead++;
