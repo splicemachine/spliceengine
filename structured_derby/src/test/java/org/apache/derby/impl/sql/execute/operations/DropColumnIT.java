@@ -91,7 +91,6 @@ public class DropColumnIT extends SpliceUnitTest {
         try {
             methodWatcher.prepareStatement("alter table DropColumnIT.customer drop column c_data").execute();
             int n = rowCount(SCHEMA_NAME, CustomerTable.TABLE_NAME);
-            LOG.error("n = " + n);
             Assert.assertEquals(n, nRows);
 
             nCols -= 1;
@@ -101,7 +100,8 @@ public class DropColumnIT extends SpliceUnitTest {
             // ignore
         }
     }
-    /*@Test
+
+    @Test
     public void testDropPKColumn() throws Exception{
         Connection connection = methodWatcher.getOrCreateConnection();
         DatabaseMetaData dmd = connection.getMetaData();
@@ -111,7 +111,6 @@ public class DropColumnIT extends SpliceUnitTest {
         // Drop PK column
         methodWatcher.prepareStatement("alter table DropColumnIT.customer drop column c_id").execute();
         int n = rowCount(SCHEMA_NAME, CustomerTable.TABLE_NAME);
-        LOG.error("n = " + n);
         Assert.assertEquals(n, nRows);
 
         nCols -= 1;
@@ -122,7 +121,7 @@ public class DropColumnIT extends SpliceUnitTest {
         rs = dmd.getPrimaryKeys(null, SCHEMA_NAME, CustomerTable.TABLE_NAME);
         Assert.assertEquals(0, resultSetSize(rs));
         rs.close();
-    }*/
+    }
 
     @Test
     public void testDropIndexColumn() throws Exception{
@@ -141,7 +140,6 @@ public class DropColumnIT extends SpliceUnitTest {
         // Drop index column
         methodWatcher.prepareStatement("alter table DropColumnIT.customer drop column c_first").execute();
         int n = rowCount(SCHEMA_NAME, CustomerTable.TABLE_NAME);
-        LOG.error("n = " + n);
         Assert.assertEquals(n, nRows);
 
         nCols -= 1;
