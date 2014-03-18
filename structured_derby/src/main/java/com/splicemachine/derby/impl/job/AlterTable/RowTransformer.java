@@ -106,8 +106,9 @@ public class RowTransformer {
         initExecRow();
         initEncoder();
         baseColumnMap = IntArrays.count(oldRow.nColumns());
-        formatIds = DataDictionaryUtils.getFormatIds(txnId, tableId);
+
         if (oldColumnOrdering != null && oldColumnOrdering.length > 0) {
+            formatIds = DataDictionaryUtils.getFormatIds(txnId, tableId);
             kdvds = new DataValueDescriptor[oldColumnOrdering.length];
             for (int i = 0; i < oldColumnOrdering.length; ++i) {
                 kdvds[i] = LazyDataValueFactory.getLazyNull(formatIds[oldColumnOrdering[i]]);

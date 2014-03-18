@@ -1721,7 +1721,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         }
         // Create a new table
 		newHeapConglom =
-                transactionController.createAndLoadConglomerate(
+                tc.createAndLoadConglomerate(
                 "heap",
                 emptyHeapRow.getRowArray(),
                 columnOrdering,
@@ -1782,7 +1782,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 		closeBulkFetchScan();
 
 		// Set the "estimated" row count
-		ScanController compressHeapSC = transactionController.openScan(
+		ScanController compressHeapSC = tc.openScan(
 							newHeapConglom,
 							false,
 							TransactionController.OPENMODE_FORUPDATE,
@@ -2351,7 +2351,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                 LOG.error("Couldn't start transaction for tentative DDL operation");
                 throw Exceptions.parseException(e);
             }
-            TentativeIndexDesc tentativeIndexDesc = new TentativeIndexDesc(newIndexCongloms[index], td.getHeapConglomerateId(),
+            TentativeIndexDesc tentativeIndexDesc = new TentativeIndexDesc(newIndexCongloms[index], newHeapConglom,
                     baseColumnPositions, unique,
                     uniqueWithDuplicateNulls,
                     SpliceUtils.bitSetFromBooleanArray(descColumns));
@@ -2362,15 +2362,14 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
             notifyMetadataChange(ddlChange);
 
-            final long tableConglomId = td.getHeapConglomerateId();
-            HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
+            HTableInterface table = SpliceAccessManager.getHTable(Long.toString(newHeapConglom).getBytes());
             try{
                 // Add the indexes to the exisiting regions
                 createIndex(activation, ddlChange, table, td);
 
-                TransactionId indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, transactor,tableConglomId);
+                TransactionId indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, transactor,newHeapConglom);
 
-                populateIndex(activation, baseColumnPositions, descColumns, tableConglomId, table, indexTransaction, tentativeIndexDesc);
+                populateIndex(activation, baseColumnPositions, descColumns, newHeapConglom, table, indexTransaction, tentativeIndexDesc);
                 //only commit the index transaction if the job actually completed
                 transactor.commit(indexTransaction);
             }finally{
