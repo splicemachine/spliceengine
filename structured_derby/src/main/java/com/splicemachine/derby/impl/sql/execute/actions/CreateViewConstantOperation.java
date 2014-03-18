@@ -18,6 +18,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.derby.catalog.UUID;
+import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -114,6 +115,14 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 		dd.startWriting(lcc);
 
 		SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
+        TableDescriptor existingDescriptor = dd.getTableDescriptor(tableName, sd, tc);
+        if (existingDescriptor != null) {
+            throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
+                    existingDescriptor.getDescriptorType(),
+                    existingDescriptor.getDescriptorName(),
+                    sd.getDescriptorType(),
+                    sd.getDescriptorName());
+        }
 
 		/* Create a new table descriptor.
 		 * (Pass in row locking, even though meaningless for views.)
