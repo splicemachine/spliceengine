@@ -351,4 +351,19 @@ public class ViewConstantOperationIT extends SpliceUnitTest {
             }
         }
     }
+
+    @Test
+    public void testCantCreateViewWithSameName() throws Exception {
+        methodWatcher.getStatement().execute(String.format("create view %s.duplicateView as select * from %s",
+                tableSchema.schemaName,
+                this.getTableReference(EMP_NAME_TABLE)));
+        try {
+            methodWatcher.getStatement().execute(String.format("create view %s.duplicateView as select * from %s",
+                    tableSchema.schemaName,
+                    this.getTableReference(EMP_NAME_TABLE)));
+            Assert.fail("Shouldn't create an index with a duplicate name");
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getCause().getMessage().contains("already exists"));
+        }
+    }
 }
