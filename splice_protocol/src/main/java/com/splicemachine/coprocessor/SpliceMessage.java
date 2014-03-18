@@ -624,6 +624,16 @@ public final class SpliceMessage {
 
   public interface SpliceObserverInstructionsOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
+
+    // optional bytes bytes = 1;
+    /**
+     * <code>optional bytes bytes = 1;</code>
+     */
+    boolean hasBytes();
+    /**
+     * <code>optional bytes bytes = 1;</code>
+     */
+    com.google.protobuf.ByteString getBytes();
   }
   /**
    * Protobuf type {@code SpliceObserverInstructions}
@@ -658,6 +668,7 @@ public final class SpliceMessage {
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       initFields();
+      int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
@@ -673,6 +684,11 @@ public final class SpliceMessage {
                                      extensionRegistry, tag)) {
                 done = true;
               }
+              break;
+            }
+            case 10: {
+              bitField0_ |= 0x00000001;
+              bytes_ = input.readBytes();
               break;
             }
           }
@@ -714,7 +730,25 @@ public final class SpliceMessage {
       return PARSER;
     }
 
+    private int bitField0_;
+    // optional bytes bytes = 1;
+    public static final int BYTES_FIELD_NUMBER = 1;
+    private com.google.protobuf.ByteString bytes_;
+    /**
+     * <code>optional bytes bytes = 1;</code>
+     */
+    public boolean hasBytes() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>optional bytes bytes = 1;</code>
+     */
+    public com.google.protobuf.ByteString getBytes() {
+      return bytes_;
+    }
+
     private void initFields() {
+      bytes_ = com.google.protobuf.ByteString.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -728,6 +762,9 @@ public final class SpliceMessage {
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBytes(1, bytes_);
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -737,6 +774,10 @@ public final class SpliceMessage {
       if (size != -1) return size;
 
       size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, bytes_);
+      }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
       return size;
@@ -760,6 +801,11 @@ public final class SpliceMessage {
       com.splicemachine.coprocessor.SpliceMessage.SpliceObserverInstructions other = (com.splicemachine.coprocessor.SpliceMessage.SpliceObserverInstructions) obj;
 
       boolean result = true;
+      result = result && (hasBytes() == other.hasBytes());
+      if (hasBytes()) {
+        result = result && getBytes()
+            .equals(other.getBytes());
+      }
       result = result &&
           getUnknownFields().equals(other.getUnknownFields());
       return result;
@@ -773,6 +819,10 @@ public final class SpliceMessage {
       }
       int hash = 41;
       hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasBytes()) {
+        hash = (37 * hash) + BYTES_FIELD_NUMBER;
+        hash = (53 * hash) + getBytes().hashCode();
+      }
       hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -882,6 +932,8 @@ public final class SpliceMessage {
 
       public Builder clear() {
         super.clear();
+        bytes_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000001);
         return this;
       }
 
@@ -908,6 +960,13 @@ public final class SpliceMessage {
 
       public com.splicemachine.coprocessor.SpliceMessage.SpliceObserverInstructions buildPartial() {
         com.splicemachine.coprocessor.SpliceMessage.SpliceObserverInstructions result = new com.splicemachine.coprocessor.SpliceMessage.SpliceObserverInstructions(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.bytes_ = bytes_;
+        result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
       }
@@ -923,6 +982,9 @@ public final class SpliceMessage {
 
       public Builder mergeFrom(com.splicemachine.coprocessor.SpliceMessage.SpliceObserverInstructions other) {
         if (other == com.splicemachine.coprocessor.SpliceMessage.SpliceObserverInstructions.getDefaultInstance()) return this;
+        if (other.hasBytes()) {
+          setBytes(other.getBytes());
+        }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
       }
@@ -946,6 +1008,43 @@ public final class SpliceMessage {
             mergeFrom(parsedMessage);
           }
         }
+        return this;
+      }
+      private int bitField0_;
+
+      // optional bytes bytes = 1;
+      private com.google.protobuf.ByteString bytes_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>optional bytes bytes = 1;</code>
+       */
+      public boolean hasBytes() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>optional bytes bytes = 1;</code>
+       */
+      public com.google.protobuf.ByteString getBytes() {
+        return bytes_;
+      }
+      /**
+       * <code>optional bytes bytes = 1;</code>
+       */
+      public Builder setBytes(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        bytes_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bytes bytes = 1;</code>
+       */
+      public Builder clearBytes() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        bytes_ = getDefaultInstance().getBytes();
+        onChanged();
         return this;
       }
 
@@ -1720,6 +1819,51 @@ public final class SpliceMessage {
 
   public interface SpliceSchedulerRequestOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
+
+    // optional bytes taskStart = 1;
+    /**
+     * <code>optional bytes taskStart = 1;</code>
+     */
+    boolean hasTaskStart();
+    /**
+     * <code>optional bytes taskStart = 1;</code>
+     */
+    com.google.protobuf.ByteString getTaskStart();
+
+    // optional bytes taskEnd = 2;
+    /**
+     * <code>optional bytes taskEnd = 2;</code>
+     */
+    boolean hasTaskEnd();
+    /**
+     * <code>optional bytes taskEnd = 2;</code>
+     */
+    com.google.protobuf.ByteString getTaskEnd();
+
+    // optional string className = 3;
+    /**
+     * <code>optional string className = 3;</code>
+     */
+    boolean hasClassName();
+    /**
+     * <code>optional string className = 3;</code>
+     */
+    java.lang.String getClassName();
+    /**
+     * <code>optional string className = 3;</code>
+     */
+    com.google.protobuf.ByteString
+        getClassNameBytes();
+
+    // optional bytes classBytes = 4;
+    /**
+     * <code>optional bytes classBytes = 4;</code>
+     */
+    boolean hasClassBytes();
+    /**
+     * <code>optional bytes classBytes = 4;</code>
+     */
+    com.google.protobuf.ByteString getClassBytes();
   }
   /**
    * Protobuf type {@code SpliceSchedulerRequest}
@@ -1754,6 +1898,7 @@ public final class SpliceMessage {
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       initFields();
+      int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
@@ -1769,6 +1914,26 @@ public final class SpliceMessage {
                                      extensionRegistry, tag)) {
                 done = true;
               }
+              break;
+            }
+            case 10: {
+              bitField0_ |= 0x00000001;
+              taskStart_ = input.readBytes();
+              break;
+            }
+            case 18: {
+              bitField0_ |= 0x00000002;
+              taskEnd_ = input.readBytes();
+              break;
+            }
+            case 26: {
+              bitField0_ |= 0x00000004;
+              className_ = input.readBytes();
+              break;
+            }
+            case 34: {
+              bitField0_ |= 0x00000008;
+              classBytes_ = input.readBytes();
               break;
             }
           }
@@ -1810,7 +1975,103 @@ public final class SpliceMessage {
       return PARSER;
     }
 
+    private int bitField0_;
+    // optional bytes taskStart = 1;
+    public static final int TASKSTART_FIELD_NUMBER = 1;
+    private com.google.protobuf.ByteString taskStart_;
+    /**
+     * <code>optional bytes taskStart = 1;</code>
+     */
+    public boolean hasTaskStart() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>optional bytes taskStart = 1;</code>
+     */
+    public com.google.protobuf.ByteString getTaskStart() {
+      return taskStart_;
+    }
+
+    // optional bytes taskEnd = 2;
+    public static final int TASKEND_FIELD_NUMBER = 2;
+    private com.google.protobuf.ByteString taskEnd_;
+    /**
+     * <code>optional bytes taskEnd = 2;</code>
+     */
+    public boolean hasTaskEnd() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>optional bytes taskEnd = 2;</code>
+     */
+    public com.google.protobuf.ByteString getTaskEnd() {
+      return taskEnd_;
+    }
+
+    // optional string className = 3;
+    public static final int CLASSNAME_FIELD_NUMBER = 3;
+    private java.lang.Object className_;
+    /**
+     * <code>optional string className = 3;</code>
+     */
+    public boolean hasClassName() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>optional string className = 3;</code>
+     */
+    public java.lang.String getClassName() {
+      java.lang.Object ref = className_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          className_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string className = 3;</code>
+     */
+    public com.google.protobuf.ByteString
+        getClassNameBytes() {
+      java.lang.Object ref = className_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        className_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    // optional bytes classBytes = 4;
+    public static final int CLASSBYTES_FIELD_NUMBER = 4;
+    private com.google.protobuf.ByteString classBytes_;
+    /**
+     * <code>optional bytes classBytes = 4;</code>
+     */
+    public boolean hasClassBytes() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>optional bytes classBytes = 4;</code>
+     */
+    public com.google.protobuf.ByteString getClassBytes() {
+      return classBytes_;
+    }
+
     private void initFields() {
+      taskStart_ = com.google.protobuf.ByteString.EMPTY;
+      taskEnd_ = com.google.protobuf.ByteString.EMPTY;
+      className_ = "";
+      classBytes_ = com.google.protobuf.ByteString.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -1824,6 +2085,18 @@ public final class SpliceMessage {
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBytes(1, taskStart_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeBytes(2, taskEnd_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeBytes(3, getClassNameBytes());
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeBytes(4, classBytes_);
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -1833,6 +2106,22 @@ public final class SpliceMessage {
       if (size != -1) return size;
 
       size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, taskStart_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(2, taskEnd_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(3, getClassNameBytes());
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(4, classBytes_);
+      }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
       return size;
@@ -1856,6 +2145,26 @@ public final class SpliceMessage {
       com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerRequest other = (com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerRequest) obj;
 
       boolean result = true;
+      result = result && (hasTaskStart() == other.hasTaskStart());
+      if (hasTaskStart()) {
+        result = result && getTaskStart()
+            .equals(other.getTaskStart());
+      }
+      result = result && (hasTaskEnd() == other.hasTaskEnd());
+      if (hasTaskEnd()) {
+        result = result && getTaskEnd()
+            .equals(other.getTaskEnd());
+      }
+      result = result && (hasClassName() == other.hasClassName());
+      if (hasClassName()) {
+        result = result && getClassName()
+            .equals(other.getClassName());
+      }
+      result = result && (hasClassBytes() == other.hasClassBytes());
+      if (hasClassBytes()) {
+        result = result && getClassBytes()
+            .equals(other.getClassBytes());
+      }
       result = result &&
           getUnknownFields().equals(other.getUnknownFields());
       return result;
@@ -1869,6 +2178,22 @@ public final class SpliceMessage {
       }
       int hash = 41;
       hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasTaskStart()) {
+        hash = (37 * hash) + TASKSTART_FIELD_NUMBER;
+        hash = (53 * hash) + getTaskStart().hashCode();
+      }
+      if (hasTaskEnd()) {
+        hash = (37 * hash) + TASKEND_FIELD_NUMBER;
+        hash = (53 * hash) + getTaskEnd().hashCode();
+      }
+      if (hasClassName()) {
+        hash = (37 * hash) + CLASSNAME_FIELD_NUMBER;
+        hash = (53 * hash) + getClassName().hashCode();
+      }
+      if (hasClassBytes()) {
+        hash = (37 * hash) + CLASSBYTES_FIELD_NUMBER;
+        hash = (53 * hash) + getClassBytes().hashCode();
+      }
       hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -1978,6 +2303,14 @@ public final class SpliceMessage {
 
       public Builder clear() {
         super.clear();
+        taskStart_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        taskEnd_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        className_ = "";
+        bitField0_ = (bitField0_ & ~0x00000004);
+        classBytes_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
 
@@ -2004,6 +2337,25 @@ public final class SpliceMessage {
 
       public com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerRequest buildPartial() {
         com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerRequest result = new com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerRequest(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.taskStart_ = taskStart_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.taskEnd_ = taskEnd_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        result.className_ = className_;
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000008;
+        }
+        result.classBytes_ = classBytes_;
+        result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
       }
@@ -2019,6 +2371,20 @@ public final class SpliceMessage {
 
       public Builder mergeFrom(com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerRequest other) {
         if (other == com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerRequest.getDefaultInstance()) return this;
+        if (other.hasTaskStart()) {
+          setTaskStart(other.getTaskStart());
+        }
+        if (other.hasTaskEnd()) {
+          setTaskEnd(other.getTaskEnd());
+        }
+        if (other.hasClassName()) {
+          bitField0_ |= 0x00000004;
+          className_ = other.className_;
+          onChanged();
+        }
+        if (other.hasClassBytes()) {
+          setClassBytes(other.getClassBytes());
+        }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
       }
@@ -2044,6 +2410,189 @@ public final class SpliceMessage {
         }
         return this;
       }
+      private int bitField0_;
+
+      // optional bytes taskStart = 1;
+      private com.google.protobuf.ByteString taskStart_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>optional bytes taskStart = 1;</code>
+       */
+      public boolean hasTaskStart() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>optional bytes taskStart = 1;</code>
+       */
+      public com.google.protobuf.ByteString getTaskStart() {
+        return taskStart_;
+      }
+      /**
+       * <code>optional bytes taskStart = 1;</code>
+       */
+      public Builder setTaskStart(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        taskStart_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bytes taskStart = 1;</code>
+       */
+      public Builder clearTaskStart() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        taskStart_ = getDefaultInstance().getTaskStart();
+        onChanged();
+        return this;
+      }
+
+      // optional bytes taskEnd = 2;
+      private com.google.protobuf.ByteString taskEnd_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>optional bytes taskEnd = 2;</code>
+       */
+      public boolean hasTaskEnd() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>optional bytes taskEnd = 2;</code>
+       */
+      public com.google.protobuf.ByteString getTaskEnd() {
+        return taskEnd_;
+      }
+      /**
+       * <code>optional bytes taskEnd = 2;</code>
+       */
+      public Builder setTaskEnd(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        taskEnd_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bytes taskEnd = 2;</code>
+       */
+      public Builder clearTaskEnd() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        taskEnd_ = getDefaultInstance().getTaskEnd();
+        onChanged();
+        return this;
+      }
+
+      // optional string className = 3;
+      private java.lang.Object className_ = "";
+      /**
+       * <code>optional string className = 3;</code>
+       */
+      public boolean hasClassName() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>optional string className = 3;</code>
+       */
+      public java.lang.String getClassName() {
+        java.lang.Object ref = className_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          className_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string className = 3;</code>
+       */
+      public com.google.protobuf.ByteString
+          getClassNameBytes() {
+        java.lang.Object ref = className_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          className_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string className = 3;</code>
+       */
+      public Builder setClassName(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000004;
+        className_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string className = 3;</code>
+       */
+      public Builder clearClassName() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        className_ = getDefaultInstance().getClassName();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string className = 3;</code>
+       */
+      public Builder setClassNameBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000004;
+        className_ = value;
+        onChanged();
+        return this;
+      }
+
+      // optional bytes classBytes = 4;
+      private com.google.protobuf.ByteString classBytes_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>optional bytes classBytes = 4;</code>
+       */
+      public boolean hasClassBytes() {
+        return ((bitField0_ & 0x00000008) == 0x00000008);
+      }
+      /**
+       * <code>optional bytes classBytes = 4;</code>
+       */
+      public com.google.protobuf.ByteString getClassBytes() {
+        return classBytes_;
+      }
+      /**
+       * <code>optional bytes classBytes = 4;</code>
+       */
+      public Builder setClassBytes(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000008;
+        classBytes_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bytes classBytes = 4;</code>
+       */
+      public Builder clearClassBytes() {
+        bitField0_ = (bitField0_ & ~0x00000008);
+        classBytes_ = getDefaultInstance().getClassBytes();
+        onChanged();
+        return this;
+      }
 
       // @@protoc_insertion_point(builder_scope:SpliceSchedulerRequest)
     }
@@ -2058,6 +2607,41 @@ public final class SpliceMessage {
 
   public interface SpliceSchedulerResponseOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
+
+    // optional string taskNode = 1;
+    /**
+     * <code>optional string taskNode = 1;</code>
+     */
+    boolean hasTaskNode();
+    /**
+     * <code>optional string taskNode = 1;</code>
+     */
+    java.lang.String getTaskNode();
+    /**
+     * <code>optional string taskNode = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getTaskNodeBytes();
+
+    // optional bytes taskId = 2;
+    /**
+     * <code>optional bytes taskId = 2;</code>
+     */
+    boolean hasTaskId();
+    /**
+     * <code>optional bytes taskId = 2;</code>
+     */
+    com.google.protobuf.ByteString getTaskId();
+
+    // optional double estimatedCost = 3;
+    /**
+     * <code>optional double estimatedCost = 3;</code>
+     */
+    boolean hasEstimatedCost();
+    /**
+     * <code>optional double estimatedCost = 3;</code>
+     */
+    double getEstimatedCost();
   }
   /**
    * Protobuf type {@code SpliceSchedulerResponse}
@@ -2092,6 +2676,7 @@ public final class SpliceMessage {
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       initFields();
+      int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
@@ -2107,6 +2692,21 @@ public final class SpliceMessage {
                                      extensionRegistry, tag)) {
                 done = true;
               }
+              break;
+            }
+            case 10: {
+              bitField0_ |= 0x00000001;
+              taskNode_ = input.readBytes();
+              break;
+            }
+            case 18: {
+              bitField0_ |= 0x00000002;
+              taskId_ = input.readBytes();
+              break;
+            }
+            case 25: {
+              bitField0_ |= 0x00000004;
+              estimatedCost_ = input.readDouble();
               break;
             }
           }
@@ -2148,7 +2748,86 @@ public final class SpliceMessage {
       return PARSER;
     }
 
+    private int bitField0_;
+    // optional string taskNode = 1;
+    public static final int TASKNODE_FIELD_NUMBER = 1;
+    private java.lang.Object taskNode_;
+    /**
+     * <code>optional string taskNode = 1;</code>
+     */
+    public boolean hasTaskNode() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>optional string taskNode = 1;</code>
+     */
+    public java.lang.String getTaskNode() {
+      java.lang.Object ref = taskNode_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          taskNode_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string taskNode = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getTaskNodeBytes() {
+      java.lang.Object ref = taskNode_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        taskNode_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    // optional bytes taskId = 2;
+    public static final int TASKID_FIELD_NUMBER = 2;
+    private com.google.protobuf.ByteString taskId_;
+    /**
+     * <code>optional bytes taskId = 2;</code>
+     */
+    public boolean hasTaskId() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>optional bytes taskId = 2;</code>
+     */
+    public com.google.protobuf.ByteString getTaskId() {
+      return taskId_;
+    }
+
+    // optional double estimatedCost = 3;
+    public static final int ESTIMATEDCOST_FIELD_NUMBER = 3;
+    private double estimatedCost_;
+    /**
+     * <code>optional double estimatedCost = 3;</code>
+     */
+    public boolean hasEstimatedCost() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>optional double estimatedCost = 3;</code>
+     */
+    public double getEstimatedCost() {
+      return estimatedCost_;
+    }
+
     private void initFields() {
+      taskNode_ = "";
+      taskId_ = com.google.protobuf.ByteString.EMPTY;
+      estimatedCost_ = 0D;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -2162,6 +2841,15 @@ public final class SpliceMessage {
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBytes(1, getTaskNodeBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeBytes(2, taskId_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeDouble(3, estimatedCost_);
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -2171,6 +2859,18 @@ public final class SpliceMessage {
       if (size != -1) return size;
 
       size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, getTaskNodeBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(2, taskId_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeDoubleSize(3, estimatedCost_);
+      }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
       return size;
@@ -2194,6 +2894,20 @@ public final class SpliceMessage {
       com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerResponse other = (com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerResponse) obj;
 
       boolean result = true;
+      result = result && (hasTaskNode() == other.hasTaskNode());
+      if (hasTaskNode()) {
+        result = result && getTaskNode()
+            .equals(other.getTaskNode());
+      }
+      result = result && (hasTaskId() == other.hasTaskId());
+      if (hasTaskId()) {
+        result = result && getTaskId()
+            .equals(other.getTaskId());
+      }
+      result = result && (hasEstimatedCost() == other.hasEstimatedCost());
+      if (hasEstimatedCost()) {
+        result = result && (Double.doubleToLongBits(getEstimatedCost())    == Double.doubleToLongBits(other.getEstimatedCost()));
+      }
       result = result &&
           getUnknownFields().equals(other.getUnknownFields());
       return result;
@@ -2207,6 +2921,19 @@ public final class SpliceMessage {
       }
       int hash = 41;
       hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasTaskNode()) {
+        hash = (37 * hash) + TASKNODE_FIELD_NUMBER;
+        hash = (53 * hash) + getTaskNode().hashCode();
+      }
+      if (hasTaskId()) {
+        hash = (37 * hash) + TASKID_FIELD_NUMBER;
+        hash = (53 * hash) + getTaskId().hashCode();
+      }
+      if (hasEstimatedCost()) {
+        hash = (37 * hash) + ESTIMATEDCOST_FIELD_NUMBER;
+        hash = (53 * hash) + hashLong(
+            Double.doubleToLongBits(getEstimatedCost()));
+      }
       hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -2316,6 +3043,12 @@ public final class SpliceMessage {
 
       public Builder clear() {
         super.clear();
+        taskNode_ = "";
+        bitField0_ = (bitField0_ & ~0x00000001);
+        taskId_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        estimatedCost_ = 0D;
+        bitField0_ = (bitField0_ & ~0x00000004);
         return this;
       }
 
@@ -2342,6 +3075,21 @@ public final class SpliceMessage {
 
       public com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerResponse buildPartial() {
         com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerResponse result = new com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerResponse(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.taskNode_ = taskNode_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.taskId_ = taskId_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        result.estimatedCost_ = estimatedCost_;
+        result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
       }
@@ -2357,6 +3105,17 @@ public final class SpliceMessage {
 
       public Builder mergeFrom(com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerResponse other) {
         if (other == com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerResponse.getDefaultInstance()) return this;
+        if (other.hasTaskNode()) {
+          bitField0_ |= 0x00000001;
+          taskNode_ = other.taskNode_;
+          onChanged();
+        }
+        if (other.hasTaskId()) {
+          setTaskId(other.getTaskId());
+        }
+        if (other.hasEstimatedCost()) {
+          setEstimatedCost(other.getEstimatedCost());
+        }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
       }
@@ -2382,6 +3141,150 @@ public final class SpliceMessage {
         }
         return this;
       }
+      private int bitField0_;
+
+      // optional string taskNode = 1;
+      private java.lang.Object taskNode_ = "";
+      /**
+       * <code>optional string taskNode = 1;</code>
+       */
+      public boolean hasTaskNode() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>optional string taskNode = 1;</code>
+       */
+      public java.lang.String getTaskNode() {
+        java.lang.Object ref = taskNode_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          taskNode_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string taskNode = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getTaskNodeBytes() {
+        java.lang.Object ref = taskNode_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          taskNode_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string taskNode = 1;</code>
+       */
+      public Builder setTaskNode(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        taskNode_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string taskNode = 1;</code>
+       */
+      public Builder clearTaskNode() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        taskNode_ = getDefaultInstance().getTaskNode();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string taskNode = 1;</code>
+       */
+      public Builder setTaskNodeBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        taskNode_ = value;
+        onChanged();
+        return this;
+      }
+
+      // optional bytes taskId = 2;
+      private com.google.protobuf.ByteString taskId_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>optional bytes taskId = 2;</code>
+       */
+      public boolean hasTaskId() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>optional bytes taskId = 2;</code>
+       */
+      public com.google.protobuf.ByteString getTaskId() {
+        return taskId_;
+      }
+      /**
+       * <code>optional bytes taskId = 2;</code>
+       */
+      public Builder setTaskId(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        taskId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bytes taskId = 2;</code>
+       */
+      public Builder clearTaskId() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        taskId_ = getDefaultInstance().getTaskId();
+        onChanged();
+        return this;
+      }
+
+      // optional double estimatedCost = 3;
+      private double estimatedCost_ ;
+      /**
+       * <code>optional double estimatedCost = 3;</code>
+       */
+      public boolean hasEstimatedCost() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>optional double estimatedCost = 3;</code>
+       */
+      public double getEstimatedCost() {
+        return estimatedCost_;
+      }
+      /**
+       * <code>optional double estimatedCost = 3;</code>
+       */
+      public Builder setEstimatedCost(double value) {
+        bitField0_ |= 0x00000004;
+        estimatedCost_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional double estimatedCost = 3;</code>
+       */
+      public Builder clearEstimatedCost() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        estimatedCost_ = 0D;
+        onChanged();
+        return this;
+      }
 
       // @@protoc_insertion_point(builder_scope:SpliceSchedulerResponse)
     }
@@ -2396,6 +3299,41 @@ public final class SpliceMessage {
 
   public interface DeleteFirstAfterRequestOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
+
+    // optional string transactionId = 1;
+    /**
+     * <code>optional string transactionId = 1;</code>
+     */
+    boolean hasTransactionId();
+    /**
+     * <code>optional string transactionId = 1;</code>
+     */
+    java.lang.String getTransactionId();
+    /**
+     * <code>optional string transactionId = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getTransactionIdBytes();
+
+    // optional bytes rowKey = 2;
+    /**
+     * <code>optional bytes rowKey = 2;</code>
+     */
+    boolean hasRowKey();
+    /**
+     * <code>optional bytes rowKey = 2;</code>
+     */
+    com.google.protobuf.ByteString getRowKey();
+
+    // optional bytes limit = 3;
+    /**
+     * <code>optional bytes limit = 3;</code>
+     */
+    boolean hasLimit();
+    /**
+     * <code>optional bytes limit = 3;</code>
+     */
+    com.google.protobuf.ByteString getLimit();
   }
   /**
    * Protobuf type {@code DeleteFirstAfterRequest}
@@ -2430,6 +3368,7 @@ public final class SpliceMessage {
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       initFields();
+      int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
@@ -2445,6 +3384,21 @@ public final class SpliceMessage {
                                      extensionRegistry, tag)) {
                 done = true;
               }
+              break;
+            }
+            case 10: {
+              bitField0_ |= 0x00000001;
+              transactionId_ = input.readBytes();
+              break;
+            }
+            case 18: {
+              bitField0_ |= 0x00000002;
+              rowKey_ = input.readBytes();
+              break;
+            }
+            case 26: {
+              bitField0_ |= 0x00000004;
+              limit_ = input.readBytes();
               break;
             }
           }
@@ -2486,7 +3440,86 @@ public final class SpliceMessage {
       return PARSER;
     }
 
+    private int bitField0_;
+    // optional string transactionId = 1;
+    public static final int TRANSACTIONID_FIELD_NUMBER = 1;
+    private java.lang.Object transactionId_;
+    /**
+     * <code>optional string transactionId = 1;</code>
+     */
+    public boolean hasTransactionId() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>optional string transactionId = 1;</code>
+     */
+    public java.lang.String getTransactionId() {
+      java.lang.Object ref = transactionId_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          transactionId_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string transactionId = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getTransactionIdBytes() {
+      java.lang.Object ref = transactionId_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        transactionId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    // optional bytes rowKey = 2;
+    public static final int ROWKEY_FIELD_NUMBER = 2;
+    private com.google.protobuf.ByteString rowKey_;
+    /**
+     * <code>optional bytes rowKey = 2;</code>
+     */
+    public boolean hasRowKey() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>optional bytes rowKey = 2;</code>
+     */
+    public com.google.protobuf.ByteString getRowKey() {
+      return rowKey_;
+    }
+
+    // optional bytes limit = 3;
+    public static final int LIMIT_FIELD_NUMBER = 3;
+    private com.google.protobuf.ByteString limit_;
+    /**
+     * <code>optional bytes limit = 3;</code>
+     */
+    public boolean hasLimit() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>optional bytes limit = 3;</code>
+     */
+    public com.google.protobuf.ByteString getLimit() {
+      return limit_;
+    }
+
     private void initFields() {
+      transactionId_ = "";
+      rowKey_ = com.google.protobuf.ByteString.EMPTY;
+      limit_ = com.google.protobuf.ByteString.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -2500,6 +3533,15 @@ public final class SpliceMessage {
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBytes(1, getTransactionIdBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeBytes(2, rowKey_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeBytes(3, limit_);
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -2509,6 +3551,18 @@ public final class SpliceMessage {
       if (size != -1) return size;
 
       size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, getTransactionIdBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(2, rowKey_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(3, limit_);
+      }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
       return size;
@@ -2532,6 +3586,21 @@ public final class SpliceMessage {
       com.splicemachine.coprocessor.SpliceMessage.DeleteFirstAfterRequest other = (com.splicemachine.coprocessor.SpliceMessage.DeleteFirstAfterRequest) obj;
 
       boolean result = true;
+      result = result && (hasTransactionId() == other.hasTransactionId());
+      if (hasTransactionId()) {
+        result = result && getTransactionId()
+            .equals(other.getTransactionId());
+      }
+      result = result && (hasRowKey() == other.hasRowKey());
+      if (hasRowKey()) {
+        result = result && getRowKey()
+            .equals(other.getRowKey());
+      }
+      result = result && (hasLimit() == other.hasLimit());
+      if (hasLimit()) {
+        result = result && getLimit()
+            .equals(other.getLimit());
+      }
       result = result &&
           getUnknownFields().equals(other.getUnknownFields());
       return result;
@@ -2545,6 +3614,18 @@ public final class SpliceMessage {
       }
       int hash = 41;
       hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasTransactionId()) {
+        hash = (37 * hash) + TRANSACTIONID_FIELD_NUMBER;
+        hash = (53 * hash) + getTransactionId().hashCode();
+      }
+      if (hasRowKey()) {
+        hash = (37 * hash) + ROWKEY_FIELD_NUMBER;
+        hash = (53 * hash) + getRowKey().hashCode();
+      }
+      if (hasLimit()) {
+        hash = (37 * hash) + LIMIT_FIELD_NUMBER;
+        hash = (53 * hash) + getLimit().hashCode();
+      }
       hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -2654,6 +3735,12 @@ public final class SpliceMessage {
 
       public Builder clear() {
         super.clear();
+        transactionId_ = "";
+        bitField0_ = (bitField0_ & ~0x00000001);
+        rowKey_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        limit_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000004);
         return this;
       }
 
@@ -2680,6 +3767,21 @@ public final class SpliceMessage {
 
       public com.splicemachine.coprocessor.SpliceMessage.DeleteFirstAfterRequest buildPartial() {
         com.splicemachine.coprocessor.SpliceMessage.DeleteFirstAfterRequest result = new com.splicemachine.coprocessor.SpliceMessage.DeleteFirstAfterRequest(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.transactionId_ = transactionId_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.rowKey_ = rowKey_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        result.limit_ = limit_;
+        result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
       }
@@ -2695,6 +3797,17 @@ public final class SpliceMessage {
 
       public Builder mergeFrom(com.splicemachine.coprocessor.SpliceMessage.DeleteFirstAfterRequest other) {
         if (other == com.splicemachine.coprocessor.SpliceMessage.DeleteFirstAfterRequest.getDefaultInstance()) return this;
+        if (other.hasTransactionId()) {
+          bitField0_ |= 0x00000001;
+          transactionId_ = other.transactionId_;
+          onChanged();
+        }
+        if (other.hasRowKey()) {
+          setRowKey(other.getRowKey());
+        }
+        if (other.hasLimit()) {
+          setLimit(other.getLimit());
+        }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
       }
@@ -2720,6 +3833,153 @@ public final class SpliceMessage {
         }
         return this;
       }
+      private int bitField0_;
+
+      // optional string transactionId = 1;
+      private java.lang.Object transactionId_ = "";
+      /**
+       * <code>optional string transactionId = 1;</code>
+       */
+      public boolean hasTransactionId() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>optional string transactionId = 1;</code>
+       */
+      public java.lang.String getTransactionId() {
+        java.lang.Object ref = transactionId_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          transactionId_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string transactionId = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getTransactionIdBytes() {
+        java.lang.Object ref = transactionId_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          transactionId_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string transactionId = 1;</code>
+       */
+      public Builder setTransactionId(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        transactionId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string transactionId = 1;</code>
+       */
+      public Builder clearTransactionId() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        transactionId_ = getDefaultInstance().getTransactionId();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string transactionId = 1;</code>
+       */
+      public Builder setTransactionIdBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        transactionId_ = value;
+        onChanged();
+        return this;
+      }
+
+      // optional bytes rowKey = 2;
+      private com.google.protobuf.ByteString rowKey_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>optional bytes rowKey = 2;</code>
+       */
+      public boolean hasRowKey() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>optional bytes rowKey = 2;</code>
+       */
+      public com.google.protobuf.ByteString getRowKey() {
+        return rowKey_;
+      }
+      /**
+       * <code>optional bytes rowKey = 2;</code>
+       */
+      public Builder setRowKey(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        rowKey_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bytes rowKey = 2;</code>
+       */
+      public Builder clearRowKey() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        rowKey_ = getDefaultInstance().getRowKey();
+        onChanged();
+        return this;
+      }
+
+      // optional bytes limit = 3;
+      private com.google.protobuf.ByteString limit_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>optional bytes limit = 3;</code>
+       */
+      public boolean hasLimit() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>optional bytes limit = 3;</code>
+       */
+      public com.google.protobuf.ByteString getLimit() {
+        return limit_;
+      }
+      /**
+       * <code>optional bytes limit = 3;</code>
+       */
+      public Builder setLimit(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000004;
+        limit_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bytes limit = 3;</code>
+       */
+      public Builder clearLimit() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        limit_ = getDefaultInstance().getLimit();
+        onChanged();
+        return this;
+      }
 
       // @@protoc_insertion_point(builder_scope:DeleteFirstAfterRequest)
     }
@@ -2732,8 +3992,721 @@ public final class SpliceMessage {
     // @@protoc_insertion_point(class_scope:DeleteFirstAfterRequest)
   }
 
+  public interface ConstraintContextOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // optional string tableName = 1;
+    /**
+     * <code>optional string tableName = 1;</code>
+     */
+    boolean hasTableName();
+    /**
+     * <code>optional string tableName = 1;</code>
+     */
+    java.lang.String getTableName();
+    /**
+     * <code>optional string tableName = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getTableNameBytes();
+
+    // optional string constraintName = 2;
+    /**
+     * <code>optional string constraintName = 2;</code>
+     */
+    boolean hasConstraintName();
+    /**
+     * <code>optional string constraintName = 2;</code>
+     */
+    java.lang.String getConstraintName();
+    /**
+     * <code>optional string constraintName = 2;</code>
+     */
+    com.google.protobuf.ByteString
+        getConstraintNameBytes();
+  }
+  /**
+   * Protobuf type {@code ConstraintContext}
+   */
+  public static final class ConstraintContext extends
+      com.google.protobuf.GeneratedMessage
+      implements ConstraintContextOrBuilder {
+    // Use ConstraintContext.newBuilder() to construct.
+    private ConstraintContext(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private ConstraintContext(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final ConstraintContext defaultInstance;
+    public static ConstraintContext getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public ConstraintContext getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private ConstraintContext(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              bitField0_ |= 0x00000001;
+              tableName_ = input.readBytes();
+              break;
+            }
+            case 18: {
+              bitField0_ |= 0x00000002;
+              constraintName_ = input.readBytes();
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.splicemachine.coprocessor.SpliceMessage.internal_static_ConstraintContext_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.splicemachine.coprocessor.SpliceMessage.internal_static_ConstraintContext_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.class, com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<ConstraintContext> PARSER =
+        new com.google.protobuf.AbstractParser<ConstraintContext>() {
+      public ConstraintContext parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new ConstraintContext(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<ConstraintContext> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    // optional string tableName = 1;
+    public static final int TABLENAME_FIELD_NUMBER = 1;
+    private java.lang.Object tableName_;
+    /**
+     * <code>optional string tableName = 1;</code>
+     */
+    public boolean hasTableName() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>optional string tableName = 1;</code>
+     */
+    public java.lang.String getTableName() {
+      java.lang.Object ref = tableName_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          tableName_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string tableName = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getTableNameBytes() {
+      java.lang.Object ref = tableName_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        tableName_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    // optional string constraintName = 2;
+    public static final int CONSTRAINTNAME_FIELD_NUMBER = 2;
+    private java.lang.Object constraintName_;
+    /**
+     * <code>optional string constraintName = 2;</code>
+     */
+    public boolean hasConstraintName() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>optional string constraintName = 2;</code>
+     */
+    public java.lang.String getConstraintName() {
+      java.lang.Object ref = constraintName_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          constraintName_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string constraintName = 2;</code>
+     */
+    public com.google.protobuf.ByteString
+        getConstraintNameBytes() {
+      java.lang.Object ref = constraintName_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        constraintName_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    private void initFields() {
+      tableName_ = "";
+      constraintName_ = "";
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBytes(1, getTableNameBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeBytes(2, getConstraintNameBytes());
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, getTableNameBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(2, getConstraintNameBytes());
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.splicemachine.coprocessor.SpliceMessage.ConstraintContext)) {
+        return super.equals(obj);
+      }
+      com.splicemachine.coprocessor.SpliceMessage.ConstraintContext other = (com.splicemachine.coprocessor.SpliceMessage.ConstraintContext) obj;
+
+      boolean result = true;
+      result = result && (hasTableName() == other.hasTableName());
+      if (hasTableName()) {
+        result = result && getTableName()
+            .equals(other.getTableName());
+      }
+      result = result && (hasConstraintName() == other.hasConstraintName());
+      if (hasConstraintName()) {
+        result = result && getConstraintName()
+            .equals(other.getConstraintName());
+      }
+      result = result &&
+          getUnknownFields().equals(other.getUnknownFields());
+      return result;
+    }
+
+    private int memoizedHashCode = 0;
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasTableName()) {
+        hash = (37 * hash) + TABLENAME_FIELD_NUMBER;
+        hash = (53 * hash) + getTableName().hashCode();
+      }
+      if (hasConstraintName()) {
+        hash = (37 * hash) + CONSTRAINTNAME_FIELD_NUMBER;
+        hash = (53 * hash) + getConstraintName().hashCode();
+      }
+      hash = (29 * hash) + getUnknownFields().hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static com.splicemachine.coprocessor.SpliceMessage.ConstraintContext parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.ConstraintContext parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.ConstraintContext parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.ConstraintContext parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.ConstraintContext parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.ConstraintContext parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.ConstraintContext parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.ConstraintContext parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.ConstraintContext parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.ConstraintContext parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.splicemachine.coprocessor.SpliceMessage.ConstraintContext prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code ConstraintContext}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements com.splicemachine.coprocessor.SpliceMessage.ConstraintContextOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.splicemachine.coprocessor.SpliceMessage.internal_static_ConstraintContext_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.splicemachine.coprocessor.SpliceMessage.internal_static_ConstraintContext_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.class, com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.Builder.class);
+      }
+
+      // Construct using com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
+
+      public Builder clear() {
+        super.clear();
+        tableName_ = "";
+        bitField0_ = (bitField0_ & ~0x00000001);
+        constraintName_ = "";
+        bitField0_ = (bitField0_ & ~0x00000002);
+        return this;
+      }
+
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.splicemachine.coprocessor.SpliceMessage.internal_static_ConstraintContext_descriptor;
+      }
+
+      public com.splicemachine.coprocessor.SpliceMessage.ConstraintContext getDefaultInstanceForType() {
+        return com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.getDefaultInstance();
+      }
+
+      public com.splicemachine.coprocessor.SpliceMessage.ConstraintContext build() {
+        com.splicemachine.coprocessor.SpliceMessage.ConstraintContext result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public com.splicemachine.coprocessor.SpliceMessage.ConstraintContext buildPartial() {
+        com.splicemachine.coprocessor.SpliceMessage.ConstraintContext result = new com.splicemachine.coprocessor.SpliceMessage.ConstraintContext(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.tableName_ = tableName_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.constraintName_ = constraintName_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.splicemachine.coprocessor.SpliceMessage.ConstraintContext) {
+          return mergeFrom((com.splicemachine.coprocessor.SpliceMessage.ConstraintContext)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(com.splicemachine.coprocessor.SpliceMessage.ConstraintContext other) {
+        if (other == com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.getDefaultInstance()) return this;
+        if (other.hasTableName()) {
+          bitField0_ |= 0x00000001;
+          tableName_ = other.tableName_;
+          onChanged();
+        }
+        if (other.hasConstraintName()) {
+          bitField0_ |= 0x00000002;
+          constraintName_ = other.constraintName_;
+          onChanged();
+        }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.splicemachine.coprocessor.SpliceMessage.ConstraintContext parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.splicemachine.coprocessor.SpliceMessage.ConstraintContext) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      // optional string tableName = 1;
+      private java.lang.Object tableName_ = "";
+      /**
+       * <code>optional string tableName = 1;</code>
+       */
+      public boolean hasTableName() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>optional string tableName = 1;</code>
+       */
+      public java.lang.String getTableName() {
+        java.lang.Object ref = tableName_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          tableName_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string tableName = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getTableNameBytes() {
+        java.lang.Object ref = tableName_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          tableName_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string tableName = 1;</code>
+       */
+      public Builder setTableName(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        tableName_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string tableName = 1;</code>
+       */
+      public Builder clearTableName() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        tableName_ = getDefaultInstance().getTableName();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string tableName = 1;</code>
+       */
+      public Builder setTableNameBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        tableName_ = value;
+        onChanged();
+        return this;
+      }
+
+      // optional string constraintName = 2;
+      private java.lang.Object constraintName_ = "";
+      /**
+       * <code>optional string constraintName = 2;</code>
+       */
+      public boolean hasConstraintName() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>optional string constraintName = 2;</code>
+       */
+      public java.lang.String getConstraintName() {
+        java.lang.Object ref = constraintName_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          constraintName_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string constraintName = 2;</code>
+       */
+      public com.google.protobuf.ByteString
+          getConstraintNameBytes() {
+        java.lang.Object ref = constraintName_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          constraintName_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string constraintName = 2;</code>
+       */
+      public Builder setConstraintName(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        constraintName_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string constraintName = 2;</code>
+       */
+      public Builder clearConstraintName() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        constraintName_ = getDefaultInstance().getConstraintName();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string constraintName = 2;</code>
+       */
+      public Builder setConstraintNameBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        constraintName_ = value;
+        onChanged();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:ConstraintContext)
+    }
+
+    static {
+      defaultInstance = new ConstraintContext(true);
+      defaultInstance.initFields();
+    }
+
+    // @@protoc_insertion_point(class_scope:ConstraintContext)
+  }
+
   public interface WriteResultOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
+
+    // optional .WriteResult.Code code = 1;
+    /**
+     * <code>optional .WriteResult.Code code = 1;</code>
+     */
+    boolean hasCode();
+    /**
+     * <code>optional .WriteResult.Code code = 1;</code>
+     */
+    com.splicemachine.coprocessor.SpliceMessage.WriteResult.Code getCode();
+
+    // optional string errorMessage = 2;
+    /**
+     * <code>optional string errorMessage = 2;</code>
+     */
+    boolean hasErrorMessage();
+    /**
+     * <code>optional string errorMessage = 2;</code>
+     */
+    java.lang.String getErrorMessage();
+    /**
+     * <code>optional string errorMessage = 2;</code>
+     */
+    com.google.protobuf.ByteString
+        getErrorMessageBytes();
+
+    // optional .ConstraintContext constraintContext = 3;
+    /**
+     * <code>optional .ConstraintContext constraintContext = 3;</code>
+     */
+    boolean hasConstraintContext();
+    /**
+     * <code>optional .ConstraintContext constraintContext = 3;</code>
+     */
+    com.splicemachine.coprocessor.SpliceMessage.ConstraintContext getConstraintContext();
+    /**
+     * <code>optional .ConstraintContext constraintContext = 3;</code>
+     */
+    com.splicemachine.coprocessor.SpliceMessage.ConstraintContextOrBuilder getConstraintContextOrBuilder();
   }
   /**
    * Protobuf type {@code WriteResult}
@@ -2768,6 +4741,7 @@ public final class SpliceMessage {
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       initFields();
+      int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
@@ -2783,6 +4757,35 @@ public final class SpliceMessage {
                                      extensionRegistry, tag)) {
                 done = true;
               }
+              break;
+            }
+            case 8: {
+              int rawValue = input.readEnum();
+              com.splicemachine.coprocessor.SpliceMessage.WriteResult.Code value = com.splicemachine.coprocessor.SpliceMessage.WriteResult.Code.valueOf(rawValue);
+              if (value == null) {
+                unknownFields.mergeVarintField(1, rawValue);
+              } else {
+                bitField0_ |= 0x00000001;
+                code_ = value;
+              }
+              break;
+            }
+            case 18: {
+              bitField0_ |= 0x00000002;
+              errorMessage_ = input.readBytes();
+              break;
+            }
+            case 26: {
+              com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.Builder subBuilder = null;
+              if (((bitField0_ & 0x00000004) == 0x00000004)) {
+                subBuilder = constraintContext_.toBuilder();
+              }
+              constraintContext_ = input.readMessage(com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.PARSER, extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(constraintContext_);
+                constraintContext_ = subBuilder.buildPartial();
+              }
+              bitField0_ |= 0x00000004;
               break;
             }
           }
@@ -2824,7 +4827,264 @@ public final class SpliceMessage {
       return PARSER;
     }
 
+    /**
+     * Protobuf enum {@code WriteResult.Code}
+     */
+    public enum Code
+        implements com.google.protobuf.ProtocolMessageEnum {
+      /**
+       * <code>FAILED = 0;</code>
+       */
+      FAILED(0, 0),
+      /**
+       * <code>WRITE_CONFLICT = 1;</code>
+       */
+      WRITE_CONFLICT(1, 1),
+      /**
+       * <code>SUCCESS = 2;</code>
+       */
+      SUCCESS(2, 2),
+      /**
+       * <code>PRIMARY_KEY_VIOLATION = 3;</code>
+       */
+      PRIMARY_KEY_VIOLATION(3, 3),
+      /**
+       * <code>UNIQUE_VIOLATION = 4;</code>
+       */
+      UNIQUE_VIOLATION(4, 4),
+      /**
+       * <code>FOREIGN_KEY_VIOLATION = 5;</code>
+       */
+      FOREIGN_KEY_VIOLATION(5, 5),
+      /**
+       * <code>CHECK_VIOLATION = 6;</code>
+       */
+      CHECK_VIOLATION(6, 6),
+      /**
+       * <code>NOT_SERVING_REGION = 7;</code>
+       */
+      NOT_SERVING_REGION(7, 7),
+      /**
+       * <code>WRONG_REGION = 8;</code>
+       */
+      WRONG_REGION(8, 8),
+      /**
+       * <code>REGION_TOO_BUSY = 9;</code>
+       */
+      REGION_TOO_BUSY(9, 9),
+      /**
+       * <code>NOT_RUN = 10;</code>
+       */
+      NOT_RUN(10, 10),
+      /**
+       * <code>NOT_NULL = 11;</code>
+       */
+      NOT_NULL(11, 11),
+      ;
+
+      /**
+       * <code>FAILED = 0;</code>
+       */
+      public static final int FAILED_VALUE = 0;
+      /**
+       * <code>WRITE_CONFLICT = 1;</code>
+       */
+      public static final int WRITE_CONFLICT_VALUE = 1;
+      /**
+       * <code>SUCCESS = 2;</code>
+       */
+      public static final int SUCCESS_VALUE = 2;
+      /**
+       * <code>PRIMARY_KEY_VIOLATION = 3;</code>
+       */
+      public static final int PRIMARY_KEY_VIOLATION_VALUE = 3;
+      /**
+       * <code>UNIQUE_VIOLATION = 4;</code>
+       */
+      public static final int UNIQUE_VIOLATION_VALUE = 4;
+      /**
+       * <code>FOREIGN_KEY_VIOLATION = 5;</code>
+       */
+      public static final int FOREIGN_KEY_VIOLATION_VALUE = 5;
+      /**
+       * <code>CHECK_VIOLATION = 6;</code>
+       */
+      public static final int CHECK_VIOLATION_VALUE = 6;
+      /**
+       * <code>NOT_SERVING_REGION = 7;</code>
+       */
+      public static final int NOT_SERVING_REGION_VALUE = 7;
+      /**
+       * <code>WRONG_REGION = 8;</code>
+       */
+      public static final int WRONG_REGION_VALUE = 8;
+      /**
+       * <code>REGION_TOO_BUSY = 9;</code>
+       */
+      public static final int REGION_TOO_BUSY_VALUE = 9;
+      /**
+       * <code>NOT_RUN = 10;</code>
+       */
+      public static final int NOT_RUN_VALUE = 10;
+      /**
+       * <code>NOT_NULL = 11;</code>
+       */
+      public static final int NOT_NULL_VALUE = 11;
+
+
+      public final int getNumber() { return value; }
+
+      public static Code valueOf(int value) {
+        switch (value) {
+          case 0: return FAILED;
+          case 1: return WRITE_CONFLICT;
+          case 2: return SUCCESS;
+          case 3: return PRIMARY_KEY_VIOLATION;
+          case 4: return UNIQUE_VIOLATION;
+          case 5: return FOREIGN_KEY_VIOLATION;
+          case 6: return CHECK_VIOLATION;
+          case 7: return NOT_SERVING_REGION;
+          case 8: return WRONG_REGION;
+          case 9: return REGION_TOO_BUSY;
+          case 10: return NOT_RUN;
+          case 11: return NOT_NULL;
+          default: return null;
+        }
+      }
+
+      public static com.google.protobuf.Internal.EnumLiteMap<Code>
+          internalGetValueMap() {
+        return internalValueMap;
+      }
+      private static com.google.protobuf.Internal.EnumLiteMap<Code>
+          internalValueMap =
+            new com.google.protobuf.Internal.EnumLiteMap<Code>() {
+              public Code findValueByNumber(int number) {
+                return Code.valueOf(number);
+              }
+            };
+
+      public final com.google.protobuf.Descriptors.EnumValueDescriptor
+          getValueDescriptor() {
+        return getDescriptor().getValues().get(index);
+      }
+      public final com.google.protobuf.Descriptors.EnumDescriptor
+          getDescriptorForType() {
+        return getDescriptor();
+      }
+      public static final com.google.protobuf.Descriptors.EnumDescriptor
+          getDescriptor() {
+        return com.splicemachine.coprocessor.SpliceMessage.WriteResult.getDescriptor().getEnumTypes().get(0);
+      }
+
+      private static final Code[] VALUES = values();
+
+      public static Code valueOf(
+          com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+        if (desc.getType() != getDescriptor()) {
+          throw new java.lang.IllegalArgumentException(
+            "EnumValueDescriptor is not for this type.");
+        }
+        return VALUES[desc.getIndex()];
+      }
+
+      private final int index;
+      private final int value;
+
+      private Code(int index, int value) {
+        this.index = index;
+        this.value = value;
+      }
+
+      // @@protoc_insertion_point(enum_scope:WriteResult.Code)
+    }
+
+    private int bitField0_;
+    // optional .WriteResult.Code code = 1;
+    public static final int CODE_FIELD_NUMBER = 1;
+    private com.splicemachine.coprocessor.SpliceMessage.WriteResult.Code code_;
+    /**
+     * <code>optional .WriteResult.Code code = 1;</code>
+     */
+    public boolean hasCode() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>optional .WriteResult.Code code = 1;</code>
+     */
+    public com.splicemachine.coprocessor.SpliceMessage.WriteResult.Code getCode() {
+      return code_;
+    }
+
+    // optional string errorMessage = 2;
+    public static final int ERRORMESSAGE_FIELD_NUMBER = 2;
+    private java.lang.Object errorMessage_;
+    /**
+     * <code>optional string errorMessage = 2;</code>
+     */
+    public boolean hasErrorMessage() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>optional string errorMessage = 2;</code>
+     */
+    public java.lang.String getErrorMessage() {
+      java.lang.Object ref = errorMessage_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          errorMessage_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string errorMessage = 2;</code>
+     */
+    public com.google.protobuf.ByteString
+        getErrorMessageBytes() {
+      java.lang.Object ref = errorMessage_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        errorMessage_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    // optional .ConstraintContext constraintContext = 3;
+    public static final int CONSTRAINTCONTEXT_FIELD_NUMBER = 3;
+    private com.splicemachine.coprocessor.SpliceMessage.ConstraintContext constraintContext_;
+    /**
+     * <code>optional .ConstraintContext constraintContext = 3;</code>
+     */
+    public boolean hasConstraintContext() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>optional .ConstraintContext constraintContext = 3;</code>
+     */
+    public com.splicemachine.coprocessor.SpliceMessage.ConstraintContext getConstraintContext() {
+      return constraintContext_;
+    }
+    /**
+     * <code>optional .ConstraintContext constraintContext = 3;</code>
+     */
+    public com.splicemachine.coprocessor.SpliceMessage.ConstraintContextOrBuilder getConstraintContextOrBuilder() {
+      return constraintContext_;
+    }
+
     private void initFields() {
+      code_ = com.splicemachine.coprocessor.SpliceMessage.WriteResult.Code.FAILED;
+      errorMessage_ = "";
+      constraintContext_ = com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.getDefaultInstance();
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -2838,6 +5098,15 @@ public final class SpliceMessage {
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeEnum(1, code_.getNumber());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeBytes(2, getErrorMessageBytes());
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeMessage(3, constraintContext_);
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -2847,6 +5116,18 @@ public final class SpliceMessage {
       if (size != -1) return size;
 
       size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeEnumSize(1, code_.getNumber());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(2, getErrorMessageBytes());
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(3, constraintContext_);
+      }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
       return size;
@@ -2870,6 +5151,21 @@ public final class SpliceMessage {
       com.splicemachine.coprocessor.SpliceMessage.WriteResult other = (com.splicemachine.coprocessor.SpliceMessage.WriteResult) obj;
 
       boolean result = true;
+      result = result && (hasCode() == other.hasCode());
+      if (hasCode()) {
+        result = result &&
+            (getCode() == other.getCode());
+      }
+      result = result && (hasErrorMessage() == other.hasErrorMessage());
+      if (hasErrorMessage()) {
+        result = result && getErrorMessage()
+            .equals(other.getErrorMessage());
+      }
+      result = result && (hasConstraintContext() == other.hasConstraintContext());
+      if (hasConstraintContext()) {
+        result = result && getConstraintContext()
+            .equals(other.getConstraintContext());
+      }
       result = result &&
           getUnknownFields().equals(other.getUnknownFields());
       return result;
@@ -2883,6 +5179,18 @@ public final class SpliceMessage {
       }
       int hash = 41;
       hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasCode()) {
+        hash = (37 * hash) + CODE_FIELD_NUMBER;
+        hash = (53 * hash) + hashEnum(getCode());
+      }
+      if (hasErrorMessage()) {
+        hash = (37 * hash) + ERRORMESSAGE_FIELD_NUMBER;
+        hash = (53 * hash) + getErrorMessage().hashCode();
+      }
+      if (hasConstraintContext()) {
+        hash = (37 * hash) + CONSTRAINTCONTEXT_FIELD_NUMBER;
+        hash = (53 * hash) + getConstraintContext().hashCode();
+      }
       hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -2984,6 +5292,7 @@ public final class SpliceMessage {
       }
       private void maybeForceBuilderInitialization() {
         if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          getConstraintContextFieldBuilder();
         }
       }
       private static Builder create() {
@@ -2992,6 +5301,16 @@ public final class SpliceMessage {
 
       public Builder clear() {
         super.clear();
+        code_ = com.splicemachine.coprocessor.SpliceMessage.WriteResult.Code.FAILED;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        errorMessage_ = "";
+        bitField0_ = (bitField0_ & ~0x00000002);
+        if (constraintContextBuilder_ == null) {
+          constraintContext_ = com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.getDefaultInstance();
+        } else {
+          constraintContextBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000004);
         return this;
       }
 
@@ -3018,6 +5337,25 @@ public final class SpliceMessage {
 
       public com.splicemachine.coprocessor.SpliceMessage.WriteResult buildPartial() {
         com.splicemachine.coprocessor.SpliceMessage.WriteResult result = new com.splicemachine.coprocessor.SpliceMessage.WriteResult(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.code_ = code_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.errorMessage_ = errorMessage_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        if (constraintContextBuilder_ == null) {
+          result.constraintContext_ = constraintContext_;
+        } else {
+          result.constraintContext_ = constraintContextBuilder_.build();
+        }
+        result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
       }
@@ -3033,6 +5371,17 @@ public final class SpliceMessage {
 
       public Builder mergeFrom(com.splicemachine.coprocessor.SpliceMessage.WriteResult other) {
         if (other == com.splicemachine.coprocessor.SpliceMessage.WriteResult.getDefaultInstance()) return this;
+        if (other.hasCode()) {
+          setCode(other.getCode());
+        }
+        if (other.hasErrorMessage()) {
+          bitField0_ |= 0x00000002;
+          errorMessage_ = other.errorMessage_;
+          onChanged();
+        }
+        if (other.hasConstraintContext()) {
+          mergeConstraintContext(other.getConstraintContext());
+        }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
       }
@@ -3057,6 +5406,234 @@ public final class SpliceMessage {
           }
         }
         return this;
+      }
+      private int bitField0_;
+
+      // optional .WriteResult.Code code = 1;
+      private com.splicemachine.coprocessor.SpliceMessage.WriteResult.Code code_ = com.splicemachine.coprocessor.SpliceMessage.WriteResult.Code.FAILED;
+      /**
+       * <code>optional .WriteResult.Code code = 1;</code>
+       */
+      public boolean hasCode() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>optional .WriteResult.Code code = 1;</code>
+       */
+      public com.splicemachine.coprocessor.SpliceMessage.WriteResult.Code getCode() {
+        return code_;
+      }
+      /**
+       * <code>optional .WriteResult.Code code = 1;</code>
+       */
+      public Builder setCode(com.splicemachine.coprocessor.SpliceMessage.WriteResult.Code value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        bitField0_ |= 0x00000001;
+        code_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional .WriteResult.Code code = 1;</code>
+       */
+      public Builder clearCode() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        code_ = com.splicemachine.coprocessor.SpliceMessage.WriteResult.Code.FAILED;
+        onChanged();
+        return this;
+      }
+
+      // optional string errorMessage = 2;
+      private java.lang.Object errorMessage_ = "";
+      /**
+       * <code>optional string errorMessage = 2;</code>
+       */
+      public boolean hasErrorMessage() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>optional string errorMessage = 2;</code>
+       */
+      public java.lang.String getErrorMessage() {
+        java.lang.Object ref = errorMessage_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          errorMessage_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string errorMessage = 2;</code>
+       */
+      public com.google.protobuf.ByteString
+          getErrorMessageBytes() {
+        java.lang.Object ref = errorMessage_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          errorMessage_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string errorMessage = 2;</code>
+       */
+      public Builder setErrorMessage(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        errorMessage_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string errorMessage = 2;</code>
+       */
+      public Builder clearErrorMessage() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        errorMessage_ = getDefaultInstance().getErrorMessage();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string errorMessage = 2;</code>
+       */
+      public Builder setErrorMessageBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        errorMessage_ = value;
+        onChanged();
+        return this;
+      }
+
+      // optional .ConstraintContext constraintContext = 3;
+      private com.splicemachine.coprocessor.SpliceMessage.ConstraintContext constraintContext_ = com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.getDefaultInstance();
+      private com.google.protobuf.SingleFieldBuilder<
+          com.splicemachine.coprocessor.SpliceMessage.ConstraintContext, com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.Builder, com.splicemachine.coprocessor.SpliceMessage.ConstraintContextOrBuilder> constraintContextBuilder_;
+      /**
+       * <code>optional .ConstraintContext constraintContext = 3;</code>
+       */
+      public boolean hasConstraintContext() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>optional .ConstraintContext constraintContext = 3;</code>
+       */
+      public com.splicemachine.coprocessor.SpliceMessage.ConstraintContext getConstraintContext() {
+        if (constraintContextBuilder_ == null) {
+          return constraintContext_;
+        } else {
+          return constraintContextBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .ConstraintContext constraintContext = 3;</code>
+       */
+      public Builder setConstraintContext(com.splicemachine.coprocessor.SpliceMessage.ConstraintContext value) {
+        if (constraintContextBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          constraintContext_ = value;
+          onChanged();
+        } else {
+          constraintContextBuilder_.setMessage(value);
+        }
+        bitField0_ |= 0x00000004;
+        return this;
+      }
+      /**
+       * <code>optional .ConstraintContext constraintContext = 3;</code>
+       */
+      public Builder setConstraintContext(
+          com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.Builder builderForValue) {
+        if (constraintContextBuilder_ == null) {
+          constraintContext_ = builderForValue.build();
+          onChanged();
+        } else {
+          constraintContextBuilder_.setMessage(builderForValue.build());
+        }
+        bitField0_ |= 0x00000004;
+        return this;
+      }
+      /**
+       * <code>optional .ConstraintContext constraintContext = 3;</code>
+       */
+      public Builder mergeConstraintContext(com.splicemachine.coprocessor.SpliceMessage.ConstraintContext value) {
+        if (constraintContextBuilder_ == null) {
+          if (((bitField0_ & 0x00000004) == 0x00000004) &&
+              constraintContext_ != com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.getDefaultInstance()) {
+            constraintContext_ =
+              com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.newBuilder(constraintContext_).mergeFrom(value).buildPartial();
+          } else {
+            constraintContext_ = value;
+          }
+          onChanged();
+        } else {
+          constraintContextBuilder_.mergeFrom(value);
+        }
+        bitField0_ |= 0x00000004;
+        return this;
+      }
+      /**
+       * <code>optional .ConstraintContext constraintContext = 3;</code>
+       */
+      public Builder clearConstraintContext() {
+        if (constraintContextBuilder_ == null) {
+          constraintContext_ = com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.getDefaultInstance();
+          onChanged();
+        } else {
+          constraintContextBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000004);
+        return this;
+      }
+      /**
+       * <code>optional .ConstraintContext constraintContext = 3;</code>
+       */
+      public com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.Builder getConstraintContextBuilder() {
+        bitField0_ |= 0x00000004;
+        onChanged();
+        return getConstraintContextFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .ConstraintContext constraintContext = 3;</code>
+       */
+      public com.splicemachine.coprocessor.SpliceMessage.ConstraintContextOrBuilder getConstraintContextOrBuilder() {
+        if (constraintContextBuilder_ != null) {
+          return constraintContextBuilder_.getMessageOrBuilder();
+        } else {
+          return constraintContext_;
+        }
+      }
+      /**
+       * <code>optional .ConstraintContext constraintContext = 3;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          com.splicemachine.coprocessor.SpliceMessage.ConstraintContext, com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.Builder, com.splicemachine.coprocessor.SpliceMessage.ConstraintContextOrBuilder> 
+          getConstraintContextFieldBuilder() {
+        if (constraintContextBuilder_ == null) {
+          constraintContextBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              com.splicemachine.coprocessor.SpliceMessage.ConstraintContext, com.splicemachine.coprocessor.SpliceMessage.ConstraintContext.Builder, com.splicemachine.coprocessor.SpliceMessage.ConstraintContextOrBuilder>(
+                  constraintContext_,
+                  getParentForChildren(),
+                  isClean());
+          constraintContext_ = null;
+        }
+        return constraintContextBuilder_;
       }
 
       // @@protoc_insertion_point(builder_scope:WriteResult)
@@ -5997,6 +8574,11 @@ public final class SpliceMessage {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_DeleteFirstAfterRequest_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_ConstraintContext_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ConstraintContext_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_WriteResult_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -6032,28 +8614,44 @@ public final class SpliceMessage {
     java.lang.String[] descriptorData = {
       "\n\014Splice.proto\032\014Client.proto\"T\n\tTaskStat" +
       "s\022\021\n\ttotalTime\030\001 \001(\004\022\032\n\022totalRowsProcess" +
-      "ed\030\002 \001(\004\022\030\n\020totalRowsWritten\030\003 \001(\004\"\034\n\032Sp" +
-      "liceObserverInstructions\"W\n\026SpliceOperat" +
-      "ionRequest\022\023\n\004scan\030\001 \001(\0132\005.Scan\022(\n\003soi\030\002" +
-      " \001(\0132\033.SpliceObserverInstructions\"\030\n\026Spl" +
-      "iceSchedulerRequest\"\031\n\027SpliceSchedulerRe" +
-      "sponse\"\031\n\027DeleteFirstAfterRequest\"\r\n\013Wri" +
-      "teResult\"\"\n\021BulkWriteResponse\022\r\n\005bytes\030\001" +
-      " \001(\014\"!\n\020BulkWriteRequest\022\r\n\005bytes\030\001 \001(\014\"",
-      "A\n\020DropIndexRequest\022\026\n\016indexConglomId\030\001 " +
-      "\001(\004\022\025\n\rbaseConglomId\030\002 \001(\004\"\023\n\021DropIndexR" +
-      "esponse2\204\001\n\022SpliceIndexService\0222\n\tbulkWr" +
-      "ite\022\021.BulkWriteRequest\032\022.BulkWriteRespon" +
-      "se\022:\n\020deleteFirstAfter\022\030.DeleteFirstAfte" +
-      "rRequest\032\014.WriteResult2R\n\034SpliceIndexMan" +
-      "agementService\0222\n\tdropIndex\022\021.DropIndexR" +
-      "equest\032\022.DropIndexResponse2D\n\026SpliceOper" +
-      "ationService\022*\n\003run\022\027.SpliceOperationReq" +
-      "uest\032\n.TaskStats2U\n\026SpliceSchedulerServi",
-      "ce\022;\n\006submit\022\027.SpliceSchedulerRequest\032\030." +
-      "SpliceSchedulerResponse2\037\n\035SpliceDerbyCo" +
-      "processorServiceB6\n\035com.splicemachine.co" +
-      "processorB\rSpliceMessageH\001\210\001\001\240\001\001"
+      "ed\030\002 \001(\004\022\030\n\020totalRowsWritten\030\003 \001(\004\"+\n\032Sp" +
+      "liceObserverInstructions\022\r\n\005bytes\030\001 \001(\014\"" +
+      "W\n\026SpliceOperationRequest\022\023\n\004scan\030\001 \001(\0132" +
+      "\005.Scan\022(\n\003soi\030\002 \001(\0132\033.SpliceObserverInst" +
+      "ructions\"c\n\026SpliceSchedulerRequest\022\021\n\tta" +
+      "skStart\030\001 \001(\014\022\017\n\007taskEnd\030\002 \001(\014\022\021\n\tclassN" +
+      "ame\030\003 \001(\t\022\022\n\nclassBytes\030\004 \001(\014\"R\n\027SpliceS" +
+      "chedulerResponse\022\020\n\010taskNode\030\001 \001(\t\022\016\n\006ta",
+      "skId\030\002 \001(\014\022\025\n\restimatedCost\030\003 \001(\001\"O\n\027Del" +
+      "eteFirstAfterRequest\022\025\n\rtransactionId\030\001 " +
+      "\001(\t\022\016\n\006rowKey\030\002 \001(\014\022\r\n\005limit\030\003 \001(\014\">\n\021Co" +
+      "nstraintContext\022\021\n\ttableName\030\001 \001(\t\022\026\n\016co" +
+      "nstraintName\030\002 \001(\t\"\344\002\n\013WriteResult\022\037\n\004co" +
+      "de\030\001 \001(\0162\021.WriteResult.Code\022\024\n\014errorMess" +
+      "age\030\002 \001(\t\022-\n\021constraintContext\030\003 \001(\0132\022.C" +
+      "onstraintContext\"\356\001\n\004Code\022\n\n\006FAILED\020\000\022\022\n" +
+      "\016WRITE_CONFLICT\020\001\022\013\n\007SUCCESS\020\002\022\031\n\025PRIMAR" +
+      "Y_KEY_VIOLATION\020\003\022\024\n\020UNIQUE_VIOLATION\020\004\022",
+      "\031\n\025FOREIGN_KEY_VIOLATION\020\005\022\023\n\017CHECK_VIOL" +
+      "ATION\020\006\022\026\n\022NOT_SERVING_REGION\020\007\022\020\n\014WRONG" +
+      "_REGION\020\010\022\023\n\017REGION_TOO_BUSY\020\t\022\013\n\007NOT_RU" +
+      "N\020\n\022\014\n\010NOT_NULL\020\013\"\"\n\021BulkWriteResponse\022\r" +
+      "\n\005bytes\030\001 \001(\014\"!\n\020BulkWriteRequest\022\r\n\005byt" +
+      "es\030\001 \001(\014\"A\n\020DropIndexRequest\022\026\n\016indexCon" +
+      "glomId\030\001 \001(\004\022\025\n\rbaseConglomId\030\002 \001(\004\"\023\n\021D" +
+      "ropIndexResponse2\204\001\n\022SpliceIndexService\022" +
+      "2\n\tbulkWrite\022\021.BulkWriteRequest\032\022.BulkWr" +
+      "iteResponse\022:\n\020deleteFirstAfter\022\030.Delete",
+      "FirstAfterRequest\032\014.WriteResult2R\n\034Splic" +
+      "eIndexManagementService\0222\n\tdropIndex\022\021.D" +
+      "ropIndexRequest\032\022.DropIndexResponse2D\n\026S" +
+      "pliceOperationService\022*\n\003run\022\027.SpliceOpe" +
+      "rationRequest\032\n.TaskStats2U\n\026SpliceSched" +
+      "ulerService\022;\n\006submit\022\027.SpliceSchedulerR" +
+      "equest\032\030.SpliceSchedulerResponse2\037\n\035Spli" +
+      "ceDerbyCoprocessorServiceB6\n\035com.splicem" +
+      "achine.coprocessorB\rSpliceMessageH\001\210\001\001\240\001" +
+      "\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -6071,7 +8669,7 @@ public final class SpliceMessage {
           internal_static_SpliceObserverInstructions_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_SpliceObserverInstructions_descriptor,
-              new java.lang.String[] { });
+              new java.lang.String[] { "Bytes", });
           internal_static_SpliceOperationRequest_descriptor =
             getDescriptor().getMessageTypes().get(2);
           internal_static_SpliceOperationRequest_fieldAccessorTable = new
@@ -6083,45 +8681,51 @@ public final class SpliceMessage {
           internal_static_SpliceSchedulerRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_SpliceSchedulerRequest_descriptor,
-              new java.lang.String[] { });
+              new java.lang.String[] { "TaskStart", "TaskEnd", "ClassName", "ClassBytes", });
           internal_static_SpliceSchedulerResponse_descriptor =
             getDescriptor().getMessageTypes().get(4);
           internal_static_SpliceSchedulerResponse_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_SpliceSchedulerResponse_descriptor,
-              new java.lang.String[] { });
+              new java.lang.String[] { "TaskNode", "TaskId", "EstimatedCost", });
           internal_static_DeleteFirstAfterRequest_descriptor =
             getDescriptor().getMessageTypes().get(5);
           internal_static_DeleteFirstAfterRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_DeleteFirstAfterRequest_descriptor,
-              new java.lang.String[] { });
-          internal_static_WriteResult_descriptor =
+              new java.lang.String[] { "TransactionId", "RowKey", "Limit", });
+          internal_static_ConstraintContext_descriptor =
             getDescriptor().getMessageTypes().get(6);
+          internal_static_ConstraintContext_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_ConstraintContext_descriptor,
+              new java.lang.String[] { "TableName", "ConstraintName", });
+          internal_static_WriteResult_descriptor =
+            getDescriptor().getMessageTypes().get(7);
           internal_static_WriteResult_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_WriteResult_descriptor,
-              new java.lang.String[] { });
+              new java.lang.String[] { "Code", "ErrorMessage", "ConstraintContext", });
           internal_static_BulkWriteResponse_descriptor =
-            getDescriptor().getMessageTypes().get(7);
+            getDescriptor().getMessageTypes().get(8);
           internal_static_BulkWriteResponse_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_BulkWriteResponse_descriptor,
               new java.lang.String[] { "Bytes", });
           internal_static_BulkWriteRequest_descriptor =
-            getDescriptor().getMessageTypes().get(8);
+            getDescriptor().getMessageTypes().get(9);
           internal_static_BulkWriteRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_BulkWriteRequest_descriptor,
               new java.lang.String[] { "Bytes", });
           internal_static_DropIndexRequest_descriptor =
-            getDescriptor().getMessageTypes().get(9);
+            getDescriptor().getMessageTypes().get(10);
           internal_static_DropIndexRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_DropIndexRequest_descriptor,
               new java.lang.String[] { "IndexConglomId", "BaseConglomId", });
           internal_static_DropIndexResponse_descriptor =
-            getDescriptor().getMessageTypes().get(10);
+            getDescriptor().getMessageTypes().get(11);
           internal_static_DropIndexResponse_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_DropIndexResponse_descriptor,

@@ -13,7 +13,7 @@ message TaskStats {
 }
 
 message SpliceObserverInstructions {
-	bytes bytes = 1;	
+	optional bytes bytes = 1;	
 }
 
 
@@ -25,8 +25,8 @@ message SpliceOperationRequest {
 message SpliceSchedulerRequest {
 	optional bytes taskStart = 1;
 	optional bytes taskEnd = 2;
-	optional className = 3;
-	optional classBytes = 4;
+	optional string className = 3;
+	optional bytes classBytes = 4;
 }
 
 message SpliceSchedulerResponse {
@@ -40,11 +40,30 @@ message DeleteFirstAfterRequest{
 	optional bytes rowKey = 2;
 	optional bytes limit = 3;
 }
-
-message WriteResult {
-
+message ConstraintContext {
+	optional string tableName = 1;
+	optional string constraintName = 2;
 }
 
+message WriteResult {
+  enum Code {
+    FAILED = 0;
+    WRITE_CONFLICT = 1;
+    SUCCESS = 2;
+    PRIMARY_KEY_VIOLATION = 3;
+    UNIQUE_VIOLATION = 4;
+    FOREIGN_KEY_VIOLATION = 5;
+    CHECK_VIOLATION = 6;
+    NOT_SERVING_REGION = 7;
+    WRONG_REGION = 8;
+    REGION_TOO_BUSY = 9;
+    NOT_RUN = 10;
+    NOT_NULL = 11;
+  }				
+  optional Code code = 1;	
+  optional string errorMessage = 2;				
+  optional ConstraintContext constraintContext = 3;
+}
 
 message BulkWriteResponse {
 	optional bytes bytes = 1;
@@ -60,6 +79,7 @@ message DropIndexRequest {
 }
 
 message DropIndexResponse {
+
 }
 
 
