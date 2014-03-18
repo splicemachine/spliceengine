@@ -3,21 +3,26 @@ package com.splicemachine.derby.hbase;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Properties;
-
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRowProcessorEndpoint;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
-
+import com.google.protobuf.RpcCallback;
+import com.google.protobuf.RpcController;
+import com.google.protobuf.Service;
+import com.splicemachine.coprocessor.SpliceMessage.SpliceOperationRequest;
+import com.splicemachine.coprocessor.SpliceMessage.SpliceOperationService;
+import com.splicemachine.coprocessor.SpliceMessage.TaskStats;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -28,7 +33,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * @author johnleach
  *
  */
-public class SpliceOperationCoprocessor extends BaseRowProcessorEndpoint implements SpliceOperationService {
+public class SpliceOperationCoprocessor extends SpliceOperationService implements CoprocessorService, Coprocessor {
 	private static Logger LOG = Logger.getLogger(SpliceOperationCoprocessor.class);
 	public static byte[] TEMP_TABLE = SpliceConstants.TEMP_TABLE_BYTES;
 	protected static ContextManager contextManager;
@@ -48,7 +53,6 @@ public class SpliceOperationCoprocessor extends BaseRowProcessorEndpoint impleme
 	public void start(CoprocessorEnvironment env) throws IOException{
 		SpliceLogUtils.info(LOG, "starting coprocessor");
         threadLocalEnvironment.set(env);
-        super.start(env);
 	}
 
 	/**
@@ -58,7 +62,6 @@ public class SpliceOperationCoprocessor extends BaseRowProcessorEndpoint impleme
 	@Override
 	public void stop(CoprocessorEnvironment env) throws IOException{
 		SpliceLogUtils.info(LOG, "stopping coprocessor");
-		super.stop(env);
 	}
 	/**
 	 * The method that exeucutes the endpoint for the specific region.  It wraps the regions scanner in a SpliceOperationRegionScanner for
@@ -116,4 +119,15 @@ public class SpliceOperationCoprocessor extends BaseRowProcessorEndpoint impleme
             }
         }
     }
+
+	@Override
+	public Service getService() {
+		return this;
+	}
+
+	@Override
+	public void run(RpcController controller,SpliceOperationRequest spliceOperationRequest,RpcCallback<TaskStats> arg2) {
+		// TODO Auto-generated method stub
+		
+	}
 }

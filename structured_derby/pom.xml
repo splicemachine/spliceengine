@@ -58,6 +58,15 @@
       <type>jar</type>
       <scope>compile</scope>
     </dependency>
+    
+    <dependency>
+      <groupId>com.splicemachine</groupId>
+      <artifactId>splice_protocol</artifactId>
+      <version>0.5rc8-SNAPSHOT</version>
+      <classifier>${envClassifier}</classifier>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
 
     <dependency>
       <groupId>com.google.code.gson</groupId>

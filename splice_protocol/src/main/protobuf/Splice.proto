@@ -13,7 +13,7 @@ message TaskStats {
 }
 
 message SpliceObserverInstructions {
-
+	bytes bytes = 1;	
 }
 
 
@@ -23,18 +23,22 @@ message SpliceOperationRequest {
 }
 
 message SpliceSchedulerRequest {
+	optional bytes taskStart = 1;
+	optional bytes taskEnd = 2;
+	optional className = 3;
+	optional classBytes = 4;
 }
 
 message SpliceSchedulerResponse {
-}
-
-
-service SpliceDerbyCoprocessor {
-
+	optional string taskNode = 1;
+	optional bytes taskId = 2;
+	optional double estimatedCost = 3;
 }
 
 message DeleteFirstAfterRequest{
-
+	optional string transactionId = 1;
+	optional bytes rowKey = 2;
+	optional bytes limit = 3;
 }
 
 message WriteResult {
@@ -59,24 +63,31 @@ message DropIndexResponse {
 }
 
 
-service SpliceIndex {
+service SpliceIndexService {
 	rpc bulkWrite(BulkWriteRequest)
 	  returns (BulkWriteResponse);
 	rpc deleteFirstAfter(DeleteFirstAfterRequest)
 	  returns (WriteResult); 
 }
 
-service SpliceIndexManagement {
+service SpliceIndexManagementService {
 	rpc dropIndex(DropIndexRequest) 
 	  returns (DropIndexResponse);	
 }
 
-service SpliceOperation {
+service SpliceOperationService {
 	rpc run(SpliceOperationRequest)
 	  returns (TaskStats);
 }
 
-service SpliceScheduler {
+service SpliceSchedulerService {
 	rpc submit(SpliceSchedulerRequest)
 	  returns (SpliceSchedulerResponse);
 }
+
+service SpliceDerbyCoprocessorService {
+
+}
+
+
+

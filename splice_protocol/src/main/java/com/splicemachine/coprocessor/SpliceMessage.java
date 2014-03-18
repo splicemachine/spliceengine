@@ -4807,172 +4807,11 @@ public final class SpliceMessage {
   }
 
   /**
-   * Protobuf service {@code SpliceDerbyCoprocessor}
+   * Protobuf service {@code SpliceIndexService}
    */
-  public static abstract class SpliceDerbyCoprocessor
+  public static abstract class SpliceIndexService
       implements com.google.protobuf.Service {
-    protected SpliceDerbyCoprocessor() {}
-
-    public interface Interface {
-    }
-
-    public static com.google.protobuf.Service newReflectiveService(
-        final Interface impl) {
-      return new SpliceDerbyCoprocessor() {
-      };
-    }
-
-    public static com.google.protobuf.BlockingService
-        newReflectiveBlockingService(final BlockingInterface impl) {
-      return new com.google.protobuf.BlockingService() {
-        public final com.google.protobuf.Descriptors.ServiceDescriptor
-            getDescriptorForType() {
-          return getDescriptor();
-        }
-
-        public final com.google.protobuf.Message callBlockingMethod(
-            com.google.protobuf.Descriptors.MethodDescriptor method,
-            com.google.protobuf.RpcController controller,
-            com.google.protobuf.Message request)
-            throws com.google.protobuf.ServiceException {
-          if (method.getService() != getDescriptor()) {
-            throw new java.lang.IllegalArgumentException(
-              "Service.callBlockingMethod() given method descriptor for " +
-              "wrong service type.");
-          }
-          switch(method.getIndex()) {
-            default:
-              throw new java.lang.AssertionError("Can't get here.");
-          }
-        }
-
-        public final com.google.protobuf.Message
-            getRequestPrototype(
-            com.google.protobuf.Descriptors.MethodDescriptor method) {
-          if (method.getService() != getDescriptor()) {
-            throw new java.lang.IllegalArgumentException(
-              "Service.getRequestPrototype() given method " +
-              "descriptor for wrong service type.");
-          }
-          switch(method.getIndex()) {
-            default:
-              throw new java.lang.AssertionError("Can't get here.");
-          }
-        }
-
-        public final com.google.protobuf.Message
-            getResponsePrototype(
-            com.google.protobuf.Descriptors.MethodDescriptor method) {
-          if (method.getService() != getDescriptor()) {
-            throw new java.lang.IllegalArgumentException(
-              "Service.getResponsePrototype() given method " +
-              "descriptor for wrong service type.");
-          }
-          switch(method.getIndex()) {
-            default:
-              throw new java.lang.AssertionError("Can't get here.");
-          }
-        }
-
-      };
-    }
-
-    public static final
-        com.google.protobuf.Descriptors.ServiceDescriptor
-        getDescriptor() {
-      return com.splicemachine.coprocessor.SpliceMessage.getDescriptor().getServices().get(0);
-    }
-    public final com.google.protobuf.Descriptors.ServiceDescriptor
-        getDescriptorForType() {
-      return getDescriptor();
-    }
-
-    public final void callMethod(
-        com.google.protobuf.Descriptors.MethodDescriptor method,
-        com.google.protobuf.RpcController controller,
-        com.google.protobuf.Message request,
-        com.google.protobuf.RpcCallback<
-          com.google.protobuf.Message> done) {
-      if (method.getService() != getDescriptor()) {
-        throw new java.lang.IllegalArgumentException(
-          "Service.callMethod() given method descriptor for wrong " +
-          "service type.");
-      }
-      switch(method.getIndex()) {
-        default:
-          throw new java.lang.AssertionError("Can't get here.");
-      }
-    }
-
-    public final com.google.protobuf.Message
-        getRequestPrototype(
-        com.google.protobuf.Descriptors.MethodDescriptor method) {
-      if (method.getService() != getDescriptor()) {
-        throw new java.lang.IllegalArgumentException(
-          "Service.getRequestPrototype() given method " +
-          "descriptor for wrong service type.");
-      }
-      switch(method.getIndex()) {
-        default:
-          throw new java.lang.AssertionError("Can't get here.");
-      }
-    }
-
-    public final com.google.protobuf.Message
-        getResponsePrototype(
-        com.google.protobuf.Descriptors.MethodDescriptor method) {
-      if (method.getService() != getDescriptor()) {
-        throw new java.lang.IllegalArgumentException(
-          "Service.getResponsePrototype() given method " +
-          "descriptor for wrong service type.");
-      }
-      switch(method.getIndex()) {
-        default:
-          throw new java.lang.AssertionError("Can't get here.");
-      }
-    }
-
-    public static Stub newStub(
-        com.google.protobuf.RpcChannel channel) {
-      return new Stub(channel);
-    }
-
-    public static final class Stub extends com.splicemachine.coprocessor.SpliceMessage.SpliceDerbyCoprocessor implements Interface {
-      private Stub(com.google.protobuf.RpcChannel channel) {
-        this.channel = channel;
-      }
-
-      private final com.google.protobuf.RpcChannel channel;
-
-      public com.google.protobuf.RpcChannel getChannel() {
-        return channel;
-      }
-    }
-
-    public static BlockingInterface newBlockingStub(
-        com.google.protobuf.BlockingRpcChannel channel) {
-      return new BlockingStub(channel);
-    }
-
-    public interface BlockingInterface {}
-
-    private static final class BlockingStub implements BlockingInterface {
-      private BlockingStub(com.google.protobuf.BlockingRpcChannel channel) {
-        this.channel = channel;
-      }
-
-      private final com.google.protobuf.BlockingRpcChannel channel;
-    }
-
-    // @@protoc_insertion_point(class_scope:SpliceDerbyCoprocessor)
-  }
-
-  /**
-   * Protobuf service {@code SpliceIndex}
-   */
-  public static abstract class SpliceIndex
-      implements com.google.protobuf.Service {
-    protected SpliceIndex() {}
+    protected SpliceIndexService() {}
 
     public interface Interface {
       /**
@@ -4995,7 +4834,7 @@ public final class SpliceMessage {
 
     public static com.google.protobuf.Service newReflectiveService(
         final Interface impl) {
-      return new SpliceIndex() {
+      return new SpliceIndexService() {
         @java.lang.Override
         public  void bulkWrite(
             com.google.protobuf.RpcController controller,
@@ -5101,7 +4940,7 @@ public final class SpliceMessage {
     public static final
         com.google.protobuf.Descriptors.ServiceDescriptor
         getDescriptor() {
-      return com.splicemachine.coprocessor.SpliceMessage.getDescriptor().getServices().get(1);
+      return com.splicemachine.coprocessor.SpliceMessage.getDescriptor().getServices().get(0);
     }
     public final com.google.protobuf.Descriptors.ServiceDescriptor
         getDescriptorForType() {
@@ -5176,7 +5015,7 @@ public final class SpliceMessage {
       return new Stub(channel);
     }
 
-    public static final class Stub extends com.splicemachine.coprocessor.SpliceMessage.SpliceIndex implements Interface {
+    public static final class Stub extends com.splicemachine.coprocessor.SpliceMessage.SpliceIndexService implements Interface {
       private Stub(com.google.protobuf.RpcChannel channel) {
         this.channel = channel;
       }
@@ -5267,15 +5106,15 @@ public final class SpliceMessage {
 
     }
 
-    // @@protoc_insertion_point(class_scope:SpliceIndex)
+    // @@protoc_insertion_point(class_scope:SpliceIndexService)
   }
 
   /**
-   * Protobuf service {@code SpliceIndexManagement}
+   * Protobuf service {@code SpliceIndexManagementService}
    */
-  public static abstract class SpliceIndexManagement
+  public static abstract class SpliceIndexManagementService
       implements com.google.protobuf.Service {
-    protected SpliceIndexManagement() {}
+    protected SpliceIndexManagementService() {}
 
     public interface Interface {
       /**
@@ -5290,7 +5129,7 @@ public final class SpliceMessage {
 
     public static com.google.protobuf.Service newReflectiveService(
         final Interface impl) {
-      return new SpliceIndexManagement() {
+      return new SpliceIndexManagementService() {
         @java.lang.Override
         public  void dropIndex(
             com.google.protobuf.RpcController controller,
@@ -5374,7 +5213,7 @@ public final class SpliceMessage {
     public static final
         com.google.protobuf.Descriptors.ServiceDescriptor
         getDescriptor() {
-      return com.splicemachine.coprocessor.SpliceMessage.getDescriptor().getServices().get(2);
+      return com.splicemachine.coprocessor.SpliceMessage.getDescriptor().getServices().get(1);
     }
     public final com.google.protobuf.Descriptors.ServiceDescriptor
         getDescriptorForType() {
@@ -5440,7 +5279,7 @@ public final class SpliceMessage {
       return new Stub(channel);
     }
 
-    public static final class Stub extends com.splicemachine.coprocessor.SpliceMessage.SpliceIndexManagement implements Interface {
+    public static final class Stub extends com.splicemachine.coprocessor.SpliceMessage.SpliceIndexManagementService implements Interface {
       private Stub(com.google.protobuf.RpcChannel channel) {
         this.channel = channel;
       }
@@ -5499,15 +5338,15 @@ public final class SpliceMessage {
 
     }
 
-    // @@protoc_insertion_point(class_scope:SpliceIndexManagement)
+    // @@protoc_insertion_point(class_scope:SpliceIndexManagementService)
   }
 
   /**
-   * Protobuf service {@code SpliceOperation}
+   * Protobuf service {@code SpliceOperationService}
    */
-  public static abstract class SpliceOperation
+  public static abstract class SpliceOperationService
       implements com.google.protobuf.Service {
-    protected SpliceOperation() {}
+    protected SpliceOperationService() {}
 
     public interface Interface {
       /**
@@ -5522,7 +5361,7 @@ public final class SpliceMessage {
 
     public static com.google.protobuf.Service newReflectiveService(
         final Interface impl) {
-      return new SpliceOperation() {
+      return new SpliceOperationService() {
         @java.lang.Override
         public  void run(
             com.google.protobuf.RpcController controller,
@@ -5606,7 +5445,7 @@ public final class SpliceMessage {
     public static final
         com.google.protobuf.Descriptors.ServiceDescriptor
         getDescriptor() {
-      return com.splicemachine.coprocessor.SpliceMessage.getDescriptor().getServices().get(3);
+      return com.splicemachine.coprocessor.SpliceMessage.getDescriptor().getServices().get(2);
     }
     public final com.google.protobuf.Descriptors.ServiceDescriptor
         getDescriptorForType() {
@@ -5672,7 +5511,7 @@ public final class SpliceMessage {
       return new Stub(channel);
     }
 
-    public static final class Stub extends com.splicemachine.coprocessor.SpliceMessage.SpliceOperation implements Interface {
+    public static final class Stub extends com.splicemachine.coprocessor.SpliceMessage.SpliceOperationService implements Interface {
       private Stub(com.google.protobuf.RpcChannel channel) {
         this.channel = channel;
       }
@@ -5731,15 +5570,15 @@ public final class SpliceMessage {
 
     }
 
-    // @@protoc_insertion_point(class_scope:SpliceOperation)
+    // @@protoc_insertion_point(class_scope:SpliceOperationService)
   }
 
   /**
-   * Protobuf service {@code SpliceScheduler}
+   * Protobuf service {@code SpliceSchedulerService}
    */
-  public static abstract class SpliceScheduler
+  public static abstract class SpliceSchedulerService
       implements com.google.protobuf.Service {
-    protected SpliceScheduler() {}
+    protected SpliceSchedulerService() {}
 
     public interface Interface {
       /**
@@ -5754,7 +5593,7 @@ public final class SpliceMessage {
 
     public static com.google.protobuf.Service newReflectiveService(
         final Interface impl) {
-      return new SpliceScheduler() {
+      return new SpliceSchedulerService() {
         @java.lang.Override
         public  void submit(
             com.google.protobuf.RpcController controller,
@@ -5838,7 +5677,7 @@ public final class SpliceMessage {
     public static final
         com.google.protobuf.Descriptors.ServiceDescriptor
         getDescriptor() {
-      return com.splicemachine.coprocessor.SpliceMessage.getDescriptor().getServices().get(4);
+      return com.splicemachine.coprocessor.SpliceMessage.getDescriptor().getServices().get(3);
     }
     public final com.google.protobuf.Descriptors.ServiceDescriptor
         getDescriptorForType() {
@@ -5904,7 +5743,7 @@ public final class SpliceMessage {
       return new Stub(channel);
     }
 
-    public static final class Stub extends com.splicemachine.coprocessor.SpliceMessage.SpliceScheduler implements Interface {
+    public static final class Stub extends com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerService implements Interface {
       private Stub(com.google.protobuf.RpcChannel channel) {
         this.channel = channel;
       }
@@ -5963,7 +5802,168 @@ public final class SpliceMessage {
 
     }
 
-    // @@protoc_insertion_point(class_scope:SpliceScheduler)
+    // @@protoc_insertion_point(class_scope:SpliceSchedulerService)
+  }
+
+  /**
+   * Protobuf service {@code SpliceDerbyCoprocessorService}
+   */
+  public static abstract class SpliceDerbyCoprocessorService
+      implements com.google.protobuf.Service {
+    protected SpliceDerbyCoprocessorService() {}
+
+    public interface Interface {
+    }
+
+    public static com.google.protobuf.Service newReflectiveService(
+        final Interface impl) {
+      return new SpliceDerbyCoprocessorService() {
+      };
+    }
+
+    public static com.google.protobuf.BlockingService
+        newReflectiveBlockingService(final BlockingInterface impl) {
+      return new com.google.protobuf.BlockingService() {
+        public final com.google.protobuf.Descriptors.ServiceDescriptor
+            getDescriptorForType() {
+          return getDescriptor();
+        }
+
+        public final com.google.protobuf.Message callBlockingMethod(
+            com.google.protobuf.Descriptors.MethodDescriptor method,
+            com.google.protobuf.RpcController controller,
+            com.google.protobuf.Message request)
+            throws com.google.protobuf.ServiceException {
+          if (method.getService() != getDescriptor()) {
+            throw new java.lang.IllegalArgumentException(
+              "Service.callBlockingMethod() given method descriptor for " +
+              "wrong service type.");
+          }
+          switch(method.getIndex()) {
+            default:
+              throw new java.lang.AssertionError("Can't get here.");
+          }
+        }
+
+        public final com.google.protobuf.Message
+            getRequestPrototype(
+            com.google.protobuf.Descriptors.MethodDescriptor method) {
+          if (method.getService() != getDescriptor()) {
+            throw new java.lang.IllegalArgumentException(
+              "Service.getRequestPrototype() given method " +
+              "descriptor for wrong service type.");
+          }
+          switch(method.getIndex()) {
+            default:
+              throw new java.lang.AssertionError("Can't get here.");
+          }
+        }
+
+        public final com.google.protobuf.Message
+            getResponsePrototype(
+            com.google.protobuf.Descriptors.MethodDescriptor method) {
+          if (method.getService() != getDescriptor()) {
+            throw new java.lang.IllegalArgumentException(
+              "Service.getResponsePrototype() given method " +
+              "descriptor for wrong service type.");
+          }
+          switch(method.getIndex()) {
+            default:
+              throw new java.lang.AssertionError("Can't get here.");
+          }
+        }
+
+      };
+    }
+
+    public static final
+        com.google.protobuf.Descriptors.ServiceDescriptor
+        getDescriptor() {
+      return com.splicemachine.coprocessor.SpliceMessage.getDescriptor().getServices().get(4);
+    }
+    public final com.google.protobuf.Descriptors.ServiceDescriptor
+        getDescriptorForType() {
+      return getDescriptor();
+    }
+
+    public final void callMethod(
+        com.google.protobuf.Descriptors.MethodDescriptor method,
+        com.google.protobuf.RpcController controller,
+        com.google.protobuf.Message request,
+        com.google.protobuf.RpcCallback<
+          com.google.protobuf.Message> done) {
+      if (method.getService() != getDescriptor()) {
+        throw new java.lang.IllegalArgumentException(
+          "Service.callMethod() given method descriptor for wrong " +
+          "service type.");
+      }
+      switch(method.getIndex()) {
+        default:
+          throw new java.lang.AssertionError("Can't get here.");
+      }
+    }
+
+    public final com.google.protobuf.Message
+        getRequestPrototype(
+        com.google.protobuf.Descriptors.MethodDescriptor method) {
+      if (method.getService() != getDescriptor()) {
+        throw new java.lang.IllegalArgumentException(
+          "Service.getRequestPrototype() given method " +
+          "descriptor for wrong service type.");
+      }
+      switch(method.getIndex()) {
+        default:
+          throw new java.lang.AssertionError("Can't get here.");
+      }
+    }
+
+    public final com.google.protobuf.Message
+        getResponsePrototype(
+        com.google.protobuf.Descriptors.MethodDescriptor method) {
+      if (method.getService() != getDescriptor()) {
+        throw new java.lang.IllegalArgumentException(
+          "Service.getResponsePrototype() given method " +
+          "descriptor for wrong service type.");
+      }
+      switch(method.getIndex()) {
+        default:
+          throw new java.lang.AssertionError("Can't get here.");
+      }
+    }
+
+    public static Stub newStub(
+        com.google.protobuf.RpcChannel channel) {
+      return new Stub(channel);
+    }
+
+    public static final class Stub extends com.splicemachine.coprocessor.SpliceMessage.SpliceDerbyCoprocessorService implements Interface {
+      private Stub(com.google.protobuf.RpcChannel channel) {
+        this.channel = channel;
+      }
+
+      private final com.google.protobuf.RpcChannel channel;
+
+      public com.google.protobuf.RpcChannel getChannel() {
+        return channel;
+      }
+    }
+
+    public static BlockingInterface newBlockingStub(
+        com.google.protobuf.BlockingRpcChannel channel) {
+      return new BlockingStub(channel);
+    }
+
+    public interface BlockingInterface {}
+
+    private static final class BlockingStub implements BlockingInterface {
+      private BlockingStub(com.google.protobuf.BlockingRpcChannel channel) {
+        this.channel = channel;
+      }
+
+      private final com.google.protobuf.BlockingRpcChannel channel;
+    }
+
+    // @@protoc_insertion_point(class_scope:SpliceDerbyCoprocessorService)
   }
 
   private static com.google.protobuf.Descriptors.Descriptor
@@ -6042,17 +6042,18 @@ public final class SpliceMessage {
       " \001(\014\"!\n\020BulkWriteRequest\022\r\n\005bytes\030\001 \001(\014\"",
       "A\n\020DropIndexRequest\022\026\n\016indexConglomId\030\001 " +
       "\001(\004\022\025\n\rbaseConglomId\030\002 \001(\004\"\023\n\021DropIndexR" +
-      "esponse2\030\n\026SpliceDerbyCoprocessor2}\n\013Spl" +
-      "iceIndex\0222\n\tbulkWrite\022\021.BulkWriteRequest" +
-      "\032\022.BulkWriteResponse\022:\n\020deleteFirstAfter" +
-      "\022\030.DeleteFirstAfterRequest\032\014.WriteResult" +
-      "2K\n\025SpliceIndexManagement\0222\n\tdropIndex\022\021" +
-      ".DropIndexRequest\032\022.DropIndexResponse2=\n" +
-      "\017SpliceOperation\022*\n\003run\022\027.SpliceOperatio" +
-      "nRequest\032\n.TaskStats2N\n\017SpliceScheduler\022",
-      ";\n\006submit\022\027.SpliceSchedulerRequest\032\030.Spl" +
-      "iceSchedulerResponseB6\n\035com.splicemachin" +
-      "e.coprocessorB\rSpliceMessageH\001\210\001\001\240\001\001"
+      "esponse2\204\001\n\022SpliceIndexService\0222\n\tbulkWr" +
+      "ite\022\021.BulkWriteRequest\032\022.BulkWriteRespon" +
+      "se\022:\n\020deleteFirstAfter\022\030.DeleteFirstAfte" +
+      "rRequest\032\014.WriteResult2R\n\034SpliceIndexMan" +
+      "agementService\0222\n\tdropIndex\022\021.DropIndexR" +
+      "equest\032\022.DropIndexResponse2D\n\026SpliceOper" +
+      "ationService\022*\n\003run\022\027.SpliceOperationReq" +
+      "uest\032\n.TaskStats2U\n\026SpliceSchedulerServi",
+      "ce\022;\n\006submit\022\027.SpliceSchedulerRequest\032\030." +
+      "SpliceSchedulerResponse2\037\n\035SpliceDerbyCo" +
+      "processorServiceB6\n\035com.splicemachine.co" +
+      "processorB\rSpliceMessageH\001\210\001\001\240\001\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {

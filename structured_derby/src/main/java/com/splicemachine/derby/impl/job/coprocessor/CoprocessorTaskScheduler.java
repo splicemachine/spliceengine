@@ -3,16 +3,21 @@ package com.splicemachine.derby.impl.job.coprocessor;
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-
 import com.google.common.base.Throwables;
+import com.google.protobuf.RpcCallback;
+import com.google.protobuf.RpcController;
+import com.google.protobuf.Service;
+import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.coprocessor.BaseRowProcessorEndpoint;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
+import com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerRequest;
+import com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerResponse;
+import com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerService;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -28,7 +33,7 @@ import com.splicemachine.utils.ZkUtils;
  * @author Scott Fines
  *         Created on: 4/3/13
  */
-public class CoprocessorTaskScheduler extends BaseRowProcessorEndpoint implements SpliceSchedulerService {
+public class CoprocessorTaskScheduler extends SpliceSchedulerService implements CoprocessorService, Coprocessor {
     private static final Logger LOG = Logger.getLogger(CoprocessorTaskScheduler.class);
     RegionCoprocessorEnvironment rce;
     private TaskScheduler<RegionTask> taskScheduler;
@@ -45,7 +50,6 @@ public class CoprocessorTaskScheduler extends BaseRowProcessorEndpoint implement
         runningTasks = SpliceDriver.driver().getTaskMonitor().registerRegion(region.getRegionInfo()
                                                                                    .getRegionNameAsString());
         taskScheduler = SpliceDriver.driver().getTaskScheduler();
-        super.start(env);
     }
 
     @Override
@@ -67,10 +71,8 @@ public class CoprocessorTaskScheduler extends BaseRowProcessorEndpoint implement
         SpliceDriver.driver().getTaskMonitor().deregisterRegion(((RegionCoprocessorEnvironment) env).getRegion()
                                                                                                     .getRegionNameAsString());
 
-        super.stop(env);
     }
 
-    @Override
     public TaskFutureContext submit(byte[] taskStart, byte[] taskEnd, final RegionTask task) throws IOException {
         //make sure that the task is fully contained within this region
         if (!HRegionUtil.containsRange(rce.getRegion(), taskStart, taskEnd))
@@ -114,5 +116,15 @@ public class CoprocessorTaskScheduler extends BaseRowProcessorEndpoint implement
             throw Exceptions.getIOException(t);
         }
     }
+
+	@Override
+	public Service getService() {
+		return this;
+	}
+
+	@Override
+	public void submit(RpcController rpcController, SpliceSchedulerRequest spliceSchedulerRequest,
+			RpcCallback<SpliceSchedulerResponse> spliceSchedulerResponse) {		
+	}
 
 }

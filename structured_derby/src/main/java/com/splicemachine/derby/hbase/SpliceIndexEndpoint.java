@@ -13,19 +13,24 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import com.google.common.collect.Lists;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.RpcCallback;
+import com.google.protobuf.RpcController;
+import com.google.protobuf.Service;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.coprocessor.BaseRowProcessorEndpoint;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.protobuf.ResponseConverter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionServer;
 import org.apache.hadoop.hbase.regionserver.MetricsRegionServerWrapper;
@@ -35,13 +40,14 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
-
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.coprocessor.SpliceMessage.BulkWriteRequest;
+import com.splicemachine.coprocessor.SpliceMessage.BulkWriteResponse;
+import com.splicemachine.coprocessor.SpliceMessage.SpliceIndexService;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
 import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.BulkWrite;
@@ -59,7 +65,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * @author Scott Fines
  *         Created on: 3/11/13
  */
-public class SpliceIndexEndpoint extends BaseRowProcessorEndpoint implements BatchProtocol {
+public class SpliceIndexEndpoint extends SpliceIndexService implements CoprocessorService, Coprocessor {
     private static final Logger LOG = Logger.getLogger(SpliceIndexEndpoint.class);
     public static volatile int ipcReserved = 10;
     public static ConcurrentMap<Long, Pair<LocalWriteContextFactory, AtomicInteger>> factoryMap = new
@@ -125,7 +131,6 @@ public class SpliceIndexEndpoint extends BaseRowProcessorEndpoint implements Bat
             SpliceLogUtils.debug(LOG, "Unable to parse conglomerate id for table %s, " +
                     "index management for batch operations will be diabled", tableName);
             conglomId = -1;
-            super.start(env);
             return;
         }
         maxWorkers = env.getConfiguration().getInt("splice.task.maxWorkers",
@@ -155,8 +160,6 @@ public class SpliceIndexEndpoint extends BaseRowProcessorEndpoint implements Bat
             SpliceDriver.driver().registerService(service);
         }
 
-        super.start(env);
-
     }
 
     @Override
@@ -167,7 +170,6 @@ public class SpliceIndexEndpoint extends BaseRowProcessorEndpoint implements Bat
         }
     }
 
-    @Override
     public byte[] bulkWrite(byte[] bulkWriteBytes) throws IOException {
         assert bulkWriteBytes != null;
         if (!shouldAllowWrite()) {
@@ -232,8 +234,6 @@ public class SpliceIndexEndpoint extends BaseRowProcessorEndpoint implements Bat
         }
     }
 
-    @SuppressWarnings("unchecked")
-    @Override
     public WriteResult deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException {
         final HRegion region = rce.getRegion();
         Scan scan = SpliceUtils.createScan(transactionId);
@@ -376,5 +376,33 @@ public class SpliceIndexEndpoint extends BaseRowProcessorEndpoint implements Bat
             compactionQueueSizeBlock = compactionQueueSizeLimit;
         }
     }
+
+	@Override
+	public Service getService() {
+		return this;
+	}
+
+	@Override
+	public void bulkWrite(RpcController rpcController, BulkWriteRequest bulkWriteRequest,RpcCallback<BulkWriteResponse> callback) {
+		BulkWriteResponse.Builder writeResponse = BulkWriteResponse.newBuilder();
+		try {
+			bulkWrite(bulkWriteRequest.getBytes().toByteArray());
+			writeResponse.setBytes(ByteString.copyFrom(bulkWrite(bulkWriteRequest.getBytes().toByteArray())));
+		}
+		catch (IOException e) {
+			      ResponseConverter.setControllerException(rpcController, e);
+		}
+		callback.run(writeResponse.build());
+	}
+
+	@Override
+	public void deleteFirstAfter(RpcController rpcController,DeleteFirstAfterRequest deleteFirstAfterRequest,RpcCallback<com.splicemachine.coprocessor.SpliceMessage.WriteResult> callback) {
+		try {
+			deleteFirstAfter(deleteFirstAfterRequest.get)
+		} catch (IOException ioe) {
+			
+		}
+		
+	}
 
 }
