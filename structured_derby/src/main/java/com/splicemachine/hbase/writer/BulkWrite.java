@@ -1,16 +1,16 @@
 package com.splicemachine.hbase.writer;
 
 import com.carrotsearch.hppc.ObjectArrayList;
-
-import java.io.*;
-import java.util.List;
-
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.google.common.collect.Lists;
 import com.splicemachine.hbase.KVPair;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.compress.SnappyCodec;
+
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * @author Scott Fines
@@ -97,7 +97,7 @@ public class BulkWrite implements Externalizable {
 				int iBuffer = mutations.size();
 				out.writeInt(iBuffer);
 				for (int i = 0; i< iBuffer; i++) {
-						out.writeObject((KVPair) buffer[i]);
+						out.writeObject(buffer[i]);
 				}
 		}
 
@@ -114,58 +114,14 @@ public class BulkWrite implements Externalizable {
 		public byte[] toBytes() throws IOException {
 				Output output = new Output(1024,-1);
 				output.writeString(txnId);
-
-//				List<KVPair> inserts = Lists.newArrayList();
-//				List<KVPair> updates = Lists.newArrayList();
-//				List<KVPair> deletes = Lists.newArrayList();
 				Object[] buffer = mutations.buffer;
 				int size = mutations.size();
 				for(int i=0;i< size;i++){
 						KVPair pair = (KVPair)buffer[i];
 						pair.toBytes(output);
-//						switch (pair.getType()) {
-//								case INSERT:
-//										inserts.add(pair);
-//										break;
-//								case UPDATE:
-//										updates.add(pair);
-//										break;
-//								case DELETE:
-//										deletes.add(pair);
-//										break;
-//						}
 				}
-//				if(inserts.size()>0){
-//						output.writeByte(KVPair.Type.INSERT.asByte());
-//						writeKvs(output, inserts);
-//				}
-//				if(updates.size()>0){
-//						output.writeByte(KVPair.Type.UPDATE.asByte());
-//						writeKvs(output,updates);
-//				}
-//				if(deletes.size()>0){
-//						output.writeByte(KVPair.Type.DELETE.asByte());
-//						writeKvs(output,deletes);
-//				}
 				output.flush();
 				return output.toBytes();
-		}
-
-		private void writeKvs(Output output, List<KVPair> kvs) {
-				output.writeInt(kvs.size());
-				for(KVPair kvPair:kvs){
-						writeKv(output, kvPair);
-				}
-		}
-
-		private void writeKv(Output output, KVPair kvPair) {
-				kvPair.toBytes(output);
-//				byte[] key = kvPair.getRow();
-//				byte[] value = kvPair.getValue();
-//				output.writeInt(key.length);
-//				output.write(key);
-//				output.writeInt(value.length);
-//				output.write(value);
 		}
 
 		public static BulkWrite fromBytes(byte[] bulkWriteBytes) throws IOException {
@@ -175,20 +131,7 @@ public class BulkWrite implements Externalizable {
 				ObjectArrayList<KVPair> mutations = new ObjectArrayList<KVPair>();
 				while(input.available()>0){
 						mutations.add(KVPair.fromBytes(input));
-//						byte typeByte = input.readByte();
-//						int length = input.readInt();
-//						readKvs(input, length, mutations, KVPair.Type.decode(typeByte));
 				}
 				return new BulkWrite(mutations,txnId,null);
-		}
-
-		private static void readKvs(Input input, int insertLength, ObjectArrayList<KVPair> mutations, KVPair.Type type) {
-				for(int i=0;i<insertLength;i++){
-						byte[] key = new byte[input.readInt()];
-						input.read(key);
-						byte[] row = new byte[input.readInt()];
-						input.read(row);
-						mutations.add(new KVPair(key,row, type));
-				}
 		}
 }

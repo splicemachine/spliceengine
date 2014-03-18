@@ -43,24 +43,26 @@ public class ErrorTransport implements Externalizable{
         out.writeUTF(messageId);
         out.writeBoolean(isStandard);
         out.writeBoolean(shouldRetry);
-        out.writeInt(args.length);
-        for(Object o:args){
-						out.writeBoolean(o!=null);
-						if(o!=null)
-								out.writeObject(o);
-        }
+        out.writeInt(args!=null?args.length:0);
+				if(args!=null){
+						for(Object o:args){
+								out.writeBoolean(o!=null);
+								if(o!=null)
+										out.writeObject(o);
+						}
+				}
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         messageId = in.readUTF();
         isStandard = in.readBoolean();
-        shouldRetry = in.readBoolean();
-        args = new Object[in.readInt()];
-        for(int i=0;i<args.length;i++){
-            args[i] = in.readBoolean()? in.readObject():null;
-        }
-    }
+				shouldRetry = in.readBoolean();
+				args = new Object[in.readInt()];
+				for(int i=0;i<args.length;i++){
+						args[i] = in.readBoolean()? in.readObject():null;
+				}
+		}
 
     public StandardException getStandardException(){
         return StandardException.newException(messageId,args);
