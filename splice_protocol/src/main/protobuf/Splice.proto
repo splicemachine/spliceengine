@@ -82,7 +82,6 @@ message DropIndexResponse {
 
 }
 
-
 service SpliceIndexService {
 	rpc bulkWrite(BulkWriteRequest)
 	  returns (BulkWriteResponse);
