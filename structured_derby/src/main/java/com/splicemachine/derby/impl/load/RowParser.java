@@ -137,7 +137,10 @@ public class RowParser {
 						columnContext.validate(column);
 						return;
 				}else if(columnContext.isAutoIncrement()){
-						throw ErrorState.LANG_AI_CANNOT_MODIFY_AI.newException(columnContext.getColumnName());
+					    column.setValue(sequences[columnContext.getColumnNumber()].getNext());
+					    columnContext.validate(column);
+						return;
+				//		throw ErrorState.LANG_AI_CANNOT_MODIFY_AI.newException(columnContext.getColumnName());
 				}
 				elem = elem.trim();
 				if(elem.length()<=0){
