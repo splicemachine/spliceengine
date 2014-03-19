@@ -12,6 +12,7 @@ import com.carrotsearch.hppc.BitSet;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.common.io.Closeables;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.encoding.Encoding;
@@ -802,14 +803,13 @@ public class DerbyBytesUtil {
             public byte[] encode(DataValueDescriptor dvd) throws StandardException {
                 Object o = dvd.getObject();
                 Output output = new Output(20,-1);
-                KryoPool.defaultPool().get().writeClassAndObject(output,o);
+                SpliceKryoRegistry.getInstance().get().writeClassAndObject(output,o);
                 return Encoding.encodeBytesUnsorted(output.toBytes());
             }
 
             @Override
             public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
-                Input input = new Input(data);
-                dvd.setValue(KryoPool.defaultPool().get().readClassAndObject(input));
+								decode(dvd,data,0,data.length);
             }
 
             @Override
@@ -826,8 +826,9 @@ public class DerbyBytesUtil {
 
 						@Override
 						public void decode(DataValueDescriptor dvd, byte[] data, int offset, int length) throws StandardException {
-								Input input = new Input(data,offset,length);
-								dvd.setValue(KryoPool.defaultPool().get().readClassAndObject(input));
+								byte[] decoded = Encoding.decodeBytesUnsortd(data,offset,length);
+								Input input = new Input(decoded);
+								dvd.setValue(SpliceKryoRegistry.getInstance().get().readClassAndObject(input));
 						}
 				};
         serializationMap.put(Format.REF,refSerializer);
