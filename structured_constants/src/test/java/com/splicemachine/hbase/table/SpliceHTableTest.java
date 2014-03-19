@@ -2,8 +2,7 @@ package com.splicemachine.hbase.table;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.List;
 import java.util.SortedSet;
@@ -55,21 +54,22 @@ public class SpliceHTableTest {
         Configuration config  = SpliceConstants.config;
         when(connection.getConfiguration()).thenReturn(config);
 
-        when(connection.getRegionLocation(TableName.valueOf(any(byte[].class)),any(byte[].class),anyBoolean())).thenAnswer(new Answer<HRegionLocation>() {
-            @Override
-            public HRegionLocation answer(InvocationOnMock invocation) throws Throwable {
-                byte[] startKey = (byte[]) invocation.getArguments()[1];
-                for(HRegionInfo regionInfo:regions){
-                    byte[] endKey = regionInfo.getEndKey();
-                    if(endKey.length==0){
-                        return new HRegionLocation(regionInfo, ServerName.parseServerName("localhost"),8180);
-                    }else if(Bytes.compareTo(endKey,startKey)>0){
-                        return new HRegionLocation(regionInfo,ServerName.parseServerName("localhost"),8180);
-                    }
-                }
-                return null;
-            }
-        });
+				TableName name = TableName.valueOf(Bytes.toBytes("test"));
+        when(connection.getRegionLocation(eq(name),any(byte[].class),anyBoolean())).thenAnswer(new Answer<HRegionLocation>() {
+						@Override
+						public HRegionLocation answer(InvocationOnMock invocation) throws Throwable {
+								byte[] startKey = (byte[]) invocation.getArguments()[1];
+								for (HRegionInfo regionInfo : regions) {
+										byte[] endKey = regionInfo.getEndKey();
+										if (endKey.length == 0) {
+												return new HRegionLocation(regionInfo, ServerName.parseServerName("localhost"), 8180);
+										} else if (Bytes.compareTo(endKey, startKey) > 0) {
+												return new HRegionLocation(regionInfo, ServerName.parseServerName("localhost"), 8180);
+										}
+								}
+								return null;
+						}
+				});
 
         ExecutorService executor = mock(ExecutorService.class);
         SpliceHTable table = new SpliceHTable(tableName.getName(),connection,executor,cache);
@@ -103,21 +103,21 @@ public class SpliceHTableTest {
         Configuration config  = SpliceConstants.config;
         when(connection.getConfiguration()).thenReturn(config);
 
-        when(connection.getRegionLocation(TableName.valueOf(any(byte[].class)),any(byte[].class),anyBoolean())).thenAnswer(new Answer<HRegionLocation>() {
-            @Override
-            public HRegionLocation answer(InvocationOnMock invocation) throws Throwable {
-                byte[] startKey = (byte[]) invocation.getArguments()[1];
-                for(HRegionInfo regionInfo:regions){
-                    byte[] endKey = regionInfo.getEndKey();
-                    if(endKey.length==0){
-                        return new HRegionLocation(regionInfo,ServerName.parseServerName("localhost"),8180);
-                    }else if(Bytes.compareTo(endKey,startKey)>0){
-                        return new HRegionLocation(regionInfo,ServerName.parseServerName("localhost"),8180);
-                    }
-                }
-                return null;
-            }
-        });
+        when(connection.getRegionLocation(eq(tableName),any(byte[].class),anyBoolean())).thenAnswer(new Answer<HRegionLocation>() {
+						@Override
+						public HRegionLocation answer(InvocationOnMock invocation) throws Throwable {
+								byte[] startKey = (byte[]) invocation.getArguments()[1];
+								for (HRegionInfo regionInfo : regions) {
+										byte[] endKey = regionInfo.getEndKey();
+										if (endKey.length == 0) {
+												return new HRegionLocation(regionInfo, ServerName.parseServerName("localhost:8180"));
+										} else if (Bytes.compareTo(endKey, startKey) > 0) {
+												return new HRegionLocation(regionInfo, ServerName.parseServerName("localhost:8180"));
+										}
+								}
+								return null;
+						}
+				});
 
         ExecutorService executor = mock(ExecutorService.class);
         SpliceHTable table = new SpliceHTable(tableName.getName(),connection,executor,cache);

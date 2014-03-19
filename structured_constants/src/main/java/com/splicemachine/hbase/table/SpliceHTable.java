@@ -13,6 +13,9 @@ import java.util.concurrent.ExecutorService;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.protobuf.Service;
+import com.google.protobuf.ServiceException;
+import com.splicemachine.hbase.NoRetryCoprocessorRpcChannel;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.NotServingRegionException;
@@ -24,6 +27,7 @@ import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
+import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
@@ -76,7 +80,22 @@ public class SpliceHTable extends HTable {
         }
     }
 
-		private <T extends CoprocessorService, R> void execOnSingleRow(Class<T> protocol, byte[] startKey, Batch.Call<T, R> callable, Batch.Callback<R> callback) throws Throwable {
+		@Override
+		public <T extends Service, R> void coprocessorService(Class<T> service,
+																													byte[] startKey,
+																													byte[] endKey,
+																													Batch.Call<T, R> callable,
+																													Batch.Callback<R> callback) throws Throwable {
+				if((startKey.length!=0 || endKey.length!=0) && Arrays.equals(startKey,endKey))
+						execOnSingleRow(service,startKey,callable,callback);
+				else
+						submitOnRange(service,startKey,endKey,callable,callback);
+		}
+
+		private <T extends Service, R> void execOnSingleRow(Class<T> protocol,
+																																	 byte[] startKey,
+																																	 Batch.Call<T, R> callable,
+																																	 Batch.Callback<R> callback) throws Throwable {
 				Pair<byte[], byte[]> containingRegionBounds = getContainingRegion(startKey,0);
 
 				if(LOG.isDebugEnabled())
@@ -117,7 +136,7 @@ public class SpliceHTable extends HTable {
 				}
 		}
 
-		protected <T extends CoprocessorService, R> void submitOnRange(Class<T> protocol,
+		protected <T extends Service, R> void submitOnRange(Class<T> protocol,
 																																		byte[] startKey,
 																																		byte[] endKey,
 																																		Batch.Call<T, R> callable, Batch.Callback<R> callback) throws Throwable {
@@ -282,7 +301,7 @@ public class SpliceHTable extends HTable {
         return keysToUse;
     }
 
-    private <T extends CoprocessorService, R> void submit(final Class<T> protocol,
+    private <T extends Service, R> void submit(final Class<T> protocol,
                                                            final Batch.Call<T, R> callable,
                                                            final Batch.Callback<R> callback,
                                                            KeyedCompletionService<ExecContext,R> completionService,
@@ -298,19 +317,21 @@ public class SpliceHTable extends HTable {
 				});
     }
 
-		private <T extends CoprocessorService, R> R doExecute(Class<T> protocol,Batch.Call<T,R> callable, Batch.Callback<R> callback,
-																														 ExecContext context) throws IOException {
+		private <T extends Service, R> R doExecute(Class<T> protocol,Batch.Call<T,R> callable, Batch.Callback<R> callback,
+																														 ExecContext context) throws Exception {
 				Pair<byte[],byte[]> keys = context.keyBoundary;
-				 byte[] startKeyToUse = keys.getFirst();
-				NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(getConfiguration(), connection, protocol, tableName, startKeyToUse, context.attemptCount>0);
-				@SuppressWarnings("unchecked") T instance = (T) Proxy.newProxyInstance(getConfiguration().getClassLoader(), new Class[]{protocol}, invoker);
+				byte[] startKeyToUse = keys.getFirst();
+				NoRetryCoprocessorRpcChannel channel = new NoRetryCoprocessorRpcChannel(connection,TableName.valueOf(tableName),startKeyToUse);
+				T instance = ProtobufUtil.newServiceStub(protocol,channel);
+//				NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(getConfiguration(), connection, protocol, tableName, startKeyToUse, context.attemptCount>0);
+//				@SuppressWarnings("unchecked") T instance = (T) Proxy.newProxyInstance(getConfiguration().getClassLoader(), new Class[]{protocol}, invoker);
 				R result;
 				if(callable instanceof BoundCall){
 						result = ((BoundCall<T,R>) callable).call(startKeyToUse,keys.getSecond(),instance);
 				}else
 						result = callable.call(instance);
 				if(callback!=null)
-						callback.update(invoker.getRegionName(),startKeyToUse,result);
+						callback.update(channel.getRegionName(),startKeyToUse,result);
 
 				return result;
 		}
