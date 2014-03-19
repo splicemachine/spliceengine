@@ -3,6 +3,7 @@ package com.splicemachine.job;
 import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.ipc.RemoteException;
 
 import java.io.Externalizable;
 import java.io.IOException;

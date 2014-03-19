@@ -9,6 +9,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
+import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -137,7 +138,7 @@ class ImportFile {
 				return result;
 		}
 
-		private static List<FileStatus> listStatus(FileSystem fs,String input) throws IOException {
+		private static List<FileStatus> listStatus(final FileSystem fs,String input) throws IOException {
 				Path[] dirs = getInputPaths(input);
 				if (dirs.length == 0)
 						throw new IOException("No Path Supplied in job");
@@ -146,6 +147,16 @@ class ImportFile {
 				// creates a MultiPathFilter with the hiddenFileFilter and the
 				// user provided one (if any).
 				List<PathFilter> filters = new ArrayList<PathFilter>();
+				filters.add(new PathFilter() {
+						@Override
+						public boolean accept(Path path) {
+								try {
+										return fs.getFileStatus(path).isFile();
+								} catch (IOException e) {
+										throw new RuntimeException(e);
+								}
+						}
+				});
 				filters.add(hiddenFileFilter);
 				PathFilter inputFilter = new MultiPathFilter(filters);
 
@@ -158,11 +169,8 @@ class ImportFile {
 								errors.add(p);
 						} else {
 								for (FileStatus globStat : matches) {
-										if (directory.isDirectory(globStat)) {
-												Collections.addAll(result, fs.listStatus(globStat.getPath(), inputFilter));
-										} else {
+										if(!directory.isDirectory(globStat))
 												result.add(globStat);
-										}
 								}
 						}
 				}
