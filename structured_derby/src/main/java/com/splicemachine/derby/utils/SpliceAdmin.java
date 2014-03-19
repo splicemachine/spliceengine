@@ -813,6 +813,15 @@ public class SpliceAdmin {
         }
     }
 
+		public static void VACUUM() throws SQLException{
+				Vacuum vacuum = new Vacuum(getDefaultConn());
+				try{
+						vacuum.vacuumDatabase();
+				}finally{
+						vacuum.shutdown();
+				}
+		}
+
     public static void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException {
         ResultSet allTablesInSchema = getDefaultConn().prepareStatement("SELECT S.SCHEMANAME, T.TABLENAME, C.ISINDEX, " +
                 "C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
