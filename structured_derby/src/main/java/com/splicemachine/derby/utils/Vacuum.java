@@ -1,7 +1,5 @@
 package com.splicemachine.derby.utils;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.HTransactorFactory;
@@ -17,7 +15,10 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 
 /**
