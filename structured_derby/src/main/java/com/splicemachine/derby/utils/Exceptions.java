@@ -21,6 +21,7 @@ import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
+import org.apache.hadoop.ipc.RemoteException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -190,6 +191,10 @@ public class Exceptions {
     }
 
     public static Throwable getRootCause(Throwable error) {
+				//unwrap RemoteException wrappers
+				if(error instanceof RemoteException){
+						error = ((RemoteException)error).unwrapRemoteException();
+				}
         error = Throwables.getRootCause(error);
         if(error instanceof RetriesExhaustedWithDetailsException ){
             RetriesExhaustedWithDetailsException rewde = (RetriesExhaustedWithDetailsException)error;
