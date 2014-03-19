@@ -3,6 +3,7 @@ package com.splicemachine.si;
 import java.util.List;
 
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
@@ -33,9 +34,9 @@ public class LStoreTest {
         final List<Cell> outputCells = dataLib.listResult(outputTuple);
         Assert.assertEquals(1, outputCells.size());
         final Cell outputCell = outputCells.get(0);
-        Assert.assertEquals("foo", Bytes.toString(outputCell.getFamily()));
-        Assert.assertEquals("age", Bytes.toString(outputCell.getQualifier()));
-        Assert.assertEquals(23, Bytes.toInt(outputCell.getValue()));
+        Assert.assertEquals("foo", Bytes.toString(CellUtil.cloneFamily(outputCell)));
+        Assert.assertEquals("age", Bytes.toString(CellUtil.cloneQualifier(outputCell)));
+        Assert.assertEquals(23, Bytes.toInt(CellUtil.cloneValue(outputCell)));
         Assert.assertEquals(1L, outputCell.getTimestamp());
     }
 
@@ -54,9 +55,9 @@ public class LStoreTest {
         final List<Cell> outputCells = dataLib.listResult(outputTuple);
         Assert.assertEquals(1, outputCells.size());
         final Cell outputCell = outputCells.get(0);
-        Assert.assertEquals("foo", Bytes.toString(outputCell.getFamily()));
-        Assert.assertEquals("age", Bytes.toString(outputCell.getQualifier()));
-        Assert.assertEquals(21, Bytes.toInt(outputCell.getValue()));
+        Assert.assertEquals("foo", Bytes.toString(CellUtil.cloneFamily(outputCell)));
+        Assert.assertEquals("age", Bytes.toString(CellUtil.cloneQualifier(outputCell)));
+        Assert.assertEquals(21, Bytes.toInt(CellUtil.cloneValue(outputCell)));
         Assert.assertEquals(0L, outputCell.getTimestamp());
     }
 }

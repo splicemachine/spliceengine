@@ -69,9 +69,9 @@ public class TranslatorTest {
         final List<Cell> results = Lists.newArrayList(result.rawCells());
         Assert.assertEquals(1, results.size());
         final Cell kv = results.get(0);
-        Assert.assertEquals("joe", Bytes.toString(kv.getRowArray()));
-        Assert.assertEquals("family1", Bytes.toString(kv.getFamilyArray()));
-        Assert.assertEquals("age", Bytes.toString(kv.getQualifierArray()));
+        Assert.assertEquals("joe", Bytes.toString(CellUtil.cloneRow(kv)));
+        Assert.assertEquals("family1", Bytes.toString(CellUtil.cloneFamily(kv)));
+        Assert.assertEquals("age", Bytes.toString(CellUtil.cloneQualifier(kv)));
         Assert.assertEquals(100L, kv.getTimestamp());
         Assert.assertEquals(20, Bytes.toInt(CellUtil.cloneValue(kv)));
     }

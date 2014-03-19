@@ -8,10 +8,11 @@
   <name>structured_hbase</name>
   <description>Set of modules for getting hbase to function in structure</description>
     <modules>
-        <module>structured_constants</module>
-        <module>structured_si</module>
-        <module>structured_derby</module>
-        <module>structured_test</module>
+      <module>structured_constants</module>
+      <module>structured_si</module>
+      <module>structured_derby</module>
+      <module>splice_protocol</module>
+      <module>structured_test</module>
     </modules>
   <scm>
     <connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>

@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
@@ -114,10 +115,10 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
     void copyPutKeyValues(Put put, Put newPut, long timestamp) {
         for (Cell keyValue : dataLib.listPut(put)) {
             final byte[] qualifier = keyValue.getQualifier();
-            dataLib.addKeyValueToPut(newPut, keyValue.getFamily(),
+            dataLib.addKeyValueToPut(newPut, keyValue.getFamilyArray(),
                     qualifier,
                     timestamp,
-                    keyValue.getValue());
+                    keyValue.getValueArray());
         }
     }
 

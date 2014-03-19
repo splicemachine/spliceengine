@@ -55,7 +55,7 @@ public class SpliceHTableTest {
         Configuration config  = SpliceConstants.config;
         when(connection.getConfiguration()).thenReturn(config);
 
-        when(connection.getRegionLocation(any(byte[].class),any(byte[].class),anyBoolean())).thenAnswer(new Answer<HRegionLocation>() {
+        when(connection.getRegionLocation(TableName.valueOf(any(byte[].class)),any(byte[].class),anyBoolean())).thenAnswer(new Answer<HRegionLocation>() {
             @Override
             public HRegionLocation answer(InvocationOnMock invocation) throws Throwable {
                 byte[] startKey = (byte[]) invocation.getArguments()[1];
@@ -103,7 +103,7 @@ public class SpliceHTableTest {
         Configuration config  = SpliceConstants.config;
         when(connection.getConfiguration()).thenReturn(config);
 
-        when(connection.getRegionLocation(any(byte[].class),any(byte[].class),anyBoolean())).thenAnswer(new Answer<HRegionLocation>() {
+        when(connection.getRegionLocation(TableName.valueOf(any(byte[].class)),any(byte[].class),anyBoolean())).thenAnswer(new Answer<HRegionLocation>() {
             @Override
             public HRegionLocation answer(InvocationOnMock invocation) throws Throwable {
                 byte[] startKey = (byte[]) invocation.getArguments()[1];

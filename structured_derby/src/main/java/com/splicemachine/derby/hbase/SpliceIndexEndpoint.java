@@ -41,6 +41,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.coprocessor.SpliceMessage.BulkWriteRequest;
 import com.splicemachine.coprocessor.SpliceMessage.BulkWriteResponse;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceIndexService;
@@ -395,14 +396,9 @@ public class SpliceIndexEndpoint extends SpliceIndexService implements Coprocess
 		callback.run(writeResponse.build());
 	}
 
-	@Override
-	public void deleteFirstAfter(RpcController rpcController,DeleteFirstAfterRequest deleteFirstAfterRequest,RpcCallback<com.splicemachine.coprocessor.SpliceMessage.WriteResult> callback) {
-		try {
-			deleteFirstAfter(deleteFirstAfterRequest.get)
-		} catch (IOException ioe) {
-			
-		}
-		
-	}
-
+    @Override
+    public void deleteFirstAfter(RpcController controller, SpliceMessage.DeleteFirstAfterRequest request,
+                                 RpcCallback<SpliceMessage.WriteResult> done) {
+        // TODO: implement
+    }
 }

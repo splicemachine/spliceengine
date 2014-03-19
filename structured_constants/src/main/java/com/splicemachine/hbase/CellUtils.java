@@ -94,13 +94,11 @@ public class CellUtils {
     }
 
     public static Cell matchDataColumn(Cell[] kvs) {
-        return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES,
-                             SIConstants.PACKED_COLUMN_BYTES);
+        return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
     }
 
     public static Cell matchDataColumn(List<Cell> kvs) {
-        return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES,
-                             SIConstants.PACKED_COLUMN_BYTES);
+        return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
     }
 
 }

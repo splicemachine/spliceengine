@@ -18,6 +18,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.api.SRowLock;
 
 /**
  * Implementation of SDataLib that is specific to the HBase operation and result types.
@@ -54,7 +55,7 @@ public class HDataLib implements SDataLib<Put, Delete, Get, Scan> {
     }
 
     @SuppressWarnings("unchecked")
-		@Override
+	@Override
     public <T> T decode(byte[] value, Class<T> type) {
         if (value == null) {
             return null;
@@ -80,7 +81,7 @@ public class HDataLib implements SDataLib<Put, Delete, Get, Scan> {
         throw new RuntimeException("unsupported type conversion: " + type.getName());
     }
 
-		@Override
+	@Override
     public void addKeyValueToPut(Put put, byte[] family, byte[] qualifier, long timestamp, byte[] value) {
         if (timestamp <0) {
             put.add(family, qualifier, value);
@@ -89,12 +90,18 @@ public class HDataLib implements SDataLib<Put, Delete, Get, Scan> {
         }
     }
 
-		@Override
+	@Override
     public Put newPut(byte[] key) {
         return new Put(key);
     }
 
-		@Override
+    @Override
+    public Put newPut(byte[] key, SRowLock lock) {
+        // TODO: jc - interface imbalance
+        return new Put(key);
+    }
+
+    @Override
     public Get newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
         Get get = new Get(rowKey);
         if (families != null) {

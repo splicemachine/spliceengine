@@ -1,10 +1,12 @@
 package com.splicemachine.si.data.light;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -12,6 +14,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.api.SRowLock;
 
 public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
 
@@ -106,7 +109,13 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
 
     @Override
     public LTuple newPut(byte[] key) {
-        return newPut(key);
+        return newPut(key, null);
+    }
+
+
+    @Override
+    public LTuple newPut(byte[] key, SRowLock lock) {
+        return new LTuple(key, new ArrayList<Cell>(), lock);
     }
 
     @Override
@@ -195,7 +204,7 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
             if (CellUtils.singleMatchingColumn(v, family, qualifier)) {
                 results.add(v);
             }
-            if (valuesMatch(v.getFamilyArray(), family) && valuesMatch(v.getFamilyArray(), qualifier)) {
+            if (valuesMatch(CellUtil.cloneFamily(v), family) && valuesMatch(CellUtil.cloneQualifier(v), qualifier)) {
                 results.add(v);
             }
         }
@@ -240,7 +249,7 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
 
     @Override
     public KVPair toKVPair(LTuple lTuple) {
-        return new KVPair(lTuple.key, lTuple.values.get(0).getValue());
+        return new KVPair(lTuple.key, CellUtil.cloneValue(lTuple.values.get(0)));
     }
 
     @Override

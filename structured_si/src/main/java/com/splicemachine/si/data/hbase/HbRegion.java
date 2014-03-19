@@ -3,7 +3,7 @@ package com.splicemachine.si.data.hbase;
 import static com.splicemachine.constants.SpliceConstants.CHECK_BLOOM_ATTRIBUTE_NAME;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -17,7 +17,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
-import org.apache.log4j.Logger;
 
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.utils.CloseableIterator;
@@ -97,7 +96,9 @@ public class HbRegion implements IHTable {
 
     @Override
     public void unLockRow(SRowLock lock) throws IOException {
-        region.releaseRowLocks(Arrays.asList(lock.getDelegate()));
+        List<HRegion.RowLock> locks = new ArrayList<HRegion.RowLock>(1);
+        locks.add(lock.getDelegate());
+        region.releaseRowLocks(locks);
     }
 
     @Override

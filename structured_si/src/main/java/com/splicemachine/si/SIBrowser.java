@@ -235,9 +235,9 @@ public class SIBrowser extends SIConstants {
 
                 final List<Cell> list = r.listCells();
                 for (Cell kv : list) {
-                    final byte[] f = kv.getFamilyArray();
+                    final byte[] f = CellUtil.cloneFamily(kv);
                     String family = Bytes.toString(f);
-                    final byte[] q = kv.getQualifierArray();
+                    final byte[] q = CellUtil.cloneQualifier(kv);
                     final byte[] v = CellUtil.cloneValue(kv);
                     final long ts = kv.getTimestamp();
                     if (Arrays.equals(DEFAULT_FAMILY_BYTES, f)

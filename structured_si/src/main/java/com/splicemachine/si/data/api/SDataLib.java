@@ -32,6 +32,8 @@ public interface SDataLib<
 
     byte[] getPutKey(Put put);
 
+    Put newPut(byte[] key, SRowLock lock);
+
     Get newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp);
 
     Get newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp,

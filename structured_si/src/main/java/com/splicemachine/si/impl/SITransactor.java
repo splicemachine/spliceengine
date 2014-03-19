@@ -21,7 +21,6 @@ import com.google.common.collect.Sets;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -165,7 +164,7 @@ public class SITransactor<Table,
                 }
 
                 isSIDataOnly = false;
-                byte[] value = keyValue.getValue();
+                byte[] value = keyValue.getValueArray();
                 Map<byte[], Map<byte[], List<KVPair>>> familyMap = kvPairMap.get(txnId);
                 if (familyMap == null) {
                     familyMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
@@ -396,7 +395,7 @@ public class SITransactor<Table,
         for (int i = 0; i < mutations.length; i++) {
             try {
                 Put put = (Put) mutations[i].getFirst();
-                SRowLock lock = mutations[i].getSecond();
+//                SRowLock lock = mutations[i].getSecond();
                 resolveChildConflicts(table, put, conflictingChildren[i]);
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -564,29 +563,30 @@ public class SITransactor<Table,
                                                   Result result) throws IOException {
         // XXX TODO jleach: Create a filter to determine this conflict, no reason to materialize a lot of data across
         // the wire.
-        final ConflictResults timestampConflicts = checkTimestampsHandleNull(updateTransaction, result.getColumnLatest(
-                SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES),
-                                                                             result.getColumnLatest(SIConstants
+        final ConflictResults timestampConflicts =
+                checkTimestampsHandleNull(updateTransaction, result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,
+                                                                                    SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES),
+                                                                             result.getColumnLatestCell(SIConstants
                                                                                                             .DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES),
-                                                                             result.getColumnLatest(SIConstants
+                                                                             result.getColumnLatestCell(SIConstants
                                                                                                             .DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES)
         );
         boolean hasTombstone = hasCurrentTransactionTombstone(updateTransaction.getLongTransactionId(),
-                                                              result.getColumnLatest(SIConstants
+                                                              result.getColumnLatestCell(SIConstants
                                                                                              .DEFAULT_FAMILY_BYTES,
                                                                                      SIConstants
                                                                                              .SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES));
         return new ConflictResults(timestampConflicts.toRollForward, timestampConflicts.childConflicts, hasTombstone);
     }
 
-    private boolean hasCurrentTransactionTombstone(long transactionId, KeyValue tombstoneValue) {
+    private boolean hasCurrentTransactionTombstone(long transactionId, Cell tombstoneValue) {
         return tombstoneValue != null && tombstoneValue.getTimestamp() == transactionId && !dataStore.isAntiTombstone
                 (tombstoneValue);
     }
 
     private ConflictResults checkTimestampsHandleNull(ImmutableTransaction updateTransaction,
-                                                      KeyValue dataCommitKeyValue, KeyValue tombstoneKeyValue,
-                                                      KeyValue dataKeyValue) throws IOException {
+                                                      Cell dataCommitKeyValue, Cell tombstoneKeyValue,
+                                                      Cell dataKeyValue) throws IOException {
         if (dataCommitKeyValue == null && dataKeyValue == null && tombstoneKeyValue == null) {
             return new ConflictResults(Collections.<Long>emptySet(), Collections.<Long>emptySet(), null);
         } else {
@@ -599,8 +599,8 @@ public class SITransactor<Table,
      * Look at all of the values in the "commitTimestamp" column to see if there are write collisions.
      */
     private ConflictResults checkCommitTimestampsForConflicts(ImmutableTransaction updateTransaction,
-                                                              KeyValue dataCommitKeyValue,
-                                                              KeyValue tombstoneKeyValue, KeyValue dataKeyValue)
+                                                              Cell dataCommitKeyValue,
+                                                              Cell tombstoneKeyValue, Cell dataKeyValue)
             throws IOException {
         @SuppressWarnings("unchecked") Set<Long>[] conflicts = new Set[2]; // auto boxing XXX TODO Jleach
         if (dataCommitKeyValue != null) {
@@ -618,11 +618,11 @@ public class SITransactor<Table,
 
     @SuppressWarnings("StatementWithEmptyBody")
     private void checkCommitTimestampForConflict(ImmutableTransaction updateTransaction, Set<Long>[] conflicts,
-                                                 KeyValue dataCommitKeyValue)
+                                                 Cell dataCommitKeyValue)
             throws IOException {
         final long dataTransactionId = dataCommitKeyValue.getTimestamp();
         if (!updateTransaction.sameTransaction(dataTransactionId)) {
-            final byte[] commitTimestampValue = dataCommitKeyValue.getValue();
+            final byte[] commitTimestampValue = dataCommitKeyValue.getValueArray();
             if (dataStore.isSINull(dataCommitKeyValue)) {
                 // Unknown transaction status
                 final Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
@@ -663,7 +663,7 @@ public class SITransactor<Table,
     }
 
     private void checkDataForConflict(ImmutableTransaction updateTransaction, Set<Long>[] conflicts,
-                                      KeyValue dataCommitKeyValue)
+                                      Cell dataCommitKeyValue)
             throws IOException {
         final long dataTransactionId = dataCommitKeyValue.getTimestamp();
         if (!updateTransaction.sameTransaction(dataTransactionId)) {
