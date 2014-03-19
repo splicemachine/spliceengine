@@ -114,7 +114,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 
     void copyPutKeyValues(Put put, Put newPut, long timestamp) {
         for (Cell keyValue : dataLib.listPut(put)) {
-            final byte[] qualifier = keyValue.getQualifier();
+            final byte[] qualifier = CellUtil.cloneQualifier(keyValue);
             dataLib.addKeyValueToPut(newPut, keyValue.getFamilyArray(),
                     qualifier,
                     timestamp,
@@ -126,8 +126,8 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
         Delete delete = dataLib.newDelete(dataLib.getPutKey(put));
         for (Long transactionId : transactionIdsToDelete) {
             for (Cell keyValue : dataLib.listPut(put)) {
-                dataLib.addKeyValueToDelete(delete, keyValue.getFamily(),
-                        keyValue.getQualifier(), transactionId);
+                dataLib.addKeyValueToDelete(delete,CellUtil.cloneFamily(keyValue),
+                        CellUtil.cloneQualifier(keyValue), transactionId);
             }
             dataLib.addKeyValueToDelete(delete, userColumnFamily, tombstoneQualifier, transactionId);
             dataLib.addKeyValueToDelete(delete, userColumnFamily, commitTimestampQualifier, transactionId);

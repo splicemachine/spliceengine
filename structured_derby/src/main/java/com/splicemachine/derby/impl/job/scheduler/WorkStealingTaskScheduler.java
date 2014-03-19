@@ -281,7 +281,7 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 
 				private void execute(T next, StealableTaskScheduler<T> usedScheduler) {
 						if(WORKER_LOG.isDebugEnabled())
-								WORKER_LOG.debug("Executing task "+ Bytes.toString(next.getTaskId()));
+								WORKER_LOG.debug("Executing task "+ next.getJobId()+":"+Bytes.toLong(next.getTaskId()));
 						next.getTaskStatus().attachListener(stats);
 						try {
 								new TaskCallable<T>(next).call();

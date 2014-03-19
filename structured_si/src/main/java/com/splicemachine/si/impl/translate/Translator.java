@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
 
@@ -64,10 +65,10 @@ public class Translator<Data1, Result1, Put1 extends OperationWithAttributes, De
         while (results.hasNext()) {
             final List<Cell> keyValues = dataLib1.listResult(results.next());
             for (Cell kv : keyValues) {
-								byte[] k2 = kv.getRow();
-								byte[] f2 = kv.getFamily();
-								byte[] q2 = kv.getQualifier();
-								byte[] v2 = kv.getValue();
+                byte[] k2 = CellUtil.cloneRow(kv);
+                byte[] f2 = CellUtil.cloneFamily(kv);
+                byte[] q2 = CellUtil.cloneQualifier(kv);
+                byte[] v2 = CellUtil.cloneValue(kv);
                 final long timestamp = kv.getTimestamp();
                 final Put2 put = dataLib2.newPut(k2);
                 dataLib2.addKeyValueToPut(put, f2, q2, timestamp, v2);
@@ -89,13 +90,13 @@ public class Translator<Data1, Result1, Put1 extends OperationWithAttributes, De
     public Result translateResult(Result result) {
         List<Cell> values = Lists.newArrayList();
 				for(Cell kv : dataLib2.listResult(result)) {
-            final Cell newKV = CellUtils.newKeyValue(kv.getRow(),
-                                                         kv.getFamily(),
-                                                         kv.getQualifier(),
-                                                         kv.getTimestamp(),
-                                                         kv.getValue());
+            final Cell newKV = CellUtils.newKeyValue(CellUtil.cloneRow(kv),
+                                                     CellUtil.cloneFamily(kv),
+                                                     CellUtil.cloneQualifier(kv),
+                                                     kv.getTimestamp(),
+                                                     CellUtil.cloneValue(kv));
             values.add(newKV);
         }
-				return Result.create(values);
+        return Result.create(values);
     }
 }

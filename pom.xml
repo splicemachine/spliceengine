@@ -202,7 +202,7 @@
           <!-- NOTE: since maven does not know about OR (ie, prop not set OR prop set to cloudera-cdh4.3.0), -->
           <!--     this will NOT run when you set -Dhbase.profile=cloudera-cdh4.3.0 -->
                   <name>hbase.profile</name>
-          <value>cloudera-cdh5.0.0-beta2</value>
+          <value>cloudera-cdh4.3.0</value>
 
         </property>
       </activation>
@@ -352,7 +352,7 @@
       <id>cloudera-cdh5.0.0-beta2</id>
       <activation>
         <property>
-                                    <name>!hbase.profile</name>
+          <name>!hbase.profile</name>
         </property>
       </activation>
       <properties>

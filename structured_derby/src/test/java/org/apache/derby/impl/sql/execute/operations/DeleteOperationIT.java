@@ -127,6 +127,17 @@ public class DeleteOperationIT extends SpliceUnitTest {
             Assert.assertTrue("Deletes over joins are not supported",
                                  e.getCause().getMessage().contains("A Delete over join"));
         }
-
     }
+
+		@Test(expected = SQLException.class)
+		public void testDeleteThrowsDivideByZero() throws Exception {
+				try{
+						methodWatcher.executeUpdate(String.format("delete from %s where c1/0 = 1",spliceTableWatcher2));
+				}catch(SQLException se){
+						String sqlState = se.getSQLState();
+						Assert.assertEquals("incorrect SQL state!","22012",sqlState);
+						Assert.assertEquals("Incorret message!","Attempt to divide by zero.",se.getMessage());
+						throw se;
+				}
+		}
 }

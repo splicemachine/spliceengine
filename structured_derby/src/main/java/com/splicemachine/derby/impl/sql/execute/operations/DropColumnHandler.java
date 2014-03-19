@@ -56,13 +56,15 @@ public class DropColumnHandler implements WriteHandler {
     public void next(KVPair mutation, WriteContext ctx) {
 
         try {
-            // create a KeyValue for the mutation
-            KeyValue kv = new KeyValue(mutation.getRow(),
-                                       SpliceConstants.DEFAULT_FAMILY_BYTES,
-                                       SIConstants.PACKED_COLUMN_BYTES,
-                                       mutation.getValue());
-
-            KVPair newPair = rowTransformer.transform(kv);
+            KVPair newPair = null;
+            if (mutation.getType() == KVPair.Type.DELETE){
+                newPair = mutation;
+            }
+            else {
+                // create a KeyValue for the mutation
+                KeyValue kv = mutation.toKeyValue();
+                newPair = rowTransformer.transform(kv);
+            }
             loader.add(newPair);
         } catch (Exception e) {
             failed = true;

@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 
 /**
  * Lazily read individual elements out of a Cell object and cache them for subsequent calls.
@@ -28,13 +29,13 @@ public class DecodedCell {
 
     public byte[] row() {
         if (row == null) {
-            row = keyValue.getRow();
+            row = CellUtil.cloneValue(keyValue);
         }
         return row;
     }
     public byte[] value() {
         if (value == null) {
-            value = keyValue.getValue();
+            value = CellUtil.cloneValue(keyValue);
         }
         return value;
     }

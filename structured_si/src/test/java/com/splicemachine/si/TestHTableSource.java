@@ -1,21 +1,23 @@
 package com.splicemachine.si;
 
-import com.google.common.base.Preconditions;
-import com.splicemachine.si.coprocessors.SIObserver;
-import com.splicemachine.si.coprocessors.SIObserverUnPacked;
-import com.splicemachine.si.data.hbase.HTableSource;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import com.google.common.base.Preconditions;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.util.Bytes;
+
+import com.splicemachine.si.coprocessors.SIObserver;
+import com.splicemachine.si.coprocessors.SIObserverUnPacked;
+import com.splicemachine.si.data.hbase.HTableSource;
 
 public class TestHTableSource implements HTableSource {
 		private Map<String, HTable> hTables = new HashMap<String, HTable>();
@@ -43,7 +45,7 @@ public class TestHTableSource implements HTableSource {
 				byte[][] familyBytes = getFamilyBytes(families);
 
 				Preconditions.checkArgument(!hTables.containsKey(tableName),"Table already exists");
-				HTableDescriptor descriptor = new HTableDescriptor(Bytes.toBytes(tableName));
+				HTableDescriptor descriptor = new HTableDescriptor(TableName.valueOf(tableName));
 				descriptor.addCoprocessor(SIObserverUnPacked.class.getName());
 				for(byte[] familyName:familyBytes){
 						HColumnDescriptor family = new HColumnDescriptor(familyName);
@@ -57,7 +59,7 @@ public class TestHTableSource implements HTableSource {
 				byte[][] familyBytes = getFamilyBytes(families);
 
 				Preconditions.checkArgument(!hTables.containsKey(tableName),"Table already exists");
-				HTableDescriptor descriptor = new HTableDescriptor(Bytes.toBytes(tableName));
+				HTableDescriptor descriptor = new HTableDescriptor(TableName.valueOf(tableName));
 				descriptor.addCoprocessor(SIObserver.class.getName());
 				for(byte[] familyName:familyBytes){
 						HColumnDescriptor family = new HColumnDescriptor(familyName);

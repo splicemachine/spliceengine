@@ -9,6 +9,7 @@ import java.util.Map;
 import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
@@ -87,17 +88,17 @@ public class SIErrorCounter {
                 if(!txnIdMap.containsKey(txnId))
                     System.out.printf("Seen transaction id %d%n",txnId);
 
-                byte[] txnIdTimestampBytes = kv.getValue();
+                byte[] txnIdTimestampBytes = CellUtil.cloneValue(kv);
                 if(txnIdTimestampBytes.length>1){
                     long txnIdTimestamp = Bytes.toLong(txnIdTimestampBytes);
                     if(txnIdMap.containsKey(txnId)&&txnIdMap.get(txnId)!=txnIdTimestamp){
                         System.out.printf("Row %s has an unusual commit timestamp of %d when it should have %d%n",
-                                Bytes.toStringBinary(kv.getRow()),txnIdTimestamp,txnIdMap.get(txnId));
+                                Bytes.toStringBinary(CellUtil.cloneRow(kv)),txnIdTimestamp,txnIdMap.get(txnId));
                     }else
                         txnIdMap.put(txnId,txnIdTimestamp);
                 }else if (txnIdMap.containsKey(txnId)&&txnIdMap.get(txnId)!=-1){
                     System.out.printf("Row %s has no commit timestamp when it should have %d%n",
-                            Bytes.toStringBinary(kv.getRow()),txnIdMap.get(txnId));
+                            Bytes.toStringBinary(CellUtil.cloneRow(kv)),txnIdMap.get(txnId));
                 }else{
                     txnIdMap.put(txnId,-1l);
                 }
@@ -128,10 +129,10 @@ public class SIErrorCounter {
                 final byte[] row = r.getRow();
                 final List<Cell> list = r.listCells();
                 for (Cell kv : list) {
-                    final byte[] f = kv.getFamily();
+                    final byte[] f = CellUtil.cloneFamily(kv);
                     String family = Bytes.toString(f);
-                    final byte[] q = kv.getQualifier();
-                    final byte[] v = kv.getValue();
+                    final byte[] q = CellUtil.cloneQualifier(kv);
+                    final byte[] v = CellUtil.cloneValue(kv);
                     final long ts = kv.getTimestamp();
                     if (Arrays.equals(SIConstants.DEFAULT_FAMILY_BYTES, f)
                             && Arrays.equals(SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, q)) {

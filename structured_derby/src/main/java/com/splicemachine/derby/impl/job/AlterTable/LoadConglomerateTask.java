@@ -108,7 +108,7 @@ public class LoadConglomerateTask extends ZkTask {
 
             } while (result != null);
         }catch (Exception e) {
-
+            throw new ExecutionException("Error loading conglomerate " + fromConglomId, e);
         } finally {
             writeTimer.startTiming();
             loader.flush();

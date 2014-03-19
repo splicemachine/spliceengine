@@ -316,7 +316,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
         for (Cell c : newTuple.values) {
             if (c.getTimestamp() < 0) {
                 newValues.add(new KeyValue(newTuple.key, c.getFamilyArray(), c.getQualifierArray(),
-                                           getCurrentTimestamp(), c.getValue()));
+                                           getCurrentTimestamp(), CellUtil.cloneValue(c)));
             } else {
                 newValues.add(c);
             }

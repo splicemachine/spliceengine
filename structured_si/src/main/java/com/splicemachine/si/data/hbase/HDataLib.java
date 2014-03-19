@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.google.common.collect.Iterables;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
@@ -246,7 +247,7 @@ public class HDataLib implements SDataLib<Put, Delete, Get, Scan> {
 
 		@Override
 		public KVPair toKVPair(Put put) {
-				return new KVPair(put.getRow(),put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES).get(0).getValue());
+				return new KVPair(put.getRow(), CellUtil.cloneValue(put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES).get(0)));
 		}
 
 		@Override

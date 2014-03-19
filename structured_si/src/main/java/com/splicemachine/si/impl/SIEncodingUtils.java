@@ -1,10 +1,11 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.api.TransactionStatus;
+import java.io.IOException;
+
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.io.IOException;
+import com.splicemachine.si.api.TransactionStatus;
 
 /**
  * Utilities around encoding and decoding stuff.
@@ -35,7 +36,7 @@ public class SIEncodingUtils {
 
 				byte[] family = schema.siFamily;
 				long beginTimestamp = nonNullLong(result.getValue(family, schema.startQualifier));
-				long keepAlive = result.getColumnLatest(family,schema.keepAliveQualifier).getTimestamp();
+				long keepAlive = result.getColumnLatestCell(family,schema.keepAliveQualifier).getTimestamp();
 				byte[] parentIdBytes = result.getValue(family, schema.parentQualifier);
 				Transaction parent = parentIdBytes==null? Transaction.rootTransaction : transactionStore.getTransaction(Bytes.toLong(parentIdBytes));
 				boolean allowWrites = notNullBoolean(result.getValue(family,schema.allowWritesQualifier));

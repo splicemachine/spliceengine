@@ -133,7 +133,7 @@ public class SITransactionReadController<
 		public DDLFilter newDDLFilter(String parentTransactionId, String transactionId) throws IOException {
 				return new DDLFilter(
 								transactionStore.getTransaction(control.transactionIdFromString(transactionId)),
-								transactionStore.getTransaction(control.transactionIdFromString(parentTransactionId)),
+								parentTransactionId == null ? null : transactionStore.getTransaction(control.transactionIdFromString(parentTransactionId)),
 								transactionStore
 				);
 		}

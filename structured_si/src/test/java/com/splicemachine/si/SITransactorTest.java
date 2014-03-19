@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
@@ -3027,11 +3028,11 @@ public class SITransactorTest extends SIConstants {
         final List<Cell> results = dataLib2.listResult(result);
         Assert.assertEquals(2, results.size());
         final Cell kv = results.get(1);
-        Assert.assertEquals("joe70", Bytes.toString(kv.getRow()));
-        Assert.assertEquals("V", Bytes.toString(kv.getFamily()));
-        Assert.assertEquals("age", Bytes.toString(kv.getQualifier()));
+        Assert.assertEquals("joe70", Bytes.toString(CellUtil.cloneRow(kv)));
+        Assert.assertEquals("V", Bytes.toString(CellUtil.cloneFamily(kv)));
+        Assert.assertEquals("age", Bytes.toString(CellUtil.cloneQualifier(kv)));
         Assert.assertEquals(1L, kv.getTimestamp());
-        Assert.assertEquals(20, Bytes.toInt(kv.getValue()));
+        Assert.assertEquals(20, Bytes.toInt(CellUtil.cloneValue(kv)));
 
     }
 }
