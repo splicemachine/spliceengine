@@ -364,6 +364,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                         .ownerClass(SpliceAdmin.class.getCanonicalName())
                         .build();
                 procedures.add(majorComactionOnTable);
+
+								Procedure vacuum = Procedure.newBuilder().name("VACUUM")
+												.numOutputParams(0)
+												.numResultSets(0)
+												.ownerClass(SpliceAdmin.class.getCanonicalName())
+												.build();
+								procedures.add(vacuum);
             }
         }
 
