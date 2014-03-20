@@ -114,7 +114,7 @@ public class CellUtils {
 
     public static Cell matchKeyValue(Iterable<Cell> kvs, byte[] columnFamily, byte[] qualifier) {
         for (Cell kv : kvs) {
-            if (CellUtils.singleMatchingColumn(kv, columnFamily, qualifier))
+            if (CellUtils.matchingColumn(kv, columnFamily, qualifier))
                 return kv;
         }
         return null;
@@ -122,7 +122,7 @@ public class CellUtils {
 
     public static Cell matchKeyValue(Cell[] kvs, byte[] columnFamily, byte[] qualifier) {
         for (Cell kv : kvs) {
-            if (CellUtils.singleMatchingColumn(kv, columnFamily, qualifier))
+            if (CellUtils.matchingColumn(kv, columnFamily, qualifier))
                 return kv;
         }
         return null;

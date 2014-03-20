@@ -1,20 +1,23 @@
 package com.splicemachine.hbase;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+
+import com.carrotsearch.hppc.ObjectArrayList;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import com.carrotsearch.hppc.ObjectArrayList;
-import java.io.IOException;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * @author Scott Fines
@@ -61,7 +64,7 @@ public class MockRegion {
         HRegion testRegion = mock(HRegion.class);
         when(testRegion.getRegionInfo()).thenReturn(testRegionInfo);
         when(testRegion.getTableDesc()).thenReturn(descriptor);
-        when(testRegion.batchMutate(any(Pair[].class))).then(putAnswer);
+        when(testRegion.batchMutate(new Put[]{any(Put.class)})).then(putAnswer);
         return testRegion;
     }
 }
