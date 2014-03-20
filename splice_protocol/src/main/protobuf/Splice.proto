@@ -29,8 +29,12 @@ message ConstraintContext {
 	optional string constraintName = 2;
 }
 
-message AllocatedFilterMessage {
+message AllocateFilterMessage {
 	optional bytes addressMatch = 1;
+}
+
+message SuccessFilterMessage {
+	repeated bytes failedTasks = 1;
 }
 
 message WriteResult {
