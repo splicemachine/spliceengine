@@ -23,14 +23,13 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -189,11 +188,11 @@ class IndexRowReader {
         if(entryDecoder==null)
             entryDecoder = new EntryDecoder(runtimeContext.getKryoPool());
 
-        for(KeyValue kv:nextFetchedData.raw()){
+        for(Cell cell:nextFetchedData.rawCells()){
             if (pkColumsAccessed()) {
-                getKeyMarshaller().decode(kv, nextScannedRow.row.getRowArray(), adjustedBaseColumnMap, getKeyDecoder(), columnOrdering, kdvds);
+                getKeyMarshaller().decode(cell, nextScannedRow.row.getRowArray(), adjustedBaseColumnMap, getKeyDecoder(), columnOrdering, kdvds);
             }
-            RowMarshaller.sparsePacked().decode(kv,nextScannedRow.row.getRowArray(),adjustedBaseColumnMap,entryDecoder);
+            RowMarshaller.sparsePacked().decode(cell,nextScannedRow.row.getRowArray(),adjustedBaseColumnMap,entryDecoder);
         }
 
         return nextScannedRow;
