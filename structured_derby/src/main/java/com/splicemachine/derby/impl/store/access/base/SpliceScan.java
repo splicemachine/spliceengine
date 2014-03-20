@@ -17,7 +17,6 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.BackingStoreHashtable;
@@ -29,7 +28,7 @@ import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -293,8 +292,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
             entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
         try{
             if(destRow!=null){
-                for(KeyValue kv:currentResult.raw()){
-                    RowMarshaller.sparsePacked().decode(kv, destRow, rowColumns, entryDecoder);
+                for(Cell cell:currentResult.rawCells()){
+                    RowMarshaller.sparsePacked().decode(cell, destRow, rowColumns, entryDecoder);
                 }
 		    	this.currentRow = destRow;
             }
@@ -349,8 +348,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				fetchedRow = RowUtil.newTemplate(
 						spliceConglomerate.getTransaction().getDataValueFactory(),
 						null, spliceConglomerate.getFormatIds(), spliceConglomerate.getCollationIds());
-                for(KeyValue kv:currentResult.raw()){
-                    RowMarshaller.sparsePacked().decode(kv, fetchedRow, null, entryDecoder);
+                for(Cell cell:currentResult.rawCells()){
+                    RowMarshaller.sparsePacked().decode(cell, fetchedRow, null, entryDecoder);
                 }
 				hashTable.putRow(false, fetchedRow);
 				this.currentRowLocation = new HBaseRowLocation(currentResult.getRow());
@@ -425,8 +424,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
                         entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
 
 					if (results[i] != null) {
-						for(KeyValue kv:results[i].raw()){
-                            RowMarshaller.sparsePacked().decode(kv, row_array[i], null, entryDecoder);
+						for(Cell cell:results[i].rawCells()){
+                            RowMarshaller.sparsePacked().decode(cell, row_array[i], null, entryDecoder);
                         }
 //						SpliceUtils.populate(results[i], scanColumnList, row_array[i]);
 					}
