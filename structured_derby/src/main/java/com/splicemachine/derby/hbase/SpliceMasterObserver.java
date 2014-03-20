@@ -59,7 +59,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
                 SpliceLogUtils.info(LOG, "Creating Splice");
                 evaluateState();
                 createSplice();
-                throw new PleaseHoldException("pre create succeeeded");
+                throw new SpliceStartingException("pre create succeeeded");
             } catch (PleaseHoldException phe) {
                 throw phe;
             } catch (DoNotRetryIOException dnr) {
@@ -80,7 +80,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
             State currentState = state.get();
             switch (currentState) {
                 case INITIALIZING:
-                    throw new PleaseHoldException("Please Hold - Starting");
+                    throw new SpliceStartingException("Please Hold - Starting");
                 case RUNNING:
                     throw new SpliceDoNotRetryIOException("Success");
                 case NOT_STARTED:

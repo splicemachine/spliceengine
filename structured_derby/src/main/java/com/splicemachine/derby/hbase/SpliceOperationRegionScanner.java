@@ -278,25 +278,23 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 								+ "\t" + "Total Time(ns): " + finalStats.getTotalTime());
     }
 
-	@Override
-	public boolean reseek(byte[] row) throws IOException {
-		throw new IOException("reseek not supported");
-	}
+		@Override
+		public boolean reseek(byte[] row) throws IOException {
+				throw new IOException("reseek not supported");
+		}
 
-    public void addAdditionalColumnToReturn(byte[] qualifier, byte[] value){
-        additionalColumns.add(Pair.newPair(qualifier,value));
-    }
-	@Override
-	public long getMvccReadPoint() {
-        // TODO: impl
-        throw new RuntimeException("Not Implemented");
-	}
+		public void addAdditionalColumnToReturn(byte[] qualifier, byte[] value){
+				additionalColumns.add(Pair.newPair(qualifier,value));
+		}
+		@Override
+		public long getMvccReadPoint() {
+				return regionScanner.getMvccReadPoint();
+		}
 
-    @Override
-    public long getMaxResultSize() {
-        // TODO:
-        throw new RuntimeException("Not Implemented");
-    }
+		@Override
+		public long getMaxResultSize() {
+				return regionScanner.getMaxResultSize();
+		}
 
     @Override
     public boolean nextRaw(List<Cell> result, int limit) throws IOException {

@@ -101,7 +101,8 @@ public class ZkUtils extends SpliceConstants {
                 String parent = path.substring(0, path.lastIndexOf('/'));
                 recursiveSafeCreate(parent,new byte[]{},acls,CreateMode.PERSISTENT);
                 return safeCreate(path,bytes,acls,createMode);
-            }
+            }else if(e.code()== KeeperException.Code.NODEEXISTS)
+								return false;
             else
                 throw e;
         }
@@ -360,9 +361,11 @@ public class ZkUtils extends SpliceConstants {
 
     private static void initializeTransactions() throws KeeperException, InterruptedException {
         //add the transaction node setup
-        recursiveSafeCreate(SpliceConstants.zkSpliceTransactionPath,new byte[]{},ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
+				boolean created = recursiveSafeCreate(SpliceConstants.zkSpliceTransactionPath, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-        String counterPath = create(SpliceConstants.zkSpliceTransactionPath + "/counter-", new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
-        getRecoverableZooKeeper().setData(SpliceConstants.zkSpliceTransactionPath,Bytes.toBytes(counterPath),-1);
+				if(created){
+						String counterPath = create(SpliceConstants.zkSpliceTransactionPath + "/counter-", new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
+						getRecoverableZooKeeper().setData(SpliceConstants.zkSpliceTransactionPath,Bytes.toBytes(counterPath),-1);
+				}
     }
 }

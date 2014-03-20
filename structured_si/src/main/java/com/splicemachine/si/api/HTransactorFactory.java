@@ -135,13 +135,13 @@ public class HTransactorFactory extends SIConstants {
 								initialized = true;
 								return;
 						}
-						try {
-								ZkUtils.refreshZookeeper();
-						} catch (InterruptedException e) {
-								throw new RuntimeException(e);
-						} catch (KeeperException e) {
-								throw new RuntimeException(e);
-						}
+//						try {
+//								ZkUtils.initializeZookeeper();
+//						} catch (InterruptedException e) {
+//								throw new RuntimeException(e);
+//						} catch (KeeperException e) {
+//								throw new RuntimeException(e);
+//						}
 						TimestampSource timestampSource = new ZooKeeperStatTimestampSource(ZkUtils.getRecoverableZooKeeper(),zkSpliceTransactionPath);
 						BetterHTablePool hTablePool = new BetterHTablePool(new SpliceHTableFactory(true,1),
 										SpliceConstants.tablePoolCleanerInterval, TimeUnit.SECONDS,

@@ -61,13 +61,13 @@ public class SnowflakeLoader {
                     //we found an entry!
                     Cell[] raw = result.rawCells();
                     for(Cell kv:raw){
-                        if(Bytes.equals(localAddress, kv.getValueArray())){
+                        if(Bytes.equals(localAddress, CellUtil.cloneValue(kv))){
                             //this is ours already! we're done!
-                            machineId = Encoding.decodeShort(kv.getQualifierArray());
+                            machineId = Encoding.decodeShort(kv.getQualifierArray(),kv.getQualifierOffset());
                             snowflake = new Snowflake(machineId);
                             return snowflake;
                         }else{
-                            availableIds.add(kv.getQualifierArray());
+                            availableIds.add(CellUtil.cloneQualifier(kv));
                         }
                     }
                 }

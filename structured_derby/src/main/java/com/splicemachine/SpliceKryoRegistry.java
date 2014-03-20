@@ -5,6 +5,11 @@ import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.index.CreateIndexTask;
+import com.splicemachine.derby.impl.job.index.PopulateIndexTask;
+import com.splicemachine.derby.impl.job.operation.SinkTask;
+import com.splicemachine.derby.impl.load.ImportTask;
 import com.splicemachine.derby.impl.sql.execute.LazyTimestampDataValueDescriptor;
 import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -629,6 +634,11 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(LazyTimestampDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,154);
         instance.register(ActivationSerializer.OperationResultSetStorage.class,EXTERNALIZABLE_SERIALIZER,155);
         instance.register(ByteSlice.class,EXTERNALIZABLE_SERIALIZER,156);
+				instance.register(ZkTask.class,EXTERNALIZABLE_SERIALIZER,157);
+				instance.register(SinkTask.class,EXTERNALIZABLE_SERIALIZER,158);
+				instance.register(CreateIndexTask.class,EXTERNALIZABLE_SERIALIZER,159);
+				instance.register(PopulateIndexTask.class,EXTERNALIZABLE_SERIALIZER,160);
+				instance.register(ImportTask.class,EXTERNALIZABLE_SERIALIZER,161);
 
     }
 }

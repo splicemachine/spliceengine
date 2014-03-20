@@ -316,29 +316,28 @@ public class SpliceDriver extends SIConstants {
 //        SchedulerTracer.registerTaskRollback(transactionFailer);
     }
 
-    private boolean bootDatabase() throws Exception {
-    	HBaseAdmin admin = null;
-    	connection = null;
-        try{
-        	admin = SpliceAccessManager.getAdmin(config);
-        	HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.INIT_TABLE);
-        	admin.createTable(desc);
+		private boolean bootDatabase() throws Exception {
+				HBaseAdmin admin = null;
+				connection = null;
+				try{
+						admin = SpliceAccessManager.getAdmin(config);
+						HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.INIT_TABLE);
+						admin.createTable(desc);
 
-        	return false;
-        }  catch (PleaseHoldException pe) {
-        	Thread.currentThread().sleep(5000);
-        	SpliceLogUtils.info(LOG, "Waiting for Splice Schema to Create");
-        	return bootDatabase();
-        } catch (Exception e) {
-			EmbedConnectionMaker maker = new EmbedConnectionMaker();
-			connection = maker.createNew();
-			return true;
-        } finally{
-//        	if (connection != null)
-//        		connection.close();
-        	Closeables.close(admin,true);
-        }
-    }
+						return false;
+				}  catch (SpliceStartingException pe) {
+						Thread.currentThread().sleep(5000);
+						SpliceLogUtils.info(LOG, "Waiting for Splice Schema to Create");
+						return bootDatabase();
+				} catch (Exception e) {
+						SpliceLogUtils.debug(LOG,"Received unexpected exception during creation, attempting to boot derby",e);
+						EmbedConnectionMaker maker = new EmbedConnectionMaker();
+						connection = maker.createNew();
+						return true;
+				} finally{
+						Closeables.close(admin,true);
+				}
+		}
 
     public ResourcePool<SpliceSequence,SpliceSequenceKey> getSequencePool(){
         return sequences;

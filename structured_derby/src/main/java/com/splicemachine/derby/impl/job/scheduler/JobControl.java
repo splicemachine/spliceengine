@@ -361,13 +361,13 @@ class JobControl implements JobFuture {
                         public TaskFutureContext call(byte[] startKey, byte[] stopKey, SpliceMessage.SpliceSchedulerService instance) throws IOException {
 														SpliceMessage.SpliceSchedulerRequest.Builder requestBuilder = SpliceMessage.SpliceSchedulerRequest.newBuilder()
 																		.setTaskStart(ByteString.copyFrom(startKey))
-																		.setTaskEnd(ByteString.copyFrom(stopKey))
-																		.setClassName(task.getClass().getCanonicalName());
+																		.setTaskEnd(ByteString.copyFrom(stopKey));
+//																		.setClassName(task.getClass().getCanonicalName());
 
 														Output out = new Output(1024,-1);
 														Kryo kryo = SpliceKryoRegistry.getInstance().get();
 														try{
-																kryo.writeObject(out, task);
+																kryo.writeClassAndObject(out, task);
 														}finally{
 																SpliceKryoRegistry.getInstance().returnInstance(kryo);
 														}

@@ -3,14 +3,21 @@ package com.splicemachine.derby.impl.job.coprocessor;
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
 import com.google.common.base.Throwables;
+import com.google.protobuf.ByteString;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
+import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.job.*;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.protobuf.ResponseConverter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -22,10 +29,6 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.table.IncorrectRegionException;
-import com.splicemachine.job.Status;
-import com.splicemachine.job.TaskFuture;
-import com.splicemachine.job.TaskScheduler;
-import com.splicemachine.job.TaskStatus;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 
@@ -72,6 +75,38 @@ public class CoprocessorTaskScheduler extends SpliceSchedulerService implements 
                                                                                                     .getRegionNameAsString());
 
     }
+
+		@Override
+		public void submit(RpcController rpcController, SpliceSchedulerRequest spliceSchedulerRequest,
+											 RpcCallback<SpliceSchedulerResponse> spliceSchedulerResponse) {
+
+				try {
+						byte[] start = spliceSchedulerRequest.getTaskStart().toByteArray();
+						byte[] end = spliceSchedulerRequest.getTaskEnd().toByteArray();
+						if(!HRegionUtil.containsRange(rce.getRegion(),start,end)){
+								ResponseConverter.setControllerException(rpcController,new IncorrectRegionException("incorrect region for task submission"));
+								return;
+						}
+
+						byte[] taskBytes = spliceSchedulerRequest.getClassBytes().toByteArray();
+						Input input = new Input(taskBytes);
+						Kryo kryo = SpliceKryoRegistry.getInstance().get();
+						RegionTask t;
+						try{
+								t = (RegionTask)kryo.readClassAndObject(input);
+						}finally{
+								SpliceKryoRegistry.getInstance().returnInstance(kryo);
+						}
+						TaskFutureContext context = doSubmit(t,rce);
+						SpliceSchedulerResponse response = SpliceSchedulerResponse.newBuilder().setTaskId(ByteString.copyFrom(context.getTaskId()))
+										.setTaskNode(context.getTaskNode())
+										.setEstimatedCost(context.getEstimatedCost())
+										.build();
+						spliceSchedulerResponse.run(response);
+				} catch (IOException e) {
+						ResponseConverter.setControllerException(rpcController,e);
+				}
+		}
 
     public TaskFutureContext submit(byte[] taskStart, byte[] taskEnd, final RegionTask task) throws IOException {
         //make sure that the task is fully contained within this region
@@ -122,9 +157,5 @@ public class CoprocessorTaskScheduler extends SpliceSchedulerService implements 
 		return this;
 	}
 
-	@Override
-	public void submit(RpcController rpcController, SpliceSchedulerRequest spliceSchedulerRequest,
-			RpcCallback<SpliceSchedulerResponse> spliceSchedulerResponse) {		
-	}
 
 }

@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
@@ -117,6 +118,7 @@ public class TransactionStore<Mutation extends OperationWithAttributes, Put exte
         withTransactionTable(new TransactionStoreCallback<Void, Table>() {
             @Override
             public Void withTable(Table transactionTable) throws IOException {
+								SpliceLogUtils.trace(LOG,"beginning transaction with timestamp %d",beginTimestamp);
                 if (!recordNewTransactionDirect(transactionTable, startTransactionTimestamp, params, status,
                                                 beginTimestamp, counter)) {
                     throw new RuntimeException("create transaction failed");

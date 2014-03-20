@@ -10,6 +10,8 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -206,21 +208,27 @@ public class SinkTask extends ZkTask {
     }
 
     // FIXME: Part of old Writable interface - use protoBuf
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
+		@Override
+		public void writeExternal(ObjectOutput out) throws IOException {
+				super.writeExternal(out);
+				byte[] bytes = ProtobufUtil.toScan(scan).toByteArray();
+				out.writeByte(hashBucket);
+				out.writeInt(bytes.length);
+				out.write(bytes);
 //        scan.write(out);
-		out.writeByte(hashBucket);
-    }
+		}
 
     // FIXME: Part of old Writable interface - use protoBuf
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        scan  = new Scan();
-//        scan.readFields(in);
-		hashBucket = in.readByte();
-    }
+		@Override
+		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+				super.readExternal(in);
+				hashBucket = in.readByte();
+
+				byte[] scanBytes = new byte[in.readInt()];
+				in.readFully(scanBytes);
+				ClientProtos.Scan scan1 = ClientProtos.Scan.parseFrom(scanBytes);
+				scan = ProtobufUtil.toScan(scan1);
+		}
 
     @Override
     protected String getTaskType() {

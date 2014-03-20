@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Get;
@@ -54,11 +55,11 @@ import com.splicemachine.utils.SpliceLogUtils;
  * An HBase coprocessor that applies SI logic to HBase read/write operations.
  */
 public class SIObserver extends BaseRegionObserver {
-		private static final ScheduledExecutorService timedRoller = Executors.newSingleThreadScheduledExecutor();
-		private static final ThreadPoolExecutor rollerPool = new ThreadPoolExecutor(0,4,60, TimeUnit.SECONDS,new LinkedBlockingDeque<Runnable>());
-		static{
-				rollerPool.allowCoreThreadTimeOut(true);
-		}
+//		private static final ScheduledExecutorService timedRoller = Executors.newSingleThreadScheduledExecutor();
+//		private static final ThreadPoolExecutor rollerPool = new ThreadPoolExecutor(0,4,60, TimeUnit.SECONDS,new LinkedBlockingDeque<Runnable>());
+//		static{
+//				rollerPool.allowCoreThreadTimeOut(true);
+//		}
 		private static Logger LOG = Logger.getLogger(SIObserver.class);
     protected HRegion region;
     private boolean tableEnvMatch = false;
@@ -81,12 +82,22 @@ public class SIObserver extends BaseRegionObserver {
     }
 
     public static boolean doesTableNeedSI(HRegion region) {
-        final String tableName = region.getTableDesc().getNameAsString();
-        return (EnvUtils.getTableEnv(tableName).equals(SpliceConstants.TableEnv.USER_TABLE)
-                || EnvUtils.getTableEnv(tableName).equals(SpliceConstants.TableEnv.USER_INDEX_TABLE)
-                || EnvUtils.getTableEnv(tableName).equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE))
-                && !tableName.equals(SpliceConstants.TEMP_TABLE)
-                && !tableName.equals(SpliceConstants.TEST_TABLE);
+				TableName tableName = region.getTableDesc().getTableName();
+
+				try{
+						long conglomId = Long.parseLong(tableName.getQualifierAsString());
+						return true;
+				}catch(NumberFormatException nfe){
+						return false;
+				}
+
+//        return (EnvUtils.getTableEnv(table).equals(SpliceConstants.TableEnv.USER_TABLE)
+//                || EnvUtils.getTableEnv(table).equals(SpliceConstants.TableEnv.USER_INDEX_TABLE)
+//                || EnvUtils.getTableEnv(table).equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE))
+//                && !table.equals(SpliceConstants.TEMP_TABLE)
+//                && !table.equals(SpliceConstants.TEST_TABLE)
+//								&& !table.equals(TableName.META_TABLE_NAME.getNameAsString())
+//								&& !table.equals("hbase:root");
     }
 
     @Override
@@ -98,9 +109,8 @@ public class SIObserver extends BaseRegionObserver {
 
     @Override
     public void preGetOp(ObserverContext<RegionCoprocessorEnvironment> e, Get get, List<Cell> results) throws IOException {
-        SpliceLogUtils.trace(LOG, "preGet %s", get);
+        SpliceLogUtils.trace(LOG, "preGet %s on table %s", get,e.getEnvironment().getRegion().getTableDesc().getTableName());
         if (tableEnvMatch && shouldUseSI(get)) {
-            final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
             HTransactorFactory.getTransactionReadController().preProcessGet(get);
             assert (get.getMaxVersions() == Integer.MAX_VALUE);
             addSIFilterToGet(e, get);
@@ -116,7 +126,7 @@ public class SIObserver extends BaseRegionObserver {
 
     @Override
     public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan, RegionScanner s) throws IOException {
-        SpliceLogUtils.trace(LOG, "preScannerOpen %s", scan);
+        SpliceLogUtils.trace(LOG, "preScannerOpen %s on table %s", scan,e.getEnvironment().getRegion().getTableDesc().getTableName());
         if (tableEnvMatch && shouldUseSI(scan)) {
             HTransactorFactory.getTransactionReadController().preProcessScan(scan);
             assert (scan.getMaxVersions() == Integer.MAX_VALUE);
@@ -134,15 +144,12 @@ public class SIObserver extends BaseRegionObserver {
     }
 
     private void addSIFilterToGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get) throws IOException {
-        final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
-
         final Filter newFilter = makeSIFilter(HTransactorFactory.getClientTransactor().transactionIdFromGet(get), get.getFilter(),
 								getPredicateFilter(get),false);
         get.setFilter(newFilter);
     }
 
     private void addSIFilterToScan(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan) throws IOException {
-        final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
         final Filter newFilter = makeSIFilter(HTransactorFactory.getClientTransactor().transactionIdFromScan(scan), scan.getFilter(),
 								getPredicateFilter(scan),scan.getAttribute(SIConstants.SI_COUNT_STAR) != null);
         scan.setFilter(newFilter);
@@ -154,7 +161,6 @@ public class SIObserver extends BaseRegionObserver {
     }
 
     private Filter makeSIFilter(TransactionId transactionId, Filter currentFilter, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
-        final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
         final SIFilterPacked siFilter = new SIFilterPacked(tableName,
 								transactionId, HTransactorFactory.getTransactionManager(),
 								rollForwardQueue, predicateFilter,HTransactorFactory.getTransactionReadController(), countStar);
