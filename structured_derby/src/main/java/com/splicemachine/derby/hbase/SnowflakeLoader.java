@@ -1,12 +1,12 @@
 package com.splicemachine.derby.hbase;
 
-import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
 
 import com.google.common.collect.Lists;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.ZeroCopyLiteralByteString;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
@@ -15,10 +15,12 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.utils.Snowflake;
@@ -145,18 +147,32 @@ public class SnowflakeLoader {
             this.foundMatch=false;
         }
 
-        // TODO: old Writable interface - use protobuf
-//        @Override
-        public void write(DataOutput out) throws IOException {
-            out.writeInt(addressMatch.length);
-            out.write(addressMatch);
+
+        /**
+         * @return The filter serialized using pb
+         */
+        public byte [] toByteArray() {
+            SpliceMessage.AllocateFilterMessage.Builder builder =
+                    SpliceMessage.AllocateFilterMessage.newBuilder();
+            if (this.addressMatch != null) builder.setAddressMatch(ZeroCopyLiteralByteString.wrap(this.addressMatch));
+            return builder.build().toByteArray();
         }
 
-        // TODO: old Writable interface - use protobuf
-//        @Override
-        public void readFields(DataInput in) throws IOException {
-            addressMatch = new byte[in.readInt()];
-            in.readFully(addressMatch);
+        /**
+         * @param addressMatch A pb serialized {@link AllocatedFilter} instance
+         * @return An instance of {@link AllocatedFilter} made from <code>bytes</code>
+         * @throws org.apache.hadoop.hbase.exceptions.DeserializationException
+         * @see #toByteArray
+         */
+        public static AllocatedFilter parseFrom(final byte [] addressMatch)
+                throws DeserializationException {
+            SpliceMessage.AllocateFilterMessage proto;
+            try {
+                proto = SpliceMessage.AllocateFilterMessage.parseFrom(addressMatch);
+            } catch (InvalidProtocolBufferException e) {
+                throw new DeserializationException(e);
+            }
+            return new AllocatedFilter(proto.hasAddressMatch()?proto.getAddressMatch().toByteArray():null);
         }
 
         @Override
@@ -173,11 +189,5 @@ public class SnowflakeLoader {
             }
             return ReturnCode.INCLUDE; //this is an available entry
         }
-
-				@Override
-				public byte[] toByteArray() throws IOException {
-						return super.toByteArray();
-				}
-
-		}
+    }
 }
