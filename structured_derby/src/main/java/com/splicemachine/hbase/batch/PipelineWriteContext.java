@@ -4,14 +4,15 @@ import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.hbase.HBaseServerUtils;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.*;
-
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.WriteCoordinator;
+import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.hbase.writer.Writer;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.ipc.HBaseServer;
-import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 
@@ -210,9 +211,7 @@ public class PipelineWriteContext implements WriteContext{
 
     @Override
     public Map<KVPair,WriteResult> finish() throws IOException {
-        RpcCallContext currentCall = HBaseServer.getCurrentCall();
-        if(currentCall!=null)
-            currentCall.throwExceptionIfCallerDisconnected();
+				HBaseServerUtils.checkCallerDisconnect(getCoprocessorEnvironment().getRegion(),"WritePipeline");
         try{
             WriteNode next = head.next;
             while(next!=null){

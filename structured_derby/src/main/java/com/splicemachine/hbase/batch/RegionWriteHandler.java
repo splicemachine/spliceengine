@@ -8,32 +8,31 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.hbase.HBaseServerUtils;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.si.api.ConstraintChecker;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.coprocessors.RollForwardQueueMap;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.hbase.IHTable;
-import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.tools.ResettableCountDownLatch;
-
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.ipc.HBaseServer;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.ipc.CallerDisconnectedException;
 import org.apache.hadoop.hbase.ipc.RpcCallContext;
+import org.apache.hadoop.hbase.ipc.RpcServer;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -121,11 +120,8 @@ public class RegionWriteHandler implements WriteHandler {
 
     @Override
     public void finishWrites(final WriteContext ctx) throws IOException {
-
         //make sure that the write aborts if the caller disconnects
-        RpcCallContext currentCall = HBaseServer.getCurrentCall();
-        if(currentCall!=null)
-            currentCall.throwExceptionIfCallerDisconnected();
+				HBaseServerUtils.checkCallerDisconnect(ctx.getCoprocessorEnvironment().getRegion(),"RegionWrite");
 
         /*
          * We have to block here in case someone did a table manipulation under us.
