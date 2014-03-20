@@ -1622,8 +1622,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 		long					newHeapConglom;
 		Properties				properties = new Properties();
 		RowLocation				rl;
-        TransactionController transactionController = lcc.getTransactionExecute().startNestedUserTransaction(false, true);
-		if (SanityManager.DEBUG) {
+
+        if (SanityManager.DEBUG) {
 			if (lockGranularity != '\0') {
 				SanityManager.THROWASSERT(
 					"lockGranularity expected to be '\0', not " + 
@@ -1639,7 +1639,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         int[]   collation_ids = td.getColumnCollationIds();
 
 		compressHeapCC =
-                transactionController.openConglomerate(
+                tc.openConglomerate(
                 td.getHeapConglomerateId(),
                 false,
                 TransactionController.OPENMODE_FORUPDATE,
@@ -1709,7 +1709,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
         // calculate column order for new table
         String parentTxnId = SpliceObserverInstructions.getTransactionId(lcc);
-        String txnId = TransactionUtils.getTransactionId(transactionController);
+        String txnId = TransactionUtils.getTransactionId(tc);
         int[] co = DataDictionaryUtils.getColumnOrdering(parentTxnId, tableId);
         int[] newco = DataDictionaryUtils.getColumnOrderingAfterDropColumn(co, droppedColumnPosition);
         IndexColumnOrder[] columnOrdering = null;
@@ -1754,7 +1754,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         DDLChange ddlChange = new DDLChange(tentativeTransaction.getTransactionIdString(),
                 DDLChange.TentativeType.DROP_COLUMN);
         ddlChange.setTentativeDDLDesc(tentativeDropColumnDesc);
-        ddlChange.setParentTransactionId(transactionController.getActiveStateTxIdString());
+        ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
 
         notifyMetadataChange(ddlChange);
 
@@ -1768,11 +1768,12 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                     tentativeTransaction, transactor, tableConglomId);
 
             // Copy data from old table to the new table
-            copyToConglomerate(newHeapConglom, tentativeTransaction.getTransactionIdString());
-
+            //copyToConglomerate(newHeapConglom, tentativeTransaction.getTransactionIdString(), co);
+            copyToConglomerate(newHeapConglom, parentTxnId, co);
             transactor.commit(dropColumnTransaction);
         }
         catch (IOException e) {
+            tc.abort();
             throw Exceptions.parseException(e);
         }
         finally{
@@ -1835,12 +1836,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
 		// Drop the old conglomerate
         tc.dropConglomerate(oldHeapConglom);
-
-        try {
-            HTransactorFactory.getTransactionManager().commit(new TransactionId(TransactionUtils.getTransactionId(transactionController)));
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
 
         cleanUp();
 	}
@@ -1937,7 +1932,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         }
     }
 
-    private void copyToConglomerate(long toConglomId, String DropColumnTxnId) throws StandardException {
+    private void copyToConglomerate(long toConglomId, String DropColumnTxnId, int[] columnOrdering) throws StandardException {
 
         String user = lcc.getSessionUserId();
         StatementInfo statementInfo =
@@ -2194,8 +2189,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
     long[]          newIndexCongloms) throws StandardException {
 		SpliceLogUtils.trace(LOG, "updateIndex on new heap conglom %d for index %d with newIndexCongloms %s",newHeapConglom, index, Arrays.toString(newIndexCongloms));
         TransactionController parent = lcc.getTransactionExecute();
-        TransactionController transactionController = lcc.getTransactionExecute().startNestedUserTransaction(false, true);
-		Properties properties = new Properties();
+        Properties properties = new Properties();
 
 		// Get the ConglomerateDescriptor for the index
 		ConglomerateDescriptor cd = 
@@ -2376,10 +2370,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                 Closeables.closeQuietly(table);
             }
         } catch (StandardException se) {
-            transactionController.abort();
+            tc.abort();
             throw se;
         } catch (Throwable t) {
-            transactionController.abort();
+            tc.abort();
             throw Exceptions.parseException(t);
         }
 
@@ -2396,11 +2390,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
 		// Drop the old conglomerate
         tc.dropConglomerate(indexConglomerateNumbers[index]);
-        try {
-            HTransactorFactory.getTransactionManager().commit(new TransactionId(getTransactionId(transactionController)));
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
 	}
 
 
