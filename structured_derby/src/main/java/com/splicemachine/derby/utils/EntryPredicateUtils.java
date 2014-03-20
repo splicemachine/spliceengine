@@ -15,13 +15,13 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
  */
 public class EntryPredicateUtils {
 
-    public static boolean qualify(EntryPredicateFilter predicateFilter, byte[] data,
+    public static boolean qualify(EntryPredicateFilter predicateFilter, byte[] data, int initOffset, int length,
                                   DataValueDescriptor[] kdvds, int [] columnOrdering,
                                   MultiFieldDecoder keyDecoder) throws StandardException {
         int ibuffer = predicateFilter.getValuePredicates().size();
         if (ibuffer == 0)
             return true;
-        keyDecoder.set(data);
+        keyDecoder.set(data,initOffset,length);
         Object[] buffer = predicateFilter.getValuePredicates().buffer;
 
         for (int i = 0; i < kdvds.length; ++i) {

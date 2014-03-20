@@ -444,7 +444,7 @@ public class TableScanOperation extends ScanOperation {
 																	 MultiFieldDecoder keyDecoder) throws StandardException, IOException {
 				return columnOrder != null &&
 								getPredicateFilter(spliceRuntimeContext) != null &&
-								EntryPredicateUtils.qualify(predicateFilter, keyValue.getRow(),
+								EntryPredicateUtils.qualify(predicateFilter, keyValue.getRowArray(),keyValue.getRowOffset(), keyValue.getRowLength(),
 												getColumnDVDs(), columnOrder, keyDecoder);
 		}
 
