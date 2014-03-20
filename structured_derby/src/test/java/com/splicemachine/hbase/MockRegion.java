@@ -65,6 +65,8 @@ public class MockRegion {
         when(testRegion.getRegionInfo()).thenReturn(testRegionInfo);
         when(testRegion.getTableDesc()).thenReturn(descriptor);
         when(testRegion.batchMutate(new Put[]{any(Put.class)})).then(putAnswer);
+        when(testRegion.batchMutate(any(Mutation[].class))).then(putAnswer);
+
         return testRegion;
     }
 }
