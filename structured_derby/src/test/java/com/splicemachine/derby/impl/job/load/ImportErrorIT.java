@@ -275,6 +275,7 @@ public class ImportErrorIT {
         });
     }
 
+    /*
 		@Test(expected = SQLException.class)
 		public void testNonNullIntoIncrement() throws Exception {
 				runImportTest("INCREMENT","simple_column.txt",new ErrorCheck() {
@@ -288,7 +289,7 @@ public class ImportErrorIT {
 						}
 				});
 		}
-
+    */
     private interface ErrorCheck{
         void check(String table, String location, SQLException se);
     }
