@@ -16,19 +16,51 @@ import com.splicemachine.constants.SpliceConstants;
 public class CellUtils {
 
 		private CellUtils(){}
-		
+
+		/**
+		 * Matches a column based upon the ASSUMPTION that the family and qualifier are both only a single
+		 * byte each. This lets us avoid doing a bunch of math when we know that the family and qualifier are
+		 * just a single byte.
+		 *
+		 * DO NOT USE THIS IF THE FAMILY OR QUALIFIER ARE NOT of length 1!!!
+		 *
+		 * @param keyValue the keyValue to Check
+		 * @param family the family to check. Must be a single byte
+		 * @param qualifier the qualifier to check. Must be a single byte
+		 * @return true if the cell matches both the family AND the qualifier.
+		 */
 		public static boolean singleMatchingColumn(Cell keyValue, byte[] family, byte[] qualifier) {
 			return singleMatchingFamily(keyValue,family) && singleMatchingQualifier(keyValue,qualifier);
 		}
-		
+
+		/**
+		 * Determines if the cell belongs to the specified family, in an efficient manner.
+		 *
+		 * Note: This should ONLY be used when the specified family is KNOWN to be a single byte. If it isn't
+		 * a single byte, you'll probably get incorrect answers.
+		 *
+		 * @param keyValue the cell to check
+		 * @param family the family to check. Must be a single byte
+		 * @return true if the cell belongs to the specified family.
+		 */
 		public static boolean singleMatchingFamily(Cell keyValue, byte[] family) {
+				assert family!=null && family.length==1: "The specified family is not of length 1. Use Cellutil.";
 				return keyValue.getFamilyArray()[keyValue.getFamilyOffset()] == family[0];
-//			return getBuffer(keyValue)[keyValue.getFamilyOffset()] == family[0];
 		}
 
+		/**
+		 * Determines if the cell belongs to the specified family, in an efficient manner.
+		 *
+		 * Note: This should ONLY be used when the specified family is KNOWN to be a single byte. If it isn't
+		 * a single byte, you'll probably get incorrect answers.
+		 *
+		 * @param keyValue the cell to check
+		 * @param qualifier the family to check. Must be a single byte
+		 * @return true if the cell belongs to the specified family.
+		 */
 		public static boolean singleMatchingQualifier(Cell keyValue, byte[] qualifier) {
+				assert qualifier!=null && qualifier.length==1: "Qualifiers should be of length 1";
 				return keyValue.getQualifierArray()[keyValue.getQualifierOffset()] == qualifier[0];
-//			return getBuffer(keyValue)[keyValue.getQualifierOffset()] == qualifier[0];
 		}
 
 		public static boolean matchingValue(Cell keyValue, byte[] value) {

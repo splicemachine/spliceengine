@@ -609,6 +609,7 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
+		@Ignore
     public void writeDeleteOverlap() throws IOException {
         TransactionId t1 = control.beginTransaction();
         testUtility.insertAge(t1, "joe2", 20);
