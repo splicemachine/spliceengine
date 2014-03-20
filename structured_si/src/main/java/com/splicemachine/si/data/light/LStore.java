@@ -381,7 +381,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
             boolean collides = false;
             for (Cell newKv : newValues) {
 
-                if (CellUtils.singleMatchingColumn(currentKv, CellUtil.cloneFamily(newKv), CellUtil.cloneQualifier(newKv)) &&
+                if (CellUtils.matchingColumn(currentKv, CellUtil.cloneFamily(newKv), CellUtil.cloneQualifier(newKv)) &&
                         currentKv.getTimestamp() == newKv.getTimestamp()) {
                     collides = true;
                 }
