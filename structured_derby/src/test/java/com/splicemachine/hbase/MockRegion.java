@@ -29,11 +29,12 @@ public class MockRegion {
         return new Answer<OperationStatus[]>() {
             @Override
             public OperationStatus[] answer(InvocationOnMock invocation) throws Throwable {
-                @SuppressWarnings("unchecked") Pair<Mutation, Integer>[] writes = (Pair<Mutation, Integer>[]) invocation.getArguments()[0];
+								Mutation[] writes = (Mutation[])invocation.getArguments()[0];
+//                @SuppressWarnings("unchecked") Pair<Mutation, Integer>[] writes = (Pair<Mutation, Integer>[]) invocation.getArguments()[0];
                 OperationStatus[] answer = new OperationStatus[writes.length];
                 int i = 0;
-                for (Pair<Mutation, Integer> pair : writes) {
-                    successfulPuts.add(pair.getFirst());
+                for (Mutation write: writes) {
+                    successfulPuts.add(write);
                     answer[i] = new OperationStatus(HConstants.OperationStatusCode.SUCCESS);
                     i++;
                 }
@@ -65,7 +66,6 @@ public class MockRegion {
         when(testRegion.getRegionInfo()).thenReturn(testRegionInfo);
         when(testRegion.getTableDesc()).thenReturn(descriptor);
         when(testRegion.batchMutate(new Put[]{any(Put.class)})).then(putAnswer);
-        when(testRegion.batchMutate(any(Mutation[].class))).then(putAnswer);
 
         return testRegion;
     }
