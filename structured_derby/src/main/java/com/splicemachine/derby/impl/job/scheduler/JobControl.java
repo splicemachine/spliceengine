@@ -1,43 +1,43 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.NavigableSet;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.LinkedBlockingQueue;
-
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Output;
 import com.google.common.collect.Lists;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
-import org.apache.log4j.Logger;
-import org.apache.zookeeper.AsyncCallback;
-import org.apache.zookeeper.ZooKeeper;
-
+import com.google.protobuf.ByteString;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.coprocessor.SpliceSchedulerService;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.AttemptsExhaustedException;
 import com.splicemachine.hbase.table.BoundCall;
+import com.splicemachine.hbase.table.SpliceRpcController;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
+import org.apache.zookeeper.AsyncCallback;
+import org.apache.zookeeper.ZooKeeper;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.concurrent.*;
 
 /**
  * @author Scott Fines
@@ -350,17 +350,36 @@ class JobControl implements JobFuture {
         final byte[] stop = range.getSecond();
 
         try{
-            table.coprocessorService(SpliceSchedulerService.class,start,stop,
-                    new BoundCall<SpliceSchedulerService, TaskFutureContext>() {
+            table.coprocessorService(SpliceMessage.SpliceSchedulerService.class,start,stop,
+                    new BoundCall<SpliceMessage.SpliceSchedulerService, TaskFutureContext>() {
                         @Override
-                        public TaskFutureContext call(SpliceSchedulerService instance) throws IOException {
+                        public TaskFutureContext call(SpliceMessage.SpliceSchedulerService instance) throws IOException {
                             throw new UnsupportedOperationException();
                         }
 
                         @Override
-                        public TaskFutureContext call(byte[] startKey, byte[] stopKey, SpliceSchedulerService instance) throws IOException {
-                            return instance.submit(startKey,stopKey,task);
-                        }
+                        public TaskFutureContext call(byte[] startKey, byte[] stopKey, SpliceMessage.SpliceSchedulerService instance) throws IOException {
+														SpliceMessage.SpliceSchedulerRequest.Builder requestBuilder = SpliceMessage.SpliceSchedulerRequest.newBuilder()
+																		.setTaskStart(ByteString.copyFrom(startKey))
+																		.setTaskEnd(ByteString.copyFrom(stopKey))
+																		.setClassName(task.getClass().getCanonicalName());
+
+														Output out = new Output(1024,-1);
+														Kryo kryo = SpliceKryoRegistry.getInstance().get();
+														try{
+																kryo.writeObject(out, task);
+														}finally{
+																SpliceKryoRegistry.getInstance().returnInstance(kryo);
+														}
+														out.flush();
+														SpliceMessage.SpliceSchedulerRequest request = requestBuilder.setClassBytes(ByteString.copyFrom(out.toBytes())).build();
+														BlockingRpcCallback<SpliceMessage.SpliceSchedulerResponse> rpcCallback = new BlockingRpcCallback<SpliceMessage.SpliceSchedulerResponse>();
+														instance.submit(new SpliceRpcController(),request,rpcCallback);
+
+														SpliceMessage.SpliceSchedulerResponse spliceSchedulerResponse = rpcCallback.get();
+														return new TaskFutureContext(spliceSchedulerResponse.getTaskNode(),
+																		spliceSchedulerResponse.getTaskId().toByteArray(),spliceSchedulerResponse.getEstimatedCost());
+												}
                     }, new Batch.Callback<TaskFutureContext>() {
                         @Override
                         public void update(byte[] region, byte[] row, TaskFutureContext result) {

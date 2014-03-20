@@ -70,7 +70,7 @@ final class BulkWriteAction implements Callable<WriteStats> {
                            ActionStatusReporter statusReporter) {
 				this(tableName,bulkWrite,regionCache,
 								writeConfiguration,statusReporter,
-								new BulkWriteRPCInvoker.Factory(connection,tableName),Sleeper.THREAD_SLEEPER);
+								new BulkWriteChannelInvoker.Factory(connection,tableName),Sleeper.THREAD_SLEEPER);
     }
 
 		BulkWriteAction(byte[] tableName,
