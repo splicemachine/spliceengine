@@ -17,6 +17,7 @@ import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -62,6 +63,8 @@ public class HStoreSetup implements StoreSetup {
                 }
             });
 						Configuration configuration = testCluster.getConfiguration();
+						configuration.setInt(HConstants.HBASE_CLIENT_OPERATION_TIMEOUT,Integer.MAX_VALUE);
+						configuration.setInt("hbase.client.rpc.timeout",Integer.MAX_VALUE);
 						SpliceConstants.config = configuration;
             setTestingUtilityPorts(testCluster, basePort);
 

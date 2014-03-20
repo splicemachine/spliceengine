@@ -18,12 +18,13 @@ import org.junit.runners.Suite;
  * @author Scott Fines
  * Date: 2/17/14
  */
-@Suite.SuiteClasses({AsyncRollForwardTest.class,
+@Suite.SuiteClasses({
+//				AsyncRollForwardTest.class, - we don't use this one directly, because we only test packed encodings
 				PackedAsyncRollForwardTest.class,
 				LDataLibTest.class,
 				LStoreTest.class,
 				SIFilterTest.class,
-				SITransactorTest.class,
+//				SITransactorTest.class, -we don't use this one directly, because we only test packed encodings
 				SITransactorPackedTest.class,
 				JtaXAResourceTest.class,
 				TransactionManagerTest.class,

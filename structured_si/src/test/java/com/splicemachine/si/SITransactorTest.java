@@ -609,30 +609,38 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
-		@Ignore
     public void writeDeleteOverlap() throws IOException {
+				System.out.println("Beginning transaction t1");
         TransactionId t1 = control.beginTransaction();
+				System.out.println("t1 created, inserting data");
         testUtility.insertAge(t1, "joe2", 20);
 
+				System.out.println("t1 insertion complete");
         TransactionId t2 = control.beginTransaction();
         try {
             testUtility.deleteRow(t2, "joe2");
             Assert.fail("No Write conflict was detected!");
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
+						System.out.println("Possible Write conflict detected");
             testUtility.assertWriteConflict(e);
+						System.out.println("write conflict correctly determined");
         } finally {
+						System.out.println("Failing t2");
             control.fail(t2);
         }
+				System.out.println("Checking that joe2 looks correct");
         Assert.assertEquals("joe2 age=20 job=null", testUtility.read(t1, "joe2"));
-        Assert.assertEquals("joe2 age=20 job=null", testUtility.read(t1, "joe2"));
+				System.out.println("joe2 is correct, committing t1");
         control.commit(t1);
         try {
+						System.out.println("Attempting to commit t2. Should fail");
             control.commit(t2);
-            Assert.fail();
+            Assert.fail("Did not throw exception!");
         } catch (DoNotRetryIOException dnrio) {
             String message = dnrio.getMessage();
             Assert.assertTrue("Incorrect message pattern returned!", message.matches("transaction [0-9]* is not ACTIVE.*"));
+						System.out.println("Correctly failed t2");
         }
     }
 

@@ -15,7 +15,8 @@ import org.junit.runners.Suite;
  * @author Scott Fines
  * Date: 2/17/14
  */
-@Suite.SuiteClasses({JtaXAResourceHBaseTest.class,
+@Suite.SuiteClasses({
+				JtaXAResourceHBaseTest.class,
 				TransactionManagerHBaseTest.class,
 				SIFilterHBaseTest.class,
 				HbasePackedAsyncRollForwardTest.class,

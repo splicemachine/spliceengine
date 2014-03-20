@@ -56,6 +56,7 @@ public class SpliceHTable extends HTable {
     public SpliceHTable(byte[] tableName, HConnection connection, ExecutorService pool,
                         RegionCache regionCache) throws IOException {
         super(tableName, connection, pool);
+				Logger.getLogger(SpliceHTable.class).trace("Initialized super");
         this.regionCache = regionCache;
         this.tableName = tableName;
         this.tableExecutor = pool;

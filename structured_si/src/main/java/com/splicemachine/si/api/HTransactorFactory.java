@@ -136,7 +136,7 @@ public class HTransactorFactory extends SIConstants {
 						}
 
 						TimestampSource timestampSource = new ZooKeeperStatTimestampSource(ZkUtils.getRecoverableZooKeeper(),zkSpliceTransactionPath);
-						BetterHTablePool hTablePool = new BetterHTablePool(new SpliceHTableFactory(),
+						BetterHTablePool hTablePool = new BetterHTablePool(new SpliceHTableFactory(true,1),
 										SpliceConstants.tablePoolCleanerInterval, TimeUnit.SECONDS,
 										SpliceConstants.tablePoolMaxSize,SpliceConstants.tablePoolCoreSize);
 						final HPoolTableSource tableSource = new HPoolTableSource(hTablePool);
