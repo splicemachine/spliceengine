@@ -20,6 +20,8 @@ import com.google.common.collect.Sets;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -406,6 +408,10 @@ public class IndexedPipelineTest {
     public void testBulkWriteUpdatesBothIndexAndRegion() throws Exception {
         final ObjectArrayList<Mutation> mainTableWrites = ObjectArrayList.newInstance();
         HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(mainTableWrites));
+
+				HTableDescriptor tDesc = mock(HTableDescriptor.class);
+				when(tDesc.getTableName()).thenReturn(TableName.valueOf("default","test"));
+				when(testRegion.getTableDesc()).thenReturn(tDesc);
 
 
         RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);

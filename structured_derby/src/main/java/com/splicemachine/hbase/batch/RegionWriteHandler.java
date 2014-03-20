@@ -241,4 +241,7 @@ public class RegionWriteHandler implements WriteHandler {
 		throw new RuntimeException("Not Supported");
 	}
 
+		public void setConstraintChecker(BatchConstraintChecker constraintChecker) {
+				this.constraintChecker = constraintChecker;
+		}
 }

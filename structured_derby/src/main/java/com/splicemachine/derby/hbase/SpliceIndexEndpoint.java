@@ -387,10 +387,8 @@ public class SpliceIndexEndpoint extends SpliceIndexService implements Coprocess
 	public void bulkWrite(RpcController rpcController, BulkWriteRequest bulkWriteRequest,RpcCallback<BulkWriteResponse> callback) {
 		BulkWriteResponse.Builder writeResponse = BulkWriteResponse.newBuilder();
 		try {
-			bulkWrite(bulkWriteRequest.getBytes().toByteArray());
 			writeResponse.setBytes(ByteString.copyFrom(bulkWrite(bulkWriteRequest.getBytes().toByteArray())));
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			      ResponseConverter.setControllerException(rpcController, e);
 		}
 		callback.run(writeResponse.build());

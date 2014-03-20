@@ -166,6 +166,7 @@ public class PrimaryKeyIT extends SpliceUnitTest {
         try{
             ps.execute();
         }catch(SQLException sql){
+						sql.printStackTrace();
             Assert.assertTrue("Incorrect error returned!",sql.getSQLState().contains("23505"));
             throw sql;
         }
