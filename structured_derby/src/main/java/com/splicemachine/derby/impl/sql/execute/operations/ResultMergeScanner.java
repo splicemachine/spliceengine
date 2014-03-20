@@ -7,7 +7,6 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -78,7 +77,7 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
 				int ordinalOffset = rowKey.length - 17;
 				int ordinal = Encoding.decodeInt(rowKey, ordinalOffset);
         if(ordinal == JoinUtils.JoinSide.RIGHT.ordinal()){
-            ExecRow rightRow = rightDecoder.decode(CellUtils.matchDataColumn(result.raw()));
+            ExecRow rightRow = rightDecoder.decode(CellUtils.matchDataColumn(result.rawCells()));
             if(rightSideRow==null){
                 rightKeyDecoder = MultiFieldDecoder.wrap(rowKey, SpliceDriver.getKryoPool());
                 rightSideRow = new JoinSideExecRow(rightRow, JoinUtils.JoinSide.RIGHT);
@@ -92,7 +91,7 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
             rightSideRow.setRowKey(rowKey);
             return rightSideRow;
         }else{
-            ExecRow leftRow = leftDecoder.decode(CellUtils.matchDataColumn(result.raw()));
+            ExecRow leftRow = leftDecoder.decode(CellUtils.matchDataColumn(result.rawCells()));
             if(leftSideRow==null){
                 leftKeyDecoder = MultiFieldDecoder.wrap(rowKey, SpliceDriver.getKryoPool());
                 leftSideRow = new JoinSideExecRow(leftRow, JoinUtils.JoinSide.LEFT);
