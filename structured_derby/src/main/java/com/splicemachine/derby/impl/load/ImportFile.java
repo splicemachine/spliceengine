@@ -151,7 +151,7 @@ class ImportFile {
 						@Override
 						public boolean accept(Path path) {
 								try {
-										return fs.getFileStatus(path).isFile();
+										return fs.isFile(path);
 								} catch (IOException e) {
 										throw new RuntimeException(e);
 								}
