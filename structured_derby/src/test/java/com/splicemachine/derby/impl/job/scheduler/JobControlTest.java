@@ -271,7 +271,7 @@ public class JobControlTest {
                 o.update(startKey,startKey,futureContext);
                 return null;  //To change body of implemented methods use File | Settings | File Templates.
             }
-        }).when(mockTable).coprocessorExec(
+        }).when(mockTable).coprocessorService(
                 eq(SpliceSchedulerService.class),
                 eq(startKey),
                 eq(endKey),
