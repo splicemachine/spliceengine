@@ -9,6 +9,7 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -24,7 +25,7 @@ import com.splicemachine.si.data.api.SRowLock;
 /**
  * Implementation of SDataLib that is specific to the HBase operation and result types.
  */
-public class HDataLib implements SDataLib<Put, Delete, Get, Scan> {
+public class HDataLib implements SDataLib<Mutation, Put, Delete, Get, Scan> {
 
 		@Override
     public byte[] newRowKey(Object... args) {
@@ -100,6 +101,11 @@ public class HDataLib implements SDataLib<Put, Delete, Get, Scan> {
     public Put newPut(byte[] key, SRowLock lock) {
         // TODO: jc - interface imbalance
         return new Put(key);
+    }
+
+    @Override
+    public Mutation[] toMutationArray(List<Mutation> mutations) {
+        return mutations.toArray(new Mutation[mutations.size()]);
     }
 
     @Override

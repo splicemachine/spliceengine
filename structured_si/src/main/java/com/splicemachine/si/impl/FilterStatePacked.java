@@ -10,7 +10,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.hbase.CellUtils;
 
 public class FilterStatePacked<Result, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
-        Scan, Lock, OperationStatus, Mutation, IHTable> implements IFilterState {
+        Scan, Lock, OperationStatus, Mutation extends OperationWithAttributes, IHTable> implements IFilterState {
     static final Logger LOG = Logger.getLogger(FilterStatePacked.class);
     protected final FilterState<Result, Put, Delete, Get, Scan, Lock, OperationStatus,
 						Mutation, IHTable> simpleFilter;

@@ -214,9 +214,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
 
     @Override
     public OperationStatus[] writeBatch(LTable table, LTuple[] puts) throws IOException {
-        for (LTuple p : puts) {
-            write(table, p);
-        }
+            write(table, Arrays.asList(puts));
         OperationStatus[] result = new OperationStatus[puts.length];
         for (int i = 0; i < result.length; i++) {
             result[i] = new OperationStatus(HConstants.OperationStatusCode.SUCCESS);
@@ -288,7 +286,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
                 sortValues(results);
                 for (Cell kv : results) {
                     if (CellUtils.singleMatchingColumn(kv, family, qualifier)) {
-                        match = Arrays.equals(kv.getValueArray(), expectedValue);
+                        match = Arrays.equals(CellUtil.cloneValue(kv), expectedValue);
                         found = true;
                         break;
                     }
@@ -315,7 +313,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
         List<Cell> newValues = Lists.newArrayList();
         for (Cell c : newTuple.values) {
             if (c.getTimestamp() < 0) {
-                newValues.add(new KeyValue(newTuple.key, c.getFamilyArray(), c.getQualifierArray(),
+                newValues.add(new KeyValue(newTuple.key, CellUtil.cloneFamily(c), CellUtil.cloneQualifier(c),
                                            getCurrentTimestamp(), CellUtil.cloneValue(c)));
             } else {
                 newValues.add(c);
@@ -357,8 +355,8 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
                         boolean keep = true;
                         for (Cell deleteValue : (delete).values) {
 
-                            if (CellUtils.singleMatchingColumn(deleteValue, value.getFamilyArray(),
-                                                               value.getQualifierArray()) && value.getTimestamp() ==
+                            if (CellUtils.singleMatchingColumn(deleteValue, CellUtil.cloneFamily(value),
+                                                               CellUtil.cloneQualifier(value)) && value.getTimestamp() ==
                                     deleteValue.getTimestamp()) {
                                 keep = false;
                             }
@@ -383,7 +381,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
             boolean collides = false;
             for (Cell newKv : newValues) {
 
-                if (CellUtils.singleMatchingColumn(currentKv, newKv.getFamilyArray(), newKv.getQualifierArray()) &&
+                if (CellUtils.singleMatchingColumn(currentKv, CellUtil.cloneFamily(newKv), CellUtil.cloneQualifier(newKv)) &&
                         currentKv.getTimestamp() == newKv.getTimestamp()) {
                     collides = true;
                 }

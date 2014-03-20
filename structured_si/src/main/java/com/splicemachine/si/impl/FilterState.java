@@ -20,7 +20,7 @@ import com.splicemachine.si.data.api.SDataLib;
  * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
  */
 public class FilterState<Result, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
-        Scan, Lock, OperationStatus, Mutation, IHTable>
+        Scan, Lock, OperationStatus, Mutation extends OperationWithAttributes, IHTable>
         implements IFilterState {
     static final Logger LOG = Logger.getLogger(FilterState.class);
     /**
@@ -29,7 +29,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
     final LongPrimitiveCacheMap<Transaction> transactionCache;
     final LongPrimitiveCacheMap<VisibleResult> visibleCache;
     private final ImmutableTransaction myTransaction;
-    private final SDataLib<Put, Delete, Get, Scan> dataLib;
+    private final SDataLib<Mutation, Put, Delete, Get, Scan> dataLib;
     private final DataStore<Mutation, Put,Delete, Get, Scan, IHTable> dataStore;
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;

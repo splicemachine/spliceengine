@@ -11,14 +11,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
@@ -61,7 +60,7 @@ public class SITransactor<Table,
     /*Singleton field to save memory when we are unable to acquire locks*/
     private static final OperationStatus NOT_RUN = new OperationStatus(HConstants.OperationStatusCode.NOT_RUN);
     private static final boolean unsafeWrites = Boolean.getBoolean("splice.unsafe.writes");
-    private final SDataLib<Put, Delete, Get, Scan> dataLib;
+    private final SDataLib<Mutation, Put, Delete, Get, Scan> dataLib;
     private final STableWriter<Table, Mutation, Put, Delete> dataWriter;
     private final DataStore<Mutation, Put, Delete, Get, Scan, Table> dataStore;
     private final TransactionStore transactionStore;
@@ -124,31 +123,31 @@ public class SITransactor<Table,
             //noinspection unchecked
             return dataStore.writeBatch(table, mutations);
         }
-                /*
-				 * Here we convert a Put into a KVPair.
-				 *
-				 * Each Put represents a single row, but a KVPair represents a single column. Each row
-				 * is written with a single transaction.
-				 *
-				 * What we do here is we group up the puts by their Transaction id (just in case they are different),
-				 * then we group them up by family and column to create proper KVPair groups. Then, we attempt
-				 * to write all the groups in sequence.
-				 *
-				 * Note the following:
-				 *
-				 * 1) We do all this as support for things that probably don't happen. With Splice's Packed Row
-				 * Encoding, it is unlikely that people will send more than a single column of data over each
-				 * time. Additionally, people likely won't send over a batch of Puts that have more than one
-				 * transaction id (as that would be weird). Still, better safe than sorry.
-				 *
-				 * 2). This method is, because of all the regrouping and the partial writes and stuff,
-				 * Significantly slower than the equivalent KVPair method, so It is highly recommended that you
-				 * use the BulkWrite pipeline along with the KVPair abstraction to improve your overall throughput.
-				 *
-				 *
-				 * To be frank, this is only here to support legacy code without needing to rewrite everything under
-				 * the sun. You should almost certainly NOT use it.
-				 */
+        /*
+         * Here we convert a Put into a KVPair.
+         *
+         * Each Put represents a single row, but a KVPair represents a single column. Each row
+         * is written with a single transaction.
+         *
+         * What we do here is we group up the puts by their Transaction id (just in case they are different),
+         * then we group them up by family and column to create proper KVPair groups. Then, we attempt
+         * to write all the groups in sequence.
+         *
+         * Note the following:
+         *
+         * 1) We do all this as support for things that probably don't happen. With Splice's Packed Row
+         * Encoding, it is unlikely that people will send more than a single column of data over each
+         * time. Additionally, people likely won't send over a batch of Puts that have more than one
+         * transaction id (as that would be weird). Still, better safe than sorry.
+         *
+         * 2). This method is, because of all the regrouping and the partial writes and stuff,
+         * Significantly slower than the equivalent KVPair method, so It is highly recommended that you
+         * use the BulkWrite pipeline along with the KVPair abstraction to improve your overall throughput.
+         *
+         *
+         * To be frank, this is only here to support legacy code without needing to rewrite everything under
+         * the sun. You should almost certainly NOT use it.
+         */
         Map<String, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap = Maps.newHashMap();
         for (Put mutation : mutations) {
             String txnId = dataStore.getTransactionid(mutation);
@@ -157,14 +156,14 @@ public class SITransactor<Table,
             Iterable<Cell> keyValues = dataLib.listPut(mutation);
             boolean isSIDataOnly = true;
             for (Cell keyValue : keyValues) {
-                byte[] family = keyValue.getFamilyArray();
-                byte[] column = keyValue.getQualifierArray();
+                byte[] family = CellUtil.cloneFamily(keyValue);
+                byte[] column = CellUtil.cloneQualifier(keyValue);
                 if (!Bytes.equals(column, SIConstants.PACKED_COLUMN_BYTES)) {
                     continue; //skip SI columns
                 }
 
                 isSIDataOnly = false;
-                byte[] value = keyValue.getValueArray();
+                byte[] value = CellUtil.cloneValue(keyValue);
                 Map<byte[], Map<byte[], List<KVPair>>> familyMap = kvPairMap.get(txnId);
                 if (familyMap == null) {
                     familyMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
@@ -301,39 +300,34 @@ public class SITransactor<Table,
         try {
             lockRows(table, mutations, lockPairs, finalStatus);
 
-						/*
-						 * You don't need a low-level operation check here, because this code can only be called from
-						 * 1 of 2 paths (bulk write pipeline and SIObserver). Since both of those will externally
-						 * ensure that
-						 * the region can't close until after this method is complete, we don't need the calls.
-						 */
-            IntObjectOpenHashMap<Pair<Mutation, SRowLock>> writes = checkConflictsForKvBatch(table, rollForwardQueue,
-                                                                                            lockPairs,
-                                                                                            conflictingChildren,
-                                                                                            transaction, family,
-                                                                                            qualifier,
-                                                                                            constraintChecker,
-                                                                                            constraintState,
-                                                                                            finalStatus);
+            /*
+             * You don't need a low-level operation check here, because this code can only be called from
+             * 1 of 2 paths (bulk write pipeline and SIObserver). Since both of those will externally
+             * ensure that
+             * the region can't close until after this method is complete, we don't need the calls.
+             */
+            Mutation[] writes = checkConflictsForKvBatch(table,
+                                                         rollForwardQueue,
+                                                         lockPairs,
+                                                         conflictingChildren,
+                                                         transaction, family,
+                                                         qualifier,
+                                                         constraintChecker,
+                                                         constraintState,
+                                                         finalStatus);
 
             //TODO -sf- this can probably be made more efficient
             //convert into array for usefulness
-            List<Mutation> mutations1 = new ArrayList<Mutation>(writes.size());
-            Pair<Mutation, SRowLock>[] toWrite = new Pair[writes.size()];
-            int i = 0;
-            for (IntObjectCursor<Pair<Mutation, SRowLock>> write : writes) {
-                toWrite[i] = write.value;
-                mutations1.add(write.value.getFirst());
-                i++;
-            }
-            final OperationStatus[] status = dataStore.writeBatch(table, (Mutation[]) mutations1.toArray());
+            List<Mutation> toWrite = new ArrayList<Mutation>(writes.length);
+            Collections.addAll(toWrite, writes);
+            final OperationStatus[] status = dataStore.writeBatch(table, writes);
 
             resolveConflictsForKvBatch(table, toWrite, conflictingChildren, status);
 
             //convert the status back into the larger array
-            i = 0;
-            for (IntObjectCursor<Pair<Mutation, SRowLock>> write : writes) {
-                finalStatus[write.key] = status[i];
+            int i = 0;
+            for (Mutation write : writes) {
+                finalStatus[i] = status[i];
                 i++;
             }
 
@@ -390,32 +384,33 @@ public class SITransactor<Table,
         }
     }
 
-    private void resolveConflictsForKvBatch(Table table, Pair<Mutation, SRowLock>[] mutations,
+    private void resolveConflictsForKvBatch(Table table, List<Mutation> mutations,
                                             Set<Long>[] conflictingChildren, OperationStatus[] status) {
-        for (int i = 0; i < mutations.length; i++) {
+        int i=0;
+        for (Mutation mutation : mutations) {
             try {
-                Put put = (Put) mutations[i].getFirst();
+                Put put = (Put) mutation;
 //                SRowLock lock = mutations[i].getSecond();
                 resolveChildConflicts(table, put, conflictingChildren[i]);
             } catch (Exception ex) {
                 ex.printStackTrace();
                 status[i] = new OperationStatus(HConstants.OperationStatusCode.FAILURE, ex.getMessage());
             }
+            ++i;
         }
     }
 
-    private IntObjectOpenHashMap<Pair<Mutation, SRowLock>> checkConflictsForKvBatch(Table table,
-                                                                                    RollForwardQueue rollForwardQueue,
-                                                                                    Pair<KVPair,
-                                                                                            SRowLock>[] dataAndLocks,
-                                                                                    Set<Long>[] conflictingChildren,
-                                                                                    ImmutableTransaction transaction,
-                                                                                    byte[] family, byte[] qualifier,
-                                                                                    ConstraintChecker constraintChecker,
-                                                                                    FilterState constraintStateFilter,
-                                                                                    OperationStatus[] finalStatus)
+    private Mutation[] checkConflictsForKvBatch(Table table,
+                                                RollForwardQueue rollForwardQueue,
+                                                Pair<KVPair,  SRowLock>[] dataAndLocks,
+                                                Set<Long>[] conflictingChildren,
+                                                ImmutableTransaction transaction,
+                                                byte[] family, byte[] qualifier,
+                                                ConstraintChecker constraintChecker,
+                                                FilterState constraintStateFilter,
+                                                OperationStatus[] finalStatus)
             throws IOException {
-        IntObjectOpenHashMap<Pair<Mutation, SRowLock>> finalMutationsToWrite = IntObjectOpenHashMap.newInstance();
+        List<Mutation> finalMutationsToWrite = new ArrayList<Mutation>();
         for (int i = 0; i < dataAndLocks.length; i++) {
             Pair<KVPair, SRowLock> baseDataAndLock = dataAndLocks[i];
             if (baseDataAndLock == null) continue;
@@ -440,9 +435,10 @@ public class SITransactor<Table,
             conflictingChildren[i] = conflictResults.childConflicts;
             Mutation mutationToRun = getMutationToRun(table, rollForwardQueue, kvPair,
                                                       family, qualifier, transaction, conflictResults);
-            finalMutationsToWrite.put(i, Pair.newPair(mutationToRun, baseDataAndLock.getSecond()));
+            finalMutationsToWrite.add(mutationToRun);
         }
-        return finalMutationsToWrite;
+
+        return dataLib.toMutationArray(finalMutationsToWrite);
     }
 
     private boolean applyConstraint(ConstraintChecker constraintChecker,
@@ -516,15 +512,15 @@ public class SITransactor<Table,
         long txnIdLong = transaction.getLongTransactionId();
         Put newPut;
         if (kvPair.getType() == KVPair.Type.EMPTY_COLUMN) {
-						/*
-						 * WARNING: This requires a read of column data to populate! Try not to use
-						 * it unless no other option presents itself.
-						 *
-						 * In point of fact, this only occurs if someone sends over a non-delete Put
-						 * which has only SI data. In the event that we send over a row with all nulls
-						 * from actual Splice system, we end up with a KVPair that has a non-empty byte[]
-						 * for the values column (but which is nulls everywhere)
-						 */
+            /*
+             * WARNING: This requires a read of column data to populate! Try not to use
+             * it unless no other option presents itself.
+             *
+             * In point of fact, this only occurs if someone sends over a non-delete Put
+             * which has only SI data. In the event that we send over a row with all nulls
+             * from actual Splice system, we end up with a KVPair that has a non-empty byte[]
+             * for the values column (but which is nulls everywhere)
+             */
             newPut = dataLib.newPut(kvPair.getRow());
             dataStore.setTombstonesOnColumns(table, txnIdLong, newPut);
         } else if (kvPair.getType() == KVPair.Type.DELETE) {
@@ -622,7 +618,7 @@ public class SITransactor<Table,
             throws IOException {
         final long dataTransactionId = dataCommitKeyValue.getTimestamp();
         if (!updateTransaction.sameTransaction(dataTransactionId)) {
-            final byte[] commitTimestampValue = dataCommitKeyValue.getValueArray();
+            final byte[] commitTimestampValue = CellUtil.cloneValue(dataCommitKeyValue);
             if (dataStore.isSINull(dataCommitKeyValue)) {
                 // Unknown transaction status
                 final Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
@@ -766,9 +762,7 @@ public class SITransactor<Table,
             Mutation extends OperationWithAttributes,
             Put extends Mutation, Delete extends OperationWithAttributes, Get extends OperationWithAttributes, Scan extends OperationWithAttributes,
             Table> {
-        private SDataLib<
-                Put, Delete, Get, Scan
-                > dataLib;
+        private SDataLib<Mutation, Put, Delete, Get, Scan> dataLib;
         private STableWriter<Table, Mutation, Put, Delete> dataWriter;
         private DataStore<
                 Mutation, Put, Delete, Get, Scan,
@@ -786,8 +780,7 @@ public class SITransactor<Table,
             return this;
         }
 
-        public Builder dataLib(SDataLib<
-                Put, Delete, Get, Scan> dataLib) {
+        public Builder dataLib(SDataLib<Mutation, Put, Delete, Get, Scan> dataLib) {
             this.dataLib = dataLib;
             return this;
         }

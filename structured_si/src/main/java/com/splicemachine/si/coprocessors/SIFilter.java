@@ -1,19 +1,20 @@
 package com.splicemachine.si.coprocessors;
 
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.api.TransactionReadController;
-import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.api.RollForwardQueue;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
+import com.splicemachine.si.api.RollForwardQueue;
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.TransactionReadController;
+import com.splicemachine.si.impl.IFilterState;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * An HBase filter that applies SI logic when reading data values.
@@ -24,10 +25,10 @@ public class SIFilter extends FilterBase {
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
     private IFilterState filterState = null;
-	private TransactionReadController<Get,Scan> readController;
+	private TransactionReadController<Mutation,Get,Scan> readController;
 	public SIFilter() {}
 
-    public SIFilter(TransactionReadController<Get, Scan> readController,
+    public SIFilter(TransactionReadController<Mutation,Get, Scan> readController,
 										TransactionId transactionId, TransactionManager transactionManager, RollForwardQueue rollForwardQueue) throws IOException {
 				this.transactionManager = transactionManager;
 				this.transactionIdString = transactionId.getTransactionIdString();

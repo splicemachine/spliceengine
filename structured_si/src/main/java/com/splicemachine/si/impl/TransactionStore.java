@@ -30,7 +30,7 @@ import com.splicemachine.utils.CloseableIterator;
  * calls so the other classes can be expressed at a higher level. The intent is to capture mechanisms here rather than
  * policy.
  */
-public class TransactionStore<Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan,
+public class TransactionStore<Mutation extends OperationWithAttributes, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan,
         Table> {
     static final Logger LOG = Logger.getLogger(TransactionStore.class);
     final DataIDDecoder<Long, Result> decoder = new DataIDDecoder<Long, Result>() {
@@ -40,7 +40,7 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         }
     };
     // Plugins for creating gets/puts against the transaction table and for running the operations.
-    private final SDataLib<Put, Delete, Get, Scan> dataLib;
+    private final SDataLib<Mutation, Put, Delete, Get, Scan> dataLib;
     private final STableReader<Table, Get, Scan> reader;
     private final STableWriter writer;
     private final TransactionSchema transactionSchema;

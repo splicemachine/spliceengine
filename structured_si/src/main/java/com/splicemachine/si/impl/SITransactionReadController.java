@@ -23,12 +23,13 @@ import com.splicemachine.utils.kryo.KryoPool;
  *         Date: 2/13/14
  */
 public class SITransactionReadController<
-				Get extends OperationWithAttributes,
-				Scan extends OperationWithAttributes,
-				Delete extends OperationWithAttributes,
-				Put extends OperationWithAttributes
+        Get extends OperationWithAttributes,
+        Scan extends OperationWithAttributes,
+        Delete extends OperationWithAttributes,
+        Mutation extends OperationWithAttributes,
+        Put extends OperationWithAttributes
 				>
-				implements TransactionReadController<Get,Scan>{
+				implements TransactionReadController<Mutation,Get,Scan>{
 		private final DataStore dataStore;
 		private final SDataLib dataLib;
 		private final TransactionStore transactionStore;
@@ -111,7 +112,7 @@ public class SITransactionReadController<
 		@SuppressWarnings("unchecked")
 		public Result filterResult(IFilterState filterState, Result result) throws IOException {
 				//TODO -sf- this is only used in testing--ignore when production tuning
-				final SDataLib<Put, Delete, Get, Scan> dataLib = dataStore.dataLib;
+				final SDataLib<Mutation, Put, Delete, Get, Scan> dataLib = dataStore.dataLib;
 				final List<Cell> filteredCells = Lists.newArrayList();
 				final List<Cell> KVs = dataLib.listResult(result);
 				if (KVs != null) {

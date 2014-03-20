@@ -26,9 +26,9 @@ import com.splicemachine.si.data.api.SDataLib;
  * <p/>
  * It is handed key-values and can change them.
  */
-public class SICompactionState<Result,  Mutation,
+public class SICompactionState<Result,  Mutation extends OperationWithAttributes,
         Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock, OperationStatus> {
-    private final SDataLib<Put, Delete, Get, Scan> dataLib;
+    private final SDataLib<Mutation, Put, Delete, Get, Scan> dataLib;
     private final DataStore<Mutation, Put, Delete, Get, Scan, IHTable> dataStore;
     private final TransactionStore transactionStore;
     private SpliceReusableHashmap<ByteBuffer,Cell> evaluatedTransactions;

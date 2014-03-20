@@ -1,5 +1,14 @@
 package com.splicemachine.si.api;
 
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Scan;
+
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.table.BetterHTablePool;
@@ -7,21 +16,32 @@ import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
-import com.splicemachine.si.data.hbase.*;
-import com.splicemachine.si.impl.*;
+import com.splicemachine.si.data.hbase.HDataLib;
+import com.splicemachine.si.data.hbase.HPoolTableSource;
+import com.splicemachine.si.data.hbase.HTableReader;
+import com.splicemachine.si.data.hbase.HTableWriter;
+import com.splicemachine.si.data.hbase.HbRegion;
+import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
+import com.splicemachine.si.impl.CacheMap;
+import com.splicemachine.si.impl.DataStore;
+import com.splicemachine.si.impl.HBaseClientTransactor;
+import com.splicemachine.si.impl.HBaseRollForwardFactory;
+import com.splicemachine.si.impl.ImmutableTransaction;
+import com.splicemachine.si.impl.PermissionArgs;
+import com.splicemachine.si.impl.SITransactionManager;
+import com.splicemachine.si.impl.SITransactionReadController;
+import com.splicemachine.si.impl.SITransactor;
+import com.splicemachine.si.impl.SystemClock;
+import com.splicemachine.si.impl.Transaction;
+import com.splicemachine.si.impl.TransactionSchema;
+import com.splicemachine.si.impl.TransactionStore;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.si.jmx.TransactorStatus;
 import com.splicemachine.si.txn.ZooKeeperStatTimestampSource;
 import com.splicemachine.utils.Provider;
 import com.splicemachine.utils.Providers;
 import com.splicemachine.utils.ZkUtils;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Scan;
 
 /**
  * Used to construct a transactor object that is bound to the HBase types and that provides SI functionality. This is
@@ -40,7 +60,7 @@ public class HTransactorFactory extends SIConstants {
     private static volatile ManagedTransactor managedTransactor;
 		private static volatile TransactionManager transactionManager;
 		private static volatile ClientTransactor clientTransactor;
-		private static volatile SITransactionReadController< Get, Scan, Delete, Put> readController;
+		private static volatile SITransactionReadController<Get,Scan,Delete,Mutation,Put> readController;
 		private static volatile RollForwardFactory<byte[], HbRegion> rollForwardFactory;
 		private static volatile TransactionStore transactionStore;
 		private static volatile DataStore dataStore;
@@ -93,7 +113,7 @@ public class HTransactorFactory extends SIConstants {
 				return rollForwardFactory;
 		}
 
-		public static TransactionReadController<Get,Scan> getTransactionReadController(){
+		public static SITransactionReadController<Get,Scan,Delete,Mutation,Put> getTransactionReadController(){
 				initializeIfNeeded();
 				return readController;
 		}
@@ -165,8 +185,8 @@ public class HTransactorFactory extends SIConstants {
 												Providers.basicProvider(dataStore));
 
 						if(readController==null)
-								readController = new SITransactionReadController<
-												Get,Scan,Delete,Put>(dataStore,dataLib,transactionStore,transactionManager);
+								readController = new SITransactionReadController<Get,Scan,Delete,Mutation,Put>
+												(dataStore,dataLib,transactionStore,transactionManager);
 						Transactor transactor = new SITransactor.Builder()
 										.dataLib(dataLib)
 										.dataWriter(writer)

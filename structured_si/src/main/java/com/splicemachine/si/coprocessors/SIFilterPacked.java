@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.FilterBase;
 
@@ -24,7 +25,7 @@ import com.splicemachine.storage.HasPredicateFilter;
 public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 //    private static Logger LOG = Logger.getLogger(SIFilterPacked.class);
     private String tableName;
-	private TransactionReadController<Get,Scan> readController;
+	private TransactionReadController<Mutation,Get,Scan> readController;
 	private TransactionManager transactionManager;
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
@@ -40,7 +41,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 													TransactionManager transactionManager,
 													RollForwardQueue rollForwardQueue,
 													EntryPredicateFilter predicateFilter,
-													TransactionReadController<Get, Scan> readController, boolean countStar) throws IOException {
+													TransactionReadController<Mutation,Get, Scan> readController, boolean countStar) throws IOException {
         this.tableName = tableName;
 		this.transactionManager = transactionManager;
 		this.transactionIdString = transactionId.getTransactionIdString();

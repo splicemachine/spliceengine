@@ -18,13 +18,13 @@ import com.splicemachine.si.data.api.STableWriter;
 /**
  * Convert data and operations from one "data store" to another.
  */
-public class Translator<Data1, Result1, Put1 extends OperationWithAttributes, Delete1, Get1 extends OperationWithAttributes, Scan1, Table1,
-				Data2, Result2, Put2 extends OperationWithAttributes, Delete2, Get2 extends OperationWithAttributes, Scan2, Table2, Mutation2> {
+public class Translator<Data1, Result1, Mutation1 extends OperationWithAttributes, Put1 extends OperationWithAttributes, Delete1, Get1 extends OperationWithAttributes, Scan1, Table1,
+				Data2, Result2, Put2 extends OperationWithAttributes, Delete2, Get2 extends OperationWithAttributes, Scan2, Table2, Mutation2 extends OperationWithAttributes> {
 
-    private final SDataLib<Put1, Delete1, Get1, Scan1> dataLib1;
+    private final SDataLib<Mutation1, Put1, Delete1, Get1, Scan1> dataLib1;
     private final STableReader<Table1, Get1, Scan1> reader1;
 
-    private final SDataLib<Put2, Delete2, Get2, Scan2> dataLib2;
+    private final SDataLib<Mutation2, Put2, Delete2, Get2, Scan2> dataLib2;
     private final STableReader<Table2, Get2, Scan2> reader2;
     private final STableWriter<Table2, Mutation2, Put2, Delete2> writer2;
 
@@ -38,9 +38,9 @@ public class Translator<Data1, Result1, Put1 extends OperationWithAttributes, De
      */
     final Transcoder<Data2, Data1> transcoder2;
 
-    public Translator(SDataLib<Put1, Delete1, Get1, Scan1> dataLib1,
+    public Translator(SDataLib<Mutation1, Put1, Delete1, Get1, Scan1> dataLib1,
                       STableReader<Table1, Get1, Scan1> reader1,
-                      SDataLib<Put2, Delete2, Get2, Scan2> dataLib2,
+                      SDataLib<Mutation2, Put2, Delete2, Get2, Scan2> dataLib2,
                       STableReader<Table2, Get2, Scan2> reader2,
                       STableWriter<Table2, Mutation2, Put2, Delete2> writer2,
                       Transcoder<Data1, Data2> transcoder,

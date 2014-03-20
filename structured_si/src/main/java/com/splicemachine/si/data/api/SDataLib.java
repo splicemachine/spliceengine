@@ -12,7 +12,7 @@ import com.splicemachine.hbase.KVPair;
  * Defines an abstraction over the construction and manipulate of HBase operations. Having this abstraction allows an
  * alternate lightweight store to be used instead of HBase (e.g. for rapid testing).
  */
-public interface SDataLib<
+public interface SDataLib<Mutation extends OperationWithAttributes,
         Put extends OperationWithAttributes,
         Delete,
         Get extends OperationWithAttributes, Scan> {
@@ -33,6 +33,8 @@ public interface SDataLib<
     byte[] getPutKey(Put put);
 
     Put newPut(byte[] key, SRowLock lock);
+
+    Mutation[] toMutationArray(List<Mutation> mutations);
 
     Get newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp);
 

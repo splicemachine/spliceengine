@@ -17,7 +17,7 @@ import com.splicemachine.storage.EntryPredicateFilter;
  * @author Scott Fines
  * Date: 2/13/14
  */
-public interface TransactionReadController<Get,Scan> {
+public interface TransactionReadController<Mutation, Get,Scan> {
 
 		/**
 		 * Look at the operation and report back whether it has been flagged for SI treatment.

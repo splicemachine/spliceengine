@@ -6,9 +6,7 @@ import java.util.List;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
-import org.apache.hadoop.hbase.util.Pair;
 
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableWriter;

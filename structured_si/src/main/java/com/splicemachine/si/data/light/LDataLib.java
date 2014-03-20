@@ -16,7 +16,7 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SRowLock;
 
-public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
+public class LDataLib implements SDataLib<LTuple, LTuple, LTuple, LGet, LGet> {
 
     @Override
     public byte[] newRowKey(Object... args) {
@@ -116,6 +116,11 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
     @Override
     public LTuple newPut(byte[] key, SRowLock lock) {
         return new LTuple(key, new ArrayList<Cell>(), lock);
+    }
+
+    @Override
+    public LTuple[] toMutationArray(List<LTuple> list) {
+        return list.toArray(new LTuple[list.size()]);
     }
 
     @Override

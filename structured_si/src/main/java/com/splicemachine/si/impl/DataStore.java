@@ -30,9 +30,9 @@ import com.splicemachine.si.data.api.STableWriter;
  * Library of functions used by the SI module when accessing rows from data tables (data tables as opposed to the
  * transaction table).
  */
-public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable> {
+public class DataStore<Mutation extends OperationWithAttributes, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable> {
 	private static Logger LOG = Logger.getLogger(DataStore.class);
-    final SDataLib<Put, Delete, Get, Scan> dataLib;
+    final SDataLib<Mutation, Put, Delete, Get, Scan> dataLib;
     private final STableReader<IHTable, Get, Scan> reader;
     private final STableWriter<IHTable, Mutation, Put, Delete> writer;
     private final String siNeededAttribute;
@@ -46,7 +46,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
     public final byte[] siFail;
     private final byte[] userColumnFamily;
     
-    public DataStore(SDataLib<Put, Delete, Get, Scan> dataLib,
+    public DataStore(SDataLib<Mutation, Put, Delete, Get, Scan> dataLib,
 					STableReader reader,
 					STableWriter writer,
 					String siNeededAttribute,
