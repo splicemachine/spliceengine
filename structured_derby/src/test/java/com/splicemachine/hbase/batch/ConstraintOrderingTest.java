@@ -10,7 +10,7 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.tools.ResettableCountDownLatch;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -119,8 +119,8 @@ public class ConstraintOrderingTest {
                     if(Bytes.equals(mutation.getRow(),original.getRow())){
                         foundCount++;
                         //make sure the rows match
-                        KeyValue keyValue = ((Put) mutation).get(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY).get(0);
-                        if(Bytes.equals(keyValue.getValue(),original.getValue()))
+                        Cell cell = ((Put) mutation).get(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY).get(0);
+                        if(Bytes.equals(cell.getValueArray(),cell.getValueOffset(), cell.getValueLength(),original.getValue(),0,original.getValue().length))
                             Assert.fail("Same Row key with incorrect value is present in final list!");
                     }
                 }
@@ -137,8 +137,8 @@ public class ConstraintOrderingTest {
                 	if(Bytes.equals(mutation.getRow(),original.getRow())){
                         foundCount++;
                         //make sure the rows match
-                        KeyValue keyValue = ((Put) mutation).get(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY).get(0);
-                        if(!Bytes.equals(keyValue.getValue(),original.getValue()))
+                        Cell cell = ((Put) mutation).get(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY).get(0);
+                        if(!Bytes.equals(cell.getValueArray(),cell.getValueOffset(), cell.getValueLength(),original.getValue(),0,original.getValue().length))
                             Assert.fail("Same Row key with incorrect value is present in final list!");
                     }
                 }
