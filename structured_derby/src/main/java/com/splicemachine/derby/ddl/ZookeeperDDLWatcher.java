@@ -45,8 +45,8 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
 
     private Map<String, DDLChange> currentDDLChanges = new HashMap<String, DDLChange>();
     private Gson gson = new GsonBuilder().
-            registerTypeAdapter(TentativeDDLDesc.class, new DDLChangeSerializer<TentativeDDLDesc>()).
-            registerTypeAdapter(UUID.class, new DDLChangeSerializer<UUID>()).
+            registerTypeAdapter(TentativeDDLDesc.class, new InterfaceSerializer<TentativeDDLDesc>()).
+            registerTypeAdapter(UUID.class, new InterfaceSerializer<UUID>()).
             create();
     private Set<String> seenDDLChanges = new HashSet<String>();
     private Map<String, Long> changesTimeouts = new HashMap<String, Long>();

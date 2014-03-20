@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.AlterTable;
 
 /**
  * Created with IntelliJ IDEA.
@@ -8,18 +8,14 @@ package com.splicemachine.derby.impl.sql.execute.operations;
  * To change this template use File | Settings | File Templates.
  */
 
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.hbase.writer.WriteResult;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
-import com.splicemachine.derby.impl.job.AlterTable.ConglomerateLoader;
 import org.apache.log4j.Logger;
 import org.apache.derby.catalog.UUID;
-import com.splicemachine.derby.impl.job.AlterTable.RowTransformer;
 import org.apache.hadoop.hbase.KeyValue;
 import java.io.IOException;
 import java.util.List;
@@ -84,6 +80,10 @@ public class DropColumnHandler implements WriteHandler {
 
     @Override
     public void finishWrites(WriteContext ctx) throws IOException {
-        loader.flush();
+        try {
+            loader.flush();
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
     }
 }

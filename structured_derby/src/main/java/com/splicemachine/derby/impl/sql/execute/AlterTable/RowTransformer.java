@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.job.AlterTable;
+package com.splicemachine.derby.impl.sql.execute.AlterTable;
 
 /**
  * Created with IntelliJ IDEA.

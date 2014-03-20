@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.job.AlterTable;
+package com.splicemachine.derby.impl.sql.execute.AlterTable;
 
 /**
  * Created with IntelliJ IDEA.
@@ -28,8 +28,9 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import java.util.concurrent.ExecutionException;
 import org.apache.log4j.Logger;
-
+import com.google.common.base.Throwables;
 import java.io.IOException;
 import java.util.List;
 
@@ -66,7 +67,7 @@ public class ConglomerateScanner {
         }
     }
 
-    private void initScanner() {
+    private void initScanner() throws ExecutionException{
 
         // initialize a region scanner
         Scan regionScan = SpliceUtils.createScan(txnId);
@@ -84,16 +85,15 @@ public class ConglomerateScanner {
             Scan scan = SpliceUtils.createScan(txnId);
             brs = new BufferedRegionScanner(region,sourceScanner,scan,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory);
         } catch (IOException e) {
-            //TODO: handle exceptions
             SpliceLogUtils.error(LOG, e);
-            //throw new ExecutionException(e);
+            throw new ExecutionException(e);
         } catch (Exception e) {
             SpliceLogUtils.error(LOG, e);
-            //throw new ExecutionException(Throwables.getRootCause(e));
+            throw new ExecutionException(Throwables.getRootCause(e));
         }
     }
 
-    public List<KeyValue> next() {
+    public List<KeyValue> next() throws ExecutionException, IOException{
         if (brs == null) {
             initScanner();
         }
@@ -104,14 +104,11 @@ public class ConglomerateScanner {
 
         List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(16);
         boolean more = true;
-        try {
-            nextRow.clear();
-            more = brs.nextRaw(nextRow, null);
-            if (!more) return null;
 
-        } catch (Exception e) {
+        nextRow.clear();
+        more = brs.nextRaw(nextRow, null);
+        if (!more) return null;
 
-        }
         return nextRow;
     }
 
