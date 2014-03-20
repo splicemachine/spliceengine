@@ -7,10 +7,13 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.splicemachine.derby.utils.SpliceUtils;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -61,7 +64,11 @@ public class MockRegion {
 
         HTableDescriptor descriptor = mock(HTableDescriptor.class);
         when(descriptor.getNameAsString()).thenReturn("SPLICE_TEST");
-
+        
+        TableName tableName = SpliceUtils.getTableName("SPLICE_TEST");
+        
+        when(descriptor.getTableName()).thenReturn(tableName);
+        
         HRegion testRegion = mock(HRegion.class);
         when(testRegion.getRegionInfo()).thenReturn(testRegionInfo);
         when(testRegion.getTableDesc()).thenReturn(descriptor);
