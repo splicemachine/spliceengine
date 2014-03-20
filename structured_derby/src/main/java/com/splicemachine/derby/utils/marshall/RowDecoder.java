@@ -77,7 +77,7 @@ public class RowDecoder {
                 if(keyDecoder==null)
                     rowSet=true;
                 else{
-                    keyDecoder.set(value.getRow());
+                    keyDecoder.set(value.getRowArray(),value.getRowOffset(),value.getRowLength());
                     rowSet=true;
                 }
             }
@@ -99,7 +99,7 @@ public class RowDecoder {
                 if(keyDecoder==null)
                     rowSet=true;
                 else{
-                    keyDecoder.set(value.getRow());
+                    keyDecoder.set(value.getRowArray(),value.getRowOffset(),value.getRowLength());
                     rowSet=true;
                 }
             }
