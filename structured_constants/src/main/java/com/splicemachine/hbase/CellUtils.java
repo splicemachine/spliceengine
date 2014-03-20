@@ -3,6 +3,7 @@ package com.splicemachine.hbase;
 import java.util.List;
 
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 
 import com.splicemachine.constants.SIConstants;
@@ -21,13 +22,15 @@ public class CellUtils {
 		}
 		
 		public static boolean singleMatchingFamily(Cell keyValue, byte[] family) {
-			return getBuffer(keyValue)[keyValue.getFamilyOffset()] == family[0];
+				return keyValue.getFamilyArray()[keyValue.getFamilyOffset()] == family[0];
+//			return getBuffer(keyValue)[keyValue.getFamilyOffset()] == family[0];
 		}
 
 		public static boolean singleMatchingQualifier(Cell keyValue, byte[] qualifier) {
-			return getBuffer(keyValue)[keyValue.getQualifierOffset()] == qualifier[0];
+				return keyValue.getQualifierArray()[keyValue.getQualifierOffset()] == qualifier[0];
+//			return getBuffer(keyValue)[keyValue.getQualifierOffset()] == qualifier[0];
 		}
-		
+
 		public static boolean matchingValue(Cell keyValue, byte[] value) {
 				return ByteBufferArrayUtils.matchingValue(keyValue, value);
 		}
@@ -100,5 +103,9 @@ public class CellUtils {
     public static Cell matchDataColumn(List<Cell> kvs) {
         return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
     }
+
+		public static boolean matchingColumn(Cell kv, byte[] family, byte[] qualifier) {
+				return CellUtil.matchingFamily(kv, family) && CellUtil.matchingQualifier(kv,qualifier);
+		}
 
 }

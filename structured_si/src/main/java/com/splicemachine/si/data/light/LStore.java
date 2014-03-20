@@ -285,7 +285,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
                 ArrayList<Cell> results = Lists.newArrayList(result.rawCells());
                 sortValues(results);
                 for (Cell kv : results) {
-                    if (CellUtils.singleMatchingColumn(kv, family, qualifier)) {
+                    if (CellUtils.matchingColumn(kv, family, qualifier)) {
                         match = Arrays.equals(CellUtil.cloneValue(kv), expectedValue);
                         found = true;
                         break;
