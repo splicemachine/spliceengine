@@ -5,13 +5,15 @@ import com.google.gson.*;
 import java.lang.reflect.Type;
 
 /**
- * Created with IntelliJ IDEA.
- * User: jyuan
- * Date: 3/12/14
- * Time: 12:42 PM
- * To change this template use File | Settings | File Templates.
- */
-public class DDLChangeSerializer<T> implements JsonSerializer<T>, JsonDeserializer<T> {
+ * Custom gson serializer for interface
+ * @author jyuan
+ * Created on: 3/12/14
+ *
+ * */
+
+
+public class InterfaceSerializer<T> implements JsonSerializer<T>, JsonDeserializer<T> {
+
     public JsonElement serialize(T object, Type interfaceType, JsonSerializationContext context) {
         final JsonObject wrapper = new JsonObject();
         wrapper.addProperty("type", object.getClass().getName());

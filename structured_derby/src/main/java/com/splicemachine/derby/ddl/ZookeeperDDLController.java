@@ -29,8 +29,8 @@ public class ZookeeperDDLController implements DDLController, Watcher {
     private static final long REFRESH_TIMEOUT = 2000; // timeout to refresh the info, in case some server is dead or a new server came up
     private static final long MAXIMUM_WAIT = 60000; // maximum wait for everybody to respond, after this we fail the DDL change
     private Gson gson = new GsonBuilder().
-            registerTypeAdapter(TentativeDDLDesc.class, new DDLChangeSerializer<TentativeDDLDesc>()).
-            registerTypeAdapter(UUID.class, new DDLChangeSerializer<UUID>()).
+            registerTypeAdapter(TentativeDDLDesc.class, new InterfaceSerializer<TentativeDDLDesc>()).
+            registerTypeAdapter(UUID.class, new InterfaceSerializer<UUID>()).
             create();
 
     @Override

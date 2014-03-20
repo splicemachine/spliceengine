@@ -1,17 +1,18 @@
 package com.splicemachine.derby.impl.job.AlterTable;
 
-import com.splicemachine.constants.SIConstants;
+
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
+import com.splicemachine.derby.impl.sql.execute.AlterTable.ConglomerateLoader;
+import com.splicemachine.derby.impl.sql.execute.AlterTable.ConglomerateScanner;
+import com.splicemachine.derby.impl.sql.execute.AlterTable.RowTransformer;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.Metrics;
@@ -25,6 +26,7 @@ import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.derby.catalog.UUID;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import java.lang.Exception;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -114,7 +116,6 @@ public class LoadConglomerateTask extends ZkTask {
             throw new ExecutionException("Error loading conglomerate " + fromConglomId, e);
         } finally {
             writeTimer.startTiming();
-            loader.flush();
             loader.close();
             writeTimer.stopTiming();
             if(xplainSchema!=null){
