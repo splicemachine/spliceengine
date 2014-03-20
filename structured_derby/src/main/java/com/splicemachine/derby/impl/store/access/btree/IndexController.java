@@ -16,7 +16,7 @@ import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
@@ -101,8 +101,8 @@ public class IndexController  extends SpliceController  {
 				Get get = SpliceUtils.createGet(loc, oldValues, null, transID);
 				Result result = htable.get(get);
                 MultiFieldDecoder fieldDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
-                for(KeyValue kv:result.raw()){
-                    RowMarshaller.sparsePacked().decode(kv, oldValues, null, fieldDecoder);
+                for(Cell cell:result.rawCells()){
+                    RowMarshaller.sparsePacked().decode(cell, oldValues, null, fieldDecoder);
                 }
                 int[] validCols = new int[validColumns.getNumBitsSet()];
                 int pos=0;
