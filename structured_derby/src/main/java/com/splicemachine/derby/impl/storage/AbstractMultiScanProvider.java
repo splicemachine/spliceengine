@@ -67,7 +67,7 @@ public abstract class AbstractMultiScanProvider extends MultiScanRowProvider {
 				timer.startTiming();
         Result result = getResult();
         if(result!=null && !result.isEmpty()){
-            currentRow = decoder.decode(CellUtils.matchDataColumn(result.raw()));
+            currentRow = decoder.decode(CellUtils.matchDataColumn(result.rawCells()));
             SpliceLogUtils.trace(LOG, "after populate, currentRow=%s", currentRow);
             currentRowLocation = new HBaseRowLocation(result.getRow());
             populated = true;

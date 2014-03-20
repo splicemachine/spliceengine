@@ -69,6 +69,6 @@ public class ScalarAggregateScan implements ScalarAggregateSource{
 
 //				if(keyValues.isEmpty())
 //            return null;
-        return (ExecIndexRow)scanDecoder.decode(CellUtils.matchDataColumn(next.raw()));
+        return (ExecIndexRow)scanDecoder.decode(CellUtils.matchDataColumn(next.rawCells()));
     }
 }
