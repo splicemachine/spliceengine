@@ -1,10 +1,17 @@
 package com.splicemachine;
 
+import com.carrotsearch.hppc.*;
+import com.carrotsearch.hppc.BitSet;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.serializers.DefaultSerializers;
+import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
+import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.job.index.PopulateIndexTask;
@@ -645,6 +652,30 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 				instance.register(ImportContext.class,EXTERNALIZABLE_SERIALIZER,162);
 				instance.register(ColumnContext.class,EXTERNALIZABLE_SERIALIZER,163);
 				instance.register(FileImportReader.class,EXTERNALIZABLE_SERIALIZER,164);
+				instance.register(DDLChange.class,new FieldSerializer(instance,DDLChange.class),165);
+				instance.register(TentativeIndexDesc.class,new FieldSerializer(instance,TentativeIndexDesc.class),166);
+				instance.register(TentativeDropColumnDesc.class,new FieldSerializer(instance,TentativeDropColumnDesc.class),167);
+				instance.register(com.carrotsearch.hppc.BitSet.class,new Serializer<com.carrotsearch.hppc.BitSet>() {
+						@Override
+						public void write(Kryo kryo, Output output, BitSet object) {
+								output.writeInt(object.wlen);
+								long[] bits = object.bits;
+								for(int i=0;i<object.wlen;i++){
+										output.writeLong(bits[i]);
+								}
+						}
+
+						@Override
+						public BitSet read(Kryo kryo, Input input, Class<BitSet> type) {
+								int wlen = input.readInt();
+								long[] bits = new long[wlen];
+								for(int i=0;i<wlen;i++){
+										bits[i] = input.readLong();
+								}
+								return new BitSet(bits,wlen);
+						}
+				},168);
+				instance.register(DDLChange.TentativeType.class,new DefaultSerializers.EnumSerializer(DDLChange.TentativeType.class),169);
 
     }
 }

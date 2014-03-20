@@ -1,10 +1,10 @@
 package com.splicemachine.derby.ddl;
 
-import java.io.Serializable;
+import java.io.*;
 
 public class DDLChange implements Serializable {
 
-    public enum TentativeType {
+		public enum TentativeType {
         CHANGE_PK, ADD_CHECK, CREATE_FK, CREATE_INDEX, ADD_NOT_NULL, ADD_COLUMN, DROP_COLUMN
     }
 
@@ -15,7 +15,10 @@ public class DDLChange implements Serializable {
     private TentativeDDLDesc tentativeDDLDesc;
     private String identifier;
 
-    public DDLChange(String transactionId) {
+
+		public DDLChange() { }
+
+		public DDLChange(String transactionId) {
         this(transactionId, null);
     }
 
