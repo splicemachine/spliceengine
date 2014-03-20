@@ -7,6 +7,7 @@ import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
 import java.io.IOException;
 
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;

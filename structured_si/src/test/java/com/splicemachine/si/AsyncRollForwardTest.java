@@ -372,6 +372,7 @@ public class AsyncRollForwardTest {
 						@Override
 						public byte[] apply(@Nullable byte[] input) {
 								String key = (String) dataLib.decode(input, String.class);
+								System.out.printf("key=%s,targetKey=%s%n",key,targetKey);
 								if (key.equals(targetKey)) {
 										latch.countDown();
 								}

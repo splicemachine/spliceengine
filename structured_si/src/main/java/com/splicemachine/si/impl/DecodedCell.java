@@ -29,7 +29,7 @@ public class DecodedCell {
 
     public byte[] row() {
         if (row == null) {
-            row = CellUtil.cloneValue(keyValue);
+            row = CellUtil.cloneRow(keyValue);
         }
         return row;
     }
