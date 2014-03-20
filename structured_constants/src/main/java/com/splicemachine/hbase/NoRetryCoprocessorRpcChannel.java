@@ -1,14 +1,13 @@
 package com.splicemachine.hbase;
 
-import com.google.protobuf.DescriptorProtos;
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.Message;
-import com.google.protobuf.ZeroCopyLiteralByteString;
+import com.google.protobuf.*;
+import com.splicemachine.hbase.table.SpliceRpcController;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.protobuf.ResponseConverter;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.ipc.RemoteException;
@@ -35,6 +34,23 @@ public class NoRetryCoprocessorRpcChannel extends CoprocessorRpcChannel {
 				this.table = table;
 				this.row = row;
 				this.rpcFactory = RpcRetryingCallerFactory.instantiate(connection.getConfiguration());
+		}
+
+		@Override
+		public void callMethod(Descriptors.MethodDescriptor method, RpcController controller, Message request, Message responsePrototype, RpcCallback<Message> callback) {
+				Message response = null;
+				try {
+						response = callExecService(method, request, responsePrototype);
+				} catch (IOException ioe) {
+						LOG.warn("Call failed on IOException", ioe);
+						if(controller instanceof SpliceRpcController){
+								((SpliceRpcController)controller).setFailed(ioe);
+						}else
+								ResponseConverter.setControllerException(controller, ioe);
+				}
+				if (callback != null) {
+						callback.run(response);
+				}
 		}
 
 		@Override

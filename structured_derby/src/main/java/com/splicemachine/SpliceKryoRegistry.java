@@ -9,6 +9,9 @@ import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.job.index.PopulateIndexTask;
 import com.splicemachine.derby.impl.job.operation.SinkTask;
+import com.splicemachine.derby.impl.load.ColumnContext;
+import com.splicemachine.derby.impl.load.FileImportReader;
+import com.splicemachine.derby.impl.load.ImportContext;
 import com.splicemachine.derby.impl.load.ImportTask;
 import com.splicemachine.derby.impl.sql.execute.LazyTimestampDataValueDescriptor;
 import com.splicemachine.derby.hbase.ActivationSerializer;
@@ -639,6 +642,9 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 				instance.register(CreateIndexTask.class,EXTERNALIZABLE_SERIALIZER,159);
 				instance.register(PopulateIndexTask.class,EXTERNALIZABLE_SERIALIZER,160);
 				instance.register(ImportTask.class,EXTERNALIZABLE_SERIALIZER,161);
+				instance.register(ImportContext.class,EXTERNALIZABLE_SERIALIZER,162);
+				instance.register(ColumnContext.class,EXTERNALIZABLE_SERIALIZER,163);
+				instance.register(FileImportReader.class,EXTERNALIZABLE_SERIALIZER,164);
 
     }
 }

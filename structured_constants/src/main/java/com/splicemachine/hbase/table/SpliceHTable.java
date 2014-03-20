@@ -120,6 +120,7 @@ public class SpliceHTable extends HTable {
 										 * pulled it from the cache, we first invalidate that cache
 										 */
 										wait(context.attemptCount); //wait for a bit to see if it clears up
+										connection.clearRegionCache(TableName.valueOf(tableName));
 										regionCache.invalidate(tableName);
 
 										Pair<byte[],byte[]> failedKeys = context.keyBoundary;
@@ -178,6 +179,8 @@ public class SpliceHTable extends HTable {
 										ExecContext context = completedFuture.getKey();
 										wait(context.attemptCount); //wait for a bit to see if it clears up
 										regionCache.invalidate(tableName);
+										//TODO -sf- store the TableName instead of creating it
+										connection.clearRegionCache(TableName.valueOf(tableName));
 
 										Pair<byte[],byte[]> failedKeys = context.keyBoundary;
 										context.errors.add(cause);
@@ -255,6 +258,7 @@ public class SpliceHTable extends HTable {
         	if (LOG.isTraceEnabled())
         		SpliceLogUtils.error(LOG, "Keys to use miss");
             wait(attemptCount);
+						connection.clearRegionCache(TableName.valueOf(tableName));
             regionCache.invalidate(tableName);
             return getKeys(startKey, endKey, attemptCount+1);
         }
@@ -272,6 +276,7 @@ public class SpliceHTable extends HTable {
         if(!Arrays.equals(start.getFirst(),startKey)){
         		SpliceLogUtils.error(LOG, "First Key Miss, invalidate");
             wait(attemptCount);
+						connection.clearRegionCache(TableName.valueOf(tableName));
             regionCache.invalidate(tableName);
             return getKeys(startKey,endKey,attemptCount+1);
         }
@@ -283,6 +288,7 @@ public class SpliceHTable extends HTable {
             		SpliceLogUtils.error(LOG, "Keys are not contiguous miss, invalidate");
                 wait(attemptCount);
                 //we are missing some data, so recursively try again
+								connection.clearRegionCache(TableName.valueOf(tableName));
                 regionCache.invalidate(tableName);
                 return getKeys(startKey,endKey,attemptCount+1);
             }
@@ -294,6 +300,7 @@ public class SpliceHTable extends HTable {
         	if (LOG.isTraceEnabled())
         		SpliceLogUtils.error(LOG, "Last Key Miss, invalidate");
             wait(attemptCount);
+						connection.clearRegionCache(TableName.valueOf(tableName));
             regionCache.invalidate(tableName);
             return getKeys(startKey, endKey, attemptCount+1);
         }

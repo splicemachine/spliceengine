@@ -12,6 +12,8 @@ public class SpliceRpcController implements RpcController {
 		private String errorMessage;
 		private boolean isCancelled;
 
+		private Throwable t;
+
 		@Override
 		public void reset() {
 				this.isCancelled = false;
@@ -46,5 +48,14 @@ public class SpliceRpcController implements RpcController {
 		@Override
 		public void notifyOnCancel(RpcCallback<Object> callback) {
 				throw new UnsupportedOperationException("Implement if needed");
+		}
+
+		public void setFailed(Throwable t){
+				this.t = t;
+				this.errorMessage = t.getMessage();
+		}
+
+		public Throwable getThrowable(){
+				return t;
 		}
 }

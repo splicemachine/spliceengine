@@ -12,6 +12,7 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.AttemptsExhaustedException;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.table.BoundCall;
 import com.splicemachine.hbase.table.SpliceRpcController;
 import com.splicemachine.job.JobFuture;
@@ -374,7 +375,11 @@ class JobControl implements JobFuture {
 														out.flush();
 														SpliceMessage.SpliceSchedulerRequest request = requestBuilder.setClassBytes(ByteString.copyFrom(out.toBytes())).build();
 														BlockingRpcCallback<SpliceMessage.SpliceSchedulerResponse> rpcCallback = new BlockingRpcCallback<SpliceMessage.SpliceSchedulerResponse>();
-														instance.submit(new SpliceRpcController(),request,rpcCallback);
+														SpliceRpcController controller = new SpliceRpcController();
+														instance.submit(controller,request,rpcCallback);
+
+														Throwable error = controller.getThrowable();
+														if(error!=null) throw Exceptions.getIOException(error);
 
 														SpliceMessage.SpliceSchedulerResponse spliceSchedulerResponse = rpcCallback.get();
 														return new TaskFutureContext(spliceSchedulerResponse.getTaskNode(),
