@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.load;
 
 import com.google.common.collect.Maps;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.HTransactorFactory;
@@ -15,20 +16,18 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
 import java.io.IOException;
 import java.sql.Types;
 import java.util.Map;
 import java.util.NavigableMap;
-
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -56,14 +55,14 @@ public class BlockImportJobTest {
         byte[] endKey;
         for(int i=0;i<9;i++){
             endKey = Encoding.encode(i);
-            HRegionInfo regionInfo = new HRegionInfo(Bytes.toBytes("1184"),
+            HRegionInfo regionInfo = new HRegionInfo(TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, "1184"),
                     startKey,endKey);
             ServerName name = new ServerName("192.168.1."+Integer.toString(i%4)+":8181",System.currentTimeMillis());
             regionMap.put(regionInfo,name);
             startKey = endKey;
         }
         endKey = HConstants.EMPTY_END_ROW;
-        HRegionInfo regionInfo = new HRegionInfo(Bytes.toBytes("1184"),
+        HRegionInfo regionInfo = new HRegionInfo(TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, "1184"),
                 startKey,endKey);
         ServerName name = new ServerName("192.168.1."+Integer.toString(10%4)+":8181",System.currentTimeMillis());
         regionMap.put(regionInfo,name);

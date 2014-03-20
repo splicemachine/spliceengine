@@ -7,9 +7,11 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.RegionCache;
@@ -20,14 +22,12 @@ import com.splicemachine.utils.Sleeper;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -35,7 +35,6 @@ import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Mockito.mock;
@@ -60,10 +59,10 @@ public class BulkWriteActionTest {
 				final boolean[] splitPoint = new boolean[]{false,false};
 				final RegionCache cache = mock(RegionCache.class);
 				final Set<HRegionInfo> oneRegion = Sets.newTreeSet();
-				oneRegion.add(new HRegionInfo(Bytes.toBytes("test"),HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW));
+				oneRegion.add(new HRegionInfo(TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, "test"),HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW));
 				final Set<HRegionInfo> twoRegions = Sets.newTreeSet();
-				twoRegions.add(new HRegionInfo(Bytes.toBytes("test"),HConstants.EMPTY_START_ROW,Encoding.encode(6)));
-				twoRegions.add(new HRegionInfo(Bytes.toBytes("test"),Encoding.encode(6),HConstants.EMPTY_END_ROW));
+				twoRegions.add(new HRegionInfo(TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, "test"),HConstants.EMPTY_START_ROW,Encoding.encode(6)));
+				twoRegions.add(new HRegionInfo(TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, "test"),Encoding.encode(6),HConstants.EMPTY_END_ROW));
 				when(cache.getRegions(any(byte[].class))).thenAnswer(new Answer<Set<HRegionInfo>>() {
 						@Override
 						public Set<HRegionInfo> answer(InvocationOnMock invocation) throws Throwable {
@@ -327,7 +326,7 @@ public class BulkWriteActionTest {
 				BulkWrite write = new BulkWrite(mutations,"testTxnId",regionKey);
 				RegionCache cache = mock(RegionCache.class);
 				final SortedSet<HRegionInfo> regions = Sets.newTreeSet();
-				regions.add(new HRegionInfo(tableName, Encoding.encode(6),HConstants.EMPTY_END_ROW));
+				regions.add(new HRegionInfo(SpliceUtils.getTableName(tableName), Encoding.encode(6),HConstants.EMPTY_END_ROW));
 
 				final boolean[] returnedRegions = new boolean[]{false};
 				when(cache.getRegions(tableName)).thenAnswer(new Answer<Object>() {
@@ -424,8 +423,8 @@ public class BulkWriteActionTest {
 				BulkWrite write = new BulkWrite(mutations,"testTxnId",regionKey);
 				RegionCache cache = mock(RegionCache.class);
 				SortedSet<HRegionInfo> regions = Sets.newTreeSet();
-				regions.add(new HRegionInfo(tableName, HConstants.EMPTY_START_ROW,Encoding.encode(6)));
-				regions.add(new HRegionInfo(tableName, Encoding.encode(6),HConstants.EMPTY_END_ROW));
+				regions.add(new HRegionInfo(SpliceUtils.getTableName(tableName), HConstants.EMPTY_START_ROW,Encoding.encode(6)));
+				regions.add(new HRegionInfo(SpliceUtils.getTableName(tableName), Encoding.encode(6),HConstants.EMPTY_END_ROW));
 
 				when(cache.getRegions(tableName)).thenReturn(regions);
 				Writer.WriteConfiguration config = new Writer.WriteConfiguration() {
@@ -533,8 +532,8 @@ public class BulkWriteActionTest {
 				BulkWrite write = new BulkWrite(mutations,"testTxnId",regionKey);
 				RegionCache cache = mock(RegionCache.class);
 				SortedSet<HRegionInfo> regions = Sets.newTreeSet();
-				regions.add(new HRegionInfo(tableName, HConstants.EMPTY_START_ROW,Encoding.encode(6)));
-				regions.add(new HRegionInfo(tableName, Encoding.encode(6),HConstants.EMPTY_END_ROW));
+				regions.add(new HRegionInfo(SpliceUtils.getTableName(tableName), HConstants.EMPTY_START_ROW,Encoding.encode(6)));
+				regions.add(new HRegionInfo(SpliceUtils.getTableName(tableName), Encoding.encode(6),HConstants.EMPTY_END_ROW));
 
 				when(cache.getRegions(tableName)).thenReturn(regions);
 				Writer.WriteConfiguration config = new Writer.WriteConfiguration() {
@@ -647,8 +646,8 @@ public class BulkWriteActionTest {
 				BulkWrite write = new BulkWrite(mutations,"testTxnId",regionKey);
 				RegionCache cache = mock(RegionCache.class);
 				SortedSet<HRegionInfo> regions = Sets.newTreeSet();
-				regions.add(new HRegionInfo(tableName, HConstants.EMPTY_START_ROW,Encoding.encode(5)));
-				regions.add(new HRegionInfo(tableName, Encoding.encode(5),HConstants.EMPTY_END_ROW));
+				regions.add(new HRegionInfo(SpliceUtils.getTableName(tableName), HConstants.EMPTY_START_ROW,Encoding.encode(5)));
+				regions.add(new HRegionInfo(SpliceUtils.getTableName(tableName), Encoding.encode(5),HConstants.EMPTY_END_ROW));
 				when(cache.getRegions(tableName)).thenReturn(regions);
 				Writer.WriteConfiguration config = new Writer.WriteConfiguration() {
 						@Override public int getMaximumRetries() { return 5; }

@@ -23,6 +23,7 @@ import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -30,6 +31,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
@@ -193,6 +195,14 @@ public class SpliceUtils extends SpliceUtilities {
         return op;
     }
 
+    public static TableName getTableName(String tableName) {
+    	return TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, tableName);
+    }
+    
+    public static TableName getTableName(byte[] tableName) {
+    	return getTableName(Bytes.toString(tableName));
+    }
+    
     private static boolean attachTransactionNA(OperationWithAttributes op, String transactionId) {
         if (transactionId == null) {
             throw new RuntimeException("Cannot create operation with a null transactionId");
@@ -236,19 +246,22 @@ public class SpliceUtils extends SpliceUtilities {
 		public static SpliceObserverInstructions getSpliceObserverInstructions(Scan scan) {
 		byte[] instructions = scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS);
 		if(instructions==null) return null;
-
-        Kryo kryo = SpliceDriver.getKryoPool().get();
-		try {
-            Input input = new Input(instructions);
-            KryoObjectInput koi = new KryoObjectInput(input,kryo);
-				return (SpliceObserverInstructions) koi.readObject();
-		} catch (Exception e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
-		}finally{
-            SpliceDriver.getKryoPool().returnInstance(kryo);
-        }
-		return null;
+		return getSpliceObserverInsructions(instructions);
 	}
+		
+		public static SpliceObserverInstructions getSpliceObserverInsructions(byte[] bytes) {
+	        Kryo kryo = SpliceDriver.getKryoPool().get();
+			try {
+	            Input input = new Input(bytes);
+	            KryoObjectInput koi = new KryoObjectInput(input,kryo);
+					return (SpliceObserverInstructions) koi.readObject();
+			} catch (Exception e) {
+				SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
+			}finally{
+	            SpliceDriver.getKryoPool().returnInstance(kryo);
+	        }
+			return null;
+		}
 
 	public static String getTransIDString(Transaction trans) {
 		if (trans == null)

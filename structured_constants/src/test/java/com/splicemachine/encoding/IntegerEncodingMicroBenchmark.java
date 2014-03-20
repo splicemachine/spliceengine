@@ -1,8 +1,5 @@
 package com.splicemachine.encoding;
 
-import com.splicemachine.derby.stats.Accumulator;
-import com.splicemachine.derby.stats.Stats;
-import com.splicemachine.derby.stats.TimingStats;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Ignore;
 import java.io.IOException;

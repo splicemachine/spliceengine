@@ -4,8 +4,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.ClusterStatus;
+import org.apache.hadoop.hbase.HBaseIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HServerLoad;
+import org.apache.hadoop.hbase.RegionLoad;
+import org.apache.hadoop.hbase.ServerLoad;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.master.MasterServices;
 import org.apache.hadoop.hbase.master.RegionPlan;
@@ -26,7 +28,7 @@ public class SpliceLoadBalancer extends BaseLoadBalancer {
     private static final Log LOG = LogFactory.getLog(SpliceLoadBalancer.class);
     private final RegionLocationFinder regionFinder = new RegionLocationFinder();
     private ClusterStatus clusterStatus = null;
-    private Map<String, List<HServerLoad.RegionLoad>> loads = new HashMap<String, List<HServerLoad.RegionLoad>>();
+    private Map<String, List<RegionLoad>> loads = new HashMap<String, List<RegionLoad>>();
     private static final String KEEP_REGION_LOADS = "hbase.master.balancer.stochastic.numRegionLoadsToRemember";    
     private int numRegionLoadsToRemember = 15;
     private SpliceLayoutFitness layoutFitness = new SpliceLayoutFitness();
@@ -79,14 +81,14 @@ public class SpliceLoadBalancer extends BaseLoadBalancer {
 
         //We create a new hashmap so that regions that are no longer there are removed.
         //However we temporarily need the old loads so we can use them to keep the rolling average.
-        Map<String, List<HServerLoad.RegionLoad>> oldLoads = loads;
-        loads = new HashMap<String, List<HServerLoad.RegionLoad>>();
+        Map<String, List<RegionLoad>> oldLoads = loads;
+        loads = new HashMap<String, List<RegionLoad>>();
 
         for (ServerName sn : clusterStatus.getServers()) {
-            HServerLoad sl = clusterStatus.getLoad(sn);
+            ServerLoad sl = clusterStatus.getLoad(sn);
             if (sl == null) continue;
-            for (Entry<byte[], HServerLoad.RegionLoad> entry : sl.getRegionsLoad().entrySet()) {
-                List<HServerLoad.RegionLoad> rLoads = oldLoads.get(Bytes.toString(entry.getKey()));
+            for (Entry<byte[], RegionLoad> entry : sl.getRegionsLoad().entrySet()) {
+                List<RegionLoad> rLoads = oldLoads.get(Bytes.toString(entry.getKey()));
                 if (rLoads != null) {
 
                     //We're only going to keep 15.  So if there are that many already take the last 14
@@ -98,12 +100,30 @@ public class SpliceLoadBalancer extends BaseLoadBalancer {
 
                 } else {
                     //There was nothing there
-                    rLoads = new ArrayList<HServerLoad.RegionLoad>();
+                    rLoads = new ArrayList<RegionLoad>();
                 }
                 rLoads.add(entry.getValue());
                 loads.put(Bytes.toString(entry.getKey()), rLoads);
             }
         }
     }
+
+	@Override
+	public void initialize() throws HBaseIOException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void stop(String why) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public boolean isStopped() {
+		// TODO Auto-generated method stub
+		return false;
+	}
 }
 

@@ -4,21 +4,23 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.stats.Metrics;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.management.*;
+
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -204,10 +206,10 @@ public class PipingWriteBufferTest{
 
 		protected SortedSet<HRegionInfo> getFakeRegions(byte[] tableName, int numRegions,final int regionSpace) {
 				SortedSet<HRegionInfo> regions = new TreeSet<HRegionInfo>();
-				HRegionInfo info = new HRegionInfo(tableName, HConstants.EMPTY_START_ROW, Encoding.encode(2));
+				HRegionInfo info = new HRegionInfo(TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, Bytes.toString(tableName)), HConstants.EMPTY_START_ROW, Encoding.encode(2));
 				regions.add(info);
 				for(int i=0,regionStart = 2;i<numRegions;i++,regionStart+=regionSpace){
-						info = new HRegionInfo(tableName,Encoding.encode(regionStart),Encoding.encode(regionStart+regionSpace));
+						info = new HRegionInfo(TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, Bytes.toString(tableName)),Encoding.encode(regionStart),Encoding.encode(regionStart+regionSpace));
 						regions.add(info);
 				}
 				return regions;
@@ -256,7 +258,7 @@ public class PipingWriteBufferTest{
 				//is BYTES_COMPARATOR correct here? it might put start in the incorrect location
 				SortedSet<HRegionInfo> regions = new TreeSet<HRegionInfo>();
 				for(int i=0;i<5;i++){
-						HRegionInfo info = new HRegionInfo(tableName,Encoding.encode(i),Encoding.encode(i+1));
+						HRegionInfo info = new HRegionInfo(SpliceUtils.getTableName(tableName),Encoding.encode(i),Encoding.encode(i+1));
 						regions.add(info);
 				}
 				when(regionCache.getRegions(tableName)).thenReturn(regions);
@@ -388,9 +390,9 @@ public class PipingWriteBufferTest{
             // Populate the cache with two regions
             Integer key = Bytes.mapKey(tableName);
             SortedSet<HRegionInfo> infos =  new ConcurrentSkipListSet<HRegionInfo>();
-            HRegionInfo info = new HRegionInfo(tableName, null, Bytes.toBytes("cccc"));
+            HRegionInfo info = new HRegionInfo(SpliceUtils.getTableName(tableName), null, Bytes.toBytes("cccc"));
             infos.add(info);
-            info = new HRegionInfo(tableName, Bytes.toBytes("cccd"), null);
+            info = new HRegionInfo(SpliceUtils.getTableName(tableName), Bytes.toBytes("cccd"), null);
             infos.add(info);
             regionCache.put(key, infos);
         }
@@ -401,13 +403,13 @@ public class PipingWriteBufferTest{
             Integer key = Bytes.mapKey(tableName);
             SortedSet<HRegionInfo> infos =  regionCache.get(key);
             infos.clear();
-            HRegionInfo info = new HRegionInfo(tableName, null, Bytes.toBytes("bbba"));
+            HRegionInfo info = new HRegionInfo(SpliceUtils.getTableName(tableName), null, Bytes.toBytes("bbba"));
             infos.add(info);
 
-            info = new HRegionInfo(tableName, Bytes.toBytes("bbbb"), Bytes.toBytes("cccc"));
+            info = new HRegionInfo(SpliceUtils.getTableName(tableName), Bytes.toBytes("bbbb"), Bytes.toBytes("cccc"));
             infos.add(info);
 
-            info = new HRegionInfo(tableName, Bytes.toBytes("cccd"), null);
+            info = new HRegionInfo(SpliceUtils.getTableName(tableName), Bytes.toBytes("cccd"), null);
             infos.add(info);
 
             regionCache.put(key, infos);

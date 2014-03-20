@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.store.access.base;
 
 import com.google.common.io.Closeables;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.impl.sql.execute.LazyScan;
 import com.splicemachine.derby.impl.sql.execute.ParallelScan;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -92,7 +92,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		this.transID = SpliceUtils.getTransID(trans);
 		setupScan();
 		attachFilter();
-		tableName = Bytes.toString(SpliceOperationCoprocessor.TEMP_TABLE);
+		tableName = Bytes.toString(SpliceConstants.TEMP_TABLE_BYTES);
         setupRowColumns();
 //		table = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 	}

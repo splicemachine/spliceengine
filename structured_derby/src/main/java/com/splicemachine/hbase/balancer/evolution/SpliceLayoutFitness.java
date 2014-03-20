@@ -8,7 +8,7 @@ import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HServerLoad;
+import org.apache.hadoop.hbase.RegionLoad;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.master.RegionPlan;
 import org.uncommons.watchmaker.framework.FitnessEvaluator;
@@ -32,7 +32,7 @@ public class SpliceLayoutFitness implements FitnessEvaluator<List<RegionPlan>> {
             "hbase.master.balancer.stochastic.stepsPerRegion";
     private static final String MAX_STEPS_KEY = "hbase.master.balancer.stochastic.maxSteps";
     private static final String MAX_MOVES_KEY = "hbase.master.balancer.stochastic.maxMoveRegions";
-    private Map<String, List<HServerLoad.RegionLoad>> loads = new HashMap<String, List<HServerLoad.RegionLoad>>();
+    private Map<String, List<RegionLoad>> loads = new HashMap<String, List<RegionLoad>>();
 
     // values are defaults
     private int maxSteps = 15000;
@@ -361,12 +361,12 @@ public class SpliceLayoutFitness implements FitnessEvaluator<List<RegionPlan>> {
      * @param type The type of cost to extract
      * @return the double representing the cost
      */
-    private double getRegionLoadCost(List<HServerLoad.RegionLoad> regionLoadList, RegionLoadCostType type) {
+    private double getRegionLoadCost(List<RegionLoad> regionLoadList, RegionLoadCostType type) {
         double cost = 0;
 
         int size = regionLoadList.size();
         for(int i =0; i< size; i++) {
-            HServerLoad.RegionLoad rl = regionLoadList.get(i);
+            RegionLoad rl = regionLoadList.get(i);
             double toAdd = 0;
             switch (type) {
                 case READ_REQUEST:

@@ -6,22 +6,6 @@ option optimize_for = SPEED;
 
 import "Client.proto";
 
-message TaskStats {
-	optional uint64 totalTime = 1;
-	optional uint64 totalRowsProcessed = 2;
-	optional uint64 totalRowsWritten = 3;
-}
-
-message SpliceObserverInstructions {
-	optional bytes bytes = 1;	
-}
-
-
-message SpliceOperationRequest {
-	optional Scan scan = 1;
-	optional SpliceObserverInstructions soi = 2;
-}
-
 message SpliceSchedulerRequest {
 	optional bytes taskStart = 1;
 	optional bytes taskEnd = 2;
@@ -92,11 +76,6 @@ service SpliceIndexService {
 service SpliceIndexManagementService {
 	rpc dropIndex(DropIndexRequest) 
 	  returns (DropIndexResponse);	
-}
-
-service SpliceOperationService {
-	rpc run(SpliceOperationRequest)
-	  returns (TaskStats);
 }
 
 service SpliceSchedulerService {

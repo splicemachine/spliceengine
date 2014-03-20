@@ -681,6 +681,8 @@ public class SpliceConstants {
 		public static final byte[] SUPPRESS_INDEXING_ATTRIBUTE_VALUE = new byte[]{};
 		public static final String CHECK_BLOOM_ATTRIBUTE_NAME = "cb";
 		public static final String SPLICE_DB = "splicedb";
+		public static final String SPLICE_HBASE_NAMESPACE = "splice";
+		
 
 		public static final String ENTRY_PREDICATE_LABEL= "p";
 

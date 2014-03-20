@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -267,7 +267,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 //reset the fields just in case
                 serializeLeftResultSet = true;
                 serializeRightResultSet = true;
-                return new DistributedClientScanProvider("mergeSortJoin", SpliceOperationCoprocessor.TEMP_TABLE, reduceScan, decoder, spliceRuntimeContext);
+                return new DistributedClientScanProvider("mergeSortJoin", SpliceConstants.TEMP_TABLE_BYTES, reduceScan, decoder, spliceRuntimeContext);
             } else {
                 //we need to scan the data directly on the client
                 return RowProviders.openedSourceProvider(top, LOG, spliceRuntimeContext);

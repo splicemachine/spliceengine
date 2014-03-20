@@ -12,12 +12,9 @@ import java.io.ObjectOutput;
  * Created on: 2/26/13
  */
 public class TaskStats implements Externalizable{
-    private static final long serialVersionUID = 1l;
-
-    private long totalTime;
-		private long totalRowsProcessed;
-		private long totalRowsWritten;
-
+	private long totalRowsProcessed;
+	private long totalRowsWritten;
+	private long totalTime;
     public TaskStats(){}
     
     public TaskStats(Stats processStats, Stats sinkStats, long totalTime){

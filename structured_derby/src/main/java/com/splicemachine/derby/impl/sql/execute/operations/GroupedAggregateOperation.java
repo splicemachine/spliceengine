@@ -4,7 +4,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -141,7 +140,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				buildReduceScan();
 				if(top!=this && top instanceof SinkingOperation){
 						SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
-						return new DistributedClientScanProvider("groupedAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
+						return new DistributedClientScanProvider("groupedAggregateReduce",SpliceConstants.TEMP_TABLE_BYTES,reduceScan,decoder, spliceRuntimeContext);
 				}else{
 						return RowProviders.openedSourceProvider(top,LOG,spliceRuntimeContext);
 				}

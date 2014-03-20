@@ -1,16 +1,17 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
 import com.google.common.collect.Maps;
+import com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerService;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.coprocessor.SpliceSchedulerService;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.table.BoundCall;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
