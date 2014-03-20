@@ -434,10 +434,12 @@
               <argLine>-Xms256M -Xmx1024M</argLine>
               <redirectTestOutputToFile>true</redirectTestOutputToFile>
               <includes>
+											<include>**/*Suite.java</include>
                 <include>**/*Test.java</include>
               </includes>
               <excludes>
                 <!-- Skip ITs -->
+								<exclude>**/si/**/*Test.java</exclude>
                 <exclude>**/*IT.java</exclude>
               </excludes>
             </configuration>
