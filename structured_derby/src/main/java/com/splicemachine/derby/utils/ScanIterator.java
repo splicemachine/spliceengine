@@ -34,7 +34,7 @@ public class ScanIterator implements StandardIterator<ExecRow>{
     public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         Result result = scanner.next();
         if(result==null) return null;
-        return rowDecoder.decode(CellUtils.matchDataColumn(result.raw()));
+        return rowDecoder.decode(CellUtils.matchDataColumn(result.rawCells()));
     }
 
     @Override
