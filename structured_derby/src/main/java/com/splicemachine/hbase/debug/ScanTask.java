@@ -157,6 +157,10 @@ public class ScanTask extends DebugTask{
         return true;
     }
 
+		/*
+		 * This is used only for debugging, don't bother fixing it until you want to use it.
+		 */
+		@Deprecated
 		private class HBaseEntryPredicateFilter extends FilterBase {
         private EntryPredicateFilter epf;
         private EntryAccumulator accumulator;

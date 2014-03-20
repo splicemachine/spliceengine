@@ -1,35 +1,31 @@
 package com.splicemachine.derby.utils;
 
-import java.io.IOException;
-import java.util.Comparator;
-
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.storage.*;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DataValueFactory;
+import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
-
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.hbase.filter.ColumnNullableFilter;
-
 import org.apache.hadoop.hbase.util.Pair;
+
+import java.io.IOException;
+import java.util.Comparator;
 
 /**
  * Utility methods and classes related to building HBase Scans
@@ -146,8 +142,6 @@ public class Scans extends SpliceUtils {
 		 * 	 	C. if {@code stopKeyValue ==null}, then set "" as the end of the scan
 		 * 	 	D. if {@code stopKeyValue !=null}, then serialize the stopKeyValue into a stop key and set that.
 		 * 3. Construct startKeyFilters as necessary, according to the rules defined in
-		 * {@link #buildKeyFilter(org.apache.derby.iapi.types.DataValueDescriptor[],
-		 * 												int, org.apache.derby.iapi.store.access.Qualifier[][])}
 		 *
 		 *
 		 * @param startKeyValue the start of the scan, or {@code null} if a full table scan is desired
@@ -311,53 +305,6 @@ public class Scans extends SpliceUtils {
 				return new AndPredicate(predicates);
 		}
 
-		/**
-		 * Builds a key filter based on {@code startKeyValue}, {@code startSearchOperator}, and {@code qualifiers}.
-		 *
-		 * There are two separate filters that need to be constructed:
-		 *
-		 * 1. A <em>qualifier filter</em>, which filters out rows which don't match the specified qualifier criteria.
-		 * 2. A <em>start-key filter</em>, which filters out rows which don't match the specified startKey.
-		 *
-		 * Situation 1 is straightforward--this method simply attaches a filter to ensure that only rows which
-		 * have a column specified by {@qualifier} are returned.
-		 *
-		 * Situation2 is more complex. There are three basic states to be dealt with(best expressed in SQL):
-		 *
-		 * 1. "select * from t where t.key > start" or "select * from t where t.key >=start"
-		 * 	(e.g. {@code startSearchOperator = }{@link ScanController#GT} or
-		 * 2. "select * from t where t.key = start" (e.g. {@code startSearchOperator = }{@link ScanController#NA}
-		 * 3. "select * from t where t.key < end" or "select * from t where t.key <=end"
-		 *
-		 * Case 1 and 3 are determined entirely by the start and end keys of the scan, so
-		 * this method only attaches a filter in Case 2.
-		 * @param startKeyValue the start key of the scan
-		 * @param startSearchOperator the operator to check for whether or not to add a startkey scan
-		 * @param qualifiers the qualifiers to filter on.
-		 * @return a Filter which will filter out rows not matching {@code qualifiers} and which will
-		 * satisfy the three interval cases.
-		 * @throws IOException if {@code startKeyValue} or {@code qualifiers} cannot be serialized into a byte[].
-		 */
-		public static Filter buildKeyFilter(DataValueDescriptor[] startKeyValue,int startSearchOperator,
-																				Qualifier[][] qualifiers) throws IOException {
-				FilterList masterList = new FilterList(FilterList.Operator.MUST_PASS_ALL);
-				if(qualifiers!=null){
-						masterList.addFilter(constructQualifierFilter(qualifiers));
-				}
-
-				if(startSearchOperator==ScanController.GT){
-						return masterList;
-				}
-
-				//if startKeyValue == null, then we can't construct a filter anyway
-				//so just  take whatever HBase gives us
-				if(startKeyValue==null){
-						return masterList;
-				}
-				masterList.addFilter(generateIndexFilter(startKeyValue, startSearchOperator));
-				return masterList;
-		}
-
 		/* *************************************************************************************************/
 	/*private helper methods*/
 		private static Filter generateIndexFilter(DataValueDescriptor[] descriptors,int compareOp) throws IOException {
@@ -383,65 +330,6 @@ public class Scans extends SpliceUtils {
 						throw new IOException(e);
 				}
 				return masterList;
-		}
-
-		private static Filter constructQualifierFilter(Qualifier[][] qualifiers) throws IOException {
-		/*
-		 * Qualifiers are set up as follows:
-		 *
-		 * 1.qualifiers[0] is a list of AND clauses which MUST be satisfied
-		 * 2.[qualifiers[1]:] is a collection of OR clauses, of which at least one from each must be
-		 * satisfied. E.g. for an i in [1:qualifiers.length], qualifiers[i] is a collection of OR clauses,
-		 * but ALL the OR-clause collections are bound together using an AND clause.
-		 */
-				FilterList finalFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL);
-				//build and clauses
-				finalFilter.addFilter(buildFilter(qualifiers[0], FilterList.Operator.MUST_PASS_ALL));
-
-				//build or clauses
-				FilterList orList = new FilterList(FilterList.Operator.MUST_PASS_ALL);
-				for(int clause=1;clause<qualifiers.length;clause++){
-						orList.addFilter(buildFilter(qualifiers[clause], FilterList.Operator.MUST_PASS_ONE));
-				}
-				finalFilter.addFilter(orList);
-				return finalFilter;
-		}
-
-		private static Filter buildFilter(Qualifier[] qualifiers, FilterList.Operator filterOp) throws IOException {
-				FilterList list = new FilterList(filterOp);
-				try {
-						for(Qualifier qualifier: qualifiers){
-								DataValueDescriptor dvd = qualifier.getOrderable();
-								if(dvd==null||dvd.isNull()||dvd.isNullOp().getBoolean()){
-										CompareFilter.CompareOp compareOp = qualifier.negateCompareResult()?
-														CompareFilter.CompareOp.NOT_EQUAL: CompareFilter.CompareOp.EQUAL;
-
-										boolean filterIfMissing = qualifier.negateCompareResult();
-
-										boolean isNullValue = qualifier.getOrderable().isNull();  // is value null
-										// isOrderedNulls == true => treat SQL null == null and less than or greater than all other values (ordered)
-										boolean isOrderedNulls = qualifier.getOrderedNulls();
-										// if value is null and nulls or unordered, we can't make a numerical comparison
-										// between this null and other columns
-										boolean isNullNumericalComparison = (isNullValue && ! isOrderedNulls);
-
-										list.addFilter(new ColumnNullableFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
-														Encoding.encode(qualifier.getColumnId()),
-														isNullNumericalComparison, filterIfMissing));
-								}else{
-										byte[] bytes = DerbyBytesUtil.generateBytes(dvd);
-										SingleColumnValueFilter filter = new SingleColumnValueFilter(SpliceConstants.DEFAULT_FAMILY_BYTES,
-														Encoding.encode(qualifier.getColumnId()),
-														getHBaseCompareOp(qualifier.getOperator(),qualifier.negateCompareResult()),
-														bytes);
-										filter.setFilterIfMissing(true);
-										list.addFilter(filter);
-								}
-						}
-				} catch (StandardException e) {
-						throw new IOException(e);
-				}
-				return list;
 		}
 
 		private static CompareFilter.CompareOp getHBaseCompareOp(int operator, boolean negateResult) {

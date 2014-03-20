@@ -42,6 +42,7 @@ import com.splicemachine.si.txn.ZooKeeperStatTimestampSource;
 import com.splicemachine.utils.Provider;
 import com.splicemachine.utils.Providers;
 import com.splicemachine.utils.ZkUtils;
+import org.apache.zookeeper.KeeperException;
 
 /**
  * Used to construct a transactor object that is bound to the HBase types and that provides SI functionality. This is
@@ -134,7 +135,13 @@ public class HTransactorFactory extends SIConstants {
 								initialized = true;
 								return;
 						}
-
+						try {
+								ZkUtils.refreshZookeeper();
+						} catch (InterruptedException e) {
+								throw new RuntimeException(e);
+						} catch (KeeperException e) {
+								throw new RuntimeException(e);
+						}
 						TimestampSource timestampSource = new ZooKeeperStatTimestampSource(ZkUtils.getRecoverableZooKeeper(),zkSpliceTransactionPath);
 						BetterHTablePool hTablePool = new BetterHTablePool(new SpliceHTableFactory(true,1),
 										SpliceConstants.tablePoolCleanerInterval, TimeUnit.SECONDS,

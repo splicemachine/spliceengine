@@ -173,5 +173,11 @@ public class SnowflakeLoader {
             }
             return ReturnCode.INCLUDE; //this is an available entry
         }
-    }
+
+				@Override
+				public byte[] toByteArray() throws IOException {
+						return super.toByteArray();
+				}
+
+		}
 }
