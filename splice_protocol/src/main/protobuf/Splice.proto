@@ -29,6 +29,10 @@ message ConstraintContext {
 	optional string constraintName = 2;
 }
 
+message AllocatedFilterMessage {
+	optional bytes addressMatch = 1;
+}
+
 message WriteResult {
   enum Code {
     FAILED = 0;

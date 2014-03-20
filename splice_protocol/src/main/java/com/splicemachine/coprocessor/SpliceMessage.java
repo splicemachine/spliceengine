@@ -2857,6 +2857,443 @@ public final class SpliceMessage {
     // @@protoc_insertion_point(class_scope:ConstraintContext)
   }
 
+  public interface AllocatedFilterMessageOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // optional bytes addressMatch = 1;
+    /**
+     * <code>optional bytes addressMatch = 1;</code>
+     */
+    boolean hasAddressMatch();
+    /**
+     * <code>optional bytes addressMatch = 1;</code>
+     */
+    com.google.protobuf.ByteString getAddressMatch();
+  }
+  /**
+   * Protobuf type {@code AllocatedFilterMessage}
+   */
+  public static final class AllocatedFilterMessage extends
+      com.google.protobuf.GeneratedMessage
+      implements AllocatedFilterMessageOrBuilder {
+    // Use AllocatedFilterMessage.newBuilder() to construct.
+    private AllocatedFilterMessage(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private AllocatedFilterMessage(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final AllocatedFilterMessage defaultInstance;
+    public static AllocatedFilterMessage getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public AllocatedFilterMessage getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private AllocatedFilterMessage(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              bitField0_ |= 0x00000001;
+              addressMatch_ = input.readBytes();
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.splicemachine.coprocessor.SpliceMessage.internal_static_AllocatedFilterMessage_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.splicemachine.coprocessor.SpliceMessage.internal_static_AllocatedFilterMessage_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage.class, com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<AllocatedFilterMessage> PARSER =
+        new com.google.protobuf.AbstractParser<AllocatedFilterMessage>() {
+      public AllocatedFilterMessage parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new AllocatedFilterMessage(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<AllocatedFilterMessage> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    // optional bytes addressMatch = 1;
+    public static final int ADDRESSMATCH_FIELD_NUMBER = 1;
+    private com.google.protobuf.ByteString addressMatch_;
+    /**
+     * <code>optional bytes addressMatch = 1;</code>
+     */
+    public boolean hasAddressMatch() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>optional bytes addressMatch = 1;</code>
+     */
+    public com.google.protobuf.ByteString getAddressMatch() {
+      return addressMatch_;
+    }
+
+    private void initFields() {
+      addressMatch_ = com.google.protobuf.ByteString.EMPTY;
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBytes(1, addressMatch_);
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, addressMatch_);
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage)) {
+        return super.equals(obj);
+      }
+      com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage other = (com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage) obj;
+
+      boolean result = true;
+      result = result && (hasAddressMatch() == other.hasAddressMatch());
+      if (hasAddressMatch()) {
+        result = result && getAddressMatch()
+            .equals(other.getAddressMatch());
+      }
+      result = result &&
+          getUnknownFields().equals(other.getUnknownFields());
+      return result;
+    }
+
+    private int memoizedHashCode = 0;
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasAddressMatch()) {
+        hash = (37 * hash) + ADDRESSMATCH_FIELD_NUMBER;
+        hash = (53 * hash) + getAddressMatch().hashCode();
+      }
+      hash = (29 * hash) + getUnknownFields().hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code AllocatedFilterMessage}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessageOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.splicemachine.coprocessor.SpliceMessage.internal_static_AllocatedFilterMessage_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.splicemachine.coprocessor.SpliceMessage.internal_static_AllocatedFilterMessage_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage.class, com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage.Builder.class);
+      }
+
+      // Construct using com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
+
+      public Builder clear() {
+        super.clear();
+        addressMatch_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        return this;
+      }
+
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.splicemachine.coprocessor.SpliceMessage.internal_static_AllocatedFilterMessage_descriptor;
+      }
+
+      public com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage getDefaultInstanceForType() {
+        return com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage.getDefaultInstance();
+      }
+
+      public com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage build() {
+        com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage buildPartial() {
+        com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage result = new com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.addressMatch_ = addressMatch_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage) {
+          return mergeFrom((com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage other) {
+        if (other == com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage.getDefaultInstance()) return this;
+        if (other.hasAddressMatch()) {
+          setAddressMatch(other.getAddressMatch());
+        }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.splicemachine.coprocessor.SpliceMessage.AllocatedFilterMessage) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      // optional bytes addressMatch = 1;
+      private com.google.protobuf.ByteString addressMatch_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>optional bytes addressMatch = 1;</code>
+       */
+      public boolean hasAddressMatch() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>optional bytes addressMatch = 1;</code>
+       */
+      public com.google.protobuf.ByteString getAddressMatch() {
+        return addressMatch_;
+      }
+      /**
+       * <code>optional bytes addressMatch = 1;</code>
+       */
+      public Builder setAddressMatch(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        addressMatch_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bytes addressMatch = 1;</code>
+       */
+      public Builder clearAddressMatch() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        addressMatch_ = getDefaultInstance().getAddressMatch();
+        onChanged();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:AllocatedFilterMessage)
+    }
+
+    static {
+      defaultInstance = new AllocatedFilterMessage(true);
+      defaultInstance.initFields();
+    }
+
+    // @@protoc_insertion_point(class_scope:AllocatedFilterMessage)
+  }
+
   public interface WriteResultOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
 
@@ -6523,6 +6960,11 @@ public final class SpliceMessage {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ConstraintContext_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_AllocatedFilterMessage_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_AllocatedFilterMessage_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_WriteResult_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -6564,30 +7006,31 @@ public final class SpliceMessage {
       "tedCost\030\003 \001(\001\"O\n\027DeleteFirstAfterRequest" +
       "\022\025\n\rtransactionId\030\001 \001(\t\022\016\n\006rowKey\030\002 \001(\014\022" +
       "\r\n\005limit\030\003 \001(\014\">\n\021ConstraintContext\022\021\n\tt" +
-      "ableName\030\001 \001(\t\022\026\n\016constraintName\030\002 \001(\t\"\344" +
-      "\002\n\013WriteResult\022\037\n\004code\030\001 \001(\0162\021.WriteResu",
-      "lt.Code\022\024\n\014errorMessage\030\002 \001(\t\022-\n\021constra" +
-      "intContext\030\003 \001(\0132\022.ConstraintContext\"\356\001\n" +
-      "\004Code\022\n\n\006FAILED\020\000\022\022\n\016WRITE_CONFLICT\020\001\022\013\n" +
-      "\007SUCCESS\020\002\022\031\n\025PRIMARY_KEY_VIOLATION\020\003\022\024\n" +
-      "\020UNIQUE_VIOLATION\020\004\022\031\n\025FOREIGN_KEY_VIOLA" +
-      "TION\020\005\022\023\n\017CHECK_VIOLATION\020\006\022\026\n\022NOT_SERVI" +
-      "NG_REGION\020\007\022\020\n\014WRONG_REGION\020\010\022\023\n\017REGION_" +
-      "TOO_BUSY\020\t\022\013\n\007NOT_RUN\020\n\022\014\n\010NOT_NULL\020\013\"\"\n" +
-      "\021BulkWriteResponse\022\r\n\005bytes\030\001 \001(\014\"!\n\020Bul" +
-      "kWriteRequest\022\r\n\005bytes\030\001 \001(\014\"A\n\020DropInde",
-      "xRequest\022\026\n\016indexConglomId\030\001 \001(\004\022\025\n\rbase" +
-      "ConglomId\030\002 \001(\004\"\023\n\021DropIndexResponse2\204\001\n" +
-      "\022SpliceIndexService\0222\n\tbulkWrite\022\021.BulkW" +
-      "riteRequest\032\022.BulkWriteResponse\022:\n\020delet" +
-      "eFirstAfter\022\030.DeleteFirstAfterRequest\032\014." +
-      "WriteResult2R\n\034SpliceIndexManagementServ" +
-      "ice\0222\n\tdropIndex\022\021.DropIndexRequest\032\022.Dr" +
-      "opIndexResponse2U\n\026SpliceSchedulerServic" +
-      "e\022;\n\006submit\022\027.SpliceSchedulerRequest\032\030.S" +
-      "pliceSchedulerResponse2\037\n\035SpliceDerbyCop",
-      "rocessorServiceB6\n\035com.splicemachine.cop" +
-      "rocessorB\rSpliceMessageH\001\210\001\001\240\001\001"
+      "ableName\030\001 \001(\t\022\026\n\016constraintName\030\002 \001(\t\"." +
+      "\n\026AllocatedFilterMessage\022\024\n\014addressMatch",
+      "\030\001 \001(\014\"\344\002\n\013WriteResult\022\037\n\004code\030\001 \001(\0162\021.W" +
+      "riteResult.Code\022\024\n\014errorMessage\030\002 \001(\t\022-\n" +
+      "\021constraintContext\030\003 \001(\0132\022.ConstraintCon" +
+      "text\"\356\001\n\004Code\022\n\n\006FAILED\020\000\022\022\n\016WRITE_CONFL" +
+      "ICT\020\001\022\013\n\007SUCCESS\020\002\022\031\n\025PRIMARY_KEY_VIOLAT" +
+      "ION\020\003\022\024\n\020UNIQUE_VIOLATION\020\004\022\031\n\025FOREIGN_K" +
+      "EY_VIOLATION\020\005\022\023\n\017CHECK_VIOLATION\020\006\022\026\n\022N" +
+      "OT_SERVING_REGION\020\007\022\020\n\014WRONG_REGION\020\010\022\023\n" +
+      "\017REGION_TOO_BUSY\020\t\022\013\n\007NOT_RUN\020\n\022\014\n\010NOT_N" +
+      "ULL\020\013\"\"\n\021BulkWriteResponse\022\r\n\005bytes\030\001 \001(",
+      "\014\"!\n\020BulkWriteRequest\022\r\n\005bytes\030\001 \001(\014\"A\n\020" +
+      "DropIndexRequest\022\026\n\016indexConglomId\030\001 \001(\004" +
+      "\022\025\n\rbaseConglomId\030\002 \001(\004\"\023\n\021DropIndexResp" +
+      "onse2\204\001\n\022SpliceIndexService\0222\n\tbulkWrite" +
+      "\022\021.BulkWriteRequest\032\022.BulkWriteResponse\022" +
+      ":\n\020deleteFirstAfter\022\030.DeleteFirstAfterRe" +
+      "quest\032\014.WriteResult2R\n\034SpliceIndexManage" +
+      "mentService\0222\n\tdropIndex\022\021.DropIndexRequ" +
+      "est\032\022.DropIndexResponse2U\n\026SpliceSchedul" +
+      "erService\022;\n\006submit\022\027.SpliceSchedulerReq",
+      "uest\032\030.SpliceSchedulerResponse2\037\n\035Splice" +
+      "DerbyCoprocessorServiceB6\n\035com.splicemac" +
+      "hine.coprocessorB\rSpliceMessageH\001\210\001\001\240\001\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -6618,32 +7061,38 @@ public final class SpliceMessage {
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_ConstraintContext_descriptor,
               new java.lang.String[] { "TableName", "ConstraintName", });
-          internal_static_WriteResult_descriptor =
+          internal_static_AllocatedFilterMessage_descriptor =
             getDescriptor().getMessageTypes().get(4);
+          internal_static_AllocatedFilterMessage_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_AllocatedFilterMessage_descriptor,
+              new java.lang.String[] { "AddressMatch", });
+          internal_static_WriteResult_descriptor =
+            getDescriptor().getMessageTypes().get(5);
           internal_static_WriteResult_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_WriteResult_descriptor,
               new java.lang.String[] { "Code", "ErrorMessage", "ConstraintContext", });
           internal_static_BulkWriteResponse_descriptor =
-            getDescriptor().getMessageTypes().get(5);
+            getDescriptor().getMessageTypes().get(6);
           internal_static_BulkWriteResponse_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_BulkWriteResponse_descriptor,
               new java.lang.String[] { "Bytes", });
           internal_static_BulkWriteRequest_descriptor =
-            getDescriptor().getMessageTypes().get(6);
+            getDescriptor().getMessageTypes().get(7);
           internal_static_BulkWriteRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_BulkWriteRequest_descriptor,
               new java.lang.String[] { "Bytes", });
           internal_static_DropIndexRequest_descriptor =
-            getDescriptor().getMessageTypes().get(7);
+            getDescriptor().getMessageTypes().get(8);
           internal_static_DropIndexRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_DropIndexRequest_descriptor,
               new java.lang.String[] { "IndexConglomId", "BaseConglomId", });
           internal_static_DropIndexResponse_descriptor =
-            getDescriptor().getMessageTypes().get(8);
+            getDescriptor().getMessageTypes().get(9);
           internal_static_DropIndexResponse_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_DropIndexResponse_descriptor,
