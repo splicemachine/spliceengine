@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.tools.splice;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -226,34 +227,39 @@ public class UniqueIndexIT extends SpliceUnitTest {
         //validate that we can add duplicates now
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_5),name,value));
 
-        ResultSet resultSet = methodWatcher.executeQuery(format("select * from %s where name = '%s'",this.getTableReference(TABLE_NAME_5),name));
-        List<String> results = Lists.newArrayListWithExpectedSize(1);
-        while(resultSet.next()){
-            String retName = resultSet.getString(1);
-            int val = resultSet.getInt(2);
-            Assert.assertEquals("Incorrect name returned!",name,retName);
-            Assert.assertEquals("Incorrect value returned!",value,val);
-            results.add(String.format("name:%s,value:%d",retName,val));
-        }
-        Assert.assertEquals("Incorrect number of rows returned!", 2, results.size());
-    }
-    /**
-     * Tests that we can safely delete a record, and have it
-     * percolate through to the index.
-     *
-     * Basically, create an index, add some data, check if its
-     * present, then delete some data and check that it's not
-     * there anymore
-     */
-    @Test(timeout = 10000)
-    public void testCanDeleteEntry() throws Exception{
-        new SpliceIndexWatcher(TABLE_NAME_6,CLASS_NAME,INDEX_61,CLASS_NAME,"(name)",true).starting(null);
-        String name = "sfines";
-        int value = 2;
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_6),name,value));
-        methodWatcher.getStatement().execute(format("delete from %s where name = '%s'",this.getTableReference(TABLE_NAME_6),name));
-        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'",this.getTableReference(TABLE_NAME_6),name));
-        Assert.assertTrue("Rows are returned incorrectly",!rs.next());
+				ResultSet resultSet = methodWatcher.executeQuery(format("select * from %s where name = '%s'",this.getTableReference(TABLE_NAME_5),name));
+				List<String> results = Lists.newArrayListWithExpectedSize(1);
+				while(resultSet.next()){
+						String retName = resultSet.getString(1);
+						int val = resultSet.getInt(2);
+						Assert.assertEquals("Incorrect name returned!",name,retName);
+						Assert.assertEquals("Incorrect value returned!",value,val);
+						results.add(String.format("name:%s,value:%d",retName,val));
+				}
+				Assert.assertEquals("Incorrect number of rows returned!", 2, results.size());
+		}
+		/**
+		 * Tests that we can safely delete a record, and have it
+		 * percolate through to the index.
+		 *
+		 * Basically, create an index, add some data, check if its
+		 * present, then delete some data and check that it's not
+		 * there anymore
+		 */
+		@Test(timeout = 10000)
+		public void testCanDeleteEntry() throws Exception{
+				SpliceIndexWatcher spliceIndexWatcher = new SpliceIndexWatcher(TABLE_NAME_6, CLASS_NAME, INDEX_61, CLASS_NAME, "(name)", true);
+				spliceIndexWatcher.starting(null);
+				try{
+						String name = "sfines";
+						int value = 2;
+						methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_6),name,value));
+						methodWatcher.getStatement().execute(format("delete from %s where name = '%s'",this.getTableReference(TABLE_NAME_6),name));
+						ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'",this.getTableReference(TABLE_NAME_6),name));
+						Assert.assertTrue("Rows are returned incorrectly",!rs.next());
+				}finally{
+						spliceIndexWatcher.drop();
+				}
     }
 
     /**

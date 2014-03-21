@@ -51,151 +51,151 @@ import com.splicemachine.utils.SpliceZooKeeperManager;
  * Created on: 4/5/13
  */
 public class PopulateIndexTask extends ZkTask {
-    private static final long serialVersionUID = 5l;
+		private static final long serialVersionUID = 5l;
 		private long operationId;
 		private long statementId;
 		private String transactionId;
-    private long indexConglomId;
-    private long baseConglomId;
-    private int[] mainColToIndexPosMap;
-    private boolean isUnique;
-    private boolean isUniqueWithDuplicateNulls;
-    private BitSet indexedColumns;
-    private BitSet descColumns;
-    private int[] columnOrdering;
-    private int[] format_ids;
+		private long indexConglomId;
+		private long baseConglomId;
+		private int[] mainColToIndexPosMap;
+		private boolean isUnique;
+		private boolean isUniqueWithDuplicateNulls;
+		private BitSet indexedColumns;
+		private BitSet descColumns;
+		private int[] columnOrdering;
+		private int[] format_ids;
 
-    private HRegion region;
+		private HRegion region;
 
-    //performance improvement
-    private KVPair mainPair;
+		//performance improvement
+		private KVPair mainPair;
 
 		private String xplainSchema; //could be null, if no stats are to be collected
 
 		@SuppressWarnings("UnusedDeclaration")
 		public PopulateIndexTask() { }
 
-    public PopulateIndexTask(String transactionId,
-                             long indexConglomId,
-                             long baseConglomId,
-                             int[] mainColToIndexPosMap,
-                             BitSet indexedColumns,
-                             boolean unique,
-                             boolean uniqueWithDuplicateNulls,
-                             String jobId,
-                             BitSet descColumns,
-                             String xplainSchema,
-                             long statementId,
-                             long operationId,
-                             int[] columnOrdering,
-                             int[] format_ids) {
-        super(jobId, OperationJob.operationTaskPriority,transactionId,false);
-        this.transactionId = transactionId;
-        this.indexConglomId = indexConglomId;
-        this.baseConglomId = baseConglomId;
-        this.mainColToIndexPosMap = mainColToIndexPosMap;
-        this.indexedColumns = indexedColumns;
-        this.descColumns = descColumns;
-        this.isUnique = unique;
-        this.isUniqueWithDuplicateNulls = uniqueWithDuplicateNulls;
-        this.xplainSchema = xplainSchema;
-        this.statementId = statementId;
-        this.operationId = operationId;
-        this.columnOrdering = columnOrdering;
-        this.format_ids = format_ids;
-    }
+		public PopulateIndexTask(String transactionId,
+														 long indexConglomId,
+														 long baseConglomId,
+														 int[] mainColToIndexPosMap,
+														 BitSet indexedColumns,
+														 boolean unique,
+														 boolean uniqueWithDuplicateNulls,
+														 String jobId,
+														 BitSet descColumns,
+														 String xplainSchema,
+														 long statementId,
+														 long operationId,
+														 int[] columnOrdering,
+														 int[] format_ids) {
+				super(jobId, OperationJob.operationTaskPriority,transactionId,false);
+				this.transactionId = transactionId;
+				this.indexConglomId = indexConglomId;
+				this.baseConglomId = baseConglomId;
+				this.mainColToIndexPosMap = mainColToIndexPosMap;
+				this.indexedColumns = indexedColumns;
+				this.descColumns = descColumns;
+				this.isUnique = unique;
+				this.isUniqueWithDuplicateNulls = uniqueWithDuplicateNulls;
+				this.xplainSchema = xplainSchema;
+				this.statementId = statementId;
+				this.operationId = operationId;
+				this.columnOrdering = columnOrdering;
+				this.format_ids = format_ids;
+		}
 
-    @Override
-    public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
-        this.region = rce.getRegion();
-        super.prepareTask(rce, zooKeeper);
-    }
+		@Override
+		public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+				this.region = rce.getRegion();
+				super.prepareTask(rce, zooKeeper);
+		}
 
-    @Override
-    protected String getTaskType() {
-        return "populateIndexTask";
-    }
+		@Override
+		protected String getTaskType() {
+				return "populateIndexTask";
+		}
 
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeUTF(transactionId);
-        out.writeLong(indexConglomId);
-        out.writeLong(baseConglomId);
-        out.writeInt(indexedColumns.wlen);
-        ArrayUtil.writeLongArray(out, indexedColumns.bits);
-        ArrayUtil.writeIntArray(out, mainColToIndexPosMap);
-        out.writeBoolean(isUnique);
-        out.writeBoolean(isUniqueWithDuplicateNulls);
-        out.writeInt(descColumns.wlen);
-        ArrayUtil.writeLongArray(out, descColumns.bits);
-        out.writeBoolean(xplainSchema!=null);
-        if(xplainSchema!=null){
-            out.writeUTF(xplainSchema);
-            out.writeLong(statementId);
-            out.writeLong(operationId);
-        }
-        ArrayUtil.writeIntArray(out, columnOrdering);
-        ArrayUtil.writeIntArray(out, format_ids);
-    }
+		@Override
+		public void writeExternal(ObjectOutput out) throws IOException {
+				super.writeExternal(out);
+				out.writeUTF(transactionId);
+				out.writeLong(indexConglomId);
+				out.writeLong(baseConglomId);
+				out.writeInt(indexedColumns.wlen);
+				ArrayUtil.writeLongArray(out, indexedColumns.bits);
+				ArrayUtil.writeIntArray(out, mainColToIndexPosMap);
+				out.writeBoolean(isUnique);
+				out.writeBoolean(isUniqueWithDuplicateNulls);
+				out.writeInt(descColumns.wlen);
+				ArrayUtil.writeLongArray(out, descColumns.bits);
+				out.writeBoolean(xplainSchema!=null);
+				if(xplainSchema!=null){
+						out.writeUTF(xplainSchema);
+						out.writeLong(statementId);
+						out.writeLong(operationId);
+				}
+				ArrayUtil.writeIntArray(out, columnOrdering);
+				ArrayUtil.writeIntArray(out, format_ids);
+		}
 
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        transactionId = in.readUTF();
-        indexConglomId = in.readLong();
-        baseConglomId = in.readLong();
-        int numWords = in.readInt();
-        indexedColumns = new BitSet(ArrayUtil.readLongArray(in),numWords);
-        mainColToIndexPosMap = ArrayUtil.readIntArray(in);
-        isUnique = in.readBoolean();
-        isUniqueWithDuplicateNulls = in.readBoolean();
-        numWords = in.readInt();
-        descColumns = new BitSet(ArrayUtil.readLongArray(in),numWords);
-        if(in.readBoolean()){
-            xplainSchema = in.readUTF();
-            statementId = in.readLong();
-            operationId = in.readLong();
-        }
-        columnOrdering = ArrayUtil.readIntArray(in);
-        format_ids = ArrayUtil.readIntArray(in);
-    }
+		@Override
+		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+				super.readExternal(in);
+				transactionId = in.readUTF();
+				indexConglomId = in.readLong();
+				baseConglomId = in.readLong();
+				int numWords = in.readInt();
+				indexedColumns = new BitSet(ArrayUtil.readLongArray(in),numWords);
+				mainColToIndexPosMap = ArrayUtil.readIntArray(in);
+				isUnique = in.readBoolean();
+				isUniqueWithDuplicateNulls = in.readBoolean();
+				numWords = in.readInt();
+				descColumns = new BitSet(ArrayUtil.readLongArray(in),numWords);
+				if(in.readBoolean()){
+						xplainSchema = in.readUTF();
+						statementId = in.readLong();
+						operationId = in.readLong();
+				}
+				columnOrdering = ArrayUtil.readIntArray(in);
+				format_ids = ArrayUtil.readIntArray(in);
+		}
 
-    @Override
-    public boolean invalidateOnClose() {
-        return true;
-    }
-    @Override
-    public void doExecute() throws ExecutionException, InterruptedException {
-        Scan regionScan = SpliceUtils.createScan(transactionId);
-        regionScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-        regionScan.setStartRow(region.getStartKey());
-        regionScan.setStopRow(region.getEndKey());
-        regionScan.setCacheBlocks(false);
-        regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
-        //need to manually add the SIFilter, because it doesn't get added by region.getScanner(
-        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, ObjectArrayList.<Predicate>newInstance() ,true);
-        regionScan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
+		@Override
+		public boolean invalidateOnClose() {
+				return true;
+		}
+		@Override
+		public void doExecute() throws ExecutionException, InterruptedException {
+				Scan regionScan = SpliceUtils.createScan(transactionId);
+				regionScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
+				regionScan.setStartRow(region.getStartKey());
+				regionScan.setStopRow(region.getEndKey());
+				regionScan.setCacheBlocks(false);
+//				regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
+				//need to manually add the SIFilter, because it doesn't get added by region.getScanner(
+				EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, ObjectArrayList.<Predicate>newInstance() ,true);
+				regionScan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
 				//TODO -sf- disable when stats tracking is disabled
-                MetricFactory metricFactory = xplainSchema!=null? Metrics.samplingMetricFactory(SpliceConstants.sampleTimingSize): Metrics.noOpMetricFactory();
-                long numRecordsRead = 0l;
+				MetricFactory metricFactory = xplainSchema!=null? Metrics.samplingMetricFactory(SpliceConstants.sampleTimingSize): Metrics.noOpMetricFactory();
+				long numRecordsRead = 0l;
 				long startTime = System.currentTimeMillis();
 
-                Timer transformationTimer = metricFactory.newTimer();
+				Timer transformationTimer = metricFactory.newTimer();
 				try{
 						//backfill the index with previously committed data
 						RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
 						if(sourceScanner==null)
 								sourceScanner = region.getScanner(regionScan);
 						BufferedRegionScanner brs = new BufferedRegionScanner(region,sourceScanner,regionScan,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory);
-                        RecordingCallBuffer<KVPair> writeBuffer = null;
-                        try{
+						RecordingCallBuffer<KVPair> writeBuffer = null;
+						try{
 								List<Cell> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
 								boolean shouldContinue = true;
 								IndexTransformer transformer =
-                                        IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,
-                                                isUnique,isUniqueWithDuplicateNulls,columnOrdering,format_ids);
+												IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,
+																isUnique,isUniqueWithDuplicateNulls,columnOrdering,format_ids);
 
 								byte[] indexTableLocation = Bytes.toBytes(Long.toString(indexConglomId));
 								writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTaskStatus().getTransactionId(),metricFactory);
@@ -219,14 +219,14 @@ public class PopulateIndexTask extends ZkTask {
 
 						reportStats(startTime, brs, writeBuffer, transformationTimer.getTime());
 
-        } catch (IOException e) {
-            SpliceLogUtils.error(LOG, e);
-            throw new ExecutionException(e);
-        } catch (Exception e) {
-            SpliceLogUtils.error(LOG, e);
-            throw new ExecutionException(Throwables.getRootCause(e));
-        }
-    }
+				} catch (IOException e) {
+						SpliceLogUtils.error(LOG, e);
+						throw new ExecutionException(e);
+				} catch (Exception e) {
+						SpliceLogUtils.error(LOG, e);
+						throw new ExecutionException(Throwables.getRootCause(e));
+				}
+		}
 
 		protected void reportStats(long startTime, BufferedRegionScanner brs, RecordingCallBuffer<KVPair> writeBuffer,TimeView manipulationTime) {
 				if(xplainSchema!=null){
@@ -260,13 +260,13 @@ public class PopulateIndexTask extends ZkTask {
 		}
 
 		private void translateResult(List<Cell> result,
-                                 IndexTransformer transformer,
-                                 CallBuffer<KVPair> writeBuffer,
+																 IndexTransformer transformer,
+																 CallBuffer<KVPair> writeBuffer,
 																 Timer manipulationTimer) throws Exception {
-        //we know that there is only one KeyValue for each row
+				//we know that there is only one KeyValue for each row
 				manipulationTimer.startTiming();
-        for(Cell kv:result){
-            //ignore SI CF
+				for(Cell kv:result){
+						//ignore SI CF
 						if(!CellUtils.singleMatchingQualifier(kv, SIConstants.PACKED_COLUMN_BYTES))
 								continue;
 						byte[] row = CellUtil.cloneRow(kv);
@@ -277,14 +277,14 @@ public class PopulateIndexTask extends ZkTask {
 						mainPair.setValue(data);
 						KVPair pair = transformer.translate(mainPair);
 
-            writeBuffer.add(pair);
-        }
+						writeBuffer.add(pair);
+				}
 				manipulationTimer.tick(1);
-    }
+		}
 
-    @Override
-    public int getPriority() {
-        return SchedulerPriorities.INSTANCE.getBasePriority(PopulateIndexTask.class);
-    }
+		@Override
+		public int getPriority() {
+				return SchedulerPriorities.INSTANCE.getBasePriority(PopulateIndexTask.class);
+		}
 
 }
