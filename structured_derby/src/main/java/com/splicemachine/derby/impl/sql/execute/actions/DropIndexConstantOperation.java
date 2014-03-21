@@ -1,9 +1,11 @@
-package com.splicemachine.derby.impl.sql.execute;
+package com.splicemachine.derby.impl.sql.execute.actions;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+
 import com.google.common.io.Closeables;
+
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -19,9 +21,9 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
+
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceIndexManagementService;
-import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
@@ -41,7 +43,7 @@ import com.splicemachine.si.impl.TransactionId;
  * @author Scott Fines
  * Date: 3/4/14
  */
-public class DropIndexConstantOperation2 extends IndexConstantOperation{
+public class DropIndexConstantOperation extends IndexConstantOperation{
 		private String				fullIndexName;
 		private long				tableConglomerateId;
 		/**
@@ -56,7 +58,7 @@ public class DropIndexConstantOperation2 extends IndexConstantOperation{
 		 *  @param  tableConglomerateId	heap Conglomerate Id for table
 		 *
 		 */
-		public DropIndexConstantOperation2(String fullIndexName,String indexName,String tableName,
+		public DropIndexConstantOperation(String fullIndexName,String indexName,String tableName,
 																	 String schemaName, UUID tableId, long tableConglomerateId) {
 				super(tableId, indexName, tableName, schemaName);
 				this.fullIndexName = fullIndexName;

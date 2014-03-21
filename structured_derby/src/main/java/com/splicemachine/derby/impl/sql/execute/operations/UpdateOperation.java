@@ -53,11 +53,8 @@ import com.splicemachine.hbase.KVPair;
  */
 public class UpdateOperation extends DMLWriteOperation{
 		private static final Logger LOG = Logger.getLogger(UpdateOperation.class);
-
 		private ResultSupplier resultSupplier;
-
         private DataValueDescriptor[] kdvds;
-
 		@SuppressWarnings("UnusedDeclaration")
 		public UpdateOperation() {
 				super();

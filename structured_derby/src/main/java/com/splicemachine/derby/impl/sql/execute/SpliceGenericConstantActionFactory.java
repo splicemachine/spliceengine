@@ -12,6 +12,7 @@ import com.splicemachine.derby.impl.sql.execute.actions.CreateViewConstantOperat
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.DropAliasConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.DropConstraintConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.DropIndexConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.DropRoleConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.DropSchemaConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.DropSequenceConstantOperation;
@@ -33,6 +34,7 @@ import com.splicemachine.derby.impl.sql.execute.actions.SetTransactionIsolationC
 import com.splicemachine.derby.impl.sql.execute.actions.SpliceCreateTableOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdatableVTIConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
+
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -59,7 +61,9 @@ import org.apache.derby.impl.sql.execute.PrivilegeInfo;
 import org.apache.derby.impl.sql.execute.TriggerInfo;
 import org.apache.derby.impl.sql.execute.UpdatableVTIConstantAction;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.utils.SpliceLogUtils;
+
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
@@ -139,7 +143,7 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
                                                      UUID tableId,
                                                      long tableConglomerateId) {
     	SpliceLogUtils.trace(LOG, "getDropIndexConstantAction for index {%s} on {%s.%s}",fullIndexName, schemaName, tableName);
-        return new DropIndexConstantOperation2(fullIndexName,indexName,
+        return new DropIndexConstantOperation(fullIndexName,indexName,
                 tableName,schemaName,tableId,tableConglomerateId);
     }
 
