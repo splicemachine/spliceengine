@@ -126,55 +126,66 @@ class ImportFile {
 				}
 		};
 		/**
-		 * Allows for multiple input paths separated by commas
-		 * @param input the input path pattern
+		 * Allows for multiple input paths separated by spaces
+		 * @param input the input path pattern (BROKEN FOR THE MOMENT)
 		 */
-		private static Path[] getInputPaths(String input) {
+		private static ArrayList<Path> getInputPaths(String input) {
 				String [] list = StringUtils.split(input);
-				Path[] result = new Path[list.length];
+				ArrayList<Path> result = new ArrayList<Path>();
 				for (int i = 0; i < list.length; i++) {
-						result[i] = new Path(StringUtils.unEscapeString(list[i]));
+						result.add(new Path(StringUtils.unEscapeString(list[i])));
 				}
 				return result;
 		}
 
+		/** 
+		 * We want import to emulate the Path API as much as possible (TODO)
+		 * In the meantime it does the following 
+		 *   - handles importing a single file
+		 *   - handles importing a directory of files
+		 *   - if a directory is provided, processes all subdirectories recursively
+		 *   - (still needs to handle filtering properly - * chars, etc) 
+		 * @param fs
+		 * @param input - string of files to import - as a file or a directory.
+		 * @return - a list of files to import
+		 * @throws IOException
+		 */
+		
 		private static List<FileStatus> listStatus(final FileSystem fs,String input) throws IOException {
-				Path[] dirs = getInputPaths(input);
-				if (dirs.length == 0)
-						throw new IOException("No Path Supplied in job");
+				ArrayList<Path> dirsOrFiles = getInputPaths(input);
+				if (dirsOrFiles.size() == 0)
+						throw new IOException("No Path Or File Supplied in job");
 				List<Path> errors = Lists.newArrayListWithExpectedSize(0);
 
 				// creates a MultiPathFilter with the hiddenFileFilter and the
 				// user provided one (if any).
 				List<PathFilter> filters = new ArrayList<PathFilter>();
-				filters.add(new PathFilter() {
-						@Override
-						public boolean accept(Path path) {
-								try {
-										return fs.isFile(path);
-								} catch (IOException e) {
-										throw new RuntimeException(e);
-								}
-						}
-				});
 				filters.add(hiddenFileFilter);
 				PathFilter inputFilter = new MultiPathFilter(filters);
-
-				List<FileStatus> result = Lists.newArrayListWithExpectedSize(dirs.length);
-				for (Path p : dirs) {
-						FileStatus[] matches = fs.globStatus(p, inputFilter);
-						if (matches == null) {
-								errors.add(p);
-						} else if (matches.length == 0) {
-								errors.add(p);
-						} else {
-								for (FileStatus globStat : matches) {
-										if(!directory.isDirectory(globStat))
-												result.add(globStat);
+				
+				List<FileStatus> result = Lists.newArrayListWithExpectedSize(dirsOrFiles.size());
+				while (dirsOrFiles.size() > 0) {
+					Path p = dirsOrFiles.remove(0);  // remove item from "queue"
+					FileStatus[] matches = fs.globStatus(p, inputFilter);
+					if (matches == null) {  // any error should be collected
+						errors.add(p);
+					} else if (matches.length == 0) {
+						errors.add(p);
+					} else {
+						for (FileStatus globStat : matches) {
+								if(!directory.isDirectory(globStat))
+										result.add(globStat);  // add file
+								else { // process results of directory and add to the list
+									FileStatus[] subdirMatches = fs.listStatus(globStat.getPath(), inputFilter);
+									for (FileStatus match : subdirMatches) {
+										dirsOrFiles.add(match.getPath());
+									}
 								}
 						}
+					}
+					
 				}
-
+				
 				if (!errors.isEmpty()) {
 						throw new FileNotFoundException(errors.toString());
 				}
