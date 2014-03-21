@@ -4,8 +4,10 @@ import com.google.protobuf.ByteString;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.NoRetryCoprocessorRpcChannel;
+import com.splicemachine.hbase.table.IncorrectRegionException;
 import com.splicemachine.hbase.table.SpliceRpcController;
 
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
@@ -43,8 +45,16 @@ public class BulkWriteChannelInvoker implements BulkWriteInvoker{
 						SpliceRpcController controller = new SpliceRpcController();
 						service.bulkWrite(controller,bwr, doneCallback);
 						Throwable error = controller.getThrowable();
-						if(error!=null) 
+						if(error!=null) {
+							if(error instanceof IncorrectRegionException || error instanceof NotServingRegionException){
+								/*
+								 * We sent it to the wrong place, so we need to resubmit it. But since we
+								 * pulled it from the cache, we first invalidate that cache
+								 */
+								connection.clearRegionCache(TableName.valueOf(tableName));	
+							}
 							throw Exceptions.getIOException(error);
+						}
 						SpliceMessage.BulkWriteResponse bulkWriteResponse = doneCallback.get();
 						return BulkWriteResult.fromBytes(bulkWriteResponse.getBytes().toByteArray());
 				} catch (Exception e) {
