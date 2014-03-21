@@ -2,6 +2,7 @@ package com.splicemachine.si.data.api;
 
 import java.util.List;
 
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
@@ -34,7 +35,7 @@ public interface SDataLib<Mutation extends OperationWithAttributes,
 
     Put newPut(byte[] key, SRowLock lock);
 
-    Mutation[] toMutationArray(List<Mutation> mutations);
+    Mutation[] toMutationArray(IntObjectOpenHashMap<Mutation> mutations);
 
     Get newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp);
 

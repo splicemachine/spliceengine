@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -118,9 +120,15 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LTuple, LGet, LGet> {
         return new LTuple(key, new ArrayList<Cell>(), lock);
     }
 
-    @Override
-    public LTuple[] toMutationArray(List<LTuple> list) {
-        return list.toArray(new LTuple[list.size()]);
+		@Override
+		public LTuple[] toMutationArray(IntObjectOpenHashMap<LTuple> list) {
+				LTuple[] tuples = new LTuple[list.size()];
+				int i=0;
+				for(IntObjectCursor<LTuple> tuple:list){
+						tuples[i] = tuple.value;
+						i++;
+				}
+				return tuples;
     }
 
     @Override

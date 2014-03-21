@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Iterables;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -104,8 +106,14 @@ public class HDataLib implements SDataLib<Mutation, Put, Delete, Get, Scan> {
     }
 
     @Override
-    public Mutation[] toMutationArray(List<Mutation> mutations) {
-        return mutations.toArray(new Mutation[mutations.size()]);
+    public Mutation[] toMutationArray(IntObjectOpenHashMap<Mutation> mutations) {
+				Mutation[] mutes = new Mutation[mutations.size()];
+				int i=0;
+				for(IntObjectCursor<Mutation> mutation:mutations){
+						mutes[i] = mutation.value;
+						i++;
+				}
+				return mutes;
     }
 
     @Override

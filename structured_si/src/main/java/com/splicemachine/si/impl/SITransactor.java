@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -286,8 +288,42 @@ public class SITransactor<Table,
                                             RollForwardQueue rollForwardQueue,
                                             TransactionId txnId,
                                             byte[] family, byte[] qualifier,
-                                            Collection<KVPair> mutations, ConstraintChecker constraintChecker) throws
-            IOException {
+                                            Collection<KVPair> mutations, ConstraintChecker constraintChecker)
+						throws IOException {
+				/*
+				 * Algorithmic Flow:
+				 *
+				 * The input is a collection of mutations. The output is an array of OperationStatus results, where the
+				 * result ordering is the same as the iteration order of the passed in collection. We MUST retain that
+				 * order, because it's the only way that callers will know which rows to retry and which to fail. We
+				 * do this as a multi-pass filter-style algorithm on the original collection.
+				 *
+				 * We start by creating the final Status array. This array is the same size as the passed in mutations.
+				 * (Example: Mutations [1,2,3,4,5], status = [null,null,null,null,null])
+				 *
+				 * Next, we pass through the mutations in iteration order and attempt to acquire the row locks. It is possible
+				 * that some (or all) of those locks are held by a different thread, and we will not be able to acquire them.
+				 * The rows whose locks can not be obtained are marked as NOT_RUN in the final status array, and will NOT be
+				 * written.( Continuing example: rows 2,4 cannot acquire locks, so you have
+				 * Mutations [1,2,3,4,5], status = [null,NOT_RUN,null,NOT_RUN,null])
+				 *
+				 * After locks have been acquired, we must resolve conflicts on the rows which we DO have locks for. Each
+				 * row which fails either conflict detection or constraint violations will be marked as FAILED in the final
+				 * status array (Example: row 3 fails constraint checking, so you have
+				 * Mutations [1,2,3,4,5], status = [null,NOT_RUN,FAILED,NOT_RUN,null])
+				 *
+				 * Once constraints are checked, we have a subset of the final mutation set to write (Example: rows 1 and 5).
+				 * These rows must be written as an array, but we must retain the mapping between their original position in
+				 * the collection and their position in the array that we write. Then HBase returns a smaller OperationStatus[]
+				 * which contains information about the rows which were written. We must fill in those status fields in the final
+				 * array. (Example: HBase writes row 1, but failed row 5 for some reason. Then it returns HStatus = [SUCCESS,FAILED].
+				 * We then remap is to end up with Mutations [1,2,3,4,5], status = [SUCCESS,NOT_RUN,FAILED,NOT_RUN,FAILED])
+				 *
+				 * For rows that were successfully written, we resolve any write conflicts that we can (rollbacks, etc.), then
+				 * unlock all the rows that we locked, and then return the final status array.
+				 *
+				 *
+				 */
         ImmutableTransaction transaction = transactionStore.getImmutableTransaction(txnId);
         ensureTransactionAllowsWrites(transaction);
 
@@ -306,7 +342,7 @@ public class SITransactor<Table,
              * ensure that
              * the region can't close until after this method is complete, we don't need the calls.
              */
-            Mutation[] writes = checkConflictsForKvBatch(table,
+            IntObjectOpenHashMap<Mutation> writes = checkConflictsForKvBatch(table,
                                                          rollForwardQueue,
                                                          lockPairs,
                                                          conflictingChildren,
@@ -318,16 +354,17 @@ public class SITransactor<Table,
 
             //TODO -sf- this can probably be made more efficient
             //convert into array for usefulness
-            List<Mutation> toWrite = new ArrayList<Mutation>(writes.length);
-            Collections.addAll(toWrite, writes);
-            final OperationStatus[] status = dataStore.writeBatch(table, writes);
+						Mutation[] toWrite = dataLib.toMutationArray(writes);
+//            List<Mutation> toWrite = new ArrayList<Mutation>(writes.length);
+//            Collections.addAll(toWrite, writes);
+            final OperationStatus[] status = dataStore.writeBatch(table,toWrite);
 
             resolveConflictsForKvBatch(table, toWrite, conflictingChildren, status);
 
             //convert the status back into the larger array
             int i = 0;
-            for (Mutation write : writes) {
-                finalStatus[i] = status[i];
+            for (IntObjectCursor<Mutation> write : writes) {
+                finalStatus[write.key] = status[i];
                 i++;
             }
 
@@ -384,7 +421,7 @@ public class SITransactor<Table,
         }
     }
 
-    private void resolveConflictsForKvBatch(Table table, List<Mutation> mutations,
+    private void resolveConflictsForKvBatch(Table table, Mutation[] mutations,
                                             Set<Long>[] conflictingChildren, OperationStatus[] status) {
         int i=0;
         for (Mutation mutation : mutations) {
@@ -400,7 +437,7 @@ public class SITransactor<Table,
         }
     }
 
-    private Mutation[] checkConflictsForKvBatch(Table table,
+    private IntObjectOpenHashMap<Mutation> checkConflictsForKvBatch(Table table,
                                                 RollForwardQueue rollForwardQueue,
                                                 Pair<KVPair,  SRowLock>[] dataAndLocks,
                                                 Set<Long>[] conflictingChildren,
@@ -408,20 +445,22 @@ public class SITransactor<Table,
                                                 byte[] family, byte[] qualifier,
                                                 ConstraintChecker constraintChecker,
                                                 FilterState constraintStateFilter,
-                                                OperationStatus[] finalStatus)
-            throws IOException {
-        List<Mutation> finalMutationsToWrite = new ArrayList<Mutation>();
+                                                OperationStatus[] finalStatus) throws IOException {
+				IntObjectOpenHashMap<Mutation> finalMutationsToWrite = IntObjectOpenHashMap.newInstance(finalStatus.length,0.7f);
+//        List<Mutation> finalMutationsToWrite = new ArrayList<Mutation>();
         for (int i = 0; i < dataAndLocks.length; i++) {
             Pair<KVPair, SRowLock> baseDataAndLock = dataAndLocks[i];
             if (baseDataAndLock == null) continue;
 
             ConflictResults conflictResults = ConflictResults.NO_CONFLICT;
             KVPair kvPair = baseDataAndLock.getFirst();
-            if (unsafeWrites && constraintChecker != null) {
-                //still have to check the constraint
-                Result row = dataStore.getCommitTimestampsAndTombstonesSingle(table, kvPair.getRow());
-                if (applyConstraint(constraintChecker, constraintStateFilter, i, kvPair, row, finalStatus))
-                    continue;
+            if (unsafeWrites) {
+								if(constraintChecker!=null){
+										//still have to check the constraint
+										Result row = dataStore.getCommitTimestampsAndTombstonesSingle(table, kvPair.getRow());
+										if (applyConstraint(constraintChecker, constraintStateFilter, i, kvPair, row, finalStatus))
+												continue;
+								}
             } else {
                 Result possibleConflicts = dataStore.getCommitTimestampsAndTombstonesSingle(table, kvPair.getRow());
                 if (possibleConflicts != null) {
@@ -435,10 +474,11 @@ public class SITransactor<Table,
             conflictingChildren[i] = conflictResults.childConflicts;
             Mutation mutationToRun = getMutationToRun(table, rollForwardQueue, kvPair,
                                                       family, qualifier, transaction, conflictResults);
-            finalMutationsToWrite.add(mutationToRun);
+						finalMutationsToWrite.put(i, mutationToRun);
         }
 
-        return dataLib.toMutationArray(finalMutationsToWrite);
+				return finalMutationsToWrite;
+//        return dataLib.toMutationArray(finalMutationsToWrite);
     }
 
     private boolean applyConstraint(ConstraintChecker constraintChecker,
@@ -473,8 +513,7 @@ public class SITransactor<Table,
         if (visibleColumns.size() <= 0) return false; //no visible values to check
 
         OperationStatus operationStatus = constraintChecker.checkConstraint(mutation, Result.create(visibleColumns));
-        if (operationStatus != null && operationStatus.getOperationStatusCode() != HConstants.OperationStatusCode
-                .SUCCESS) {
+        if (operationStatus != null && operationStatus.getOperationStatusCode() != HConstants.OperationStatusCode.SUCCESS) {
             finalStatus[rowPosition] = operationStatus;
             return true;
         }
