@@ -48,7 +48,7 @@ public class Exceptions {
     private Exceptions(){} //can't make me
 
     public static StandardException parseException(Throwable e){
-        Throwable rootCause = Throwables.getRootCause(e);
+        Throwable rootCause = getRootCause(e);
         if(rootCause instanceof StandardException) return (StandardException)rootCause;
 
         if(rootCause instanceof RetriesExhaustedWithDetailsException){
@@ -131,6 +131,8 @@ public class Exceptions {
 
     public static IOException getIOException(Throwable t){
         if(t instanceof StandardException) return getIOException((StandardException)t);
+				else if(t instanceof RemoteException)
+						return getIOException(((RemoteException)t).unwrapRemoteException());
         else if(t instanceof IOException) return (IOException)t;
         else return new IOException(t);
     }
@@ -200,8 +202,11 @@ public class Exceptions {
                 error = causes.get(0);
         }
 				if(error instanceof RemoteException){
+						/*
+						 * Remote Exceptions will initialize themselves as the cause of whatever they unwrap,
+						 * so don't do anything except unwrap them.
+						 */
 						error = ((RemoteException)error).unwrapRemoteException();
-						error = Throwables.getRootCause(error);
 				}
         return error;
     }
