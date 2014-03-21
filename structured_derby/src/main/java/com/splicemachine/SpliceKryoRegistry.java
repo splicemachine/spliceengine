@@ -13,6 +13,7 @@ import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.AlterTable.DropColumnTask;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.job.index.PopulateIndexTask;
 import com.splicemachine.derby.impl.job.operation.SinkTask;
@@ -676,6 +677,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 						}
 				},168);
 				instance.register(DDLChange.TentativeType.class,new DefaultSerializers.EnumSerializer(DDLChange.TentativeType.class),169);
-
+				instance.register(DropColumnTask.class,EXTERNALIZABLE_SERIALIZER,170);
     }
 }
