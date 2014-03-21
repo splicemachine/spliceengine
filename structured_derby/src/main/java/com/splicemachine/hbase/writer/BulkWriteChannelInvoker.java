@@ -5,6 +5,7 @@ import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.NoRetryCoprocessorRpcChannel;
 import com.splicemachine.hbase.table.SpliceRpcController;
+
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
@@ -39,7 +40,11 @@ public class BulkWriteChannelInvoker implements BulkWriteInvoker{
 						SpliceMessage.BulkWriteRequest bwr =
 										SpliceMessage.BulkWriteRequest.newBuilder().setBytes(ByteString.copyFrom(write.toBytes())).build();
 						BlockingRpcCallback<SpliceMessage.BulkWriteResponse> doneCallback = new BlockingRpcCallback<SpliceMessage.BulkWriteResponse>();
-						service.bulkWrite(new SpliceRpcController(),bwr, doneCallback);
+						SpliceRpcController controller = new SpliceRpcController();
+						service.bulkWrite(controller,bwr, doneCallback);
+						Throwable error = controller.getThrowable();
+						if(error!=null) 
+							throw Exceptions.getIOException(error);
 						SpliceMessage.BulkWriteResponse bulkWriteResponse = doneCallback.get();
 						return BulkWriteResult.fromBytes(bulkWriteResponse.getBytes().toByteArray());
 				} catch (Exception e) {
