@@ -12,7 +12,6 @@ import com.splicemachine.derby.impl.sql.execute.actions.CreateViewConstantOperat
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.DropAliasConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.DropConstraintConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.DropIndexConstantAction;
 import com.splicemachine.derby.impl.sql.execute.actions.DropRoleConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.DropSchemaConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.DropSequenceConstantOperation;
@@ -34,7 +33,6 @@ import com.splicemachine.derby.impl.sql.execute.actions.SetTransactionIsolationC
 import com.splicemachine.derby.impl.sql.execute.actions.SpliceCreateTableOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdatableVTIConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
-
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -51,12 +49,10 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.compile.StatementNode;
 import org.apache.derby.impl.sql.compile.TableName;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.derby.impl.sql.execute.ConstraintInfo;
-import org.apache.derby.impl.sql.execute.CreateConstraintConstantAction;
 import org.apache.derby.impl.sql.execute.FKInfo;
 import org.apache.derby.impl.sql.execute.GenericConstantActionFactory;
 import org.apache.derby.impl.sql.execute.PrivilegeInfo;

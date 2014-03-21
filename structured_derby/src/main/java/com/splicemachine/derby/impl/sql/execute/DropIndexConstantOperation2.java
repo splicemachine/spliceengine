@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.sql.execute;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-
 import com.google.common.io.Closeables;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -19,12 +18,14 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
-
+import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
+import com.splicemachine.coprocessor.SpliceMessage;
+import com.splicemachine.coprocessor.SpliceMessage.SpliceIndexManagementService;
 import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexService;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.hbase.table.SpliceRpcController;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionId;
 
@@ -115,13 +116,21 @@ public class DropIndexConstantOperation2 extends IndexConstantOperation{
 				//drop the index trigger from the main table
 				HTableInterface mainTable = SpliceAccessManager.getHTable(tableConglomId);
 				try {
-						mainTable.coprocessorService(SpliceIndexService.class,
+						mainTable.coprocessorService(SpliceIndexManagementService.class,
 										HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW,
-										new Batch.Call<SpliceIndexService, Void>() {
+										new Batch.Call<SpliceIndexManagementService, Void>() {
 												@Override
-												public Void call(SpliceIndexService instance) throws IOException {
-														instance.dropIndex(indexConglomId,tableConglomId);
-														return null;
+												public Void call(SpliceIndexManagementService instance) throws IOException {
+													
+													SpliceMessage.DropIndexRequest.Builder request = SpliceMessage.DropIndexRequest.newBuilder();
+													request.setBaseConglomId(tableConglomId);
+													request.setIndexConglomId(indexConglomId);
+													BlockingRpcCallback<SpliceMessage.DropIndexResponse> rpcCallback = new BlockingRpcCallback<SpliceMessage.DropIndexResponse>();
+													SpliceRpcController controller = new SpliceRpcController();
+													instance.dropIndex(controller, request.build(), rpcCallback);
+													Throwable error = controller.getThrowable();
+													if(error!=null) throw Exceptions.getIOException(error);
+													return null;
 												}
 										}); ;
 				} catch (Throwable throwable) {
