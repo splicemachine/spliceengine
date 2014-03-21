@@ -6,12 +6,14 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.serializers.DefaultArraySerializers;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
+import com.splicemachine.derby.impl.job.AlterTable.LoadConglomerateTask;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.AlterTable.DropColumnTask;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
@@ -29,13 +31,14 @@ import com.splicemachine.derby.impl.sql.execute.IndexRow;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.actions.AlterTableConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 
-import org.apache.derby.impl.sql.execute.UserDefinedAggregator;
+import org.apache.derby.impl.sql.execute.*;
 
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
@@ -114,15 +117,6 @@ import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.catalog.DDColumnDependableFinder;
 import org.apache.derby.impl.sql.catalog.DD_Version;
 import org.apache.derby.impl.sql.catalog.DDdependableFinder;
-import org.apache.derby.impl.sql.execute.AggregatorInfo;
-import org.apache.derby.impl.sql.execute.AggregatorInfoList;
-import org.apache.derby.impl.sql.execute.AvgAggregator;
-import org.apache.derby.impl.sql.execute.CountAggregator;
-import org.apache.derby.impl.sql.execute.FKInfo;
-import org.apache.derby.impl.sql.execute.IndexColumnOrder;
-import org.apache.derby.impl.sql.execute.MaxMinAggregator;
-import org.apache.derby.impl.sql.execute.SumAggregator;
-import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.impl.store.access.PC_XenaVersion;
 
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevPop;
@@ -678,5 +672,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 				},168);
 				instance.register(DDLChange.TentativeType.class,new DefaultSerializers.EnumSerializer(DDLChange.TentativeType.class),169);
 				instance.register(DropColumnTask.class,EXTERNALIZABLE_SERIALIZER,170);
+				instance.register(ColumnInfo.class,EXTERNALIZABLE_SERIALIZER,171);
+				instance.register(ColumnInfo[].class,172);
+				instance.register(LoadConglomerateTask.class,EXTERNALIZABLE_SERIALIZER,173);
     }
 }
