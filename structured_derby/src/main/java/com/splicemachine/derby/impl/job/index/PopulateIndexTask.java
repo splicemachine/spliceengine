@@ -267,15 +267,15 @@ public class PopulateIndexTask extends ZkTask {
 				manipulationTimer.startTiming();
         for(Cell kv:result){
             //ignore SI CF
-        	if (CellUtils.getBuffer(kv)[kv.getQualifierOffset()] != SIConstants.PACKED_COLUMN_BYTES[0])
-        		continue;
-            byte[] row = kv.getRowArray();
-            byte[] data = CellUtil.cloneValue(kv);
-            if(mainPair==null)
-                mainPair = new KVPair();
-            mainPair.setKey(row);
-            mainPair.setValue(data);
-            KVPair pair = transformer.translate(mainPair);
+						if(!CellUtils.singleMatchingQualifier(kv, SIConstants.PACKED_COLUMN_BYTES))
+								continue;
+						byte[] row = CellUtil.cloneRow(kv);
+						byte[] data = CellUtil.cloneValue(kv);
+						if(mainPair==null)
+								mainPair = new KVPair();
+						mainPair.setKey(row);
+						mainPair.setValue(data);
+						KVPair pair = transformer.translate(mainPair);
 
             writeBuffer.add(pair);
         }
