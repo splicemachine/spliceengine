@@ -22,6 +22,7 @@
         <include>org.datanucleus:datanucleus-core</include>
         <include>com.splicemachine:structured_si</include>
         <include>com.splicemachine:structured_constants</include>
+        <include>com.splicemachine:splice_protocol</include>        
         <include>com.splicemachine:splice_machine</include>
         <include>net.sf.opencsv:opencsv</include>
         <include>com.google.code.gson:gson</include>
