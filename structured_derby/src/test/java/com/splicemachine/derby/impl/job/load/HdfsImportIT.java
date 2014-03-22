@@ -81,12 +81,20 @@ public class HdfsImportIT extends SpliceUnitTest {
     public void testImportWithPrimaryKeys() throws Exception{
         testImport(spliceSchemaWatcher.schemaName,TABLE_2,getResourceDirectory()+"importTest.in","NAME,TITLE,AGE");
     }
+    
+    
+  @Test
+  public void testNewImportDirectory() throws Exception{
+	  // importdir has a subdirectory as well with files in it
+      testNewImport(spliceSchemaWatcher.schemaName,TABLE_2,getResourceDirectory()+"importdir","NAME,TITLE,AGE",getResourceDirectory()+"baddir",0,8);
+  }
+
+  // more tests to write:
+  // test bad records at threshold and beyond threshold
 
     private void testImport(String schemaName, String tableName,String location,String colList) throws Exception {
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s','%s',null, '%s',',',null,null,null,null)",schemaName,tableName,colList,location));
         ps.execute();
-
-//        System.out.println(System.currentTimeMillis());
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",schemaName,tableName));
         List<String> results = Lists.newArrayList();
         while(rs.next()){
@@ -101,6 +109,32 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
         Assert.assertTrue("no rows imported!",results.size()>0);
     }
+    
+    // uses new syntax
+    // removes rows from table before insertion
+    // checks count at the end
+    private void testNewImport(String schemaName, String tableName,String location,String colList,String badDir,int failErrorCount,int importCount) throws Exception {
+		methodWatcher.executeUpdate("delete from "+schemaName + "." + tableName);
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s','%s','%s',',',null,null,null,null,%d,'%s')",
+        		schemaName,tableName,colList,location,failErrorCount,badDir));
+        ps.execute();
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",schemaName,tableName));
+        List<String> results = Lists.newArrayList();
+        int count = 0;
+        while(rs.next()){
+            String name = rs.getString(1);
+            String title = rs.getString(2);
+            int age = rs.getInt(3);
+            Assert.assertTrue("age was null!",!rs.wasNull());
+            Assert.assertNotNull("Name is null!", name);
+            Assert.assertNotNull("Title is null!", title);
+            Assert.assertNotNull("Age is null!",age);
+            results.add(String.format("name:%s,title:%s,age:%d",name,title,age));
+        }
+        Assert.assertTrue("Incorrect number of rows imported", results.size() == importCount);
+        
+    }
+
 
 	@Test
 //	@Ignore("Bug")
