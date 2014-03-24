@@ -25,9 +25,9 @@ CREATE TABLE CUSTOMERS
 );
 
 
-call SYSCS_UTIL.IMPORT_DATA('APP','THEADER',null,'demodata/data/theader.csv.gz',',',null,null,null,null,0,null);
-call SYSCS_UTIL.IMPORT_DATA('APP','TDETAIL',null,'demodata/data/tdetail.csv.gz',',',null,null,null,null,0,null);
-call SYSCS_UTIL.IMPORT_DATA('APP','TGT',null,'demodata/data/customers.csv.gz',',',null,null,null,null,0,null);
+call SYSCS_UTIL.IMPORT_DATA('APP','T_HEADER',null,'demodata/data/theader.csv.gz',',',null,null,null,null,0,null);
+call SYSCS_UTIL.IMPORT_DATA('APP','T_DETAIL',null,'demodata/data/tdetail.csv.gz',',',null,null,null,null,0,null);
+call SYSCS_UTIL.IMPORT_DATA('APP','CUSTOMERS',null,'demodata/data/customers.csv.gz',',',null,null,null,null,0,null);
 
 create index tdidx1 on t_detail(original_sku_category_id,transaction_dt,customer_master_id);
 create index thidx2 on t_header(customer_master_id, transaction_dt);
