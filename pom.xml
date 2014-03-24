@@ -189,6 +189,7 @@
 	</repositories>
 
 	<profiles>
+
 		<profile>
 			<!-- =========================================================== -->
 			<!--                    cloudera-cdh4.3.0                        -->
@@ -493,130 +494,6 @@
 
 		<profile>
 			<!-- =========================================================== -->
-			<!--                   cloudera-cdh5.0.0-beta2                   -->
-			<!-- =========================================================== -->
-			<id>cloudera-cdh5.0.0-beta2</id>
-			<activation>
-				<property>
-					<name>hbase.profile</name>
-					<value>cloudera-cdh5.0.0-beta2</value>
-				</property>
-			</activation>
-			<properties>
-				<zookeeper.version>3.4.5-cdh5.0.0-beta-2</zookeeper.version>
-				<hbase.version>0.96.1.1-cdh5.0.0-beta-2</hbase.version>
-				<hadoop.version>2.2.0-cdh5.0.0-beta-2</hadoop.version>
-				<envClassifier>cloudera-cdh5.0.0-beta2</envClassifier>
-			</properties>
-			<dependencies>
-				<dependency>
-					<groupId>org.apache.hbase</groupId>
-					<artifactId>hbase-client</artifactId>
-					<version>${hbase.version}</version>
-				</dependency>
-				<dependency>
-					<groupId>org.apache.hbase</groupId>
-					<artifactId>hbase-protocol</artifactId>
-					<version>${hbase.version}</version>
-				</dependency>
-				<dependency>
-					<groupId>org.apache.hbase</groupId>
-					<artifactId>hbase-testing-util</artifactId>
-					<version>${hbase.version}</version>
-				</dependency>
-				<dependency>
-					<groupId>org.apache.hbase</groupId>
-					<artifactId>hbase-common</artifactId>
-					<version>${hbase.version}</version>
-					<classifier>tests</classifier>
-				</dependency>
-				<dependency>
-					<groupId>org.apache.hbase</groupId>
-					<artifactId>hbase-server</artifactId>
-					<version>${hbase.version}</version>
-				</dependency>
-				<dependency>
-					<groupId>org.apache.hadoop</groupId>
-					<artifactId>hadoop-common</artifactId>
-					<version>${hadoop.version}</version>
-				</dependency>
-				<dependency>
-					<groupId>org.apache.hadoop</groupId>
-					<artifactId>hadoop-hdfs</artifactId>
-					<version>${hadoop.version}</version>
-					<classifier>tests</classifier>
-				</dependency>
-				<dependency>
-					<groupId>org.apache.hadoop</groupId>
-					<artifactId>hadoop-client</artifactId>
-					<version>${hadoop.version}</version>
-				</dependency>
-				<dependency>
-					<groupId>org.apache.hadoop</groupId>
-					<artifactId>hadoop-hdfs</artifactId>
-					<version>${hadoop.version}</version>
-				</dependency>
-			</dependencies>
-			<repositories>
-				<repository>
-					<id>cloudera</id>
-					<url>https://repository.cloudera.com/content/repositories/releases/</url>
-					<snapshots>
-						<enabled>false</enabled>
-					</snapshots>
-					<releases>
-						<enabled>true</enabled>
-					</releases>
-				</repository>
-			</repositories>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>2.15</version>
-						<configuration>
-							<argLine>-Xms256M -Xmx1024M</argLine>
-							<redirectTestOutputToFile>true</redirectTestOutputToFile>
-							<includes>
-								<include>**/*Test.java</include>
-							</includes>
-							<excludes>
-								<!-- Skip ITs -->
-								<exclude>**/*IT.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-					<plugin>
-						<artifactId>maven-failsafe-plugin</artifactId>
-						<executions>
-							<execution>
-							<id>integration-tests</id>
-							<goals>
-								<goal>integration-test</goal>
-								<goal>verify</goal>
-							</goals>
-							</execution>
-						</executions>
-						<version>2.12.2</version>
-						<configuration>
-							<skipTests>${skip.integration.tests}</skipTests>
-							<argLine>-Xms256M -Xmx1024M</argLine>
-							<redirectTestOutputToFile>true</redirectTestOutputToFile>
-							<includes>
-								<include>**/*IT.java</include>
-							</includes>
-							<excludes>
-								<!-- Skip all unit tests -->
-								<exclude>**/*Test.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-
-		<profile>
-			<!-- =========================================================== -->
 			<!--                           hdp1.3                            -->
 			<!-- =========================================================== -->
 			<id>hdp1.3</id>
@@ -712,12 +589,12 @@
 					<plugin>
 						<artifactId>maven-failsafe-plugin</artifactId>
 						<executions>
-						<execution>
-							<id>integration-tests</id>
-							<goals>
-								<goal>integration-test</goal>
-								<goal>verify</goal>
-							</goals>
+                            <execution>
+                                <id>integration-tests</id>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
 							</execution>
 						</executions>
 						<version>2.12.2</version>
@@ -813,138 +690,6 @@
 							<excludes>
 								<!-- Skip all unit tests -->
 								<exclude>**/*Test.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-
-		<profile>
-			<!-- =========================================================== -->
-			<!--                       MapR 0.94.5                           -->
-			<!-- =========================================================== -->
-			<id>mapr-0.94.5</id>
-			<activation>
-				<!-- To run, specify -Dhbase.profile=mapr-0.94.5 -->
-				<property>
-					<name>hbase.profile</name>
-					<value>mapr-0.94.5</value>
-				</property>
-			</activation>
-			<properties>
-				<zookeeper.version>3.4.5</zookeeper.version>
-				<hbase.version>0.94.5-mapr</hbase.version>
-				<hadoop.version>1.0.3-mapr-2.1.2.1</hadoop.version>
-				<envClassifier>mapr-0.94.5</envClassifier>
-			</properties>
-			<dependencies>
-				<dependency>
-					<groupId>org.apache.hbase</groupId>
-					<artifactId>hbase</artifactId>
-					<version>${hbase.version}</version>
-				</dependency>
-				<dependency>
-					<groupId>org.apache.hbase</groupId>
-					<artifactId>hbase</artifactId>
-					<version>${hbase.version}</version>
-					<classifier>tests</classifier>
-				</dependency>
-				<dependency>
-					<groupId>org.apache.hadoop</groupId>
-					<artifactId>hadoop-core</artifactId>
-					<version>${hadoop.version}</version>
-					<exclusions>
-						<exclusion>
-							<artifactId>junit</artifactId>
-							<groupId>junit</groupId>
-						</exclusion>
-					</exclusions>
-				</dependency>
-				<dependency>
-					<groupId>org.apache.hadoop</groupId>
-					<artifactId>hadoop-test</artifactId>
-					<version>${hadoop.version}</version>
-				</dependency>
-				<dependency>
-					<groupId>com.mapr.hadoop</groupId>
-					<artifactId>maprfs</artifactId>
-					<version>${hadoop.version}</version>
-				</dependency>
-			</dependencies>
-			<repositories>
-				<repository>
-					<id>mapr-releases</id>
-					<name>MapR Releases</name>
-					<url>http://repository.mapr.com/maven/</url>
-					<snapshots>
-						<enabled>false</enabled>
-					</snapshots>
-					<releases>
-						<enabled>true</enabled>
-					</releases>
-				</repository>
-			</repositories>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>2.15</version>
-						<configuration>
-							<argLine>-Xms256M -Xmx1024M</argLine>
-							<redirectTestOutputToFile>true</redirectTestOutputToFile>
-							<includes>
-								<include>**/*Test.java</include>
-							</includes>
-							<excludes>
-								<!-- skip ITs -->
-								<exclude>**/*IT.java</exclude>
-								<!-- Skip unit tests that run against HDFS as we don't have MapR HDFS -->
-								<exclude>**/HBaseStoreTest.java</exclude>
-								<exclude>**/SIFilterHBaseTest.java</exclude>
-								<exclude>**/SITransactorHBasePackedTest.java</exclude>
-								<exclude>**/SITransactorHBaseTest.java</exclude>
-								<exclude>**/JtaXAResourceHBaseTest.java</exclude>
-								<exclude>**/TransactionManagerHBaseTest.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-					<plugin>
-						<artifactId>maven-failsafe-plugin</artifactId>
-						<executions>
-							<execution>
-								<id>integration-tests</id>
-								<goals>
-									<goal>integration-test</goal>
-								<goal>verify</goal>
-								</goals>
-							</execution>
-						</executions>
-						<version>2.12.2</version>
-						<configuration>
-							<skipTests>${skip.integration.tests}</skipTests>
-							<argLine>-Xms256M -Xmx1024M</argLine>
-							<redirectTestOutputToFile>true</redirectTestOutputToFile>
-							<includes>
-								<include>**/*IT.java</include>
-							</includes>
-							<excludes>
-								<!-- Skip all unit tests -->
-								<exclude>**/*Test.java</exclude>
-								<!-- Skip integration tests that run HDFS import as we don't have MapR HDFS -->
-								<exclude>**/WorkdayTinyIT.java</exclude>
-								<exclude>**/HdfsImportIT.java</exclude>
-								<exclude>**/ImportErrorIT.java</exclude>
-								<exclude>**/IndexIT.java</exclude>
-								<exclude>**/MicostrategiesCustomerIT.java</exclude>
-								<exclude>**/MicrostrategiesDemoIT.java</exclude>
-								<exclude>**/MicrostrategiesItemIT.java</exclude>
-								<exclude>**/MsOrderDetailIT.java</exclude>
-								<exclude>**/TPCHIT.java</exclude>
-								<exclude>**/DecoderIT.java</exclude>
-								<exclude>**/InnerJoinIT.java</exclude>
-								<exclude>**/MergeJoinIT.java</exclude>
-								<exclude>**/OuterJoinIT.java</exclude>
 							</excludes>
 						</configuration>
 					</plugin>
