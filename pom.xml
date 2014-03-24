@@ -332,12 +332,12 @@
 		</profile>
 		<profile>
 			<!-- =========================================================== -->
-			<!--                   cloudera-cdh5.0.0-beta2                   -->
+			<!--                   cloudera-cdh5.0.0-beta-2                   -->
 			<!-- =========================================================== -->
-			<id>cloudera-cdh5.0.0-beta2</id>
+			<id>cloudera-cdh5.0.0-beta-2</id>
 						<!-- This is the default profile - runs when NO -Dhbase.profile=<profileid> is specified -->
-						<!-- NOTE: since maven does not know about OR (ie, prop not set OR prop set to cloudera-cdh5.0.0-beta2), -->
-						<!--     this will NOT run when you set -Dhbase.profile=cloudera-cdh5.0.0-beta2 -->
+						<!-- NOTE: since maven does not know about OR (ie, prop not set OR prop set to cloudera-cdh5.0.0-beta-2), -->
+						<!--     this will NOT run when you set -Dhbase.profile=cloudera-cdh5.0.0-beta-2 -->
 			<activation>
 				<property>
 					<name>!hbase.profile</name>
@@ -347,7 +347,7 @@
 				<zookeeper.version>3.4.5-cdh5.0.0-beta-2</zookeeper.version>
 				<hbase.version>0.96.1.1-cdh5.0.0-beta-2</hbase.version>
 				<hadoop.version>2.2.0-cdh5.0.0-beta-2</hadoop.version>
-				<envClassifier>cloudera-cdh5.0.0-beta2</envClassifier>
+				<envClassifier>cloudera-cdh5.0.0-beta-2</envClassifier>
 			</properties>
 			<dependencies>
 				<dependency>
