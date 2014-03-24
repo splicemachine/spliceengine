@@ -47,7 +47,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     protected int[] leftHashKeys;
     protected int rightHashKeyItem;
     protected int[] rightHashKeys;
-    protected ExecRow rightTemplate;
     protected static List<NodeType> nodeTypes;
     protected Scan reduceScan;
     protected SQLInteger rowType;
@@ -119,7 +118,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         emptyRightRowsReturned = 0;
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
-        rightTemplate = rightRow.getClone();
         if (uniqueSequenceID != null && regionScanner == null) {
             byte[] start = new byte[uniqueSequenceID.length];
             System.arraycopy(uniqueSequenceID, 0, start, 0, start.length);
@@ -414,32 +412,14 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         Restriction mergeRestriction = getRestriction();
 
         SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Getting MergeSortJoiner for ",(outer ? "" : "non "),"outer join");
-        if (outer) {
-            StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
-                @Override
-                public ExecRow get() throws StandardException {
-                    if (emptyRow == null)
-                        emptyRow = emptyRowFun.invoke();
-                    return emptyRow;
-                }
-            };
-            return new Joiner(joinRows, mergedRow, mergeRestriction, wasRightOuterJoin, leftNumCols, rightNumCols,
-                    oneRowRightSide, notExistsRightSide, emptyRowSupplier) {
-                @Override
-                protected boolean shouldMergeEmptyRow(boolean noRecordsFound) {
-                    return noRecordsFound;
-                }
-            };
-        } else {
-            StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
-                @Override
-                public ExecRow get() throws StandardException {
-                    return rightTemplate;
-                }
-            };
-            return new Joiner(joinRows, mergedRow, mergeRestriction, wasRightOuterJoin,
-                    leftNumCols, rightNumCols, oneRowRightSide, notExistsRightSide, emptyRowSupplier);
-        }
+        StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
+            @Override
+            public ExecRow get() throws StandardException {
+                return getEmptyRow();
+            }
+        };
+        return new Joiner(joinRows, mergedRow, mergeRestriction, outer, wasRightOuterJoin, leftNumCols, rightNumCols,
+                             oneRowRightSide, notExistsRightSide, emptyRowSupplier);
     }
 
     private ResultMergeScanner getMergeScanner(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {

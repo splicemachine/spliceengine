@@ -83,4 +83,10 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation { pr
 				return "LeftOuter"+super.prettyPrint(indentLevel);
 		}
 
+    @Override
+    protected ExecRow getEmptyRow() throws StandardException {
+        if (emptyRow == null)
+            emptyRow = emptyRowFun.invoke();
+        return emptyRow;
+    }
 }

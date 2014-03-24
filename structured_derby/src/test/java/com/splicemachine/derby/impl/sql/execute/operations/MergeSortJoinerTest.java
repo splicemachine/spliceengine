@@ -393,19 +393,14 @@ public class MergeSortJoinerTest {
 
         Joiner joiner;
         if(outer){
-            joiner = new Joiner(joinRows, mergedRowTemplate,false,2,2,false,false,new StandardSupplier<ExecRow>() {
+            joiner = new Joiner(joinRows, mergedRowTemplate,outer,false,2,2,false,false,new StandardSupplier<ExecRow>() {
                 @Override
                 public ExecRow get() throws StandardException {
                     return emptyRightRow;
                 }
-            }){
-                @Override
-                protected boolean shouldMergeEmptyRow(boolean noRecordsFound) {
-                    return noRecordsFound;
-                }
-            };
+            });
         }else
-            joiner = new Joiner(joinRows, mergedRowTemplate,false,2,2,false, false,null);
+            joiner = new Joiner(joinRows, mergedRowTemplate,outer,false,2,2,false, false,null);
 
         List<ExecRow> joinedAnswers = populateFromJoiner(correctResults, joiner);
         assertReturnedRowsCorrect(correctResults, joinedAnswers);

@@ -45,8 +45,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		public int rowsReturned;
 		protected boolean serializeLeftResultSet = true;
 		protected boolean serializeRightResultSet = true;
+        protected ExecRow rightTemplate;
 
-		public JoinOperation() {
+    public JoinOperation() {
 				super();
 		}
 
@@ -154,6 +155,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				}
 				if(mergedRow==null)
 						mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
+                if (rightTemplate == null)
+                    rightTemplate = rightRow.getClone();
 		}
 
 		protected int[] generateHashKeys(int hashKeyItem) {
@@ -301,5 +304,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
             };
         }
         return mergeRestriction;
+    }
+
+    protected ExecRow getEmptyRow() throws StandardException {
+        return rightTemplate;
     }
 }
