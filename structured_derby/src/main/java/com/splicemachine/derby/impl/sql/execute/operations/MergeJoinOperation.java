@@ -143,8 +143,9 @@ public class MergeJoinOperation extends JoinOperation {
         rightBridgeIterator.open();
         mergedRowSource = new MergeJoinRows(leftPushBack, rightBridgeIterator,
                 leftHashKeys, rightHashKeys);
-        return new Joiner(mergedRowSource, getExecRowDefinition(), wasRightOuterJoin,
-                leftNumCols, rightNumCols, oneRowRightSide, notExistsRightSide, null);
+        return new Joiner(mergedRowSource, getExecRowDefinition(), getRestriction(),
+                             wasRightOuterJoin, leftNumCols, rightNumCols,
+                             oneRowRightSide, notExistsRightSide, null);
     }
 
 		@Override
@@ -157,7 +158,7 @@ public class MergeJoinOperation extends JoinOperation {
 				super.updateStats(stats);
 		}
 
-		private ExecRow getKeyRow(ExecRow row, int keyIdx) throws StandardException {
+    private ExecRow getKeyRow(ExecRow row, int keyIdx) throws StandardException {
         ExecRow keyRow = activation.getExecutionFactory().getValueRow(1);
         keyRow.setColumn(1, row.getColumn(keyIdx + 1));
         return keyRow;

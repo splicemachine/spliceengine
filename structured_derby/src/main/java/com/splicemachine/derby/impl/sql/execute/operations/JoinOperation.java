@@ -287,4 +287,19 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				SpliceLogUtils.trace(LOG, "executeScan");
 				return new SpliceNoPutResultSet(activation,this, getReduceRowProvider(this, OperationUtils.getPairDecoder(this, spliceRuntimeContext), spliceRuntimeContext, true));
 		}
+
+    protected Restriction getRestriction() {
+        Restriction mergeRestriction = Restriction.noOpRestriction;
+        if (restriction != null) {
+            mergeRestriction = new Restriction() {
+                @Override
+                public boolean apply(ExecRow row) throws StandardException {
+                    activation.setCurrentRow(row, resultSetNumber);
+                    DataValueDescriptor shouldKeep = restriction.invoke();
+                    return !shouldKeep.isNull() && shouldKeep.getBoolean();
+                }
+            };
+        }
+        return mergeRestriction;
+    }
 }
