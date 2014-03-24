@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.ast;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.splicemachine.hbase.HBaseRegionLoads;
@@ -29,6 +30,9 @@ public class JoinSelector extends AbstractSpliceVisitor {
     public final static MergeSortJoinStrategy MSJ    = new MergeSortJoinStrategy();
     public final static NestedLoopJoinStrategy NLJ   = new NestedLoopJoinStrategy();
 
+    public final static com.google.common.base.Predicate<Object> isNLJ =
+        Predicates.instanceOf(NestedLoopJoinStrategy.class);
+
     public final static long BROADCAST_REGION_MB_THRESHOLD =
         Math.min(20,
                     Runtime.getRuntime().maxMemory() / (1024l * 1024) / 100l);
@@ -42,7 +46,7 @@ public class JoinSelector extends AbstractSpliceVisitor {
                     LOG.info(String.format("Strategy changed from %s to %s for join %s",
                                 info.strategy, chosen, info));
                 }
-                return withStrategy(j, chosen);
+                return withStrategy(j, chosen, info);
             } else {
                 return j;
             }
@@ -71,8 +75,8 @@ public class JoinSelector extends AbstractSpliceVisitor {
                 !info.isEquiJoin){
             return NLJ;
         }
-        // If right leaves are in-memory, or right table is small enough to fit in memory,
-        // use Broadcast
+        // If right leaves are in-memory, or right table is small enough to fit in
+        // memory, use Broadcast
         if (Iterables.all(info.rightLeaves, Predicates.instanceOf(RowResultSetNode.class))
                 || (info.rightLeaves.size() == 1
                         && info.rightSingleRegionSize > -1
@@ -86,11 +90,23 @@ public class JoinSelector extends AbstractSpliceVisitor {
         return MSJ;
     }
 
-    public static JoinNode withStrategy(JoinNode j, JoinStrategy s) throws StandardException {
+    public static JoinNode withStrategy(JoinNode j, JoinStrategy s, JoinInfo info) throws StandardException {
         LOG.debug(String.format("--> SETTING STRATEGY %s", s));
         RSUtils.ap(j).setJoinStrategy(s);
-        // With new strategy set, regenerate access path
-        j.getRightResultSet().changeAccessPath();
+
+        // If moving to or from NestedLoop, regenerate access path
+        //
+        //  * Note here: changeAccessPath() is not idempotent & calling twice with
+        //    the same underlying join strategy can cause predicates to be thrown away.
+        //    The salient distinction b/w strategies that need their access paths
+        //    regenerated is whether they're hash-based; NLJ is the only non-hash-based
+        //    join, so we see if we're changing from or to a NLJ in order to trigger
+        //    a changeAccessPath() call
+        if (Collections2
+                .filter(Arrays.asList(s, info.strategy), isNLJ)
+                .size() == 1) {
+            j.getRightResultSet().changeAccessPath();
+        }
         return j;
     }
 
