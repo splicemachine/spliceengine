@@ -4,12 +4,14 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.splicemachine.hbase.HBaseRegionLoads;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.*;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.impl.sql.compile.*;
 import org.apache.derby.impl.sql.compile.Predicate;
+import org.apache.hadoop.hbase.HServerLoad;
 import org.apache.log4j.Logger;
 
 import java.util.*;
@@ -27,7 +29,18 @@ public class JoinSelector extends AbstractSpliceVisitor {
     public final static MergeSortJoinStrategy MSJ    = new MergeSortJoinStrategy();
     public final static NestedLoopJoinStrategy NLJ   = new NestedLoopJoinStrategy();
 
-    @Override
+    public final static long BROADCAST_REGION_MB_THRESHOLD =
+        Runtime.getRuntime().maxMemory() / (1024l * 1024) / 100l;
+    /*
+    static {
+        LOG.error(String.format("maxMem at static init %s",
+                                            Runtime.getRuntime().maxMemory()));
+        long size = Runtime.getRuntime().maxMemory() / (1024l * 1024) / 100l;
+        LOG.error(String.format("Broadcast threshold %sMB", size));
+        BROADCAST_REGION_MB_THRESHOLD = (int)size;
+    }
+    */
+
     public QueryTreeNode visit(JoinNode j) throws StandardException {
         try {
             JoinInfo info = joinInfo(j);
@@ -66,6 +79,13 @@ public class JoinSelector extends AbstractSpliceVisitor {
                 !info.isEquiJoin){
             return NLJ;
         }
+        // If right leaves are in-memory, or right table is small enough to fit in memory,
+        // use Broadcast
+        if (Iterables.all(info.rightLeaves, Predicates.instanceOf(RowResultSetNode.class))
+                || (info.rightLeaves.size() == 1
+                        && info.rightSingleRegionSize > -1
+                        && info.rightSingleRegionSize < BROADCAST_REGION_MB_THRESHOLD))
+            return BCAST;
         // If right join column is PK, use NLJ
         if (info.rightEquiJoinColIsPK){
             return NLJ;
@@ -109,6 +129,24 @@ public class JoinSelector extends AbstractSpliceVisitor {
                                     cd.getSchemaID().toString()
                                         .equals(SchemaDescriptor.SYSTEM_SCHEMA_UUID);
 
+        // Region size
+        int singleRegionSize = -1;
+        if (rightLeaves.size() == 1
+                && rightLeaves.get(0) instanceof FromBaseTable) {
+            FromBaseTable fbt = (FromBaseTable) rightLeaves.get(0);
+            Collection<HServerLoad.RegionLoad> regionLoads =
+                HBaseRegionLoads
+                    .getCachedRegionLoadsForTable(Long.toString(fbt.getTableDescriptor()
+                                                                    .getHeapConglomerateId()));
+            if (regionLoads != null
+                    && regionLoads.size() == 1) {
+                singleRegionSize = HBaseRegionLoads
+                                       .memstoreAndStorefileSize(regionLoads.iterator().next());
+            }
+
+
+        }
+
         return new JoinInfo(strategy(j),
                             userSupplied,
                             isSystemTable,
@@ -118,7 +156,8 @@ public class JoinSelector extends AbstractSpliceVisitor {
                             joinPreds,
                             otherPreds,
                             rightNodes,
-                            rightLeaves);
+                            rightLeaves,
+                            singleRegionSize);
     }
 
     public static boolean joinContainsStrategyHint(JoinNode j) throws StandardException {
@@ -139,7 +178,11 @@ public class JoinSelector extends AbstractSpliceVisitor {
     }
 
     public static List<ResultSetNode> nodesUntilJoin(ResultSetNode n) throws StandardException {
-        return RSUtils.collectNodesUntil(n, ResultSetNode.class, Predicates.instanceOf(JoinNode.class));
+        //return RSUtils.collectNodesUntil(n, ResultSetNode.class, Predicates.instanceOf(JoinNode.class));
+        return CollectNodes.collector(ResultSetNode.class)
+                   .onAxis(RSUtils.isRSN)
+                   .until(Predicates.instanceOf(JoinNode.class))
+                   .collect(n);
     }
 
     public static Iterable<Predicate> getRightPreds(JoinNode j) throws StandardException {

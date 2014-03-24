@@ -19,7 +19,7 @@ public class JoinSelectorTest {
     public static Predicate pred        = new Predicate();
 
     public static JoinInfo infoEqui = new JoinInfo(JoinSelector.NLJ, false, false, true, false, false,
-                                            Collections.singletonList(pred), Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.singletonList(fbt));
+                                            Collections.singletonList(pred), Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.singletonList(fbt), -1);
 
     @Test
     public void basicEquiJoinTest() throws Exception {
@@ -27,7 +27,7 @@ public class JoinSelectorTest {
     }
 
     public static JoinInfo infoNonEqui = new JoinInfo(JoinSelector.NLJ, false, false, false, false, false,
-                                                Collections.singletonList(pred), Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.singletonList(fbt));
+                                                Collections.singletonList(pred), Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.singletonList(fbt), -1);
 
     @Test
     public void basicNonEquiJoinTest() throws Exception {
@@ -36,7 +36,7 @@ public class JoinSelectorTest {
 
 
     public static JoinInfo infoCross = new JoinInfo(JoinSelector.NLJ, false, false, false, false, false,
-                                            Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.singletonList(fbt));
+                                            Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.singletonList(fbt), -1);
 
     @Test
     public void basicCrossJoinTest() throws Exception {
@@ -44,7 +44,7 @@ public class JoinSelectorTest {
     }
 
     public static JoinInfo infoEquiIndex = new JoinInfo(JoinSelector.NLJ, false, false, true, false, true,
-                                            Collections.singletonList(pred), Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.singletonList(fbt));
+                                            Collections.singletonList(pred), Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.singletonList(fbt), -1);
 
     @Test
     public void indexTest() throws Exception {
@@ -52,11 +52,11 @@ public class JoinSelectorTest {
     }
 
     public static JoinInfo infoRowRS = new JoinInfo(JoinSelector.NLJ, false, false, true, false, false,
-                                            Collections.singletonList(pred), Collections.EMPTY_LIST, Collections.EMPTY_LIST, Arrays.asList(rows, rows));
+                                            Collections.singletonList(pred), Collections.EMPTY_LIST, Collections.EMPTY_LIST, Arrays.asList(rows, rows), -1);
 
     @Test
     public void rowResultSetTest() throws Exception {
-        Assert.assertEquals(JoinSelector.MSJ, JoinSelector.chooseStrategy(infoRowRS));
+        Assert.assertEquals(JoinSelector.BCAST, JoinSelector.chooseStrategy(infoRowRS));
     }
 
 }
