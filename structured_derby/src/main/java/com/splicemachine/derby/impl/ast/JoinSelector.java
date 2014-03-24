@@ -30,16 +30,8 @@ public class JoinSelector extends AbstractSpliceVisitor {
     public final static NestedLoopJoinStrategy NLJ   = new NestedLoopJoinStrategy();
 
     public final static long BROADCAST_REGION_MB_THRESHOLD =
-        Runtime.getRuntime().maxMemory() / (1024l * 1024) / 100l;
-    /*
-    static {
-        LOG.error(String.format("maxMem at static init %s",
-                                            Runtime.getRuntime().maxMemory()));
-        long size = Runtime.getRuntime().maxMemory() / (1024l * 1024) / 100l;
-        LOG.error(String.format("Broadcast threshold %sMB", size));
-        BROADCAST_REGION_MB_THRESHOLD = (int)size;
-    }
-    */
+        Math.min(20,
+                    Runtime.getRuntime().maxMemory() / (1024l * 1024) / 100l);
 
     public QueryTreeNode visit(JoinNode j) throws StandardException {
         try {
