@@ -328,6 +328,34 @@ public class BroadcastJoinOperation extends JoinOperation {
                     rows.add(rightRow.getClone());
                     cache.put(hashKey, rows);
                 }
+    private static void logSize(SpliceOperation op, Map inMemoryMap){
+        int regionSizeMB = -1;
+        String tableName = null; // conglom number
+        SpliceOperation leaf = op;
+        while (leaf != null){
+            if (leaf instanceof ScanOperation) {
+                tableName = Long.toString(((ScanOperation) leaf)
+                                              .scanInformation.getConglomerateId());
+            }
+            leaf = leaf.getLeftOperation();
+        }
+        if (tableName != null) {
+            Collection<HServerLoad.RegionLoad> loads =
+                HBaseRegionLoads.getCachedRegionLoadsForTable(tableName);
+            if (loads != null && loads.size() == 1){
+                regionSizeMB = HBaseRegionLoads
+                                   .memstoreAndStorefileSize(loads.iterator().next());
+            }
+        }
+        long objectSize = RamUsageEstimator.sizeOf(inMemoryMap);
+        float objectSizeMB = objectSize / (1024 * 1024f);
+        LOG.debug(String.format("Region size for %s is %sMB, resultset size (%s rows) in Broadcast map is %sMB (%s)\n" +
+                                    "Multiplier: %s",
+                                   tableName, regionSizeMB, inMemoryMap.size(),
+                                   objectSizeMB, objectSize,
+                                   regionSizeMB != -1 ? objectSizeMB / regionSizeMB : "N/A"
+        ));
+    }
             }
             return Collections.unmodifiableMap(cache);
         }finally{
