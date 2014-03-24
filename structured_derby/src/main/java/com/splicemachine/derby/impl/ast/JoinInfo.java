@@ -25,12 +25,14 @@ public class JoinInfo {
     public final List<Predicate> otherPredicates;
     public final List<ResultSetNode> rightNodes;
     public final List<ResultSetNode> rightLeaves;
+    public final int rightSingleRegionSize;
 
     public JoinInfo(JoinStrategy strategy,
                     boolean userSuppliedStrategy, boolean isSystemTable,
                     boolean isEquiJoin, boolean rightEquiJoinColIsPK, boolean hasRightIndex,
                     List<Predicate> joinPredicates, List<Predicate> otherPredicates,
-                    List<ResultSetNode> rightNodes, List<ResultSetNode> rightLeaves){
+                    List<ResultSetNode> rightNodes, List<ResultSetNode> rightLeaves,
+                    int rightSingleRegionSize){
         this.strategy = strategy;
         this.userSuppliedStrategy = userSuppliedStrategy;
         this.isSystemTable = isSystemTable;
@@ -41,29 +43,30 @@ public class JoinInfo {
         this.otherPredicates = otherPredicates;
         this.rightNodes = rightNodes;
         this.rightLeaves = rightLeaves;
+        this.rightSingleRegionSize = rightSingleRegionSize;
     }
 
 
     public String toString(){
         return format("{" +
-                "strategy=%s, " +
-                "userSuppliedStrategy=%s, " +
-                "isSystemTable=%s, " +
-                "isEquijoin=%s, " +
-                "rightEquiJoinColIsPk=%s, " +
-                "hasRightIndex=%s, " +
-                "joinPreds=%s, " +
-                "otherPreds=%s, " +
-                "rightNodes=%s, " +
-                "rightLeaves=%s",
-                strategy, userSuppliedStrategy, isSystemTable,
-                isEquiJoin, rightEquiJoinColIsPK, hasRightIndex,
-                Iterables.transform(joinPredicates, PredicateUtils.predToString),
-                Iterables.transform(otherPredicates, PredicateUtils.predToString),
-                Iterables.transform(rightNodes, className),
-                Iterables.transform(rightLeaves, className)
-        );
-
+                          "strategy=%s, " +
+                          "userSuppliedStrategy=%s, " +
+                          "isSystemTable=%s, " +
+                          "isEquijoin=%s, " +
+                          "rightEquiJoinColIsPk=%s, " +
+                          "hasRightIndex=%s, " +
+                          "joinPreds=%s, " +
+                          "otherPreds=%s, " +
+                          "rightNodes=%s, " +
+                          "rightLeaves=%s, " +
+                          "rightSingleRegionSize=%s",
+                         strategy, userSuppliedStrategy, isSystemTable,
+                         isEquiJoin, rightEquiJoinColIsPK, hasRightIndex,
+                         Iterables.transform(joinPredicates, PredicateUtils.predToString),
+                         Iterables.transform(otherPredicates, PredicateUtils.predToString),
+                         Iterables.transform(rightNodes, className),
+                         Iterables.transform(rightLeaves, className),
+                         rightSingleRegionSize);
     }
 
     public static Function<Object, String> className = new Function<Object, String>() {
