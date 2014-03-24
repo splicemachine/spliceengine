@@ -126,11 +126,9 @@ public class BroadcastJoinOperation extends JoinOperation {
             rightCounter = spliceRuntimeContext.newCounter();
             leftCounter = spliceRuntimeContext.newCounter();
         }
-
         if (joiner == null){
             joiner = initJoiner(spliceRuntimeContext);
         }
-
         timer.startTiming();
         ExecRow next = joiner.nextRow();
         setCurrentRow(next);
@@ -162,14 +160,14 @@ public class BroadcastJoinOperation extends JoinOperation {
                                                   NoOpPostfix.INSTANCE);
         Function<ExecRow,List<ExecRow>> lookup = new Function<ExecRow, List<ExecRow>>() {
             @Override
-            public List<ExecRow> apply(@Nullable ExecRow leftRow) {
+            public List<ExecRow> apply(ExecRow leftRow) {
                 try {
                     return rightSideMap.get(ByteBuffer.wrap(keyEncoder.getKey(leftRow)));
-
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    throw new RuntimeException(String.format("Unable to lookup %s in" +
+                                                                 " Broadcast map", leftRow),
+                                                  e);
                 }
-                return null;
             }
         };
         StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
@@ -203,6 +201,14 @@ public class BroadcastJoinOperation extends JoinOperation {
         mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
         rightResultSet.init(context);
         startExecutionTime = System.currentTimeMillis();
+    }
+
+    @Override
+    public void close() throws StandardException, IOException {
+        super.close();
+        if (leftBridgeIterator != null){
+            leftBridgeIterator.close();
+        }
     }
 
     @Override
@@ -290,7 +296,6 @@ public class BroadcastJoinOperation extends JoinOperation {
 
         while ((rightRow = resultSet.getNextRowCore()) != null) {
             rightCounter.add(1l);
-            //LOG.error(String.format("BCast row loader: R %s", rightRow));
             hashKey = ByteBuffer.wrap(keyEncoder.getKey(rightRow));
             if ((rows = cache.get(hashKey)) != null) {
                 // Only add additional row for same hash if we need it
@@ -306,7 +311,6 @@ public class BroadcastJoinOperation extends JoinOperation {
         if (LOG.isDebugEnabled()){
             logSize(rightResultSet, cache);
         }
-        //LOG.error(String.format("Broadcast populated map: %s", cache.values()));
         return Collections.unmodifiableMap(cache);
     }
 

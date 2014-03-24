@@ -41,8 +41,6 @@ public class BroadCastJoinRows implements IJoinRowsIterator<ExecRow> {
             }
             // TODO don't count right rows already seen
             rightRowsSeen += rights.size();
-            //LOG.error(String.format("BCast join rows batch: L %s R %s",
-//                                       left, rights));
             return Pair.newPair(left, rights.iterator());
         }
         return null;
@@ -75,11 +73,11 @@ public class BroadCastJoinRows implements IJoinRowsIterator<ExecRow> {
 
     @Override
     public int getLeftRowsSeen() {
-        return 0;
+        return leftRowsSeen;
     }
 
     @Override
     public int getRightRowsSeen() {
-        return 0;
+        return rightRowsSeen;
     }
 }
