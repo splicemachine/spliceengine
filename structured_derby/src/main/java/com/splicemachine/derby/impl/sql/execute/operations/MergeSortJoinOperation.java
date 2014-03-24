@@ -461,18 +461,4 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         return scanner;
     }
 
-    private Restriction getRestriction() {
-        Restriction mergeRestriction = Restriction.noOpRestriction;
-        if (restriction != null) {
-            mergeRestriction = new Restriction() {
-                @Override
-                public boolean apply(ExecRow row) throws StandardException {
-                    activation.setCurrentRow(row, resultSetNumber);
-                    DataValueDescriptor shouldKeep = restriction.invoke();
-                    return !shouldKeep.isNull() && shouldKeep.getBoolean();
-                }
-            };
-        }
-        return mergeRestriction;
-    }
 }
