@@ -31,11 +31,13 @@ public class CreateTableWithDataIT {
 		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CreateTableWithDataIT.class.getSimpleName());
 		protected static SpliceTableWatcher baseTable = new SpliceTableWatcher("T",spliceSchemaWatcher.schemaName,"(a int, b int)");
         protected static SpliceTableWatcher rightTable = new SpliceTableWatcher("R",spliceSchemaWatcher.schemaName,"(b int, c int)");
+        protected static SpliceTableWatcher decimalTable = new SpliceTableWatcher("D",spliceSchemaWatcher.schemaName,"(d decimal(15, 2))");
 
 		@ClassRule
 		public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 						.around(spliceSchemaWatcher)
 						.around(baseTable)
+                        .around(decimalTable)
                         .around(rightTable).around(new SpliceDataWatcher() {
 								@Override
 								protected void starting(Description description) {
@@ -82,6 +84,7 @@ public class CreateTableWithDataIT {
 				}
 		}
 
+
 		@Test
 		public void testCreateTableWithData() throws Exception {
 				PreparedStatement ps = methodWatcher.prepareStatement(String.format("create table %s.t3 as select * from %s with data",spliceSchemaWatcher.schemaName,baseTable));
@@ -123,4 +126,11 @@ public class CreateTableWithDataIT {
                 methodWatcher.executeUpdate("drop table "+spliceSchemaWatcher.schemaName+".t4");
             }
         }
+
+    // DB-1170
+    @Test
+    public void testCreateTableWithNoDataDerivedDecimal() throws Exception {
+        methodWatcher.executeUpdate(String.format("create table %s.t5 as select (d * (1 - d)) as volume from %s with no data",spliceSchemaWatcher.schemaName,decimalTable));
+        methodWatcher.executeUpdate("drop table "+spliceSchemaWatcher.schemaName+".t5");
+    }
 }
