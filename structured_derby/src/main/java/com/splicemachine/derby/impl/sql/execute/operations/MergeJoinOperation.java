@@ -144,7 +144,7 @@ public class MergeJoinOperation extends JoinOperation {
         mergedRowSource = new MergeJoinRows(leftPushBack, rightBridgeIterator,
                 leftHashKeys, rightHashKeys);
         return new Joiner(mergedRowSource, getExecRowDefinition(), getRestriction(),
-                             wasRightOuterJoin, leftNumCols, rightNumCols,
+                             false, wasRightOuterJoin, leftNumCols, rightNumCols,
                              oneRowRightSide, notExistsRightSide, null);
     }
 

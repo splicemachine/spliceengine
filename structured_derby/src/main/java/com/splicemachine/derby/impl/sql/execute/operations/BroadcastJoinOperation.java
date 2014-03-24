@@ -52,7 +52,6 @@ public class BroadcastJoinOperation extends JoinOperation {
     protected int[] leftHashKeys;
     protected int rightHashKeyItem;
     protected int[] rightHashKeys;
-    protected ExecRow rightTemplate;
     protected static List<NodeType> nodeTypes;
     protected List<ExecRow> rights;
     private Joiner joiner;
@@ -179,22 +178,10 @@ public class BroadcastJoinOperation extends JoinOperation {
                 return getEmptyRow();
             }
         };
-        if (isOuterJoin){
-            return new Joiner(new BroadCastJoinRows(leftBridgeIterator, lookup),
-                                 getExecRowDefinition(), getRestriction(), wasRightOuterJoin,
-                                 leftNumCols, rightNumCols, oneRowRightSide,
-                                 notExistsRightSide, emptyRowSupplier) {
-                @Override
-                protected boolean shouldMergeEmptyRow(boolean noRecords) {
-                    return noRecords;
-                }
-            };
-        } else {
-            return new Joiner(new BroadCastJoinRows(leftBridgeIterator, lookup),
-                                 getExecRowDefinition(), getRestriction(), wasRightOuterJoin,
-                                 leftNumCols, rightNumCols, oneRowRightSide,
-                                 notExistsRightSide, emptyRowSupplier);
-        }
+        return new Joiner(new BroadCastJoinRows(leftBridgeIterator, lookup),
+                             getExecRowDefinition(), getRestriction(), isOuterJoin,
+                             wasRightOuterJoin, leftNumCols, rightNumCols,
+                             oneRowRightSide, notExistsRightSide, emptyRowSupplier);
     }
 
     @Override
@@ -214,7 +201,6 @@ public class BroadcastJoinOperation extends JoinOperation {
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
         mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
-        rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
         rightResultSet.init(context);
         startExecutionTime = System.currentTimeMillis();
     }
@@ -261,10 +247,6 @@ public class BroadcastJoinOperation extends JoinOperation {
     @Override
     public SpliceOperation getLeftOperation() {
         return leftResultSet;
-    }
-
-    protected ExecRow getEmptyRow() throws StandardException {
-        return rightTemplate;
     }
 
     private Map<ByteBuffer, List<ExecRow>> retrieveRightSideCache(final SpliceRuntimeContext runtimeContext) throws StandardException {
