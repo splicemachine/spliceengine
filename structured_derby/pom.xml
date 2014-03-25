@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <artifactId>splice_machine</artifactId>
   <packaging>jar</packaging>
@@ -9,7 +8,7 @@
   <parent>
     <artifactId>structured_hbase</artifactId>
     <groupId>com.splicemachine</groupId>
-    <version>0.5rc8-SNAPSHOT</version>
+    <version>0.5rc8</version>
   </parent>
 
 
@@ -53,7 +52,7 @@
     <dependency>
       <groupId>com.splicemachine</groupId>
       <artifactId>structured_si</artifactId>
-      <version>0.5rc8-SNAPSHOT</version>
+      <version>0.5rc8</version>
       <classifier>${envClassifier}</classifier>
       <type>jar</type>
       <scope>compile</scope>
@@ -244,24 +243,24 @@
                 <phase>pre-integration-test</phase>
                 <configuration>
                   <target name="StartSpliceServer" unless="${server.start.skip}">
-                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath"/>
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath" />
                     <if>
-                      <istrue value="${failTasksRandomly}"/>
+                      <istrue value="${failTasksRandomly}" />
                       <!-- run with chaos monkey (default) -->
                       <then>
                         <exec executable="${run.command}" dir="${basedir}" spawn="false">
-                          <arg value="${basedir}/../${splice.start.script}"/>
-                          <arg value="-c"/>
-                          <arg value="-p ${envClassifier}"/>
-                          <arg value="-b ${build.tag}"/>
+                          <arg value="${basedir}/../${splice.start.script}" />
+                          <arg value="-c" />
+                          <arg value="-p ${envClassifier}" />
+                          <arg value="-b ${build.tag}" />
                         </exec>
                       </then>
                       <else>
                         <!-- chaos monkey overridden: -DfailTasksRandomly=false -->
                         <exec executable="${run.command}" dir="${basedir}" spawn="false">
-                          <arg value="${basedir}/../${splice.start.script}"/>
-                          <arg value="-p ${envClassifier}"/>
-                          <arg value="-b ${build.tag}"/>
+                          <arg value="${basedir}/../${splice.start.script}" />
+                          <arg value="-p ${envClassifier}" />
+                          <arg value="-b ${build.tag}" />
                         </exec>
                       </else>
                     </if>
@@ -277,8 +276,8 @@
                 <configuration>
                   <target name="StopSpliceServer" unless="${server.start.skip}">
                     <exec executable="${run.command}" dir="${basedir}" spawn="false">
-                      <arg value="${basedir}/../${splice.stop.script}"/>
-                      <arg value="-n ${build.number}"/>
+                      <arg value="${basedir}/../${splice.stop.script}" />
+                      <arg value="-n ${build.number}" />
                     </exec>
                   </target>
                 </configuration>
