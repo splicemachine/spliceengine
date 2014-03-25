@@ -1,29 +1,29 @@
 package com.splicemachine.hbase.debug;
 
+import java.io.IOException;
+import java.util.concurrent.Executors;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
+
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.hbase.HBaseRegionCache;
 import com.splicemachine.hbase.table.SpliceHTable;
 import com.splicemachine.job.Task;
 import com.splicemachine.si.impl.TransactionId;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.client.HConnectionManager;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
-
-import java.io.IOException;
-import java.util.concurrent.Executors;
 
 /**
  * @author Scott Fines
  *         Created on: 9/17/13
  */
-public abstract class DebugJob implements CoprocessorJob{
-    private final String tableName;
+public abstract class DebugJob implements CoprocessorJob {
     protected final String destinationDirectory;
-    protected String opId;
+    private final String tableName;
     private final Configuration config;
+    protected String opId;
 
     protected DebugJob(String tableName, String destinationDirectory, Configuration config) {
         this.tableName = tableName;
@@ -34,7 +34,8 @@ public abstract class DebugJob implements CoprocessorJob{
     @Override
     public HTableInterface getTable() {
         try {
-						return new SpliceHTable(Bytes.toBytes(tableName), HConnectionManager.getConnection(config), Executors.newCachedThreadPool(), HBaseRegionCache.getInstance());
+            return new SpliceHTable(Bytes.toBytes(tableName), HConnectionManager.createConnection(config),
+                                    Executors.newCachedThreadPool(), HBaseRegionCache.getInstance());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -56,7 +57,8 @@ public abstract class DebugJob implements CoprocessorJob{
     }
 
     @Override
-    public <T extends Task> Pair<T, Pair<byte[], byte[]>> resubmitTask(T originalTask, byte[] taskStartKey, byte[] taskEndKey) throws IOException {
-        return Pair.newPair(originalTask,Pair.newPair(taskStartKey,taskEndKey));
+    public <T extends Task> Pair<T, Pair<byte[], byte[]>> resubmitTask(T originalTask, byte[] taskStartKey,
+                                                                       byte[] taskEndKey) throws IOException {
+        return Pair.newPair(originalTask, Pair.newPair(taskStartKey, taskEndKey));
     }
 }

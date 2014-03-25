@@ -8,16 +8,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.splicemachine.hbase.RegionCache;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.HTableInterfaceFactory;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.HBaseRegionCache;
+import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceHTableFactory implements HTableInterfaceFactory {
@@ -79,7 +81,7 @@ public class SpliceHTableFactory implements HTableInterfaceFactory {
 		public HTableInterface createHTableInterface(Configuration config, final byte[] tableName) {
 				SpliceLogUtils.trace(LOG, "createHTableInterface for %s",Bytes.toString(tableName));
 				try {
-						HConnection connection = HConnectionManager.getConnection(SpliceConstants.config);
+						HConnection connection = HConnectionManager.createConnection(SpliceConstants.config);
 						RegionCache instance = HBaseRegionCache.getInstance();
 						SpliceLogUtils.trace(LOG,"creating actual HTable after connection created");
 						final HTable htable =new SpliceHTable(tableName, connection,tableExecutor, instance);

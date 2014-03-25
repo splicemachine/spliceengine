@@ -1,8 +1,27 @@
 package com.splicemachine.hbase.writer;
 
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
+import java.io.IOException;
+import java.net.ConnectException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.RegionTooBusyException;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.regionserver.WrongRegionException;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
 import com.splicemachine.hbase.HBaseRegionCache;
@@ -11,19 +30,6 @@ import com.splicemachine.hbase.MonitoredThreadPool;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.Metrics;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.RegionTooBusyException;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HConnectionManager;
-import org.apache.hadoop.hbase.regionserver.WrongRegionException;
-
-import javax.management.*;
-import java.io.IOException;
-import java.net.ConnectException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Scott Fines
@@ -47,7 +53,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
     public static WriteCoordinator create(Configuration config) throws IOException {
         assert config!=null;
 
-        HConnection connection= HConnectionManager.getConnection(config);
+        HConnection connection= HConnectionManager.createConnection(config);
 
         MonitoredThreadPool writerPool = MonitoredThreadPool.create();
         //TODO -sf- make region caching optional
