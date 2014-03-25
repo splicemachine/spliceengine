@@ -8,7 +8,6 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardPushBackIterator;
-import com.splicemachine.si.impl.PushBackIterator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -22,7 +21,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import static com.splicemachine.derby.utils.StandardIterators.StandardIteratorIterator;
 
 /**
  * @author P Trolard
