@@ -59,7 +59,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         nodeTypes = Arrays.asList(NodeType.REDUCE, NodeType.SCAN, NodeType.SINK);
     }
 
-    private StandardIteratorIterator<JoinSideExecRow> bridgeIterator;
     private Joiner joiner;
 		private ResultMergeScanner scanner;
 		private boolean inReduce;
@@ -167,13 +166,14 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     protected ExecRow next(boolean outer, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "next");
-				if(joiner==null){
-						if(!spliceRuntimeContext.isSink())
-								init(SpliceOperationContext.newContext(activation));
-						joiner = createMergeJoiner(outer, spliceRuntimeContext);
-						isOpen = true;
-						timer = spliceRuntimeContext.newTimer();
-				}
+        if (joiner == null) {
+            if (!spliceRuntimeContext.isSink())
+                init(SpliceOperationContext.newContext(activation));
+            joiner = createMergeJoiner(outer, spliceRuntimeContext);
+            joiner.open();
+            isOpen = true;
+            timer = spliceRuntimeContext.newTimer();
+        }
         beginTime = getCurrentTimeMillis();
         boolean shouldClose = true;
 				timer.startTiming();
@@ -196,7 +196,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 														inputRows, joiner.getLeftRowsSeen(), joiner.getRightRowsSeen()));
                 }
                 isOpen = false;
-                bridgeIterator.close();
             }else
 								timer.tick(1);
         }
@@ -391,6 +390,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Close: joiner ", (joiner != null ? "not " : ""), "null");
         beginTime = getCurrentTimeMillis();
         super.close();
+        if (joiner != null) joiner.close();
         isOpen = false;
         closeTime += getElapsedMillis(beginTime);
     }
@@ -405,10 +405,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
      */
     /*private helper methods*/
     private Joiner createMergeJoiner(boolean outer, final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        scanner = getMergeScanner(spliceRuntimeContext);
-        scanner.open();
-        bridgeIterator = StandardIterators.asIter(scanner);
-        MergeSortJoinRows joinRows = new MergeSortJoinRows(bridgeIterator);
+        MergeSortJoinRows joinRows = new MergeSortJoinRows(getMergeScanner(spliceRuntimeContext));
         Restriction mergeRestriction = getRestriction();
 
         SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Getting MergeSortJoiner for ",(outer ? "" : "non "),"outer join");

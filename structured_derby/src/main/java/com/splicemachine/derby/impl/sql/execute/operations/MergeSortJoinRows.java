@@ -1,11 +1,18 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.JoinSideExecRow;
+import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.si.impl.PushBackIterator;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Pair;
 
@@ -31,21 +38,20 @@ import org.apache.hadoop.hbase.util.Pair;
  */
 public class MergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
 
-    PushBackIterator<JoinSideExecRow> source;
+    StandardPushBackIterator<JoinSideExecRow> source;
     List<ExecRow> currentRights = new ArrayList<ExecRow>();
     byte[] currentRightHash;
-    Pair<ExecRow,Iterator<ExecRow>> nextBatch;
     private int leftRowsSeen;
     private int rightRowsSeen;
 
 
-    public MergeSortJoinRows(Iterator<JoinSideExecRow> source){
-        this.source = new PushBackIterator<JoinSideExecRow>(source);
+    public MergeSortJoinRows(StandardIterator<JoinSideExecRow> source){
+        this.source = new StandardPushBackIterator<JoinSideExecRow>(source);
     }
 
-    Pair<byte[],List<ExecRow>> accumulateRights(){
-        while (source.hasNext()){
-            JoinSideExecRow row = source.next();
+    Pair<byte[],List<ExecRow>> accumulateRights() throws StandardException, IOException {
+        JoinSideExecRow row;
+        while ((row = source.next(null)) != null){
             if (row.isRightSide()){
                 rightRowsSeen++;
                 if (row.sameHash(currentRightHash)){
@@ -64,11 +70,11 @@ public class MergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
         return new Pair<byte[],List<ExecRow>>(currentRightHash, currentRights);
     }
 
-    Pair<ExecRow,Iterator<ExecRow>> nextLeftAndRights(){
+    Pair<ExecRow,Iterator<ExecRow>> nextLeftAndRights() throws StandardException, IOException {
         Pair<byte[],List<ExecRow>> rights = accumulateRights();
-        if (source.hasNext()){
+        JoinSideExecRow left = source.next(null);
+        if (left != null){
             leftRowsSeen++;
-            JoinSideExecRow left = source.next();
             List<ExecRow> rightRows = left.sameHash(rights.getFirst()) ?
                                         rights.getSecond() : (List<ExecRow>)Collections.EMPTY_LIST;
             return new Pair<ExecRow,Iterator<ExecRow>>(left.getRow(), rightRows.iterator());
@@ -77,28 +83,19 @@ public class MergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
     }
 
     @Override
-    public boolean hasNext() {
-        if (nextBatch == null){
-            nextBatch = nextLeftAndRights();
-        }
-        return nextBatch != null;
+    public Pair<ExecRow,Iterator<ExecRow>> next(SpliceRuntimeContext ctx)
+            throws StandardException, IOException {
+        return nextLeftAndRights();
     }
 
     @Override
-    public Pair<ExecRow,Iterator<ExecRow>> next() {
-        Pair<ExecRow,Iterator<ExecRow>> value = nextBatch;
-        nextBatch = null;
-        return value;
+    public void open() throws StandardException, IOException {
+        source.open();
     }
 
     @Override
-    public void remove() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Iterator<Pair<ExecRow, Iterator<ExecRow>>> iterator() {
-        return this;
+    public void close() throws StandardException, IOException {
+        source.close();
     }
 
     @Override

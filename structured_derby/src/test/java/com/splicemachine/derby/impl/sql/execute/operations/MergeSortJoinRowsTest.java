@@ -5,6 +5,8 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.JoinSideExecRow;
+import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.utils.StandardIterators;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.SQLVarchar;
@@ -71,9 +73,10 @@ public class MergeSortJoinRowsTest {
     @Test
     public void testMergeSortJoinRowsIterating() throws Exception {
 
-        MergeSortJoinRows pairs = new MergeSortJoinRows(source.iterator());
+        MergeSortJoinRows pairs = new MergeSortJoinRows(StandardIterators.wrap(source));
         int pos = 0;
-        for (Pair<ExecRow,Iterator<ExecRow>> p: pairs){
+        Pair<ExecRow,Iterator<ExecRow>> p;
+        while ((p = pairs.next(null)) != null){
             Assert.assertEquals(expectedStrings.get(pos).getFirst(), execRowToString.apply(p.getFirst()));
             Assert.assertEquals(expectedStrings.get(pos).getSecond(),
                     Lists.transform(Lists.newArrayList(p.getSecond()), execRowToString));

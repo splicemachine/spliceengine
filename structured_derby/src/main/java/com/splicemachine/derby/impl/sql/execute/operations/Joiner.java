@@ -72,6 +72,10 @@ public class Joiner {
         return JoinUtils.getMergedRow(left, right, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRowTemplate);
     }
 
+    protected boolean shouldMergeEmptyRow(boolean recordsFound) {
+        return !recordsFound && (isOuterJoin || antiJoin);
+    }
+
     private void addLeftAndRights(Pair<ExecRow, Iterator<ExecRow>> leftAndRights) {
         currentLeftRow = leftAndRights.getFirst();
         rightSideRowIterator = leftAndRights.getSecond();
@@ -99,7 +103,7 @@ public class Joiner {
                 rightSideReturned = true;
                 return candidate;
             }
-            if (!rightSideReturned && shouldMergeEmptyRow(!foundRows)) {
+            if (!rightSideReturned && shouldMergeEmptyRow(foundRows)) {
                 // if we've consumed right side iterator without finding a match & we return empty rows,
                 // return with empty right side
                 rightSideReturned = true;
@@ -119,13 +123,23 @@ public class Joiner {
     }
 
     public ExecRow nextRow() throws StandardException, IOException {
+        Pair<ExecRow,Iterator<ExecRow>> sourcePair;
+
         ExecRow row = getNextFromBuffer();
-        while (row == null && joinRowsSource.hasNext()) {
-            addLeftAndRights(joinRowsSource.next());
+        while (row == null
+                   && (sourcePair = joinRowsSource.next(null)) != null) {
+            addLeftAndRights(sourcePair);
             row = getNextFromBuffer();
         }
         return row;
+    }
 
+    public void open() throws StandardException, IOException {
+        joinRowsSource.open();
+    }
+
+    public void close() throws StandardException, IOException {
+        joinRowsSource.close();
     }
 
     public int getLeftRowsSeen() {
@@ -136,7 +150,4 @@ public class Joiner {
         return joinRowsSource.getRightRowsSeen();
     }
 
-    protected boolean shouldMergeEmptyRow(boolean noRecordsFound) {
-        return noRecordsFound && (isOuterJoin || antiJoin);
-    }
 }
