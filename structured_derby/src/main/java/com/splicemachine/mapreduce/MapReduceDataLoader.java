@@ -42,7 +42,7 @@ public class MapReduceDataLoader extends Configured implements Tool {
 				Configuration conf = getConf();
 				conf.set(HBASE_TABLE_NAME, Long.toString(importContext.getTableId()));
 				HBaseConfiguration.addHbaseResources(conf);
-				Job job = Job.getInstance(conf);
+				Job job = new Job(conf);
 				job.getConfiguration().set(HBaseBulkLoadMapper.IMPORT_CONTEXT, gson.toJson(importContext));
 				job.setJarByClass(MapReduceDataLoader.class);
 				job.setMapperClass(HBaseBulkLoadMapper.class);
