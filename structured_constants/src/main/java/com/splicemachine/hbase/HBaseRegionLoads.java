@@ -70,7 +70,7 @@ public class HBaseRegionLoads {
     /*
      * Update now, blocking until finished or interrupted
      */
-    public static boolean update() {
+    public static void update() throws InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
         updateService.execute(new Runnable() {
             @Override
@@ -79,12 +79,7 @@ public class HBaseRegionLoads {
                 latch.countDown();
             }
         });
-        try {
-            latch.await();
-        } catch (InterruptedException ie) {
-            return false;
-        }
-        return true;
+        latch.await();
     }
 
     /*
@@ -135,7 +130,7 @@ public class HBaseRegionLoads {
         return Collections.unmodifiableMap(regionLoads);
     }
 
-    // lookups
+    // Lookups
 
     public static Collection<HServerLoad.RegionLoad> getCachedRegionLoadsForTable(String tableName){
         Map<String,Map<String,HServerLoad.RegionLoad>> loads = cache.get();
