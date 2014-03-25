@@ -1,7 +1,24 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.IOException;
+
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -16,10 +33,20 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.EntryDataHash;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
+import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import com.splicemachine.derby.utils.marshall.NoOpKeyHashDecoder;
+import com.splicemachine.derby.utils.marshall.NoOpPostfix;
+import com.splicemachine.derby.utils.marshall.NoOpPrefix;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.writer.*;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.writer.ForwardRecordingCallBuffer;
+import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.stats.Counter;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.TimeView;
@@ -30,22 +57,6 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-import java.io.IOException;
-import com.splicemachine.hbase.KVPair;
 
 /**
  * @author jessiezhang
@@ -260,7 +271,7 @@ public class UpdateOperation extends DMLWriteOperation{
 		}
 
 		private class ResultSupplier{
-				private KeyValue result;
+				private Cell result;
 
 				private byte[] location;
 				private byte[] filterBytes;
@@ -297,10 +308,10 @@ public class UpdateOperation extends DMLWriteOperation{
 
 								Result r = htable.get(remoteGet);
 								//we assume that r !=null, because otherwise, what are we updating?
-								KeyValue[] rawKvs = r.raw();
-								for(KeyValue kv:rawKvs){
-										getBytes.add(kv.getLength());
-										if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY)){
+								Cell[] rawKvs = r.rawCells();
+								for(Cell kv:rawKvs){
+										getBytes.add(kv.getRowArray().length);
+										if(CellUtils.matchingColumn(kv,SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY)){
 												result = kv;
 												break;
 										}
@@ -308,7 +319,7 @@ public class UpdateOperation extends DMLWriteOperation{
 								//we also assume that PACKED_COLUMN_KEY is properly set by the time we get here
 								getTimer.tick(1);
 						}
-						decoder.set(result.getBuffer(),result.getValueOffset(),result.getValueLength());
+						decoder.set(result.getRowArray(),result.getValueOffset(),result.getValueLength());
 				}
 
 				public void close() throws IOException {

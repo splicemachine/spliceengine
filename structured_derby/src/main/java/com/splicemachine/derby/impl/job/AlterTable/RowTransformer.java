@@ -148,7 +148,7 @@ public class RowTransformer {
         KVPair newPair = entryEncoder.encode(newRow);
 
         // preserve the old row key
-        newPair.setKey(kv.getRow());
+        newPair.setKey(kv.getRowArray());
         return newPair;
     }
 

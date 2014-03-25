@@ -234,7 +234,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 								}
 								SpliceLogUtils.trace(LOG, "nextRow retrieved derby row %s", currentRow);
 								this.setCurrentRow(currentRow);
-								currentRowLocation = new HBaseRowLocation(keyValues.get(0).getRow());
+								currentRowLocation = new HBaseRowLocation(keyValues.get(0).getRowArray());
 								return currentRow;
 						}
 				} catch (Exception e) {

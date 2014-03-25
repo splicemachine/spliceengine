@@ -1,6 +1,24 @@
 package com.splicemachine.derby.impl.store.access.base;
 
+import java.io.IOException;
+import java.util.Properties;
+
 import com.carrotsearch.hppc.BitSet;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.store.access.ConglomerateController;
+import org.apache.derby.iapi.store.access.SpaceInfo;
+import org.apache.derby.iapi.store.raw.Transaction;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.impl.store.raw.data.SpaceInformation;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
@@ -13,24 +31,6 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
-
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.store.access.ConglomerateController;
-import org.apache.derby.iapi.store.access.SpaceInfo;
-import org.apache.derby.iapi.store.raw.Transaction;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.impl.store.raw.data.SpaceInformation;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.util.Properties;
 
 public abstract class SpliceController implements ConglomerateController {
 	protected static Logger LOG = Logger.getLogger(SpliceController.class);
@@ -166,7 +166,7 @@ public abstract class SpliceController implements ConglomerateController {
                 	if (dvd != null)
                 		dvd.restoreToNull();
                 }
-                for(KeyValue kv:result.raw()){
+                for(Cell kv:result.rawCells()){
                     RowMarshaller.sparsePacked().decode(kv, destRow, null, decoder);
                 }
                 return true;

@@ -1,11 +1,12 @@
 package com.splicemachine.derby.utils.marshall;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.encoding.MultiFieldDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.Cell;
+
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.encoding.MultiFieldDecoder;
 
 /**
  * @author Scott Fines
@@ -65,14 +66,14 @@ public class RowDecoder {
         }
     }
 
-    public ExecRow decode(Iterable<? extends KeyValue> keyValues) throws StandardException {
+    public ExecRow decode(Iterable<? extends Cell> keyValues) throws StandardException {
         ExecRow row = clone?template.getClone(): template;
         boolean rowSet = false;
         DataValueDescriptor[] fields = row.getRowArray();
         for(DataValueDescriptor field:fields){
             field.setToNull();
         }
-        for(KeyValue value: keyValues){
+        for(Cell value: keyValues){
             if(!rowSet){
                 if(keyDecoder==null)
                     rowSet=true;
@@ -90,11 +91,11 @@ public class RowDecoder {
         return row;
     }
 
-    public ExecRow decode(KeyValue[] keyValues) throws StandardException{
+    public ExecRow decode(Cell[] keyValues) throws StandardException{
         boolean rowSet = keyType == null; //if keyType!=null, we want to set on the keyDecoder, otherwise don't bother
         template.resetRowArray();
         DataValueDescriptor []fields = template.getRowArray();
-        for(KeyValue value: keyValues){
+        for(Cell value: keyValues){
             if(!rowSet){
                 if(keyDecoder==null)
                     rowSet=true;

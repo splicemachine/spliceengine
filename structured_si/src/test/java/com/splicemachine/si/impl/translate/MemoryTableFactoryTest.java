@@ -1,19 +1,24 @@
 package com.splicemachine.si.impl.translate;
 
-import com.splicemachine.si.HStoreSetup;
-import com.splicemachine.si.impl.translate.MemoryTableFactory;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTableFactory;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.HTableInterfaceFactory;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
+import com.splicemachine.si.HStoreSetup;
 @Ignore
 public class MemoryTableFactoryTest {
     @Test
@@ -47,8 +52,8 @@ public class MemoryTableFactoryTest {
         final HTableInterface table = factory.createHTableInterface(null, Bytes.toBytes("999"));
         Get get = new Get(Bytes.toBytes("joe"));
         final Result result = table.get(get);
-        final KeyValue kv = result.getColumnLatest(Bytes.toBytes("V"), Bytes.toBytes("qualifier1"));
-        Assert.assertEquals(20, Bytes.toInt(kv.getValue()));
+        final Cell kv = result.getColumnLatestCell(Bytes.toBytes("V"), Bytes.toBytes("qualifier1"));
+        Assert.assertEquals(20, Bytes.toInt(CellUtil.cloneValue(kv)));
     }
 
 }

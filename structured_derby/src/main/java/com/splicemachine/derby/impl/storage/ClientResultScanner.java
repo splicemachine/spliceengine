@@ -1,21 +1,25 @@
 package com.splicemachine.derby.impl.storage;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHashPrefix;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.marshall.BucketHasher;
-import com.splicemachine.derby.utils.marshall.SpreadBucket;
-import com.splicemachine.stats.*;
+import java.io.IOException;
+import java.util.Iterator;
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 
-import java.io.IOException;
-import java.util.Iterator;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHashPrefix;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.marshall.BucketHasher;
+import com.splicemachine.derby.utils.marshall.SpreadBucket;
+import com.splicemachine.stats.Counter;
+import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.Metrics;
+import com.splicemachine.stats.TimeView;
+import com.splicemachine.stats.Timer;
 
 /**
  * Uses typical HBase client to return results
@@ -77,8 +81,8 @@ public class ClientResultScanner implements SpliceResultScanner{
 				if(r!=null&&r.size()>0){
 						remoteReadTimer.tick(1);
 						if(remoteBytesRead.isActive()){
-							for(KeyValue kv:r.raw()){
-								remoteBytesRead.add(kv.getLength());
+							for(Cell kv:r.rawCells()){
+								remoteBytesRead.add(kv.getRowArray().length);
 							}
 						}
 				}else{
@@ -94,8 +98,8 @@ public class ClientResultScanner implements SpliceResultScanner{
 						remoteReadTimer.tick(results.length);
 						if(remoteBytesRead.isActive()){
 								for(Result r:results){
-										for(KeyValue kv:r.raw()){
-												remoteBytesRead.add(kv.getLength());
+										for(Cell kv:r.rawCells()){
+												remoteBytesRead.add(kv.getRowArray().length);
 										}
 								}
 						}

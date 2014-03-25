@@ -1,14 +1,17 @@
 package com.splicemachine.derby.impl.load;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.sql.Types;
+import java.util.Map;
+import java.util.NavigableMap;
+
 import com.google.common.collect.Maps;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.si.jmx.ManagedTransactor;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -24,12 +27,15 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import java.io.IOException;
-import java.sql.Types;
-import java.util.Map;
-import java.util.NavigableMap;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.jmx.ManagedTransactor;
 
 /**
  * @author Scott Fines
@@ -57,14 +63,14 @@ public class BlockImportJobTest {
             endKey = Encoding.encode(i);
             HRegionInfo regionInfo = new HRegionInfo(TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, "1184"),
                     startKey,endKey);
-            ServerName name = new ServerName("192.168.1."+Integer.toString(i%4)+":8181",System.currentTimeMillis());
+            ServerName name = ServerName.valueOf("192.168.1."+Integer.toString(i%4)+":8181",System.currentTimeMillis());
             regionMap.put(regionInfo,name);
             startKey = endKey;
         }
         endKey = HConstants.EMPTY_END_ROW;
         HRegionInfo regionInfo = new HRegionInfo(TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, "1184"),
                 startKey,endKey);
-        ServerName name = new ServerName("192.168.1."+Integer.toString(10%4)+":8181",System.currentTimeMillis());
+        ServerName name = ServerName.valueOf("192.168.1."+Integer.toString(10%4)+":8181",System.currentTimeMillis());
         regionMap.put(regionInfo,name);
 
         when(table.getRegionLocations()).thenReturn(regionMap);

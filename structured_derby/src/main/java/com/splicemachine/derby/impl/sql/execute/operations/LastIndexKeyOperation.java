@@ -18,6 +18,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -152,7 +153,7 @@ public class LastIndexKeyOperation extends ScanOperation{
         			 */
 								currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
 						} else {
-								currentRowLocation.setValue(keyValues.get(0).getRow());
+								currentRowLocation.setValue(CellUtil.cloneRow(keyValues.get(0)));
 						}
 						returnedRow = true;
 						setCurrentRow(currentRow);

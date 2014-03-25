@@ -56,7 +56,7 @@ public class TestUtils {
             URL pathToFile = null;
 
             if (f.isAbsolute()) {
-                pathToFile = f.toURL();
+                pathToFile = f.toURI().toURL();
 
             } else {
                 pathToFile = getClasspathResource(fileName);

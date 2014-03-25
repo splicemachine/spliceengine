@@ -1,14 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import static org.mockito.Mockito.mock;
+
+import java.util.Collections;
+import java.util.List;
+
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.utils.Snowflake;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLInteger;
@@ -18,10 +15,12 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.List;
-
-import static org.mockito.Mockito.mock;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.utils.Snowflake;
+import com.splicemachine.utils.kryo.KryoPool;
 
 /**
  * @author Scott Fines
@@ -90,7 +89,7 @@ public class MergeSortScanBoundaryTest {
 				row.setRowArray(new DataValueDescriptor[]{new SQLInteger()});
 
 				MergeSortScanBoundary scanBoundary = new MergeSortScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES, 9);
-				byte[] start = scanBoundary.getStartKey(new Result(new KeyValue[]{new KeyValue(splitPoint,SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,splitPoint)}));
+				byte[] start = scanBoundary.getStartKey(Result.create(new KeyValue[]{new KeyValue(splitPoint,SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,splitPoint)}));
 
 				System.out.println(BytesUtil.toHex(start));
 

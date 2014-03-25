@@ -1,7 +1,25 @@
 package com.splicemachine.si;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.BinaryComparator;
+import org.apache.hadoop.hbase.filter.CompareFilter;
+import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.junit.Assert;
+
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -21,20 +39,6 @@ import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.kryo.KryoPool;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.OperationWithAttributes;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.BinaryComparator;
-import org.apache.hadoop.hbase.filter.CompareFilter;
-import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.junit.Assert;
-import java.io.IOException;
-import java.util.*;
 
 /**
  * @author Scott Fines
@@ -366,7 +370,7 @@ public class TransactorTestUtility {
 			Map<Long, String> timestampDecoder = new HashMap<Long,String>();
 			final StringBuilder s = new StringBuilder();
 			byte[] packedColumns = result.getValue(transactorSetup.family, SIConstants.PACKED_COLUMN_BYTES);
-			long timestamp = result.getColumnLatest(transactorSetup.family, SIConstants.PACKED_COLUMN_BYTES).getTimestamp();
+			long timestamp = result.getColumnLatestCell(transactorSetup.family, SIConstants.PACKED_COLUMN_BYTES).getTimestamp();
 			EntryDecoder decoder = new EntryDecoder(kryoPool);
 			decoder.set(packedColumns);
 			MultiFieldDecoder mfd = null;

@@ -6,7 +6,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -17,11 +16,9 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -32,18 +29,19 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.batch.PipelineWriteContext;
 import com.splicemachine.hbase.writer.BufferConfiguration;
 import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.UnsafeCallBuffer;
 import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.hbase.writer.Writer;
-import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
@@ -115,8 +113,8 @@ public class IndexUpsertWriteHandlerTest {
                 for(KVPair pair:pairs){
                     if(Arrays.equals(pair.getRow(),rowKey)){
                         //convert to a Result object
-                        KeyValue kv = pair.toKeyValue();
-                        return new Result(Arrays.asList(kv));
+                        Cell kv = pair.toKeyValue();
+                        return Result.create(Arrays.asList(kv));
                     }
                 }
                 return new Result();

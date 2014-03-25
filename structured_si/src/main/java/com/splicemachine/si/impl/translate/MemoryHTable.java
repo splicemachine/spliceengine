@@ -101,7 +101,7 @@ public class MemoryHTable implements HTableInterface {
         final LTable memoryTable = memoryStore.open(tableName);
         try {
             final Object translatedGet = translator.translate(get);
-            return (Result) translator.translateResult(memoryStore.get(memoryTable, (LGet) translatedGet));
+            return translator.translateResult(memoryStore.get(memoryTable, (LGet) translatedGet));
         } finally {
             memoryStore.close(memoryTable);
         }

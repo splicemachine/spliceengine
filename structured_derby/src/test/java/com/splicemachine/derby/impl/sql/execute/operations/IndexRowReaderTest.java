@@ -1,26 +1,24 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.IndexRow;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.impl.temp.TempTable;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.derby.utils.test.TestingDataType;
-import com.splicemachine.storage.EntryEncoder;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
-import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.storage.index.BitIndexing;
-import com.splicemachine.utils.Snowflake;
-import com.splicemachine.utils.kryo.KryoPool;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.KeyValue;
@@ -36,21 +34,21 @@ import org.junit.runners.Parameterized;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.sql.execute.IndexRow;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.impl.temp.TempTable;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.derby.utils.test.TestingDataType;
+import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.Predicate;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.index.BitIndexing;
+import com.splicemachine.utils.Snowflake;
+import com.splicemachine.utils.kryo.KryoPool;
 
 /**
  * @author Scott Fines
@@ -235,7 +233,7 @@ public class IndexRowReaderTest {
             byte[] outputBytes = encoder.encode();
 
             KeyValue kv = new KeyValue(outputRowKey,SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,outputBytes);
-            Result result = new Result(new KeyValue[]{kv});
+            Result result = Result.create(new KeyValue[]{kv});
             results.put(outputRowKey,result);
         }
 

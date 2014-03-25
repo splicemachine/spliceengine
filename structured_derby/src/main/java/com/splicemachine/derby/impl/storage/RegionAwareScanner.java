@@ -8,7 +8,6 @@ import java.util.List;
 import com.google.common.collect.Lists;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -178,8 +177,8 @@ public class RegionAwareScanner implements SpliceResultScanner {
 
 		protected void measureResult(Result currentResult) {
 				long byteSize = 0;
-				for (KeyValue aRaw : currentResult.raw()) {
-						byteSize += aRaw.getLength();
+				for (Cell aRaw : currentResult.rawCells()) {
+						byteSize += aRaw.getRowArray().length;
 				}
 				remoteBytesRead.add(byteSize);
 		}

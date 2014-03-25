@@ -6,17 +6,19 @@ import java.util.List;
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
@@ -106,14 +108,14 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
                 return;
             }
 
-            KeyValue resultValue = null;
-            for(KeyValue value:result.raw()){
-                if(value.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY)){
+            Cell resultValue = null;
+            for(Cell value:result.rawCells()){
+                if(CellUtils.matchingColumn(value,SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY)){
                     resultValue = value;
                     break;
                 }
             }
-            KVPair resultPair = new KVPair(get.getRow(),resultValue.getValue(), KVPair.Type.DELETE);
+            KVPair resultPair = new KVPair(get.getRow(), CellUtil.cloneValue(resultValue), KVPair.Type.DELETE);
             KVPair indexDelete = transformer.translate(resultPair);
             indexBuffer.add(indexDelete);
         } catch (IOException e) {

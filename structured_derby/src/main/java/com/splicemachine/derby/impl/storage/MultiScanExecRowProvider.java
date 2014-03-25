@@ -1,18 +1,17 @@
 package com.splicemachine.derby.impl.storage;
 
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.util.NoSuchElementException;
+
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.util.NoSuchElementException;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * @author Scott Fines
@@ -48,7 +47,7 @@ public abstract class MultiScanExecRowProvider extends MultiScanRowProvider{
         try{
             Result result = getResult();
             if(result!=null && !result.isEmpty()){
-                currentRow = decoder.decode(result.raw());
+                currentRow = decoder.decode(result.rawCells());
 //                SpliceUtils.populate(result,fbt,currentRow.getRowArray());
                 currentRowLocation = new HBaseRowLocation(result.getRow());
                 populated=true;

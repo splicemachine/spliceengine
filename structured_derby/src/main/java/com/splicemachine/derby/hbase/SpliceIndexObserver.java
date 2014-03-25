@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
@@ -76,7 +77,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             List<Cell> data = put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
             KVPair kv;
             if(data!=null&&data.size()>0){
-                byte[] value = data.get(0).getValue();
+                byte[] value = CellUtil.cloneValue(data.get(0));
                 if(put.getAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null){
                     kv = new KVPair(row,value, KVPair.Type.UPDATE);
                 }else
