@@ -1,12 +1,16 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.si.impl.PushBackIterator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -27,13 +31,12 @@ import java.util.List;
 public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
     private static final Logger LOG = Logger.getLogger(MergeJoinRows.class);
 
-    final Iterator<ExecRow> leftRS;
-    final PushBackIterator<ExecRow> rightRS;
+    final StandardIterator<ExecRow> leftRS;
+    final StandardPushBackIterator<ExecRow> rightRS;
     final Comparator<ExecRow> comparator;
     final List<Pair<Integer,Integer>> joinKeys;
     List<ExecRow> currentRights = new ArrayList<ExecRow>();
 
-    private Pair<ExecRow,Iterator<ExecRow>> nextBatch;
     private int leftRowsSeen;
     private int rightRowsSeen;
 
@@ -47,10 +50,11 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
      * @param leftKeys      Join key(s) on which left side is sorted
      * @param rightKeys     Join Key(s) on which right side is sorted
      */
-    public MergeJoinRows(Iterator<ExecRow> leftRS, Iterator<ExecRow> rightRS,
+    public MergeJoinRows(StandardIterator<ExecRow> leftRS,
+                         StandardIterator<ExecRow> rightRS,
                          int[] leftKeys, int[] rightKeys) {
         this.leftRS = leftRS;
-        this.rightRS = new PushBackIterator<ExecRow>(rightRS);
+        this.rightRS = new StandardPushBackIterator<ExecRow>(rightRS);
 
         assert(leftKeys.length == rightKeys.length);
         joinKeys = Lists.newArrayListWithCapacity(leftKeys.length);
@@ -79,7 +83,8 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
         };
     }
 
-    Iterator<ExecRow> rightsForLeft(ExecRow left){
+    Iterator<ExecRow> rightsForLeft(ExecRow left)
+            throws StandardException, IOException {
         // Check to see if we've already collected the right rows
         // that match this left
         if (currentRights.size() > 0
@@ -88,9 +93,9 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
         }
         // If not, look for the ones that do
         currentRights = new ArrayList<ExecRow>();
-        while (rightRS.hasNext()){
+        ExecRow right;
+        while ((right = rightRS.next(null)) != null){
             rightRowsSeen++;
-            ExecRow right = rightRS.next();
             int comparison = comparator.compare(left, right);
             // if matches left, add to buffer
             if (comparison == 0) {
@@ -106,38 +111,15 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
         return currentRights.iterator();
     }
 
-    Pair<ExecRow,Iterator<ExecRow>> getNextLeftAndRights(){
-        if (leftRS.hasNext()){
+    @Override
+    public Pair<ExecRow, Iterator<ExecRow>> next(SpliceRuntimeContext ctx)
+            throws StandardException, IOException {
+        ExecRow left = leftRS.next(ctx);
+        if (left != null){
             leftRowsSeen++;
-            ExecRow left = leftRS.next();
             return Pair.newPair(left, rightsForLeft(left));
         }
         return null;
-    }
-
-    @Override
-    public boolean hasNext() {
-        if (nextBatch == null){
-            nextBatch = getNextLeftAndRights();
-        }
-        return nextBatch != null;
-    }
-
-    @Override
-    public Pair<ExecRow, Iterator<ExecRow>> next() {
-        Pair<ExecRow,Iterator<ExecRow>> value = nextBatch;
-        nextBatch = null;
-        return value;
-    }
-
-    @Override
-    public Iterator<Pair<ExecRow, Iterator<ExecRow>>> iterator() {
-        return this;
-    }
-
-    @Override
-    public void remove() {
-        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -148,5 +130,17 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
     @Override
     public int getRightRowsSeen() {
         return rightRowsSeen;
+    }
+
+    @Override
+    public void open() throws StandardException, IOException {
+        leftRS.open();
+        rightRS.open();
+    }
+
+    @Override
+    public void close() throws StandardException, IOException {
+        leftRS.close();
+        rightRS.close();
     }
 }

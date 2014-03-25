@@ -5,7 +5,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardIterators;
+import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.si.impl.PushBackIterator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -37,8 +39,6 @@ public class MergeJoinOperation extends JoinOperation {
     int[] rightHashKeys;
     IJoinRowsIterator<ExecRow> mergedRowSource;
     Joiner joiner;
-    private StandardIteratorIterator<ExecRow> leftBridgeIterator;
-    private StandardIteratorIterator<ExecRow> rightBridgeIterator;
 
     // for overriding
     protected boolean wasRightOuterJoin = false;
@@ -111,38 +111,39 @@ public class MergeJoinOperation extends JoinOperation {
         if (joiner == null) {
             // Upon first call, init up the joined rows source
             joiner = initJoiner(spliceRuntimeContext);
-						timer = spliceRuntimeContext.newTimer();
+            joiner.open();
+            timer = spliceRuntimeContext.newTimer();
         }
 
-				timer.startTiming();
+        timer.startTiming();
         ExecRow next = joiner.nextRow();
         setCurrentRow(next);
-				if(next==null){
-						timer.stopTiming();
-						stopExecutionTime = System.currentTimeMillis();
-				}else
-					timer.tick(1);
+        if (next == null) {
+            timer.stopTiming();
+            stopExecutionTime = System.currentTimeMillis();
+        } else
+            timer.tick(1);
         return next;
     }
 
-    private Joiner initJoiner(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        leftBridgeIterator = StandardIterators.asIter(StandardIterators.wrap(new Callable<ExecRow>() {
+    private Joiner initJoiner(final SpliceRuntimeContext<ExecRow> spliceRuntimeContext)
+            throws StandardException, IOException {
+        StandardIterator<ExecRow> leftRows = StandardIterators.wrap(new Callable<ExecRow>() {
             @Override
             public ExecRow call() throws Exception {
                 return leftResultSet.nextRow(spliceRuntimeContext);
             }
-        }));
-        PushBackIterator<ExecRow> leftPushBack = new PushBackIterator<ExecRow>(leftBridgeIterator);
-        if (leftPushBack.hasNext()) {
-            ExecRow firstLeft = leftPushBack.next().getClone();
+        });
+        StandardPushBackIterator<ExecRow> leftPushBack = new StandardPushBackIterator<ExecRow>(leftRows);
+        ExecRow firstLeft = leftPushBack.next(spliceRuntimeContext);
+        if (firstLeft != null) {
+            firstLeft = firstLeft.getClone();
             spliceRuntimeContext.addScanStartOverride(getKeyRow(firstLeft, leftHashKeys[0]));
             leftPushBack.pushBack(firstLeft);
         }
-        rightBridgeIterator = StandardIterators.asIter(StandardIterators.wrap(
-                rightResultSet.executeScan(spliceRuntimeContext)));
-        rightBridgeIterator.open();
-        mergedRowSource = new MergeJoinRows(leftPushBack, rightBridgeIterator,
-                leftHashKeys, rightHashKeys);
+        StandardIterator<ExecRow> rightRows = StandardIterators
+                                                  .wrap(rightResultSet.executeScan(spliceRuntimeContext));
+        mergedRowSource = new MergeJoinRows(leftPushBack, rightRows, leftHashKeys, rightHashKeys);
         return new Joiner(mergedRowSource, getExecRowDefinition(), getRestriction(),
                              false, wasRightOuterJoin, leftNumCols, rightNumCols,
                              oneRowRightSide, notExistsRightSide, null);
@@ -166,11 +167,8 @@ public class MergeJoinOperation extends JoinOperation {
 
     @Override
     public void close() throws StandardException, IOException {
-        if (rightBridgeIterator != null) {
-            rightBridgeIterator.close();
-            leftBridgeIterator.close();
-        }
         super.close();
+        if (joiner != null) joiner.close();
     }
 
 }

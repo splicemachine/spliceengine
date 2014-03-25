@@ -15,6 +15,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
@@ -55,7 +56,6 @@ public class BroadcastJoinOperation extends JoinOperation {
     protected static List<NodeType> nodeTypes;
     protected List<ExecRow> rights;
     private Joiner joiner;
-    private StandardIterators.StandardIteratorIterator<ExecRow> leftBridgeIterator;
     protected Map<ByteBuffer, List<ExecRow>> rightSideMap;
     protected boolean isOuterJoin = false;
     protected static final Cache<Integer, Map<ByteBuffer, List<ExecRow>>> broadcastJoinCache;
@@ -121,13 +121,13 @@ public class BroadcastJoinOperation extends JoinOperation {
 
     @Override
     public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        if (timer == null) {
+        if (joiner == null) {
+            // do inits on first call
             timer = spliceRuntimeContext.newTimer();
             rightCounter = spliceRuntimeContext.newCounter();
             leftCounter = spliceRuntimeContext.newCounter();
-        }
-        if (joiner == null){
             joiner = initJoiner(spliceRuntimeContext);
+            joiner.open();
         }
         timer.startTiming();
         ExecRow next = joiner.nextRow();
@@ -144,7 +144,7 @@ public class BroadcastJoinOperation extends JoinOperation {
     private Joiner initJoiner(final SpliceRuntimeContext ctx)
             throws StandardException {
         rightSideMap = retrieveRightSideCache(ctx);
-        leftBridgeIterator = StandardIterators.asIter(StandardIterators.wrap(new Callable<ExecRow>() {
+        StandardIterator<ExecRow> leftRows = StandardIterators.wrap(new Callable<ExecRow>() {
             @Override
             public ExecRow call() throws Exception {
                 ExecRow row = leftResultSet.nextRow(ctx);
@@ -153,7 +153,7 @@ public class BroadcastJoinOperation extends JoinOperation {
                 }
                 return row;
             }
-        }));
+        });
         final KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE,
                                                   BareKeyHash
                                                       .encoder(leftHashKeys, null),
@@ -176,7 +176,7 @@ public class BroadcastJoinOperation extends JoinOperation {
                 return getEmptyRow();
             }
         };
-        return new Joiner(new BroadCastJoinRows(leftBridgeIterator, lookup),
+        return new Joiner(new BroadCastJoinRows(leftRows, lookup),
                              getExecRowDefinition(), getRestriction(), isOuterJoin,
                              wasRightOuterJoin, leftNumCols, rightNumCols,
                              oneRowRightSide, notExistsRightSide, emptyRowSupplier);
@@ -206,9 +206,7 @@ public class BroadcastJoinOperation extends JoinOperation {
     @Override
     public void close() throws StandardException, IOException {
         super.close();
-        if (leftBridgeIterator != null){
-            leftBridgeIterator.close();
-        }
+        if (joiner != null) joiner.close();
     }
 
     @Override

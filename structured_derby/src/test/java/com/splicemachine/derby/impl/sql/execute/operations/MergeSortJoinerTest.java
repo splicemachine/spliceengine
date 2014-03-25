@@ -388,8 +388,7 @@ public class MergeSortJoinerTest {
         //now for the actual test
 
         StandardIterator<JoinSideExecRow> scanner = getCollectionScanner(joinedRows);
-        StandardIterators.StandardIteratorIterator<JoinSideExecRow> bridgeIterator = StandardIterators.asIter(scanner);
-        IJoinRowsIterator<ExecRow> joinRows = new MergeSortJoinRows(bridgeIterator);
+        IJoinRowsIterator<ExecRow> joinRows = new MergeSortJoinRows(scanner);
 
         Joiner joiner;
         if(outer){
