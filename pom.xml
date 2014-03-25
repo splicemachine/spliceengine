@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.splicemachine</groupId>
@@ -13,12 +14,10 @@
 		<module>structured_derby</module>
 		<module>structured_test</module>
 	</modules>
-
 	<scm>
 		<connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>
 		<developerConnection>scm:git:git@github.com:splicemachine/spliceengine.git</developerConnection>
 	</scm>
-
 	<distributionManagement>
 		<repository>
 			<uniqueVersion>false</uniqueVersion>
@@ -33,7 +32,6 @@
 			<url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
 		</snapshotRepository>
 	</distributionManagement>
-
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -53,9 +51,8 @@
 		<!-- run chaos monkey -->
 		<log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
 		<assemble>false</assemble>
-		<envClassifier />
+		<envClassifier/>
 	</properties>
-
 	<dependencies>
 		<dependency>
 			<groupId>junit</groupId>
@@ -63,7 +60,6 @@
 			<version>${junit.version}</version>
 		</dependency>
 	</dependencies>
-
 	<build>
 		<extensions>
 			<!-- Enabling the use of FTP -->
@@ -129,7 +125,6 @@
 			</plugins>
 		</pluginManagement>
 	</build>
-
 	<reporting>
 		<plugins>
 			<plugin>
@@ -146,7 +141,6 @@
 			</plugin>
 		</plugins>
 	</reporting>
-
 	<pluginRepositories>
 		<pluginRepository>
 			<id>codehaus-release-repo</id>
@@ -154,7 +148,6 @@
 			<url>http://repository.codehaus.org</url>
 		</pluginRepository>
 	</pluginRepositories>
-
 	<repositories>
 		<repository>
 			<id>central</id>
@@ -187,9 +180,7 @@
 			</releases>
 		</repository>
 	</repositories>
-
 	<profiles>
-
 		<profile>
 			<!-- =========================================================== -->
 			<!--                    cloudera-cdh4.3.0                        -->
@@ -341,7 +332,6 @@
 				</plugins>
 			</build>
 		</profile>
-
 		<profile>
 			<!-- =========================================================== -->
 			<!--                    cloudera-cdh4.5.0                        -->
@@ -491,7 +481,6 @@
 				</plugins>
 			</build>
 		</profile>
-
 		<profile>
 			<!-- =========================================================== -->
 			<!--                           hdp1.3                            -->
@@ -559,13 +548,13 @@
 				<repository>
 					<id>HDPReleases</id>
 					<name>HDP Releases</name>
-					<releases>
-						<enabled>true</enabled>
-					</releases>
+					<url>http://repo.hortonworks.com/content/repositories/releases</url>
 					<snapshots>
 						<enabled>false</enabled>
 					</snapshots>
-					<url>http://repo.hortonworks.com/content/repositories/releases</url>
+					<releases>
+						<enabled>true</enabled>
+					</releases>
 					<layout>default</layout>
 				</repository>
 			</repositories>
@@ -578,23 +567,25 @@
 							<argLine>-Xms256M -Xmx1024M</argLine>
 							<redirectTestOutputToFile>true</redirectTestOutputToFile>
 							<includes>
+								<include>**/*Suite.java</include>
 								<include>**/*Test.java</include>
 							</includes>
 							<excludes>
 								<!-- Skip ITs -->
 								<exclude>**/*IT.java</exclude>
+								<exclude>**/si/**/*Test.java</exclude>
 							</excludes>
 						</configuration>
 					</plugin>
 					<plugin>
 						<artifactId>maven-failsafe-plugin</artifactId>
 						<executions>
-                            <execution>
-                                <id>integration-tests</id>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
+							<execution>
+								<id>integration-tests</id>
+								<goals>
+									<goal>integration-test</goal>
+									<goal>verify</goal>
+								</goals>
 							</execution>
 						</executions>
 						<version>2.12.2</version>
@@ -614,7 +605,6 @@
 				</plugins>
 			</build>
 		</profile>
-
 		<profile>
 			<!-- =========================================================== -->
 			<!--                     apache-hbase-0.94.9                     -->
@@ -660,11 +650,13 @@
 							<argLine>-Xms256M -Xmx1024M</argLine>
 							<redirectTestOutputToFile>true</redirectTestOutputToFile>
 							<includes>
+								<include>**/*Suite.java</include>
 								<include>**/*Test.java</include>
 							</includes>
 							<excludes>
 								<!-- Skip ITs -->
 								<exclude>**/*IT.java</exclude>
+								<exclude>**/si/**/*Test.java</exclude>
 							</excludes>
 						</configuration>
 					</plugin>
@@ -696,14 +688,12 @@
 				</plugins>
 			</build>
 		</profile>
-
 		<profile>
 			<!-- =========================================================== -->
 			<!--                        MapR 0.94.9                          -->
 			<!-- =========================================================== -->
 			<id>mapr-0.94.9</id>
 			<activation>
-				<!-- To run, specify -Dhbase.profile=mapr-0.94.9 -->
 				<property>
 					<name>hbase.profile</name>
 					<value>mapr-0.94.9</value>
@@ -774,8 +764,9 @@
 								<include>**/*Test.java</include>
 							</includes>
 							<excludes>
-								<!-- skip ITs -->
+								<!-- Skip ITs -->
 								<exclude>**/*IT.java</exclude>
+								<exclude>**/si/**/*Test.java</exclude>
 								<!-- Skip unit tests that run against HDFS as we don't have MapR HDFS -->
 								<exclude>**/HBaseStoreTest.java</exclude>
 								<exclude>**/SIFilterHBaseTest.java</exclude>
@@ -828,7 +819,6 @@
 				</plugins>
 			</build>
 		</profile>
-
 		<profile>
 			<id>downloadSources</id>
 			<activation>
@@ -843,5 +833,4 @@
 		</profile>
 
 	</profiles>
-
 </project>
