@@ -1,5 +1,15 @@
 package com.splicemachine.single;
 
+import java.io.PrintStream;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.hbase.io.hfile.CacheConfig;
+import org.apache.log4j.Logger;
+import org.apache.zookeeper.ServerAdminClient;
+
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDerbyCoprocessor;
@@ -11,14 +21,6 @@ import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.si.coprocessors.SIObserver;
-import java.io.PrintStream;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.hadoop.hbase.io.hfile.CacheConfig;
-import org.apache.log4j.Logger;
-import org.apache.zookeeper.ServerAdminClient;
 
 public class SpliceSinglePlatform extends ServerAdminClient {
     private static final Logger LOG = Logger.getLogger(SpliceSinglePlatform.class);
@@ -106,7 +108,7 @@ public class SpliceSinglePlatform extends ServerAdminClient {
 		    configuration.set("hbase.rootdir", hbaseRootDirUri);
         }
 		configuration.setInt("hbase.rpc.timeout", 120000);
-		configuration.setInt("hbase.regionserver.lease.period", 120000);		
+		configuration.setInt("hbase.client.scanner.timeout.period", 120000);
 		configuration.set("hbase.cluster.distributed", "true");
 		configuration.set("hbase.master.distributed.log.splitting", "false");
 		configuration.setInt("hbase.balancer.period", 10000);

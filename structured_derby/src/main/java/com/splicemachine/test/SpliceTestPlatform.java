@@ -1,6 +1,19 @@
 package com.splicemachine.test;
 
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.Random;
+import java.util.concurrent.ExecutionException;
+
 import com.google.common.base.Function;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.io.hfile.CacheConfig;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDerbyCoprocessor;
@@ -15,17 +28,6 @@ import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.impl.TransactionId;
-import java.io.IOException;
-import java.util.Random;
-import java.util.concurrent.ExecutionException;
-import javax.annotation.Nullable;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.io.hfile.CacheConfig;
-import org.apache.log4j.Logger;
 
 public class SpliceTestPlatform extends TestConstants {
     private static final Logger LOG = Logger.getLogger(SpliceTestPlatform.class);
@@ -150,7 +152,7 @@ public class SpliceTestPlatform extends TestConstants {
 	public void setBaselineConfigurationParameters(Configuration configuration) {
 		configuration.set("hbase.rootdir", hbaseRootDirUri);
 		configuration.setInt("hbase.rpc.timeout", 120000);
-		configuration.setInt("hbase.regionserver.lease.period", 120000);		
+		configuration.setInt("hbase.client.scanner.timeout.period", 120000);
 		configuration.set("hbase.cluster.distributed", "true");
 		configuration.setInt("hbase.balancer.period", 10000);
 		configuration.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
