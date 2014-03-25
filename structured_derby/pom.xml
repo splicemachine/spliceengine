@@ -139,6 +139,11 @@
     </resources>
     <testResources>
       <testResource>
+        <directory>src/test/resources/demo/demodata</directory>
+        <filtering>false</filtering>
+        <targetPath>demodata</targetPath>
+      </testResource>
+      <testResource>
         <directory>src/test/resources</directory>
         <filtering>true</filtering>
       </testResource>
