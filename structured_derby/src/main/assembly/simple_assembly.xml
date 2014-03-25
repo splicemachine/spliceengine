@@ -41,7 +41,7 @@
         </includes>
       </fileSet>
       <fileSet>
-        <directory>target/test-classes/demo/demodata</directory>
+        <directory>target/test-classes/demodata</directory>
         <outputDirectory>splicemachine/demodata</outputDirectory>
         <fileMode>0666</fileMode>
         <directoryMode>0755</directoryMode>
@@ -51,7 +51,7 @@
       </fileSet>
       <fileSet>
         <!-- Copy binary files in separate fileSet -->
-        <directory>target/test-classes/demo/demodata/data</directory>
+        <directory>target/test-classes/demodata/data</directory>
         <outputDirectory>splicemachine/demodata/data</outputDirectory>
         <lineEnding>keep</lineEnding>
         <fileMode>0775</fileMode>
