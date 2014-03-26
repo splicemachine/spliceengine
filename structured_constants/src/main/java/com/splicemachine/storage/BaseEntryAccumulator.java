@@ -39,7 +39,7 @@ public abstract class BaseEntryAccumulator<T extends EntryAccumulator<T>> implem
 		public void addScalar(int position, byte[] data, int offset, int length) {
 				if(accumulationSet.get(position))
 						return;
-				occupy(position,data,offset,length);
+				occupyScalar(position,data,offset,length);
 				accumulationSet.addScalar(position);
 		}
 
@@ -47,7 +47,7 @@ public abstract class BaseEntryAccumulator<T extends EntryAccumulator<T>> implem
 		public void addFloat(int position, byte[] data, int offset, int length) {
 				if(accumulationSet.get(position))
 						return;
-				occupy(position,data,offset,length);
+				occupyFloat(position,data,offset,length);
 				accumulationSet.addFloat(position);
 		}
 
@@ -55,12 +55,17 @@ public abstract class BaseEntryAccumulator<T extends EntryAccumulator<T>> implem
 		public void addDouble(int position, byte[] data, int offset, int length) {
 				if(accumulationSet.get(position))
 						return;
-				occupy(position,data,offset,length);
+				occupyDouble(position,data,offset,length);
 				accumulationSet.addDouble(position);
 		}
 
 		protected abstract void occupy(int position, byte[] data, int offset, int length);
+		protected abstract void occupyDouble(int position, byte[] data, int offset, int length);
+		protected abstract void occupyFloat(int position, byte[] data, int offset, int length);
+		protected abstract void occupyScalar(int position, byte[] data, int offset, int length);
 
+		
+		
 		@Override public BitSet getRemainingFields() { return accumulationSet.remainingFields(); }
 		@Override public boolean isFinished() { return accumulationSet.isFinished(); }
 		@Override

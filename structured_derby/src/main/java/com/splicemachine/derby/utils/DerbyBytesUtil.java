@@ -440,6 +440,56 @@ public class DerbyBytesUtil {
 				serializationMap.get(format).decode(dvd,data,offset,length);
 		}
 
+		public static void decodeScalar(DataValueDescriptor dvd, byte[] data, int offset, int length) throws StandardException {
+			if(length<=0){
+					dvd.setToNull();
+					return;
+			}
+			if(dvd.isLazy()){
+					lazySerializer.decode(dvd,data,offset,length);
+					return;
+			}
+			Format format = Format.formatFor(dvd);
+			serializationMap.get(format).decode(dvd,data,offset,length);
+	}
+
+		
+		public static void decodeFloat(DataValueDescriptor dvd, byte[] data, int offset, int length) throws StandardException {
+			if(length<=0){
+					dvd.setToNull();
+					return;
+			}
+			if(Encoding.isNullFloat(data,offset,length)){
+					dvd.setToNull();
+					return;
+			}
+			if(dvd.isLazy()){
+					lazySerializer.decode(dvd,data,offset,length);
+					return;
+			}
+			Format format = Format.formatFor(dvd);
+			serializationMap.get(format).decode(dvd,data,offset,length);
+	}
+
+		
+		public static void decodeDouble(DataValueDescriptor dvd, byte[] data, int offset, int length) throws StandardException {
+			if(length<=0){
+					dvd.setToNull();
+					return;
+			}
+			if(Encoding.isNullDOuble(data,offset,length)){
+					dvd.setToNull();
+					return;
+			}
+			if(dvd.isLazy()){
+					lazySerializer.decode(dvd,data,offset,length);
+					return;
+			}
+			Format format = Format.formatFor(dvd);
+			serializationMap.get(format).decode(dvd,data,offset,length);
+	}
+
+		
 		private enum Format{
         BOOLEAN(StoredFormatIds.SQL_BOOLEAN_ID),
         TINYINT(StoredFormatIds.SQL_TINYINT_ID),

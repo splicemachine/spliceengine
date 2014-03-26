@@ -47,7 +47,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     /*
      * One or the other is always non-null, but not both
      */
-		protected ByteSlice bytes;
+	protected ByteSlice bytes;
 
     protected DVDSerializer dvdSerializer;
     protected boolean deserialized;

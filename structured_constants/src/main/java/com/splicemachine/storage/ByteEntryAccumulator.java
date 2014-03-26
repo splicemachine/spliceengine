@@ -174,4 +174,22 @@ public class ByteEntryAccumulator extends BaseEntryAccumulator<ByteEntryAccumula
 				}
 		}
 
+		@Override
+		protected void occupyDouble(int position, byte[] data, int offset,
+				int length) {
+			occupy(position, data, offset, length);			
+		}
+
+		@Override
+		protected void occupyFloat(int position, byte[] data, int offset,
+				int length) {
+			occupy(position, data, offset, length);		
+		}
+
+		@Override
+		protected void occupyScalar(int position, byte[] data, int offset,
+				int length) {
+			occupy(position, data, offset, length);						
+		}
+
 }
