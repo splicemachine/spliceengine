@@ -414,7 +414,8 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
             	.sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
             	.ownerClass(SYSTEM_PROCEDURES)
             	.varchar("URL",256)
-            	.catalog("JAR").build()
+            	.catalog("JAR")
+            	.integer("DEPLOY").build()
             ,
             Procedure.newBuilder().name("REPLACE_JAR").numOutputParams(0).numResultSets(0)
                 .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
