@@ -126,12 +126,13 @@ public class HBaseRegionLoads {
         return admin;
     }
 
-    private static Supplier<Map<String,HServerLoad.RegionLoad>> newMap = new Supplier<Map<String, HServerLoad.RegionLoad>>() {
-        @Override
-        public Map<String, HServerLoad.RegionLoad> get() {
-            return Maps.newHashMap();
-        }
-    };
+    private static final Supplier<Map<String,HServerLoad.RegionLoad>> newMap =
+        new Supplier<Map<String, HServerLoad.RegionLoad>>() {
+            @Override
+            public Map<String, HServerLoad.RegionLoad> get() {
+                return Maps.newHashMap();
+            }
+        };
 
     private static Map<String, Map<String,HServerLoad.RegionLoad>> fetchRegionLoads() {
         Map<String, Map<String,HServerLoad.RegionLoad>> regionLoads =
