@@ -1,13 +1,14 @@
 package com.splicemachine.hbase;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
+import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.concurrent.DynamicSchedule;
 import com.splicemachine.utils.Misc;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
-import org.apache.hadoop.hbase.ClusterStatus;
-import org.apache.hadoop.hbase.HServerLoad;
-import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -29,10 +30,12 @@ public class HBaseRegionLoads {
 
     private static final Logger LOG = Logger.getLogger(HBaseRegionLoads.class);
 
+    private static HBaseAdmin admin;
+
     // Periodic updating
 
-    //private static final int UPDATE_INTERVAL = 60 * 1000;
-    private static final int UPDATE_INTERVAL = 200;
+    private static final int UPDATE_MULTIPLE = 15;
+    private static final int SMALLEST_UPDATE_INTERVAL = 200;
     private static final AtomicBoolean started = new AtomicBoolean(false);
     private static final AtomicReference<Map<String, Map<String,HServerLoad.RegionLoad>>> cache =
         // The cache is a map from tablename to map of regionname to RegionLoad
@@ -58,16 +61,21 @@ public class HBaseRegionLoads {
                                                        .setDaemon(true)
                                                        .build());
 
-    /*
-     * Start updating in background every UPDATE_INTERVAL ms
+    /**
+     * Start updating in background every UPDATE_MULTIPLE multiples
+     * of update running time
      */
     public static void start() {
         if (started.compareAndSet(false, true)) {
-            updateService.scheduleAtFixedRate(updater, 0, UPDATE_INTERVAL, TimeUnit.MILLISECONDS);
+            updateService
+                .execute(DynamicSchedule.runAndScheduleAsMultiple(updater,
+                                                                     updateService,
+                                                                     UPDATE_MULTIPLE,
+                                                                     SMALLEST_UPDATE_INTERVAL));
         }
     }
 
-    /*
+    /**
      * Update now, blocking until finished or interrupted
      */
     public static void update() throws InterruptedException {
@@ -82,7 +90,7 @@ public class HBaseRegionLoads {
         latch.await();
     }
 
-    /*
+    /**
      * Schedule an update to run as soon as possible
      */
     public static void scheduleUpdate() {
@@ -91,18 +99,44 @@ public class HBaseRegionLoads {
 
     // Fetching
 
-    public static String tableForRegion(byte[] regionName){
-        String[] splits = Bytes.toString(regionName).split(",", 2);
-        if (splits.length > 0){
-            return splits[0];
+    private static String tableForRegion(byte[] regionName){
+        String name = Bytes.toString(regionName);
+        int comma = name.indexOf(",");
+        if (comma > -1) {
+            return name.substring(0,comma);
         }
-        return "";
+        return name;
     }
+
+    private static HBaseAdmin getAdmin() {
+        if (admin == null) {
+            admin = SpliceUtilities.getAdmin();
+        }
+        try {
+            // Check to see if this admin instance still good
+            admin.isMasterRunning();
+        } catch (MasterNotRunningException e) {
+            // If not, close & get a new one
+            Closeables.closeQuietly(admin);
+            admin = SpliceUtilities.getAdmin();
+        } catch (ZooKeeperConnectionException e) {
+            Closeables.closeQuietly(admin);
+            admin = SpliceUtilities.getAdmin();
+        }
+        return admin;
+    }
+
+    private static Supplier<Map<String,HServerLoad.RegionLoad>> newMap = new Supplier<Map<String, HServerLoad.RegionLoad>>() {
+        @Override
+        public Map<String, HServerLoad.RegionLoad> get() {
+            return Maps.newHashMap();
+        }
+    };
 
     private static Map<String, Map<String,HServerLoad.RegionLoad>> fetchRegionLoads() {
         Map<String, Map<String,HServerLoad.RegionLoad>> regionLoads =
             new HashMap<String, Map<String,HServerLoad.RegionLoad>>();
-        HBaseAdmin admin = SpliceUtilities.getAdmin();
+        HBaseAdmin admin = getAdmin();
         try {
             ClusterStatus clusterStatus = admin.getClusterStatus();
             for (ServerName serverName : clusterStatus.getServers()) {
@@ -111,21 +145,12 @@ public class HBaseRegionLoads {
                 for (Map.Entry<byte[], HServerLoad.RegionLoad> entry : serverLoad.getRegionsLoad().entrySet()) {
                     String tableName = tableForRegion(entry.getKey());
                     Map<String,HServerLoad.RegionLoad> loads =
-                        Misc.lookupOrDefault(regionLoads,
-                                                tableName,
-                                                Maps.<String,HServerLoad.RegionLoad>newHashMap());
+                        Misc.lookupOrDefault(regionLoads, tableName, newMap);
                     loads.put(Bytes.toString(entry.getKey()), entry.getValue());
                 }
             }
         } catch (IOException e) {
             SpliceLogUtils.error(LOG, "Unable to fetch region load info", e);
-        } finally {
-            if (admin != null)
-                try {
-                    admin.close();
-                } catch (IOException e) {
-                    // ignore
-                }
         }
         return Collections.unmodifiableMap(regionLoads);
     }
