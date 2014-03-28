@@ -193,8 +193,13 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
 
     @Override
     public DataValueDescriptor cloneValue(boolean forceMaterialization) {
-        forceDeserialization();
-        return new LazyStringDataValueDescriptor((StringDataValue)  sdv.cloneValue(forceMaterialization), dvdSerializer);
+    	if (this.isSerialized()) {
+    		LazyStringDataValueDescriptor lsdv = new LazyStringDataValueDescriptor((StringDataValue) sdv.cloneHolder(), dvdSerializer);
+    		lsdv.initForDeserialization(bytes.array(), bytes.offset(), bytes.length(), descendingOrder);
+    		return lsdv;
+    	}
+    	forceDeserialization();
+    	return new LazyStringDataValueDescriptor((StringDataValue)  sdv.cloneValue(forceMaterialization), dvdSerializer);
     }
 
     @Override
