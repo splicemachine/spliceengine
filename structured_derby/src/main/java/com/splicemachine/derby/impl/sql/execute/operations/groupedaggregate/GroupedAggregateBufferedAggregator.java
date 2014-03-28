@@ -47,11 +47,11 @@ public class GroupedAggregateBufferedAggregator extends AbstractBufferedAggregat
         for(SpliceGenericAggregator aggregator:aggregates){
             boolean shouldAdd = aggregator.isInitialized(newRow);
             if (!filterDistincts(newRow, aggregator, shouldAdd)){
-                if(!shouldAdd)
-                    aggregator.initialize(newRow);
-                if(shouldMerge)
+                if(shouldMerge){
+										if(!shouldAdd)
+												aggregator.initialize(newRow);
                     aggregator.merge(newRow,currentRow);
-                else
+								}else
                     aggregator.accumulate(newRow,currentRow);
             }
         }
