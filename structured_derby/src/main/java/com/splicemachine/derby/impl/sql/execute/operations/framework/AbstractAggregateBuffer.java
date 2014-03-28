@@ -76,21 +76,34 @@ public abstract class AbstractAggregateBuffer extends AbstractAggregateBufferCon
 
 		public GroupedRow add(byte[] groupingKey, ExecRow nextRow) throws StandardException {
 				GroupedRow evicted = null;
-				boolean found;
-				int position;
-				BufferedAggregator aggregate;
-				int hashCount=0;
-				int byteHash = hashes[0].hash(groupingKey,0,groupingKey.length);
-				byte[] key;
-				do{
-						if(hashCount>0)
-								byteHash+= hashCount*hashes[hashCount].hash(groupingKey,0,groupingKey.length);
-						position = byteHash & (keys.length-1);
-						key = keys[position];
-						aggregate = values[position];
-						found = key==null||Arrays.equals(keys[position],groupingKey) || aggregate==null || !aggregate.isInitialized();
-						hashCount++;
-				} while(!found && hashCount<hashes.length);
+				boolean found = false;
+				byte[] key = null;
+				BufferedAggregator aggregate = null;
+				int position = 0;
+				for(int hashPos=0;hashPos<hashes.length && !found;hashPos++){
+						ByteHash32 hashFunction = hashes[hashPos];
+						int hashCode = hashFunction.hash(groupingKey,0,groupingKey.length);
+						position = hashCode & (keys.length-1);
+						for(int i=0;i<5 && !found; i++){
+								position = (position+i) & (keys.length-1);
+								key = keys[position];
+								aggregate = values[position];
+								found = key ==null || Arrays.equals(keys[position],groupingKey) || aggregate==null || !aggregate.isInitialized();
+						}
+				}
+//				BufferedAggregator aggregate;
+//				int hashCount=0;
+//				int byteHash = hashes[0].hash(groupingKey,0,groupingKey.length);
+//				byte[] key;
+//				do{
+//						if(hashCount>0)
+//								byteHash+= hashCount*hashes[hashCount].hash(groupingKey,0,groupingKey.length);
+//						position = byteHash & (keys.length-1);
+//						key = keys[position];
+//						aggregate = values[position];
+//						found = key==null||Arrays.equals(keys[position],groupingKey) || aggregate==null || !aggregate.isInitialized();
+//						hashCount++;
+//				} while(!found && hashCount<hashes.length);
 
 				if(!found){
 						//evict the last entry
