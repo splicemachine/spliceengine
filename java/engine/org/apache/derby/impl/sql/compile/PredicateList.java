@@ -1267,7 +1267,9 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 				/* If any of the predicates is nullable, then the resulting
 				 * tree must be nullable.
 				 */
-				if (restriction.getTypeServices().isNullable())
+				//added restriction.getTypeServices()!=null&& to this if block to prevent null pointer exception if TaskService is NULL.
+				// I am assuming that there is no need to set a TypeService nullable if the type service is NULL.
+				if (restriction.getTypeServices()!=null&&restriction.getTypeServices().isNullable())
 				{
 					nextAnd.setNullability(true);
 				}
