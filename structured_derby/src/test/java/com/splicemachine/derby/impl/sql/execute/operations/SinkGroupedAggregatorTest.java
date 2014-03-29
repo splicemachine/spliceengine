@@ -76,9 +76,9 @@ public class SinkGroupedAggregatorTest {
         SpliceGenericAggregator nonDistinctAggregate = getCountAggregator(4,1,3,false);
         SpliceGenericAggregator distinctAggregate = getCountAggregator(6,2,5,true);
         GroupedAggregateBuffer nonDistinctBuffer = new GroupedAggregateBuffer(10,
-                new SpliceGenericAggregator[]{nonDistinctAggregate},false,emptyRowSupplier,collector, Metrics.noOpMetricFactory());
+                new SpliceGenericAggregator[]{nonDistinctAggregate},false,emptyRowSupplier,collector, Metrics.noOpMetricFactory(), true);
         GroupedAggregateBuffer distinctBuffer = new GroupedAggregateBuffer(10,
-                new SpliceGenericAggregator[]{distinctAggregate},false,emptyRowSupplier,collector, Metrics.noOpMetricFactory());
+                new SpliceGenericAggregator[]{distinctAggregate},false,emptyRowSupplier,collector, Metrics.noOpMetricFactory(), true);
 
         int[] groupColumns = new int[]{0};
         boolean[] groupSortOrder = new boolean[]{true};
@@ -118,7 +118,7 @@ public class SinkGroupedAggregatorTest {
         }));
 
         GroupedAggregateBuffer scanBuffer = new GroupedAggregateBuffer(10,
-                new SpliceGenericAggregator[]{nonDistinctAggregate,distinctAggregate},false,emptyRowSupplier,collector,true, Metrics.noOpMetricFactory());
+                new SpliceGenericAggregator[]{nonDistinctAggregate,distinctAggregate},false,emptyRowSupplier,collector,true, Metrics.noOpMetricFactory(), true);
 
         ScanGroupedAggregateIterator scanAggregator = new ScanGroupedAggregateIterator(scanBuffer,scanSource,groupColumns,groupSortOrder,false);
 

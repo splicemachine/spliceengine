@@ -52,10 +52,12 @@ public abstract class AbstractAggregateBuffer extends AbstractAggregateBufferCon
 		protected GroupedRow groupedRow;
 		protected int lastEvictedPosition = -1;
 		protected int bufferSize = 1;
+		protected long merges;
 
 		/*stats measurement*/
 		protected Counter mergeCounter; //counts the number of merges which are incurred
 		protected Gauge maxFillRatio;
+		protected Counter misCounter; // counts the number of misses that incurred
 
 		public AbstractAggregateBuffer(int maxSize,SpliceGenericAggregator[] aggregators,MetricFactory metricFactory){
 				this(maxSize, aggregators, DEFAULT_HASHES,metricFactory);
@@ -70,7 +72,9 @@ public abstract class AbstractAggregateBuffer extends AbstractAggregateBufferCon
 						bufferSize<<=1;
 				this.keys = new byte[bufferSize][];
 				this.mergeCounter = metricFactory.newCounter();
+				this.misCounter = metricFactory.newCounter();
 				this.maxFillRatio = metricFactory.newMaxGauge();
+				this.merges = 0;
 				intializeAggregator();
 		}
 
@@ -106,6 +110,7 @@ public abstract class AbstractAggregateBuffer extends AbstractAggregateBufferCon
 //				} while(!found && hashCount<hashes.length);
 
 				if(!found){
+						misCounter.add(1);
 						//evict the last entry
 						evicted = getEvictedRow(key,aggregate);
 				}
@@ -123,6 +128,7 @@ public abstract class AbstractAggregateBuffer extends AbstractAggregateBufferCon
 						if(maxFillRatio.isActive())
 								maxFillRatio.update((double)currentSize/bufferSize);
 				} else {
+						merges++;
 						mergeCounter.add(1);
 						aggregate.merge(nextRow);
 				}
@@ -142,7 +148,8 @@ public abstract class AbstractAggregateBuffer extends AbstractAggregateBufferCon
 		}
 
 		/*methods exposing statistics*/
-		public long getRowsMerged(){ return mergeCounter.getTotal(); }
+		public long getRowsMerged(){ return merges; }
+		public long getRowsMissed(){ return misCounter.getTotal(); }		
 		public double getMaxFillRatio(){ return maxFillRatio.getValue(); }
 
 /*********************************************************************************************************************/

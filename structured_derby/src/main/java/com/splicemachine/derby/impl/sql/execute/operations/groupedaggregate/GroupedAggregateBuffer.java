@@ -18,14 +18,16 @@ public class GroupedAggregateBuffer extends AbstractAggregateBuffer {
     private final boolean shouldMerge;
     private final StandardSupplier<ExecRow> emptyRowSupplier;
     private final WarningCollector warningCollector;
+    private final boolean shouldFinish;
 
     public GroupedAggregateBuffer(int maxSize,
                            SpliceGenericAggregator[] aggregators,
                            boolean eliminateDuplicates,
                            StandardSupplier<ExecRow> emptyRowSupplier,
                            WarningCollector warningCollector,
-													 MetricFactory metricFactory){
-        this(maxSize, aggregators, eliminateDuplicates, emptyRowSupplier, warningCollector,false,metricFactory);
+													 MetricFactory metricFactory,
+													 boolean shouldFinish){
+        this(maxSize, aggregators, eliminateDuplicates, emptyRowSupplier, warningCollector,false,metricFactory, shouldFinish);
     }
 		public GroupedAggregateBuffer(int maxSize,
 								SpliceGenericAggregator[] aggregators,
@@ -33,18 +35,20 @@ public class GroupedAggregateBuffer extends AbstractAggregateBuffer {
 							    StandardSupplier<ExecRow> emptyRowSupplier,
 								WarningCollector warningCollector,
 								boolean shouldMerge,
-								MetricFactory metricFactory) {
+								MetricFactory metricFactory,
+								boolean shouldFinish) {
 		super(maxSize,aggregators,metricFactory);
         this.emptyRowSupplier = emptyRowSupplier;
         this.warningCollector = warningCollector;
         this.shouldMerge = shouldMerge;
         this.eliminateDuplicates = eliminateDuplicates;
+        this.shouldFinish = shouldFinish;
 		}
         
 	@Override
 	public BufferedAggregator createBufferedAggregator() {
 		return new GroupedAggregateBufferedAggregator(aggregates, eliminateDuplicates, shouldMerge,
-                emptyRowSupplier, warningCollector);		
+                emptyRowSupplier, warningCollector, shouldFinish);		
 	}
 	@Override
 	public void intializeAggregator() {

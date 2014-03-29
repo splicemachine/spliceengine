@@ -3,10 +3,10 @@ package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 import java.util.HashSet;
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.log4j.Logger;
+
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.google.common.collect.Sets;
@@ -20,39 +20,43 @@ public class GroupedAggregateBufferedAggregator extends AbstractBufferedAggregat
     private final boolean eliminateDuplicates;
     private final boolean shouldMerge;
     private IntObjectMap<HashSet<DataValueDescriptor>> uniqueValues;
+    protected boolean isInitialized;
+    private final boolean shouldFinish;
 
     protected GroupedAggregateBufferedAggregator(SpliceGenericAggregator[] aggregates,
                                  boolean eliminateDuplicates,
                                  boolean shouldMerge,
                                  StandardSupplier<ExecRow> emptyRowSupplier,
-                                 WarningCollector warningCollector) {
+                                 WarningCollector warningCollector,
+                                 boolean shouldFinish) {
     	super(aggregates,emptyRowSupplier,warningCollector);
         this.eliminateDuplicates = eliminateDuplicates;
         this.shouldMerge = shouldMerge;
+        this.shouldFinish = shouldFinish;
     }
-
+    
     public void initialize(ExecRow row) throws StandardException{
         this.currentRow = row.getClone();
-        for(SpliceGenericAggregator aggregator:aggregates){
-            boolean shouldAdd = !shouldMerge ||aggregator.isInitialized(currentRow);
-            aggregator.initialize(currentRow);
-            filterDistincts(currentRow, aggregator,shouldAdd);
-            //if shouldMerge is true, then we don't want to accumulate, it'll mess up the accumulations
-            if(!shouldMerge)
-                aggregator.accumulate(currentRow,currentRow);
-        }
+    }
+    
+    private void initializeAggregate(SpliceGenericAggregator aggregator, ExecRow currentRow) throws StandardException {
+        if (!filterDistincts(currentRow,aggregator,true)) {
+        	aggregator.initialize(currentRow);
+            aggregator.accumulate(currentRow,currentRow);
+         }
     }
 
     public void merge(ExecRow newRow) throws StandardException{
-        for(SpliceGenericAggregator aggregator:aggregates){
-            boolean shouldAdd = aggregator.isInitialized(newRow);
-            if (!filterDistincts(newRow, aggregator, shouldAdd)){
-                if(shouldMerge){
-										if(!shouldAdd)
-												aggregator.initialize(newRow);
-                    aggregator.merge(newRow,currentRow);
-								}else
-                    aggregator.accumulate(newRow,currentRow);
+        for(SpliceGenericAggregator aggregator:aggregates) {
+        	if (!aggregator.isInitialized(currentRow))
+        		initializeAggregate(aggregator,currentRow);
+    		if (!aggregator.isInitialized(newRow))
+    			initializeAggregate(aggregator,newRow);    		
+            if(aggregator.isInitialized(newRow)) {
+            	if (shouldMerge)
+            		aggregator.merge(newRow,currentRow);
+            	else
+            		aggregator.accumulate(newRow,currentRow);
             }
         }
     }
@@ -74,13 +78,13 @@ public class GroupedAggregateBufferedAggregator extends AbstractBufferedAggregat
 
             DataValueDescriptor uniqueValue = aggregator.getInputColumnValue(newRow).cloneValue(false);
             if(uniqueVals.contains(uniqueValue)){
-                if(LOG.isTraceEnabled())
+            	if(LOG.isTraceEnabled())
                     LOG.trace("Aggregator "+ aggregator+" is removing entry "+ newRow);
                 return true;
             }
-
-            if(addEntry)
+            if(addEntry) {
                 uniqueVals.add(uniqueValue);
+            }
         }
         return false;
     }
@@ -94,9 +98,13 @@ public class GroupedAggregateBufferedAggregator extends AbstractBufferedAggregat
             currentRow = emptyRowSupplier.get();
 
         boolean eliminatedNulls = false;
+        if (shouldFinish) {
         for(SpliceGenericAggregator aggregate:aggregates){
+        	if (!aggregate.isInitialized(currentRow))
+        		initializeAggregate(aggregate,currentRow);
             if(aggregate.finish(currentRow))
                 eliminatedNulls=true;
+        }
         }
 //        if(eliminatedNulls)
 //            warningCollector.addWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION);

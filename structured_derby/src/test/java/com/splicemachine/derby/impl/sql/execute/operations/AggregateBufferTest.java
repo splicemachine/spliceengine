@@ -54,7 +54,7 @@ public class AggregateBufferTest {
             public void addWarning(String warningState) throws StandardException {
                 Assert.fail("No warnings should be added!");
             }
-        }, Metrics.noOpMetricFactory());
+        }, Metrics.noOpMetricFactory(),true);
 
         ExecRow row = new ValueRow(3);
         row.setRowArray(new DataValueDescriptor[]{
@@ -130,7 +130,7 @@ public class AggregateBufferTest {
             public void addWarning(String warningState) throws StandardException {
                 Assert.fail("No warnings should be added!");
             }
-        }, Metrics.noOpMetricFactory());
+        }, Metrics.noOpMetricFactory(), true);
 
         ExecRow row = new ValueRow(3);
         row.setRowArray(new DataValueDescriptor[]{
@@ -196,7 +196,7 @@ public class AggregateBufferTest {
             public void addWarning(String warningState) throws StandardException {
                 Assert.fail("No warnings should be added!");
             }
-        }, Metrics.noOpMetricFactory());
+        }, Metrics.noOpMetricFactory(), true);
 
         ExecRow row = new ValueRow(3);
         row.setRowArray(new DataValueDescriptor[]{
@@ -243,7 +243,7 @@ public class AggregateBufferTest {
             public void addWarning(String warningState) throws StandardException {
                 Assert.fail("No warnings should be added!");
             }
-        }, Metrics.noOpMetricFactory());
+        }, Metrics.noOpMetricFactory(), true);
 
         ExecRow row = new ValueRow(3);
         row.setRowArray(new DataValueDescriptor[]{
@@ -291,7 +291,7 @@ public class AggregateBufferTest {
             public void addWarning(String warningState) throws StandardException {
                 Assert.fail("No warnings should be added!");
             }
-        }, Metrics.noOpMetricFactory());
+        }, Metrics.noOpMetricFactory(), true);
 
         ExecRow row = new ValueRow(3);
         row.setRowArray(new DataValueDescriptor[]{
