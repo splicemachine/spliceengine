@@ -1,53 +1,47 @@
-Welcome to the Splice Machine Private Beta Test Program.  This README file contains 
-supplementary material to the Getting Started Guide, found at http://doc.splicemachine.com
+Welcome to the Splice Machine Beta 0.5 Release.  This README file contains 
+supplementary material to the Getting Started Guide, found at http://doc.splicemachine.com.
+Note that the Getting Started Guide has the full installation procedure, but please do 
+read through the README file for the supplementary information as well as any errata, etc.
 
 Please visit http://support.splicemachine.com for any problems, questions, or comments, 
 or to report a bug.
 
-
 =========================================================
-Download URL - Single Unclustered Instance
+Key Reminders - PLEASE READ FIRST
 =========================================================
 
-To download the setup for the unclustered instance, use a web browser to navigate to the 
-following (approx. 80 MB):
+Most of the following points are found in the Getting Started Guide, but bear repeating 
+here:
 
-   http://d10sdxe2fhfs9c.cloudfront.net/splice_machine-0.5rc6-cloudera-cdh4.3.0_simple.tar.gz
-   
-If you use Linux without a web browser, you can use the "wget <file>" command to get the 
-file:
+1.  There are separate instructions for installing a STANDALONE version of Splice Machine
+(i.e. one that only runs on one computer) vs. a version to run on a CLUSTER
 
-   $ wget http://d10sdxe2fhfs9c.cloudfront.net/splice_machine-0.5rc6-cloudera-cdh4.3.0_simple.tar.gz
-	
+2.  For the 0.5 Beta, only the following environments are supported for STANDALONE:
+a.  Windows 7 or 8 (requires Cygwin install first)
+b.  Mac OS X (10.8 or greater)
+c.  Linux (Ubuntu 12.0.4 LTS or CentOS 6.4)
 
-===================================================================
-Download URL - Cloudera Parcel Directory for Clustered Installs
-===================================================================
+3.  For the 0.5 Beta, only the following environments are supported for the CLUSTER:
+a.  Linux (Ubuntu 12.0.4 LTS or CentOS 6.4)
 
-The URL for the Custom Repository is as follows:
-http://d10sdxe2fhfs9c.cloudfront.net
+4.  To run STANDALONE, your computer should have at least 4GB of available RAM and at least
+3x the available disk as data you intend to load.
 
-(IMPORTANT: Remember to hit the "Add" button in the setup process.)  
+5.  To run in a CLUSTER, each computer should have at least 16GB RAM and at least 3x the available
+disk as data you intend to load.  
 
-When prompted be sure to select the RC6 version:
+6.  There is no need to install any Hadoop packages before beginning.  The installation for 
+both STANDALONE and CLUSTER versions will install the appropriate Hadoop packages
+for you. For the standalone version, if you do have any Hadoop packages installed, make 
+sure they are not running before you begin.  For a Cluster, if you have Hadoop packages 
+installed, please consult Technical Support at http://support.splicemachine.com.  
 
-CDH-4.3.0-1.chd4.3.0.splice0.5rc6.22-precise
+7.  Importing data on CLUSTERs: note that data to be imported MUST BE IN HDFS before it 
+can be imported.  See examples in the Getting Started Guide.
 
-============================================================
-Download URL - sqlshell.sh script for Clustered Installs
-============================================================
+8.  If you are installing on AWS there are a few guidelines:
+(only use Public IP, etc.)
 
-Start by using the sqlshell.sh script (downloaded at:
-http://d10sdxe2fhfs9c.cloudfront.net/sqlshell.sh )
-
-After downloading, run "chmod u+x sqlshell.sh" to make the script executable.
-
-=====================================
-Download URL - Sample Data
-=====================================
-
-Compressed, this is about 200MB of data.  The link to access this data is at:
-	http://d10sdxe2fhfs9c.cloudfront.net/demodata.tar.gz
 
 
 =========================================
@@ -56,6 +50,10 @@ A list of known bugs and other issues
 
 - IMPORTANT REMINDER FOR CLUSTER USERS: If you import data like the examples shown with the sample data, you must FIRST
 copy your sample data into HDFS (using copyFromLocal, etc), then change the paths to the HDFS path specified.
+Further, you must ensure 
+
+- After importing a large amount of data into a table, it is useful to run a an HBase "full compaction" against the
+table afterward.  See the System Calls below for how to do this in Splice Machine.
 
 - AWS/EC2 CLUSTER users - it is important to use the "Public DNS" of the instance when specifying hosts for the CDH
 cluster installation.  For example, use ec2-54-243-14-239.compute-1.amazonaws.com - not 54.243.14.239.  Also
@@ -83,22 +81,387 @@ Please be sure to create directories without spaces or other special characters.
 If necessary you can stop and restart the database, or just start another query interface session in another
 terminal window using ./bin/sqlshell.sh.
 
-- Certain DDL actions are not fully complete and/or do not maintain full transactional integrity.  It is best to 
-execute DDL statements separately from DML statements for now.
-
 - Complex nested joins (select * from d join (a left outer join (b join c on b1=c1) on a1 = a2) on d3 = b3)
   can fail.
 
-- You currently cannot create an index on more than 16 columns.
-
-- If you have an autogenerated column, you cannot import into the table and have the autogenerate work properly.
-
 - Restarting the database sometimes takes a couple of attempts.  The start and stop scripts will retry if needed.  If restarting
+Splice Administration Procedures
+
+=========================================
+Splice System Calls
+=========================================
+
+A number of System Calls have been added to get some internal views into Splice Machine.
+
+
+SYSCS_UTIL.SYSCS_GET_TASK_STATUS()
+Get the status of running statements, their jobs and task status including the nodes on which they're running.
+
+STATEMENT: the SQL statement that started the job.
+JOBID: the ID of the job(s) the statement generated.  A job is a container of tasks.
+JOBHOST: the node on which the job is running.
+TASKID: the ID of tasks contained in the the job.  The task does the actual work to complete the statement.
+TASKHOST: the node on which the task is running.
+STATUS: the status of the task: PENDING, RUNNING, FAILED, COMPLETED
+
+Example:
+call SYSCS_UTIL.SYSCS_GET_TASK_STATUS()
+                 STATEMENT                 |        JOBID        | JOBHOST  | TASKID   | TASKHOST   |   STATUS     |
+--------------------------------------------------------------------------------------------------------------------
+     EXECUTE STATEMENT SYS."getTables"     |-1138230879830527999 |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     |-2102001195073130495 |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     |-3272937098187329535 |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     |-3444073889044221951 |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     |-5272535338763452415 |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     |-5551758509637926911 |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     |-5578780107401023487 |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     |-7578378347977146367 |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     |-7857601518851620863 |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     |-9019530227728343039 |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     | 1203640926403891201 |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     | 3482462337854865409 |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     | 3509483935617585153 |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     |  5683430536265729   |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     | 5779298152824717313 |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     | 5788305347068559361 |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     | 7121370836767514625 |localhost |unknownID |unknownHost |unknownStatus |
+     EXECUTE STATEMENT SYS."getTables"     | 8085141162038411265 |localhost |unknownID |unknownHost |unknownStatus |
+select * from A left outer join B on a1=b1 |-9172652615430213631 |localhost |unknownID |unknownHost |unknownStatus |
+select * from A left outer join B on a1=b1 | 1167612128811683841 |localhost |unknownID |unknownHost |unknownStatus |
+
+SYSCS_UTIL.SYSCS_GET_ACTIVE_SERVERS()
+Get the number of active servers in the Splice cluster
+HOSTNAME: the host on which the server is running.
+PORT: the post on which the server is listening for requests.
+STARTCODE: <TODO>
+Synopsis:
+Lists all active servers in the cluster.  
+
+Example:
+splice> call SYSCS_UTIL.SYSCS_GET_ACTIVE_SERVERS()
+HOSTNAME  |PORT  |  STARTCODE   |
+---------------------------------
+localhost |50099 |1387227240359 |
+
+1 row selected
+
+SYSCS_GET_WRITE_PIPELINE_INFO()
+Get information on the number of writes Splice is 
+Synopsis:
+This procedure lets you know the speed of the outgoing buffered writes from a region server.  Rejected tasks will show when too many write requests are being sent to a region server or if a split occurs.  There should be active threads when a region server is writing to temp or another table.  
+
+Example:
+splice> call SYSCS_UTIL.SYSCS_GET_WRITE_PIPELINE_INFO()
+HOSTNAME  | ACTIVETHREADCOUNT |MAXTHREADCOUNT |PENDINGTASKCOUNT |TOTALSUCCESSFULTASKS |TOTALFAILEDTASKS |TOTALREJECTEDTASKS |
+-----------------------------------------------------------------------------------------------------------------------------
+localhost |         0         |      20       |        0        |         64          |        0        |         0         |
+
+1 row selected
+
+SYSCS_UTIL.SYSCS_GET_WRITE_INTAKE_INFO()
+Get information on the number of writes coming into Splice
+Synopsis:
+This procedure shows the active number of write threads currently running on a server.  Each of these threads usually has about 1K rows in them.  The compaction queue and flush queue size limit are the limits where writes will be blocked.
+
+Example:
+splice> call SYSCS_UTIL.SYSCS_GET_WRITE_INTAKE_INFO()
+HOSTNAME  |ACTIVEWRITETHREADS |COMPACTIONQUEUESIZELIMIT | FLUSHQUEUESIZELIMIT |IPCRESERVERDPOOL |
+-------------------------------------------------------------------------------------------------
+localhost |         0         |           10            |         10          |       10        |
+
+1 row selected
+
+SYSCS_UTIL.SYSCS_GET_REQUESTS()
+Get information on the number of total requests coming into Splice
+Synopsis:
+The total number of rpc requests running against a machine.
+Example:
+splice> call SYSCS_UTIL.SYSCS_GET_REQUESTS()
+HOSTNAME  |PORT  | TOTALREQUESTS |
+----------------------------------
+localhost |50099 |       4       |
+
+1 row selected
+
+SYSCS_UTIL.SYSCS_GET_REGION_SERVER_TASK_INFO()
+
+This lists out the number of tasks that are running or pending on a specific machine.  This will allow you to look at load distribution across the cluster.
+
+Example:
+splice> call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_TASK_INFO()
+HOSTNAME  |TOTALWORKERS | PENDING | RUNNING |TOTALCANCELLED |TOTALCOMPLETED | TOTALFAILED |TOTALINVALIDATED |TOTALSUBMITTED | TOTALSHRUGGED | TOTALSTOLEN |MOSTLOADEDTIER | LEASTLOADEDTIER |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+localhost |     10      |    0    |    0    |       0       |      221      |      0      |        0        |      221      |       0       |      0      |       0       |        0        |
+
+1 row selected
+
+SYSCS_UTIL.SYSCS_GET_REGION_SERVER_STATS_INFO()
+
+Example:
+splice> call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_STATS_INFO()
+HOSTNAME  | REGIONS |FSREADLATENCYAVGTIME | FSWRITELATENCYAVGTIME |WRITEREQUESTSCOUNT | READREQUESTSCOUNT |REQUESTS | COMPACTIONQUEUESIZE |FLUSHQUEUESIZE |
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+localhost |   113   |          0          |           0           |       6357        |       12904       |3.000000 |          0          |       0       |
+
+1 row selected
+
+SYSCS_UTIL.SYSCS_GET_WRITE_POOL()
+
+Example:
+splice> call SYSCS_UTIL.SYSCS_GET_WRITE_POOL()
+HOSTNAME  |MAXTASKWORKERS |
+---------------------------
+localhost |      20       |
+
+1 row selected
+
+SYSCS_UTIL.SYSCS_SET_WRITE_POOL(n)
+Set the number of write workers for the system.
+Parameter - type: integer, the number of workers.
+
+Example:
+splice> call SYSCS_UTIL.SYSCS_SET_WRITE_POOL(25)
+Statement executed.
+
+SYSCS_UTIL.SYSCS_GET_MAX_TASKS()
+Get the maximum number of tasks allowed in a priority queue.
+HOSTNAME: the host on which the task queue is running.
+MAXTASKWORKERS: the maximum number of workers allowed in the given queue.
+
+Example:
+splice> call SYSCS_UTIL.SYSCS_GET_MAX_TASKS()
+HOSTNAME  |MAXTASKWORKERS |
+---------------------------
+localhost |       4       |
+
+1 row selected
+
+SYSCS_UTIL.SYSCS_GET_GLOBAL_MAX_TASKS()
+Get the maximum number of tasks allowed over all priority queues.
+HOSTNAME: the host on which the task queue is running.
+MAXTASKWORKERS: the maximum number of workers allowed in the given queue.
+
+Example:
+splice> call SYSCS_UTIL.SYSCS_GET_GLOBAL_MAX_TASKS()
+HOSTNAME  |MAXTASKWORKERS |
+---------------------------
+localhost |      10       |
+
+1 row selected
+
+SYSCS_UTIL.SYSCS_GET_SCHEMA_INFO()
+Get the table information including regions occupied and their store file size for all user schema.
+SCHEMANAME: the schema to which the table belongs.
+TABLENAME: the name of the table.  There may be more than one row containing a table name. This will happen if the table has an index, for example.
+ISINDEX: denotes the HBase table is an index table.
+HBASEREGIONS: shows the HBase regions on which the table resides.
+The regions can be multiple and are made of (tableName, regionId. storeFileSize memStoreSize storeIndexSize MB)
+Synopsis:
+
+Example:
+splice> call SYSCS_UTIL.SYSCS_GET_SCHEMA_INFO()
+    SCHEMANAME      | TABLENAME | ISINDEX |                                                  HBASEREGIONS_STORESIZE_MEMSTORESIZE_STOREINDEXSIZE                              |
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  CONCURRENTJOBIT   |     T     |  false  |(1200,1390677649921.dfee19903d137468e5d20d469b1c2d09. 0 0 0 MB)(1200,1390677649921.bd9eb3786a23dd633c6c8566b503949c. 0 0 0 MB)    |
+ROWCOUNTOPERATIONIT |     A     |  false  |(1184,1390677637029.9f6ff5ac90916aa2bdd4360bc0fad47a. 0 0 0 MB)(1184,1390677637029.d67899f7c77388fd183fd33584b9281e. 0 0 0 MB)    |
+   SPLICEADMINIT    |   SPLIT   |  false  |   (1456,1390678446030.0c6e2159920da7dddeae06472e6e21a3. 0 0 0 MB)(1456,1390678446030.2a1967efb15e9bbd5751acd6ee473aa2. 0 0 0 MB) |
+   SPLICEADMINIT    |   SPLIT   |  true   |                                           (1473,1390678439013.7daa542bd4d083b26b409f5661d7ed7d. 0 5 0 MB)                        |
+   SPLICEADMINIT    |   TEST1   |  false  |                                           (1408,1390678423289.40d4213e1624c090c7dafeaa54514453. 0 0 0 MB)                        |
+   SPLICEADMINIT    |  ZONING1  |  false  |                                           (1488,1390678454825.9ce66097683b6cd80af170e8ca4d187b. 0 0 0 MB)                        |
+   SPLICEADMINIT    |  ZONING1  |  true   |                                           (1505,1390678455888.58bfdfee30a81fb7b70ca0b5bc71c71f. 0 0 0 MB)                        |
+   SPLICEADMINIT    |  ZONING2  |  false  |                                           (1520,1390678457690.382a12a0ec58bf0278676c925aae5bab. 0 0 0 MB)                        |
+   SPLICEADMINIT    |  ZONING2  |  true   |                                           (1537,1390678458751.2a5bbf311499f40a8af1b4c440a36cae. 0 0 0 MB)                        |
+   SPLICEADMINIT    |  ZONING   |  false  |                                           (1424,1390678425356.c5493d85dede35496cd66477b235344e. 0 0 0 MB)                        |
+   SPLICEADMINIT    |  ZONING   |  true   |                                           (1441,1390678426417.9a0bd597a23d9e2378abfa19b59f43cf. 0 0 0 MB)                        |
+
+11 rows selected
+
+SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE('schemaName', 'tableName')
+Perform a major compaction on a given table.  Major compaction will be performed on the table and all its index and constraint tables.
+Parameter - schemaName, type: string.  The splice schema name to which the table belongs.
+Parameter - tableName, type: string.  The splice table name on which to perform the compaction.
+
+Example:
+splice> call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE('SPLICEADMINIT','ZONING2');
+Statement executed.
+
+SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA('schemaName')
+Perform a major compaction on all tables in a given schema.  Major compaction will be performed on the tables and all their index and constraint tables in the given schema.
+Parameter - schemaName, type: string.  The splice schema name on which to perform the compaction on all tables therein.
+
+Example:
+splice> call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA('SPLICEADMINIT');
+Statement executed.
+
+SYSCS_UTIL.SYSCS_KILL_TRANSACTION(n)
+
+Kill some active transaction
+Parameter - type: long, the transaction id.
+
+Used for killing stale transactions.
+
+Example:
+splice> create index aidx on a(i);
+ERROR SE001: Splice Engine exception: unexpected exception
+ERROR XJ001: Java exception: 'There are active transactions [51, 52]: java.lang.RuntimeException'.
+splice> call SYSCS_UTIL.SYSCS_KILL_TRANSACTION(51)
+Statement executed.
+splice> call SYSCS_UTIL.SYSCS_KILL_TRANSACTION(52)
+Statement executed.
+
+SYSCS_UTIL.SYSCS_KILL_STALE_TRANSACTIONS(n)
+
+Kill all active transactions up to an upper bound
+Parameter - type: long, the upper bound, maximum transaction id that could be killed.
+
+Used for killing stale transactions, usually to allow DDL operations to execute.
+
+Example:
+splice> create index aidx on a(i);
+ERROR SE001: Splice Engine exception: unexpected exception
+ERROR XJ001: Java exception: 'There are active transactions [51, 52]: java.lang.RuntimeException'.
+splice> call SYSCS_UTIL.SYSCS_KILL_STALE_TRANSACTIONS(52)
+Statement executed.
+
+SYSCS_UTIL.SYSCS_GET_LOGGERS()
+
+Get the names of all splice loggers in the system
+
+Used to get loggers of interest in order to determine or change their log level.
+
+Example:
+splice> call SYSCS_UTIL.SYSCS_GET_LOGGERS();
+SPLICELOGGER
+-----------------------------------------------------------------------------
+com.splicemachine
+com.splicemachine.constants.environment.EnvUtils
+com.splicemachine.derby.ddl.ZookeeperDDLController
+com.splicemachine.derby.ddl.ZookeeperDDLWatcher
+com.splicemachine.derby.error.SpliceDoNotRetryIOException
+com.splicemachine.derby.hbase.SpliceDriver
+com.splicemachine.derby.hbase.SpliceIndexEndpoint
+com.splicemachine.derby.hbase.SpliceIndexObserver
+com.splicemachine.derby.hbase.SpliceMasterObserver
+com.splicemachine.derby.hbase.SpliceOperationRegionObserver
+com.splicemachine.derby.iapi.sql.execute.OperationResultSet
+com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet
+com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext
+com.splicemachine.derby.impl.SpliceMethod
+com.splicemachine.derby.impl.SpliceService
+com.splicemachine.derby.impl.ast.AssignRSNVisitor
+com.splicemachine.derby.impl.ast.FindHashJoinColumns
+com.splicemachine.derby.impl.ast.FixSubqueryColRefs
+com.splicemachine.derby.impl.ast.JoinSelector
+com.splicemachine.derby.impl.ast.MSJJoinConditionVisitor
+com.splicemachine.derby.impl.ast.PlanPrinter
+com.splicemachine.derby.impl.ast.SpliceDerbyVisitorAdapter
+com.splicemachine.derby.impl.db.SpliceDatabase
+com.splicemachine.derby.impl.db.TransactionKeepAlive
+com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler
+com.splicemachine.derby.impl.job.scheduler.DistributedJobScheduler
+com.splicemachine.derby.impl.job.scheduler.WorkStealingTaskScheduler
+com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary
+com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor
+com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory
+com.splicemachine.derby.impl.sql.execute.SpliceExecutionFactory
+com.splicemachine.derby.impl.sql.execute.SpliceGenericResultSetFactory
+com.splicemachine.derby.impl.sql.execute.SpliceRealResultSetStatisticsFactory
+com.splicemachine.derby.impl.sql.execute.operations
+com.splicemachine.derby.impl.sql.execute.operations.CallStatementOperation
+com.splicemachine.derby.impl.sql.execute.operations.NoRowsOperation
+com.splicemachine.derby.impl.sql.execute.operations.OperationTree
+com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation
+com.splicemachine.derby.impl.storage.SingleScanRowProvider
+com.splicemachine.derby.impl.store.access.HBaseStore
+com.splicemachine.derby.impl.store.access.PropertyConglomerate
+com.splicemachine.derby.impl.store.access.SpliceAccessManager
+com.splicemachine.derby.impl.store.access.SpliceLockFactory
+com.splicemachine.derby.impl.store.access.SpliceTransaction
+com.splicemachine.derby.impl.store.access.SpliceTransactionContext
+com.splicemachine.derby.impl.store.access.SpliceTransactionFactory
+com.splicemachine.derby.impl.store.access.SpliceTransactionManager
+com.splicemachine.derby.impl.store.access.SpliceTransactionManagerContext
+com.splicemachine.derby.impl.store.access.base.SpliceConglomerate
+com.splicemachine.derby.impl.store.access.base.SpliceController
+com.splicemachine.derby.impl.store.access.base.SpliceScan
+com.splicemachine.derby.impl.store.access.btree.IndexConglomerate
+com.splicemachine.derby.impl.store.access.btree.IndexConglomerateFactory
+com.splicemachine.derby.impl.store.access.btree.IndexController
+com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate
+com.splicemachine.derby.impl.store.access.hbase.HBaseController
+com.splicemachine.derby.logging.DerbyOutputLoggerWriter
+com.splicemachine.derby.management.XplainOperationReporter
+com.splicemachine.derby.management.XplainStatementReporter
+com.splicemachine.derby.management.XplainTaskReporter
+com.splicemachine.derby.utils.ConglomerateUtils
+com.splicemachine.derby.utils.DerbyBytesUtil
+com.splicemachine.derby.utils.SpliceUtils
+com.splicemachine.hbase.HBaseRegionCache
+com.splicemachine.hbase.batch.PipelineWriteContext
+com.splicemachine.hbase.table.BetterHTablePool
+com.splicemachine.hbase.table.SpliceHTable
+com.splicemachine.hbase.table.SpliceHTableFactory
+com.splicemachine.job.ZkTaskMonitor
+com.splicemachine.queryPlan
+com.splicemachine.si.coprocessors.SIFilterPacked
+com.splicemachine.si.coprocessors.SIObserver
+com.splicemachine.si.data.hbase.HbRegion
+com.splicemachine.si.impl.FilterState
+com.splicemachine.si.impl.FilterStatePacked
+com.splicemachine.si.impl.SITransactor
+com.splicemachine.si.impl.SynchronousRollForwardQueue
+com.splicemachine.si.impl.TransactionStore
+com.splicemachine.si.txn.ZooKeeperStatTimestampSource
+com.splicemachine.test.SpliceTestPlatform
+com.splicemachine.utils.SpliceUtilities
+com.splicemachine.utils.SpliceZooKeeperManager
+com.splicemachine.utils.ZkUtils
+
+83 rows selected
+
+SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL('<loggerName>')
+Get the log level of the given logger
+Synopsis:
+
+Example:
+splice> call SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL('com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary');
+LOGL&
+-----
+TRACE
+
+1 row selected
+
+SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL('<logName>','<logLevel>')
+Change the log level of the given logger
+
+Example:
+splice> call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL('com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary','info');
+Statement executed.
+splice> call SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL('com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary');
+LOG&
+----
+INFO
+
+1 row selected 
+
+
+SYSCS_UTIL.VACUUM()
+
+Does the following:
+
+1. Wait for all previous transactions to complete (it must be all, unfortunately. If it waits past a certain point, the call will explode and you’ll need to try again).
+2. Get all the conglomerates that are seen in sys.sysconglomerates (e.g. "select conglomeratenumber from sys.sysconglomerates”)
+3. Get a list of all the HBase tables
+4. If an HBase table isn’t in the conglomerates list and isn’t a system table (conglomeratenumber < 1100 or 1168), then it is deleted.
 does not occur, check the splice.log.  If you see an exception but no "ready to accept connections", please retry the command.  
 You are ready to go when you see the "ready to accept connections" message.
 
 To report a bug, and for more hints, tips, and a Splice Developer Forum, please visit http://support.splicemachine.com
 
 
+=================================================
+Standalone: Installing Java JDK on CentOS 6.4
+=================================================
 
+TBD
 
