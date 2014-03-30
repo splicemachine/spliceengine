@@ -6,7 +6,7 @@
   <parent>
     <artifactId>structured_hbase</artifactId>
     <groupId>com.splicemachine</groupId>
-    <version>0.5rc9-SNAPSHOT</version>
+    <version>0.5rc9</version>
   </parent>
   <dependencies>
 
