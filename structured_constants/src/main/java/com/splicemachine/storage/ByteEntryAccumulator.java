@@ -177,19 +177,29 @@ public class ByteEntryAccumulator extends BaseEntryAccumulator<ByteEntryAccumula
 		@Override
 		protected void occupyDouble(int position, byte[] data, int offset,
 				int length) {
-			occupy(position, data, offset, length);			
+			shortCircuitOccupy(position, data, offset, length);			
 		}
 
 		@Override
 		protected void occupyFloat(int position, byte[] data, int offset,
 				int length) {
-			occupy(position, data, offset, length);		
+			shortCircuitOccupy(position, data, offset, length);		
 		}
 
 		@Override
 		protected void occupyScalar(int position, byte[] data, int offset,
 				int length) {
-			occupy(position, data, offset, length);						
+			shortCircuitOccupy(position, data, offset, length);						
 		}
+		
+		protected void shortCircuitOccupy(int position, byte[] data, int offset, int length) {
+			growFields(position);
+			ByteSlice slice = fields[position];
+			if(slice==null){
+					slice = ByteSlice.wrap(data,offset,length);
+					fields[position] = slice;
+			}else
+				slice.set(data,offset,length);
+	}
 
 }

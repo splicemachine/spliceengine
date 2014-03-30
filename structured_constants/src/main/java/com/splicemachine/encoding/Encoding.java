@@ -682,6 +682,16 @@ public final class Encoding {
     public static byte[] encodedNullFloat() {
         return DecimalEncoding.NULL_FLOAT_BYTES;
     }
+    
+    public static int encodedNullDoubleLength() {
+        return DecimalEncoding.NULL_DOUBLE_BYTES_LENGTH;
+    }
+
+   
+    public static int encodedNullFloatLength() {
+        return DecimalEncoding.NULL_FLOAT_BYTES_LENGTH;
+    }
+    
 
     public static void main(String... args) throws Exception{
 				System.out.println(decodeLong(BytesUtil.fromHex("E4051EB0")));

@@ -12,7 +12,9 @@ import java.nio.ByteBuffer;
 final class DecimalEncoding {
 
     static final byte[] NULL_DOUBLE_BYTES = new byte[]{0,0};
+    static final int NULL_DOUBLE_BYTES_LENGTH = 2;
     static final byte[] NULL_FLOAT_BYTES = new byte[]{0, 0};
+    static final int NULL_FLOAT_BYTES_LENGTH = 2;
 
     /**
      * Serialize a BigDecimal to a byte[] in such a way as to preserve
