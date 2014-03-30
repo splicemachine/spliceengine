@@ -4,9 +4,11 @@ import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -129,6 +131,7 @@ public class CreateTableWithDataIT {
 
     // DB-1170
     @Test
+    @Ignore
     public void testCreateTableWithNoDataDerivedDecimal() throws Exception {
         methodWatcher.executeUpdate(String.format("create table %s.t5 as select (d * (1 - d)) as volume from %s with no data",spliceSchemaWatcher.schemaName,decimalTable));
         methodWatcher.executeUpdate("drop table "+spliceSchemaWatcher.schemaName+".t5");
