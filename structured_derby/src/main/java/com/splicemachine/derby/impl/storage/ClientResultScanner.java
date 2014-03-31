@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHashPrefix;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -7,12 +8,15 @@ import com.splicemachine.derby.utils.marshall.BucketHasher;
 import com.splicemachine.derby.utils.marshall.SpreadBucket;
 import com.splicemachine.stats.*;
 
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.LeaseException;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -22,13 +26,13 @@ import java.util.Iterator;
  * @author Scott Fines
  * Created on: 10/30/13
  */
-public class ClientResultScanner implements SpliceResultScanner{
+public class ClientResultScanner extends ReopenableScanner implements SpliceResultScanner{
+    private static Logger LOG = Logger.getLogger(ClientResultScanner.class);
     private ResultScanner scanner;
     private final byte[] tableName;
     private final Scan scan;
     private final RowKeyDistributorByHashPrefix keyDistributor;
-		private final MetricFactory metricFactory;
-
+	private final MetricFactory metricFactory;
     private HTableInterface table;
 
 		private final Timer remoteReadTimer;
@@ -71,38 +75,68 @@ public class ClientResultScanner implements SpliceResultScanner{
 		@Override public long getLocalBytesRead() { return 0l; }
 		@Override public long getLocalRowsRead() { return 0; }
 
-		@Override public Result next() throws IOException {
-				remoteReadTimer.startTiming();
-				Result r = scanner.next();
-				if(r!=null&&r.size()>0){
-						remoteReadTimer.tick(1);
-						if(remoteBytesRead.isActive()){
-							for(KeyValue kv:r.raw()){
-								remoteBytesRead.add(kv.getLength());
-							}
-						}
-				}else{
-						remoteReadTimer.tick(0);
-				}
-				return r;
+		@Override
+        public Result next() throws IOException {
+            remoteReadTimer.startTiming();
+            Result r = null;
+            try {
+                r = scanner.next();
+                if (r != null && r.size() > 0) {
+                    remoteReadTimer.tick(1);
+                    if (remoteBytesRead.isActive()) {
+                        for (KeyValue kv : r.raw()) {
+                            remoteBytesRead.add(kv.getLength());
+                        }
+                    }
+                    setLastRow(r.getRow());
+                } else {
+                    remoteReadTimer.tick(0);
+                }
+            } catch (IOException e) {
+                if (e instanceof LeaseException && getNumRetries() < MAX_RETIRES && keyDistributor==null) {
+                    SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
+                    incrementNumRetries();
+                    scanner = reopenResultScanner(scanner, scan, table);
+                    r = next();
+                }
+                else {
+                    SpliceLogUtils.logAndThrowRuntime(LOG, e);
+                }
+            }
+            return r;
 		}
 
     @Override public Result[] next(int nbRows) throws IOException {
-				remoteReadTimer.startTiming();
-				Result[] results = scanner.next(nbRows);
-				if(results!=null && results.length>0){
-						remoteReadTimer.tick(results.length);
-						if(remoteBytesRead.isActive()){
-								for(Result r:results){
-										for(KeyValue kv:r.raw()){
-												remoteBytesRead.add(kv.getLength());
-										}
-								}
-						}
-				}else
-						remoteReadTimer.tick(0);
-				return results;
-		}
+        remoteReadTimer.startTiming();
+        Result[] results = null;
+        try {
+            results = scanner.next(nbRows);
+            if (results != null && results.length > 0) {
+                remoteReadTimer.tick(results.length);
+                if (remoteBytesRead.isActive()) {
+                    for (Result r : results) {
+                        for (KeyValue kv : r.raw()) {
+                            remoteBytesRead.add(kv.getLength());
+                        }
+                    }
+                }
+                setLastRow(results[results.length-1].getRow());
+            } else
+                remoteReadTimer.tick(0);
+        }catch (IOException e) {
+            if (e instanceof LeaseException && getNumRetries() < MAX_RETIRES && keyDistributor==null) {
+                SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
+                incrementNumRetries();
+                scanner = reopenResultScanner(scanner, scan, table);
+                results = scanner.next(nbRows);
+            }
+            else {
+                SpliceLogUtils.logAndThrowRuntime(LOG, e);
+            }
+        }
+
+        return results;
+	}
 
     @Override
     public void close() {
