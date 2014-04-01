@@ -1,23 +1,34 @@
 package com.splicemachine.test.utils;
 
-import com.google.common.collect.Sets;
-import com.google.common.io.Closeables;
-import com.google.common.io.Files;
-import com.splicemachine.test.runner.TestRunner;
-import org.apache.commons.dbutils.DbUtils;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.IOFileFilter;
-import org.apache.derby.tools.ij;
-import org.junit.Assert;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
+import com.google.common.collect.Sets;
+import com.google.common.io.Closeables;
+import com.google.common.io.Files;
+import org.apache.commons.dbutils.DbUtils;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.derby.tools.ij;
+import org.junit.Assert;
+
+import com.splicemachine.test.runner.TestRunner;
 
 /**
  * @author Jeff Cunningham
@@ -25,7 +36,43 @@ import java.util.*;
  */
 public class TestUtils {
 
-	/**
+    public static final String AD_HOC_DIR = getBaseDirectory()+"/adhoc";
+    public static final String TARGET_AD_HOC_DIR = "/target/adhoc/";
+
+    public static List<File> getTestFileList(String dir) {
+        // this is the list of all test sql files, except schema creators
+        // and non test files
+        List<File> testFiles =
+            new ArrayList<File>(FileUtils.listFiles(new File(AD_HOC_DIR),
+                                                    // include test files
+                                                    new IOFileFilter() {
+                                                        @Override
+                                                        public boolean accept(File file) {
+                                                            return (file != null && file.getName().endsWith(".sql"));
+                                                        }
+
+                                                        @Override
+                                                        public boolean accept(File dir, String name) {
+                                                            return false;
+                                                        }
+                                                    },
+                                                    // exclude directories
+                                                    new IOFileFilter() {
+                                                        @Override
+                                                        public boolean accept(File file) {
+                                                            return false;
+                                                        }
+
+                                                        @Override
+                                                        public boolean accept(File dir, String name) {
+                                                            return false;
+                                                        }
+                                                    }
+            ));
+        return testFiles;
+    }
+
+    /**
 	 * File filter to use when determining types of files to be included in a list.
 	 */
 	public static class SpliceIOFileFilter implements IOFileFilter {

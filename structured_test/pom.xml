@@ -40,12 +40,12 @@
 			<artifactId>commons-io</artifactId>
 			<version>2.1</version>
 		</dependency>
-		<dependency>
-			<groupId>com.splicemachine</groupId>
-			<artifactId>splice_machine</artifactId>
-			<version>0.5rc10-SNAPSHOT</version>
-			<classifier>${envClassifier}</classifier>
-		</dependency>		
+		<!--<dependency>-->
+			<!--<groupId>com.splicemachine</groupId>-->
+			<!--<artifactId>splice_machine</artifactId>-->
+			<!--<version>0.5rc10-SNAPSHOT</version>-->
+			<!--<classifier>${envClassifier}</classifier>-->
+		<!--</dependency>		-->
 
 	</dependencies>
 	<build>
