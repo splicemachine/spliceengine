@@ -156,9 +156,9 @@
        is at least Java 6 level.
     -->
     <available classname="java.sql.Wrapper" property="compilerLevel16" value="1.6"/>
-    <property name="compilerLevel16" value="1.5"/>
+    <property name="compilerLevel16" value="1.6"/>
 
-    <javac source="1.5" srcdir="${basedir}" failonerror="false"
+    <javac source="1.6" srcdir="${basedir}" failonerror="false"
            includeantruntime="false">
       <include name="${dummy.src}"/>
     </javac>
@@ -175,7 +175,7 @@
   -->
   <target name="checkVMLevel">
     <!-- The java.lang.ManagementFactory class was new in J2SE 5.0 -->
-    <available classname="java.lang.management.ManagementFactory" property="vmLevelIsAtLeast1.5"/>
+    <available classname="java.lang.management.ManagementFactory" property="vmLevelIsAtLeast1.6"/>
     <available classname="java.sql.Wrapper" property="vmLevelIsAtLeast1.6" value="true"/>
   </target>
 
@@ -831,8 +831,8 @@
     <mkdir dir="${out.stubs.dir}"/>
     <mkdir dir="${out.jsr169.dir}"/>
     <javac
-      source="1.4"
-      target="1.4"
+      source="1.6"
+      target="1.6"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -858,8 +858,8 @@
     <mkdir dir="${out.jdbc3.dir}"/>
 
     <javac
-      source="1.4"
-      target="1.4"
+      source="1.6"
+      target="1.6"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -885,8 +885,8 @@
     <mkdir dir="${out.jdbc4.dir}"/>
 
     <javac
-      source="1.5"
-      target="1.5"
+      source="1.6"
+      target="1.6"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -912,8 +912,8 @@
     <mkdir dir="${out.felix.dir}"/>
 
     <javac
-      source="1.4"
-      target="1.4"
+      source="1.6"
+      target="1.6"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -981,6 +981,7 @@
     <srcfiles dir="bin/templates" excludes="derby_common.sh"/>
     <globmapper from="*" to="${generated.bin.dir}/*"/>
   </uptodate>
+
 </target>
 
 <!-- =================================================================== -->
@@ -1034,8 +1035,8 @@
     </java>
 
     <javac
-      source="1.4"
-      target="1.4"
+      source="1.6"
+      target="1.6"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -1393,7 +1394,7 @@
        doctitle="Apache Derby V${major}.${minor} Test Javadoc"
        Footer="${javadoc.Footer}"
        bottom="Apache Derby V${major}.${minor} Internals - &lt;i&gt;Copyright &amp;copy; 2004,${copyright.year} The Apache Software Foundation. All Rights Reserved.&lt;/i&gt;"
-       source="1.5"
+       source="1.6"
        sourcepath="${derby.testing.src.dir}"
      />
   </target>
@@ -2553,7 +2554,7 @@
 
 	  
   <!-- low memory suite runs with 16MB heap  -->
-  <target name="junit-lowmem"  depends="checkVMLevel,junit-init" if="vmLevelIsAtLeast1.5">
+  <target name="junit-lowmem"  depends="checkVMLevel,junit-init" if="vmLevelIsAtLeast1.6">
   	 <junit printsummary="on"
            fork="yes" forkmode="perTest"
            jvm="${derby.junit.jvm}" maxmemory="16m"
@@ -2575,7 +2576,7 @@
   </target>
 
   <!-- Runs Derby's JMX tests if the required VM level (1.5 or higher) is detected -->
-  <target name="junit-jmx" depends="checkVMLevel,junit-init" if="vmLevelIsAtLeast1.5">
+  <target name="junit-jmx" depends="checkVMLevel,junit-init" if="vmLevelIsAtLeast1.6">
     <junit  printsummary="on"
             fork="yes" forkmode="once"
             showoutput="yes"
