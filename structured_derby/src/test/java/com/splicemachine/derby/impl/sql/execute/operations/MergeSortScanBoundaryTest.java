@@ -3,8 +3,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.Snowflake;

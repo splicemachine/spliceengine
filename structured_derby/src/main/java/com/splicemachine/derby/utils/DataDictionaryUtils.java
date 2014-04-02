@@ -99,4 +99,8 @@ public class DataDictionaryUtils {
         }
         return columnInfo;
     }
+
+		public static String getTableVersion(String txnId, UUID tableId) {
+				throw new UnsupportedOperationException("Implement!");
+		}
 }

@@ -1,26 +1,23 @@
 package com.splicemachine.derby.impl.sql.execute.operations.sort;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractStandardIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.StandardIterator;
-import com.splicemachine.derby.utils.marshall.KeyMarshall;
-import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * Aggregator for use with Sinking aggregates.
  *
- * Unlike {@link ScanDistinctIterator}, this implementation makes a distinction
+ * Unlike ScanDistinctIterator, this implementation makes a distinction
  * between distinct aggregates and non-distinct aggregates.
  *
  * @author Scott Fines
@@ -28,8 +25,9 @@ import java.util.List;
  */
 public class SinkSortIterator extends AbstractStandardIterator {
 		private final DistinctSortAggregateBuffer distinctBuffer;
-		private final int[] sortColumns;
-		private boolean[] sortColumnOrder;
+//		private final int[] sortColumns;
+//		private boolean[] sortColumnOrder;
+		private KeyEncoder keyEncoder;
 		private long rowsRead;
 		private boolean completed;
 		private MultiFieldEncoder encoder;
@@ -37,12 +35,14 @@ public class SinkSortIterator extends AbstractStandardIterator {
 
 		public SinkSortIterator(DistinctSortAggregateBuffer distinctBuffer,
 														StandardIterator<ExecRow> source,
-														int[] sortColumns,
-														boolean[] sortColumnOrder) {
+														KeyEncoder keyEncoder){
+//														int[] sortColumns,
+//														boolean[] sortColumnOrder) {
 				super(source);
 				this.distinctBuffer = distinctBuffer;
-				this.sortColumns = sortColumns;
-				this.sortColumnOrder = sortColumnOrder;
+//				this.sortColumns = sortColumns;
+//				this.sortColumnOrder = sortColumnOrder;
+				this.keyEncoder = keyEncoder;
 		}
 
 		@Override
@@ -95,11 +95,16 @@ public class SinkSortIterator extends AbstractStandardIterator {
 		}
 
 		private byte[] groupingKey(ExecRow nextRow) throws StandardException {
-				if(encoder==null)
-						encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),sortColumns.length);
-				encoder.reset();
-				//noinspection RedundantCast
-				((KeyMarshall)KeyType.BARE).encodeKey(nextRow.getRowArray(), sortColumns, sortColumnOrder, null, encoder);
-				return encoder.build();
+				try {
+						return keyEncoder.getKey(nextRow);
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+//				if(encoder==null)
+//						encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),sortColumns.length);
+//				encoder.reset();
+//				//noinspection RedundantCast
+//				((KeyMarshall)KeyType.BARE).encodeKey(nextRow.getRowArray(), sortColumns, sortColumnOrder, null, encoder);
+//				return encoder.build();
 		}
 }

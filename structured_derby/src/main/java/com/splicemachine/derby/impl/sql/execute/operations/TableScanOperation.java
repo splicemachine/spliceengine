@@ -17,6 +17,8 @@ import com.splicemachine.derby.utils.EntryPredicateUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
@@ -257,7 +259,8 @@ public class TableScanOperation extends ScanOperation {
                 columnOrdering = scanInformation.getColumnOrdering();
 				ExecRow defnRow = getExecRowDefinition();
 				int [] cols = getDecodingColumns(defnRow.nColumns());
-				return BareKeyHash.encoder(cols,null);
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false).getSerializers(defnRow);
+				return BareKeyHash.encoder(cols,null,serializers);
 		}
 
 		@Override

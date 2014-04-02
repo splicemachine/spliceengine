@@ -17,6 +17,8 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
@@ -294,8 +296,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-                int[] nonPkCols = getAccessedNonPkColumns();
-				return BareKeyHash.encoder(nonPkCols,null);
+				int[] nonPkCols = getAccessedNonPkColumns();
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),true).getSerializers(compactRow);
+				return BareKeyHash.encoder(nonPkCols,null,serializers);
 
 		}
 

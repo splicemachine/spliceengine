@@ -11,9 +11,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBufferFactory;
@@ -286,12 +286,18 @@ public class InsertOperationTest {
                     try {
 
                         keyEncoder.reset();
-                        KeyType.BARE.encodeKey(input.getRowArray(), pksToUse, null, null, keyEncoder);
-                        return new KVPair(fieldEncoder.build(),dataBytes);
+												DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(input);
+												DataHash keyHash = BareKeyHash.encoder(pksToUse, null, null, serializers);
+												keyHash.setRow(input);
+												byte[] encode = keyHash.encode();
+
+                        return new KVPair(encode,dataBytes);
                     } catch (StandardException e) {
                         throw new RuntimeException(e);
-                    }
-                }
+                    } catch (IOException e) {
+												throw new RuntimeException(e);
+										}
+								}
 
             }
         }));

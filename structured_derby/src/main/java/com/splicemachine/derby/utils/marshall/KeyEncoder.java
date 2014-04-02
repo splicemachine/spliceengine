@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils.marshall;
 
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
@@ -48,5 +49,9 @@ public class KeyEncoder {
 
 		public KeyDecoder getDecoder(){
 				return new KeyDecoder(hash.getDecoder(),prefix.getPrefixLength());
+		}
+
+		public static KeyEncoder bare(int[] groupColumns, boolean[] groupSortOrder, DescriptorSerializer[] serializers) {
+				return new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(groupColumns,groupSortOrder,serializers),NoOpPostfix.INSTANCE);
 		}
 }

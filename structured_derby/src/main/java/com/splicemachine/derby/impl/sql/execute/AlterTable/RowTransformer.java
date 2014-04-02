@@ -11,6 +11,8 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.IntArrays;
@@ -84,10 +86,14 @@ public class RowTransformer {
         // initialize encoder
         oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(txnId, tableId);
         newColumnOrdering = DataDictionaryUtils.getColumnOrderingAfterDropColumn(oldColumnOrdering, droppedColumnPosition);
+				String tableVersion = DataDictionaryUtils.getTableVersion(txnId,tableId);
 
         KeyEncoder encoder;
+				DescriptorSerializer[] sparseSerializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(newRow);
+				DescriptorSerializer[] denseSerializers = VersionedSerializers.forVersion(tableVersion, false).getSerializers(newRow);
         if(newColumnOrdering!=null&& newColumnOrdering.length>0){
-            encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(newColumnOrdering, null), NoOpPostfix.INSTANCE);
+						//must use dense encodings in the key
+						encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(newColumnOrdering, null, denseSerializers), NoOpPostfix.INSTANCE);
         }else {
             encoder = new KeyEncoder(new SaltedPrefix(getRandomGenerator()),NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
         }
@@ -98,7 +104,7 @@ public class RowTransformer {
                 columns[col] = -1;
             }
         }
-        DataHash rowHash = new EntryDataHash(columns, null);
+        DataHash rowHash = new EntryDataHash(columns, null,sparseSerializers);
 
         entryEncoder = new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
     }

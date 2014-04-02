@@ -59,14 +59,7 @@ public class DerbyBytesUtil extends BaseDerbyBytesUtil{
 
             byte[] bytes = decoder.array();
 						int offset = decoder.offset();
-            if(DerbyBytesUtil.isDoubleType(dvd))
-								decoder.skipDouble();
-            else if(DerbyBytesUtil.isFloatType(dvd))
-								decoder.skipFloat();
-            else if (DerbyBytesUtil.isScalarType(dvd))
-								decoder.skipLong();
-            else
-								decoder.skip();
+						skipField(decoder, dvd);
 
 						int length = decoder.offset()-offset-1;
             ldvd.initForDeserialization(bytes, offset,length,desc);
@@ -391,15 +384,19 @@ public class DerbyBytesUtil extends BaseDerbyBytesUtil{
 
     public static void skip(MultiFieldDecoder rowDecoder, DataValueDescriptor dvd) {
         dvd.setToNull();
-        if(isDoubleType(dvd))
-            rowDecoder.skipDouble();
-        else if(isFloatType(dvd))
-            rowDecoder.skipFloat();
-        else if(isScalarType(dvd))
-            rowDecoder.skipLong();
-        else
-            rowDecoder.skip();
-    }
+				skipField(rowDecoder, dvd);
+		}
+
+		public static void skipField(MultiFieldDecoder rowDecoder, DataValueDescriptor dvd) {
+				if(isDoubleType(dvd))
+						rowDecoder.skipDouble();
+				else if(isFloatType(dvd))
+						rowDecoder.skipFloat();
+				else if(isScalarType(dvd))
+						rowDecoder.skipLong();
+				else
+						rowDecoder.skip();
+		}
 
 		public static boolean isTimeFormat(DataValueDescriptor dvd) {
 				return dvd instanceof SQLTimestamp || dvd instanceof SQLDate || dvd instanceof SQLTime;
