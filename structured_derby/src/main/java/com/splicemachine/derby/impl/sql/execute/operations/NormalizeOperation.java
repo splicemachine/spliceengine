@@ -15,6 +15,8 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.utils.IntArrays;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
@@ -177,7 +179,8 @@ public class NormalizeOperation extends SpliceBaseOperation {
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				ExecRow defnRow = getExecRowDefinition();
-				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null);
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(defnRow);
+				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null,serializers);
 		}
 
 		@Override

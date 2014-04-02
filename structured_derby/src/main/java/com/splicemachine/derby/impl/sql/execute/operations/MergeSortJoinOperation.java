@@ -15,6 +15,9 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.SerializerMap;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.stats.TimeView;
@@ -308,27 +311,29 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     @Override
     public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				SerializerMap serializerMap = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false);
         if (spliceRuntimeContext.isLeft(resultSetNumber)) {
-            return getKeyEncoder(JoinSide.LEFT, leftHashKeys, spliceRuntimeContext.getCurrentTaskId());
+            return getKeyEncoder(JoinSide.LEFT, leftHashKeys, spliceRuntimeContext.getCurrentTaskId(),serializerMap.getSerializers(leftRow));
         } else
-            return getKeyEncoder(JoinSide.RIGHT, rightHashKeys, spliceRuntimeContext.getCurrentTaskId());
+            return getKeyEncoder(JoinSide.RIGHT, rightHashKeys, spliceRuntimeContext.getCurrentTaskId(),serializerMap.getSerializers(rightRow));
     }
 
     @Override
     public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				SerializerMap serializerMap = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false);
         if (spliceRuntimeContext.isLeft(resultSetNumber)) {
-            return BareKeyHash.encoder(IntArrays.complement(leftHashKeys, leftNumCols), null);
+            return BareKeyHash.encoder(IntArrays.complement(leftHashKeys, leftNumCols), null,serializerMap.getSerializers(leftRow));
         } else
-            return BareKeyHash.encoder(IntArrays.complement(rightHashKeys, rightNumCols), null);
+            return BareKeyHash.encoder(IntArrays.complement(rightHashKeys, rightNumCols), null,serializerMap.getSerializers(rightRow));
     }
 
-    private KeyEncoder getKeyEncoder(JoinSide joinSide, int[] keyColumns, byte[] taskId) throws StandardException {
+    private KeyEncoder getKeyEncoder(JoinSide joinSide, int[] keyColumns, byte[] taskId,DescriptorSerializer[] serializers) throws StandardException {
         HashPrefix prefix = new BucketingPrefix(new FixedPrefix(uniqueSequenceID),
                 HashFunctions.murmur3(0),
                 SpliceDriver.driver().getTempTable().getCurrentSpread());
         final byte[] joinSideBytes = Encoding.encode(joinSide.ordinal());
 
-        DataHash hash = BareKeyHash.encoder(keyColumns, null);
+        DataHash hash = BareKeyHash.encoder(keyColumns, null,serializers);
 
 				/*
                  * The postfix looks like
@@ -419,12 +424,16 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     private ResultMergeScanner getMergeScanner(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         byte[] currentTaskId = spliceRuntimeContext.getCurrentTaskId();
-        KeyDecoder leftKeyDecoder = getKeyEncoder(JoinSide.LEFT, leftHashKeys, currentTaskId).getDecoder();
-        KeyHashDecoder leftRowDecoder = BareKeyHash.encoder(IntArrays.complement(leftHashKeys, leftNumCols), null).getDecoder();
+				//TODO -sf- deal with different versions on the left and the right
+				SerializerMap serializerMap = VersionedSerializers.latestVersion(false);
+				DescriptorSerializer[] leftSerializers = serializerMap.getSerializers(leftRow);
+				KeyDecoder leftKeyDecoder = getKeyEncoder(JoinSide.LEFT, leftHashKeys, currentTaskId, leftSerializers).getDecoder();
+        KeyHashDecoder leftRowDecoder = BareKeyHash.encoder(IntArrays.complement(leftHashKeys, leftNumCols), null,leftSerializers).getDecoder();
         PairDecoder leftDecoder = new PairDecoder(leftKeyDecoder, leftRowDecoder, leftRow);
 
-        KeyDecoder rightKeyDecoder = getKeyEncoder(JoinSide.RIGHT, rightHashKeys, currentTaskId).getDecoder();
-        KeyHashDecoder rightRowDecoder = BareKeyHash.encoder(IntArrays.complement(rightHashKeys, rightNumCols), null).getDecoder();
+				DescriptorSerializer[] rightSerializers = serializerMap.getSerializers(rightRow);
+        KeyDecoder rightKeyDecoder = getKeyEncoder(JoinSide.RIGHT, rightHashKeys, currentTaskId,rightSerializers).getDecoder();
+        KeyHashDecoder rightRowDecoder = BareKeyHash.encoder(IntArrays.complement(rightHashKeys, rightNumCols), null,rightSerializers).getDecoder();
         PairDecoder rightDecoder = new PairDecoder(rightKeyDecoder, rightRowDecoder, rightRow);
 
         ResultMergeScanner scanner;

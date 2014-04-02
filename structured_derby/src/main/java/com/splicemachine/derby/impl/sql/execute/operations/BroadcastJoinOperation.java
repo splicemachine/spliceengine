@@ -17,11 +17,10 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardSupplier;
-import com.splicemachine.derby.utils.marshall.BareKeyHash;
-import com.splicemachine.derby.utils.marshall.KeyEncoder;
-import com.splicemachine.derby.utils.marshall.NoOpPostfix;
-import com.splicemachine.derby.utils.marshall.NoOpPrefix;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.stats.Counter;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -154,9 +153,10 @@ public class BroadcastJoinOperation extends JoinOperation {
                 return row;
             }
         });
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(rightRow);
         final KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE,
                                                   BareKeyHash
-                                                      .encoder(leftHashKeys, null),
+                                                      .encoder(leftHashKeys, null,serializers),
                                                   NoOpPostfix.INSTANCE);
         Function<ExecRow,List<ExecRow>> lookup = new Function<ExecRow, List<ExecRow>>() {
             @Override
@@ -287,9 +287,10 @@ public class BroadcastJoinOperation extends JoinOperation {
             activation.getLanguageConnectionContext().setXplainSchema(xplainSchema);
         }
         resultSet.openCore();
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(rightRow);
         KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE,
                                                   BareKeyHash
-                                                      .encoder(rightHashKeys, null),
+                                                      .encoder(rightHashKeys, null,serializers),
                                                   NoOpPostfix.INSTANCE);
 
         while ((rightRow = resultSet.getNextRowCore()) != null) {

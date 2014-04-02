@@ -2,8 +2,8 @@ package com.splicemachine.derby.utils.marshall;
 
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
@@ -20,12 +20,12 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 		protected ExecRow currentRow;
 		protected KryoPool kryoPool;
 
-		public EntryDataHash(int[] keyColumns, boolean[] keySortOrder) {
-				this(keyColumns, keySortOrder, SpliceKryoRegistry.getInstance());
+		public EntryDataHash(int[] keyColumns, boolean[] keySortOrder,DescriptorSerializer[] serializers) {
+				this(keyColumns, keySortOrder, SpliceKryoRegistry.getInstance(),serializers);
 		}
 
-		public EntryDataHash(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool) {
-				super(keyColumns, keySortOrder,true,kryoPool);
+		public EntryDataHash(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool,DescriptorSerializer[] serializers) {
+				super(keyColumns, keySortOrder,true,kryoPool,serializers);
 				this.kryoPool = kryoPool;
 		}
 
@@ -80,7 +80,7 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 
 		@Override
 		public KeyHashDecoder getDecoder() {
-				return new EntryDataDecoder(keyColumns,keySortOrder);
+				return new EntryDataDecoder(keyColumns,keySortOrder,serializers);
 		}
 
 		public void close() throws IOException {

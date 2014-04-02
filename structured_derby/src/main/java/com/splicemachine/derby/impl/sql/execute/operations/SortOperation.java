@@ -38,25 +38,25 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StandardSupplier;
-import com.splicemachine.derby.utils.marshall.BareKeyHash;
-import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.FixedBucketPrefix;
-import com.splicemachine.derby.utils.marshall.FixedPrefix;
-import com.splicemachine.derby.utils.marshall.HashPrefix;
-import com.splicemachine.derby.utils.marshall.KeyDecoder;
-import com.splicemachine.derby.utils.marshall.KeyEncoder;
-import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
-import com.splicemachine.derby.utils.marshall.KeyPostfix;
-import com.splicemachine.derby.utils.marshall.NoOpKeyHashDecoder;
-import com.splicemachine.derby.utils.marshall.NoOpPostfix;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.SuppliedDataHash;
-import com.splicemachine.derby.utils.marshall.UniquePostfix;
+import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.sun.tools.javac.jvm.ClassFile;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.store.access.ColumnOrdering;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.log4j.Logger;
+import org.codehaus.jackson.Versioned;
 
 public class SortOperation extends SpliceBaseOperation implements SinkingOperation {
 		private static final long serialVersionUID = 2l;
@@ -179,7 +179,9 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
 						buffer = !distinct?null : new DistinctSortAggregateBuffer(SpliceConstants.ringBufferSize,
 										null, supplier, spliceRuntimeContext);
-						aggregator = new SinkSortIterator(buffer,new SourceIterator(source),keyColumns,descColumns);
+						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(execRowDefinition);
+						KeyEncoder encoder = KeyEncoder.bare(keyColumns,descColumns,serializers);
+						aggregator = new SinkSortIterator(buffer,new SourceIterator(source),encoder);
 						timer = spliceRuntimeContext.newTimer();
 				}
 				timer.startTiming();
@@ -284,7 +286,9 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 				if(top!=this) {
 						SpliceUtils.setInstructions(reduceScan,getActivation(),top,spliceRuntimeContext);
 						KeyDecoder kd = new KeyDecoder(NoOpKeyHashDecoder.INSTANCE,0);
-						decoder = new PairDecoder(kd,BareKeyHash.decoder(IntArrays.count(top.getExecRowDefinition().nColumns()),null),top.getExecRowDefinition());
+						ExecRow topExecRowDefinition = top.getExecRowDefinition();
+						DescriptorSerializer[] topSerializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false).getSerializers(topExecRowDefinition);
+						decoder = new PairDecoder(kd,BareKeyHash.decoder(IntArrays.count(topExecRowDefinition.nColumns()),null,topSerializers), topExecRowDefinition);
 				}else{
 						decoder = getTempDecoder();
 				}
@@ -316,15 +320,16 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 				DataHash hash;
 				KeyPostfix postfix;
 				if(distinct){
-					hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
-							@Override
-							public byte[] get() throws StandardException {
-									return groupingKey;
-							}
-					});
+						hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+								@Override
+								public byte[] get() throws StandardException {
+										return groupingKey;
+								}
+						});
 						postfix = NoOpPostfix.INSTANCE;
 				}else{
-						hash = BareKeyHash.encoder(keyColumns,descColumns);
+						DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false).getSerializers(getExecRowDefinition());
+						hash = BareKeyHash.encoder(keyColumns,descColumns,serializers);
 						postfix = new UniquePostfix(spliceRuntimeContext.getCurrentTaskId());
 				}
 
@@ -336,15 +341,18 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 		 * @throws StandardException
 		 */
 		protected PairDecoder getTempDecoder() throws StandardException {
-				KeyDecoder actualKeyDecoder = new KeyDecoder(BareKeyHash.decoder(keyColumns, descColumns),9);
 				ExecRow templateRow = getExecRowDefinition();
-				KeyHashDecoder actualRowDecoder =  BareKeyHash.decoder(IntArrays.complement(keyColumns, templateRow.nColumns()),null);
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(templateRow);
+				KeyDecoder actualKeyDecoder = new KeyDecoder(BareKeyHash.decoder(keyColumns, descColumns,serializers),9);
+				KeyHashDecoder actualRowDecoder =  BareKeyHash.decoder(IntArrays.complement(keyColumns, templateRow.nColumns()),null,serializers);
 				return new PairDecoder(actualKeyDecoder,actualRowDecoder,templateRow);
 		}
 
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				return BareKeyHash.encoder(IntArrays.complement(keyColumns,getExecRowDefinition().nColumns()),null);
+				ExecRow defn = getExecRowDefinition();
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(defn);
+				return BareKeyHash.encoder(IntArrays.complement(keyColumns, defn.nColumns()),null,serializers);
 		}
 
 		@Override

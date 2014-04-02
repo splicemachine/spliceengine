@@ -43,15 +43,9 @@ import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.EntryPredicateUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StandardSupplier;
-import com.splicemachine.derby.utils.marshall.BareKeyHash;
-import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.KeyEncoder;
-import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
-import com.splicemachine.derby.utils.marshall.KeyMarshaller;
-import com.splicemachine.derby.utils.marshall.NoOpPostfix;
-import com.splicemachine.derby.utils.marshall.NoOpPrefix;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.SuppliedDataHash;
+import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.api.HTransactorFactory;
@@ -274,7 +268,8 @@ public class TableScanOperation extends ScanOperation {
                 columnOrdering = scanInformation.getColumnOrdering();
 				ExecRow defnRow = getExecRowDefinition();
 				int [] cols = getDecodingColumns(defnRow.nColumns());
-				return BareKeyHash.encoder(cols,null);
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false).getSerializers(defnRow);
+				return BareKeyHash.encoder(cols,null,serializers);
 		}
 
 		@Override

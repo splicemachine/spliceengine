@@ -21,6 +21,13 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.TimeView;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+
+import java.io.IOException;
 
 /**
  * @author Scott Fines

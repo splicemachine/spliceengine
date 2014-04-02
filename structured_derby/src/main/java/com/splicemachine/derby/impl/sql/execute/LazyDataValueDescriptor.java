@@ -830,10 +830,15 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
         return bytes.offset();
     }
 
-    public int getByteLength() {
-        if (bytes == null) return 0;
-        return bytes.length();
-    }
+		public int getByteLength(){
+				if(bytes==null) return 0;
+				return bytes.length();
+		}
+
+		public void encodeInto(MultiFieldEncoder fieldEncoder, boolean desc) {
+				forceSerialization(desc);
+				fieldEncoder.setRawBytes(bytes.array(),bytes.offset(),bytes.length());
+		}
 
 }
 

@@ -1,8 +1,8 @@
 package com.splicemachine.derby.utils.marshall;
 
 import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.kryo.KryoPool;
@@ -22,31 +22,37 @@ public class BareKeyHash{
 		protected final int[] keyColumns;
 		protected final boolean[] keySortOrder;
 		protected final boolean sparse;
+		protected final DescriptorSerializer[] serializers;
 
 		protected final KryoPool kryoPool;
 		private GregorianCalendar calendar;
 
-		protected BareKeyHash(int[] keyColumns, boolean[] keySortOrder,boolean sparse,KryoPool kryoPool) {
+		protected BareKeyHash(int[] keyColumns,
+													boolean[] keySortOrder,
+													boolean sparse,
+													KryoPool kryoPool,
+													DescriptorSerializer[] serializers) {
 				this.keyColumns = keyColumns;
 				this.keySortOrder = keySortOrder;
 				this.sparse = sparse;
 				this.kryoPool = kryoPool;
+				this.serializers = serializers;
 		}
 
-		public static DataHash encoder(int[] keyColumns, boolean[] keySortOrder){
-				return encoder(keyColumns, keySortOrder, SpliceKryoRegistry.getInstance());
+		public static DataHash encoder(int[] keyColumns, boolean[] keySortOrder,DescriptorSerializer[] serializers){
+				return encoder(keyColumns, keySortOrder, SpliceKryoRegistry.getInstance(),serializers);
 		}
 
-		public static DataHash encoder(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool){
-				return new Encoder(keyColumns,keySortOrder,kryoPool);
+		public static DataHash encoder(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool,DescriptorSerializer[] serializers){
+				return new Encoder(keyColumns,keySortOrder,kryoPool,serializers);
 		}
 
-		public static KeyHashDecoder decoder(int[] keyColumns, boolean[] keySortOrder){
-				return decoder(keyColumns, keySortOrder,SpliceDriver.getKryoPool());
+		public static KeyHashDecoder decoder(int[] keyColumns, boolean[] keySortOrder,DescriptorSerializer[] serializers){
+				return decoder(keyColumns, keySortOrder, SpliceKryoRegistry.getInstance(), serializers);
 		}
 
-		public static KeyHashDecoder decoder(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool){
-				return new Decoder(keyColumns,keySortOrder,kryoPool);
+		public static KeyHashDecoder decoder(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool,DescriptorSerializer[] serializers){
+				return new Decoder(keyColumns,keySortOrder,kryoPool,serializers);
 		}
 
 		protected void pack(MultiFieldEncoder encoder,ExecRow currentRow) throws StandardException, IOException {
@@ -54,13 +60,18 @@ public class BareKeyHash{
 				DataValueDescriptor[] dvds = currentRow.getRowArray();
 				if(keySortOrder!=null){
 						for(int i=0;i<keyColumns.length;i++){
-								if(keyColumns[i]==-1) continue; //skip columns marked with a -1
-								encodeField(encoder, dvds, keyColumns[i], !keySortOrder[i]);
+								int pos = keyColumns[i];
+								if(pos==-1) continue; //skip columns marked with a -1
+								DescriptorSerializer serializer = serializers[pos];
+								DataValueDescriptor dvd = dvds[pos];
+								serializer.encode(encoder, dvd, !keySortOrder[i]);
 						}
 				}else{
 						for(int keyColumn:keyColumns){
-								if(keyColumn==-1)continue;
-								encodeField(encoder,dvds,keyColumn,false);
+								if(keyColumn==-1) continue; //skip columns marked with a -1
+								DescriptorSerializer serializer = serializers[keyColumn];
+								DataValueDescriptor dvd = dvds[keyColumn];
+								serializer.encode(encoder, dvd, false);
 						}
 				}
 		}
@@ -112,8 +123,8 @@ public class BareKeyHash{
 		private static class Decoder extends BareKeyHash implements KeyHashDecoder{
 				private MultiFieldDecoder decoder;
 
-				private Decoder(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool) {
-						super(keyColumns,keySortOrder,false,kryoPool);
+				private Decoder(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool,DescriptorSerializer[] serializers) {
+						super(keyColumns,keySortOrder,false,kryoPool,serializers);
 				}
 
 				@Override
@@ -136,8 +147,8 @@ public class BareKeyHash{
 
 				private ExecRow currentRow;
 
-				public Encoder(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool) {
-						super(keyColumns,keySortOrder,false,kryoPool);
+				public Encoder(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool,DescriptorSerializer[] serializers) {
+						super(keyColumns,keySortOrder,false,kryoPool,serializers);
 				}
 
 				@Override
@@ -156,7 +167,7 @@ public class BareKeyHash{
 
 				@Override
 				public KeyHashDecoder getDecoder(){
-						return new Decoder(keyColumns,keySortOrder,kryoPool);
+						return new Decoder(keyColumns,keySortOrder,kryoPool,serializers);
 				}
 		}
 }

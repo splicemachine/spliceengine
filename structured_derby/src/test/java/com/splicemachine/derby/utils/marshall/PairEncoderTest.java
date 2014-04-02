@@ -4,6 +4,8 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.load.ImportTestUtils;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.utils.IntArrays;
@@ -141,8 +143,9 @@ public class PairEncoderTest {
 
 				int[] rowColumns = IntArrays.complement(keyColumns,execRow.nColumns());
 
-				KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(keyColumns,null),NoOpPostfix.INSTANCE);
-				DataHash rowEncoder = BareKeyHash.encoder(rowColumns,null);
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(execRow);
+				KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(keyColumns,null,serializers),NoOpPostfix.INSTANCE);
+				DataHash rowEncoder = BareKeyHash.encoder(rowColumns,null,serializers);
 				PairEncoder encoder = new PairEncoder(keyEncoder,rowEncoder, KVPair.Type.INSERT);
 
 				KVPair pair = encoder.encode(execRow);
@@ -182,8 +185,9 @@ public class PairEncoderTest {
 
             int[] rowColumns = IntArrays.complement(keyColumns, execRow.nColumns());
 
-            KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(keyColumns, keySortOrder), NoOpPostfix.INSTANCE);
-            DataHash rowEncoder = BareKeyHash.encoder(rowColumns, null);
+						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(execRow);
+            KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(keyColumns, keySortOrder,serializers), NoOpPostfix.INSTANCE);
+            DataHash rowEncoder = BareKeyHash.encoder(rowColumns, null,serializers);
             PairEncoder encoder = new PairEncoder(keyEncoder, rowEncoder, KVPair.Type.INSERT);
 
             KVPair pair = encoder.encode(execRow);
@@ -234,8 +238,9 @@ public class PairEncoderTest {
             FixedBucketPrefix prefix = new FixedBucketPrefix((byte)0x08,
                     new FixedPrefix(prefixBytes));
             UniquePostfix postfix = new UniquePostfix(uniquePostBytes, snowGen);
-            KeyEncoder keyEncoder = new KeyEncoder(prefix, BareKeyHash.encoder(keyColumns, keySortOrder), postfix);
-            DataHash rowEncoder = BareKeyHash.encoder(rowColumns, null);
+						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(execRow);
+            KeyEncoder keyEncoder = new KeyEncoder(prefix, BareKeyHash.encoder(keyColumns, keySortOrder,serializers), postfix);
+            DataHash rowEncoder = BareKeyHash.encoder(rowColumns, null,serializers);
             PairEncoder encoder = new PairEncoder(keyEncoder, rowEncoder, KVPair.Type.INSERT);
 
             KVPair pair = encoder.encode(execRow);
