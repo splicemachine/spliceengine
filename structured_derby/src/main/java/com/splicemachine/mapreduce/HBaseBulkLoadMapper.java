@@ -2,11 +2,14 @@ package com.splicemachine.mapreduce;
 
 import au.com.bytecode.opencsv.CSVParser;
 import com.google.gson.Gson;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.load.FailAlwaysReporter;
 import com.splicemachine.derby.impl.load.ImportContext;
 import com.splicemachine.derby.impl.load.ImportTask;
 import com.splicemachine.derby.impl.load.RowParser;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Type1UUID;
@@ -73,7 +76,7 @@ public class HBaseBulkLoadMapper extends Mapper<LongWritable, Text,
 				parser = new CSVParser(importContext.getColumnDelimiter().charAt(0),importContext.getQuoteChar().charAt(0));
 				try {
 						ExecRow row = ImportTask.getExecRow(importContext);
-						entryEncoder = newEntryEncoder(row);
+						entryEncoder = newEntryEncoder(importContext.getTableVersion(), row);
 						rowParser = new RowParser(row,importContext, FailAlwaysReporter.INSTANCE);
 						txnId = Long.parseLong(importContext.getTransactionId());
 				} catch (StandardException e) {
@@ -81,14 +84,15 @@ public class HBaseBulkLoadMapper extends Mapper<LongWritable, Text,
 				}
 		}
 
-		private PairEncoder newEntryEncoder(ExecRow row) {
+		private PairEncoder newEntryEncoder(String tableVersion,ExecRow row) {
 				int[] pkCols = importContext.getPrimaryKeys();
 				KeyEncoder encoder;
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(row);
 				if(pkCols!=null&& pkCols.length>0)
-						encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(pkCols, null), NoOpPostfix.INSTANCE);
+						encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(pkCols, null,serializers), NoOpPostfix.INSTANCE);
 				else
 						encoder = new KeyEncoder(new SaltedPrefix(getRandomGenerator()),NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
-				DataHash rowHash = new EntryDataHash(IntArrays.count(row.nColumns()),null);
+				DataHash rowHash = new EntryDataHash(IntArrays.count(row.nColumns()),null,serializers);
 				return new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
 		}
 

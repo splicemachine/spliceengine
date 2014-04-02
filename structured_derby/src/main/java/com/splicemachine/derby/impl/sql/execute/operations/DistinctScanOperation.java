@@ -19,6 +19,8 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.stats.TimeView;
@@ -160,16 +162,19 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     @Override
     public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				if(sinkIterator==null){
+						final ExecRow template = getExecRowDefinition();
 						StandardSupplier<ExecRow> supplier = new StandardSupplier<ExecRow>() {
 								@Override
 								public ExecRow get() throws StandardException {
-										return getExecRowDefinition();
+										return template;
 								}
 						};
 
 						buffer =  new DistinctSortAggregateBuffer(SpliceConstants.ringBufferSize,null,supplier,spliceRuntimeContext);
-						ScannerIterator source = new ScannerIterator(regionScanner, getExecRowDefinition(), operationInformation.getBaseColumnMap(), scanInformation, descColumns);
-						sinkIterator = new SinkSortIterator(buffer, source,keyColumns,null);
+						ScannerIterator source = new ScannerIterator(regionScanner, template, operationInformation.getBaseColumnMap(), scanInformation);
+						DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false).getSerializers(template);
+						KeyEncoder encoder = KeyEncoder.bare(keyColumns,null,serializers);
+						sinkIterator = new SinkSortIterator(buffer, source,encoder);
 						timer = spliceRuntimeContext.newTimer();
 				}
 
@@ -210,7 +215,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 				}
 
         if(rowDecoder==null){
-						rowDecoder = getTempDecoder();
+						rowDecoder = getTempDecoder(spliceRuntimeContext);
 				}
 				ExecRow decodedRow = rowDecoder.decode(KeyValueUtils.matchDataColumn(keyValues));
 				setCurrentRow(decodedRow);
@@ -276,7 +281,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 						if(top != this)
 								SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
 						else{
-								decoder = getTempDecoder();
+								decoder = getTempDecoder(spliceRuntimeContext);
 						}
 						return new DistributedClientScanProvider("distinctScanReduce", SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
 				} catch (IOException e) {
@@ -288,10 +293,12 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 		 * @return the decoder to use when reading data out of TEMP
 		 * @throws StandardException
 		 */
-		protected PairDecoder getTempDecoder() throws StandardException {
-				PairDecoder decoder;KeyDecoder actualKeyDecoder = new KeyDecoder(BareKeyHash.decoder(keyColumns, null),9);
+		protected PairDecoder getTempDecoder(SpliceRuntimeContext ctx) throws StandardException {
 				ExecRow templateRow = getExecRowDefinition();
-				KeyHashDecoder actualRowDecoder =  BareKeyHash.decoder(IntArrays.complement(keyColumns, templateRow.nColumns()),null);
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(ctx.tableVersion(), false).getSerializers(templateRow);
+				PairDecoder decoder;
+				KeyDecoder actualKeyDecoder = new KeyDecoder(BareKeyHash.decoder(keyColumns, null, serializers),9);
+				KeyHashDecoder actualRowDecoder =  BareKeyHash.decoder(IntArrays.complement(keyColumns, templateRow.nColumns()),null,serializers);
 				decoder = new PairDecoder(actualKeyDecoder,actualRowDecoder,templateRow);
 				return decoder;
 		}
@@ -345,7 +352,9 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				return BareKeyHash.encoder(IntArrays.complement(keyColumns,getExecRowDefinition().nColumns()),null);
+				ExecRow execRowDefinition = getExecRowDefinition();
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false).getSerializers(execRowDefinition);
+				return BareKeyHash.encoder(IntArrays.complement(keyColumns, execRowDefinition.nColumns()),null,serializers);
 		}
 
 		@Override

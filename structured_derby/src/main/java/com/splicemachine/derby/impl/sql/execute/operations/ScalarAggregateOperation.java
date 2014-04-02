@@ -17,6 +17,8 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.utils.IntArrays;
@@ -267,7 +269,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				return BareKeyHash.encoder(IntArrays.count(getExecRowDefinition().nColumns()),null);
+				ExecRow execRowDefinition = getExecRowDefinition();
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false).getSerializers(execRowDefinition);
+				return BareKeyHash.encoder(IntArrays.count(execRowDefinition.nColumns()),null,serializers);
 		}
 
 		@Override

@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -829,6 +830,11 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 		public int getByteLength(){
 				if(bytes==null) return 0;
 				return bytes.length();
+		}
+
+		public void encodeInto(MultiFieldEncoder fieldEncoder, boolean desc) {
+				forceSerialization(desc);
+				fieldEncoder.setRawBytes(bytes.array(),bytes.offset(),bytes.length());
 		}
 
 		@Override

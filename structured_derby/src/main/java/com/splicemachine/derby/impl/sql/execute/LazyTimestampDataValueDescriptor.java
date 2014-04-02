@@ -13,6 +13,8 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
+import java.sql.Timestamp;
+import java.util.Date;
 
 /**
  * Created with IntelliJ IDEA.

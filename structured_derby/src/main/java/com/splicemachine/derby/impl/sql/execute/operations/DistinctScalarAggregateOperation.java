@@ -34,6 +34,8 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.stats.TimeView;
@@ -216,7 +218,9 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 				if (step1Aggregator == null) {
 						buffer = new DistinctAggregateBuffer(SpliceConstants.ringBufferSize,
 										aggregates,new EmptyRowSupplier(aggregateContext),new SpliceWarningCollector(activation),DistinctAggregateBuffer.STEP.ONE,spliceRuntimeContext);
-						step1Aggregator = new DistinctScalarAggregateIterator(buffer,new SourceIterator(source),keyColumns);
+						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(getExecRowDefinition());
+						KeyEncoder encoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(keyColumns,null,serializers),NoOpPostfix.INSTANCE);
+						step1Aggregator = new DistinctScalarAggregateIterator(buffer,new SourceIterator(source),encoder);
 						step1Aggregator.open();
 						timer = spliceRuntimeContext.newTimer();
 				}
@@ -243,7 +247,9 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 										new EmptyRowSupplier(aggregateContext),new SpliceWarningCollector(activation),DistinctAggregateBuffer.STEP.TWO,spliceRuntimeContext);
 						scanner = getResultScanner(keyColumns,spliceRuntimeContext,uniqueSequenceID);
 						StandardIterator<ExecRow> sourceIterator = new ScanIterator(scanner,OperationUtils.getPairDecoder(this,spliceRuntimeContext));
-						step2Aggregator = new DistinctScalarAggregateIterator(buffer,sourceIterator,keyColumns);
+						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(getExecRowDefinition());
+						KeyEncoder encoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(keyColumns,null,serializers),NoOpPostfix.INSTANCE);
+						step2Aggregator = new DistinctScalarAggregateIterator(buffer,sourceIterator,encoder);
 						step2Aggregator.open();
 						timer = spliceRuntimeContext.newTimer();
 				}
@@ -334,7 +340,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 						@Override
 						public KeyDecoder getDecoder(){
 								try {
-										return new KeyDecoder(getKeyHashDecoder(),prefix.getPrefixLength());
+										return new KeyDecoder(getKeyHashDecoder(spliceRuntimeContext),prefix.getPrefixLength());
 								} catch (StandardException e) {
 										SpliceLogUtils.logAndThrowRuntime(LOG,e);
 								}
@@ -342,16 +348,20 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 						}};
 		}
 
-		private KeyHashDecoder getKeyHashDecoder() throws StandardException {
-				int[] rowColumns = IntArrays.intersect(keyColumns,getExecRowDefinition().nColumns());
-				return EntryDataDecoder.decoder(rowColumns, null);
+		private KeyHashDecoder getKeyHashDecoder(SpliceRuntimeContext ctx) throws StandardException {
+				ExecRow execRowDefinition = getExecRowDefinition();
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(ctx.tableVersion(),false).getSerializers(execRowDefinition);
+				int[] rowColumns = IntArrays.intersect(keyColumns, execRowDefinition.nColumns());
+				return EntryDataDecoder.decoder(rowColumns, null,serializers);
 		}
 
 
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				int[] rowColumns = IntArrays.complement(keyColumns,getExecRowDefinition().nColumns());
-				return BareKeyHash.encoder(rowColumns,null);
+				ExecRow execRowDefinition = getExecRowDefinition();
+				int[] rowColumns = IntArrays.complement(keyColumns, execRowDefinition.nColumns());
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false).getSerializers(execRowDefinition);
+				return BareKeyHash.encoder(rowColumns,null,serializers);
 		}
 
 		@Override
