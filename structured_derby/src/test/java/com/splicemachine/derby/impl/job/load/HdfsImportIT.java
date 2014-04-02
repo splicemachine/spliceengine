@@ -145,20 +145,14 @@ public class HdfsImportIT extends SpliceUnitTest {
         ps.execute();
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",spliceSchemaWatcher.schemaName,TABLE_12));
         List<String> results = Lists.newArrayList();
-        System.out.println("=======================");
-        System.out.println("About to output results");
-        System.out.println("=======================");
+        
         while(rs.next()){
             Date d = rs.getDate(1);
             Time t = rs.getTime(2);
-            System.out.println("Date: " + d + ", Time: " + t);
             Assert.assertNotNull("Date is null!", d);
             Assert.assertNotNull("Time is null!", t);
             results.add(String.format("Date:%s,Time:%s",d,t));
         }
-        System.out.println("=======================");
-        System.out.println("Result Count: " + results.size());
-        System.out.println("=======================");
         Assert.assertTrue("Incorrect number of rows imported", results.size() == 2);
         
     }
