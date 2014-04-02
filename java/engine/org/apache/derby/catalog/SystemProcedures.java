@@ -1916,11 +1916,39 @@ public class SystemProcedures  {
     public static void SYSCS_INVALIDATE_STORED_STATEMENTS()
        throws SQLException
     {
-    	LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-
-        DataDictionary dd = lcc.getDataDictionary();
         try {
-        	dd.invalidateAllSPSPlans(lcc);
+        	LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            DataDictionary dd = lcc.getDataDictionary();
+
+            dd.invalidateAllSPSPlans(lcc);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
+
+    /**
+     * Update all the metadata stored statements so they will get refreshed from the metadata.properties file.
+     */
+    public static void SYSCS_UPDATE_METADATA_STORED_STATEMENTS()
+       throws SQLException
+    {
+        try {
+        	LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            TransactionController     tc  = lcc.getTransactionExecute();
+            DataDictionary            dd =  lcc.getDataDictionary();
+
+            /*
+            ** Inform the data dictionary that we are about to write to it.
+            ** There are several calls to data dictionary "get" methods here
+            ** that might be done in "read" mode in the data dictionary, but
+            ** it seemed safer to do this whole operation in "write" mode.
+            **
+            ** We tell the data dictionary we're done writing at the end of
+            ** the transaction.
+            */
+            dd.startWriting(lcc);
+
+        	dd.updateMetadataSPSes(tc);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         }

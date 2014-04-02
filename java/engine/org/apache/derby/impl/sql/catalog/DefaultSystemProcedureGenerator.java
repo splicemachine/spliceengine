@@ -407,6 +407,12 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .returnType(null).isDeterministic(false)
                 .ownerClass(SYSTEM_PROCEDURES)
                 .build()
+                ,
+            Procedure.newBuilder().name("SYSCS_UPDATE_METADATA_STORED_STATEMENTS")
+                .numOutputParams(0).numResultSets(0).modifiesSql()
+                .returnType(null).isDeterministic(false)
+                .ownerClass(SYSTEM_PROCEDURES)
+                .build()
     }));
 
     private static final List/*<Procedure>*/ sqlJProcedures = Arrays.asList(new Procedure[]{
