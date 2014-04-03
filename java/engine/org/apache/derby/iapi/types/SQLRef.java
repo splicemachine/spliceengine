@@ -51,6 +51,7 @@ import java.io.IOException;
 
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 public class SQLRef extends DataType implements RefDataValue
 {
@@ -260,5 +261,8 @@ public class SQLRef extends DataType implements RefDataValue
 			return "NULL";
 		else
 			return value.toString();
+	}
+	public Format getFormat() {
+		return Format.REF;
 	}
 }

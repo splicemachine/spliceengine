@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * SQLInteger represents an INTEGER value.
@@ -707,4 +708,8 @@ public final class SQLInteger
 	 */
 	private int		value;
 	private boolean	isnull;
+	
+	public Format getFormat() {
+		return Format.INTEGER;
+	}
 }

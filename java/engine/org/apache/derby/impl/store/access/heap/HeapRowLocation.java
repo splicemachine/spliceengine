@@ -41,7 +41,7 @@ import org.apache.derby.iapi.types.RowLocation;
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
-
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 /**
  * A heap row location represents the location of a row in the heap.
  * <P>
@@ -401,4 +401,9 @@ public class HeapRowLocation extends DataType implements RowLocation
            "(" + this.pageno + "," + this.recid + ")";
         return(string);
     }
+    
+    public Format getFormat() {
+    	return Format.ROW_LOCATION;
+    }
+    
 }

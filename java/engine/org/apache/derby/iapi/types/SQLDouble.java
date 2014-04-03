@@ -49,6 +49,7 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * SQLDouble satisfies the DataValueDescriptor
@@ -903,4 +904,13 @@ public final class SQLDouble extends NumberDataType
 	 */
 	private double	value;
 	private boolean	isnull;
+	
+    public boolean isDoubleType() {
+        return true;
+    }
+    
+    public Format getFormat() {
+    	return Format.DOUBLE;
+    }
+    
 }

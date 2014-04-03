@@ -38,6 +38,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.SQLException;
 import java.util.Calendar;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * The DataValueDescriptor interface provides methods to get the data from
@@ -972,5 +973,19 @@ public interface DataValueDescriptor extends Storable, Orderable
      * @return true if lazy
      */
     boolean isLazy();
+    
+    /**
+     * Are you a double type for splice encoding
+     *
+     * @return true if lazy
+     */    
+    boolean isDoubleType();
 
+    /**
+     * Serialization Format
+     *
+     * @return true if lazy
+     */    
+    Format getFormat();
+    
 }

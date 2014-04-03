@@ -31,6 +31,7 @@ import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 
 import org.apache.derby.iapi.util.StringUtil;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * SQLLongvarchar represents a LONG VARCHAR value with UCS_BASIC collation.
@@ -166,5 +167,9 @@ public class SQLLongvarchar
 	public int typePrecedence()
 	{
 		return TypeId.LONGVARCHAR_PRECEDENCE;
+	}
+	
+	public Format getFormat() {
+		return Format.LONGVARCHAR;
 	}
 }

@@ -49,6 +49,7 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * SQLReal satisfies the DataValueDescriptor
@@ -894,4 +895,8 @@ public final class SQLReal
 	private float value;
 	private boolean isnull;
 
+	public Format getFormat() {
+		return Format.REAL;
+	}
+	
 }

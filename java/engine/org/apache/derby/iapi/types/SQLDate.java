@@ -45,6 +45,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * This contains an instance of a SQL Date.
@@ -1006,5 +1007,8 @@ public final class SQLDate extends DataType
         throws StandardException
     {
         return toTimestamp().timestampDiff( intervalType, time1, currentDate, resultHolder);
+    }
+    public Format getFormat() {
+    	return Format.DATE;
     }
 }

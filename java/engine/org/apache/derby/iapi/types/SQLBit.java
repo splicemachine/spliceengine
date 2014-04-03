@@ -22,16 +22,13 @@
 package org.apache.derby.iapi.types;
 
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.reference.Limits;
-
 import org.apache.derby.iapi.services.io.StoredFormatIds;
-
 import org.apache.derby.iapi.util.StringUtil;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * SQLBit represents the SQL type CHAR FOR BIT DATA
@@ -223,7 +220,9 @@ public class SQLBit
 	}
 
 
-
+	public Format getFormat() {
+		return Format.BIT;
+	}
 
 
 }

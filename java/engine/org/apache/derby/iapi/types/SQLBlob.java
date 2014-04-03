@@ -27,11 +27,11 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.CloneableStream;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.PreparedStatement;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * SQLBlob satisfies the DataValueDescriptor,
@@ -322,6 +322,10 @@ public class SQLBlob extends SQLBinary
      */
     private final boolean isLengthLess() {
         return (stream != null && streamValueLength < 0);
+    }
+    
+    public Format getFormat() {
+    	return Format.BLOB;
     }
 }
 

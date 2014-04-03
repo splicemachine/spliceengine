@@ -28,16 +28,11 @@ import org.apache.derby.iapi.types.DateTimeDataValue;
 import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.derby.iapi.types.UserDataValue;
 import org.apache.derby.iapi.types.RefDataValue;
-
 import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-
 import org.apache.derby.iapi.types.RowLocation;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.services.i18n.LocaleFinder;
 import org.apache.derby.iapi.services.io.FormatableInstanceGetter;
 import org.apache.derby.iapi.services.io.FormatIdUtil;
@@ -46,10 +41,8 @@ import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.monitor.ModuleControl;
 import org.apache.derby.iapi.services.monitor.ModuleFactory;
 import org.apache.derby.iapi.services.monitor.Monitor;
-
 import org.apache.derby.iapi.services.loader.ClassInfo;
 import org.apache.derby.iapi.services.loader.InstanceGetter;
-
 import org.apache.derby.iapi.reference.Attribute;
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.reference.SQLState;
@@ -60,13 +53,10 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
-
 import java.text.Collator;
 import java.text.RuleBasedCollator;
-
 import java.util.Properties;
 import java.util.Locale;
-
 import org.apache.derby.iapi.db.DatabaseContext;
 import org.apache.derby.iapi.services.context.ContextService;
 
@@ -77,7 +67,7 @@ import org.apache.derby.iapi.services.context.ContextService;
  *
  * @see DataValueFactory
  */
-abstract class DataValueFactoryImpl implements DataValueFactory, ModuleControl
+public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleControl
 {
         LocaleFinder localeFinder;
         //BasicDatabase first boots DVF in it's boot method and then sets 
@@ -1204,4 +1194,91 @@ abstract class DataValueFactoryImpl implements DataValueFactory, ModuleControl
 
                 return localeFinder;
         }
+		
+    	public enum Format{
+            BOOLEAN(StoredFormatIds.SQL_BOOLEAN_ID),
+            TINYINT(StoredFormatIds.SQL_TINYINT_ID),
+            SMALLINT(StoredFormatIds.SQL_SMALLINT_ID),
+            INTEGER(StoredFormatIds.SQL_INTEGER_ID),
+            LONGINT(StoredFormatIds.SQL_LONGINT_ID),
+            REAL(StoredFormatIds.SQL_REAL_ID),
+            DOUBLE(StoredFormatIds.SQL_DOUBLE_ID),
+            DECIMAL(StoredFormatIds.SQL_DECIMAL_ID),
+            REF(StoredFormatIds.SQL_REF_ID),
+            USERTYPE(StoredFormatIds.SQL_USERTYPE_ID_V3),
+            DATE(StoredFormatIds.SQL_DATE_ID),
+            TIME(StoredFormatIds.SQL_TIME_ID),
+            TIMESTAMP(StoredFormatIds.SQL_TIMESTAMP_ID),
+            VARCHAR(StoredFormatIds.SQL_VARCHAR_ID),
+            LONGVARCHAR(StoredFormatIds.SQL_LONGVARCHAR_ID),
+            CLOB(StoredFormatIds.SQL_CLOB_ID),
+            XML(StoredFormatIds.XML_ID),
+            CHAR(StoredFormatIds.SQL_CHAR_ID),
+            VARBIT(StoredFormatIds.SQL_VARBIT_ID),
+            LONGVARBIT(StoredFormatIds.SQL_LONGVARBIT_ID),
+            BLOB(StoredFormatIds.SQL_BLOB_ID),
+            BIT(StoredFormatIds.SQL_BIT_ID),
+            ROW_LOCATION(StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID);
+
+            private final int storedFormatId;
+
+            private Format(int storedFormatId) {
+                this.storedFormatId = storedFormatId;
+            }
+
+            public static Format formatFor(DataValueDescriptor dvd){
+                int typeFormatId = dvd.getTypeFormatId();
+                switch(typeFormatId){
+                	case StoredFormatIds.SQL_VARCHAR_ID:
+                    	return VARCHAR;
+                    case StoredFormatIds.SQL_INTEGER_ID:
+                        return INTEGER;
+                    case StoredFormatIds.SQL_LONGINT_ID:
+                        return LONGINT;
+                    case StoredFormatIds.SQL_DOUBLE_ID:
+                        return DOUBLE;
+                    case StoredFormatIds.SQL_DECIMAL_ID:
+                        return DECIMAL;
+                    case StoredFormatIds.SQL_BOOLEAN_ID:
+                        return BOOLEAN;
+                    case StoredFormatIds.SQL_TINYINT_ID:
+                        return TINYINT;
+                    case StoredFormatIds.SQL_SMALLINT_ID:
+                        return SMALLINT;
+                    case StoredFormatIds.SQL_REAL_ID:
+                        return REAL;
+                    case StoredFormatIds.SQL_REF_ID:
+                        return REF;
+                    case StoredFormatIds.SQL_USERTYPE_ID_V3:
+                        return USERTYPE;
+                    case StoredFormatIds.SQL_DATE_ID:
+                        return DATE;
+                    case StoredFormatIds.SQL_TIME_ID:
+                        return TIME;
+                    case StoredFormatIds.SQL_TIMESTAMP_ID:
+                        return TIMESTAMP;
+                    case StoredFormatIds.SQL_LONGVARCHAR_ID:
+                        return LONGVARCHAR;
+                    case StoredFormatIds.SQL_CLOB_ID:
+                        return CLOB;
+                    case StoredFormatIds.XML_ID:
+                        return XML;
+                    case StoredFormatIds.SQL_CHAR_ID:
+                        return CHAR;
+                    case StoredFormatIds.SQL_VARBIT_ID:
+                        return VARBIT;
+                    case StoredFormatIds.SQL_LONGVARBIT_ID:
+                        return LONGVARBIT;
+                    case StoredFormatIds.SQL_BLOB_ID:
+                        return BLOB;
+                    case StoredFormatIds.SQL_BIT_ID:
+                        return BIT;
+                    case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID:
+                        return ROW_LOCATION;
+                    default:
+                        throw new IllegalArgumentException("Unable to determine format for dvd class"+ dvd.getClass());
+                }
+            }
+        }
+        
 }

@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * SQLBoolean satisfies the DataValueDescriptor
@@ -1057,4 +1058,7 @@ public final class SQLBoolean
 	 */
 	private boolean value;
 	private boolean isnull;
+	public Format getFormat() {
+		return Format.BOOLEAN;
+	}
 }

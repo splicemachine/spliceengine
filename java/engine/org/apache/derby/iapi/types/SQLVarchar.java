@@ -23,11 +23,9 @@ package org.apache.derby.iapi.types;
 
 import java.sql.Clob;
 import java.text.RuleBasedCollator;
-
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.services.io.StoredFormatIds;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
 
 /**
@@ -213,4 +211,9 @@ public class SQLVarchar
     {
         return RETURN_SPACE_THRESHOLD;  //seems reasonable for a varchar or clob 
     }
+    
+    public Format getFormat() {
+    	return Format.VARCHAR;
+    }
+    
 }

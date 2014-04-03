@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * SQLSmallint satisfies the DataValueDescriptor
@@ -755,4 +756,7 @@ public final class SQLSmallint
 	 */
 	private short value;
 	private boolean isnull;
+	public Format getFormat() {
+		return Format.SMALLINT;
+	}
 }

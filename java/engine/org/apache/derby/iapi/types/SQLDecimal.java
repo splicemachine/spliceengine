@@ -48,6 +48,7 @@ import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * SQLDecimal satisfies the DataValueDescriptor
@@ -1180,5 +1181,9 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
    
 		String s = decimalValue.toString();
         return (decimalValue.scale() == 0) ? s.length() : s.indexOf('.');
+	}
+	
+	public Format getFormat() {
+		return Format.DECIMAL;
 	}
 }

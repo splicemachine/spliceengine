@@ -48,6 +48,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.RuleBasedCollator;
 import java.util.Calendar;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 
 /**
@@ -947,5 +948,8 @@ public class SQLClob
            return ("headerLength=" + headerLength + ", valueLength= " +
                    valueLength + ", isCharLength=" + isCharLength());
        }
+    }
+    public Format getFormat() {
+    	return Format.CLOB;
     }
 }

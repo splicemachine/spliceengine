@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * SQLLongint satisfies the DataValueDescriptor
@@ -906,4 +907,9 @@ public final class SQLLongint
 	 */
 	private long		value;
 	private boolean	isnull;
+	
+	public Format getFormat() {
+		return Format.LONGINT;
+		
+	}
 }

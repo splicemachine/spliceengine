@@ -47,6 +47,7 @@ import java.io.ObjectInput;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * This contains an instance of a SQL Timestamp object.
@@ -1324,4 +1325,8 @@ public final class SQLTimestamp extends DataType
         else
             return new SQLTimestamp( dateTime.getTimestamp( new GregorianCalendar()));
     } // end of promote
+    
+    public Format getFormat() {
+    	return Format.TIMESTAMP;
+    }
 }

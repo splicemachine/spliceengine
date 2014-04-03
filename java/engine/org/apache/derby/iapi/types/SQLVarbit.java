@@ -29,6 +29,7 @@ import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 
 import org.apache.derby.iapi.util.StringUtil;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 
 /**
@@ -176,5 +177,9 @@ public class SQLVarbit extends SQLBit
 	public int typePrecedence()
 	{
 		return TypeId.VARBIT_PRECEDENCE;
+	}
+	
+	public Format getFormat() {
+		return Format.VARBIT;
 	}
 }

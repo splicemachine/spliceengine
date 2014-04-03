@@ -68,6 +68,7 @@ import java.text.CollationKey;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Calendar;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 
 
@@ -3209,5 +3210,8 @@ public class SQLChar
         return (int) length;
     }
 
+    public Format getFormat() {
+    	return Format.CHAR;
+    }
 
 }

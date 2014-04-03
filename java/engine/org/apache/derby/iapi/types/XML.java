@@ -47,6 +47,7 @@ import java.io.ObjectInput;
 import java.lang.reflect.Method;
 
 import java.util.List;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * This type implements the XMLDataValue interface and thus is
@@ -1079,5 +1080,8 @@ public class XML
             // 3.0 support. Assume we don't have it.
             return false;
         }
+    }
+    public Format getFormat() {
+    	return Format.XML;
     }
 }

@@ -54,6 +54,7 @@ import java.sql.SQLException;
 
 import java.text.DateFormat;
 import java.text.ParseException;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * This contains an instance of a SQL Time
@@ -992,6 +993,9 @@ public final class SQLTime extends DataType
         throws StandardException
     {
         return toTimestamp( currentDate ).timestampDiff( intervalType, time1, currentDate, resultHolder);
+    }
+    public Format getFormat() {
+    	return Format.TIME;
     }
 }
 

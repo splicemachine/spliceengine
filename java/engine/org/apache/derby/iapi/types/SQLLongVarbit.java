@@ -20,12 +20,10 @@
  */
 
 package org.apache.derby.iapi.types;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.reference.Limits;
-
 import org.apache.derby.iapi.services.io.StoredFormatIds;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * SQLLongVarbit represents the SQL type LONG VARCHAR FOR BIT DATA
@@ -135,4 +133,9 @@ public class SQLLongVarbit extends SQLVarbit
 	{
 		return TypeId.LONGVARBIT_PRECEDENCE;
 	}
+	
+	public Format getFormat() {
+		return Format.LONGVARBIT;
+	}
+	
 }

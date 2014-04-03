@@ -36,6 +36,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.ResultSet;
 import java.util.Calendar;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  *
@@ -62,7 +63,8 @@ public abstract class DataType
 	/*
 	 * DataValueDescriptor Interface
 	 */
-
+	
+	
 	/**
 	 * Gets the value in the data value descriptor as a boolean.
 	 * Throws an exception if the data value is not receivable as a boolean.
@@ -1270,4 +1272,13 @@ public abstract class DataType
     public boolean isLazy() {
         return false;
     }
+    
+    public boolean isDoubleType() {
+        return false;
+    }
+    
+    public Format getFormat() {
+    	throw new RuntimeException("getFormat not supported for type " + this.getClass() + " : "+ this);
+    }
+        
 }

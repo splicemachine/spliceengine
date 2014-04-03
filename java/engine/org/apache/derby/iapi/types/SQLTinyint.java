@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 /**
  * SQLTinyint satisfies the DataValueDescriptor
@@ -746,5 +747,9 @@ public final class SQLTinyint
 	public int hashCode()
 	{
 		return (int) value;
+	}
+	
+	public Format getFormat() {
+		return Format.TINYINT;
 	}
 }

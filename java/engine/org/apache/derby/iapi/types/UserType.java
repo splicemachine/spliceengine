@@ -53,6 +53,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import java.util.Calendar;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 
 /**
@@ -600,6 +601,10 @@ public class UserType extends DataType
 	public final boolean isNull()
 	{
 		return (value == null);
+	}
+	
+	public Format getFormat() {
+		return Format.USERTYPE;
 	}
 }
 
