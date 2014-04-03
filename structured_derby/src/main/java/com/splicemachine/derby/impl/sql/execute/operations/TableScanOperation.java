@@ -230,8 +230,10 @@ public class TableScanOperation extends ScanOperation {
 						for (int i = 0; i < keyColumns.length; ++i) {
 								keyColumns[i] = -1;
 						}
-						for (int i = 0; i < keyColumns.length && columnOrdering[i] < baseColumnMap.length; ++i) {
-								keyColumns[i] = baseColumnMap[columnOrdering[i]];
+						for (int i = 0; i < keyColumns.length; ++i) {
+                            if(columnOrdering[i] < baseColumnMap.length) {
+                                keyColumns[i] = baseColumnMap[columnOrdering[i]];
+                            }
 						}
 				}
 				return keyColumns;

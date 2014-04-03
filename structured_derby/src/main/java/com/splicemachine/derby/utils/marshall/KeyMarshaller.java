@@ -32,14 +32,15 @@ public class KeyMarshaller {
         keyDecoder.set(data, offset, length);
         for (int i = 0; i < columnOrdering.length; ++i) {
             int kcol = columnOrdering[i];
-            if (kcol < reversedKeyColumns.length) {
-                if (reversedKeyColumns[kcol] == -1) {
-                    // skip this key column because it is not requested
-                    DerbyBytesUtil.skip(keyDecoder,kdvds[i]);;
-                }
-                else {
-                    DataValueDescriptor dvd = fields[reversedKeyColumns[kcol]];
-                    DerbyBytesUtil.decodeInto(keyDecoder, dvd);
+            if (kcol < reversedKeyColumns.length && reversedKeyColumns[kcol] != -1) {
+                DataValueDescriptor dvd = fields[reversedKeyColumns[kcol]];
+                DerbyBytesUtil.decodeInto(keyDecoder, dvd);
+            }
+            else {
+                // skip this key column because it is not requested
+                // but don't need to skip the last column
+                if (i != columnOrdering.length - 1) {
+                    DerbyBytesUtil.skip(keyDecoder, kdvds[i]);
                 }
             }
         }
