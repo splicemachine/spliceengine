@@ -5,6 +5,9 @@ import com.splicemachine.derby.impl.sql.execute.serial.DecimalDVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.DoubleDVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.TimestampDVDSerializer;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.utils.ByteSlice;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.types.*;
@@ -183,4 +186,17 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
             default: throw new UnsupportedOperationException("No Serializer for format ID: " + formatId);
         }
     }
+
+	@Override
+	public DateTimeDataValue getDate(DataValueDescriptor operand) throws StandardException {
+		if (operand instanceof LazyTimestampDataValueDescriptor) {
+			DateTimeDataValue dtdv = this.getNullDate(null);
+			ByteSlice bs = ((LazyDataValueDescriptor) operand).bytes;
+			DerbyBytesUtil.decode(dtdv, bs.array(), bs.offset(), bs.length());
+			return dtdv;
+		}
+		return super.getDate(operand);
+	}
+    
+    
 }
