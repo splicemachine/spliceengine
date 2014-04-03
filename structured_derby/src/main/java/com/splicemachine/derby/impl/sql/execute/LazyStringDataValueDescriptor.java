@@ -231,4 +231,9 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
         }
     }
 
+	@Override
+	public boolean isDoubleType() {
+		return false;
+	}
+
 }

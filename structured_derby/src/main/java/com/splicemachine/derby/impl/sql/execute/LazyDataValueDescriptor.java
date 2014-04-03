@@ -4,11 +4,13 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.ArrayInputStream;
 import org.apache.derby.iapi.types.BooleanDataValue;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.derby.iapi.types.SQLBoolean;
 import org.apache.hadoop.hbase.util.ByteBufferUtils;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -828,5 +830,11 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 				if(bytes==null) return 0;
 				return bytes.length();
 		}
+
+		@Override
+		public Format getFormat() {
+			return dvd.getFormat();
+		}
+		
 }
 

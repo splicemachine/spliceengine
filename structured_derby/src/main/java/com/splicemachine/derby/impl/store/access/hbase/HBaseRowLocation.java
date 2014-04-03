@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
 import com.splicemachine.utils.ByteSlice;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.cache.ClassSize;
 import org.apache.derby.iapi.services.io.ArrayInputStream;
@@ -8,6 +9,7 @@ import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.types.DataType;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.derby.iapi.types.RowLocation;
 
 import java.io.ObjectOutput;
@@ -219,5 +221,9 @@ public class HBaseRowLocation extends DataType implements RowLocation {
      */
     public String toString() {
         return("(row key "+this.slice+")");
+    }
+    
+    public Format getFormat() {
+    	return Format.ROW_LOCATION;
     }
 }

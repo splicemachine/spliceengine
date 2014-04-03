@@ -2,10 +2,13 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.types.BooleanDataValue;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DateTimeDataValue;
 import org.apache.derby.iapi.types.NumberDataValue;
+import org.apache.derby.iapi.types.SQLBoolean;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -149,4 +152,31 @@ public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor im
             throw new RuntimeException(e);
         }
     }
+
+	@Override
+	public boolean isDoubleType() {
+		return false;
+	}
+	
+    @Override
+    public BooleanDataValue lessOrEquals(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
+    	/*
+    	if (left.getTypeFormatId() == right.getTypeFormatId()) {
+    		if (left.isLazy()) {
+    			if (!right.isLazy())
+    				((LazyDataValueDescriptor)right).serializeIfNeeded(((LazyDataValueDescriptor)right).descendingOrder);
+    		} else if (right.isLazy()) {
+    	
+    	}
+    		return SQLBoolean.truthValue(left, right, )
+    	} 		
+    	*/
+        return SQLBoolean.truthValue(left, right, left.compare(right) <= 0);
+    }
+
+    @Override
+    public BooleanDataValue greaterOrEquals(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
+        return SQLBoolean.truthValue(left, right, left.compare(right) >= 0);
+    }
+	
 }
