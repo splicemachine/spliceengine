@@ -18,6 +18,7 @@ import com.google.common.collect.TreeMultiset;
 import java.sql.Timestamp;
 import java.util.Iterator;
 /**
+ * Test case for DB-1194
  * Created by jyuan on 4/3/14.
  */
 
