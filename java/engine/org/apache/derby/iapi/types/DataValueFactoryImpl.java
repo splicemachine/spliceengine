@@ -67,8 +67,7 @@ import org.apache.derby.iapi.services.context.ContextService;
  *
  * @see DataValueFactory
  */
-public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleControl
-{
+public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleControl {
         LocaleFinder localeFinder;
         //BasicDatabase first boots DVF in it's boot method and then sets 
         //this databaseLocale in DVF.
