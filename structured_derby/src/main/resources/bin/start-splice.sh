@@ -3,8 +3,37 @@
 # Start with debug logging by passing this script the "-debug" argument
 
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+
 LOGFILE="${ROOT_DIR}"/splice.log
-DEBUG=$1
+DEBUG=false
+
+usage() {
+    # $1 is an error, if any
+    if [[ -n "${1}" ]]; then
+        echo "Error: ${1}"
+    fi
+    echo "Usage: $0 [-d] [-h]"
+    echo "Where: "
+    echo "  -d => Start the server with debug logging enabled"
+    echo "  -h => print this message"
+}
+
+while getopts "dh" flag ; do
+    case $flag in
+        h* | \?)
+            usage
+            exit 0 # This is not an error, User asked help. Don't do "exit 1"
+        ;;
+        d)
+        # start server with the debug
+            DEBUG=true
+        ;;
+        ?)
+            usage "Unknown option (ignored): ${OPTARG}"
+            exit 1
+        ;;
+    esac
+done
 
 # server still running? - must stop first
 if [[ -e "${ROOT_DIR}"/splice_pid || -e "${ROOT_DIR}"/zoo_pid ]]; then
@@ -27,7 +56,7 @@ ZOO_DIR="${ROOT_DIR}"/db/zookeeper
 HBASE_ROOT_DIR_URI="file://${ROOT_DIR}/db/hbase"
 
 LOG4J_PATH="file:${ROOT_DIR}/lib/info-log4j.properties"
-if [[ -n "$DEBUG" && "$DEBUG" -eq "-debug" ]]; then
+if [[ "${DEBUG}" = true ]]; then
     LOG4J_PATH="file:${ROOT_DIR}/lib/hbase-log4j.properties"
 fi
 
