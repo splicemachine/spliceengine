@@ -229,9 +229,9 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 								SpliceLogUtils.trace(LOG, "nextRow retrieved hbase values %s", keyValues);
 
 								DataValueDescriptor[] rowArray = currentRow.getRowArray();
-								for(KeyValue kv:keyValues){
-										RowMarshaller.sparsePacked().decode(kv, rowArray, baseColumnMap, (MultiFieldDecoder)null);
-								}
+//								for(KeyValue kv:keyValues){
+//										RowMarshaller.sparsePacked().decode(kv, rowArray, baseColumnMap, (MultiFieldDecoder)null);
+//								}
 								SpliceLogUtils.trace(LOG, "nextRow retrieved derby row %s", currentRow);
 								this.setCurrentRow(currentRow);
 								currentRowLocation = new HBaseRowLocation(keyValues.get(0).getRow());
