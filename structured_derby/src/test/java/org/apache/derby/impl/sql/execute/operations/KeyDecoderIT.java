@@ -20,14 +20,14 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 /**
- * Test case for DB-1194
  * Created by jyuan on 4/3/14.
  */
 
-public class PrimaryKeyDecoderIT extends SpliceUnitTest {
-    private static final Logger LOG = Logger.getLogger(PrimaryKeyDecoderIT.class);
-    private static final String SCHEMA_NAME = PrimaryKeyDecoderIT.class.getSimpleName().toUpperCase();
-    private static final String TABLE_NAME = "APOLLO_MV_MINUTE";
+public class KeyDecoderIT extends SpliceUnitTest {
+    private static final Logger LOG = Logger.getLogger(KeyDecoderIT.class);
+    private static final String SCHEMA_NAME = KeyDecoderIT.class.getSimpleName().toUpperCase();
+    private static final String TABLE1 = "APOLLO_MV_MINUTE";
+    private static final String TABLE2 = "T";
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
     private static final String  CREATE =
@@ -97,24 +97,28 @@ public class PrimaryKeyDecoderIT extends SpliceUnitTest {
                 "PRIMARY KEY (day, ad_id, row_id) " +
                 ")";
 
-    protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME, SCHEMA_NAME, CREATE);
+    private static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE1, SCHEMA_NAME, CREATE);
+    private static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE2, SCHEMA_NAME, "(i int)");
     private static final String dataFile = SpliceUnitTest.getResourceDirectory()+ "x.txt";
     private static SpliceWatcher methodWatcher = new SpliceWatcher();
     private static TreeMultiset<Timestamp> DAYS = TreeMultiset.create();
     private static TreeMultiset<Long> AD_IDS = TreeMultiset.create();
     private static TreeMultiset<Long> ROW_IDS = TreeMultiset.create();
+    private static int VAL;
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
-            .around(spliceTableWatcher)
+            .around(spliceTableWatcher1)
+            .around(spliceTableWatcher2)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try {
-                        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s', '|',null,null,null,null,0,null)", SCHEMA_NAME, TABLE_NAME, dataFile));
+                        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s', '|',null,null,null,null,0,null)", SCHEMA_NAME, TABLE1, dataFile));
                         ps.execute();
-                        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",SCHEMA_NAME,TABLE_NAME));
+                        ps.close();
+                        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",SCHEMA_NAME,TABLE1));
                         while (rs.next()) {
                             Timestamp day = rs.getTimestamp(4);
                             DAYS.add(day);
@@ -128,6 +132,16 @@ public class PrimaryKeyDecoderIT extends SpliceUnitTest {
                         Assert.assertEquals(DAYS.size(), 10);
                         Assert.assertEquals(AD_IDS.size(), 10);
                         Assert.assertEquals(ROW_IDS.size(), 10);
+                        rs.close();
+
+                        ps = methodWatcher.prepareStatement(format("insert into %s.%s values 1", SCHEMA_NAME, TABLE2));
+                        ps.execute();
+                        ps.close();
+                        rs = methodWatcher.executeQuery(format("select * from %s.%s", SCHEMA_NAME, TABLE2));
+                        while(rs.next()) {
+                            VAL = rs.getInt(1);
+                        }
+                        rs.close();
                     }
                     catch (Exception e) {
                         LOG.error("Error importing data");
@@ -138,7 +152,7 @@ public class PrimaryKeyDecoderIT extends SpliceUnitTest {
     @Test
     public void testSelectDays() throws Exception {
         TreeMultiset<Timestamp> days = TreeMultiset.create();
-        ResultSet rs = methodWatcher.executeQuery(format("select day from %s.%s",SCHEMA_NAME,TABLE_NAME));
+        ResultSet rs = methodWatcher.executeQuery(format("select day from %s.%s",SCHEMA_NAME,TABLE1));
         while (rs.next()) {
             Timestamp day = rs.getTimestamp(1);
             days.add(day);
@@ -154,7 +168,7 @@ public class PrimaryKeyDecoderIT extends SpliceUnitTest {
     @Test
     public void testSelectAdIds() throws Exception {
         TreeMultiset<Long> ad_ids = TreeMultiset.create();
-        ResultSet rs = methodWatcher.executeQuery(format("select ad_id from %s.%s",SCHEMA_NAME,TABLE_NAME));
+        ResultSet rs = methodWatcher.executeQuery(format("select ad_id from %s.%s",SCHEMA_NAME,TABLE1));
         while (rs.next()) {
             Long ad_id = new Long(rs.getLong(1));
             ad_ids.add(ad_id);
@@ -170,7 +184,7 @@ public class PrimaryKeyDecoderIT extends SpliceUnitTest {
     @Test
     public void testSelectRowIds() throws Exception {
         TreeMultiset<Long> row_ids = TreeMultiset.create();
-        ResultSet rs = methodWatcher.executeQuery(format("select row_id from %s.%s",SCHEMA_NAME,TABLE_NAME));
+        ResultSet rs = methodWatcher.executeQuery(format("select row_id from %s.%s",SCHEMA_NAME,TABLE1));
         while (rs.next()) {
             Long row_id = new Long(rs.getLong(1));
             row_ids.add(row_id);
@@ -181,5 +195,20 @@ public class PrimaryKeyDecoderIT extends SpliceUnitTest {
         while(IT.hasNext() && it.hasNext()) {
             Assert.assertEquals(IT.next().compareTo(it.next()), 0);
         }
+    }
+
+    @Test
+    public void testSelectDescIndexColumn() throws Exception {
+        PreparedStatement ps = methodWatcher.prepareStatement(format("create index ti on %s.%s(i desc)", SCHEMA_NAME, TABLE2));
+        ps.execute();
+        ps.close();
+        int val;
+
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", SCHEMA_NAME, TABLE2));
+        while(rs.next()) {
+            val = rs.getInt(1);
+            Assert.assertEquals(val, VAL);
+        }
+        rs.close();
     }
 }
