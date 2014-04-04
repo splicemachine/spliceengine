@@ -64,7 +64,6 @@ import org.apache.derby.iapi.services.context.ContextService;
  * Core implementation of DataValueFactory. Does not implement
  * methods required to generate DataValueDescriptor implementations
  * for the DECIMAL datatype. J2ME and J2SE require different implementations.
- * I am not hopeful...
  * @see DataValueFactory
  */
 public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleControl {
