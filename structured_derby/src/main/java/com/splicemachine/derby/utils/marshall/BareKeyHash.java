@@ -66,9 +66,15 @@ public class BareKeyHash{
 								DataValueDescriptor dvd = dvds[pos];
 								serializer.encode(encoder, dvd, !keySortOrder[i]);
 						}
-				}else{
+				}else if(keyColumns!=null){
 						for(int keyColumn:keyColumns){
 								if(keyColumn==-1) continue; //skip columns marked with a -1
+								DescriptorSerializer serializer = serializers[keyColumn];
+								DataValueDescriptor dvd = dvds[keyColumn];
+								serializer.encode(encoder, dvd, false);
+						}
+				}else{
+						for(int keyColumn=0;keyColumn<dvds.length;keyColumn++){
 								DescriptorSerializer serializer = serializers[keyColumn];
 								DataValueDescriptor dvd = dvds[keyColumn];
 								serializer.encode(encoder, dvd, false);
@@ -158,8 +164,12 @@ public class BareKeyHash{
 
 				@Override
 				public byte[] encode() throws StandardException, IOException {
-						if(encoder==null)
-								encoder = MultiFieldEncoder.create(kryoPool,keyColumns.length);
+						if(encoder==null){
+								if(keyColumns==null)
+										encoder = MultiFieldEncoder.create(kryoPool,currentRow.nColumns());
+								else
+										encoder = MultiFieldEncoder.create(kryoPool,keyColumns.length);
+						}
 
 						pack(encoder,currentRow);
 						return encoder.build();

@@ -2,6 +2,8 @@ package com.splicemachine.derby.impl.store;
 
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.storage.ByteEntryAccumulator;
 import com.splicemachine.storage.EntryPredicateFilter;
 import org.apache.derby.iapi.error.StandardException;
@@ -16,21 +18,25 @@ import org.apache.hadoop.hbase.HConstants;
 public class ExecRowAccumulator extends ByteEntryAccumulator {
 		private final DataValueDescriptor[] dvds;
 		private final int[] columnMap;
+		private final DescriptorSerializer[] serializers;
 
 		private ExecRowAccumulator(EntryPredicateFilter predicateFilter,
 															boolean returnIndex,
 															BitSet fieldsToCollect,
 															DataValueDescriptor[] dvds,
-															int[] columnMap) {
+															int[] columnMap,
+															DescriptorSerializer[] serializers) {
 				super(predicateFilter, returnIndex, fieldsToCollect);
 				this.dvds = dvds;
 				this.columnMap = columnMap;
+				this.serializers = serializers;
 		}
 
 		public static ExecRowAccumulator newAccumulator(EntryPredicateFilter predicateFilter,
 																										boolean returnIndex,
 																										ExecRow row,
-																										int[] keyColumns){
+																										int[] keyColumns,
+																										String tableVersion){
 				DataValueDescriptor[] dvds = row.getRowArray();
 				BitSet fieldsToCollect = new BitSet(dvds.length);
 				if(keyColumns!=null){
@@ -46,7 +52,15 @@ public class ExecRowAccumulator extends ByteEntryAccumulator {
 										fieldsToCollect.set(i);
 						}
 				}
-				return new ExecRowAccumulator(predicateFilter,returnIndex,fieldsToCollect,dvds,keyColumns);
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion,false).getSerializers(row);
+				return new ExecRowAccumulator(predicateFilter,returnIndex,fieldsToCollect,dvds,keyColumns,serializers);
+
+		}
+		public static ExecRowAccumulator newAccumulator(EntryPredicateFilter predicateFilter,
+																										boolean returnIndex,
+																										ExecRow row,
+																										int[] keyColumns){
+				return newAccumulator(predicateFilter,returnIndex,row,keyColumns,null);
 		}
 
 		public static ExecRowAccumulator newAccumulator(EntryPredicateFilter predicateFilter,

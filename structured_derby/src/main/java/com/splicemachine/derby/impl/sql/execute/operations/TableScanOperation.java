@@ -76,6 +76,8 @@ public class TableScanOperation extends ScanOperation {
 
 		private Counter filterCount;
 
+		private SITableScanner tableScanner;
+
 		public TableScanOperation() { super(); }
 
 		public TableScanOperation(ScanInformation scanInformation,
@@ -172,30 +174,6 @@ public class TableScanOperation extends ScanOperation {
 				return provider;
 		}
 
-		protected Scan getNonSIScan(SpliceRuntimeContext spliceRuntimeContext) {
-				/*
-				 * Intended to get a scan which does NOT set up SI underneath us (since
-				 * we are doing it ourselves).
-				 */
-				Scan scan = buildScan(spliceRuntimeContext);
-				deSiify(scan);
-				return scan;
-		}
-
-		protected void deSiify(Scan scan) {
-				/*
-				 * Remove SI-specific behaviors from the scan, so that we can handle it ourselves correctly.
-				 */
-				//exclude this from SI treatment, since we're doing it internally
-				scan.setAttribute(SIConstants.SI_NEEDED,null);
-				scan.setMaxVersions();
-				Map<byte[], NavigableSet<byte[]>> familyMap = scan.getFamilyMap();
-				if(familyMap!=null){
-						NavigableSet<byte[]> bytes = familyMap.get(SpliceConstants.DEFAULT_FAMILY_BYTES);
-						if(bytes!=null)
-								bytes.clear(); //make sure we get all columns
-				}
-		}
 
 		@Override
 		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
@@ -283,83 +261,96 @@ public class TableScanOperation extends ScanOperation {
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {
 				if(regionScanner!=null){
-						TimeView readTimer = regionScanner.getReadTime();
-//						long bytesRead = regionScanner.getBytesOutput();
 						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsVisited());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,regionScanner.getBytesVisited());
+						TimeView readTimer = regionScanner.getReadTime();
 						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTimer.getCpuTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTimer.getUserTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,readTimer.getWallClockTime());
-						long filtered = regionScanner.getRowsFiltered();
-						if(filterCount !=null)
-								filtered+= filterCount.getTotal();
-						stats.addMetric(OperationMetric.FILTERED_ROWS,filtered);
+				}
+				if(tableScanner!=null){
+						stats.addMetric(OperationMetric.FILTERED_ROWS,tableScanner.getRowsFiltered());
+						stats.addMetric(OperationMetric.OUTPUT_ROWS,tableScanner.getRowsVisited());
 				}
 		}
 
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException {
-				if(timer==null){
-						timer = spliceRuntimeContext.newTimer();
-						filterCount = spliceRuntimeContext.newCounter();
+				if(tableScanner==null){
+						tableScanner = new SITableScanner(regionScanner,currentRow,spliceRuntimeContext,scan,baseColumnMap,transactionID,scanInformation.getAccessedPkColumns(),indexName);
 				}
 
-				timer.startTiming();
-
-				int[] columnOrder = getColumnOrdering();
-				KeyMarshaller marshaller = getKeyMarshaller();
-				MultiFieldDecoder keyDecoder = getKeyDecoder();
-				if(keyValues==null)
-						keyValues = Lists.newArrayListWithExpectedSize(2);
-
-				FilterStatePacked filter = getSIFilter();
-				boolean hasRow;
-				do{
-						keyValues.clear();
-						hasRow = regionScanner.next(keyValues);
-
-						if (keyValues.size()<=0) {
-								if (LOG.isTraceEnabled())
-										SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",tableName);
-								currentRow = null;
-								currentRowLocation = null;
-						} else {
-								currentRow.resetRowArray();
-								DataValueDescriptor[] fields = currentRow.getRowArray();
-								if (fields.length != 0) {
-										// Apply predicate to the row key first
-										if (!filterRowKey(spliceRuntimeContext, keyValues.get(0), columnOrder, keyDecoder)||!filterRow(filter)){
-												filterCount.increment();
-												continue;
-										}
-
-										// Decode key data if primary key is accessed
-										if (scanInformation.getAccessedPkColumns() != null &&
-														scanInformation.getAccessedPkColumns().getNumBitsSet() > 0) {
-												marshaller.decode(keyValues.get(0), fields, baseColumnMap, keyDecoder, columnOrder, getColumnDVDs());
-										}
-								}else if(!filterRow(filter)){
-										//still need to filter rows to deal with transactional issue
-										filterCount.increment();
-										continue;
-								}
-								setRowLocation(keyValues.get(0));
-								break;
-						}
-				}while(hasRow);
-				if(!hasRow){
-						clearCurrentRow();
-				}else{
+				currentRow = tableScanner.next(spliceRuntimeContext);
+				if(currentRow!=null){
 						setCurrentRow(currentRow);
+						setCurrentRowLocation(tableScanner.getCurrentRowLocation());
+				}else{
+						clearCurrentRow();
+						currentRowLocation = null;
 				}
 
-				//measure time
-				if(currentRow==null){
-						timer.tick(0);
-						stopExecutionTime = System.currentTimeMillis();
-				}else
-						timer.tick(1);
 				return currentRow;
+//				if(timer==null){
+//						timer = spliceRuntimeContext.newTimer();
+//						filterCount = spliceRuntimeContext.newCounter();
+//				}
+//
+//				timer.startTiming();
+//
+//				int[] columnOrder = getColumnOrdering();
+//				KeyMarshaller marshaller = getKeyMarshaller();
+//				MultiFieldDecoder keyDecoder = getKeyDecoder();
+//				if(keyValues==null)
+//						keyValues = Lists.newArrayListWithExpectedSize(2);
+//
+//				FilterStatePacked filter = getSIFilter();
+//				boolean hasRow;
+//				do{
+//						keyValues.clear();
+//						hasRow = regionScanner.next(keyValues);
+//
+//						if (keyValues.size()<=0) {
+//								if (LOG.isTraceEnabled())
+//										SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",tableName);
+//								currentRow = null;
+//								currentRowLocation = null;
+//						} else {
+//								currentRow.resetRowArray();
+//								DataValueDescriptor[] fields = currentRow.getRowArray();
+//								if (fields.length != 0) {
+//										// Apply predicate to the row key first
+//										if (!filterRowKey(spliceRuntimeContext, keyValues.get(0), columnOrder, keyDecoder)||!filterRow(filter)){
+//												filterCount.increment();
+//												continue;
+//										}
+//
+//										// Decode key data if primary key is accessed
+//										if (scanInformation.getAccessedPkColumns() != null &&
+//														scanInformation.getAccessedPkColumns().getNumBitsSet() > 0) {
+//												marshaller.decode(keyValues.get(0), fields, baseColumnMap, keyDecoder, columnOrder, getColumnDVDs());
+//										}
+//								}else if(!filterRow(filter)){
+//										//still need to filter rows to deal with transactional issue
+//										filterCount.increment();
+//										continue;
+//								}
+//								setRowLocation(keyValues.get(0));
+//								break;
+//						}
+//				}while(hasRow);
+//				if(!hasRow){
+//						clearCurrentRow();
+//				}else{
+//						setCurrentRow(currentRow);
+//				}
+//
+//				//measure time
+//				if(currentRow==null){
+//						timer.tick(0);
+//						stopExecutionTime = System.currentTimeMillis();
+//				}else
+//						timer.tick(1);
+//				return currentRow;
 		}
 
 		protected void setRowLocation(KeyValue sampleKv) throws StandardException {

@@ -8,10 +8,11 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.IndexRow;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.impl.temp.TempTable;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.derby.utils.marshall.EntryDataHash;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -20,7 +21,6 @@ import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.KeyValue;
@@ -37,12 +37,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -154,12 +149,19 @@ public class IndexRowReaderTest {
         for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
             heapCols.clear(i);
         }
+				int[] adjustedBaseColumMap = new int[(int)heapCols.length()];
+				Arrays.fill(adjustedBaseColumMap,-1);
+				for(int i=heapCols.nextSetBit(0),pos=0;i>=0;i=heapCols.nextSetBit(i+1),pos++){
+						adjustedBaseColumMap[pos] = i;
+				}
+
         EntryPredicateFilter epf = new EntryPredicateFilter(heapCols, new ObjectArrayList<Predicate>());
         byte[] epfBytes = epf.toBytes();
         int[] typeIds = new int[]{80, 80};
         IndexRowReader rowReader = new IndexRowReader(mockService,table,mockSource,
-                1,1,templateOutput,"10.IRO",indexCols,1184l,baseColumnMap,epfBytes,new SpliceRuntimeContext(new TempTable(SpliceConstants.TEMP_TABLE_BYTES),kryoPool),
-                null, typeIds);
+                1,1,templateOutput,"10.IRO",indexCols,1184l,adjustedBaseColumMap,
+								epfBytes,new SpliceRuntimeContext(new TempTable(SpliceConstants.TEMP_TABLE_BYTES),kryoPool),
+                null);
 
         List<IndexRowReader.RowAndLocation> actualOutput = Lists.newArrayListWithExpectedSize(correctOutput.size());
         IndexRowReader.RowAndLocation rowAndLocation;
@@ -186,7 +188,7 @@ public class IndexRowReaderTest {
     }
 
     private Map<byte[],ExecRow> getCorrectOutput() throws StandardException {
-        Map<byte[],ExecRow> output = Maps.<byte[],byte[],ExecRow>newTreeMap(Bytes.BYTES_COMPARATOR);
+        Map<byte[],ExecRow> output = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
         ExecRow template = TestingDataType.getTemplateOutput(outputDataTypes);
 
         Snowflake snowflake = new Snowflake((short)1);
@@ -206,7 +208,7 @@ public class IndexRowReaderTest {
         return output;
     }
     private Map<byte[], Result> getInputHeapRows(Map<byte[],ExecRow> outputRows) throws StandardException, IOException {
-        Map<byte[],Result> results = Maps.<byte[],byte[],Result>newTreeMap(Bytes.BYTES_COMPARATOR);
+        Map<byte[],Result> results = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
         BitSet setCols = new BitSet(outputDataTypes.length);
         setCols.set(0,outputDataTypes.length);
         setCols.andNot(indexedColumns);
@@ -231,10 +233,15 @@ public class IndexRowReaderTest {
                     pos++;
                 }
             }
-            RowMarshaller.sparsePacked().encodeRow(outputRow.getRowArray(), heapCols, encoder.getEntryEncoder());
-            byte[] outputBytes = encoder.encode();
+						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(outputRow);
+						EntryDataHash rowHash = new EntryDataHash(heapCols,null,serializers);
+						rowHash.setRow(outputRow);
+						byte[] outputBytes = rowHash.encode();
+//            RowMarshaller.sparsePacked().encodeRow(outputRow.getRowArray(), heapCols, encoder.getEntryEncoder());
+//            byte[] outputBytes = encoder.encode();
 
-            KeyValue kv = new KeyValue(outputRowKey,SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,outputBytes);
+            KeyValue kv = new KeyValue(outputRowKey,SpliceConstants.DEFAULT_FAMILY_BYTES,
+										SpliceConstants.PACKED_COLUMN_BYTES,outputBytes);
             Result result = new Result(new KeyValue[]{kv});
             results.put(outputRowKey,result);
         }

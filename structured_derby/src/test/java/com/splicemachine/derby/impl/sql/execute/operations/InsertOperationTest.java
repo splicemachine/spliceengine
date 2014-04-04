@@ -230,9 +230,9 @@ public class InsertOperationTest {
         BitSet setCols = new BitSet(dataTypes.length);
         setCols.set(0,dataTypes.length);
         if(usePrimaryKeys){
-            for (int i = 0; i < primaryKeys.length; ++i) {
-                setCols.clear(primaryKeys[i]-1);
-            }
+						for (int primaryKey : primaryKeys) {
+								setCols.clear(primaryKey - 1);
+						}
         }
 
         BitSet scalarCols = TestingDataType.getScalarFields(dataTypes);
@@ -261,24 +261,24 @@ public class InsertOperationTest {
         final int[] colsToUse = cols;
         final MultiFieldEncoder keyEncoder = kEncoder;
 
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(rowsToWrite.get(0));
+				final EntryDataHash hash = new EntryDataHash(colsToUse,null,serializers);
         return Lists.newArrayList(Lists.transform(rowsToWrite,new Function<ExecRow, KVPair>() {
             @Override
             public KVPair apply(@Nullable ExecRow input) {
                 MultiFieldEncoder fieldEncoder = encoder.getEntryEncoder();
                 fieldEncoder.reset();
 
+								byte[] dataBytes;
                 try {
                     //noinspection ConstantConditions
-                    RowMarshaller.sparsePacked().encodeRow(input.getRowArray(),colsToUse, fieldEncoder);
+										hash.setRow(input);
+										dataBytes =hash.encode();
                 } catch (StandardException e) {
                     throw new RuntimeException(e);
-                }
-                byte[] dataBytes;
-                try {
-                    dataBytes = encoder.encode();
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+										throw new RuntimeException(e);
+								}
                 if(!usePrimaryKeys)
                     return new KVPair(snowflake.nextUUIDBytes(),dataBytes);
                 else{
