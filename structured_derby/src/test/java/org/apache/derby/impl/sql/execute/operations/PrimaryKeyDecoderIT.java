@@ -1,22 +1,24 @@
 package org.apache.derby.impl.sql.execute.operations;
 
-import apple.laf.JRSUIUtils;
-import com.splicemachine.derby.test.framework.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.util.Iterator;
+
+import com.google.common.collect.TreeMultiset;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import org.junit.runner.Description;
-import java.lang.Exception;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import com.google.common.collect.TreeMultiset;
-import java.sql.Timestamp;
-import java.util.Iterator;
+
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 /**
  * Test case for DB-1194
  * Created by jyuan on 4/3/14.
