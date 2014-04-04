@@ -62,7 +62,7 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
 
 		protected Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
 				if (!accumulator.isFinished() && !excludeRow && accumulator.isOfInterest(dataKeyValue)) {
-						if (!accumulator.accumulate(simpleFilter.keyValue.keyValue())) {
+						if (!accumulator.accumulate(simpleFilter.keyValue)) {
 								excludeRow = true;
 						}
 				}

@@ -29,7 +29,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
     final FilterRowState<Result, Put, Delete, Get, Scan, Lock, OperationStatus> rowState;
-    final DecodedKeyValue keyValue;
+    KeyValue keyValue;
     KeyValueType type;
     private final TransactionSource transactionSource;
     FilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
@@ -41,7 +41,6 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
             }
         };
         this.dataLib = dataLib;
-        this.keyValue = new DecodedKeyValue();
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
         this.rollForwardQueue = rollForwardQueue;
@@ -65,9 +64,9 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
     }
 
     void setKeyValue(KeyValue dataKeyValue) {
-        keyValue.setKeyValue(dataKeyValue);
+        keyValue = dataKeyValue;
         rowState.updateCurrentRow(keyValue);
-        type = dataStore.getKeyValueType(keyValue.keyValue());
+        type = dataStore.getKeyValueType(dataKeyValue);
     }
 
     @Override
@@ -103,7 +102,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      */
     private Filter.ReturnCode processCommitTimestamp() throws IOException {
         log("processCommitTimestamp");
-        Transaction transaction = transactionCache.get(keyValue.timestamp());
+        Transaction transaction = transactionCache.get(keyValue.getTimestamp());
         if (transaction == null) {
             transaction = processCommitTimestampDirect();
         }
@@ -117,10 +116,10 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      */
     private void processDataTimestamp() throws IOException {
         log("processCommitTimestamp");
-        if (rowState.transactionCache.get(keyValue.timestamp()) != null) { // Already processed, must have been committed or failed...
+        if (rowState.transactionCache.get(keyValue.getTimestamp()) != null) { // Already processed, must have been committed or failed...
         	return;
         }
-        Transaction transaction = transactionCache.get(keyValue.timestamp()); // hit the major cache
+        Transaction transaction = transactionCache.get(keyValue.getTimestamp()); // hit the major cache
         if (transaction == null) {
             transaction = processDataTimestampDirect(); // lookup
         }
@@ -145,12 +144,12 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
     
     private Transaction processCommitTimestampDirect() throws IOException {
         Transaction transaction;
-        if (dataStore.isSIFail(keyValue.keyValue())) {
-            transaction = transactionStore.makeStubFailedTransaction(keyValue.timestamp());
-            transactionCache.put(keyValue.timestamp(), transaction);
+        if (dataStore.isSIFail(keyValue)) {
+            transaction = transactionStore.makeStubFailedTransaction(keyValue.getTimestamp());
+            transactionCache.put(keyValue.getTimestamp(), transaction);
         } else {
-            transaction = transactionStore.makeStubCommittedTransaction(keyValue.timestamp(), (Long) dataLib.decode(keyValue.value(), Long.class));
-            transactionCache.put(keyValue.timestamp(), transaction);
+            transaction = transactionStore.makeStubCommittedTransaction(keyValue.getTimestamp(), (Long) dataLib.decode(keyValue.getValue(), Long.class));
+            transactionCache.put(keyValue.getTimestamp(), transaction);
         }
         return transaction;
     }
@@ -185,9 +184,9 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      * the current status of the transaction.
      */
     private Transaction handleUnknownTransactionStatus() throws IOException {
-        final Transaction cachedTransaction = rowState.transactionCache.get(keyValue.timestamp());
+        final Transaction cachedTransaction = rowState.transactionCache.get(keyValue.getTimestamp());
         if (cachedTransaction == null) {
-            final Transaction dataTransaction = getTransactionFromFilterCache(keyValue.timestamp());
+            final Transaction dataTransaction = getTransactionFromFilterCache(keyValue.getTimestamp());
             final VisibleResult visibleResult = checkVisibility(dataTransaction);
             if (visibleResult.effectiveStatus.isFinished()) {
                 rollForward(dataTransaction);
@@ -231,7 +230,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
         TransactionStatus status = transaction.getEffectiveStatus();
         if (rollForwardQueue != null && status.isFinished()) {
             // TODO: revisit this in light of nested independent transactions
-            dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), keyValue.row(), true);
+            dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), keyValue.getRow(), true);
         }
     }
 
@@ -241,13 +240,13 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      */
     private Filter.ReturnCode processTombstone() throws IOException {
         log("processTombstone");
-        rowState.setTombstoneTimestamp(keyValue.timestamp());
+        rowState.setTombstoneTimestamp(keyValue.getTimestamp());
         return SKIP;
     }
 
     private Filter.ReturnCode processAntiTombstone() throws IOException {
         log("processAntiTombstone");
-        rowState.setAntiTombstoneTimestamp(keyValue.timestamp());
+        rowState.setAntiTombstoneTimestamp(keyValue.getTimestamp());
         return SKIP;
     }
 
@@ -278,7 +277,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      * so this manually does the equivalent.
      */
     private void proceedToNextColumn() {
-        rowState.lastValidQualifier = keyValue.keyValue();
+        rowState.lastValidQualifier = keyValue;
     }
 
     /**
@@ -293,7 +292,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
             	tombstoneTransaction = processDataTimestamp(buffer[i]);	
             }
             final VisibleResult visibleResult = checkVisibility(tombstoneTransaction);
-            if (visibleResult.visible && (keyValue.timestamp() <= buffer[i])) {
+            if (visibleResult.visible && (keyValue.getTimestamp() <= buffer[i])) {
                 return true;
             }
         }
@@ -306,7 +305,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
             	tombstoneTransaction = processDataTimestamp(buffer2[i]);	
             }
             final VisibleResult visibleResult = checkVisibility(tombstoneTransaction);
-            if (visibleResult.visible && (keyValue.timestamp() < buffer2[i])) {
+            if (visibleResult.visible && (keyValue.getTimestamp() < buffer2[i])) {
                 return true;
             }
         }
@@ -319,7 +318,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      * under SI. It handles the various cases of when data should be visible.
      */
     private boolean isVisibleToCurrentTransaction() throws IOException {
-        if (keyValue.timestamp() == myTransaction.getTransactionId().getId() && !myTransaction.getTransactionId().independentReadOnly) {
+        if (keyValue.getTimestamp() == myTransaction.getTransactionId().getId() && !myTransaction.getTransactionId().independentReadOnly) {
             return true;
         } else {
             final Transaction transaction = loadTransaction();
@@ -331,8 +330,8 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      * Retrieve the transaction for the current cell from the local cache.
      */
     private Transaction loadTransaction() throws IOException {
-        final Transaction transaction = rowState.transactionCache.get(keyValue.timestamp());
-				assert transaction!=null : "All transaction should already be loaded from the si family for the data row, txn id: " + keyValue.timestamp();
+        final Transaction transaction = rowState.transactionCache.get(keyValue.getTimestamp());
+				assert transaction!=null : "All transaction should already be loaded from the si family for the data row, txn id: " + keyValue.getTimestamp();
 
         return transaction;
     }
