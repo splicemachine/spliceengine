@@ -18,6 +18,7 @@ import java.io.IOException;
 public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 		protected EntryEncoder entryEncoder;
 		protected ExecRow currentRow;
+		protected DataValueDescriptor dvds;
 		protected KryoPool kryoPool;
 
 		public EntryDataHash(int[] keyColumns, boolean[] keySortOrder,DescriptorSerializer[] serializers) {
@@ -39,8 +40,8 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 				if(entryEncoder==null)
 						entryEncoder = buildEntryEncoder();
 
-                int nCols = currentRow.nColumns();
-                BitSet notNullFields = new BitSet(nCols);
+				int nCols = currentRow.nColumns();
+				BitSet notNullFields = new BitSet(nCols);
 				entryEncoder.reset(getNotNullFields(currentRow,notNullFields));
 
 				pack(entryEncoder.getEntryEncoder(),currentRow);
@@ -71,8 +72,10 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 				notNullFields.clear();
 				int i=0;
 				for(DataValueDescriptor dvd:row.getRowArray()){
-						if(!dvd.isNull() && (i >= keyColumns.length || keyColumns[i] != -1)) // skip primary key columns
-								notNullFields.set(i);
+						if(!dvd.isNull()){
+								if(keyColumns==null||i>=keyColumns.length || keyColumns[i]!=-1)
+										notNullFields.set(i);
+						}
 						i++;
 				}
 				return notNullFields;

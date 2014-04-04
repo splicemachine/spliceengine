@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;
 import com.splicemachine.storage.index.LazyBitIndex;
+import com.splicemachine.utils.Provider;
 import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
@@ -15,7 +16,7 @@ import com.splicemachine.utils.kryo.KryoPool;
  * @author Scott Fines
  * Created on: 7/5/13
  */
-public class EntryDecoder {
+public class EntryDecoder implements FieldSkipper,Provider<MultiFieldDecoder>{
     private LazyBitIndex bitIndex;
     private byte[] data;
     private int dataOffset;
@@ -208,5 +209,19 @@ public class EntryDecoder {
 				if(length<=0) return;
 
 				rowSlice.set(mutationDecoder.array(),offset,length);
+		}
+
+		@Override
+		public void skipField(MultiFieldDecoder decoder, int position) {
+			seekForward(decoder,position);
+		}
+
+		@Override
+		public MultiFieldDecoder get() {
+				try {
+						return getEntryDecoder();
+				} catch (IOException e) {
+						throw new RuntimeException(e);
+				}
 		}
 }

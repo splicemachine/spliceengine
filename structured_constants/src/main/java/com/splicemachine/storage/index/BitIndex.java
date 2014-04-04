@@ -1,6 +1,7 @@
 package com.splicemachine.storage.index;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.storage.Indexed;
 
 /**
  *
@@ -9,7 +10,7 @@ import com.carrotsearch.hppc.BitSet;
  * @author Scott Fines
  * Created on: 7/5/13
  */
-public interface BitIndex {
+public interface BitIndex extends Indexed {
 
     /**
      * The "logical" length--the highest set bit + 1.
@@ -31,13 +32,6 @@ public interface BitIndex {
      */
     byte[] encode();
 
-    /**
-     * Returns the next set bit at or higher than {@code position}.
-     *
-     * @param position the position to start from
-     * @return the index of the next set bit that has index equal to or higher than {@code position}
-     */
-    int nextSetBit(int position);
 
     /**
      * Determines the encoded size of the index.
@@ -68,12 +62,6 @@ public interface BitIndex {
     BitSet and(BitSet bitSet);
 
     boolean isEmpty();
-
-    boolean isScalarType(int position);
-
-    boolean isDoubleType(int position);
-
-    boolean isFloatType(int position);
 
     BitSet getScalarFields();
 

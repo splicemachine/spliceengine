@@ -4,10 +4,11 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.Provider;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 
 /**
@@ -56,23 +57,25 @@ public class EntryPredicateFilter {
         this.format_ids = format_ids;
     }
 
-    public boolean match(EntryDecoder entry,EntryAccumulator accumulator) throws IOException {
-				BitIndex encodedIndex = entry.getCurrentIndex();
-        BitSet remainingFields = accumulator.getRemainingFields();
 
-        MultiFieldDecoder decoder = entry.getEntryDecoder();
-        for(int encodedPos =encodedIndex.nextSetBit(0);
-            encodedPos>=0&&encodedPos<=remainingFields.length();
-            encodedPos=encodedIndex.nextSetBit(encodedPos+1)){
-            if(!remainingFields.get(encodedPos)){
-                entry.seekForward(decoder, encodedPos);
-                continue;
-            }
+		public boolean match(Indexed index,
+												 Provider<MultiFieldDecoder> decoderProvider,
+												 EntryAccumulator accumulator) throws IOException{
+				BitSet remainingFields = accumulator.getRemainingFields();
 
-            int offset = decoder.offset();
+				MultiFieldDecoder decoder = decoderProvider.get();
+				for(int encodedPos =index.nextSetBit(0);
+						encodedPos>=0&&encodedPos<=remainingFields.length();
+						encodedPos=index.nextSetBit(encodedPos + 1)){
+						if(!remainingFields.get(encodedPos)){
+								skipField(decoder,encodedPos,index);
+								continue;
+						}
 
-            byte[] array = decoder.array();
-            if(offset>array.length){
+						int offset = decoder.offset();
+
+						byte[] array = decoder.array();
+						if(offset>array.length){
                 /*
                  * It may seem odd that this case can happen, but it occurs when the scan
                  * doesn't provide information about how many columns it expects back, and
@@ -83,32 +86,37 @@ public class EntryPredicateFilter {
                  * there actually IS data to add before adding. In that case, we've finished, so
                  * tell the accumulator
                  */
-                if(fieldsToReturn==null||fieldsToReturn.isEmpty())
-                    accumulator.complete();
-                return true;
-            }
-            entry.seekForward(decoder, encodedPos);
+								if(fieldsToReturn==null||fieldsToReturn.isEmpty())
+										accumulator.complete();
+								return true;
+						}
+						skipField(decoder, encodedPos, index);
 
 
-            int limit = decoder.offset()-1-offset;
-            if(limit<=0){
-                //we have an implicit null field
-                limit=0;
-            }else if(offset+limit>array.length){
-                limit = array.length-offset;
-            }
+						int limit = decoder.offset()-1-offset;
+						if(limit<=0){
+								//we have an implicit null field
+								limit=0;
+						}else if(offset+limit>array.length){
+								limit = array.length-offset;
+						}
 
-            Object[] buffer = valuePredicates.buffer;
-            int ibuffer = valuePredicates.size();
-            for (int i =0; i<ibuffer; i++) {
-                if(((Predicate)buffer[i]).applies(encodedPos) && !((Predicate)buffer[i]).match(encodedPos,array, offset,limit)){
+						Object[] buffer = valuePredicates.buffer;
+						int ibuffer = valuePredicates.size();
+						for (int i =0; i<ibuffer; i++) {
+								if(((Predicate)buffer[i]).applies(encodedPos) && !((Predicate)buffer[i]).match(encodedPos,array, offset,limit)){
 										rowsFiltered++;
-                    return false;
+										return false;
 								}
-            }
-            entry.accumulate(encodedPos, accumulator, array, offset, limit);
-        }
-        return true;
+						}
+						accumulate(index, encodedPos, accumulator, array, offset, limit);
+				}
+				return true;
+		}
+
+
+		public boolean match(EntryDecoder entry,EntryAccumulator accumulator) throws IOException {
+				return match(entry.getCurrentIndex(),entry, accumulator);
     }
 
     public BitSet getCheckedColumns(){
@@ -268,4 +276,27 @@ public class EntryPredicateFilter {
     public ObjectArrayList<Predicate> getValuePredicates() {
         return valuePredicates;
     }
+
+
+		private void skipField(MultiFieldDecoder decoder, int position, Indexed index) {
+				if(index.isScalarType(position)){
+						decoder.skipLong();
+				}else if(index.isFloatType(position)){
+						decoder.skipFloat();
+				}else if(index.isDoubleType(position))
+						decoder.skipDouble();
+				else
+						decoder.skip();
+		}
+
+		private void accumulate(Indexed index, int position, EntryAccumulator accumulator, byte[] buffer, int offset, int length) {
+				if(index.isScalarType(position)){
+						accumulator.addScalar(position,buffer,offset,length);
+				}else if(index.isFloatType(position)){
+						accumulator.addFloat(position,buffer,offset,length);
+				}else if(index.isDoubleType(position))
+						accumulator.addDouble(position,buffer,offset,length);
+				else
+						accumulator.add(position,buffer,offset,length);
+		}
 }

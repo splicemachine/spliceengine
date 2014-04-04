@@ -21,7 +21,7 @@ import java.io.IOException;
 public class EntryDataDecoder extends BareKeyHash implements KeyHashDecoder{
 		private EntryDecoder entryDecoder;
 
-		protected EntryDataDecoder(int[] keyColumns,
+		public EntryDataDecoder(int[] keyColumns,
 															 boolean[] keySortOrder,
 															 DescriptorSerializer[] serializers) {
 				this(keyColumns, keySortOrder, SpliceKryoRegistry.getInstance(),serializers);
@@ -37,7 +37,7 @@ public class EntryDataDecoder extends BareKeyHash implements KeyHashDecoder{
 		@Override
 		public void set(byte[] bytes, int hashOffset, int length) {
 				if(entryDecoder==null)
-						entryDecoder =new EntryDecoder(SpliceDriver.getKryoPool());
+						entryDecoder =new EntryDecoder(SpliceKryoRegistry.getInstance());
 
 				entryDecoder.set(bytes,hashOffset,length);
 		}
@@ -55,6 +55,7 @@ public class EntryDataDecoder extends BareKeyHash implements KeyHashDecoder{
 				if(keyColumns!=null){
 						for(int i=index.nextSetBit(0);i>=0 && i<keyColumns.length;i=index.nextSetBit(i+1)){
 								int pos = keyColumns[i];
+								if(pos<0) continue;
 								DataValueDescriptor dvd = fields[pos];
 								if(dvd==null){
 										entryDecoder.seekForward(decoder, i);
@@ -74,5 +75,9 @@ public class EntryDataDecoder extends BareKeyHash implements KeyHashDecoder{
 								decodeNext(decoder,dvd,sortOrder);
 						}
 				}
+		}
+
+		public EntryDecoder getFieldDecoder(){
+			return entryDecoder;
 		}
 }

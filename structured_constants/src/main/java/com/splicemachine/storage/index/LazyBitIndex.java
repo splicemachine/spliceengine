@@ -238,6 +238,6 @@ public abstract class LazyBitIndex implements BitIndex{
 	}    
 	
 	public abstract boolean isCompressed();
-    
+
 }
 

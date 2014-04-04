@@ -9,21 +9,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.collect.Lists;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableArrayHolder;
-import org.apache.derby.iapi.services.io.FormatableIntHolder;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -54,6 +40,28 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.hash.HashFunctions;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.io.FormatableIntHolder;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.shared.common.reference.SQLState;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -66,7 +74,12 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
     private Scan reduceScan;
 		private byte[] groupingKey;
-    private List<Cell> keyValues;
+		private List<KeyValue> keyValues;
+		private Scan scan;
+
+		@SuppressWarnings("UnusedDeclaration")
+		public DistinctScanOperation() { }
+
     private int hashKeyItem;
     private String tableName;
     private String indexName;
@@ -173,8 +186,9 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 						};
 
 						buffer =  new DistinctSortAggregateBuffer(SpliceConstants.ringBufferSize,null,supplier,spliceRuntimeContext);
-						ScannerIterator source = new ScannerIterator(regionScanner, template, operationInformation.getBaseColumnMap(), scanInformation);
-						DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false).getSerializers(template);
+//						ScannerIterator source = new ScannerIterator(regionScanner, template, operationInformation.getBaseColumnMap(), scanInformation);
+						StandardIterator<ExecRow> source = new SITableScanner(regionScanner,template,spliceRuntimeContext,scan,keyColumns,transactionID,scanInformation.getAccessedPkColumns(),null);
+						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(template);
 						KeyEncoder encoder = KeyEncoder.bare(keyColumns,null,serializers);
 						sinkIterator = new SinkSortIterator(buffer, source,encoder);
 						timer = spliceRuntimeContext.newTimer();
@@ -323,7 +337,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
     @Override
     protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
-        Scan scan = buildScan(runtimeContext);
+        Scan scan = getNonSIScan(runtimeContext);
         
         RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(scanInformation.getConglomerateId())),scan,null,runtimeContext);
 
@@ -364,107 +378,4 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         return "Distinct"+super.prettyPrint(indentLevel);
     }
 
-    private class ScannerIterator implements StandardIterator<ExecRow>{
-        private final RegionScanner regionScanner;
-        private final ExecRow template;
-        private final int[] columnMap;
-        private ScanInformation scanInformation;
-        private DataValueDescriptor[] kdvds;
-        private EntryPredicateFilter predicateFilter;
-        private boolean cachedPredicateFilter = false;
-        private BitSet descColumns;
-        private KeyMarshaller keyMarshaller;
-
-        private EntryDecoder rowDecoder;
-        private MultiFieldDecoder keyDecoder;
-        private List<Cell> values = Lists.newArrayListWithExpectedSize(2);
-
-        private ScannerIterator(RegionScanner regionScanner, ExecRow template,
-                                int[] columnMap, ScanInformation scanInformation, BitSet descColumns) {
-            this.regionScanner = regionScanner;
-            this.template = template;
-            this.columnMap = columnMap;
-            this.scanInformation = scanInformation;
-            this.descColumns = descColumns;
-        }
-
-        @Override public void open() throws StandardException, IOException {  }
-
-        @Override
-        public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-
-            getRowDecoder();
-            getKeyDecoder();
-            do {
-                values.clear();
-                regionScanner.nextRaw(values);
-                if(values.size()<=0) return null;
-
-                template.resetRowArray();
-                Cell kv = CellUtils.matchKeyValue(values, SpliceConstants.DEFAULT_FAMILY_BYTES,
-                                                  RowMarshaller.PACKED_COLUMN_KEY);
-                if (getColumnOrdering() != null && getPredicateFilter(spliceRuntimeContext) != null) {
-                    boolean passed = EntryPredicateUtils.qualify(predicateFilter, kv.getRowArray(),
-                                                                 kv.getRowOffset(), kv.getRowLength(), getColumnDVDs(),
-                            getColumnOrdering(),getKeyDecoder());
-                    if (!passed)
-                        continue;
-                }
-                RowMarshaller.sparsePacked().decode(kv,template.getRowArray(),columnMap,rowDecoder);
-                if (scanInformation.getAccessedPkColumns() != null && scanInformation.getAccessedPkColumns().getNumBitsSet() > 0) {
-                    getKeyMarshaller().decode(kv, template.getRowArray(), columnMap, keyDecoder, columnOrdering, kdvds);
-                }
-                break;
-            } while (values.size() > 0);
-            return template;
-        }
-        @Override public void close() throws StandardException, IOException {  }
-
-        private DataValueDescriptor[] getColumnDVDs() throws StandardException{
-            if (kdvds == null) {
-                int[] columnOrdering = getColumnOrdering();
-                int[] format_ids = scanInformation.getConglomerate().getFormat_ids();
-                kdvds = new DataValueDescriptor[columnOrdering.length];
-                for (int i = 0; i < columnOrdering.length; ++i) {
-                    kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
-                }
-            }
-            return kdvds;
-        }
-
-        private int[] getColumnOrdering() throws StandardException{
-            if (columnOrdering == null) {
-                columnOrdering = scanInformation.getColumnOrdering();
-            }
-            return columnOrdering;
-        }
-
-        private EntryPredicateFilter getPredicateFilter(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException{
-            if (!cachedPredicateFilter) {
-                Scan scan = getScan(spliceRuntimeContext);
-                predicateFilter = EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
-                cachedPredicateFilter = true;
-            }
-            return predicateFilter;
-        }
-
-        private KeyMarshaller getKeyMarshaller () {
-            if (keyMarshaller == null)
-                keyMarshaller = new KeyMarshaller(descColumns);
-
-            return keyMarshaller;
-        }
-
-        private MultiFieldDecoder getKeyDecoder() {
-            if (keyDecoder == null)
-                keyDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
-            return keyDecoder;
-        }
-
-        private EntryDecoder getRowDecoder() {
-            if(rowDecoder==null)
-                rowDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
-            return rowDecoder;
-        }
-    }
 }

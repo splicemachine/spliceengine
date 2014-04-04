@@ -34,26 +34,40 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.stats.TimeView;
-import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 
-public class LastIndexKeyOperation extends ScanOperation{
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
-		private static Logger LOG = Logger.getLogger(LastIndexKeyOperation.class);
-		private EntryDecoder rowDecoder;
-		private List<Cell> keyValues;
+public class LastIndexKeyOperation extends ScanOperation {
+
+    private static Logger LOG = Logger.getLogger(LastIndexKeyOperation.class);
 		private int[] baseColumnMap;
-		protected static List<NodeType> nodeTypes;
-		private boolean returnedRow;
+    protected static List<NodeType> nodeTypes;
+    private boolean returnedRow;
     private Scan contextScan;
     private RegionScanner tentativeScanner;
 
-		static {
-				nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN);
-		}
+		private SITableScanner tableScanner;
+
+    static {
+        nodeTypes = Arrays.asList(NodeType.MAP, NodeType.SCAN);
+    }
 
 		public LastIndexKeyOperation() {
 				super();
@@ -91,12 +105,11 @@ public class LastIndexKeyOperation extends ScanOperation{
         Arrays.fill(LAST_ROW, (byte) 0xff);
     }
 
-		@Override
-		public void init(SpliceOperationContext context) throws StandardException{
-				super.init(context);
-				keyValues = new ArrayList<Cell>(1);
+    @Override
+    public void init(SpliceOperationContext context) throws StandardException {
+        super.init(context);
 				this.baseColumnMap = operationInformation.getBaseColumnMap();
-				startExecutionTime = System.currentTimeMillis();
+        startExecutionTime = System.currentTimeMillis();
         contextScan = context.getScan();
 		}
 
@@ -109,6 +122,7 @@ public class LastIndexKeyOperation extends ScanOperation{
         } else if (endKey[endKey.length - 1] == 0) {
             byte[] copy = new byte[endKey.length - 1];
             System.arraycopy(endKey, 0, copy, 0, endKey.length - 1);
+						endKey = copy;
         } else {
             byte[] copy = new byte[endKey.length];
             System.arraycopy(endKey, 0, copy, 0, endKey.length - 1);
@@ -149,44 +163,83 @@ public class LastIndexKeyOperation extends ScanOperation{
 		}
 
 		@Override
-		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException {
-
-				if(timer==null)
-						timer = spliceRuntimeContext.newTimer();
-
+		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				if (returnedRow) {
 						currentRow = null;
 						currentRowLocation = null;
 						stopExecutionTime = System.currentTimeMillis();
-				} else {
-						timer.startTiming();
+				}else{
+
+						ExecRow currentRow = getExecRowDefinition();
+						tentativeScanner = getTentativeScanner(contextScan);
+						if(tableScanner==null){
+								RegionScanner scanner = tentativeScanner!=null? tentativeScanner: regionScanner;
+								tableScanner = new SITableScanner(scanner,currentRow,
+												spliceRuntimeContext,contextScan,baseColumnMap,
+												transactionID,scanInformation.getAccessedPkColumns(),indexName);
+						}
+
+						// First we try to get the last row starting close to the end of the region
+//						if (tentativeScanner != null) {
+						currentRow = null;
+						ExecRow lastRow;
+						boolean isTentative = tentativeScanner!=null;
+						do{
+								lastRow = tableScanner.next(spliceRuntimeContext);
+								if(lastRow==null && isTentative){
+										tableScanner.setRegionScanner(regionScanner);
+										lastRow = tableScanner.next(spliceRuntimeContext);
+								}
+								if(lastRow!=null)
+										currentRow = lastRow;
+						}while(lastRow!=null);
+//						currentRow = tableScanner.next(spliceRuntimeContext);
+////								currentRow = nextFromRegionScanner(tentativeScanner);
+////						}
+//						if (currentRow == null) {
+//								// If we didn't find any suitable row starting from the end, scan the whole region
+//								currentRow = tableScanner.next(spliceRuntimeContext);
+////								currentRow = nextFromRegionScanner(regionScanner);
+//						}
+//						if (currentRow != null) {
+//								if (indexName != null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID) {
+//                    /*
+//                     * If indexName !=null, then we are currently scanning an index,
+//                     *so our RowLocation should point to the main table, and not to the
+//                     * index (that we're actually scanning)
+//                     */
+//										currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
+//								} else {
+//										currentRowLocation.setValue(keyValues.get(0).getRow());
+//								}
+//						}
 
             ExecRow currentRow = null;
             // First we try to get the last row starting close to the end of the region
             tentativeScanner = getTentativeScanner(contextScan);
             if (tentativeScanner != null) {
                 currentRow = nextFromRegionScanner(tentativeScanner);
-						}
+            }
             if (currentRow == null) {
                 // If we didn't find any suitable row starting from the end, scan the whole region
                 currentRow = nextFromRegionScanner(regionScanner);
-						}
+            }
             if (currentRow != null) {
-						if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
-        			/*
-        			 * If indexName !=null, then we are currently scanning an index,
-        			 *so our RowLocation should point to the main table, and not to the
-        			 * index (that we're actually scanning)
-        			 */
-								currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
-						} else {
-								currentRowLocation.setValue(CellUtil.cloneRow(keyValues.get(0)));
-						}
+                if (indexName != null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID) {
+                    /*
+                     * If indexName !=null, then we are currently scanning an index,
+                     *so our RowLocation should point to the main table, and not to the
+                     * index (that we're actually scanning)
+                     */
+                    currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
+                } else {
+                    currentRowLocation.setValue(keyValues.get(0).getRow());
+                }
             }
 
-						returnedRow = true;
-						setCurrentRow(currentRow);
-								timer.stopTiming();
+            returnedRow = true;
+            setCurrentRow(currentRow);
+            timer.stopTiming();
 
 						stopExecutionTime = System.currentTimeMillis();
 				}
@@ -221,7 +274,7 @@ public class LastIndexKeyOperation extends ScanOperation{
         currentRow.resetRowArray();
         DataValueDescriptor[] fields = currentRow.getRowArray();
 
-        for (Cell kv : keyValues) {
+        for (KeyValue kv : keyValues) {
             //should only be 1
             if (kv != null) {
                 RowMarshaller.sparsePacked().decode(kv, fields, baseColumnMap, getRowDecoder());
@@ -241,7 +294,7 @@ public class LastIndexKeyOperation extends ScanOperation{
         SpliceLogUtils.trace(LOG, "getMapRowProvider");
         beginTime = System.currentTimeMillis();
 
-        Scan scan = buildScan(spliceRuntimeContext);
+        Scan scan = getNonSIScan(spliceRuntimeContext);
 
         SpliceUtils.setInstructions(scan, activation, top, spliceRuntimeContext);
         ClientScanProvider provider = new ClientScanProvider("LastIndexKey", Bytes.toBytes(tableName), scan,
