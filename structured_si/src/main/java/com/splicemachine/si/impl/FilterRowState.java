@@ -15,7 +15,7 @@ public class FilterRowState<Result, Put extends OperationWithAttributes, Delete,
     /**
      * The key of the row currently being processed.
      */
-    private DecodedKeyValue currentRowKey = null;
+    private KeyValue currentRowKey = null;
 
     /**
      * Used to emulate the INCLUDE_AND_NEXT_COLUMN ReturnCode that is in later HBase versions .
@@ -47,7 +47,7 @@ public class FilterRowState<Result, Put extends OperationWithAttributes, Delete,
      * Called for every key-value encountered by the filter. It is expected that key-values are read in row order.
      * Detects when the filter has moved to a new row and updates the state appropriately.
      */
-    public void updateCurrentRow(DecodedKeyValue keyValue) {
+    public void updateCurrentRow(KeyValue keyValue) {
         if (currentRowKey == null) {
             currentRowKey = keyValue;
             lastValidQualifier = null;
