@@ -264,7 +264,7 @@ public class IndexTransformer {
         // only make the call to check the accumulator if we have to -- if we haven't already determined
         makeUniqueForDuplicateNulls = (isUniqueWithDuplicateNulls &&
                 (makeUniqueForDuplicateNulls || !indexKeyAccumulator.isFinished()));
-        //if(isUnique&&!makeUniqueForDuplicateNulls)
+        if(isUnique)
             indexRowAccumulator.add((int) translatedIndexedColumns.length(), encodedRow,0,encodedRow.length);
         byte[] indexRowKey = getIndexRowKey(encodedRow, (!isUnique || makeUniqueForDuplicateNulls));
         byte[] indexRowData = indexRowAccumulator.finish();
