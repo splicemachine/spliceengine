@@ -47,8 +47,6 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		private transient KryoPool kryoPool;
 		private TempTable tempTable;
 
-		private String tableVersion;
-
 		public SpliceRuntimeContext() {
 				this(SpliceDriver.driver().getTempTable(),SpliceDriver.driver().getKryoPool());
 		}
@@ -84,11 +82,6 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		public void addRightRuntimeContext(int resultSetNumber) {
 				this.addPath(resultSetNumber, 1);
 		}
-
-		public String tableVersion(){
-				return tableVersion;
-		}
-
 
 		public void addSinkRuntimeContext(boolean firstStepInMultistep) {
 				this.firstStepInMultistep = firstStepInMultistep;
@@ -144,9 +137,6 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
         }
         out.writeByte(hashBucket);
         out.writeBoolean(firstStepInMultistep);
-				out.writeBoolean(tableVersion!=null);
-				if(tableVersion!=null)
-						out.writeUTF(tableVersion);
     }
 
     @Override
@@ -158,8 +148,6 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
         }
         hashBucket = in.readByte();
         firstStepInMultistep = in.readBoolean();
-				if(in.readBoolean())
-						tableVersion = in.readUTF();
     }
 
 

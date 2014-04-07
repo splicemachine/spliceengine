@@ -138,7 +138,7 @@ public class UpdateOperation extends DMLWriteOperation{
 				}else{
 						//TODO -sf- we need a sort order here for descending columns, don't we?
 						//hash = BareKeyHash.encoder(getFinalPkColumns(getColumnPositionMap(heapList)),null);
-                    hash = new PkDataHash(getFinalPkColumns(getColumnPositionMap(heapList)), kdvds,spliceRuntimeContext.tableVersion());
+                    hash = new PkDataHash(getFinalPkColumns(getColumnPositionMap(heapList)), kdvds,writeInfo.getTableVersion());
 				}
 				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
 		}
@@ -176,7 +176,7 @@ public class UpdateOperation extends DMLWriteOperation{
 				final int[] colPositionMap = getColumnPositionMap(heapList);
 
 				//if we haven't modified any of our primary keys, then we can just change it directly
-				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),true).getSerializers(currentRow);
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(writeInfo.getTableVersion(),true).getSerializers(getExecRowDefinition());
 				if(!modifiedPrimaryKeys){
 						return new NonPkRowHash(colPositionMap,null, serializers, heapList);
 				}
@@ -463,7 +463,8 @@ public class UpdateOperation extends DMLWriteOperation{
 		}
 
         private class PkDataHash implements DataHash<ExecRow> {
-            private ExecRow currentRow;
+						private final String tableVersion;
+						private ExecRow currentRow;
             private byte[] rowKey;
             private int[] keyColumns;
             private MultiFieldEncoder encoder;
@@ -474,7 +475,7 @@ public class UpdateOperation extends DMLWriteOperation{
             public PkDataHash(int[] keyColumns, DataValueDescriptor[] kdvds,String tableVersion) {
                 this.keyColumns = keyColumns;
                 this.kdvds = kdvds;
-								this.serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(kdvds);
+								this.tableVersion = tableVersion;
             }
 
             @Override
@@ -496,6 +497,8 @@ public class UpdateOperation extends DMLWriteOperation{
             private void pack() throws StandardException {
                 encoder.reset();
                 decoder.set(rowKey);
+								if(serializers==null)
+										serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(currentRow);
                 int i = 0;
                 for (int col:keyColumns) {
                     if (col > 0) {

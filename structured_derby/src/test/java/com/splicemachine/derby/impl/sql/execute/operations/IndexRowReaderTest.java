@@ -161,7 +161,7 @@ public class IndexRowReaderTest {
         IndexRowReader rowReader = new IndexRowReader(mockService,table,mockSource,
                 1,1,templateOutput,"10.IRO",indexCols,1184l,adjustedBaseColumMap,
 								epfBytes,new SpliceRuntimeContext(new TempTable(SpliceConstants.TEMP_TABLE_BYTES),kryoPool),
-                null);
+                null,"2.0");
 
         List<IndexRowReader.RowAndLocation> actualOutput = Lists.newArrayListWithExpectedSize(correctOutput.size());
         IndexRowReader.RowAndLocation rowAndLocation;

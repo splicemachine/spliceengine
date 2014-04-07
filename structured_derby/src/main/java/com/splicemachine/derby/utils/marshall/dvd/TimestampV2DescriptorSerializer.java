@@ -28,13 +28,18 @@ public class TimestampV2DescriptorSerializer extends TimestampV1DescriptorSerial
 
 		@Override
 		protected Timestamp toTimestamp(long time) {
+				return parseTimestamp(time);
+		}
+
+		public static Timestamp parseTimestamp(long time) {
 				int micros = (int)(time % MICROS_TO_SECOND);
 				long millis;
 				if(time<0){
-						micros = MICROS_TO_SECOND -micros;
-						millis = (time - micros)/ MICROS_TO_SECOND;
-				}else
-						millis = time/ MICROS_TO_SECOND;
+						micros = MICROS_TO_SECOND +micros;
+						time -=micros;
+				}
+
+				millis = time/ MICROS_TO_SECOND;
 
 				Timestamp ts = new Timestamp(millis);
 				ts.setNanos(micros*NANOS_TO_MICROS);

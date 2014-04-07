@@ -5,9 +5,14 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultDescription;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 
 import java.io.IOException;
@@ -20,12 +25,18 @@ import java.io.ObjectOutput;
  */
 public class DerbyDMLWriteInfo implements DMLWriteInfo {
     private transient Activation activation;
+		private String tableVersion;
 
-
-    @Override
-    public void initialize(SpliceOperationContext opCtx) {
+		@Override
+    public void initialize(SpliceOperationContext opCtx) throws StandardException {
         this.activation = opCtx.getActivation();
-    }
+
+				LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+				DataDictionary dataDictionary = lcc.getDataDictionary();
+				ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(getConglomerateId());
+				TableDescriptor tableDescriptor = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
+				this.tableVersion = tableDescriptor.getVersion();
+		}
 
     @Override
     public ConstantAction getConstantAction() {
@@ -56,6 +67,11 @@ public class DerbyDMLWriteInfo implements DMLWriteInfo {
 		@Override
 		public ResultDescription getResultDescription() {
 				return activation.getResultDescription();
+		}
+
+		@Override
+		public String getTableVersion() {
+				return tableVersion;
 		}
 
 		@Override

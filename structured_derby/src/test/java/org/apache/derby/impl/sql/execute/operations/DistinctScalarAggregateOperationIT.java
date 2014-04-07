@@ -44,7 +44,7 @@ public class DistinctScalarAggregateOperationIT extends SpliceUnitTest {
 					s.execute("insert into " +DistinctScalarAggregateOperationIT.class.getSimpleName()+ ".ordersummary values(3, 'handbags', 5, 'd&g')");
 					s.execute("insert into " +DistinctScalarAggregateOperationIT.class.getSimpleName()+ ".ordersummary values(3, 'handbags', 5, 'd&g')");
 					s.execute("insert into " +DistinctScalarAggregateOperationIT.class.getSimpleName()+ ".ordersummary values(4, 'furniture', 6, 'ea')");
-                    spliceClassWatcher.splitTable("ordersummary", spliceSchemaWatcher.schemaName);
+//                    spliceClassWatcher.splitTable("ordersummary", spliceSchemaWatcher.schemaName);
 				} catch (Exception e) {
 					e.printStackTrace();
 					throw new RuntimeException(e);

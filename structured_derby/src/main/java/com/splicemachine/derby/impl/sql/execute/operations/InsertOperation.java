@@ -101,7 +101,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 						}
 						prefix = NoOpPrefix.INSTANCE;
 						ExecRow row = getExecRowDefinition();
-						DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),true).getSerializers(row);
+						DescriptorSerializer[] serializers = VersionedSerializers.forVersion(writeInfo.getTableVersion(),true).getSerializers(row);
 						dataHash = BareKeyHash.encoder(keyColumns,null, spliceRuntimeContext.getKryoPool(),serializers);
 				}
 
@@ -124,7 +124,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 				//get all columns that are being set
 				ExecRow defnRow = getExecRowDefinition();
 				int[] columns = getEncodingColumns(defnRow.nColumns());
-				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),true).getSerializers(defnRow);
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(writeInfo.getTableVersion(),true).getSerializers(defnRow);
 				return new EntryDataHash(columns,null,serializers);
 		}
 

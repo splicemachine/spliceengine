@@ -31,7 +31,6 @@ public class NullDescriptorSerializer implements DescriptorSerializer{
 										@Override protected boolean nextIsNull(MultiFieldDecoder fieldDecoder) { return fieldDecoder.nextIsNullDouble(); }
 										@Override protected boolean isNull(byte[] data, int offset, int length) { return Encoding.isNullDOuble(data,offset,length); }
 										@Override public boolean isScalarType() { return false; }
-
 										@Override public boolean isFloatType() { return false; }
 										@Override public boolean isDoubleType() { return true; }
 								};
@@ -94,10 +93,12 @@ public class NullDescriptorSerializer implements DescriptorSerializer{
 		public void decode(MultiFieldDecoder fieldDecoder, DataValueDescriptor destDvd, boolean desc) throws StandardException {
 				if(nextIsNull(fieldDecoder)){
 						destDvd.setToNull();
+						if(!sparse)skip(fieldDecoder);
 						return;
 				}
 				delegate.decode(fieldDecoder,destDvd,desc);
 		}
+
 
 
 		@Override
@@ -145,6 +146,17 @@ public class NullDescriptorSerializer implements DescriptorSerializer{
 		 */
 		protected boolean isNull(byte[] data, int offset, int length) {
 				return length<=0;
+		}
+
+		protected void skip(MultiFieldDecoder fieldDecoder) {
+				if(isScalarType())
+						fieldDecoder.skipLong();
+				else if(isDoubleType())
+						fieldDecoder.skipDouble();
+				else if(isFloatType())
+						fieldDecoder.skipFloat();
+				else
+						fieldDecoder.skip();
 		}
 }
 

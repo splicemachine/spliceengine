@@ -16,4 +16,6 @@ public interface SerializerMap {
 		DescriptorSerializer[] getSerializers(ExecRow row);
 
 		DescriptorSerializer[] getSerializers(DataValueDescriptor[] kdvds);
+
+		DescriptorSerializer getEagerSerializer(int typeFormatId);
 }

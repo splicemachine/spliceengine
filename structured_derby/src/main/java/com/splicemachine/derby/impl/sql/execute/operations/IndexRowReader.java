@@ -86,7 +86,8 @@ class IndexRowReader {
 									 int[] adjustedBaseColumnMap,
 									 byte[] predicateFilterBytes,
 									 SpliceRuntimeContext runtimeContext,
-									 int[] mainTablePkCols) throws StandardException{
+									 int[] mainTablePkCols,
+									 String tableVersion) throws StandardException{
 				this.lookupService = lookupService;
 				this.sourceOperation = sourceOperation;
 				this.batchSize = batchSize;
@@ -106,7 +107,7 @@ class IndexRowReader {
             metricFactory = Metrics.noOpMetricFactory();
 //        this.columnOrdering = columnOrdering;
 
-				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(runtimeContext.tableVersion(),true).getSerializers(template);
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(template);
 				if(mainTablePkCols==null||mainTablePkCols.length<=0)
 						keyDecoder = KeyDecoder.noOpDecoder();
 				else
@@ -128,10 +129,11 @@ class IndexRowReader {
 									 int[] adjustedBaseColumnMap,
 									 byte[] predicateFilterBytes,
 									 SpliceRuntimeContext runtimeContext,
-									 int[] columnOrdering) throws StandardException{
+									 int[] columnOrdering,
+									 String tableVersion) throws StandardException{
         this(lookupService,null,sourceOperation,batchSize,numBlocks,template,
              txnId,indexCols,mainTableConglomId,adjustedBaseColumnMap,
-             predicateFilterBytes,runtimeContext, columnOrdering);
+             predicateFilterBytes,runtimeContext, columnOrdering,tableVersion);
     }
 
     public static IndexRowReader create(SpliceOperation sourceOperation,
@@ -143,7 +145,8 @@ class IndexRowReader {
                                         FormatableBitSet heapOnlyCols,
 										SpliceRuntimeContext runtimeContext,
                                         int[] columnOrdering,
-                                        int[] format_ids) throws StandardException{
+                                        int[] format_ids,
+																				String tableVersion) throws StandardException{
         int numBlocks = SpliceConstants.indexLookupBlocks;
         int batchSize = SpliceConstants.indexBatchSize;
 
@@ -165,7 +168,8 @@ class IndexRowReader {
                 indexCols,mainTableConglomId,
                 adjustedBaseColumnMap,predicateFilterBytes,
                 runtimeContext,
-                columnOrdering
+                columnOrdering,
+								tableVersion
 				);
     }
 

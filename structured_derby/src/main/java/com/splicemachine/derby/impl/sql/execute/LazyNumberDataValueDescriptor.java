@@ -1,15 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.DataValueFactoryImpl;
 import org.apache.derby.iapi.types.NumberDataValue;
 import org.apache.derby.iapi.types.VariableSizeDataValue;
 
 import java.io.IOException;
 import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor implements NumberDataValue, VariableSizeDataValue{
 
@@ -17,16 +16,26 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
 
     public LazyNumberDataValueDescriptor(){}
 
-    public LazyNumberDataValueDescriptor(NumberDataValue ndv, DVDSerializer dvdSerializer){
-        init(ndv, dvdSerializer);
+    public LazyNumberDataValueDescriptor(NumberDataValue ndv){
+        init(ndv);
     }
 
-    public void init(NumberDataValue ndv, DVDSerializer dvdSerializer){
-        super.init(ndv, dvdSerializer);
+    public void init(NumberDataValue ndv){
+        super.init(ndv);
         this.ndv = ndv;
     }
 
-    @Override
+		@Override
+		public DataValueFactoryImpl.Format getFormat() {
+				return ndv.getFormat();
+		}
+
+		@Override
+		public boolean isDoubleType() {
+				return ndv.isDoubleType();
+		}
+
+		@Override
     public NumberDataValue plus(NumberDataValue addend1, NumberDataValue addend2, NumberDataValue result) throws StandardException {
         forceDeserialization();
         return ndv.plus(addend1, addend2, result);
@@ -100,7 +109,9 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
 
     @Override
     public DataValueDescriptor cloneHolder() {
-        LazyNumberDataValueDescriptor newDvd = new LazyNumberDataValueDescriptor((NumberDataValue) ndv.cloneHolder(), dvdSerializer);
+        LazyNumberDataValueDescriptor newDvd = new LazyNumberDataValueDescriptor((NumberDataValue) ndv.cloneHolder());
+				newDvd.serializer = serializer;
+				newDvd.tableVersion = tableVersion;
         newDvd.bytes = new ByteSlice(this.bytes);
         newDvd.deserialized = this.deserialized;
         newDvd.updateNullFlag();
@@ -111,7 +122,9 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
     @Override
     public DataValueDescriptor cloneValue(boolean forceMaterialization) {
 
-        LazyNumberDataValueDescriptor newDvd = new LazyNumberDataValueDescriptor((NumberDataValue) ndv.cloneValue(forceMaterialization), dvdSerializer);
+        LazyNumberDataValueDescriptor newDvd = new LazyNumberDataValueDescriptor((NumberDataValue) ndv.cloneValue(forceMaterialization));
+				newDvd.serializer = serializer;
+				newDvd.tableVersion = tableVersion;
         newDvd.bytes = new ByteSlice(this.bytes);
         newDvd.deserialized = this.deserialized;
         newDvd.updateNullFlag();
@@ -129,7 +142,7 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
         super.readExternal(in);
 
         ndv = (NumberDataValue)dvd;
-        init(ndv, LazyDataValueFactory.getDVDSerializer(typeFormatId));
+        init(ndv);
     }
 
     @Override

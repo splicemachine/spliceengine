@@ -13,6 +13,9 @@ public class VersionedSerializers {
 				 * Statically defined version checked versioning
 				 */
 
+				if("2.0".equals(version))
+						return V2SerializerMap.instance(sparse);
+
 				//when in doubt, assume it's encoded using V1.
 				return V1SerializerMap.instance(sparse);
 		}
@@ -24,7 +27,7 @@ public class VersionedSerializers {
 		 * @return a serializer map for the latest encoding version.
 		 */
 		public static SerializerMap latestVersion(boolean sparse){
-				return V1SerializerMap.instance(sparse);
+				return V2SerializerMap.instance(sparse);
 		}
 
 }
