@@ -8,7 +8,6 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.writer.WriteResult;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -16,12 +15,8 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLDate;
 import org.apache.derby.iapi.types.SQLTime;
 import org.apache.derby.iapi.types.SQLTimestamp;
-
-import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.GregorianCalendar;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import java.util.HashMap;
 
 /**
@@ -31,15 +26,14 @@ import java.util.HashMap;
 public class RowParser {
     private final ExecRow template;
 
-    private SimpleDateFormat timestampFormat;
-    private SimpleDateFormat dateFormat;
-    private SimpleDateFormat timeFormat;
+    private DateTimeFormatter timestampFormat;
+    private DateTimeFormatter dateFormat;
+    private DateTimeFormatter timeFormat;
     private String timestampFormatStr;
     private String dateFormatStr;
     private String timeFormatStr;
     private final HashMap<String,String> columnTimestampFormats;
 	private SpliceSequence[] sequences;
-	private GregorianCalendar calendar;
 
 		private final ImportErrorReporter errorReporter;
 
@@ -193,19 +187,14 @@ public class RowParser {
 						case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
 						case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
 						case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
-								SimpleDateFormat format = getDateFormat(column, elem);
+							//System.out.println("elem: " + elem);
+							DateTimeFormatter format = getDateFormat(column, elem);															 
 								try{
-										if(format.toPattern().endsWith("Z") || format.toPattern().endsWith("X")){
-												//if not append 00, cannot parse correctly
-												elem = elem + "00";
-										}
-										Date value = format.parse(elem);
-										if(calendar==null)
-												calendar = new GregorianCalendar();
-
-										column.setValue(new Timestamp(value.getTime()),calendar);
-                }catch (ParseException p){
-                    throw ErrorState.LANG_DATE_SYNTAX_EXCEPTION.newException();
+								        DateTime date = format.parseDateTime(elem);								        
+										column.setValue(date);
+								}catch (IllegalArgumentException p){
+									//System.out.println("error: " + p.getLocalizedMessage());								
+									throw ErrorState.LANG_DATE_SYNTAX_EXCEPTION.newException();
                 }
                 break;
             default:
@@ -222,28 +211,31 @@ public class RowParser {
 				return joiner.join(row);
 		}
 
-		private SimpleDateFormat getDateFormat(DataValueDescriptor dvd, String elem) throws StandardException {
-				SimpleDateFormat format;
+		private DateTimeFormatter getDateFormat(DataValueDescriptor dvd, String elem) throws StandardException {
+			DateTimeFormatter format;
 				if(dvd instanceof SQLTimestamp){
 						if(timestampFormat==null){
-								timestampFormat = new SimpleDateFormat(timestampFormatStr);
+							//System.out.println("Timestamp " + timestampFormatStr);
+								timestampFormat = DateTimeFormat.forPattern(timestampFormatStr);
 						}
 						format = timestampFormat;
 				}else if(dvd instanceof SQLDate){
 						if(dateFormat==null){
-								dateFormat = new SimpleDateFormat(dateFormatStr);
+							//System.out.println("Date " + dateFormatStr);
+								dateFormat = DateTimeFormat.forPattern(dateFormatStr);
 						}
 						format = dateFormat;
 				}else if(dvd instanceof SQLTime){
 						if(timeFormat==null){
-								timeFormat = new SimpleDateFormat(timeFormatStr);
+							//System.out.println("Time " + timeFormatStr);
+							timeFormat = DateTimeFormat.forPattern(timeFormatStr);
 						}
 						format = timeFormat;
 				}else{
 						//this represents a programmer error, don't try and log this
 						throw Exceptions.parseException(new IllegalStateException("Unable to determine date format for type " + dvd.getClass()));
 				}
-				format.setLenient(false);
+//				format.setLenient(false);
 				return format;
 		}
 }
