@@ -76,6 +76,14 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 
 	protected static final int		SYSTABLES_INDEX2_ID = 1;
 	protected static final int		SYSTABLES_INDEX2_TABLEID = 1;
+
+	/*
+	 * The first version of any tables. Use this for System tables and
+	 * any time that you don't know what the version is.
+	 */
+	protected static final String ORIGINAL_TABLE_VERSION = "1.0"; 
+	//the current version for creating new tables with
+	protected static final String CURRENT_TABLE_VERSION = "2.0"; 
 	
 	// all indexes are unique.
 
@@ -218,8 +226,7 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 		row.setColumn(SYSTABLES_LOCKGRANULARITY, new SQLChar(lockGranularity));
 
 		/* 6th column is VERSION (varchar(128)) */
-		//TODO -sf- make this version number dynamic
-		row.setColumn(SYSTABLES_VERSION,new SQLVarchar("1.0"));
+		row.setColumn(SYSTABLES_VERSION,new SQLVarchar(CURRENT_TABLE_VERSION));
 
 		return row;
 	}
@@ -396,11 +403,15 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 		}
 
 		//TODO -sf- place version into tuple descriptor
-//		String version = row.getColumn(SYSTABLES_VERSION);
+		DataValueDescriptor versionDescriptor = row.getColumn(SYSTABLES_VERSION);
 
 		// RESOLVE - Deal with lock granularity
 		tabDesc = ddg.newTableDescriptor(tableName, schema, tableTypeEnum, lockGranularity.charAt(0));
 		tabDesc.setUUID(tableUUID);
+		if(versionDescriptor!=null){
+			tabDesc.setVersion(versionDescriptor.getString());
+		}else
+						tabDesc.setVersion(ORIGINAL_TABLE_VERSION);
 		return tabDesc;
 	}
 

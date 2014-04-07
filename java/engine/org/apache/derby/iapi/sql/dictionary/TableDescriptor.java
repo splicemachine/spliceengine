@@ -142,6 +142,7 @@ public class TableDescriptor extends TupleDescriptor
 	String							tableName;
 	UUID							oid;
 	int								tableType;
+	String tableVersion;
 
     /**
      * <p>
@@ -479,6 +480,16 @@ public class TableDescriptor extends TupleDescriptor
 	public void setUUID(UUID oid)
 	{
 		this.oid = oid;
+	}
+
+	public void setVersion(String version)
+	{
+					this.tableVersion = version;
+	}
+
+	public String getVersion()
+	{
+		return this.tableVersion;
 	}
 
 	/**
