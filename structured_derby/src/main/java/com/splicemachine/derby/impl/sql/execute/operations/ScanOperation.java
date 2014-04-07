@@ -14,10 +14,15 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
@@ -28,6 +33,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.BitSet;
 
 public abstract class ScanOperation extends SpliceBaseOperation {
 	private static Logger LOG = Logger.getLogger(ScanOperation.class);
@@ -51,6 +57,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
     protected MultiFieldDecoder keyDecoder;
     protected EntryPredicateFilter predicateFilter;
     private boolean cachedPredicateFilter = false;
+    protected BitSet descColumns;
 
     public ScanOperation () {
 		super();
@@ -94,7 +101,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 
     protected KeyMarshaller getKeyMarshaller () {
         if (keyMarshaller == null)
-            keyMarshaller = new KeyMarshaller();
+            keyMarshaller = new KeyMarshaller(descColumns);
 
         return keyMarshaller;
     }
@@ -154,7 +161,25 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		out.writeInt(isolationLevel);
         out.writeObject(scanInformation);
 	}
-	
+
+    private BitSet getDescColumns() throws StandardException{
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        ConglomerateDescriptor conglomDesc =
+                dd.getConglomerateDescriptor(scanInformation.getConglomerateId());
+        BitSet descCols = null;
+        if (conglomDesc.isIndex()) {
+            IndexRowGenerator irg = conglomDesc.getIndexDescriptor();
+            IndexDescriptor indexDescriptor = irg.getIndexDescriptor();
+            descCols = new BitSet(indexDescriptor.baseColumnPositions().length);
+            boolean[] ascending = indexDescriptor.isAscending();
+            for(int i=0;i<ascending.length;i++){
+                if(!ascending[i])
+                    descCols.set(i);
+            }
+        }
+        return descCols;
+    }
 	@Override
     public void init(SpliceOperationContext context) throws StandardException{
         SpliceLogUtils.trace(LOG, "init called");
@@ -169,6 +194,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
             currentTemplate = currentRow.getClone();
             if (currentRowLocation == null)
             	currentRowLocation = new HBaseRowLocation();
+            this.descColumns = getDescColumns();
         } catch (Exception e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);
         }

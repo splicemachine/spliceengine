@@ -8,6 +8,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 
 import java.io.IOException;
+import java.util.BitSet;
 
 /**
  * Created with IntelliJ IDEA.
@@ -17,6 +18,12 @@ import java.io.IOException;
  * To change this template use File | Settings | File Templates.
  */
 public class KeyMarshaller {
+    private BitSet descColumns;
+
+    public KeyMarshaller() {this.descColumns = null;}
+    public KeyMarshaller (BitSet descColumns) {
+        this.descColumns = descColumns;
+    }
 
     public void decode(KeyValue value, DataValueDescriptor[] fields,
                        int[] reversedKeyColumns, MultiFieldDecoder keyDecoder,
@@ -34,7 +41,7 @@ public class KeyMarshaller {
             int kcol = columnOrdering[i];
             if (kcol < reversedKeyColumns.length && reversedKeyColumns[kcol] != -1) {
                 DataValueDescriptor dvd = fields[reversedKeyColumns[kcol]];
-                DerbyBytesUtil.decodeInto(keyDecoder, dvd);
+                DerbyBytesUtil.decodeInto(keyDecoder, dvd, isDescColumn(kcol));
             }
             else {
                 // skip this key column because it is not requested
@@ -44,5 +51,9 @@ public class KeyMarshaller {
                 }
             }
         }
+    }
+
+    private boolean isDescColumn(int i) {
+        return (descColumns != null && descColumns.get(i));
     }
 }

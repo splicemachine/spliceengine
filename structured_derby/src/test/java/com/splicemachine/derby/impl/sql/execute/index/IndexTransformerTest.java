@@ -61,7 +61,7 @@ public class IndexTransformerTest {
 
 				//make sure index is correct. Row should not contain data
 				BitIndex indexIndex = entryDecoder.getCurrentIndex();
-				Assert.assertEquals("Incorrect index size!",2,indexIndex.length());
+				Assert.assertEquals("Incorrect index size!",0,indexIndex.length());
 
 				/*row key validation*/
 
@@ -115,7 +115,7 @@ public class IndexTransformerTest {
 
 				//make sure index is correct. The row should not contain any data
 				BitIndex indexIndex = entryDecoder.getCurrentIndex();
-				Assert.assertEquals("Incorrect index size!",2,indexIndex.length());
+				Assert.assertEquals("Incorrect index size!",0,indexIndex.length());
 
 				/*row key validation*/
 				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create(KryoPool.defaultPool());
