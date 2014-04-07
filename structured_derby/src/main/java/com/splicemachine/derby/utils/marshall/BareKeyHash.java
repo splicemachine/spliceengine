@@ -25,7 +25,6 @@ public class BareKeyHash{
 		protected final DescriptorSerializer[] serializers;
 
 		protected final KryoPool kryoPool;
-		private GregorianCalendar calendar;
 
 		protected BareKeyHash(int[] keyColumns,
 													boolean[] keySortOrder,
@@ -86,45 +85,28 @@ public class BareKeyHash{
 				DataValueDescriptor[] fields = destination.getRowArray();
 				if(keySortOrder!=null){
 						for(int i=0;i<keyColumns.length;i++){
-								if(keyColumns[i] !=-1){
-										DataValueDescriptor field = fields[keyColumns[i]];
-										decodeNext(decoder, field,!keySortOrder[i]);
-								}
+								int pos = keyColumns[i];
+								if(pos<0) continue;
+								DescriptorSerializer serializer = serializers[pos];
+								DataValueDescriptor field = fields[pos];
+								serializer.decode(decoder,field,!keySortOrder[i]);
 						}
-				}else{
-						for(int rowSpot:keyColumns){
-								if(rowSpot!=-1 && rowSpot < fields.length){
-										DataValueDescriptor field = fields[rowSpot];
-										decodeNext(decoder,field,false);
-								}
+				}else if(keyColumns!=null){
+						for(int pos:keyColumns){
+							if(pos==-1) continue;
+								DescriptorSerializer serializer = serializers[pos];
+								DataValueDescriptor field = fields[pos];
+								serializer.decode(decoder,field,false);
+						}
+				} else{
+						for(int pos=0;pos<fields.length;pos++){
+								if(fields[pos]==null) continue;
+								DescriptorSerializer serializer = serializers[pos];
+								DataValueDescriptor field = fields[pos];
+								serializer.decode(decoder,field,false);
 						}
 				}
 		}
-
-		protected void decodeNext(MultiFieldDecoder decoder, DataValueDescriptor field,boolean sortOrder) throws StandardException {
-				if(DerbyBytesUtil.isNextFieldNull(decoder, field)){
-						field.setToNull();
-						DerbyBytesUtil.skip(decoder, field);
-				}else
-						DerbyBytesUtil.decodeInto(decoder,field,sortOrder);
-		}
-
-		protected void encodeField(MultiFieldEncoder encoder, DataValueDescriptor[] dvds, int position, boolean desc) throws StandardException {
-				DataValueDescriptor dvd = dvds[position];
-				if(dvd==null){
-						if(!sparse)
-								encoder.encodeEmpty();
-				}
-				else if(dvd.isNull()){
-						if(!sparse)
-								DerbyBytesUtil.encodeTypedEmpty(encoder, dvd, desc, true);
-				}else {
-						if(calendar==null && DerbyBytesUtil.isTimeFormat(dvd))
-								calendar = new GregorianCalendar();
-						DerbyBytesUtil.encodeInto(encoder,dvd,desc,calendar);
-				}
-		}
-
 
 		private static class Decoder extends BareKeyHash implements KeyHashDecoder{
 				private MultiFieldDecoder decoder;

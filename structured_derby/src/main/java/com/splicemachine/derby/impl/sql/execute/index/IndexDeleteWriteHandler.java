@@ -1,25 +1,23 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import java.io.IOException;
-import java.util.List;
-
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.Predicate;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.hbase.batch.WriteContext;
-import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
+import java.io.IOException;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -108,7 +106,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
             KeyValue resultValue = null;
             for(KeyValue value:result.raw()){
-                if(value.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY)){
+                if(value.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES)){
                     resultValue = value;
                     break;
                 }

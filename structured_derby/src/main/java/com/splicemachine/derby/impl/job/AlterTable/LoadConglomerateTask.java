@@ -100,13 +100,14 @@ public class LoadConglomerateTask extends ZkTask {
             MetricFactory metricFactory = xplainSchema!=null? Metrics.basicMetricFactory(): Metrics.noOpMetricFactory();
             writeTimer = metricFactory.newTimer();
 
-            List<KeyValue> result = null;
+            List<KeyValue> result;
 
             do {
+								SpliceBaseOperation.checkInterrupt(numRecordsRead, SpliceConstants.interruptLoopCheck);
                 result = scanner.next();
-                if (result == null) break;
+                if (result == null) continue;
+
                 KeyValue kv = KeyValueUtils.matchDataColumn(result);
-                SpliceBaseOperation.checkInterrupt(numRecordsRead, SpliceConstants.interruptLoopCheck);
                 newPair = transformer.transform(kv);
                 loader.add(newPair);
                 numRecordsRead++;

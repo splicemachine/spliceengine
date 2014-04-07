@@ -71,54 +71,26 @@ public class ExecRowAccumulator extends ByteEntryAccumulator {
 
 		@Override
 		protected void occupy(int position, byte[] data, int offset, int length) {
-				DataValueDescriptor dvd = dvds[columnMap[position]];
-				try {
-						DerbyBytesUtil.decode(dvd, data, offset, length);
-				} catch (StandardException e) {
-						//TODO -sf- handle this?
-						throw new RuntimeException(e);
-				}
+				decode(position, data, offset, length);
 				super.occupy(position,data,offset,length);
 		}
-	
 
 		@Override
-		protected void occupyDouble(int position, byte[] data, int offset,
-				int length) {
-			DataValueDescriptor dvd = dvds[columnMap[position]];
-			try {
-					DerbyBytesUtil.decodeDouble(dvd, data, offset, length);
-			} catch (StandardException e) {
-					//TODO -sf- handle this?
-					throw new RuntimeException(e);
-			}			
-			super.occupyDouble(position, data, offset, length);
+		protected void occupyDouble(int position, byte[] data, int offset, int length) {
+				decode(position, data, offset, length);
+				super.occupyDouble(position, data, offset, length);
 		}
 
 		@Override
-		protected void occupyFloat(int position, byte[] data, int offset,
-				int length) {
-			DataValueDescriptor dvd = dvds[columnMap[position]];
-			try {
-					DerbyBytesUtil.decodeFloat(dvd, data, offset, length);
-			} catch (StandardException e) {
-					//TODO -sf- handle this?
-					throw new RuntimeException(e);
-			}			
-			super.occupyFloat(position, data, offset, length);
+		protected void occupyFloat(int position, byte[] data, int offset, int length) {
+				decode(position, data, offset, length);
+				super.occupyFloat(position, data, offset, length);
 		}
 
 		@Override
-		protected void occupyScalar(int position, byte[] data, int offset,
-				int length) {
-			DataValueDescriptor dvd = dvds[columnMap[position]];
-			try {
-					DerbyBytesUtil.decodeScalar(dvd, data, offset, length);
-			} catch (StandardException e) {
-					//TODO -sf- handle this?
-					throw new RuntimeException(e);
-			}			
-			super.occupyScalar(position, data, offset, length);
+		protected void occupyScalar(int position, byte[] data, int offset, int length) {
+				decode(position,data,offset,length);
+				super.occupyScalar(position, data, offset, length);
 		}
 
 		@Override
@@ -126,4 +98,16 @@ public class ExecRowAccumulator extends ByteEntryAccumulator {
 				if(checkFilterAfter()) return null;
 				return HConstants.EMPTY_BYTE_ARRAY;
 		}
+
+		private void decode(int position, byte[] data, int offset, int length) {
+				DataValueDescriptor dvd = dvds[columnMap[position]];
+				DescriptorSerializer serializer = serializers[columnMap[position]];
+				try {
+						serializer.decodeDirect(dvd, data, offset, length, false);
+				} catch (StandardException e) {
+						//TODO -sf- handle this?
+						throw new RuntimeException(e);
+				}
+		}
+
 }

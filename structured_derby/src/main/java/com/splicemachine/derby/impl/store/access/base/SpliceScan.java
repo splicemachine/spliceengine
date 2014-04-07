@@ -152,7 +152,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		protected void attachFilter() {
 				try {
 						Scans.buildPredicateFilter(startKeyValue, 2, qualifier, null, spliceConglomerate.getColumnOrdering(),
-										spliceConglomerate.getFormatIds(), scan);
+										spliceConglomerate.getFormatIds(), scan,"1.0");
 				} catch (Exception e) {
 						throw new RuntimeException("error attaching Filter",e);
 				}
@@ -164,7 +164,9 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 										((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).getAscDescInfo();
 						boolean sameStartStop = isSameStartStop(startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator);
 						scan = Scans.setupScan(startKeyValue, startSearchOperator, stopKeyValue, stopSearchOperator, qualifier,
-										sortOrder, scanColumnList, transID,sameStartStop,((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).format_ids, ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).columnOrdering, (DataValueFactory) null);
+										sortOrder, scanColumnList, transID,sameStartStop,
+										((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).format_ids,
+										((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).columnOrdering, null, "1.0");
 				} catch (Exception e) {
 						LOG.error("Exception creating start key");
 						throw new RuntimeException(e);

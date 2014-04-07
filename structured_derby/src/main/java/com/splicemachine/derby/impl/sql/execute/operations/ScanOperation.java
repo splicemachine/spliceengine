@@ -10,7 +10,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.marshall.KeyMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -20,7 +19,6 @@ import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Scan;
@@ -49,7 +47,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		protected ExecRow keyTemplate;
 		protected int[] getColumnOrdering;
 		protected DataValueDescriptor[] kdvds;
-		protected KeyMarshaller keyMarshaller;
+//		protected KeyMarshaller keyMarshaller;
 		protected EntryDecoder rowDecoder;
 		protected MultiFieldDecoder keyDecoder;
 		protected EntryPredicateFilter predicateFilter;
@@ -93,13 +91,6 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				this.lockMode = lockMode;
 				this.isolationLevel = isolationLevel;
 				this.scanInformation = scanInformation;
-		}
-
-		protected KeyMarshaller getKeyMarshaller () {
-				if (keyMarshaller == null)
-						keyMarshaller = new KeyMarshaller();
-
-				return keyMarshaller;
 		}
 
 		protected MultiFieldDecoder getKeyDecoder() {

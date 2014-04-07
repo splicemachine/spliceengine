@@ -143,11 +143,22 @@ public class BareKeyHashTest {
 						TestingDataType dt = dataTypes[i];
 						DataValueDescriptor field = execRow.getColumn(i+1);
 						if(row[i].isNull()){
-								Assert.assertTrue("Incorrectly encoded a null value!", DerbyBytesUtil.isNextFieldNull(decoder, field));
+								String errorMsg = "Incorrectly encoded a null value!";
+								if(dt==TestingDataType.REAL)
+										Assert.assertTrue(errorMsg,decoder.nextIsNullFloat());
+								else if(dt==TestingDataType.DOUBLE)
+										Assert.assertTrue(errorMsg,decoder.nextIsNullDouble());
+								else
+										Assert.assertTrue(errorMsg,decoder.nextIsNull());
 								continue;
 						}
-
-						Assert.assertFalse("Incorrectly encoded a non-null field as null!", DerbyBytesUtil.isNextFieldNull(decoder, field));
+						String errorMsg = "Incorrectly encoded a non-null field as null!";
+						if(dt==TestingDataType.REAL)
+								Assert.assertFalse(errorMsg,decoder.nextIsNullFloat());
+						else if(dt==TestingDataType.DOUBLE)
+								Assert.assertFalse(errorMsg,decoder.nextIsNullDouble());
+						else
+								Assert.assertFalse(errorMsg,decoder.nextIsNull());
 
 						dt.decodeNext(field,decoder);
 						Assert.assertEquals("Row<"+ Arrays.toString(row)+">Incorrect serialization of field "+ row[i],row[i],field);

@@ -2,7 +2,7 @@
 package com.splicemachine.derby.impl.store.access.btree;
 
 import java.io.IOException;
-import com.splicemachine.derby.hbase.SpliceDriver;
+
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
@@ -11,12 +11,9 @@ import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
-import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -47,11 +44,11 @@ public class IndexController  extends SpliceController  {
 
 		private byte[] generateIndexKey(DataValueDescriptor[] row, boolean[] order) throws IOException, StandardException {
 				if (row.length == nKeyFields) {
-						return DerbyBytesUtil.generateIndexKey(row,order);
+						return DerbyBytesUtil.generateIndexKey(row,order,"1.0");
 				}
 				DataValueDescriptor[] uniqueRow = new DataValueDescriptor[nKeyFields];
 				System.arraycopy(row, 0, uniqueRow, 0, nKeyFields);
-				return DerbyBytesUtil.generateIndexKey(uniqueRow,order);
+				return DerbyBytesUtil.generateIndexKey(uniqueRow,order,"1.0");
 		}
 
 		@Override
@@ -99,11 +96,11 @@ public class IndexController  extends SpliceController  {
 				HTableInterface htable = getHTable();
 				try {
 						boolean[] sortOrder = ((IndexConglomerate) this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
+						Put put;
+						int[] validCols;
 						if (openSpliceConglomerate.cloneRowTemplate().length == row.length && validColumns == null) {
-								Put put = SpliceUtils.createPut(DerbyBytesUtil.generateIndexKey(row,sortOrder),transID);
-
-								encodeRow(row, put,null, validColumns);
-								htable.put(put);
+								put = SpliceUtils.createPut(DerbyBytesUtil.generateIndexKey(row,sortOrder,"1.0"),transID);
+								validCols = null;
 						} else {
 								DataValueDescriptor[] oldValues = openSpliceConglomerate.cloneRowTemplate();
 								Get get = SpliceUtils.createGet(loc, oldValues, null, transID);
@@ -119,18 +116,18 @@ public class IndexController  extends SpliceController  {
 //								for(KeyValue kv:result.raw()){
 //										RowMarshaller.sparsePacked().decode(kv, oldValues, null, fieldDecoder);
 //								}
-								int[] validCols = new int[validColumns.getNumBitsSet()];
+								validCols = new int[validColumns.getNumBitsSet()];
 								int pos=0;
 								for(int i=validColumns.anySetBit();i!=-1;i=validColumns.anySetBit(i)){
 										oldValues[i] = row[i];
 										validCols[pos] = i;
 								}
 								byte[] rowKey = generateIndexKey(row,sortOrder);
-								Put put = SpliceUtils.createPut(rowKey,transID);
-
-								encodeRow(row,put,validCols,validColumns);
-								htable.put(put);
+								put = SpliceUtils.createPut(rowKey,transID);
 						}
+
+						encodeRow(row,put,validCols,validColumns);
+						htable.put(put);
 						super.delete(loc);
 						return true;
 				} catch (Exception e) {

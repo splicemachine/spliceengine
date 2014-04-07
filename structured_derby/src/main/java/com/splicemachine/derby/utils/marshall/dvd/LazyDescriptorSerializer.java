@@ -69,4 +69,8 @@ public class LazyDescriptorSerializer implements DescriptorSerializer {
 				}else
 						delegate.decodeDirect(destDvd,data,offset,length,desc);
 		}
+
+		@Override public boolean isScalarType() { return delegate.isScalarType(); }
+		@Override public boolean isFloatType() { return delegate.isFloatType(); }
+		@Override public boolean isDoubleType() { return delegate.isDoubleType(); }
 }

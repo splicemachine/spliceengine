@@ -8,6 +8,7 @@ import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
+import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SerializationUtils;
 
@@ -62,8 +63,9 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     private SpliceMethod<ExecIndexRow> stopKeyGetter;
     private SpliceConglomerate conglomerate;
     private int colRefItem;
+		private String tableVersion;
 
-    @SuppressWarnings("UnusedDeclaration")
+		@SuppressWarnings("UnusedDeclaration")
     @Deprecated
     public DerbyScanInformation() { }
 
@@ -91,6 +93,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     public void initialize(SpliceOperationContext opContext) {
         this.gsps = opContext.getPreparedStatement();
         this.activation = opContext.getActivation();
+
+				this.tableVersion = "1.0"; //TODO -sf- make this dynamic,based on the table itself
     }
 
     @Override
@@ -249,7 +253,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
                 conglomerate.getAscDescInfo(),
                 getAccessedNonPkColumns(),
                 txnId,sameStartStop,
-                conglomerate.getFormat_ids(),conglomerate.getColumnOrdering(), activation.getDataValueFactory());
+                conglomerate.getFormat_ids(),conglomerate.getColumnOrdering(), activation.getDataValueFactory(),
+								tableVersion);
     }
 
     @Override

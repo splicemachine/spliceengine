@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.si.api.TransactionalFilter;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -58,7 +57,7 @@ public class MultiRangeFilter extends FilterBase implements TransactionalFilter 
 
     @Override
     public ReturnCode filterKeyValue(KeyValue currentKV) {
-        if(!currentKV.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY))
+        if(!currentKV.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES))
             return ReturnCode.INCLUDE; //only consider data elements
         if(position>=keyRanges.length){
             isDone=true;

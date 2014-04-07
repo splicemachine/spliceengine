@@ -41,4 +41,8 @@ class DoubleDescriptorSerializer implements DescriptorSerializer {
 		public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
 				dvd.setValue(Encoding.decodeDouble(data,offset,desc));
 		}
+
+		@Override public boolean isScalarType() { return false; }
+		@Override public boolean isFloatType() { return false; }
+		@Override public boolean isDoubleType() { return true; }
 }

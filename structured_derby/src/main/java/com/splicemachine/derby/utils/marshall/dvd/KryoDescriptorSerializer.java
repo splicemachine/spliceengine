@@ -84,6 +84,10 @@ public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable 
 				dvd.setValue(o);
 		}
 
+		@Override public boolean isScalarType() { return false; }
+		@Override public boolean isFloatType() { return false; }
+		@Override public boolean isDoubleType() { return false; }
+
 		@Override
 		public void close() throws IOException {
 				if(kryo!=null)

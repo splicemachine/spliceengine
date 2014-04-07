@@ -300,7 +300,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
 								getTimer.startTiming();
 								Get remoteGet = SpliceUtils.createGet(getTransactionID(),location);
-								remoteGet.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
+								remoteGet.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES);
 								remoteGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,filterBytes);
 
 								Result r = htable.get(remoteGet);
@@ -308,7 +308,7 @@ public class UpdateOperation extends DMLWriteOperation{
 								KeyValue[] rawKvs = r.raw();
 								for(KeyValue kv:rawKvs){
 										getBytes.add(kv.getLength());
-										if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY)){
+										if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES)){
 												result = kv;
 												break;
 										}
@@ -440,7 +440,7 @@ public class UpdateOperation extends DMLWriteOperation{
 						for(int i=finalHeapList.anySetBit();i>=0;i=finalHeapList.anySetBit(i)){
 								notNullFields.set(i - 1);
 								DataValueDescriptor dvd = currentRow.getRowArray()[keyColumns[i]];
-								if(DerbyBytesUtil.isScalarType(dvd)){
+								if(DerbyBytesUtil.isScalarType(dvd, null)){
 										scalarFields.set(i-1);
 								}else if(DerbyBytesUtil.isFloatType(dvd)){
 										floatFields.set(i-1);

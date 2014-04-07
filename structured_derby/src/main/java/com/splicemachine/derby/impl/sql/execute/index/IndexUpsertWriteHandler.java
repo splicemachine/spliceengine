@@ -1,13 +1,20 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import java.io.IOException;
-import java.util.List;
-
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.storage.*;
+import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
@@ -15,17 +22,8 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.hbase.batch.WriteContext;
-import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.storage.index.BitIndex;
+import java.io.IOException;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -236,7 +234,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 if(oldDataDecoder==null)
                     oldDataDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
 
-                oldDataDecoder.set(r.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
+                oldDataDecoder.set(r.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES));
                 BitIndex oldIndex = oldDataDecoder.getCurrentIndex();
                 oldDecoder = oldDataDecoder.getEntryDecoder();
                 oldKeyAccumulator = new ByteEntryAccumulator(null,transformer.isUnique()?translatedIndexColumns:nonUniqueIndexColumn);
@@ -350,7 +348,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     private void occupy(EntryAccumulator accumulator, DataValueDescriptor dvd, int position) {
         int mappedPosition = mainColToIndexPosMap[position];
-        if(DerbyBytesUtil.isScalarType(dvd))
+        if(DerbyBytesUtil.isScalarType(dvd, null))
             accumulator.markOccupiedScalar(mappedPosition);
         else if(DerbyBytesUtil.isDoubleType(dvd))
             accumulator.markOccupiedDouble(mappedPosition);
