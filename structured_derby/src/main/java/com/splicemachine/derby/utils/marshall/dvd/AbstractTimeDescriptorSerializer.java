@@ -26,6 +26,10 @@ public abstract class AbstractTimeDescriptorSerializer implements TimeValuedSeri
 				return calendar;
 		}
 
+		@Override public boolean isScalarType() { return true; }
+		@Override public boolean isFloatType() { return false; }
+		@Override public boolean isDoubleType() { return false; }
+
 		protected static abstract class Factory implements DescriptorSerializer.Factory{
 				@Override public boolean applies(DataValueDescriptor dvd) { return dvd!= null && applies(dvd.getTypeFormatId()); }
 		}

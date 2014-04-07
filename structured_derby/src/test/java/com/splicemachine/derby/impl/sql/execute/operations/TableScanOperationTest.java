@@ -6,7 +6,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.MeasuredRegionScanner;
@@ -251,7 +250,7 @@ public class TableScanOperationTest {
             byte[] data = entryEncoder.encode();
             random.nextBytes(rowKey);
             retList.add(new KeyValue(rowKey, SpliceConstants.DEFAULT_FAMILY_BYTES,
-                    RowMarshaller.PACKED_COLUMN_KEY,data));
+                    SpliceConstants.PACKED_COLUMN_BYTES,data));
             correctRows.add(row);
         }
 

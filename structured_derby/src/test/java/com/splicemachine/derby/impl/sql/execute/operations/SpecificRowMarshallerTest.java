@@ -5,7 +5,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.Encoding;
@@ -51,7 +50,7 @@ public class SpecificRowMarshallerTest {
         accumulator.add(2, encodedRowLoc,0,encodedRowLoc.length);
 
         byte[] value = accumulator.finish();
-        final KeyValue kv = new KeyValue(snowflake.nextUUIDBytes(),SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,value);
+        final KeyValue kv = new KeyValue(snowflake.nextUUIDBytes(),SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES,value);
 
         EntryDecoder entryDecoder = new EntryDecoder(kryoPool);
 				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(testRow);

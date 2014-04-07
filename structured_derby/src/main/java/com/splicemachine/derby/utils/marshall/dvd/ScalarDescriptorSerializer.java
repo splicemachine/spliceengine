@@ -39,17 +39,13 @@ public class ScalarDescriptorSerializer implements DescriptorSerializer{
 		public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
 				switch(dvd.getTypeFormatId()){
 						case StoredFormatIds.SQL_TINYINT_ID:
-								fieldEncoder.encodeNext(dvd.getByte(),desc);
-								return;
+								fieldEncoder.encodeNext(dvd.getByte(),desc); return;
 						case StoredFormatIds.SQL_SMALLINT_ID:
-								fieldEncoder.encodeNext(dvd.getShort(),desc);
-								return;
+								fieldEncoder.encodeNext(dvd.getShort(),desc); return;
 						case StoredFormatIds.SQL_INTEGER_ID:
-								fieldEncoder.encodeNext(dvd.getInt(),desc);
-								return;
+								fieldEncoder.encodeNext(dvd.getInt(),desc); return;
 						case StoredFormatIds.SQL_LONGINT_ID:
-								fieldEncoder.encodeNext(dvd.getLong(),desc);
-								return;
+								fieldEncoder.encodeNext(dvd.getLong(),desc); return;
 						default:
 								throw new IllegalArgumentException("Attempted to encode a value that does not have a scalar type format id");
 				}
@@ -75,13 +71,13 @@ public class ScalarDescriptorSerializer implements DescriptorSerializer{
 		public void decode(MultiFieldDecoder fieldDecoder, DataValueDescriptor destDvd, boolean desc) throws StandardException {
 				switch(destDvd.getTypeFormatId()){
 						case StoredFormatIds.SQL_TINYINT_ID:
-								destDvd.setValue(fieldDecoder.decodeNextByte(desc));
+								destDvd.setValue(fieldDecoder.decodeNextByte(desc)); return;
 						case StoredFormatIds.SQL_SMALLINT_ID:
-								destDvd.setValue(fieldDecoder.decodeNextShort(desc));
+								destDvd.setValue(fieldDecoder.decodeNextShort(desc)); return;
 						case StoredFormatIds.SQL_INTEGER_ID:
-								destDvd.setValue(fieldDecoder.decodeNextInt(desc));
+								destDvd.setValue(fieldDecoder.decodeNextInt(desc)); return;
 						case StoredFormatIds.SQL_LONGINT_ID:
-								destDvd.setValue(fieldDecoder.decodeNextLong(desc));
+								destDvd.setValue(fieldDecoder.decodeNextLong(desc)); return;
 						default:
 								throw new IllegalArgumentException("Attempted to decode into a descriptor which does not have a scalar type format id");
 				}
@@ -102,4 +98,8 @@ public class ScalarDescriptorSerializer implements DescriptorSerializer{
 								throw new IllegalArgumentException("Attempted to decode into a descriptor which does not have a scalar type format id");
 				}
 		}
+
+		@Override public boolean isScalarType() { return true; }
+		@Override public boolean isFloatType() { return false; }
+		@Override public boolean isDoubleType() { return false; }
 }

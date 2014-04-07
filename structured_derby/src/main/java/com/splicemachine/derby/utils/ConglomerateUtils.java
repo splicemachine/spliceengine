@@ -6,7 +6,6 @@ import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
@@ -48,12 +47,12 @@ public class ConglomerateUtils extends SpliceConstants {
 		try {
 			table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
 			Get get = SpliceUtils.createGet(transactionID, Bytes.toBytes(conglomId));
-            get.addColumn(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
+            get.addColumn(DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES);
             EntryPredicateFilter predicateFilter  = EntryPredicateFilter.emptyPredicate();
             get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
 			Result result = table.get(get);
-			byte[] data = result.getValue(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
+			byte[] data = result.getValue(DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES);
 
             EntryDecoder entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
             try{
@@ -62,7 +61,7 @@ public class ConglomerateUtils extends SpliceConstants {
                     MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
                     byte[] nextRaw = decoder.decodeNextBytesUnsorted();
 
-                    return DerbyBytesUtil.fromBytes(nextRaw, instanceClass);
+                    return DerbyBytesUtil.fromBytes(nextRaw);
                 }
             }finally{
                 entryDecoder.close();
@@ -109,7 +108,7 @@ public class ConglomerateUtils extends SpliceConstants {
             fields.set(0);
             entryEncoder = EntryEncoder.create(SpliceDriver.getKryoPool(),1, fields,null,null,null);
             entryEncoder.getEntryEncoder().encodeNextUnsorted(conglomData);
-            put.add(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, entryEncoder.encode());
+            put.add(DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
 			table.put(put);
 		} catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG, "Error Creating Conglomerate", Exceptions.parseException(e));
@@ -139,7 +138,7 @@ public class ConglomerateUtils extends SpliceConstants {
             setFields.set(0);
             entryEncoder = EntryEncoder.create(SpliceDriver.getKryoPool(),1,setFields,null,null,null); //no need to set length-delimited, we aren't
             entryEncoder.getEntryEncoder().encodeNextUnsorted(DerbyBytesUtil.toBytes(conglomerate));
-			put.add(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, entryEncoder.encode());
+			put.add(DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
 			table.put(put);
 		}catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG, "update Conglomerate Failed", Exceptions.parseException(e));

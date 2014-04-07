@@ -179,7 +179,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 						@Override public int nextSetBit(int currentPosition) { return pkColumns.anySetBit(currentPosition-1); }
 
 						@Override public boolean isScalarType(int position) {
-								return DerbyBytesUtil.isScalarType(template.getRowArray()[position]);
+								return DerbyBytesUtil.isScalarType(template.getRowArray()[position], null);
 						}
 
 						@Override public boolean isDoubleType(int position) {

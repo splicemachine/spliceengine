@@ -4,7 +4,6 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.debug.DataType;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.storage.*;
@@ -72,7 +71,7 @@ public class HBaseFinder {
 
         Scan scan = new Scan();
         scan.addFamily(SpliceConstants.DEFAULT_FAMILY_BYTES);
-        scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
+        scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES);
         scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,edf.toBytes());
         scan.setAttribute(SpliceConstants.SI_EXEMPT, Bytes.toBytes(true));
         scan.setMaxVersions();
@@ -95,7 +94,7 @@ public class HBaseFinder {
                 byte[] row = result.getRow();
                 String rowBytes = Bytes.toStringBinary(row);
                 for(KeyValue kv:result.raw()){
-                    if(!kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY)) continue; //skip non-data columns
+                    if(!kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES)) continue; //skip non-data columns
                     long ts = kv.getTimestamp();
                     byte[] value = kv.getValue();
                     if(value.length<=0) continue;

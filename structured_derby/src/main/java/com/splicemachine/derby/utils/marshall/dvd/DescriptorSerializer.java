@@ -18,6 +18,12 @@ public interface DescriptorSerializer {
 
 		void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException;
 
+		boolean isScalarType();
+
+		boolean isFloatType();
+
+		boolean isDoubleType();
+
 		public static interface Factory<T extends DescriptorSerializer>{
 
 				T newInstance();

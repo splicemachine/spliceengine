@@ -6,7 +6,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintHandler;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.tools.ResettableCountDownLatch;
@@ -119,7 +118,7 @@ public class ConstraintOrderingTest {
                     if(Bytes.equals(mutation.getRow(),original.getRow())){
                         foundCount++;
                         //make sure the rows match
-                        KeyValue keyValue = ((Put) mutation).get(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY).get(0);
+                        KeyValue keyValue = ((Put) mutation).get(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES).get(0);
                         if(Bytes.equals(keyValue.getValue(),original.getValue()))
                             Assert.fail("Same Row key with incorrect value is present in final list!");
                     }
@@ -137,7 +136,7 @@ public class ConstraintOrderingTest {
                 	if(Bytes.equals(mutation.getRow(),original.getRow())){
                         foundCount++;
                         //make sure the rows match
-                        KeyValue keyValue = ((Put) mutation).get(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY).get(0);
+                        KeyValue keyValue = ((Put) mutation).get(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES).get(0);
                         if(!Bytes.equals(keyValue.getValue(),original.getValue()))
                             Assert.fail("Same Row key with incorrect value is present in final list!");
                     }

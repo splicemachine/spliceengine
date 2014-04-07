@@ -273,7 +273,7 @@ public class IndexTransformer {
 
     private void occupy(EntryAccumulator accumulator, DataValueDescriptor dvd, int position) {
         int mappedPosition = mainColToIndexPosMap[position];
-        if(DerbyBytesUtil.isScalarType(dvd))
+        if(DerbyBytesUtil.isScalarType(dvd, null))
             accumulator.markOccupiedScalar(mappedPosition);
         else if(DerbyBytesUtil.isDoubleType(dvd))
             accumulator.markOccupiedDouble(mappedPosition);
