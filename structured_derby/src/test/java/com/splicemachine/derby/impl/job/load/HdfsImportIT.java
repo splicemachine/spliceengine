@@ -228,7 +228,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	@Test
 	public void testImportISODateFormat() throws Exception{
 		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
-				",',','\"','yyyy-MM-dd''T''HH:mm:ss.SSS',null,null)",spliceSchemaWatcher.schemaName,TABLE_9));
+				",',','\"','yyyy-MM-dd''T''HH:mm:ss.SSS''Z''',null,null)",spliceSchemaWatcher.schemaName,TABLE_9));
         ps.setString(1,getResourceDirectory()+"iso_order_date.csv");
 		ps.execute();
 
@@ -261,7 +261,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 						SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 						sdf.setTimeZone(TimeZone.getTimeZone("America/Chicago"));
 						String textualFormat = sdf.format(order_date);
-						Assert.assertEquals("2013-04-21 09:21:24.098",textualFormat);
+						Assert.assertEquals("2013-04-21 09:21:24.980",textualFormat);
 						results.add(String.format("order_date:%s",order_date));
 				}
 				Assert.assertTrue("import failed!",results.size()==1);

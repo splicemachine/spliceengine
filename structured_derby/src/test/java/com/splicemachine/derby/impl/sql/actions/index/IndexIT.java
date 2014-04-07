@@ -54,7 +54,7 @@ public class IndexIT extends SpliceUnitTest {
         @Override
         protected void starting(Description description) {
             super.starting(description);
-            importData(getResourceDirectory()+ "/index/customer.csv");
+            importData(getResourceDirectory()+ "/index/customer.csv", "yyyy-MM-dd HH:mm:ss.SSS");
         }
     };
 
@@ -62,7 +62,7 @@ public class IndexIT extends SpliceUnitTest {
         @Override
         protected void starting(Description description) {
             super.starting(description);
-            importData(getResourceDirectory()+ "/index/order-with-nulls.csv");
+            importData(getResourceDirectory()+ "/index/order-with-nulls.csv","yyyy-MM-dd HH:mm:ss.SSS");
         }
     };
 
@@ -70,7 +70,7 @@ public class IndexIT extends SpliceUnitTest {
         @Override
         protected void starting(Description description) {
             super.starting(description);
-            importData(getResourceDirectory()+ "/index/new-order.csv");
+            importData(getResourceDirectory()+ "/index/new-order.csv","yyyy-MM-dd HH:mm:ss.SSS");
         }
     };
 
@@ -78,7 +78,7 @@ public class IndexIT extends SpliceUnitTest {
         @Override
         protected void starting(Description description) {
             super.starting(description);
-            importData(getResourceDirectory()+ "/index/order-line.csv");
+            importData(getResourceDirectory()+ "/index/order-line.csv","yyyy-MM-dd HH:mm:ss.SSS");
         }
     };
 

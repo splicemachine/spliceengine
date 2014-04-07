@@ -97,6 +97,26 @@ public class SpliceTableWatcher extends TestWatcher {
 		}
 	}
 
+	public void importData(String filename, String timestamp) {
+		Connection connection = null;
+		PreparedStatement ps = null;
+		try {
+			connection = SpliceNetConnection.getConnection();
+		    ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (?, ?, null,null,?,',',null,?,null,null)");
+		    ps.setString(1,schemaName);
+		    ps.setString(2,tableName);  
+		    ps.setString(3,filename);
+		    ps.setString(4, timestamp);
+		    ps.executeUpdate();
+		} catch (Exception e) {
+            LOG.error(e);
+			throw new RuntimeException(e);
+		} finally {
+			DbUtils.closeQuietly(ps);
+			DbUtils.commitAndCloseQuietly(connection);
+		}
+	}	
+	
     @Override
     public String toString() {
         return schemaName+"."+tableName;

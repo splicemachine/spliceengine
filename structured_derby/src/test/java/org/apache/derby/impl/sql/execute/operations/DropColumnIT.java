@@ -38,7 +38,7 @@ public class DropColumnIT extends SpliceUnitTest {
         @Override
         protected void starting(Description description) {
             super.starting(description);
-            importData(getResourceDirectory()+ "/index/customer.csv");
+            importData(getResourceDirectory()+ "/index/customer.csv","yyyy-MM-dd HH:mm:ss.SSS");
         }
     };
 
