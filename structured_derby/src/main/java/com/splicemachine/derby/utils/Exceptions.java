@@ -20,10 +20,11 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.regionserver.LeaseException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.ipc.RemoteException;
 
-import java.io.FileNotFoundException;
+import org.apache.hadoop.hbase.client.ScannerTimeoutException;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.util.ArrayList;
@@ -210,6 +211,16 @@ public class Exceptions {
             return ((StandardException)error).getSqlState();
         }
         return SQLState.DATA_UNEXPECTED_EXCEPTION;
+    }
+
+    public static boolean isScannerTimeoutException(Throwable error) {
+        boolean scannerTimeout = false;
+        if (error instanceof LeaseException ||
+            error instanceof ScannerTimeoutException) {
+            scannerTimeout = true;
+        }
+        return scannerTimeout;
+
     }
 
     public static class LangFormatException extends DoNotRetryIOException{
