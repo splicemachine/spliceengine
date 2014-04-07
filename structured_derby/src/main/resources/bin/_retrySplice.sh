@@ -11,38 +11,82 @@ CP="${8}"
 SPLICE_MAIN_CLASS="${9}"
 CHAOS="${10}"
 
+# number of seconds we should allow for isReady to return 0
+HBASE_TIMEOUT=100
+# Zookeeper takes very little time
+ZOO_TIMEOUT=15
+CYGWIN=`uname -s`
+if [[ ${CYGWIN} == CYGWIN* ]]; then
+    # be a more lenient with Cygwin
+    HBASE_TIMEOUT=200
+    ZOO_TIMEOUT=30
+fi
+
 echo "Starting Splice Machine..."
 echo "Log file is ${SPLICELOGFILE}"
 echo "Waiting for Splice..."
-# start zookeeper once
-"${ROOT_DIR}"/bin/_startZoo.sh "${ROOT_DIR}" "${ZOOLOGFILE}" "${LOG4J_PATH}" "${ZOO_DIR}" "${CP}"
-# Give zoo some time
-sleep ${ZOO_WAIT_TIME}
-maxRetries=3
-rCode=0
-for i in $(eval echo "{1..$maxRetries}"); do
-    # splice/hbase will be retried several times to accommodate timeouts
-    "${ROOT_DIR}"/bin/_startSplice.sh "${ROOT_DIR}" "${SPLICELOGFILE}" "${LOG4J_PATH}" "${ZOO_DIR}" "${HBASE_ROOT_DIR_URI}" "${CP}" "${SPLICE_MAIN_CLASS}" "${CHAOS}"
-    "${ROOT_DIR}"/bin/waitfor.sh "${ROOT_DIR}" "${SPLICELOGFILE}"
-    rCode=$?
-    if [[ ${rCode} -eq 0 ]]; then
-        echo "Splice Server is ready"
-        exit 0;
-    fi
-    if [[ ${rCode} -eq 1 && ${i} -ne ${maxRetries} ]]; then
 
-        if [[ -e "${ROOT_DIR}"/splice_pid ]]; then
-            # kill splice, if running (usually not), but let zoo have time to config itself
-            ${ROOT_DIR}/bin/_stop.sh "${ROOT_DIR}"/splice_pid 45
+maxRetries=3
+
+# Start Zookeeper
+RETURN_CODE=0
+ERROR_CODE=0
+for i in $(eval echo "{1..$maxRetries}"); do
+    "${ROOT_DIR}"/bin/_startZoo.sh "${ROOT_DIR}" "${ZOOLOGFILE}" "${LOG4J_PATH}" "${ZOO_DIR}" "${CP}"
+    "${ROOT_DIR}"/bin/_waitfor.sh "${ZOOLOGFILE}" "${ZOO_TIMEOUT}" 'Snapshotting'
+    RETURN_CODE=$?
+    if [[ ${RETURN_CODE} -eq 0 ]]; then
+        ERROR_CODE=0
+        break
+    else
+        if [[ ${i} -lt ${maxRetries} ]]; then
+            if [[ -e "${ROOT_DIR}"/zoo_pid ]]; then
+                ${ROOT_DIR}/bin/_stop.sh "${ROOT_DIR}"/zoo_pid 45
+            fi
+        else
+            ERROR_CODE=1
         fi
     fi
 done
 
-if [[ ${rCode} -ne 0 ]]; then
+# Start HBase
+if [[ ${ERROR_CODE} -eq 0 ]]; then
+    for i in $(eval echo "{1..$maxRetries}"); do
+        # splice/hbase will be retried several times to accommodate timeouts
+        "${ROOT_DIR}"/bin/_startSplice.sh "${ROOT_DIR}" "${SPLICELOGFILE}" "${LOG4J_PATH}" "${ZOO_DIR}" "${HBASE_ROOT_DIR_URI}" "${CP}" "${SPLICE_MAIN_CLASS}" "${CHAOS}"
+        if [[ ${i} -eq 1 ]]; then
+            # We can only check for error msg the first time, else we'll see the same ones again
+            "${ROOT_DIR}"/bin/_waitfor.sh "${SPLICELOGFILE}" "${HBASE_TIMEOUT}" 'Ready to accept connections' 'Master not active after'
+        else
+            "${ROOT_DIR}"/bin/_waitfor.sh "${SPLICELOGFILE}" "${HBASE_TIMEOUT}" 'Ready to accept connections'
+        fi
+        RETURN_CODE=$?
+        if [[ ${RETURN_CODE} -eq 0 ]]; then
+            ERROR_CODE=0
+            break
+        else
+            if [[ ${i} -lt ${maxRetries} ]]; then
+                if [[ -e "${ROOT_DIR}"/splice_pid ]]; then
+                    ${ROOT_DIR}/bin/_stop.sh "${ROOT_DIR}"/splice_pid 45
+                fi
+            else
+                ERROR_CODE=1
+            fi
+        fi
+    done
+fi
+
+if [[ ${ERROR_CODE} -ne 0 ]]; then
     if [[ -e "${ROOT_DIR}"/splice_pid || -e "${ROOT_DIR}"/zoo_pid ]]; then
         "${ROOT_DIR}"/bin/stop-splice.sh
     fi
     echo
-    echo "Server didn't start in expected amount of time. Please restart with the \"-debug\" option and check ${SPLICELOGFILE}." >&2
+    echo "Splice didn't start as expected. Please restart with the \"-d\" option and check ${SPLICELOGFILE}." >&2
     exit 1;
+else
+    echo
+    echo "Splice Server is ready"
+    echo "The HBase URI is http://localhost:60010"
+    echo "The JDBC URI is jdbc:splice://localhost:1527/splicedb"
+    exit 0;
 fi

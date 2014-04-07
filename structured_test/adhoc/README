@@ -1,0 +1,7 @@
+This is the directory in which to place sql scripts for adhoc testing.  Scripts are run against both Derby
+and Splice.  The output is differenced and a report is generated.
+
+Just throw sql files (with ".sql" extension) in this directory and run SpliceDerbyAdhocIT. The splice server must be running.
+
+See SpliceDerbyAdhocIT and adhoc.sql.example in this directory.
+

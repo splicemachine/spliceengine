@@ -20,6 +20,7 @@ public class Joiner {
     private ExecRow mergedRowTemplate;
 
     private final IJoinRowsIterator<ExecRow> joinRowsSource;
+    private final boolean isOuterJoin;
     private final boolean wasRightOuterJoin;
     private final int leftNumCols;
     private final int rightNumCols;
@@ -31,25 +32,29 @@ public class Joiner {
 
     public Joiner(IJoinRowsIterator<ExecRow> joinRowsSource,
                   ExecRow mergedRowTemplate,
+                  boolean isOuterJoin,
                   boolean wasRightOuterJoin,
                   int leftNumCols,
                   int rightNumCols,
                   boolean oneRowRightSide,
                   boolean antiJoin,
                   StandardSupplier<ExecRow> emptyRowSupplier) {
-        this(joinRowsSource, mergedRowTemplate, Restriction.noOpRestriction, wasRightOuterJoin,
-                leftNumCols, rightNumCols, oneRowRightSide, antiJoin, emptyRowSupplier);
+        this(joinRowsSource, mergedRowTemplate, Restriction.noOpRestriction, isOuterJoin,
+                wasRightOuterJoin, leftNumCols, rightNumCols, oneRowRightSide, antiJoin,
+                emptyRowSupplier);
     }
 
     public Joiner(IJoinRowsIterator<ExecRow> joinRowsSource,
 									ExecRow mergedRowTemplate,
 									Restriction mergeRestriction,
+                                    boolean isOuterJoin,
 									boolean wasRightOuterJoin,
 									int leftNumCols,
 									int rightNumCols,
 									boolean oneRowRightSide,
 									boolean antiJoin,
 									StandardSupplier<ExecRow> emptyRowSupplier) {
+        this.isOuterJoin = isOuterJoin;
         this.wasRightOuterJoin = wasRightOuterJoin;
         this.leftNumCols = leftNumCols;
         this.rightNumCols = rightNumCols;
@@ -65,6 +70,10 @@ public class Joiner {
 
     private ExecRow getMergedRow(ExecRow left, ExecRow right) {
         return JoinUtils.getMergedRow(left, right, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRowTemplate);
+    }
+
+    protected boolean shouldMergeEmptyRow(boolean recordsFound) {
+        return !recordsFound && (isOuterJoin || antiJoin);
     }
 
     private void addLeftAndRights(Pair<ExecRow, Iterator<ExecRow>> leftAndRights) {
@@ -94,7 +103,7 @@ public class Joiner {
                 rightSideReturned = true;
                 return candidate;
             }
-            if (!rightSideReturned && shouldMergeEmptyRow(!foundRows)) {
+            if (!rightSideReturned && shouldMergeEmptyRow(foundRows)) {
                 // if we've consumed right side iterator without finding a match & we return empty rows,
                 // return with empty right side
                 rightSideReturned = true;
@@ -114,13 +123,23 @@ public class Joiner {
     }
 
     public ExecRow nextRow() throws StandardException, IOException {
+        Pair<ExecRow,Iterator<ExecRow>> sourcePair;
+
         ExecRow row = getNextFromBuffer();
-        while (row == null && joinRowsSource.hasNext()) {
-            addLeftAndRights(joinRowsSource.next());
+        while (row == null
+                   && (sourcePair = joinRowsSource.next(null)) != null) {
+            addLeftAndRights(sourcePair);
             row = getNextFromBuffer();
         }
         return row;
+    }
 
+    public void open() throws StandardException, IOException {
+        joinRowsSource.open();
+    }
+
+    public void close() throws StandardException, IOException {
+        joinRowsSource.close();
     }
 
     public int getLeftRowsSeen() {
@@ -131,7 +150,4 @@ public class Joiner {
         return joinRowsSource.getRightRowsSeen();
     }
 
-    protected boolean shouldMergeEmptyRow(boolean noRecordsFound) {
-        return noRecordsFound && antiJoin;
-    }
 }

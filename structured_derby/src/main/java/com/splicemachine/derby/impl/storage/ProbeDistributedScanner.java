@@ -124,7 +124,7 @@ public class ProbeDistributedScanner implements SpliceResultScanner {
     public static ProbeDistributedScanner create(HTableInterface hTable, List<Scan> scans,MetricFactory metricFactory) throws IOException {
         SpliceResultScanner[] rss = new SpliceResultScanner[scans.size()];
         for (int i = 0; i < scans.size(); i++) {
-            rss[i] = new MeasuredResultScanner(hTable.getScanner(scans.get(i)),metricFactory);
+            rss[i] = new MeasuredResultScanner(hTable, scans.get(i), hTable.getScanner(scans.get(i)),metricFactory);
         }
         return new ProbeDistributedScanner(rss);
     }
@@ -224,5 +224,4 @@ public class ProbeDistributedScanner implements SpliceResultScanner {
 				next = nextInternal(nbRows);
 				return next != null;
 		}
-
 }

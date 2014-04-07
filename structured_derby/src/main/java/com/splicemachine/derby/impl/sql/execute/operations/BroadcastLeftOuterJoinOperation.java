@@ -80,7 +80,7 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 
     protected ExecRow getEmptyRow () throws StandardException {
 		if (emptyRow == null)
-				return emptyRowFun.invoke();
-		return null;
+				emptyRow = emptyRowFun.invoke();
+		return emptyRow;
 	}	
 }

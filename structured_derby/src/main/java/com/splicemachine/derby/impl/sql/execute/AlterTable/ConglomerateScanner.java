@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.job.AlterTable;
+package com.splicemachine.derby.impl.sql.execute.AlterTable;
 
 /**
  * Created with IntelliJ IDEA.
@@ -10,7 +10,9 @@ package com.splicemachine.derby.impl.job.AlterTable;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -67,7 +69,7 @@ public class ConglomerateScanner {
         }
     }
 
-    private void initScanner() {
+    private void initScanner() throws ExecutionException {
 
         // initialize a region scanner
         Scan regionScan = SpliceUtils.createScan(txnId);
@@ -85,16 +87,15 @@ public class ConglomerateScanner {
             Scan scan = SpliceUtils.createScan(txnId);
             brs = new BufferedRegionScanner(region,sourceScanner,scan,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory);
         } catch (IOException e) {
-            //TODO: handle exceptions
             SpliceLogUtils.error(LOG, e);
-            //throw new ExecutionException(e);
+            throw new ExecutionException(e);
         } catch (Exception e) {
             SpliceLogUtils.error(LOG, e);
-            //throw new ExecutionException(Throwables.getRootCause(e));
+            throw new ExecutionException(Throwables.getRootCause(e));
         }
     }
 
-    public List<Cell> next() {
+    public List<Cell> next() throws ExecutionException, IOException{
         if (brs == null) {
             initScanner();
         }
@@ -105,14 +106,11 @@ public class ConglomerateScanner {
 
         List<Cell> nextRow = Lists.newArrayListWithExpectedSize(16);
         boolean more = true;
-        try {
-            nextRow.clear();
-            more = brs.nextRaw(nextRow);
-            if (!more) return null;
 
-        } catch (Exception e) {
-            // FIXME: jc - should we be swallowing this?
-        }
+        nextRow.clear();
+        more = brs.nextRaw(nextRow);
+        if (!more) return null;
+
         return nextRow;
     }
 

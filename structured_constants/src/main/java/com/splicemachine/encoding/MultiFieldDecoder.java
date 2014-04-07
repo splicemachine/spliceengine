@@ -359,24 +359,20 @@ public class MultiFieldDecoder {
     public boolean nextIsNullDouble() {
         if(!available()) return true;
         //look at the next 8 bytes and see if they equal the double entry
-        byte[] nullDouble = Encoding.encodedNullDouble();
-        return Bytes.equals(nullDouble,0,nullDouble.length,data,currentOffset,nullDouble.length);
+        return check2ByteNull(Encoding.encodedNullDouble());
     }
 
     public boolean nextIsNullFloat(){
         if(!available()) return true;
-        byte[] nullFloat = Encoding.encodedNullFloat();
-        return Bytes.equals(nullFloat,0,nullFloat.length,data,currentOffset,nullFloat.length);
+        return check2ByteNull(Encoding.encodedNullFloat());
     }
 
     public int skipDouble() {
         if(!available()) return 0;
         int offset = currentOffset;
-
-        byte[] nullDouble = Encoding.encodedNullDouble();
-        if(Bytes.equals(nullDouble,0,nullDouble.length,data,offset,nullDouble.length)){
+        if(check2ByteNull(Encoding.encodedNullDouble())){
             //skip forward the length of nullDouble+1
-            currentOffset+=nullDouble.length+1;
+            currentOffset+=Encoding.encodedNullDoubleLength()+1;
         }else{
             //non-null, so it occupies 8 bytes
             currentOffset+=9;
@@ -387,10 +383,9 @@ public class MultiFieldDecoder {
     public int skipFloat(){
         if(!available()) return 0;
         int offset = currentOffset;
-        byte[] nullFloat = Encoding.encodedNullFloat();
-        if(Bytes.equals(nullFloat,0,nullFloat.length,data,offset,nullFloat.length)){
+        if(check2ByteNull(Encoding.encodedNullFloat())){
             //skip forward the length of nullFloat+1
-            currentOffset+=nullFloat.length+1;
+            currentOffset+=Encoding.encodedNullFloatLength()+1;
         }else{
             //non-null, so it occupies 4 bytes
             currentOffset+=5;
@@ -438,4 +433,9 @@ public class MultiFieldDecoder {
         }
         currentOffset +=expectedLength+1; //not found before the end of the xpectedLength
     }
+    
+    private boolean check2ByteNull(byte[] nullValue) {
+    	return nullValue[0] == data[currentOffset] && nullValue[1] == data[currentOffset+1];
+    }
+    
 }

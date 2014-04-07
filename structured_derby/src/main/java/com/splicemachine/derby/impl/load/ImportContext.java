@@ -143,6 +143,12 @@ public class ImportContext implements Externalizable{
 				out.writeBoolean(timestampFormat!=null);
 				if(timestampFormat!=null)
 						out.writeUTF(timestampFormat);
+				out.writeBoolean(dateFormat!=null);
+				if(dateFormat!=null)
+						out.writeUTF(dateFormat);
+				out.writeBoolean(timeFormat!=null);
+				if(timeFormat!=null)
+						out.writeUTF(timeFormat);
 				out.writeLong(byteOffset);
 				out.writeInt(bytesToRead);
 				out.writeBoolean(recordStats);
@@ -168,6 +174,10 @@ public class ImportContext implements Externalizable{
 				}
 				if(in.readBoolean())
 						timestampFormat = in.readUTF();
+				if(in.readBoolean())
+						dateFormat = in.readUTF();
+				if(in.readBoolean())
+						timeFormat = in.readUTF();
 				byteOffset = in.readLong();
 				bytesToRead = in.readInt();
 				recordStats = in.readBoolean();
@@ -188,6 +198,8 @@ public class ImportContext implements Externalizable{
 								", columnDelimiter='" + columnDelimiter + '\'' +
 								", stripString='" + stripString + '\'' +
 								", timestampFormat='" + timestampFormat + '\'' +
+								", dateFormat='" + dateFormat + '\'' +
+								", timeFormat='" + timeFormat + '\'' +
 								", byteOffset=" + byteOffset +
 								", bytesToRead=" + bytesToRead +
 								", columns="+ Arrays.toString(columnInformation) +

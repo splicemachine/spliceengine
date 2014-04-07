@@ -45,7 +45,7 @@ import com.splicemachine.tools.ResettableCountDownLatch;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.derby.ddl.TentativeDDLDesc;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
-import com.splicemachine.derby.impl.sql.execute.operations.DropColumnHandler;
+import com.splicemachine.derby.impl.sql.execute.AlterTable.DropColumnHandler;
 /**
  * @author Scott Fines
  * Created on: 4/30/13

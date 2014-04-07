@@ -1,31 +1,37 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.TransactionStatus;
-
+import java.util.HashMap;
 import java.io.IOException;
 
 public class DDLFilter implements Comparable<DDLFilter> {
     private final Transaction myTransaction;
-		private final Transaction myParentTransaction;
+	private final Transaction myParentTransaction;
     private final TransactionStore transactionStore;
+    private HashMap<String, Boolean> visibilityMap;
 
     public DDLFilter(
             Transaction myTransaction,
-						Transaction myParentTransaction,
+		    Transaction myParentTransaction,
             TransactionStore transactionStore) {
         super();
         this.myTransaction = myTransaction;
         this.transactionStore = transactionStore;
-				this.myParentTransaction = myParentTransaction;
+		this.myParentTransaction = myParentTransaction;
+        visibilityMap = new HashMap<String, Boolean>();
     }
 
     public boolean isVisibleBy(String transactionId) throws IOException {
+                Boolean visible = visibilityMap.get(transactionId);
+                if (visible != null) {
+                    return visible.booleanValue();
+                }
 				//if I didn't succeed, don't do anything
 				if(myTransaction.getEffectiveStatus()!= TransactionStatus.COMMITTED) return false;
 				//if I have a parent, and he was rolled back, don't do anything
 				if(myParentTransaction!=null && myParentTransaction.getEffectiveStatus()==TransactionStatus.ROLLED_BACK) return false;
 
-        Transaction transaction = transactionStore.getTransaction(new TransactionId(transactionId));
+                Transaction transaction = transactionStore.getTransaction(new TransactionId(transactionId));
 				/*
 				 * For the purposes of DDL, we intercept any writes which occur AFTER us, regardless of
 				 * my status.
@@ -36,6 +42,7 @@ public class DDLFilter implements Comparable<DDLFilter> {
 				 * then we should see properly constructed data.
 				 */
 				long otherTxnId = transaction.getLongTransactionId();
+                visibilityMap.put(transactionId, new Boolean(myTransaction.getLongTransactionId()<=otherTxnId));
 				return myTransaction.getLongTransactionId()<=otherTxnId;
 //				// TODO use cache here
 //        return transaction.canSee(myTransaction, new TransactionSource() {

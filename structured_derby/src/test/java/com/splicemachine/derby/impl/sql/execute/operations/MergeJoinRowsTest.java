@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.utils.StandardIterators;
 import org.junit.Assert;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.SQLVarchar;
@@ -58,11 +59,12 @@ public class MergeJoinRowsTest {
     public void testPrintJoinedRows() throws Exception {
         IJoinRowsIterator<ExecRow> pairs =
                 new MergeJoinRows(
-                        Lists.transform(leftRowStrings, toRow).iterator(),
-                        Lists.transform(rightRowStrings, toRow).iterator(),
+                        StandardIterators.wrap(Lists.transform(leftRowStrings, toRow)),
+                        StandardIterators.wrap(Lists.transform(rightRowStrings, toRow)),
                         new int[]{1},
                         new int[]{1});
-        for (Pair<ExecRow,Iterator<ExecRow>> p: pairs){
+        Pair<ExecRow,Iterator<ExecRow>> p;
+        while ((p = pairs.next(null)) != null){
             System.out.println(String.format("%s: %s", p.getFirst(), Lists.newArrayList(p.getSecond())));
         }
     }
@@ -71,12 +73,13 @@ public class MergeJoinRowsTest {
     public void testMergeJoinRows() throws Exception {
         IJoinRowsIterator<ExecRow> pairs =
                 new MergeJoinRows(
-                        Lists.transform(leftRowStrings, toRow).iterator(),
-                        Lists.transform(rightRowStrings, toRow).iterator(),
+                        StandardIterators.wrap(Lists.transform(leftRowStrings, toRow)),
+                        StandardIterators.wrap(Lists.transform(rightRowStrings, toRow)),
                         new int[]{1},
                         new int[]{1});
         int pos = 0;
-        for (Pair<ExecRow,Iterator<ExecRow>> pair: pairs){
+        Pair<ExecRow,Iterator<ExecRow>> pair;
+        while ((pair = pairs.next(null)) != null){
             Assert.assertEquals(expectedStrings.get(pos).getFirst(), execRowToString.apply(pair.getFirst()));
             Assert.assertEquals(expectedStrings.get(pos).getSecond(),
                     Lists.transform(Lists.newArrayList(pair.getSecond()), execRowToString));

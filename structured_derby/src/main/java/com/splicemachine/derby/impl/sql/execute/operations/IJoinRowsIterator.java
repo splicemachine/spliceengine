@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.utils.StandardIterator;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.util.Iterator;
@@ -12,7 +13,7 @@ import java.util.Iterator;
  * @author P Trolard
  *         Date: 15/11/2013
  */
-public interface IJoinRowsIterator<T> extends Iterator<Pair<T,Iterator<T>>>, Iterable<Pair<T,Iterator<T>>>{
+public interface IJoinRowsIterator<T> extends StandardIterator<Pair<T,Iterator<T>>> {
 
     // For debugging: return number of rows processed
     int getLeftRowsSeen();

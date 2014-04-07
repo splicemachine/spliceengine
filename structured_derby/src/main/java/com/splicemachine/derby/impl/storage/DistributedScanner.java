@@ -109,7 +109,7 @@ public class DistributedScanner implements SpliceResultScanner {
 
         SpliceResultScanner[] rss = new SpliceResultScanner[scans.length];
         for (int i = 0; i < scans.length; i++) {
-            rss[i] = new MeasuredResultScanner(hTable.getScanner(scans[i]),metricFactory);
+            rss[i] = new MeasuredResultScanner(hTable, scans[i], hTable.getScanner(scans[i]),metricFactory);
         }
 
         return new DistributedScanner(keyDistributor, rss);

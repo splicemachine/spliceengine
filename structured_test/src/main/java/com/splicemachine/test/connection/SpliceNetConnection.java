@@ -13,7 +13,7 @@ public class SpliceNetConnection extends BaseConnection {
 
     private static String driver = "org.apache.derby.jdbc.ClientDriver";
     private static String protocol = "jdbc:derby://localhost:";
-    private static String db = "/spliceDB";
+    private static String db = "/splicedb";
 
     private static String createProtocol(String port, boolean createDB) {
         return protocol+(port != null?port: SpliceConstants.DEFAULT_DERBY_BIND_PORT)+db+(createDB?create:"");

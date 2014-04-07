@@ -25,8 +25,7 @@ import java.util.List;
 
 public class NestedLoopJoinOperation extends JoinOperation {
 		private static Logger LOG = Logger.getLogger(NestedLoopJoinOperation.class);
-		protected ExecRow rightTemplate;
-		protected NestedLoopIterator nestedLoopIterator;
+    protected NestedLoopIterator nestedLoopIterator;
 		protected boolean isHash;
 		protected static List<NodeType> nodeTypes;
 
@@ -82,7 +81,6 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException{
 				super.init(context);
-				rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
 				startExecutionTime = System.currentTimeMillis();
 		}
 
@@ -206,7 +204,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
                  * notExistsRightSide indicates that we need to reverse the logic of the join.
                  */
 								if(notExistsRightSide){
-										rightRow = (rightRow == null) ? rightTemplate : null;
+										rightRow = (rightRow == null) ? getEmptyRow() : null;
 								}
 								if (outerJoin && rightRow == null){
 										SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Outer join with empty right row");

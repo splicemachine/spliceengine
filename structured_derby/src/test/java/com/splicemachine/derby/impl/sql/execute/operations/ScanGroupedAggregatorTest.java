@@ -71,7 +71,7 @@ public class ScanGroupedAggregatorTest {
             public void addWarning(String warningState) throws StandardException {
                 Assert.fail("No warnings should be added!");
             }
-        },false, Metrics.noOpMetricFactory());
+        },false, Metrics.noOpMetricFactory(), true);
 
         int[] groupColumns = new int[]{0,1};
         boolean[] groupSortOrder = new boolean[]{true,true};
@@ -149,7 +149,7 @@ public class ScanGroupedAggregatorTest {
             public void addWarning(String warningState) throws StandardException {
                 Assert.fail("No warnings should be added!");
             }
-        }, Metrics.noOpMetricFactory() );
+        }, Metrics.noOpMetricFactory(), true);
 
         int[] groupColumns = new int[]{0};
         boolean[] groupSortOrder = new boolean[]{true};

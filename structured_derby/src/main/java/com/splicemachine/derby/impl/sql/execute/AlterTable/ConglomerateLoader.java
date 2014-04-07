@@ -1,15 +1,19 @@
-package com.splicemachine.derby.impl.job.AlterTable;
+package com.splicemachine.derby.impl.sql.execute.AlterTable;
 
+import com.google.common.base.Throwables;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
+import java.util.concurrent.ExecutionException;
+
 /**
- * Created with IntelliJ IDEA.
+ *
  * User: jyuan
  * Date: 2/6/14
  * Time: 10:36 AM
@@ -42,22 +46,29 @@ public class ConglomerateLoader {
         if (!initialized) {
             initialize();
         }
-        writeBuffer.add(kv);
-    }
-
-    public void flush() {
-        try {
-            writeBuffer.flushBuffer();
+        try{
+            writeBuffer.add(kv);
         } catch (Exception e) {
-            // TODO: handle exception
+            SpliceLogUtils.error(LOG, e);
+            throw e;
         }
     }
 
-    public void close() {
+    public void flush() throws Exception{
+        try {
+            writeBuffer.flushBuffer();
+        } catch (Exception e) {
+            SpliceLogUtils.error(LOG, e);
+            throw e;
+        }
+    }
+
+    public void close() throws ExecutionException{
         try {
             writeBuffer.close();
         } catch (Exception e) {
-            // TODO: handle exception
+            SpliceLogUtils.error(LOG, e);
+            throw new ExecutionException(Throwables.getRootCause(e));
         }
     }
 

@@ -302,9 +302,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
 						int[] nonGroupedUniqueColumns = groupedAggregateContext.getNonGroupedUniqueColumns();
 						GroupedAggregateBuffer distinctBuffer = new GroupedAggregateBuffer(SpliceConstants.ringBufferSize,
-										aggregateContext.getDistinctAggregators(),false,emptyRowSupplier,groupedAggregateContext,false,spliceRuntimeContext);
+										aggregateContext.getDistinctAggregators(),false,emptyRowSupplier,groupedAggregateContext,false,spliceRuntimeContext, false);
 						GroupedAggregateBuffer nonDistinctBuffer = new GroupedAggregateBuffer(SpliceConstants.ringBufferSize,
-										aggregateContext.getNonDistinctAggregators(),false,emptyRowSupplier,groupedAggregateContext,false,spliceRuntimeContext);
+										aggregateContext.getNonDistinctAggregators(),false,emptyRowSupplier,groupedAggregateContext,false,spliceRuntimeContext, false);
 						aggregator = new SinkGroupedAggregateIterator(nonDistinctBuffer,distinctBuffer,sourceIterator,isRollup,
 										groupingKeys,groupingKeyOrder,nonGroupedUniqueColumns);
 						aggregator.open();
@@ -343,7 +343,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
              * hash key are grouped together, which means that we only need to keep a single buffer entry
              * in memory.
              */
-						GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(16, aggregates,true,emptyRowSupplier,groupedAggregateContext,true,spliceRuntimeContext);
+						GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(16, aggregates,true,emptyRowSupplier,groupedAggregateContext,true,spliceRuntimeContext,true);
 
 						int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
 						boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
@@ -373,8 +373,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						timer.tick(1);
 						return execRow;
 				}finally{
-						if(shouldClose)
-								aggregator.close();
+						if(shouldClose) {
+							aggregator.close();
+						}
 				}
 		}
 

@@ -1,18 +1,38 @@
 package com.splicemachine.derby.impl.ast;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
+
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.*;
+import org.apache.derby.iapi.sql.compile.JoinStrategy;
+import org.apache.derby.iapi.sql.compile.Optimizable;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.impl.sql.compile.*;
+import org.apache.derby.impl.sql.compile.BroadcastJoinStrategy;
+import org.apache.derby.impl.sql.compile.FromBaseTable;
+import org.apache.derby.impl.sql.compile.HalfOuterJoinNode;
+import org.apache.derby.impl.sql.compile.IndexToBaseRowNode;
+import org.apache.derby.impl.sql.compile.JoinNode;
+import org.apache.derby.impl.sql.compile.MergeSortJoinStrategy;
+import org.apache.derby.impl.sql.compile.NestedLoopJoinStrategy;
 import org.apache.derby.impl.sql.compile.Predicate;
+import org.apache.derby.impl.sql.compile.PredicateList;
+import org.apache.derby.impl.sql.compile.ProjectRestrictNode;
+import org.apache.derby.impl.sql.compile.QueryTreeNode;
+import org.apache.derby.impl.sql.compile.ResultSetNode;
+import org.apache.derby.impl.sql.compile.RowResultSetNode;
+import org.apache.hadoop.hbase.RegionLoad;
 import org.apache.log4j.Logger;
 
-import java.util.*;
+import com.splicemachine.hbase.HBaseRegionLoads;
 
 /**
  * @author P Trolard
@@ -27,7 +47,13 @@ public class JoinSelector extends AbstractSpliceVisitor {
     public final static MergeSortJoinStrategy MSJ    = new MergeSortJoinStrategy();
     public final static NestedLoopJoinStrategy NLJ   = new NestedLoopJoinStrategy();
 
-    @Override
+    public final static com.google.common.base.Predicate<Object> isNLJ =
+        Predicates.instanceOf(NestedLoopJoinStrategy.class);
+
+    public final static long BROADCAST_REGION_MB_THRESHOLD =
+        Math.min(20,
+                    Runtime.getRuntime().maxMemory() / (1024l * 1024) / 100l);
+
     public QueryTreeNode visit(JoinNode j) throws StandardException {
         try {
             JoinInfo info = joinInfo(j);
@@ -37,7 +63,7 @@ public class JoinSelector extends AbstractSpliceVisitor {
                     LOG.info(String.format("Strategy changed from %s to %s for join %s",
                                 info.strategy, chosen, info));
                 }
-                return withStrategy(j, chosen);
+                return withStrategy(j, chosen, info);
             } else {
                 return j;
             }
@@ -66,6 +92,13 @@ public class JoinSelector extends AbstractSpliceVisitor {
                 !info.isEquiJoin){
             return NLJ;
         }
+        // If right leaves are in-memory, or right table is small enough to fit in
+        // memory, use Broadcast
+        if (Iterables.all(info.rightLeaves, Predicates.instanceOf(RowResultSetNode.class))
+                || (info.rightLeaves.size() == 1
+                        && info.rightSingleRegionSize > -1
+                        && info.rightSingleRegionSize < BROADCAST_REGION_MB_THRESHOLD))
+            return BCAST;
         // If right join column is PK, use NLJ
         if (info.rightEquiJoinColIsPK){
             return NLJ;
@@ -74,11 +107,23 @@ public class JoinSelector extends AbstractSpliceVisitor {
         return MSJ;
     }
 
-    public static JoinNode withStrategy(JoinNode j, JoinStrategy s) throws StandardException {
+    public static JoinNode withStrategy(JoinNode j, JoinStrategy s, JoinInfo info) throws StandardException {
         LOG.debug(String.format("--> SETTING STRATEGY %s", s));
         RSUtils.ap(j).setJoinStrategy(s);
-        // With new strategy set, regenerate access path
-        j.getRightResultSet().changeAccessPath();
+
+        // If moving to or from NestedLoop, regenerate access path
+        //
+        //  * Note here: changeAccessPath() is not idempotent & calling twice with
+        //    the same underlying join strategy can cause predicates to be thrown away.
+        //    The salient distinction b/w strategies that need their access paths
+        //    regenerated is whether they're hash-based; NLJ is the only non-hash-based
+        //    join, so we see if we're changing from or to a NLJ in order to trigger
+        //    a changeAccessPath() call
+        if (Collections2
+                .filter(Arrays.asList(s, info.strategy), isNLJ)
+                .size() == 1) {
+            j.getRightResultSet().changeAccessPath();
+        }
         return j;
     }
 
@@ -109,6 +154,22 @@ public class JoinSelector extends AbstractSpliceVisitor {
                                     cd.getSchemaID().toString()
                                         .equals(SchemaDescriptor.SYSTEM_SCHEMA_UUID);
 
+        // Region size
+        int singleRegionSize = -1;
+        if (rightLeaves.size() == 1
+                && rightLeaves.get(0) instanceof FromBaseTable) {
+            FromBaseTable fbt = (FromBaseTable) rightLeaves.get(0);
+            Collection<RegionLoad> regionLoads =
+                HBaseRegionLoads.getCachedRegionLoadsForTable(Long.toString(fbt.getTableDescriptor()
+                                                                    .getHeapConglomerateId()));
+            if (regionLoads != null
+                    && regionLoads.size() == 1) {
+                singleRegionSize = HBaseRegionLoads.memstoreAndStorefileSize(regionLoads.iterator().next());
+            }
+
+
+        }
+
         return new JoinInfo(strategy(j),
                             userSupplied,
                             isSystemTable,
@@ -118,7 +179,8 @@ public class JoinSelector extends AbstractSpliceVisitor {
                             joinPreds,
                             otherPreds,
                             rightNodes,
-                            rightLeaves);
+                            rightLeaves,
+                            singleRegionSize);
     }
 
     public static boolean joinContainsStrategyHint(JoinNode j) throws StandardException {
@@ -139,7 +201,11 @@ public class JoinSelector extends AbstractSpliceVisitor {
     }
 
     public static List<ResultSetNode> nodesUntilJoin(ResultSetNode n) throws StandardException {
-        return RSUtils.collectNodesUntil(n, ResultSetNode.class, Predicates.instanceOf(JoinNode.class));
+        //return RSUtils.collectNodesUntil(n, ResultSetNode.class, Predicates.instanceOf(JoinNode.class));
+        return CollectNodes.collector(ResultSetNode.class)
+                   .onAxis(RSUtils.isRSN)
+                   .until(Predicates.instanceOf(JoinNode.class))
+                   .collect(n);
     }
 
     public static Iterable<Predicate> getRightPreds(JoinNode j) throws StandardException {

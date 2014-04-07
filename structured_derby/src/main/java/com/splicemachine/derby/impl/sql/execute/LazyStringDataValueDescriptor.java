@@ -204,8 +204,8 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
     		lsdv.initForDeserialization(bytes.array(), bytes.offset(), bytes.length(), descendingOrder);
     		return lsdv;
     	}
-        forceDeserialization();
-        return new LazyStringDataValueDescriptor((StringDataValue)  sdv.cloneValue(forceMaterialization), dvdSerializer);
+    	forceDeserialization();
+    	return new LazyStringDataValueDescriptor((StringDataValue)  sdv.cloneValue(forceMaterialization), dvdSerializer);
     }
 
     @Override

@@ -7,7 +7,6 @@ import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
 import java.io.IOException;
 
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
@@ -21,25 +20,26 @@ import com.splicemachine.si.data.api.SDataLib;
  * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
  */
 public class FilterState<Result, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
-        Scan, Lock, OperationStatus, Mutation extends OperationWithAttributes, IHTable>
-        implements IFilterState {
+    Scan, Lock, OperationStatus, Mutation extends OperationWithAttributes, IHTable>
+    implements IFilterState {
     static final Logger LOG = Logger.getLogger(FilterState.class);
     /**
      * The transactions that have been loaded as part of running this filter.
      */
     final LongPrimitiveCacheMap<Transaction> transactionCache;
     final LongPrimitiveCacheMap<VisibleResult> visibleCache;
-    private final ImmutableTransaction myTransaction;
-    private final SDataLib<Mutation, Put, Delete, Get, Scan> dataLib;
-    private final DataStore<Mutation, Put,Delete, Get, Scan, IHTable> dataStore;
-    private final TransactionStore transactionStore;
-    private final RollForwardQueue rollForwardQueue;
     final FilterRowState<Result, Put, Delete, Get, Scan, Lock, OperationStatus> rowState;
     final DecodedCell keyValue;
-    CellType type;
+    private final ImmutableTransaction myTransaction;
+    private final SDataLib<Mutation, Put, Delete, Get, Scan> dataLib;
+    private final DataStore<Mutation, Put, Delete, Get, Scan, IHTable> dataStore;
+    private final TransactionStore transactionStore;
+    private final RollForwardQueue rollForwardQueue;
     private final TransactionSource transactionSource;
+    CellType type;
+
     FilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
-                RollForwardQueue rollForwardQueue,ImmutableTransaction myTransaction) {
+                RollForwardQueue rollForwardQueue, ImmutableTransaction myTransaction) {
         this.transactionSource = new TransactionSource() {
             @Override
             public Transaction getTransaction(long timestamp) throws IOException {
@@ -59,21 +59,15 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
 
 
     /**
-     * The public entry point. This returns an HBase filter code and is expected to serve as the heart of an HBase filter
+     * The public entry point. This returns an HBase filter code and is expected to serve as the heart of an HBase
+     * filter
      * implementation.
      * The order of the column families is important. It is expected that the SI family will be processed first.
-		 * @param dataKeyValue
-		 */
+     */
     @Override
     public Filter.ReturnCode filterCell(Cell dataKeyValue) throws IOException {
         setKeyValue(dataKeyValue);
         return filterByColumnType();
-    }
-
-    void setKeyValue(Cell dataKeyValue) {
-        keyValue.setKeyValue(dataKeyValue);
-        rowState.updateCurrentRow(keyValue);
-        type = dataStore.getKeyValueType(keyValue.keyValue());
     }
 
     @Override
@@ -81,26 +75,42 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
         rowState.resetCurrentRow();
     }
 
+    @Override
+    public org.apache.hadoop.hbase.Cell produceAccumulatedCell() {
+        return null;
+    }
+
+    @Override
+    public boolean getExcludeRow() {
+        return false;
+    }
+
+    void setKeyValue(Cell dataKeyValue) {
+        keyValue.setKeyValue(dataKeyValue);
+        rowState.updateCurrentRow(keyValue);
+        type = dataStore.getKeyValueType(dataKeyValue);
+    }
+
     /**
      * Look at the column family and qualifier to determine how to "dispatch" the current keyValue.
      */
     Filter.ReturnCode filterByColumnType() throws IOException {
-    	switch(type) {
-		case USER_DATA:
-        	processDataTimestamp();
-            return processUserData();
-		case COMMIT_TIMESTAMP:
-			return processCommitTimestamp();
-		case TOMBSTONE:
-	       	processDataTimestamp();
-            return processTombstone();
-		case ANTI_TOMBSTONE:
-        	processDataTimestamp();
-            return processAntiTombstone();
-		case OTHER:
-		default:
-            return processUnknownFamilyData();    	
-    	}
+        switch (type) {
+            case USER_DATA:
+                processDataTimestamp();
+                return processUserData();
+            case COMMIT_TIMESTAMP:
+                return processCommitTimestamp();
+            case TOMBSTONE:
+                processDataTimestamp();
+                return processTombstone();
+            case ANTI_TOMBSTONE:
+                processDataTimestamp();
+                return processAntiTombstone();
+            case OTHER:
+            default:
+                return processUnknownFamilyData();
+        }
     }
 
     /**
@@ -116,29 +126,30 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
         rowState.transactionCache.put(transaction.getTransactionId().getId(), transaction);
         return SKIP;
     }
-    
+
     /**
      * Handles the "commit timestamp" values that SI writes to each data row. Processing these values causes the
      * relevant transaction data to be loaded up into the local cache.
      */
     private void processDataTimestamp() throws IOException {
         log("processCommitTimestamp");
-        if (rowState.transactionCache.get(keyValue.timestamp()) != null) { // Already processed, must have been committed or failed...
-        	return;
+        if (rowState.transactionCache.get(keyValue.timestamp()) != null) { // Already processed,
+        // must have been committed or failed...
+            return;
         }
         Transaction transaction = transactionCache.get(keyValue.timestamp()); // hit the major cache
         if (transaction == null) {
             transaction = processDataTimestampDirect(); // lookup
         }
         rowState.transactionCache.put(transaction.getTransactionId().getId(), transaction);
-        return;
     }
 
     private Transaction processDataTimestamp(long timestamp) throws IOException {
         log("processCommitTimestamp");
         Transaction transaction;
-        if ((transaction = rowState.transactionCache.get(timestamp)) != null) { // Already processed, must have been committed or failed...
-        	return transaction;
+        if ((transaction = rowState.transactionCache.get(timestamp)) != null) { // Already processed,
+        // must have been committed or failed...
+            return transaction;
         }
         transaction = transactionCache.get(timestamp); // hit the major cache
         if (transaction == null) {
@@ -148,14 +159,14 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
         return transaction;
     }
 
-    
     private Transaction processCommitTimestampDirect() throws IOException {
         Transaction transaction;
         if (dataStore.isSIFail(keyValue.keyValue())) {
             transaction = transactionStore.makeStubFailedTransaction(keyValue.timestamp());
             transactionCache.put(keyValue.timestamp(), transaction);
         } else {
-            transaction = transactionStore.makeStubCommittedTransaction(keyValue.timestamp(), (Long) dataLib.decode(keyValue.value(), Long.class));
+            transaction = transactionStore.makeStubCommittedTransaction(keyValue.timestamp(),
+                                                                        dataLib.decode(keyValue.value(), Long.class));
             transactionCache.put(keyValue.timestamp(), transaction);
         }
         return transaction;
@@ -163,19 +174,17 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
 
     private Transaction processDataTimestampDirect(long timestamp) throws IOException {
         return handleUnknownTransactionStatus(timestamp);
-   }
-
-    
-    private Transaction processDataTimestampDirect() throws IOException {
-         return handleUnknownTransactionStatus();
     }
 
-    
+    private Transaction processDataTimestampDirect() throws IOException {
+        return handleUnknownTransactionStatus();
+    }
+
     private Transaction getTransactionFromFilterCache(long timestamp) throws IOException {
         Transaction transaction = transactionCache.get(timestamp);
         if (transaction == null) {
             if (!myTransaction.getEffectiveReadCommitted() && !myTransaction.getEffectiveReadUncommitted()
-                    && !myTransaction.isAncestorOf(transactionStore.getImmutableTransaction(timestamp))) {
+                && !myTransaction.isAncestorOf(transactionStore.getImmutableTransaction(timestamp))) {
                 transaction = transactionStore.getTransactionAsOf(timestamp, myTransaction.getLongTransactionId());
             } else {
                 transaction = transactionStore.getTransaction(timestamp);
@@ -203,7 +212,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
             return cachedTransaction;
         }
     }
-    
+
     private Transaction handleUnknownTransactionStatus(long transactionId) throws IOException {
         final Transaction cachedTransaction = rowState.transactionCache.get(transactionId);
         if (cachedTransaction == null) {
@@ -233,7 +242,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      * transaction up in the transaction table again the next time this row is read.
      */
     private void rollForward(Transaction transaction) throws IOException {
-				LOG.trace("Rolling forward");
+        LOG.trace("Rolling forward");
         TransactionStatus status = transaction.getEffectiveStatus();
         if (rollForwardQueue != null && status.isFinished()) {
             // TODO: revisit this in light of nested independent transactions
@@ -261,7 +270,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      * Handle a cell that represents user data. Filter it based on the various timestamps and transaction status.
      */
     private Filter.ReturnCode processUserData() throws IOException {
-            return filterUserDataByTimestamp();
+        return filterUserDataByTimestamp();
     }
 
     /**
@@ -291,12 +300,12 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      * Is there a row level tombstone that supercedes the current cell?
      */
     private boolean tombstoneAfterData() throws IOException {
-    	final long[] buffer = rowState.tombstoneTimestamps.buffer;
-    	final int size = rowState.tombstoneTimestamps.size();
-    	for (int i = 0; i < size; i++) {
+        final long[] buffer = rowState.tombstoneTimestamps.buffer;
+        final int size = rowState.tombstoneTimestamps.size();
+        for (int i = 0; i < size; i++) {
             Transaction tombstoneTransaction = rowState.transactionCache.get(buffer[i]);
             if (tombstoneTransaction == null) {
-            	tombstoneTransaction = processDataTimestamp(buffer[i]);	
+                tombstoneTransaction = processDataTimestamp(buffer[i]);
             }
             final VisibleResult visibleResult = checkVisibility(tombstoneTransaction);
             if (visibleResult.visible && (keyValue.timestamp() <= buffer[i])) {
@@ -304,12 +313,12 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
             }
         }
 
-    	final long[] buffer2 = rowState.antiTombstoneTimestamps.buffer;
-    	final int size2 = rowState.antiTombstoneTimestamps.size();
-    	for (int i = 0; i < size2; i++) {
+        final long[] buffer2 = rowState.antiTombstoneTimestamps.buffer;
+        final int size2 = rowState.antiTombstoneTimestamps.size();
+        for (int i = 0; i < size2; i++) {
             Transaction tombstoneTransaction = rowState.transactionCache.get(buffer2[i]);
             if (tombstoneTransaction == null) {
-            	tombstoneTransaction = processDataTimestamp(buffer2[i]);	
+                tombstoneTransaction = processDataTimestamp(buffer2[i]);
             }
             final VisibleResult visibleResult = checkVisibility(tombstoneTransaction);
             if (visibleResult.visible && (keyValue.timestamp() < buffer2[i])) {
@@ -325,7 +334,8 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      * under SI. It handles the various cases of when data should be visible.
      */
     private boolean isVisibleToCurrentTransaction() throws IOException {
-        if (keyValue.timestamp() == myTransaction.getTransactionId().getId() && !myTransaction.getTransactionId().independentReadOnly) {
+        if (keyValue.timestamp() == myTransaction.getTransactionId().getId() && !myTransaction.getTransactionId()
+            .independentReadOnly) {
             return true;
         } else {
             final Transaction transaction = loadTransaction();
@@ -338,13 +348,15 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      */
     private Transaction loadTransaction() throws IOException {
         final Transaction transaction = rowState.transactionCache.get(keyValue.timestamp());
-				assert transaction!=null : "All transaction should already be loaded from the si family for the data row, txn id: " + keyValue.timestamp();
+        assert transaction != null : "All transaction should already be loaded from the si family for the data row, " +
+            "txn id: " + keyValue.timestamp();
 
         return transaction;
     }
 
     /**
-     * This is not expected to happen, but if there are extra unknown column families in the results they will be skipped.
+     * This is not expected to happen, but if there are extra unknown column families in the results they will be
+     * skipped.
      */
     private Filter.ReturnCode processUnknownFamilyData() {
         log("processUnknownFamilyData");
@@ -353,15 +365,5 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
 
     private void log(String message) {
         //System.out.println("  " + message);
-    }
-
-    @Override
-    public org.apache.hadoop.hbase.Cell produceAccumulatedCell() {
-        return null;
-    }
-
-    @Override
-    public boolean getExcludeRow() {
-        return false;
     }
 }

@@ -9,6 +9,7 @@ import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.impl.ast.*;
 import com.splicemachine.derby.utils.Exceptions;
 
+import com.splicemachine.hbase.HBaseRegionLoads;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -56,6 +57,9 @@ public class SpliceDatabase extends BasicDatabase {
 		}
 		super.boot(create, startParams);
         TransactionKeepAlive.start();
+        if (!create) {
+            HBaseRegionLoads.start();
+        }
 	}
 		@Override
 		protected void bootValidation(boolean create, Properties startParams) throws StandardException {

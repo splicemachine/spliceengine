@@ -156,7 +156,7 @@ public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor im
 	public boolean isDoubleType() {
 		return false;
 	}
-
+	
     @Override
     public BooleanDataValue lessOrEquals(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
     	/*
@@ -165,10 +165,10 @@ public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor im
     			if (!right.isLazy())
     				((LazyDataValueDescriptor)right).serializeIfNeeded(((LazyDataValueDescriptor)right).descendingOrder);
     		} else if (right.isLazy()) {
-
+    	
     	}
     		return SQLBoolean.truthValue(left, right, )
-    	}
+    	} 		
     	*/
         return SQLBoolean.truthValue(left, right, left.compare(right) <= 0);
     }
@@ -177,5 +177,5 @@ public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor im
     public BooleanDataValue greaterOrEquals(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
         return SQLBoolean.truthValue(left, right, left.compare(right) >= 0);
     }
-
+	
 }

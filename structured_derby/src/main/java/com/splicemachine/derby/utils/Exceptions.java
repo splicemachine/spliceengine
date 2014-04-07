@@ -1,10 +1,29 @@
 package com.splicemachine.derby.utils;
 
+import java.io.IOException;
+import java.net.ConnectException;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.google.common.base.Throwables;
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.MessageId;
+import org.apache.derby.shared.common.reference.SQLState;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.RegionTooBusyException;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.client.ScannerTimeoutException;
+import org.apache.hadoop.hbase.regionserver.LeaseException;
+import org.apache.hadoop.hbase.regionserver.WrongRegionException;
+import org.apache.hadoop.ipc.RemoteException;
+
 import com.splicemachine.derby.error.SpliceDoNotRetryIOException;
 import com.splicemachine.derby.error.SpliceStandardException;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
@@ -13,21 +32,6 @@ import com.splicemachine.derby.impl.sql.execute.constraint.Constraints;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.impl.WriteConflict;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.MessageId;
-import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.RegionTooBusyException;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.apache.hadoop.hbase.regionserver.WrongRegionException;
-import org.apache.hadoop.ipc.RemoteException;
-
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.ConnectException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -48,7 +52,7 @@ public class Exceptions {
     private Exceptions(){} //can't make me
 
     public static StandardException parseException(Throwable e){
-        Throwable rootCause = getRootCause(e);
+        Throwable rootCause = Throwables.getRootCause(e);
         if(rootCause instanceof StandardException) return (StandardException)rootCause;
 
         if(rootCause instanceof RetriesExhaustedWithDetailsException){
@@ -131,8 +135,6 @@ public class Exceptions {
 
     public static IOException getIOException(Throwable t){
         if(t instanceof StandardException) return getIOException((StandardException)t);
-				else if(t instanceof RemoteException)
-						return getIOException(((RemoteException)t).unwrapRemoteException());
         else if(t instanceof IOException) return (IOException)t;
         else return new IOException(t);
     }
@@ -194,6 +196,9 @@ public class Exceptions {
 
     public static Throwable getRootCause(Throwable error) {
 				//unwrap RemoteException wrappers
+				if(error instanceof RemoteException){
+						error = ((RemoteException)error).unwrapRemoteException();
+				}
         error = Throwables.getRootCause(error);
         if(error instanceof RetriesExhaustedWithDetailsException ){
             RetriesExhaustedWithDetailsException rewde = (RetriesExhaustedWithDetailsException)error;
@@ -216,6 +221,16 @@ public class Exceptions {
             return ((StandardException)error).getSqlState();
         }
         return SQLState.DATA_UNEXPECTED_EXCEPTION;
+    }
+
+    public static boolean isScannerTimeoutException(Throwable error) {
+        boolean scannerTimeout = false;
+        if (error instanceof LeaseException ||
+            error instanceof ScannerTimeoutException) {
+            scannerTimeout = true;
+        }
+        return scannerTimeout;
+
     }
 
     public static class LangFormatException extends DoNotRetryIOException{

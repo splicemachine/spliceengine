@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -169,6 +170,7 @@ public class TableScanOperation extends ScanOperation {
 				this.scan = context.getScan();
 		}
 
+
 		@Override
 		public List<SpliceOperation> getSubOperations() {
 				return Collections.emptyList();
@@ -234,7 +236,7 @@ public class TableScanOperation extends ScanOperation {
                         return currentRowLocation.getBytes();
                     return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
                 }
-            }, keyColumns, scanInformation.getKeyColumnDVDs());
+            }, keyColumns, scanInformation.getKeyColumnDVDs(), descColumns);
 
             return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
 		}
@@ -246,8 +248,10 @@ public class TableScanOperation extends ScanOperation {
 						for (int i = 0; i < keyColumns.length; ++i) {
 								keyColumns[i] = -1;
 						}
-						for (int i = 0; i < keyColumns.length && columnOrdering[i] < baseColumnMap.length; ++i) {
-								keyColumns[i] = baseColumnMap[columnOrdering[i]];
+						for (int i = 0; i < keyColumns.length; ++i) {
+                            if(columnOrdering[i] < baseColumnMap.length) {
+                                keyColumns[i] = baseColumnMap[columnOrdering[i]];
+                            }
 						}
 				}
 				return keyColumns;
@@ -521,16 +525,18 @@ public class TableScanOperation extends ScanOperation {
 
         private int[] keyColumns;
         private DataValueDescriptor[] kdvds;
-
-        public KeyDataHash(StandardSupplier<byte[]> supplier, int[] keyColumns, DataValueDescriptor[] kdvds) {
+        private BitSet descColumns;
+        public KeyDataHash(StandardSupplier<byte[]> supplier, int[] keyColumns, DataValueDescriptor[] kdvds,
+                           BitSet descColumns) {
             super(supplier);
             this.keyColumns = keyColumns;
             this.kdvds = kdvds;
+            this.descColumns = descColumns;
         }
 
         @Override
         public KeyHashDecoder getDecoder() {
-            return new SuppliedKeyHashDecoder(keyColumns, kdvds);
+            return new SuppliedKeyHashDecoder(keyColumns, kdvds, descColumns);
         }
 
     }
@@ -539,10 +545,12 @@ public class TableScanOperation extends ScanOperation {
         private int[] keyColumns;
         private DataValueDescriptor[] kdvds;
         MultiFieldDecoder decoder;
+        BitSet descColumns;
 
-        public SuppliedKeyHashDecoder(int[] keyColumns, DataValueDescriptor[] kdvds) {
+        public SuppliedKeyHashDecoder(int[] keyColumns, DataValueDescriptor[] kdvds, BitSet descColumns) {
             this.keyColumns = keyColumns;
             this.kdvds = kdvds;
+            this.descColumns = descColumns;
         }
 
         @Override
@@ -568,16 +576,20 @@ public class TableScanOperation extends ScanOperation {
                 }
                 else {
                     DataValueDescriptor field = fields[keyColumns[i]];
-                    decodeNext(decoder, field);
+                    decodeNext(decoder, field, isDescColumn(keyColumns[i]));
                 }
             }
         }
-        void decodeNext(MultiFieldDecoder decoder, DataValueDescriptor field) throws StandardException {
+        void decodeNext(MultiFieldDecoder decoder, DataValueDescriptor field, boolean desc) throws StandardException {
             if(DerbyBytesUtil.isNextFieldNull(decoder, field)){
                 field.setToNull();
                 DerbyBytesUtil.skip(decoder, field);
             }else
-                DerbyBytesUtil.decodeInto(decoder,field);
+                DerbyBytesUtil.decodeInto(decoder,field, desc);
+        }
+
+        private boolean isDescColumn(int i) {
+            return (descColumns != null && descColumns.get(i));
         }
     }
 }

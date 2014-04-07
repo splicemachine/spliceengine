@@ -45,8 +45,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		public int rowsReturned;
 		protected boolean serializeLeftResultSet = true;
 		protected boolean serializeRightResultSet = true;
+        protected ExecRow rightTemplate;
 
-		public JoinOperation() {
+    public JoinOperation() {
 				super();
 		}
 
@@ -154,6 +155,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				}
 				if(mergedRow==null)
 						mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
+                if (rightTemplate == null)
+                    rightTemplate = rightRow.getClone();
 		}
 
 		protected int[] generateHashKeys(int hashKeyItem) {
@@ -287,4 +290,23 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				SpliceLogUtils.trace(LOG, "executeScan");
 				return new SpliceNoPutResultSet(activation,this, getReduceRowProvider(this, OperationUtils.getPairDecoder(this, spliceRuntimeContext), spliceRuntimeContext, true));
 		}
+
+    protected Restriction getRestriction() {
+        Restriction mergeRestriction = Restriction.noOpRestriction;
+        if (restriction != null) {
+            mergeRestriction = new Restriction() {
+                @Override
+                public boolean apply(ExecRow row) throws StandardException {
+                    activation.setCurrentRow(row, resultSetNumber);
+                    DataValueDescriptor shouldKeep = restriction.invoke();
+                    return !shouldKeep.isNull() && shouldKeep.getBoolean();
+                }
+            };
+        }
+        return mergeRestriction;
+    }
+
+    protected ExecRow getEmptyRow() throws StandardException {
+        return rightTemplate;
+    }
 }

@@ -3,12 +3,43 @@
 # Start with debug logging by passing this script the "-debug" argument
 
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+
 LOGFILE="${ROOT_DIR}"/splice.log
-DEBUG=$1
+DEBUG=false
+
+usage() {
+    # $1 is an error, if any
+    if [[ -n "${1}" ]]; then
+        echo "Error: ${1}"
+    fi
+    echo "Usage: $0 [-d] [-h]"
+    echo "Where: "
+    echo "  -d => Start the server with debug logging enabled"
+    echo "  -h => print this message"
+}
+
+while getopts "dh" flag ; do
+    case $flag in
+        h* | \?)
+            usage
+            exit 0 # This is not an error, User asked help. Don't do "exit 1"
+        ;;
+        d)
+        # start server with the debug
+            DEBUG=true
+        ;;
+        ?)
+            usage "Unknown option (ignored): ${OPTARG}"
+            exit 1
+        ;;
+    esac
+done
 
 # server still running? - must stop first
-if [[ -e "${ROOT_DIR}"/splice_pid || -e "${ROOT_DIR}"/zoo_pid ]]; then
-    echo "Splice still running and must be shut down. Run stop-splice.sh"
+S=`jps | grep SpliceTestPlatform | grep -v grep  | awk '{print $1}'`
+Z=`jps | grep ZooKeeperServerMain | grep -v grep  | awk '{print $1}'`
+if [[ -e "${ROOT_DIR}"/splice_pid || -e "${ROOT_DIR}"/zoo_pid || -n ${S} || -n ${Z} ]]; then
+    echo "Splice is currently running and must be shut down. Run stop-splice.sh"
     exit 1;
 fi
 
@@ -17,8 +48,15 @@ if [[ -z $(type -p java) ]]; then
     echo checking for Java...
     if [[ -z "$JAVA_HOME" ]] || [[ ! -x "$JAVA_HOME/bin/java" ]];  then
         echo Must have Java installed
-        exit 1;
+        exit 1
     fi
+fi
+
+# We can't run from a directory with space in the path
+if [[ "${ROOT_DIR}" = *[[:space:]]* ]]; then
+    echo "Please install Splice in a directory without spaces in its path:"
+    echo "  ${ROOT_DIR}"
+    exit 1
 fi
 
 # Config server
@@ -27,7 +65,7 @@ ZOO_DIR="${ROOT_DIR}"/db/zookeeper
 HBASE_ROOT_DIR_URI="file://${ROOT_DIR}/db/hbase"
 
 LOG4J_PATH="file:${ROOT_DIR}/lib/info-log4j.properties"
-if [[ -n "$DEBUG" && "$DEBUG" -eq "-debug" ]]; then
+if [[ "${DEBUG}" = true ]]; then
     LOG4J_PATH="file:${ROOT_DIR}/lib/hbase-log4j.properties"
 fi
 

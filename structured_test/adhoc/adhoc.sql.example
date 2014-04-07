@@ -1,0 +1,40 @@
+-- Example adhoc sql script
+-- General Procedure:
+-- 1. create necessary schema/table
+-- 2. insert test data
+-- 3. run test(s)
+-- 4. drop tables/schema created for test
+
+-- Note this test has errors until DB-1110 is fixed.
+-- The difference will be printed to the console and logged to SpliceDerbyAdhocIT.log
+
+-- create schema
+create table tab1 (c1 int, c2 smallint, c3 double precision, c4 varchar(30), c5 varchar(1024));
+
+-- insert data
+insert into tab1 values (8, 12, 5.6, 'dfg', 'ghji');
+insert into tab1 values (76, 2, -9.86, 'yudf', '45gd');
+insert into tab1 values (-78, 45, -5.6, 'jakdsfh', 'df89g');
+insert into tab1 values (56, -3, 6.7, 'dfgs', 'fds');
+
+-- test...
+select min(c2) from tab1;
+
+create index i4 on tab1 (c2 desc, c3, c1);
+select min(c2) from tab1;
+
+drop index i4;
+select min(c2) from tab1;
+
+create index i4 on tab1 (c2,c3,c1);
+select min(c2) from tab1;
+
+drop index i4;
+
+create index i4 on tab1 (c2 desc,c3,c1);
+select min(c2) from tab1;
+
+-- Clean up
+-- "if exists" only works for splice
+--drop table if exists T_HEADER;
+drop table tab1

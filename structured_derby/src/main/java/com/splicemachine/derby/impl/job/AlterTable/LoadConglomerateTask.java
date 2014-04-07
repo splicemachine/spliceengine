@@ -18,6 +18,9 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
+import com.splicemachine.derby.impl.sql.execute.AlterTable.ConglomerateLoader;
+import com.splicemachine.derby.impl.sql.execute.AlterTable.ConglomerateScanner;
+import com.splicemachine.derby.impl.sql.execute.AlterTable.RowTransformer;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -88,13 +91,14 @@ public class LoadConglomerateTask extends ZkTask {
     @Override
     public void doExecute() throws ExecutionException, InterruptedException{
         long startTime = System.currentTimeMillis();
+        long numRecordsRead = 0l;
         try {
             if (!initialized) {
                 initialize();
             }
             MetricFactory metricFactory = xplainSchema!=null? Metrics.basicMetricFactory(): Metrics.noOpMetricFactory();
             writeTimer = metricFactory.newTimer();
-            long numRecordsRead = 0l;
+
             List<Cell> result = null;
 
             do {
@@ -111,7 +115,6 @@ public class LoadConglomerateTask extends ZkTask {
             throw new ExecutionException("Error loading conglomerate " + fromConglomId, e);
         } finally {
             writeTimer.startTiming();
-            loader.flush();
             loader.close();
             writeTimer.stopTiming();
             if(xplainSchema!=null){

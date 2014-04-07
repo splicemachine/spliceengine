@@ -4,21 +4,21 @@
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 
 if [[ -n "${LOG4J_PROP_PATH}" ]]; then
+    # Allow users to set their own log file if debug required
     LOG4J_PATH="${1}"
 else
     LOG4J_PATH="file:${ROOT_DIR}/lib/info-log4j.properties"
 fi
 
-if [[ -z "${CLASSPATH}" ]]; then
-    CLASSPATH="${ROOT_DIR}/lib/*"
+# set up isolated classpath
+CLASSPATH="${ROOT_DIR}/lib/*"
 
-    CYGWIN=`uname -s`
-    if [[ ${CYGWIN} == CYGWIN* ]]; then
-        CLASSPATH=`cygpath --path --windows "${ROOT_DIR}/lib/*"`
-        LOG4J_PATH="file:///`cygpath --path --windows ${ROOT_DIR}/lib/info-log4j.properties`"
-    fi
-    export CLASSPATH
+CYGWIN=`uname -s`
+if [[ ${CYGWIN} == CYGWIN* ]]; then
+    CLASSPATH=`cygpath --path --windows "${ROOT_DIR}/lib/*"`
+    LOG4J_PATH="file:///`cygpath --path --windows ${ROOT_DIR}/lib/info-log4j.properties`"
 fi
+export CLASSPATH
 
 LOG4J_CONFIG="-Dlog4j.configuration=$LOG4J_PATH"
 
@@ -38,4 +38,4 @@ fi
 
 echo "Running Splice Machine SQL shell"
 echo "For help: \"splice> help;\""
-$RLWRAP java ${GEN_SYS_ARGS} ${IJ_SYS_ARGS}  org.apache.derby.tools.ij $*
+${RLWRAP} java ${GEN_SYS_ARGS} ${IJ_SYS_ARGS}  org.apache.derby.tools.ij $*
