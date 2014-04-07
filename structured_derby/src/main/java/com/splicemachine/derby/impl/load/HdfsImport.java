@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
@@ -12,10 +13,13 @@ import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.derby.iapi.error.ExceptionSeverity;
+
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.utils.file.DefaultFileInfo;
 import com.splicemachine.utils.file.FileInfo;
+
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -26,6 +30,7 @@ import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
@@ -35,7 +40,6 @@ import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
-import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HConstants;
@@ -66,6 +70,8 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import org.apache.derby.tools.JDBCDisplayUtil.*;
 
 /**
  * Imports a delimiter-separated file located in HDFS in a parallel way.
@@ -101,11 +107,13 @@ public class HdfsImport {
 		private final long statementId;
 		private final long operationId;
 		private HBaseAdmin admin;
+		private static long filesize;
 
 		public HdfsImport(ImportContext context,long statementId, long operationId){
 				this.context = context;
 				this.statementId = statementId;
 				this.operationId = operationId;
+				this.filesize=0;
 		}
 
 		@SuppressWarnings("UnusedDeclaration")
@@ -200,6 +208,11 @@ public class HdfsImport {
 								EmbedConnection embedConnection = (EmbedConnection)conn;
 								Activation activation = embedConnection.getLanguageConnection().getLastActivation();
 								IteratorNoPutResultSet rs = new IteratorNoPutResultSet(Arrays.asList(resultRow),IMPORT_RESULT_COLUMNS,activation);
+								if((SpliceConstants.sequentialImportFileSizeThreshold<filesize&&fileName.contains(".gz"))){
+									String temp = "To load a large single file of data faster, it is best to break up the file into multiple files, put those files in a single directory, then import that directory.  See http://doc.splicemachine.com for more information.";  
+									SQLWarning	sqlw = new SQLWarning(temp, "01010", ExceptionSeverity.WARNING_SEVERITY);
+									activation.addWarning( sqlw );
+								}
 								rs.open();
 								results[0] = new EmbedResultSet40(embedConnection,rs,false,null,true);
 
@@ -312,11 +325,11 @@ public class HdfsImport {
 				try{
 						ImportFile file = new ImportFile(context.getFilePath().toString());
 						FileSystem fileSystem = file.getFileSystem();
+						filesize = fileSystem.getLength(context.getFilePath());
 						//make sure that we can read and write as needed
 						ImportUtils.validateReadable(context.getFilePath(),fileSystem,false);
 						ImportUtils.validateReadable(file);
 						ImportUtils.validateWritable(context.getBadLogDirectory(),fileSystem,true);
-
 						byte[] tableName = context.getTableName().getBytes();
 						try {
 								splitToFit(tableName,file);
@@ -537,5 +550,6 @@ public class HdfsImport {
 						throw PublicAPI.wrapStandardException(e);
 				}
 		}
+		
 
 }

@@ -530,6 +530,7 @@ public enum ErrorState {
     LANG_ROLE_NOT_REVOKED( "01007"),
     LANG_WITH_ADMIN_OPTION_NOT_REVOKED( "01008"),
     LANG_GEN_COL_DROPPED( "01009"),
+    IMPORT_GZIP_TO_LARGE("01010"),
 
     LANG_NO_ROW_FOUND									   	( "02000"),
 
@@ -537,6 +538,9 @@ public enum ErrorState {
 
     // State used by java.sql.DataTruncation for truncation in read operations.
     DATA_TRUNCATION_READ( "01004"),
+    
+    //File size very large and will take some time to import
+    DATA_FILESIZE_HUGE("01007"),
 
     // Invalid role specification: standard says class 0P, no subclass.
     ROLE_INVALID_SPECIFICATION( "0P000"),
