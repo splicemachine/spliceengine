@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.load;
 
+import org.joda.time.DateTime;
 import com.google.common.base.Joiner;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
@@ -7,6 +8,7 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.writer.WriteResult;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -14,6 +16,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLDate;
 import org.apache.derby.iapi.types.SQLTime;
 import org.apache.derby.iapi.types.SQLTimestamp;
+
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -132,7 +135,12 @@ public class RowParser {
 								column.setValue(sequences[columnContext.getColumnNumber()].getNext());
 						else{
 								elem = columnContext.getColumnDefault();
-								column.setValue(elem);
+								if(elem!=null&&elem.equals("CURRENT_TIMESTAMP")){
+									DateTime dt = new DateTime();
+									column.setValue(dt.toDateTime());
+								}else{
+									column.setValue(elem);
+								}
 						}
 						columnContext.validate(column);
 						return;
