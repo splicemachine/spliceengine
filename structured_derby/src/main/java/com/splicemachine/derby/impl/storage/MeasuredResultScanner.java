@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.stats.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -9,8 +10,6 @@ import org.apache.hadoop.hbase.client.*;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
-import org.apache.hadoop.hbase.regionserver.LeaseException;
 import org.apache.log4j.Logger;
 
 /**
@@ -56,7 +55,7 @@ public class MeasuredResultScanner extends ReopenableScanner implements SpliceRe
                     } else
                         remoteTimer.stopTiming();
                 } catch (IOException e) {
-                    if (e instanceof LeaseException && getNumRetries() < MAX_RETIRES) {
+                    if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES) {
                         SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
                         incrementNumRetries();
                         delegate = reopenResultScanner(delegate, scan, htable);
@@ -82,7 +81,7 @@ public class MeasuredResultScanner extends ReopenableScanner implements SpliceRe
                     } else
                         remoteTimer.stopTiming();
                 } catch (IOException e) {
-                    if (e instanceof LeaseException && getNumRetries() < MAX_RETIRES) {
+                    if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES) {
                         SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
                         incrementNumRetries();
                         delegate = reopenResultScanner(delegate, scan, htable);

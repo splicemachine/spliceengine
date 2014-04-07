@@ -25,7 +25,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.LeaseException;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -141,7 +140,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
             try {
                 currentResult = lookBehindScanner.next();
             } catch (IOException e) {
-                if (e instanceof LeaseException && getNumRetries() < MAX_RETIRES) {
+                if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES) {
                     SpliceLogUtils.trace(LOG, "Re-create lookBehindScanner scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
                     incrementNumRetries();
                     lookBehindScanner = reopenResultScanner(lookBehindScanner, scan, table);
@@ -171,7 +170,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
             try {
                 localExhausted = !localScanner.next(keyValues);
             } catch (IOException e) {
-                if (e instanceof LeaseException && getNumRetries() < MAX_RETIRES) {
+                if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES) {
                     SpliceLogUtils.trace(LOG, "Re-create localScanner scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
                     incrementNumRetries();
                     localScanner = reopenRegionScanner(localScanner, region, localScan, metricFactory);
@@ -193,7 +192,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
             try {
                 currentResult = lookAheadScanner.next();
             } catch (IOException e) {
-                if (e instanceof LeaseException && getNumRetries() < MAX_RETIRES) {
+                if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES) {
                     SpliceLogUtils.trace(LOG, "Re-create lookAheadScanner scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
                     incrementNumRetries();
                     lookAheadScanner = reopenResultScanner(lookAheadScanner, scan, table);

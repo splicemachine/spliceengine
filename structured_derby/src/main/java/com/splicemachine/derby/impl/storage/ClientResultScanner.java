@@ -4,6 +4,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHashPrefix;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.BucketHasher;
 import com.splicemachine.derby.utils.marshall.SpreadBucket;
 import com.splicemachine.stats.*;
@@ -15,7 +16,6 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.LeaseException;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -93,7 +93,7 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
                     remoteReadTimer.tick(0);
                 }
             } catch (IOException e) {
-                if (e instanceof LeaseException && getNumRetries() < MAX_RETIRES && keyDistributor==null) {
+                if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES && keyDistributor==null) {
                     SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
                     incrementNumRetries();
                     scanner = reopenResultScanner(scanner, scan, table);
@@ -124,7 +124,7 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
             } else
                 remoteReadTimer.tick(0);
         }catch (IOException e) {
-            if (e instanceof LeaseException && getNumRetries() < MAX_RETIRES && keyDistributor==null) {
+            if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES && keyDistributor==null) {
                 SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
                 incrementNumRetries();
                 scanner = reopenResultScanner(scanner, scan, table);
