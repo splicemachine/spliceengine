@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -167,7 +168,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 						};
 
 						buffer =  new DistinctSortAggregateBuffer(SpliceConstants.ringBufferSize,null,supplier,spliceRuntimeContext);
-						ScannerIterator source = new ScannerIterator(regionScanner, getExecRowDefinition(), operationInformation.getBaseColumnMap(), scanInformation);
+						ScannerIterator source = new ScannerIterator(regionScanner, getExecRowDefinition(), operationInformation.getBaseColumnMap(), scanInformation, descColumns);
 						sinkIterator = new SinkSortIterator(buffer, source,keyColumns,null);
 						timer = spliceRuntimeContext.newTimer();
 				}
@@ -360,6 +361,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         private DataValueDescriptor[] kdvds;
         private EntryPredicateFilter predicateFilter;
         private boolean cachedPredicateFilter = false;
+        private BitSet descColumns;
         private KeyMarshaller keyMarshaller;
 
         private EntryDecoder rowDecoder;
@@ -367,11 +369,12 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         private List<KeyValue> values = Lists.newArrayListWithExpectedSize(2);
 
         private ScannerIterator(RegionScanner regionScanner, ExecRow template,
-                                int[] columnMap, ScanInformation scanInformation) {
+                                int[] columnMap, ScanInformation scanInformation, BitSet descColumns) {
             this.regionScanner = regionScanner;
             this.template = template;
             this.columnMap = columnMap;
             this.scanInformation = scanInformation;
+            this.descColumns = descColumns;
         }
 
         @Override public void open() throws StandardException, IOException {  }
@@ -434,7 +437,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
         private KeyMarshaller getKeyMarshaller () {
             if (keyMarshaller == null)
-                keyMarshaller = new KeyMarshaller();
+                keyMarshaller = new KeyMarshaller(descColumns);
 
             return keyMarshaller;
         }
