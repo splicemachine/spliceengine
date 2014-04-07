@@ -96,7 +96,6 @@ public class RowParser {
             if (timestampFormatStr != null && timestampFormatStr.contains("@") && context.getColumnType() == 93 && context.getColumnNumber() == pos) {
             	String tmpstr = columnTimestampFormats.get(String.valueOf(context.getColumnNumber()+1));
             	if (tmpstr.equals("null") || tmpstr.equals("NULL") || tmpstr == null) {
-            		System.out.println("Null?");
             	    context.setFormatStr(null);
             	} else
             		context.setFormatStr(tmpstr);
@@ -187,13 +186,11 @@ public class RowParser {
 						case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
 						case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
 						case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
-							//System.out.println("elem: " + elem);
 							DateTimeFormatter format = getDateFormat(column, elem);															 
 								try{
 								        DateTime date = format.parseDateTime(elem);								        
 										column.setValue(date);
 								}catch (IllegalArgumentException p){
-									//System.out.println("error: " + p.getLocalizedMessage());								
 									throw ErrorState.LANG_DATE_SYNTAX_EXCEPTION.newException();
                 }
                 break;
@@ -215,19 +212,16 @@ public class RowParser {
 			DateTimeFormatter format;
 				if(dvd instanceof SQLTimestamp){
 						if(timestampFormat==null){
-							//System.out.println("Timestamp " + timestampFormatStr);
 								timestampFormat = DateTimeFormat.forPattern(timestampFormatStr);
 						}
 						format = timestampFormat;
 				}else if(dvd instanceof SQLDate){
 						if(dateFormat==null){
-							//System.out.println("Date " + dateFormatStr);
 								dateFormat = DateTimeFormat.forPattern(dateFormatStr);
 						}
 						format = dateFormat;
 				}else if(dvd instanceof SQLTime){
 						if(timeFormat==null){
-							//System.out.println("Time " + timeFormatStr);
 							timeFormat = DateTimeFormat.forPattern(timeFormatStr);
 						}
 						format = timeFormat;
@@ -235,7 +229,6 @@ public class RowParser {
 						//this represents a programmer error, don't try and log this
 						throw Exceptions.parseException(new IllegalStateException("Unable to determine date format for type " + dvd.getClass()));
 				}
-//				format.setLenient(false);
 				return format;
 		}
 }
