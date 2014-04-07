@@ -8,7 +8,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.hbase.HBaseServerUtils;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.api.HTransactorFactory;
@@ -91,7 +90,7 @@ public class RegionWriteHandler implements WriteHandler {
             		put = SpliceUtils.createPut(rowKey,ctx.getTransactionId());
             	else
             		throw new RuntimeException("Updating a non si table?");
-                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY,value);
+                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES,value);
                 mutation = put;
                 mutation.setAttribute(Puts.PUT_TYPE,Puts.FOR_UPDATE);
                 break;
@@ -106,7 +105,7 @@ public class RegionWriteHandler implements WriteHandler {
             		put = SpliceUtils.createPut(rowKey,ctx.getTransactionId());
             	else 
             		put = new Put(rowKey);
-                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY,ctx.getTransactionTimestamp(),value);
+                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES,ctx.getTransactionTimestamp(),value);
                 mutation = put;
         }
         mutation.setAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);

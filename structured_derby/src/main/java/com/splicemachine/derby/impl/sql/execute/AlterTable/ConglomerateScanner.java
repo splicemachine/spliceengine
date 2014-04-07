@@ -28,13 +28,26 @@ import org.apache.log4j.Logger;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.impl.sql.execute.ColumnInfo;
+import org.apache.derby.impl.sql.execute.ValueRow;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class ConglomerateScanner {
 
@@ -76,7 +89,7 @@ public class ConglomerateScanner {
         regionScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
         regionScan.setStartRow(region.getStartKey());
         regionScan.setStopRow(region.getEndKey());
-        regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
+        regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES);
 
         MetricFactory metricFactory = xplainSchema!=null? Metrics.basicMetricFactory(): Metrics.noOpMetricFactory();
         try{

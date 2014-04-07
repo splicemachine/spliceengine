@@ -61,8 +61,9 @@ public class EntryDataDecoder extends BareKeyHash implements KeyHashDecoder{
 										entryDecoder.seekForward(decoder, i);
 										continue;
 								}
+								DescriptorSerializer serializer = serializers[pos];
 								boolean sortOrder = keySortOrder != null && !keySortOrder[i];
-								decodeNext(decoder,dvd,sortOrder);
+								serializer.decode(decoder,dvd,sortOrder);
 						}
 				}else{
 						for(int i=index.nextSetBit(0);i>=0 && i<fields.length;i=index.nextSetBit(i+1)){
@@ -72,7 +73,8 @@ public class EntryDataDecoder extends BareKeyHash implements KeyHashDecoder{
 										continue;
 								}
 								boolean sortOrder = keySortOrder != null && !keySortOrder[i];
-								decodeNext(decoder,dvd,sortOrder);
+								DescriptorSerializer serializer = serializers[i];
+								serializer.decode(decoder,dvd,sortOrder);
 						}
 				}
 		}

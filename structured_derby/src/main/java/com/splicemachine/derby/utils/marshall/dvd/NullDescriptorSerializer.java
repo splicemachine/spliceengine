@@ -30,6 +30,10 @@ public class NullDescriptorSerializer implements DescriptorSerializer{
 										@Override protected byte[] empty() { return Encoding.encodedNullDouble(); }
 										@Override protected boolean nextIsNull(MultiFieldDecoder fieldDecoder) { return fieldDecoder.nextIsNullDouble(); }
 										@Override protected boolean isNull(byte[] data, int offset, int length) { return Encoding.isNullDOuble(data,offset,length); }
+										@Override public boolean isScalarType() { return false; }
+
+										@Override public boolean isFloatType() { return false; }
+										@Override public boolean isDoubleType() { return true; }
 								};
 						}
 						@Override public boolean applies(DataValueDescriptor dvd) { return delegate.applies(dvd); }
@@ -54,12 +58,19 @@ public class NullDescriptorSerializer implements DescriptorSerializer{
 										@Override protected byte[] empty() { return Encoding.encodedNullFloat(); }
 										@Override protected boolean nextIsNull(MultiFieldDecoder fieldDecoder) { return fieldDecoder.nextIsNullFloat(); }
 										@Override protected boolean isNull(byte[] data, int offset, int length) { return Encoding.isNullFloat(data, offset, length); }
+										@Override public boolean isScalarType() { return false; }
+										@Override public boolean isFloatType() { return true; }
+										@Override public boolean isDoubleType() { return false; }
 								};
 						}
 						@Override public boolean applies(DataValueDescriptor dvd) { return delegate.applies(dvd); }
 						@Override public boolean applies(int typeFormatId) { return delegate.applies(typeFormatId); }
 				};
 		}
+
+		@Override public boolean isScalarType() { return delegate.isScalarType(); }
+		@Override public boolean isFloatType() { return delegate.isFloatType(); }
+		@Override public boolean isDoubleType() { return delegate.isDoubleType(); }
 
 		@Override
 		public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {

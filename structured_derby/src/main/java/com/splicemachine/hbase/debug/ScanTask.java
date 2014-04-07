@@ -20,7 +20,6 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.storage.EntryAccumulator;
@@ -116,9 +115,9 @@ public class ScanTask extends DebugTask{
     }
 
     private static final String outputPattern = "%-20s\t%8d\t%s%n";
-    private void writeRow(Writer writer,List<Cell> keyValues) throws IOException {
-        for(Cell kv:keyValues){
-            if(!CellUtils.singleMatchingColumn(kv,SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY))
+    private void writeRow(Writer writer,List<KeyValue> keyValues) throws IOException {
+        for(KeyValue kv:keyValues){
+            if(!kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES))
                 continue;
             String row = BytesUtil.toHex(kv.getRowArray());
             long txnId = kv.getTimestamp();
@@ -185,8 +184,8 @@ public class ScanTask extends DebugTask{
         }
 
         @Override
-        public ReturnCode filterKeyValue(Cell ignored) {
-            if(! CellUtils.singleMatchingColumn(ignored,SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY))
+        public ReturnCode filterKeyValue(KeyValue ignored) {
+            if(!ignored.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES))
                 return ReturnCode.INCLUDE;
 
             try {

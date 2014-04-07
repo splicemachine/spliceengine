@@ -57,7 +57,7 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 				BitSet doubleFields = new BitSet(nCols);
 				int i=0;
 				for(DataValueDescriptor field:fields){
-						if(DerbyBytesUtil.isScalarType(field))
+						if(DerbyBytesUtil.isScalarType(field, null))
 								scalarFields.set(i);
 						else if(DerbyBytesUtil.isFloatType(field))
 								floatFields.set(i);

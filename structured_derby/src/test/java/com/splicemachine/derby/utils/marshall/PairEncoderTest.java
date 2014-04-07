@@ -153,7 +153,7 @@ public class PairEncoderTest {
 				ExecRow clone = execRow.getNewNullRow();
 				PairDecoder decoder = encoder.getDecoder(clone);
 
-				KeyValue kv = new KeyValue(pair.getRow(), SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,pair.getValue());
+				KeyValue kv = new KeyValue(pair.getRow(), SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES,pair.getValue());
 
 				ExecRow decodedRow = decoder.decode(kv);
 				ImportTestUtils.assertRowsEquals(execRow,decodedRow);
@@ -195,7 +195,7 @@ public class PairEncoderTest {
             ExecRow clone = execRow.getNewNullRow();
             PairDecoder decoder = encoder.getDecoder(clone);
 
-            KeyValue kv = new KeyValue(pair.getRow(), SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, pair.getValue());
+            KeyValue kv = new KeyValue(pair.getRow(), SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES, pair.getValue());
 
             ExecRow decodedRow = decoder.decode(kv);
             ImportTestUtils.assertRowsEquals(execRow, decodedRow);
@@ -248,7 +248,7 @@ public class PairEncoderTest {
             ExecRow clone = execRow.getNewNullRow();
             PairDecoder decoder = encoder.getDecoder(clone);
 
-            KeyValue kv = new KeyValue(pair.getRow(), SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, pair.getValue());
+            KeyValue kv = new KeyValue(pair.getRow(), SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES, pair.getValue());
 
             ExecRow decodedRow = decoder.decode(kv);
             ImportTestUtils.assertRowsEquals(execRow, decodedRow);

@@ -7,6 +7,7 @@ package com.splicemachine.derby.impl.sql.execute.AlterTable;
  * Time: 11:12 AM
  * To change this template use File | Settings | File Templates.
  */
+
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -21,22 +22,22 @@ import org.apache.hadoop.hbase.Cell;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
-import com.splicemachine.derby.utils.marshall.BareKeyHash;
-import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.EntryDataHash;
-import com.splicemachine.derby.utils.marshall.KeyEncoder;
-import com.splicemachine.derby.utils.marshall.KeyMarshaller;
-import com.splicemachine.derby.utils.marshall.NoOpDataHash;
-import com.splicemachine.derby.utils.marshall.NoOpPostfix;
-import com.splicemachine.derby.utils.marshall.NoOpPrefix;
-import com.splicemachine.derby.utils.marshall.PairEncoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.derby.utils.marshall.SaltedPrefix;
-import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Snowflake;
+import org.apache.derby.catalog.UUID;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.impl.sql.execute.ColumnInfo;
+import org.apache.derby.impl.sql.execute.ValueRow;
+import org.apache.hadoop.hbase.KeyValue;
+
+import java.io.IOException;
+import java.sql.SQLException;
 public class RowTransformer {
 
     private UUID tableId;
@@ -46,12 +47,11 @@ public class RowTransformer {
     private ExecRow newRow;
     private ColumnInfo[] columnInfos;
     private int droppedColumnPosition;
-    private EntryDecoder rowDecoder;
+    private EntryDataDecoder rowDecoder;
+		private KeyHashDecoder keyDecoder;
     private PairEncoder entryEncoder;
     private int[] oldColumnOrdering;
     private int[] newColumnOrdering;
-    private MultiFieldDecoder keyDecoder;
-    private KeyMarshaller keyMarshaller;
     private int[] baseColumnMap;
     int[] formatIds;
     DataValueDescriptor[] kdvds;
@@ -86,22 +86,28 @@ public class RowTransformer {
     }
 
     private void initEncoder() {
+				String tableVersion = DataDictionaryUtils.getTableVersion(txnId,tableId);
+				DescriptorSerializer[] oldSerializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(oldRow);
 
         // Initialize decoder
-        rowDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
-        keyDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
-        keyMarshaller = new KeyMarshaller();
+				rowDecoder = new EntryDataDecoder(baseColumnMap,null,oldSerializers);
+				if(oldColumnOrdering!=null && oldColumnOrdering.length>0){
+						DescriptorSerializer[] oldDenseSerializers = VersionedSerializers.forVersion(tableVersion,false).getSerializers(oldRow);
+						keyDecoder = BareKeyHash.decoder(oldColumnOrdering,null,oldDenseSerializers);
+				}else{
+						keyDecoder = NoOpDataHash.instance().getDecoder();
+				}
+//        keyMarshaller = new KeyMarshaller();
 
         // initialize encoder
         oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(txnId, tableId);
         newColumnOrdering = DataDictionaryUtils.getColumnOrderingAfterDropColumn(oldColumnOrdering, droppedColumnPosition);
-				String tableVersion = DataDictionaryUtils.getTableVersion(txnId,tableId);
 
         KeyEncoder encoder;
-				DescriptorSerializer[] sparseSerializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(newRow);
-				DescriptorSerializer[] denseSerializers = VersionedSerializers.forVersion(tableVersion, false).getSerializers(newRow);
+				DescriptorSerializer[] newSerializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(newRow);
         if(newColumnOrdering!=null&& newColumnOrdering.length>0){
 						//must use dense encodings in the key
+						DescriptorSerializer[] denseSerializers = VersionedSerializers.forVersion(tableVersion, false).getSerializers(newRow);
 						encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(newColumnOrdering, null, denseSerializers), NoOpPostfix.INSTANCE);
         }else {
             encoder = new KeyEncoder(new SaltedPrefix(getRandomGenerator()),NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
@@ -113,7 +119,7 @@ public class RowTransformer {
                 columns[col] = -1;
             }
         }
-        DataHash rowHash = new EntryDataHash(columns, null,sparseSerializers);
+        DataHash rowHash = new EntryDataHash(columns, null,newSerializers);
 
         entryEncoder = new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
     }
@@ -132,7 +138,36 @@ public class RowTransformer {
         initialized = true;
     }
 
-    public KVPair transform(Cell kv) throws StandardException, SQLException, IOException{
+		public KVPair transform(KVPair kvPair) throws StandardException,SQLException,IOException{
+				if (!initialized) {
+						initialize();
+				}
+
+				// Decode a row
+				oldRow.resetRowArray();
+				DataValueDescriptor[] oldFields = oldRow.getRowArray();
+				if (oldFields.length != 0) {
+						keyDecoder.set(kvPair.getRow(), 0, kvPair.getRow().length);
+						keyDecoder.decode(oldRow);
+
+						rowDecoder.set(kvPair.getValue(),0,kvPair.getValue().length);
+						rowDecoder.decode(oldRow);
+//            if(oldColumnOrdering != null && oldColumnOrdering.length > 0) {
+//                // decode the old primary key columns
+//                keyMarshaller.decode(kv, oldFields, baseColumnMap, keyDecoder, oldColumnOrdering, kdvds);
+//            }
+//            RowMarshaller.sparsePacked().decode(kv, oldFields, baseColumnMap, rowDecoder);
+				}
+
+				// encode the result
+				KVPair newPair = entryEncoder.encode(newRow);
+
+				// preserve the old row key
+				newPair.setKey(kvPair.getRow());
+				return newPair;
+		}
+
+    public KVPair transform(KeyValue kv) throws StandardException, SQLException, IOException{
         if (!initialized) {
             initialize();
         }
@@ -141,11 +176,16 @@ public class RowTransformer {
         oldRow.resetRowArray();
         DataValueDescriptor[] oldFields = oldRow.getRowArray();
         if (oldFields.length != 0) {
-            if(oldColumnOrdering != null && oldColumnOrdering.length > 0) {
-                // decode the old primary key columns
-                keyMarshaller.decode(kv, oldFields, baseColumnMap, keyDecoder, oldColumnOrdering, kdvds);
-            }
-            RowMarshaller.sparsePacked().decode(kv, oldFields, baseColumnMap, rowDecoder);
+						keyDecoder.set(kv.getBuffer(),kv.getKeyOffset(),kv.getKeyLength());
+						keyDecoder.decode(oldRow);
+
+						rowDecoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
+						rowDecoder.decode(oldRow);
+//            if(oldColumnOrdering != null && oldColumnOrdering.length > 0) {
+//                // decode the old primary key columns
+//                keyMarshaller.decode(kv, oldFields, baseColumnMap, keyDecoder, oldColumnOrdering, kdvds);
+//            }
+//            RowMarshaller.sparsePacked().decode(kv, oldFields, baseColumnMap, rowDecoder);
         }
 
         // encode the result

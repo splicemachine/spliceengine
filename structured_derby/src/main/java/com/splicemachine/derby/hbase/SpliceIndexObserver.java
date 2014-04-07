@@ -1,9 +1,14 @@
 package com.splicemachine.derby.hbase;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
+import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.si.impl.WriteConflict;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
@@ -15,26 +20,15 @@ import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.ByteArrayComparable;
 import org.apache.hadoop.hbase.filter.CompareFilter;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
-import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
-import org.apache.hadoop.hbase.regionserver.ScanType;
-import org.apache.hadoop.hbase.regionserver.Store;
-import org.apache.hadoop.hbase.regionserver.StoreFile;
+import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
-import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.batch.WriteContext;
-import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.si.impl.WriteConflict;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Region Observer for managing indices.
@@ -74,7 +68,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
             //we can't update an index if the conglomerate id isn't positive--it's probably a temp table or something
             byte[] row = put.getRow();
-            List<KeyValue> data = put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES);
+            List<Cell> data = put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES);
             KVPair kv;
             if(data!=null&&data.size()>0){
                 byte[] value = CellUtil.cloneValue(data.get(0));

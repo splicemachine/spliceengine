@@ -59,4 +59,8 @@ class SortedBinaryDescriptorSerializer implements DescriptorSerializer{
 		public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
 				dvd.setValue(Encoding.decodeBytesUnsortd(data,offset,length));
 		}
+
+		@Override public boolean isScalarType() { return false; }
+		@Override public boolean isFloatType() { return false; }
+		@Override public boolean isDoubleType() { return false; }
 }

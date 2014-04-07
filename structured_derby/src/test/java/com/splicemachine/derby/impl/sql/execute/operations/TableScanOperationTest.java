@@ -15,6 +15,16 @@ import java.util.Random;
 
 import com.carrotsearch.hppc.BitSet;
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.utils.test.TestingDataType;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.utils.kryo.KryoPool;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -259,7 +269,7 @@ public class TableScanOperationTest {
             byte[] data = entryEncoder.encode();
             random.nextBytes(rowKey);
             retList.add(new KeyValue(rowKey, SpliceConstants.DEFAULT_FAMILY_BYTES,
-                    RowMarshaller.PACKED_COLUMN_KEY,data));
+                    SpliceConstants.PACKED_COLUMN_BYTES,data));
             correctRows.add(row);
         }
 

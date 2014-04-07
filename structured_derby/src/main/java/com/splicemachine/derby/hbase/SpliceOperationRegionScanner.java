@@ -38,14 +38,31 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.KeyDataHash;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public class SpliceOperationRegionScanner implements RegionScanner {
 		private static Logger LOG = Logger.getLogger(SpliceOperationRegionScanner.class);

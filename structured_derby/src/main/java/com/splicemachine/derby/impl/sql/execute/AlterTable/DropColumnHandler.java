@@ -52,7 +52,7 @@ public class DropColumnHandler implements WriteHandler {
     public void next(KVPair mutation, WriteContext ctx) {
 
         try {
-            KVPair newPair = null;
+            KVPair newPair;
             if (mutation.getType() == KVPair.Type.DELETE){
                 newPair = mutation;
             }
