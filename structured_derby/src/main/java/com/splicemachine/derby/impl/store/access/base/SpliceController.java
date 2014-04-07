@@ -212,19 +212,21 @@ public abstract class SpliceController implements ConglomerateController {
 				if(entryEncoder==null){
 //						BitSet nonNullColumns = EncodingUtils.getNonNullColumns(row, validColumns);
 						int[] validCols = null;
-						if(columns!=null){
-								validCols = new int[columns.length];
-								Arrays.fill(validCols,-1);
-								for(int i=validColumns.anySetBit();i>=0;i=validColumns.anySetBit(i)){
-										validCols[i] = columns[i];
-								}
-						}else if(validColumns!=null){
-								validCols = new int[validColumns.getLength()];
-								Arrays.fill(validCols,-1);
-								for(int i=validColumns.anySetBit();i>=0;i=validColumns.anySetBit(i)){
-										validCols[i] = i;
-								}
-						}
+						validCols = SpliceUtils.bitSetToMap(validColumns);
+//						if(columns!=null){
+//								validCols = new int[columns.length];
+//
+//								Arrays.fill(validCols,-1);
+//								for(int i=validColumns.anySetBit();i>=0 && i<validCols.length;i=validColumns.anySetBit(i)){
+//										validCols[i] = columns[i];
+//								}
+//						}else if(validColumns!=null){
+//								validCols = new int[validColumns.getLength()];
+//								Arrays.fill(validCols,-1);
+//								for(int i=validColumns.anySetBit();i>=0;i=validColumns.anySetBit(i)){
+//										validCols[i] = i;
+//								}
+//						}
 						DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(row);
 						entryEncoder = new EntryDataHash(validCols,null,serializers);
 				}

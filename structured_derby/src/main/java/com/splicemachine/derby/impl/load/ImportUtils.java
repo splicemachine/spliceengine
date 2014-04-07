@@ -182,7 +182,7 @@ public class ImportUtils {
 				String colDefault = rs.getString(COLUMNDEFAULT_POSIITON);
 				String isAutoIncrement = rs.getString(ISAUTOINCREMENT_POSIITON);
 				boolean hasIncrementPrefix = colDefault!=null && colDefault.startsWith(AUTOINCREMENT_PREFIX);
-				if (isAutoIncrement.compareTo("YES") != 0 || !hasIncrementPrefix) {
+				if (!"YES".equals(isAutoIncrement) || !hasIncrementPrefix) {
 						colBuilder.columnDefault(colDefault);
 				}else if (hasIncrementPrefix){
 						//colDefault looks like "AUTOINCREMENT: start x increment y

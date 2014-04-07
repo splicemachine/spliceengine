@@ -17,6 +17,34 @@ public class IntArrays {
 				}
 				return complement;
 		}
+
+		public static int[] complementMap(int[] map, int size){
+				int numMissingFields = 0;
+				for(int mapPos:map){
+						if(mapPos>=0) numMissingFields++;
+				}
+
+				int mapSize = size-numMissingFields;
+				assert mapSize>0: "Incorrent map size";
+				int[] finalData = new int[mapSize];
+				int pos=0,i=0;
+				while(i<map.length){
+						int mapPos = map[i];
+						if(mapPos<0){
+								finalData[pos] = i;
+								pos++;
+
+						}
+						i++;
+				}
+				while(pos<mapSize){
+						finalData[pos]=i;
+						i++;
+						pos++;
+				}
+				return finalData;
+		}
+
 		public static int[] intersect(int[] map,int size){
 			int[] intersect = negativeInitialize(size);
 			for(int pos:map){

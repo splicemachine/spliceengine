@@ -27,6 +27,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.NavigableSet;
 
@@ -52,6 +53,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		protected MultiFieldDecoder keyDecoder;
 		protected EntryPredicateFilter predicateFilter;
 		private boolean cachedPredicateFilter = false;
+		protected int[] keyColumns;
 
 		public ScanOperation () {
 				super();
@@ -192,6 +194,25 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				deSiify(scan);
 				return scan;
 		}
+
+		protected int[] getKeyColumns() throws StandardException {
+				if(keyColumns==null){
+						FormatableBitSet pkCols = scanInformation.getAccessedPkColumns();
+						int[] pkOrder = scanInformation.getColumnOrdering();
+						int[] pkColMap = new int[pkCols.getLength()];
+						Arrays.fill(pkColMap, -1);
+						for(int i=0,pos=0;i<pkOrder.length;i++){
+								int keyPosition = pkOrder[i];
+								if(pkCols.get(keyPosition)){
+										pkColMap[keyPosition] = pos;
+										pos++;
+								}
+						}
+						keyColumns = pkColMap;
+				}
+				return keyColumns;
+		}
+
 
 		protected void deSiify(Scan scan) {
 				/*

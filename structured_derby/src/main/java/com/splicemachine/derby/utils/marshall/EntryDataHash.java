@@ -57,6 +57,7 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 				BitSet doubleFields = new BitSet(nCols);
 				int i=0;
 				for(DataValueDescriptor field:fields){
+						if(field==null) continue;
 						if(DerbyBytesUtil.isScalarType(field, null))
 								scalarFields.set(i);
 						else if(DerbyBytesUtil.isFloatType(field))
@@ -72,7 +73,7 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 				notNullFields.clear();
 				int i=0;
 				for(DataValueDescriptor dvd:row.getRowArray()){
-						if(!dvd.isNull()){
+						if(dvd!=null &&!dvd.isNull()){
 								if(keyColumns==null||i>=keyColumns.length || keyColumns[i]!=-1)
 										notNullFields.set(i);
 						}

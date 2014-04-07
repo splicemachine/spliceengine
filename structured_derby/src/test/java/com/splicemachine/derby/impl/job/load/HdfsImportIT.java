@@ -117,7 +117,9 @@ public class HdfsImportIT extends SpliceUnitTest {
   // test bad records at threshold and beyond threshold
 
     private void testImport(String schemaName, String tableName,String location,String colList) throws Exception {
-        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s','%s',null, '%s',',',null,null,null,null)",schemaName,tableName,colList,location));
+				String statement = format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s','%s',null, '%s',',',null,null,null,null)", schemaName, tableName, colList, location);
+				System.out.printf("%s:%s,%s,%s,%s",statement,schemaName,tableName,location,colList);
+				PreparedStatement ps = methodWatcher.prepareStatement(statement);
         ps.execute();
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",schemaName,tableName));
         List<String> results = Lists.newArrayList();

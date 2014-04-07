@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.jdbc.CharacterStreamDescriptor;
@@ -11,7 +10,6 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.text.RuleBasedCollator;
 
 public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor implements StringDataValue{
@@ -22,24 +20,24 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
 
     public LazyStringDataValueDescriptor(){}
 
-    public LazyStringDataValueDescriptor(StringDataValue sdv, DVDSerializer dvdSerializer){
-        init(sdv, dvdSerializer);
+    public LazyStringDataValueDescriptor(StringDataValue sdv){
+        init(sdv);
     }
 
     /**
      * Initializes the Lazy String DVD, needs to call super to make sure the dvd on
      * the parent is set properly.
      *
-     * @param sdv
-     * @param dvdSerializer
-     */
-    protected void init(StringDataValue sdv, DVDSerializer dvdSerializer){
-        super.init(sdv, dvdSerializer);
+		 * @param sdv
+		 *
+		 */
+    protected void init(StringDataValue sdv){
+        super.init(sdv);
         this.sdv = sdv;
     }
 
     protected StringDataValue unwrap(StringDataValue sdv){
-        StringDataValue unwrapped = null;
+        StringDataValue unwrapped;
 
         if(sdv instanceof LazyStringDataValueDescriptor){
             LazyStringDataValueDescriptor ldvd = (LazyStringDataValueDescriptor) sdv;
@@ -93,7 +91,10 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
         }
     }
 
-    @Override
+		@Override public boolean isDoubleType() { return false; }
+		@Override public DataValueFactoryImpl.Format getFormat() { return dvd.getFormat(); }
+
+		@Override
     public StringDataValue concatenate(StringDataValue leftOperand, StringDataValue rightOperand, StringDataValue result) throws StandardException {
         forceDeserialization();
         return sdv.concatenate(unwrap(leftOperand), unwrap(rightOperand), result);
@@ -194,18 +195,18 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
     @Override
     public DataValueDescriptor cloneHolder() {
         forceDeserialization();
-        return new LazyStringDataValueDescriptor((StringDataValue) sdv.cloneHolder(), dvdSerializer);
+        return new LazyStringDataValueDescriptor((StringDataValue) sdv.cloneHolder());
     }
 
     @Override
     public DataValueDescriptor cloneValue(boolean forceMaterialization) {
     	if (this.isSerialized()) {
-    		LazyStringDataValueDescriptor lsdv = new LazyStringDataValueDescriptor((StringDataValue) sdv.cloneHolder(), dvdSerializer);
-    		lsdv.initForDeserialization(bytes.array(), bytes.offset(), bytes.length(), descendingOrder);
+    		LazyStringDataValueDescriptor lsdv = new LazyStringDataValueDescriptor((StringDataValue) sdv.cloneHolder());
+    		lsdv.initForDeserialization(tableVersion,bytes.array(), bytes.offset(), bytes.length(), descendingOrder);
     		return lsdv;
     	}
     	forceDeserialization();
-    	return new LazyStringDataValueDescriptor((StringDataValue)  sdv.cloneValue(forceMaterialization), dvdSerializer);
+    	return new LazyStringDataValueDescriptor((StringDataValue)  sdv.cloneValue(forceMaterialization));
     }
 
     @Override
@@ -216,17 +217,16 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
 
     @Override
     public DataValueDescriptor getNewNull() {
-        return new LazyStringDataValueDescriptor((StringDataValue) sdv.getNewNull(), dvdSerializer);
+        return new LazyStringDataValueDescriptor((StringDataValue) sdv.getNewNull());
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 
         super.readExternal(in);
-        DVDSerializer extSerializer = LazyDataValueFactory.getDVDSerializer(typeFormatId);
 
-        sdv = (StringDataValue)dvd;
-        init(sdv, extSerializer);
+				sdv = (StringDataValue)dvd;
+        init(sdv);
     }
 
     public String toString() {

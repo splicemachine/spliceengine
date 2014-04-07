@@ -154,6 +154,7 @@ public class InsertOperationTest {
         DMLWriteInfo writeInfo = mock(DMLWriteInfo.class);
         when(writeInfo.getPkColumnMap()).thenReturn(usePks? primaryKeys:null);
         when(writeInfo.getPkColumns()).thenReturn(usePks? DerbyDMLWriteInfo.fromIntArray(primaryKeys):null);
+				when(writeInfo.getTableVersion()).thenReturn("2.0");
 
         final List<ExecRow> rowsToWrite = Lists.newArrayList(correctOutputRows);
 

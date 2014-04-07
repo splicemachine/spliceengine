@@ -24,7 +24,6 @@ public class LazyDataValueFactoryTest {
         Assert.assertEquals(value, dvd.getString());
         Assert.assertEquals(value, dvd2.getString());
 
-        Assert.assertTrue(dvd.getDVDSerializer() == dvd2.getDVDSerializer());
     }
 
     @Test
@@ -40,19 +39,6 @@ public class LazyDataValueFactoryTest {
         Assert.assertEquals(dvd2.getString(), "bar");
 
         Assert.assertTrue(dvd == dvd2);
-    }
-
-    @Test
-    public void testGetVarcharDataValueNewSerializerInstance() throws Exception {
-
-        LazyStringDataValueDescriptor dvd1 = (LazyStringDataValueDescriptor) lfac.getVarcharDataValue("foo");
-        final DVDSerializer serializer1 = dvd1.getDVDSerializer();
-
-        LazyStringDataValueDescriptor dvd2 = (LazyStringDataValueDescriptor) lfac.getVarcharDataValue("foo");
-        final DVDSerializer serializer2 = dvd2.getDVDSerializer();
-
-        //Getting a DVDSerializer from the same thread should get the same instance
-        Assert.assertTrue(serializer1 == serializer2);
     }
 
 }

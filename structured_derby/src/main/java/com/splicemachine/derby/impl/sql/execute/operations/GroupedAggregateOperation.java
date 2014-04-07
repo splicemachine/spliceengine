@@ -216,7 +216,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				}){
 						@Override
 						public KeyHashDecoder getDecoder() {
-								DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(), false).getSerializers(sortTemplateRow);
+								DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(sortTemplateRow);
 								return BareKeyHash.decoder(groupedAggregateContext.getGroupingKeys(),
 												groupedAggregateContext.getGroupingKeyOrder(),
 												serializers
@@ -289,8 +289,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				 * Only encode the fields which aren't grouped into the row.
 				 */
 				ExecRow defn = getExecRowDefinition();
-				int[] nonGroupedFields = IntArrays.complement(groupedAggregateContext.getGroupingKeys(),defn.nColumns());
-				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false).getSerializers(defn);
+				int[] nonGroupedFields = IntArrays.complementMap(groupedAggregateContext.getGroupingKeys(),defn.nColumns());
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(defn);
 				return BareKeyHash.encoder(nonGroupedFields,null,serializers);
 		}
 

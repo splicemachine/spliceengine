@@ -533,6 +533,7 @@ public class HdfsImport {
 						if(td==null)
 								throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException(tableName));
 						long conglomerateId = td.getHeapConglomerateId();
+						builder.tableVersion(td.getVersion());
 						builder.destinationTable(conglomerateId);
 						RowLocation[] rowLocations = dataDictionary.computeAutoincRowLocations(tc, td);
 						byte[][] rowLocBytes;
