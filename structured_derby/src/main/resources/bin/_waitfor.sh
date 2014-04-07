@@ -1,61 +1,46 @@
 #!/bin/bash
 
-_isready() {
-    logLocationPat=$1
-    logFailedLine=$2
-    logReadyLine=$3
+LOGFILE="$1"
+TIMEOUT="$2"
+LOG_SUCCESS="$3"
+LOG_FAILED="$4"
+if [[ ${TIMEOUT} -le 0 ]]; then
+    echo "TIMEOUT value must be positive"
+    exit 1;
+fi
 
-    OLDIFS=$IFS
-    IFS=$'\n'
-    # Failed
-    failed=`grep "${logFailedLine}" "$logLocationPat"`
-    # Ready
-    line=`grep "${logReadyLine}" "$logLocationPat"`
-    IFS=${OLDIFS}
-
-    if [ -n "${failed}" ]; then
-        # Error in log - fail
-        #echo "Failed: ${failed}"
-        return 2;
-    fi
-
-    if [ -z "${line}" ]; then
-        # Still trying to start - unknown
-        return 1;
-    else
-        # Started, ready - success
-        return 0;
-    fi
-}
-
-ROOT_DIR="$1"
-LOGFILE="$2"
-TIMEOUT=$3
-
-# number of seconds we should wait between check on ready status
-interval=2
+# number of seconds we should wait between checks on clean status
+INTERVAL=2
+# total number of seconds we should wait for clean status
 ((t = TIMEOUT))
 while ((t > 0)); do
-    # Show something while we wait
-    echo -ne "."
-    sleep ${interval}
+    # Poll the log to check for success msg
+    OLDIFS=$IFS
+    IFS=$'\n'
+    if [[ -n ${LOG_FAILED} ]]; then
+        # Failed
+        FAILED=`grep "${LOG_FAILED}" "${LOGFILE}"`
+        if [ -n "${FAILED}" ]; then
+            # Error in log - fail
+            IFS=${OLDIFS}
+            exit 1;
+        fi
+    fi
 
-    _isready "${LOGFILE}" 'Master not active after' 'Ready to accept connections'
-    # save return value
-    rCode=$?
-
-    if [[ ${rCode} -eq 0 ]]; then
-        # started
-        echo
+    # Ready
+    SUCCESS=`grep "${LOG_SUCCESS}" "${LOGFILE}"`
+    IFS=${OLDIFS}
+    if [ -n "${SUCCESS}" ]; then
+        # Started, ready - success
         exit 0;
     fi
-    if [[ ${rCode} -eq 2 ]]; then
-        # error starting but processes running - return to retry
-        exit 1;
-    fi
-    # Still coming up... continue;
 
-    ((t -= interval))
+    # Show something while we wait
+    echo -ne "."
+    sleep ${INTERVAL}
+
+    # Still coming up... continue;
+    ((t -= INTERVAL))
 done
 # did not start in allotted timeout - error
 exit 1;
