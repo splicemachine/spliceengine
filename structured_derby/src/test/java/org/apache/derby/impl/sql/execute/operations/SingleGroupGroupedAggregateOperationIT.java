@@ -60,7 +60,7 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 			            }
 			        }
 			        spliceClassWatcher.commit();
-			        spliceClassWatcher.splitTable(TABLE_NAME_1,CLASS_NAME,size/3);
+//			        spliceClassWatcher.splitTable(TABLE_NAME_1,CLASS_NAME,size/3);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}

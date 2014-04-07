@@ -311,7 +311,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     @Override
     public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				SerializerMap serializerMap = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false);
+				SerializerMap serializerMap = VersionedSerializers.latestVersion(false);
         if (spliceRuntimeContext.isLeft(resultSetNumber)) {
             return getKeyEncoder(JoinSide.LEFT, leftHashKeys, spliceRuntimeContext.getCurrentTaskId(),serializerMap.getSerializers(leftRow));
         } else
@@ -320,7 +320,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     @Override
     public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				SerializerMap serializerMap = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false);
+				SerializerMap serializerMap = VersionedSerializers.latestVersion(false);
         if (spliceRuntimeContext.isLeft(resultSetNumber)) {
             return BareKeyHash.encoder(IntArrays.complement(leftHashKeys, leftNumCols), null,serializerMap.getSerializers(leftRow));
         } else

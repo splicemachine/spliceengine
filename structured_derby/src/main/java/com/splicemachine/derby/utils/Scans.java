@@ -126,7 +126,7 @@ public class Scans extends SpliceUtils {
 				try{
 						attachScanKeys(scan, startKeyValue, startSearchOperator,
 										stopKeyValue, stopSearchOperator,
-										scanColumnList, sortOrder, formatIds, columnOrdering, dataValueFactory);
+										scanColumnList, sortOrder, formatIds, columnOrdering, dataValueFactory, tableVersion);
 
 						buildPredicateFilter(startKeyValue, startSearchOperator, qualifiers, scanColumnList, columnOrdering, formatIds, scan,tableVersion);
 				}catch(IOException e){
@@ -286,7 +286,7 @@ public class Scans extends SpliceUtils {
 																			 DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
 																			 FormatableBitSet scanColumnList,
 																			 boolean[] sortOrder,
-																			 int[] formatIds, int[] columnOrdering, DataValueFactory dataValueFactory) throws IOException {
+																			 int[] formatIds, int[] columnOrdering, DataValueFactory dataValueFactory, String tableVersion) throws IOException {
 				if(scanColumnList!=null && (scanColumnList.anySetBit() != -1)) {
 						scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES);
 				}
@@ -319,9 +319,9 @@ public class Scans extends SpliceUtils {
 						}
 
 						if(generateKey){
-								byte[] startRow = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder,null);
+								byte[] startRow = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder,tableVersion);
 								scan.setStartRow(startRow);
-								byte[] stopRow = DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue, stopSearchOperator, sortOrder,null);
+								byte[] stopRow = DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue, stopSearchOperator, sortOrder,tableVersion);
 								scan.setStopRow(stopRow);
 								if(startRow==null)
 										scan.setStartRow(HConstants.EMPTY_START_ROW);

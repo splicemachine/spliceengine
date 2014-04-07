@@ -176,7 +176,8 @@ public class LastIndexKeyOperation extends ScanOperation {
 								RegionScanner scanner = tentativeScanner!=null? tentativeScanner: regionScanner;
 								tableScanner = new SITableScanner(scanner,currentRow,
 												spliceRuntimeContext,contextScan,baseColumnMap,
-												transactionID,scanInformation.getAccessedPkColumns(),indexName);
+												transactionID,getKeyColumns(),scanInformation.getAccessedPkColumns(),indexName,
+												scanInformation.getTableVersion());
 						}
 
 						// First we try to get the last row starting close to the end of the region

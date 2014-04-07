@@ -186,8 +186,19 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 						};
 
 						buffer =  new DistinctSortAggregateBuffer(SpliceConstants.ringBufferSize,null,supplier,spliceRuntimeContext);
-//						ScannerIterator source = new ScannerIterator(regionScanner, template, operationInformation.getBaseColumnMap(), scanInformation);
-						StandardIterator<ExecRow> source = new SITableScanner(regionScanner,template,spliceRuntimeContext,scan,keyColumns,transactionID,scanInformation.getAccessedPkColumns(),null);
+						FormatableBitSet cols = scanInformation.getAccessedColumns();
+						int[] colMap;
+						if(cols!=null){
+								colMap = new int[cols.getLength()];
+								Arrays.fill(colMap,-1);
+								for(int i=cols.anySetBit(),pos=0;i>=0;i=cols.anySetBit(i),pos++){
+										colMap[i] = pos;
+								}
+						}else
+							colMap = keyColumns;
+						StandardIterator<ExecRow> source = new SITableScanner(regionScanner,template,spliceRuntimeContext,scan,
+										colMap,
+										transactionID,getKeyColumns(),scanInformation.getAccessedPkColumns(),indexName,scanInformation.getTableVersion());
 						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(template);
 						KeyEncoder encoder = KeyEncoder.bare(keyColumns,null,serializers);
 						sinkIterator = new SinkSortIterator(buffer, source,encoder);
@@ -311,7 +322,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 		 */
 		protected PairDecoder getTempDecoder(SpliceRuntimeContext ctx) throws StandardException {
 				ExecRow templateRow = getExecRowDefinition();
-				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(ctx.tableVersion(), false).getSerializers(templateRow);
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(templateRow);
 				PairDecoder decoder;
 				KeyDecoder actualKeyDecoder = new KeyDecoder(BareKeyHash.decoder(keyColumns, null, serializers),9);
 				KeyHashDecoder actualRowDecoder =  BareKeyHash.decoder(IntArrays.complement(keyColumns, templateRow.nColumns()),null,serializers);
@@ -369,7 +380,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				ExecRow execRowDefinition = getExecRowDefinition();
-				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false).getSerializers(execRowDefinition);
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(execRowDefinition);
 				return BareKeyHash.encoder(IntArrays.complement(keyColumns, execRowDefinition.nColumns()),null,serializers);
 		}
 

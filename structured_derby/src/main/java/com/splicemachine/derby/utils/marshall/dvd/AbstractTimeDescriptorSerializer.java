@@ -1,8 +1,5 @@
 package com.splicemachine.derby.utils.marshall.dvd;
 
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
 import java.util.Calendar;

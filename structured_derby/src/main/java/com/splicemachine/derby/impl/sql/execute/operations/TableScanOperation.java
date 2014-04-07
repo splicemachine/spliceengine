@@ -54,7 +54,6 @@ public class TableScanOperation extends ScanOperation {
 		static { nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN); }
 
 		private int[] baseColumnMap;
-		private int[] keyColumns;
 
 		private Scan scan;
 
@@ -165,41 +164,41 @@ public class TableScanOperation extends ScanOperation {
 		@Override
 		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 
-            columnOrdering = scanInformation.getColumnOrdering();
-            if(columnOrdering != null && columnOrdering.length > 0) {
-								getKeyColumns();
-            }
-		    /*
-			 * Table Scans only use a key encoder when encoding to SpliceOperationRegionScanner,
-			 * in which case, the KeyEncoder should be either the row location of the last emitted
-		     * row, or a random field (if no row location is specified).
-			 */
-				DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
-						@Override
-						public byte[] get() throws StandardException {
-								if(currentRowLocation!=null)
-										return currentRowLocation.getBytes();
-								return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-						}
-				});
-            return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
+				DataHash hash;
+				columnOrdering = scanInformation.getColumnOrdering();
+				if(columnOrdering != null && columnOrdering.length > 0) {
+						getKeyColumns();
+						hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+								@Override
+								public byte[] get() throws StandardException {
+										if(currentRowLocation!=null)
+												return currentRowLocation.getBytes();
+										return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+								}
+						}){
+								@Override
+								public KeyHashDecoder getDecoder() {
+										try {
+												DescriptorSerializer[] serializers = VersionedSerializers.forVersion(scanInformation.getTableVersion(),true).getSerializers(currentRow);
+												return BareKeyHash.decoder(scanInformation.getColumnOrdering(),null,serializers);
+										} catch (StandardException e) {
+												throw new RuntimeException(e);
+										}
+								}
+						};
+				}else{
+						hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+								@Override
+								public byte[] get() throws StandardException {
+										if(currentRowLocation!=null)
+												return currentRowLocation.getBytes();
+										return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+								}
+						});
+				}
+				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
 		}
 
-		protected int[] getKeyColumns() throws StandardException {
-				if(keyColumns==null){
-						columnOrdering = scanInformation.getColumnOrdering();
-						keyColumns = new int[columnOrdering.length];
-						for (int i = 0; i < keyColumns.length; ++i) {
-								keyColumns[i] = -1;
-						}
-						for (int i = 0; i < keyColumns.length; ++i) {
-                            if(columnOrdering[i] < baseColumnMap.length) {
-                                keyColumns[i] = baseColumnMap[columnOrdering[i]];
-                            }
-						}
-				}
-				return keyColumns;
-		}
 
 		private int[] getDecodingColumns(int n) {
 				int[] columns = new int[baseColumnMap.length];
@@ -218,7 +217,7 @@ public class TableScanOperation extends ScanOperation {
                 columnOrdering = scanInformation.getColumnOrdering();
 				ExecRow defnRow = getExecRowDefinition();
 				int [] cols = getDecodingColumns(defnRow.nColumns());
-				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false).getSerializers(defnRow);
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(defnRow);
 				return BareKeyHash.encoder(cols,null,serializers);
 		}
 
@@ -258,7 +257,10 @@ public class TableScanOperation extends ScanOperation {
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException {
 				if(tableScanner==null){
-						tableScanner = new SITableScanner(regionScanner,currentRow,spliceRuntimeContext,scan,baseColumnMap,transactionID,scanInformation.getAccessedPkColumns(),indexName);
+						tableScanner = new SITableScanner(regionScanner,currentRow,
+										spliceRuntimeContext,scan,baseColumnMap,
+										transactionID,scanInformation.getAccessedPkColumns(),indexName,
+										scanInformation.getTableVersion());
 				}
 
 				currentRow = tableScanner.next(spliceRuntimeContext);

@@ -23,11 +23,14 @@ import com.splicemachine.stats.TimeView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
+import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.DynamicCompiledOpenConglomInfo;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
@@ -89,6 +92,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		private static final MetricName scanName = new MetricName("com.splicemachine.operations","indexLookup","totalTime");
 		private final Timer totalTimer = SpliceDriver.driver().getRegistry().newTimer(scanName,TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
 		private IndexRowReader reader;
+		private String mainTableVersion = "1.0"; //TODO -sf- make this configured
 
 
 		public IndexRowToBaseRowOperation () {
@@ -223,6 +227,12 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 						SpliceLogUtils.trace(LOG,"accessedAllCols=%s,accessedHeapCols=%s,heapOnlyCols=%s,accessedCols=%s",accessedAllCols,accessedHeapCols,heapOnlyCols,accessedCols);
 						SpliceLogUtils.trace(LOG,"rowArray=%s,compactRow=%s,resultRow=%s,resultSetNumber=%d",
 										Arrays.asList(rowArray),compactRow,resultRow,resultSetNumber);
+
+						//get the mainTable version
+						DataDictionary dataDictionary = activation.getLanguageConnectionContext().getDataDictionary();
+						UUID tableID = dataDictionary.getConglomerateDescriptor(conglomId).getTableID();
+						TableDescriptor td = dataDictionary.getTableDescriptor(tableID);
+						mainTableVersion = td.getVersion();
 				} catch (StandardException e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!",e);
 				}
@@ -297,7 +307,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				int[] nonPkCols = getAccessedNonPkColumns();
-				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),true).getSerializers(compactRow);
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(mainTableVersion,true).getSerializers(compactRow);
 				return BareKeyHash.encoder(nonPkCols,null,serializers);
 
 		}
@@ -353,7 +363,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 										getTransactionID(),
 										indexCols,
 										operationInformation.getBaseColumnMap(),heapOnlyCols,
-										spliceRuntimeContext, getColumnOrdering(), getFormatIds());
+										spliceRuntimeContext, getColumnOrdering(), getFormatIds(), mainTableVersion);
 				}
 
 				timer.startTiming();

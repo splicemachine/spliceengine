@@ -39,12 +39,12 @@ class DecimalDescriptorSerializer implements DescriptorSerializer {
 
 		@Override
 		public void decode(MultiFieldDecoder fieldDecoder, DataValueDescriptor destDvd, boolean desc) throws StandardException {
-				destDvd.setValue(fieldDecoder.decodeNextBigDecimal(desc));
+				destDvd.setBigDecimal(fieldDecoder.decodeNextBigDecimal(desc));
 		}
 
 		@Override
 		public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
-				dvd.setValue(Encoding.decodeBigDecimal(data,offset,length,desc));
+				dvd.setBigDecimal(Encoding.decodeBigDecimal(data,offset,length,desc));
 		}
 
 		@Override public boolean isScalarType() { return false; }

@@ -85,7 +85,7 @@ public class RowTransformer {
         }
     }
 
-    private void initEncoder() {
+    private void initEncoder() throws StandardException {
 				String tableVersion = DataDictionaryUtils.getTableVersion(txnId,tableId);
 				DescriptorSerializer[] oldSerializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(oldRow);
 

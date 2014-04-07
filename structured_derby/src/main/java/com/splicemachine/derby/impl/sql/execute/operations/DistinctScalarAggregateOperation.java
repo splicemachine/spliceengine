@@ -340,7 +340,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 						@Override
 						public KeyDecoder getDecoder(){
 								try {
-										return new KeyDecoder(getKeyHashDecoder(spliceRuntimeContext),prefix.getPrefixLength());
+										return new KeyDecoder(getKeyHashDecoder(),prefix.getPrefixLength());
 								} catch (StandardException e) {
 										SpliceLogUtils.logAndThrowRuntime(LOG,e);
 								}
@@ -348,9 +348,9 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 						}};
 		}
 
-		private KeyHashDecoder getKeyHashDecoder(SpliceRuntimeContext ctx) throws StandardException {
+		private KeyHashDecoder getKeyHashDecoder() throws StandardException {
 				ExecRow execRowDefinition = getExecRowDefinition();
-				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(ctx.tableVersion(),false).getSerializers(execRowDefinition);
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(execRowDefinition);
 				int[] rowColumns = IntArrays.intersect(keyColumns, execRowDefinition.nColumns());
 				return EntryDataDecoder.decoder(rowColumns, null,serializers);
 		}
@@ -360,7 +360,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				ExecRow execRowDefinition = getExecRowDefinition();
 				int[] rowColumns = IntArrays.complement(keyColumns, execRowDefinition.nColumns());
-				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false).getSerializers(execRowDefinition);
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(execRowDefinition);
 				return BareKeyHash.encoder(rowColumns,null,serializers);
 		}
 

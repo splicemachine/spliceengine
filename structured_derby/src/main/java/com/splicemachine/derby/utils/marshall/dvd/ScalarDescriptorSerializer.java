@@ -87,13 +87,13 @@ public class ScalarDescriptorSerializer implements DescriptorSerializer{
 		public void decodeDirect(DataValueDescriptor destDvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
 				switch(destDvd.getTypeFormatId()){
 						case StoredFormatIds.SQL_TINYINT_ID:
-								destDvd.setValue(Encoding.decodeByte(data, offset, desc));
+								destDvd.setValue(Encoding.decodeByte(data, offset, desc));return;
 						case StoredFormatIds.SQL_SMALLINT_ID:
-								destDvd.setValue(Encoding.decodeShort(data,offset,desc));
+								destDvd.setValue(Encoding.decodeShort(data,offset,desc)); return;
 						case StoredFormatIds.SQL_INTEGER_ID:
-								destDvd.setValue(Encoding.decodeInt(data,offset,desc));
+								destDvd.setValue(Encoding.decodeInt(data,offset,desc)); return;
 						case StoredFormatIds.SQL_LONGINT_ID:
-								destDvd.setValue(Encoding.decodeLong(data,offset,desc));
+								destDvd.setValue(Encoding.decodeLong(data,offset,desc)); return;
 						default:
 								throw new IllegalArgumentException("Attempted to decode into a descriptor which does not have a scalar type format id");
 				}

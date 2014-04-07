@@ -23,7 +23,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
  */
 interface ScanInformation<T> {
 
-    void initialize(SpliceOperationContext opContext);
+    void initialize(SpliceOperationContext opContext) throws StandardException;
 
     ExecRow getResultRow() throws StandardException;
 
@@ -52,5 +52,5 @@ interface ScanInformation<T> {
 
     SpliceConglomerate getConglomerate() throws StandardException;
 
-    DataValueDescriptor[] getKeyColumnDVDs() throws StandardException;
+		String getTableVersion() throws StandardException;
 }

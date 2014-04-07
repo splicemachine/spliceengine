@@ -13,15 +13,17 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
  */
 public class LazyDescriptorSerializer implements DescriptorSerializer {
 		protected final DescriptorSerializer delegate;
+		protected final String tableVersion;
 
-		public LazyDescriptorSerializer(DescriptorSerializer delegate) {
+		public LazyDescriptorSerializer(DescriptorSerializer delegate, String tableVersion) {
 				this.delegate = delegate;
+				this.tableVersion = tableVersion;
 		}
 
 
-		public static Factory singletonFactory(final Factory delegateFactory){
+		public static Factory singletonFactory(final Factory delegateFactory,String tableVersion){
 				DescriptorSerializer delegate = delegateFactory.newInstance();
-				final LazyDescriptorSerializer me = new LazyDescriptorSerializer(delegate);
+				final LazyDescriptorSerializer me = new LazyDescriptorSerializer(delegate, tableVersion);
 				return new Factory() {
 						@Override
 						public DescriptorSerializer newInstance() {
@@ -37,15 +39,19 @@ public class LazyDescriptorSerializer implements DescriptorSerializer {
 		public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
 				if(dvd.isLazy()){
 						LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor)dvd;
-						ldvd.encodeInto(fieldEncoder,desc);
+
+						ldvd.encodeInto(fieldEncoder,desc,tableVersion);
 				}else
 						delegate.encode(fieldEncoder,dvd,desc);
 		}
 
 		@Override
 		public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
-				if(dvd.isLazy())
-						return dvd.getBytes();
+				if(dvd.isLazy()){
+						LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) dvd;
+						ldvd.setSerializer(VersionedSerializers.forVersion(tableVersion,true).getEagerSerializer(dvd.getTypeFormatId()));
+						return ldvd.getBytes(desc, tableVersion);
+				}
 				else return delegate.encodeDirect(dvd,desc);
 		}
 
@@ -56,7 +62,7 @@ public class LazyDescriptorSerializer implements DescriptorSerializer {
 						int offset = fieldDecoder.offset();
 						DerbyBytesUtil.skipField(fieldDecoder, destDvd);
 						int length = fieldDecoder.offset()-offset-1;
-						ldvd.initForDeserialization(fieldDecoder.array(),offset,length,desc);
+						ldvd.initForDeserialization(tableVersion,fieldDecoder.array(),offset,length,desc);
 				}else
 						delegate.decode(fieldDecoder,destDvd,desc);
 		}
@@ -65,7 +71,7 @@ public class LazyDescriptorSerializer implements DescriptorSerializer {
 		public void decodeDirect(DataValueDescriptor destDvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
 				if(destDvd.isLazy()){
 						LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor)destDvd;
-						ldvd.initForDeserialization(data,offset,length,desc);
+						ldvd.initForDeserialization(tableVersion, data, offset, length, desc);
 				}else
 						delegate.decodeDirect(destDvd,data,offset,length,desc);
 		}

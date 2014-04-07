@@ -287,7 +287,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 						SpliceUtils.setInstructions(reduceScan,getActivation(),top,spliceRuntimeContext);
 						KeyDecoder kd = new KeyDecoder(NoOpKeyHashDecoder.INSTANCE,0);
 						ExecRow topExecRowDefinition = top.getExecRowDefinition();
-						DescriptorSerializer[] topSerializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false).getSerializers(topExecRowDefinition);
+						DescriptorSerializer[] topSerializers = VersionedSerializers.latestVersion(false).getSerializers(topExecRowDefinition);
 						decoder = new PairDecoder(kd,BareKeyHash.decoder(IntArrays.count(topExecRowDefinition.nColumns()),null,topSerializers), topExecRowDefinition);
 				}else{
 						decoder = getTempDecoder();
@@ -328,7 +328,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 						});
 						postfix = NoOpPostfix.INSTANCE;
 				}else{
-						DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false).getSerializers(getExecRowDefinition());
+						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(getExecRowDefinition());
 						hash = BareKeyHash.encoder(keyColumns,descColumns,serializers);
 						postfix = new UniquePostfix(spliceRuntimeContext.getCurrentTaskId());
 				}

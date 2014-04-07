@@ -153,20 +153,15 @@ public class BroadcastJoinOperation extends JoinOperation {
                 return row;
             }
         });
-				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(rightRow);
-        final KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE,
-                                                  BareKeyHash
-                                                      .encoder(leftHashKeys, null,serializers),
-                                                  NoOpPostfix.INSTANCE);
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(leftRow);
+				final KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(leftHashKeys, null,serializers), NoOpPostfix.INSTANCE);
         Function<ExecRow,List<ExecRow>> lookup = new Function<ExecRow, List<ExecRow>>() {
             @Override
             public List<ExecRow> apply(ExecRow leftRow) {
                 try {
                     return rightSideMap.get(ByteBuffer.wrap(keyEncoder.getKey(leftRow)));
                 } catch (Exception e) {
-                    throw new RuntimeException(String.format("Unable to lookup %s in" +
-                                                                 " Broadcast map", leftRow),
-                                                  e);
+                    throw new RuntimeException(String.format("Unable to lookup %s in" + " Broadcast map", leftRow), e);
                 }
             }
         };

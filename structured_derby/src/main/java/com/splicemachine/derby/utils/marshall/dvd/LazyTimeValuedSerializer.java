@@ -10,13 +10,13 @@ import java.util.Calendar;
  */
 public class LazyTimeValuedSerializer extends LazyDescriptorSerializer implements TimeValuedSerializer {
 
-		public LazyTimeValuedSerializer(TimeValuedSerializer delegate) {
-				super(delegate);
+		public LazyTimeValuedSerializer(TimeValuedSerializer delegate,String tableVersion) {
+				super(delegate, tableVersion);
 		}
 
-		public static <T extends TimeValuedSerializer> Factory newFactory(final Factory<T> delegateFactory){
+		public static <T extends TimeValuedSerializer> Factory newFactory(final Factory<T> delegateFactory, final String tableVersion){
 				return new Factory() {
-						@Override public DescriptorSerializer newInstance() { return new LazyTimeValuedSerializer(delegateFactory.newInstance()); }
+						@Override public DescriptorSerializer newInstance() { return new LazyTimeValuedSerializer(delegateFactory.newInstance(),tableVersion); }
 						@Override public boolean applies(DataValueDescriptor dvd) { return delegateFactory.applies(dvd); }
 						@Override public boolean applies(int typeFormatId) { return delegateFactory.applies(typeFormatId); }
 				};

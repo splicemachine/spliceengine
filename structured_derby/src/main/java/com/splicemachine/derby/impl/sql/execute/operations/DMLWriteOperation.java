@@ -124,7 +124,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 						}
 				}
 				isScan = hasScan;
-				stopExecutionTime = System.currentTimeMillis();
+				startExecutionTime = System.currentTimeMillis();
 		}
 
 		public byte[] getDestinationTable(){

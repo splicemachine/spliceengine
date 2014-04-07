@@ -270,7 +270,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				ExecRow execRowDefinition = getExecRowDefinition();
-				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(spliceRuntimeContext.tableVersion(),false).getSerializers(execRowDefinition);
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(execRowDefinition);
 				return BareKeyHash.encoder(IntArrays.count(execRowDefinition.nColumns()),null,serializers);
 		}
 

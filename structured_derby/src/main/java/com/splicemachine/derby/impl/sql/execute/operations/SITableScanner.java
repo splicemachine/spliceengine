@@ -68,6 +68,9 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		private boolean hasPks = true;
 		private Indexed primaryKeyIndex;
 		private ExecRowAccumulator accumulator;
+		private final String tableVersion;
+		private ExecRowAccumulator keyAccumulator;
+		private int[] pkColumns;
 
 		public SITableScanner(RegionScanner scanner,
 													ExecRow template,
@@ -75,7 +78,10 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 													Scan scan,
 													int[] rowColumnMap,
 													String transactionID,
-													FormatableBitSet pkColumns, String indexName) {
+													int[] pkColumns,
+													FormatableBitSet accessedPkColumns,
+													String indexName,
+													String tableVersion) {
 				this.scan = scan;
 				this.template = template;
 				this.transactionID = transactionID;
@@ -83,8 +89,10 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				this.timer = context.newTimer();
 				this.filterCounter = context.newCounter();
 				this.regionScanner = scanner;
-				this.keyDecoderProvider = getKeyDecoder(template, pkColumns);
+				this.pkColumns = pkColumns;
+				this.keyDecoderProvider = getKeyDecoder(template, accessedPkColumns);
 				this.rowColumnMap = rowColumnMap;
+				this.tableVersion = tableVersion;
 		}
 
 		@Override
@@ -96,7 +104,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				timer.startTiming();
 
-				FilterStatePacked filter = getSIFilter(spliceRuntimeContext);
+				FilterStatePacked filter = getSIFilter();
 				if(keyValues==null)
 						keyValues = Lists.newArrayListWithExpectedSize(2);
 				boolean hasRow;
@@ -179,27 +187,27 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 						@Override public int nextSetBit(int currentPosition) { return pkColumns.anySetBit(currentPosition-1); }
 
 						@Override public boolean isScalarType(int position) {
-								return DerbyBytesUtil.isScalarType(template.getRowArray()[position], null);
+								return DerbyBytesUtil.isScalarType(template.getRowArray()[rowColumnMap[position]], null);
 						}
 
 						@Override public boolean isDoubleType(int position) {
-								return DerbyBytesUtil.isDoubleType(template.getRowArray()[position]);
+								return DerbyBytesUtil.isDoubleType(template.getRowArray()[rowColumnMap[position]]);
 						}
 
 						@Override public boolean isFloatType(int position) {
-								return DerbyBytesUtil.isFloatType(template.getRowArray()[position]);
+								return DerbyBytesUtil.isFloatType(template.getRowArray()[rowColumnMap[position]]);
 						}
 				};
 		}
 
 		@SuppressWarnings("unchecked")
-		private FilterStatePacked getSIFilter(SpliceRuntimeContext ctx) throws IOException {
+		private FilterStatePacked getSIFilter() throws IOException {
 				if(siFilter==null){
 						boolean isCountStar = scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null;
 						predicateFilter= decodePredicateFilter();
 						TransactionId txnId= new TransactionId(this.transactionID);
 						IFilterState iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, txnId);
-						accumulator = ExecRowAccumulator.newAccumulator(predicateFilter,false,template, rowColumnMap,ctx.tableVersion());
+						accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowColumnMap, tableVersion);
 
 						HRowAccumulator hRowAccumulator = new HRowAccumulator(predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
 						siFilter = new FilterStatePacked((FilterState)iFilterState, hRowAccumulator){
@@ -269,6 +277,12 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				int dataOffset = keyValue.getRowOffset();
 				int dataLength = keyValue.getRowLength();
 				keyDecoder.set(dataBuffer,dataOffset,dataLength);
+				if(keyAccumulator==null)
+						keyAccumulator = ExecRowAccumulator.newAccumulator(predicateFilter,false,template,pkColumns,tableVersion);
+
+				keyAccumulator.reset();
+				if(!predicateFilter.match(primaryKeyIndex,keyDecoderProvider,accumulator))
+						keyAccumulator.reset();
 
 				return predicateFilter.match(primaryKeyIndex, keyDecoderProvider,accumulator);
 		}
