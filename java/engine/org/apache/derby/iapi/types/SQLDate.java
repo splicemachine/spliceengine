@@ -46,6 +46,7 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
+import org.joda.time.DateTime;
 
 /**
  * This contains an instance of a SQL Date.
@@ -547,6 +548,13 @@ public final class SQLDate extends DataType
 	{
 		restoreToNull();
 		encodedDate = computeEncodedDate((java.util.Date) value, cal);
+	}
+	
+	public void setValue(DateTime value) throws StandardException {
+		restoreToNull();		
+		encodedDate = computeEncodedDate(value.getYear(),
+						value.getMonthOfYear(),
+						value.getDayOfMonth());
 	}
 
 

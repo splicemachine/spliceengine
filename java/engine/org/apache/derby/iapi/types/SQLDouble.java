@@ -396,7 +396,7 @@ public final class SQLDouble extends NumberDataType
 			double doubleValue = 0;
 		    try {
                 // ??? jsk: rounding???
-		        doubleValue = Double.parseDouble(theValue.trim());
+		        doubleValue = DoubleParser.parseDouble(theValue.trim());
 			} catch (NumberFormatException nfe) {
 			    throw invalidFormat();
 			}

@@ -22,39 +22,29 @@
 package org.apache.derby.iapi.types;
 
 import org.apache.derby.iapi.reference.SQLState;
-
 import org.apache.derby.iapi.services.io.ArrayInputStream;
-
 import org.apache.derby.iapi.services.context.ContextService;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.db.DatabaseContext;
-
 import org.apache.derby.iapi.services.i18n.LocaleFinder;
 import org.apache.derby.iapi.services.cache.ClassSize;
 import org.apache.derby.iapi.util.StringUtil;
-
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.PreparedStatement;
-
 import java.util.Calendar;
 import java.util.GregorianCalendar;
-
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
 import java.text.DateFormat;
 import java.text.ParseException;
 import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
+import org.joda.time.DateTime;
 
 /**
  * This contains an instance of a SQL Time
@@ -604,6 +594,14 @@ public final class SQLTime extends DataType
 		encodedTime = computeEncodedTime(value, cal);
 	}
 
+	public void setValue(DateTime value) throws StandardException {
+		restoreToNull();
+		encodedTime = computeEncodedTime(value.getHourOfDay(),
+				value.getMinuteOfHour(),
+				value.getSecondOfMinute());
+	}
+
+	
 
 	public void setValue(String theValue)
 	    throws StandardException
