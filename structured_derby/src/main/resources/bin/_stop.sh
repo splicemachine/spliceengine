@@ -14,8 +14,8 @@ KILL_PID=$(grep -oE "[0-9]+" <<< "$KILL_PID") # Make sure we get only digits
 if [[ -n "${KILL_PID}" ]]; then
 
     ALIVE_PID=$(ps ax | grep -v grep | grep ${KILL_PID} | awk '{print $1}')
-    if [[ "${ALIVE_PID}" -ne "${KILL_PID}" ]]; then
-        echo "No process PID [${KILL_PID}] dead?"
+    if [[ -z "${ALIVE_PID}" || "${ALIVE_PID}" -ne "${KILL_PID}" ]]; then
+        #echo "No process PID [${KILL_PID}] dead?"
         # clean up old pid file
         CYGWIN=`uname -s`
         if [[ ${CYGWIN} == CYGWIN* ]]; then

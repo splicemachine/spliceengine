@@ -36,8 +36,10 @@ while getopts "dh" flag ; do
 done
 
 # server still running? - must stop first
-if [[ -e "${ROOT_DIR}"/splice_pid || -e "${ROOT_DIR}"/zoo_pid ]]; then
-    echo "Splice still running and must be shut down. Run stop-splice.sh"
+S=`jps | grep SpliceTestPlatform | grep -v grep  | awk '{print $1}'`
+Z=`jps | grep ZooKeeperServerMain | grep -v grep  | awk '{print $1}'`
+if [[ -e "${ROOT_DIR}"/splice_pid || -e "${ROOT_DIR}"/zoo_pid || -n ${S} || -n ${Z} ]]; then
+    echo "Splice is currently running and must be shut down. Run stop-splice.sh"
     exit 1;
 fi
 
@@ -46,8 +48,15 @@ if [[ -z $(type -p java) ]]; then
     echo checking for Java...
     if [[ -z "$JAVA_HOME" ]] || [[ ! -x "$JAVA_HOME/bin/java" ]];  then
         echo Must have Java installed
-        exit 1;
+        exit 1
     fi
+fi
+
+# We can't run from a directory with space in the path
+if [[ "${ROOT_DIR}" = *[[:space:]]* ]]; then
+    echo "Please install Splice in a directory without spaces in its path:"
+    echo "  ${ROOT_DIR}"
+    exit 1
 fi
 
 # Config server
