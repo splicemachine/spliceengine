@@ -24,6 +24,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 public class TPCHIT extends SpliceUnitTest {
 		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 		public static final String CLASS_NAME = "TPCH1X";
+		public static final String CLASS_NAME1 = "TPCH1X";
 		protected static final String LINEITEM = "LINEITEM";
 		protected static final String ORDERS = "ORDERS";
 		protected static final String CUSTOMERS = "CUSTOMER";
@@ -106,74 +107,89 @@ public class TPCHIT extends SpliceUnitTest {
 
 		@Test
 		public void validateDataLoad() throws Exception {
-				ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME,LINEITEM));
+				ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME1,LINEITEM));
 				rs.next();
 				Assert.assertEquals(9958, rs.getLong(1));
-				rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME,ORDERS));
+//				Assert.assertEquals(6001215, rs.getLong(1));
+				rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME1,ORDERS));
 				rs.next();
 				Assert.assertEquals(2500, rs.getLong(1));
-				rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME,CUSTOMERS));
+//				Assert.assertEquals(1500000, rs.getLong(1));
+				rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME1,CUSTOMERS));
 				rs.next();
 				Assert.assertEquals(250, rs.getLong(1));
-				rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME,PARTSUPP));
+//				Assert.assertEquals(150000, rs.getLong(1));
+				rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME1,PARTSUPP));
 				rs.next();
 				Assert.assertEquals(1332, rs.getLong(1));
-				rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME,SUPPLIER));
+//				Assert.assertEquals(800000, rs.getLong(1));
+				rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME1,SUPPLIER));
 				rs.next();
 				Assert.assertEquals(16, rs.getLong(1));
-				rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME,PART));
+//				Assert.assertEquals(10000, rs.getLong(1));
+				rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME1,PART));
 				rs.next();
 				Assert.assertEquals(333, rs.getLong(1));
-				rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME,NATION));
+//				Assert.assertEquals(200000, rs.getLong(1));
+				rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME1,NATION));
 				rs.next();
 				Assert.assertEquals(25, rs.getLong(1));
-				rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME,REGION));
+				rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME1,REGION));
 				rs.next();
 				Assert.assertEquals(5, rs.getLong(1));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql1() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("1.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql2() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("2.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql3() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("3.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql4() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("4.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql5() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("5.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql6() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("6.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql7() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("7.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql8() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("8.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
-//    @Ignore("Bugzilla 829: Not resilient in face of random task failure")
+//        @Ignore("Bugzilla 829: Not resilient in face of random task failure")
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql9() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("9.sql")),methodWatcher.getOrCreateConnection()));
 		}
@@ -188,62 +204,96 @@ public class TPCHIT extends SpliceUnitTest {
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql10() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("10.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql11() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("11.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql12() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("12.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql13() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("13.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql14() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("14.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql15() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("15.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql16() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("16.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql17() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("17.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql18() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("18.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql19() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("19.sql")),methodWatcher.getOrCreateConnection()));
 		}
+//		@Test
+//		@Ignore("Repeated test for bug 829. Only enable if you want to wait around for a while")
+//		public void testRepeatedSql19() throws Exception {
+//				for(int i=0;i<24;i++){
+//						sql19();
+//						System.out.printf("Iteration %d succeeded%n",i);
+//				}
+//		}
 
 		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
 		public void sql20() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("20.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
+		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
+		public void sql21() throws Exception {
+				Assert.assertTrue(runScript(new File(getSQLFile("21.sql")),methodWatcher.getOrCreateConnection()));
+		}
+		
+		@Test
+//		@Ignore("DoRoc. Only want to run sql19")
+		public void sql22() throws Exception {
+				Assert.assertTrue(runScript(new File(getSQLFile("22.sql")),methodWatcher.getOrCreateConnection()));
+		}
+		
 		public static String getResource(String name) {
+//			String t1 = getResourceDirectory()+"tcph/data/"+name;
+//			String t2 = "~/Documents/workspace/data/TPCH-1G/"+name;
 				return getResourceDirectory()+"tcph/data/"+name;
+//				return "~/Documents/workspace/data/TPCH-1GB/"+name;
 		}
 
 		protected static String getSQLFile(String name) {

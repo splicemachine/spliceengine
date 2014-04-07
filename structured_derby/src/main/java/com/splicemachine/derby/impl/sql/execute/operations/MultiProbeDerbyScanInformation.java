@@ -54,9 +54,10 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
     
     @Override
 	protected ExecIndexRow getStopPosition() throws StandardException {
-    	ExecIndexRow stopPosition = sameStartStopPosition?super.getStartPosition():super.getStopPosition();    	
-        if(sameStartStopPosition||stopPosition.nColumns()>1)
+    	ExecIndexRow stopPosition = sameStartStopPosition?super.getStartPosition():super.getStopPosition();
+        if (stopPosition != null) {
             stopPosition.getRowArray()[0] = probeValue;
+        }
     	return stopPosition;
 	}
 
@@ -77,20 +78,20 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
          */
         BitSet colsToReturn = new BitSet();
         FormatableBitSet accessedCols = getAccessedColumns();
-        if(accessedCols!=null){
-            for(int i=accessedCols.anySetBit();i>=0;i=accessedCols.anySetBit(i)){
+        if (accessedCols != null) {
+            for (int i = accessedCols.anySetBit(); i >= 0; i = accessedCols.anySetBit(i)) {
                 colsToReturn.set(i);
             }
-				}
-			List<Scan> scans = new ArrayList<Scan>(probeValues.length);
-			for (int i = 0; i<probeValues.length;i++) {
-					probeValue = probeValues[i];
-					Scan scan = getScan(txnId);
-					SpliceUtils.setInstructions(scan, activation, top,spliceRuntimeContext);
-					scans.add(scan);
-			}
-			return scans;
-	}
+        }
+        List<Scan> scans = new ArrayList<Scan>(probeValues.length);
+        for (int i = 0; i < probeValues.length; i++) {
+            probeValue = probeValues[i];
+            Scan scan = getScan(txnId);
+            SpliceUtils.setInstructions(scan, activation, top, spliceRuntimeContext);
+            scans.add(scan);
+        }
+        return scans;
+    }
 
 	@Override
     protected Qualifier[][] populateQualifiers() throws StandardException {
