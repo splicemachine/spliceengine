@@ -1,18 +1,24 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
-import com.splicemachine.utils.ByteSlice;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.text.RuleBasedCollator;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.jdbc.CharacterStreamDescriptor;
 import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.types.*;
+import org.apache.derby.iapi.types.BooleanDataValue;
+import org.apache.derby.iapi.types.ConcatableDataValue;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.NumberDataValue;
+import org.apache.derby.iapi.types.StreamHeaderGenerator;
+import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.derby.iapi.util.StringUtil;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.text.RuleBasedCollator;
+import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
+import com.splicemachine.utils.ByteSlice;
 
 public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor implements StringDataValue{
 
@@ -193,6 +199,11 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
 
     @Override
     public DataValueDescriptor cloneValue(boolean forceMaterialization) {
+    	if (this.isSerialized()) {
+    		LazyStringDataValueDescriptor lsdv = new LazyStringDataValueDescriptor((StringDataValue) sdv.cloneHolder(), dvdSerializer);
+    		lsdv.initForDeserialization(bytes.array(), bytes.offset(), bytes.length(), descendingOrder);
+    		return lsdv;
+    	}
         forceDeserialization();
         return new LazyStringDataValueDescriptor((StringDataValue)  sdv.cloneValue(forceMaterialization), dvdSerializer);
     }
@@ -225,5 +236,10 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
             throw new RuntimeException(e);
         }
     }
+
+	@Override
+	public boolean isDoubleType() {
+		return false;
+	}
 
 }

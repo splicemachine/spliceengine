@@ -1,19 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
-import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.ArrayInputStream;
-import org.apache.derby.iapi.types.BooleanDataValue;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLBoolean;
-import org.apache.hadoop.hbase.util.ByteBufferUtils;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInput;
@@ -26,10 +12,22 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.Arrays;
 import java.util.Calendar;
 
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.ArrayInputStream;
+import org.apache.derby.iapi.types.BooleanDataValue;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.DataValueFactoryImpl;
+import org.apache.derby.iapi.types.SQLBoolean;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
+
+import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
+import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.SpliceLogUtils;
 /**
  * Lazy subclass of DataValueDescriptor.  Holds a byte array representing the data value
  * and the DVDSerializer for converting to/from bytes.  There is also some duplication
@@ -828,5 +826,11 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 				if(bytes==null) return 0;
 				return bytes.length();
 		}
+
+		@Override
+		public DataValueFactoryImpl.Format getFormat() {
+			return dvd.getFormat();
+		}
+
 }
 
