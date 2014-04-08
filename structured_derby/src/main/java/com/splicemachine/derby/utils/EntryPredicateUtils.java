@@ -15,23 +15,23 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
  */
 public class EntryPredicateUtils {
 
-    public static boolean qualify(EntryPredicateFilter predicateFilter, byte[] data,
+    public static boolean qualify(EntryPredicateFilter predicateFilter, byte[] data, int offset, int length,
                                   DataValueDescriptor[] kdvds, int [] columnOrdering,
                                   MultiFieldDecoder keyDecoder) throws StandardException {
         int ibuffer = predicateFilter.getValuePredicates().size();
         if (ibuffer == 0)
             return true;
-        keyDecoder.set(data);
+        keyDecoder.set(data,offset,length);
         Object[] buffer = predicateFilter.getValuePredicates().buffer;
 
         for (int i = 0; i < kdvds.length; ++i) {
             if (kdvds[i] == null) continue;
-            int offset = keyDecoder.offset();
+            int nOffset = keyDecoder.offset();
             DerbyBytesUtil.skip(keyDecoder,kdvds[i]);
-            int size = keyDecoder.offset()-offset-1;
+            int size = keyDecoder.offset()-nOffset-1;
             for (int j =0; j<ibuffer; j++) {
                 if(((Predicate)buffer[j]).applies(columnOrdering[i]) &&
-                        !((Predicate)buffer[j]).match(columnOrdering[i],data,offset,size))
+                        !((Predicate)buffer[j]).match(columnOrdering[i],data,nOffset,size))
                     return false;
             }
         }
