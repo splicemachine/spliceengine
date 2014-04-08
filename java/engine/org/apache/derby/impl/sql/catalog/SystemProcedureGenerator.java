@@ -17,5 +17,20 @@ public interface SystemProcedureGenerator {
 
     void createProcedures(TransactionController tc, HashSet newlyCreatedRoutines) throws StandardException;
 
+    /**
+	 * Create or update a system stored procedure.  If the system stored procedure alreadys exists in the data dictionary,
+	 * the stored procedure will be dropped and then created again.
+	 * 
+	 * @param schemaName           the schema where the procedure does and/or will reside
+	 * @param procName             the procedure to create or update
+	 * @param tc                   the xact
+	 * @param newlyCreatedRoutines set of newly created procedures
+	 * @throws StandardException
+	 */
+    void createOrUpdateProcedure(
+    		String schemaName,
+    		String procName,
+    		TransactionController tc,
+    		HashSet newlyCreatedRoutines) throws StandardException;
 
 }

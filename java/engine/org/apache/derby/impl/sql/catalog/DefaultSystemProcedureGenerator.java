@@ -1,12 +1,15 @@
 package org.apache.derby.impl.sql.catalog;
 
+import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.TypeDescriptor;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.RoutineAliasInfo;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Limits;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.monitor.ModuleControl;
 import org.apache.derby.iapi.services.monitor.Monitor;
+import org.apache.derby.iapi.sql.dictionary.AliasDescriptor;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.store.access.TransactionController;
@@ -66,6 +69,81 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 }
             }
         }
+    }
+
+    /**
+	 * Create or update a system stored procedure.  If the system stored procedure alreadys exists in the data dictionary,
+	 * the stored procedure will be dropped and then created again.
+	 * 
+	 * @param schemaName           the schema where the procedure does and/or will reside
+	 * @param procName             the procedure to create or update
+	 * @param tc                   the xact
+	 * @param newlyCreatedRoutines set of newly created procedures
+	 * @throws StandardException
+	 */
+    public final void createOrUpdateProcedure(
+    		String schemaName,
+    		String procName,
+    		TransactionController tc,
+    		HashSet newlyCreatedRoutines) throws StandardException {
+
+    	if (schemaName == null || procName == null) {
+    		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
+    	}
+
+    	// Delete the procedure from SYSALIASES if it already exists.
+    	SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
+    	UUID schemaId = sd.getUUID();
+    	AliasDescriptor ad = dictionary.getAliasDescriptor(schemaId.toString(), procName, AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
+    	if (ad != null) {  // Drop the procedure if it already exists.
+//    		System.out.println(String.format("Dropping already existing procedure: %s.%s", sd.getSchemaName(), procName));
+    		dictionary.dropAliasDescriptor(ad, tc);
+    	}
+
+    	// Find the definition of the procedure and create it.
+    	Procedure procedure = findProcedure(schemaId, procName, tc);
+    	if (procedure == null) {
+    		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
+    	} else {
+//    		System.out.println(String.format("Creating procedure: %s.%s", sd.getSchemaName(), procName));
+    		newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc));
+    	}
+    }
+
+    /**
+     * Find a system procedure that has been defined in this class.
+     *
+     * @param schemaId  ID of the schema
+     * @param procName  name of the system stored procedure
+     * @param tc        the transaction
+     * @return  the system stored procedure if found, otherwise, null is returned
+     * @throws StandardException
+     */
+    protected Procedure findProcedure(UUID schemaId, String procName, TransactionController tc) throws StandardException {
+
+    	if (schemaId == null || procName == null || tc == null) {
+    		return null;
+    	}
+    	Map/*<UUID, List<Procedure>>*/ procedureMap = getProcedures(dictionary, tc);
+    	if (procedureMap == null) {
+    		return null;
+    	}
+    	List procedureList = (List) procedureMap.get(schemaId);
+    	if (procedureList == null) {
+    		return null;
+    	}
+
+    	Iterator/*<Procedure>*/ procedures = procedureList.iterator();
+    	while (procedures.hasNext()) {
+    		Object n = procedures.next();
+    		if (n instanceof Procedure) {
+    			Procedure procedure = (Procedure)n;
+    			if (procName.equalsIgnoreCase(procedure.getName())) {
+    				return procedure;
+    			}
+    		}
+    	}
+    	return null;
     }
 
     protected Map/*<UUID,List<Procedure>>*/ getProcedures(DataDictionary dictionary,TransactionController tc) throws StandardException {
@@ -412,6 +490,14 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .numOutputParams(0).numResultSets(0).modifiesSql()
                 .returnType(null).isDeterministic(false)
                 .ownerClass(SYSTEM_PROCEDURES)
+                .build()
+                ,
+            Procedure.newBuilder().name("SYSCS_UPDATE_SYSTEM_PROCEDURE")
+                .numOutputParams(0).numResultSets(0).modifiesSql()
+                .returnType(null).isDeterministic(false)
+                .ownerClass(SYSTEM_PROCEDURES)
+                .catalog("schemaName")
+                .catalog("procName")
                 .build()
     }));
 

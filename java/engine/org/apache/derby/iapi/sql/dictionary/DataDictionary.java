@@ -22,7 +22,6 @@
 package org.apache.derby.iapi.sql.dictionary;
 
 import org.apache.derby.iapi.sql.depend.DependencyManager;
-
 import org.apache.derby.iapi.db.Database;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.NumberDataValue;
@@ -34,7 +33,6 @@ import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.RowLocation;
-
 import org.apache.derby.catalog.DependableFinder;
 import org.apache.derby.catalog.TypeDescriptor;
 import org.apache.derby.catalog.UUID;
@@ -2221,7 +2219,18 @@ public interface DataDictionary
 	 */
 	public void updateMetadataSPSes(TransactionController tc) throws StandardException;
 
-    /**
+	/**
+	 * Create or update a system stored procedure.  If the system stored procedure alreadys exists in the data dictionary,
+	 * the stored procedure will be dropped and then created again.
+	 * 
+	 * @param schemaName the schema where the procedure does and/or will reside
+	 * @param procName   the procedure to create or update
+	 * @param tc the xact
+	 * @throws StandardException
+	 */
+	public void createOrUpdateSystemProcedure(String schemaName, String procName, TransactionController tc) throws StandardException;
+
+	/**
      * Drop a sequence descriptor.
      * @param sequenceDescriptor
      * @param tc
