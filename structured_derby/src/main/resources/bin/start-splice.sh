@@ -44,10 +44,16 @@ if [[ -e "${ROOT_DIR}"/splice_pid || -e "${ROOT_DIR}"/zoo_pid || -n ${S} || -n $
 fi
 
 # Must have Java installed
+echo "Checking for Java..."
+$(java -version >/dev/null 2>&1)
+NOJAVA=$?
+if [[ ${NOJAVA} -ne 0 ]]; then
+    echo "Must have Java installed. Please run this script again after installing Java."
+    exit 1
+fi
 if [[ -z $(type -p java) ]]; then
-    echo checking for Java...
     if [[ -z "$JAVA_HOME" ]] || [[ ! -x "$JAVA_HOME/bin/java" ]];  then
-        echo Must have Java installed
+        echo "Must have Java installed. Please run this script again after installing Java."
         exit 1
     fi
 fi
