@@ -392,7 +392,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                 template.resetRowArray();
                 KeyValue kv = KeyValueUtils.matchKeyValue(values,SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
                 if (getColumnOrdering() != null && getPredicateFilter(spliceRuntimeContext) != null) {
-                    boolean passed = EntryPredicateUtils.qualify(predicateFilter, kv.getRow(), getColumnDVDs(),
+                    boolean passed = EntryPredicateUtils.qualify(predicateFilter, kv.getBuffer(), kv.getRowOffset(), kv.getRowLength(), getColumnDVDs(),
                             getColumnOrdering(),getKeyDecoder());
                     if (!passed)
                         continue;
