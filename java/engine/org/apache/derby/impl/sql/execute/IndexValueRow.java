@@ -33,11 +33,11 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 	Mapper of ValueRow into ExecIndexRow. 
 
  */
-class IndexValueRow implements ExecIndexRow {
+public class IndexValueRow implements ExecIndexRow {
 
 	private ExecRow valueRow;
 
-	IndexValueRow(ExecRow valueRow) {
+	public IndexValueRow(ExecRow valueRow) {
 		 this.valueRow = valueRow;
 	}
 
