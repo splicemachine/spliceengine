@@ -36,8 +36,8 @@ while getopts "dh" flag ; do
 done
 
 # server still running? - must stop first
-S=`jps | grep SpliceTestPlatform | grep -v grep  | awk '{print $1}'`
-Z=`jps | grep ZooKeeperServerMain | grep -v grep  | awk '{print $1}'`
+S=`ps -ef | grep SpliceSinglePlatform | grep -v grep  | awk '{print $2}'`
+Z=`ps -ef | grep ZooKeeperServerMain | grep -v grep  | awk '{print $2}'`
 if [[ -e "${ROOT_DIR}"/splice_pid || -e "${ROOT_DIR}"/zoo_pid || -n ${S} || -n ${Z} ]]; then
     echo "Splice is currently running and must be shut down. Run stop-splice.sh"
     exit 1;
