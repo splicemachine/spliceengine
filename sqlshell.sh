@@ -12,4 +12,4 @@ export LOG4J_PROP_PATH
 CLASSPATH="${ROOT_DIR}/target/splicemachine/lib/*"
 export CLASSPATH
 
-"${ROOT_DIR}"/target/classes/bin/sqlshell.sh $*
+"${ROOT_DIR}"/target/splicemachine/bin/sqlshell.sh $*
