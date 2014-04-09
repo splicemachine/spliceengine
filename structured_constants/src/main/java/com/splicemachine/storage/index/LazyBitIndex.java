@@ -51,7 +51,7 @@ public abstract class LazyBitIndex implements BitIndex{
         return decodedBits.get(pos);
     }
 
-    private void decodeUntil(int pos) {
+    public void decodeUntil(int pos) {
         while(decodedBits.length()<pos+1){
             int next = decodeNext();
             if(next <0) return; //out of data to decode
@@ -139,22 +139,38 @@ public abstract class LazyBitIndex implements BitIndex{
         return length;
     }
 
+
+    public boolean isScalarType(int position, boolean decoded) {
+    	if (!decoded)
+    		decodeUntil(position);
+        return decodedScalarFields!=null && decodedScalarFields.get(position);
+    }
+
+    public boolean isDoubleType(int position, boolean decoded) {
+    	if (!decoded)
+    		decodeUntil(position);
+        return decodedDoubleFields !=null && decodedDoubleFields.get(position);
+    }
+
+    public boolean isFloatType(int position, boolean decoded) {
+    	if (!decoded)
+    		decodeUntil(position);
+        return decodedFloatFields!=null && decodedFloatFields.get(position);
+    }
+    
     @Override
     public boolean isScalarType(int position) {
-        decodeUntil(position);
-        return decodedScalarFields!=null && decodedScalarFields.get(position);
+    	return isScalarType(position,false);
     }
 
     @Override
     public boolean isDoubleType(int position) {
-        decodeUntil(position);
-        return decodedDoubleFields !=null && decodedDoubleFields.get(position);
+    	return isDoubleType(position,false);
     }
 
     @Override
     public boolean isFloatType(int position) {
-        decodeUntil(position);
-        return decodedFloatFields!=null && decodedFloatFields.get(position);
+    	return isFloatType(position,false);
     }
 
     @Override

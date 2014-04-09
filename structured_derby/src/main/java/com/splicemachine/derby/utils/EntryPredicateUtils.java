@@ -26,12 +26,12 @@ public class EntryPredicateUtils {
 
         for (int i = 0; i < kdvds.length; ++i) {
             if (kdvds[i] == null) continue;
-            int offset = keyDecoder.offset();
+            int nOffset = keyDecoder.offset();
             DerbyBytesUtil.skip(keyDecoder,kdvds[i]);
-            int size = keyDecoder.offset()-offset-1;
+            int size = keyDecoder.offset()-nOffset-1;
             for (int j =0; j<ibuffer; j++) {
                 if(((Predicate)buffer[j]).applies(columnOrdering[i]) &&
-                        !((Predicate)buffer[j]).match(columnOrdering[i],data,offset,size))
+                        !((Predicate)buffer[j]).match(columnOrdering[i],data,nOffset,size))
                     return false;
             }
         }
