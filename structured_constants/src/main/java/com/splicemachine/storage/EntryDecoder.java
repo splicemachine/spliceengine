@@ -156,15 +156,16 @@ public class EntryDecoder {
      * However, in some cases it's more efficient to skip the count directly, since we may know the
      * byte size already.
      */
-        if(bitIndex.isScalarType(position)){
+    	bitIndex.decodeUntil(position);
+        if(bitIndex.isScalarType(position,true)){
             if(decoder.nextIsNull()){
                 decoder.skip();
             }else
                 decoder.skipLong(); //don't need the value, just need to seek past it
-        }else if(bitIndex.isFloatType(position)){
+        }else if(bitIndex.isFloatType(position,true)){
             //floats are always 4 bytes, so skip the after delimiter
             decoder.skipFloat();
-        }else if(bitIndex.isDoubleType(position)){
+        }else if(bitIndex.isDoubleType(position,true)){
             decoder.skipDouble();
         }else
             decoder.skip();
