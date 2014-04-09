@@ -245,7 +245,7 @@ public class TableScanOperation extends ScanOperation {
 				System.arraycopy(baseColumnMap, 0, columns, 0, columns.length);
 				// Skip primary key columns to save space
 				for(int pkCol:columnOrdering) {
-						if (pkCol < n)
+						if (pkCol < baseColumnMap.length)
 								columns[pkCol] = -1;
 				}
 
@@ -493,9 +493,11 @@ public class TableScanOperation extends ScanOperation {
         public int[] getAccessedNonPkColumns() throws StandardException{
             FormatableBitSet accessedNonPkColumns = scanInformation.getAccessedNonPkColumns();
             int num = accessedNonPkColumns.getNumBitsSet();
-            int[] cols = null;
+            int[] cols = new int[baseColumnMap.length];
+            for (int i = 0; i < baseColumnMap.length; ++i) {
+                cols[i] = -1;
+            }
             if (num > 0) {
-                cols = new int[num];
                 int pos = 0;
                 for (int i = accessedNonPkColumns.anySetBit(); i != -1; i = accessedNonPkColumns.anySetBit(i)) {
                     cols[pos++] = baseColumnMap[i];
