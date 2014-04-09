@@ -123,11 +123,12 @@
     	<version>1.0.0</version>
     	<classifier>hadoop2</classifier>
     </dependency>
-    <dependency>
+<!--      <dependency>
         <groupId>joda-time</groupId>
         <artifactId>joda-time</artifactId>
         <version>2.3</version>
     </dependency>
+    -->
     <dependency>
         <groupId>com.carrotsearch</groupId>
         <artifactId>java-sizeof</artifactId>

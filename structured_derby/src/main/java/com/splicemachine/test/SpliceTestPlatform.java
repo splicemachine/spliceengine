@@ -188,6 +188,8 @@ public class SpliceTestPlatform extends TestConstants {
         configuration.set("hbase.master.dns.interface", interfaceName);
         configuration.setLong(HConstants.HREGION_MAX_FILESIZE, 1024 * 1024 * 1024L);
 
+        //set a low value threshold for gz file size on import
+        configuration.setLong(SpliceConstants.SEQUENTIAL_IMPORT_FILESIZE_THREASHOLD, 1024 * 1024L);
         //set a random task failure rate
         configuration.set(SpliceConstants.DEBUG_TASK_FAILURE_RATE,Double.toString(0.05d));
         if (failTasksRandomly) {
