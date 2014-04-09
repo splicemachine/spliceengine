@@ -22,6 +22,7 @@
 package org.apache.derby.impl.sql.catalog;
 
 import java.io.File;
+
 import org.apache.derby.iapi.reference.Attribute;
 import org.apache.derby.iapi.reference.EngineType;
 import org.apache.derby.iapi.reference.JDBC30Translation;
@@ -130,6 +131,7 @@ import org.apache.derby.iapi.services.locks.CompatibilitySpace;
 import org.apache.derby.iapi.services.locks.ShExLockable;
 import org.apache.derby.iapi.services.locks.ShExQual;
 import org.apache.derby.iapi.util.IdUtil;
+
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -154,6 +156,7 @@ import java.sql.Types;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
 import org.apache.derby.iapi.store.access.FileResource;
 import org.apache.derby.impl.sql.execute.JarUtil;
 
@@ -13855,6 +13858,22 @@ public class DataDictionaryImpl extends BaseDataDictionary {
         SystemProcedureGenerator procedureGenerator = getSystemProcedures();
 
         procedureGenerator.createOrUpdateProcedure(schemaName, procName, tc, newlyCreatedRoutines);
+        grantPublicAccessToSystemRoutines(newlyCreatedRoutines, tc, authorizationDatabaseOwner);
+	}
+
+	/**
+	 * Create or update all system stored procedures in a schema.  If the system stored procedure alreadys exists in the data dictionary,
+	 * the stored procedure will be dropped and then created again.
+	 * 
+	 * @param schemaName the schema where the procedures do and/or will reside
+	 * @param tc the xact
+	 * @throws StandardException
+	 */
+	public void createOrUpdateAllSystemProcedures(String schemaName, TransactionController tc) throws StandardException {
+        HashSet newlyCreatedRoutines = new HashSet();
+        SystemProcedureGenerator procedureGenerator = getSystemProcedures();
+
+        procedureGenerator.createOrUpdateAllProcedures(schemaName, tc, newlyCreatedRoutines);
         grantPublicAccessToSystemRoutines(newlyCreatedRoutines, tc, authorizationDatabaseOwner);
 	}
 

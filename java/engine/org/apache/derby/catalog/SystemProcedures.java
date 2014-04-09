@@ -1988,6 +1988,27 @@ public class SystemProcedures  {
     }
 
     /**
+	 * Create or update all system stored procedures in a schema.  If the system stored procedure alreadys exists in the data dictionary,
+	 * the stored procedure will be dropped and then created again.
+	 * 
+	 * @param schemaName name of the system schema
+	 * @throws SQLException
+     */
+    public static void SYSCS_UPDATE_ALL_SYSTEM_PROCEDURES(String schemaName)
+       throws SQLException
+    {
+        try {
+        	LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            TransactionController     tc  = lcc.getTransactionExecute();
+            DataDictionary            dd =  lcc.getDataDictionary();
+
+        	dd.createOrUpdateAllSystemProcedures(schemaName, tc);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
+
+    /**
      * Empty as much of the cache as possible. It is not guaranteed 
      * that the cache is empty after this call, as statements may be kept
      * by currently executing queries, activations that are about to be garbage

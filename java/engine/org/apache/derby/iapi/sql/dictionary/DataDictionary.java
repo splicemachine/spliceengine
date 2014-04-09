@@ -2231,6 +2231,16 @@ public interface DataDictionary
 	public void createOrUpdateSystemProcedure(String schemaName, String procName, TransactionController tc) throws StandardException;
 
 	/**
+	 * Create or update all system stored procedures in a schema.  If the system stored procedure alreadys exists in the data dictionary,
+	 * the stored procedure will be dropped and then created again.
+	 * 
+	 * @param schemaName the schema where the procedures do and/or will reside
+	 * @param tc the xact
+	 * @throws StandardException
+	 */
+	public void createOrUpdateAllSystemProcedures(String schemaName, TransactionController tc) throws StandardException;
+
+	/**
      * Drop a sequence descriptor.
      * @param sequenceDescriptor
      * @param tc

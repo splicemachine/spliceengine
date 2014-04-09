@@ -111,6 +111,58 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     }
 
     /**
+	 * Create or update all system stored procedures.  If the system stored procedure already exists in the data dictionary,
+	 * the stored procedure will be dropped and then created again.
+	 * 
+	 * @param schemaName           the schema where the procedures do and/or will reside
+	 * @param tc                   the xact
+	 * @param newlyCreatedRoutines set of newly created procedures
+	 * @throws StandardException
+	 */
+    public final void createOrUpdateAllProcedures(
+    		String schemaName,
+    		TransactionController tc,
+    		HashSet newlyCreatedRoutines) throws StandardException {
+
+    	if (schemaName == null) {
+    		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "SCHEMA", (schemaName));
+    	}
+
+    	List procedureList = findProceduresForSchema(schemaName, tc);
+    	Iterator/*<Procedure>*/ procedures = procedureList.iterator();
+    	while (procedures.hasNext()) {
+    		Object n = procedures.next();
+    		if (n instanceof Procedure) {
+    			Procedure procedure = (Procedure)n;
+    			createOrUpdateProcedure(schemaName, procedure.getName(), tc, newlyCreatedRoutines);
+    		}
+    	}
+    }
+
+    /**
+     * Find a list of system procedures for the specified schema that has been defined in this class.
+     *
+     * @param schemaName  name of the schema
+     * @param tc          the transaction
+     * @return            the system stored procedure if found, otherwise, null is returned
+     * @throws StandardException
+     */
+    protected List findProceduresForSchema(String schemaName, TransactionController tc) throws StandardException {
+
+    	if (schemaName == null || tc == null) {
+    		return null;
+    	}
+
+    	SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
+    	UUID schemaId = sd.getUUID();
+    	Map/*<UUID, List<Procedure>>*/ procedureMap = getProcedures(dictionary, tc);
+    	if (procedureMap == null) {
+    		return null;
+    	}
+    	return ((List) procedureMap.get(schemaId));
+    }
+
+    /**
      * Find a system procedure that has been defined in this class.
      *
      * @param schemaId  ID of the schema
@@ -161,6 +213,8 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         //ADD SYSCS
         UUID sysUUID = dictionary.getSystemUtilSchemaDescriptor().getUUID();
         procedures.put(sysUUID,sysCsProcedures);
+
+//        System.out.println(String.format("getProcedures: %s SYSIBM procs, %s SQLJ procs, %s SYSCS procs", sysIbmProcedures.size(), sqlJProcedures.size(), sysCsProcedures.size()));
 
         //TODO -sf- add 10_1-10_9 procedures
         return procedures;
@@ -498,6 +552,13 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .ownerClass(SYSTEM_PROCEDURES)
                 .catalog("schemaName")
                 .catalog("procName")
+                .build()
+                ,
+            Procedure.newBuilder().name("SYSCS_UPDATE_ALL_SYSTEM_PROCEDURES")
+                .numOutputParams(0).numResultSets(0).modifiesSql()
+                .returnType(null).isDeterministic(false)
+                .ownerClass(SYSTEM_PROCEDURES)
+                .catalog("schemaName")
                 .build()
     }));
 

@@ -907,6 +907,10 @@ public class EmptyDictionary implements DataDictionary, ModuleSupportable {
 		// Auto-generated method stub		
 	}
 
+	public void createOrUpdateAllSystemProcedures(String schemaName, TransactionController tc) throws StandardException {
+		// Auto-generated method stub		
+	}
+
     public void dropSequenceDescriptor(SequenceDescriptor sequenceDescriptor,
                                        TransactionController tc) throws StandardException {
         // Auto-generated method stub
