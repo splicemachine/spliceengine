@@ -7,7 +7,7 @@ ${ROOT_DIR}/bin/_stopServer.sh "${ROOT_DIR}" "${ROOT_DIR}"
 
 # Check for stragglers
 SIG=15
-S=`jps | grep SpliceTestPlatform | grep -v grep  | awk '{print $1}'`
+S=`ps -ef | grep SpliceSinglePlatform | grep -v grep  | awk '{print $2}'`
 [[ -n ${S} ]] && echo "Found SpliceSinglePlatform straggler. Killing." && for pid in ${S}; do kill -${SIG} `echo ${pid}`; done
-Z=`jps | grep ZooKeeperServerMain | grep -v grep  | awk '{print $1}'`
+Z=`ps -ef | grep ZooKeeperServerMain | grep -v grep  | awk '{print $2}'`
 [[ -n ${Z} ]] && echo "Found ZooKeeperServerMain straggler. Killing." && for pid in ${Z}; do kill -${SIG} `echo ${pid}`; done
