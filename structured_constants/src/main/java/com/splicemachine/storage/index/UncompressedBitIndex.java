@@ -202,7 +202,9 @@ class UncompressedBitIndex implements BitIndex {
         return result;
     }
 
-    public static BitIndex create(BitSet setCols,BitSet lengthDelimitedFields,BitSet floatFields,BitSet doubleFields) {
+		@Override public int getPredicatePosition(int encodedPos) { return encodedPos; }
+
+		public static BitIndex create(BitSet setCols,BitSet lengthDelimitedFields,BitSet floatFields,BitSet doubleFields) {
         return new UncompressedBitIndex(setCols,lengthDelimitedFields,floatFields,doubleFields);
     }
 

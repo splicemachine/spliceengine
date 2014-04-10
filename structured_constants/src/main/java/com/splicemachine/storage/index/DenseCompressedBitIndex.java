@@ -413,7 +413,9 @@ class DenseCompressedBitIndex implements BitIndex {
         return new DenseCompressedBitIndex(bitSet,lengthDelimitedFields,floatFields,doubleFields);
     }
 
-    public static void main(String... args) throws Exception{
+		@Override public int getPredicatePosition(int encodedPos) { return encodedPos; }
+
+		public static void main(String... args) throws Exception{
         BitSet set = new BitSet();
         set.set(0);
 //        set.set(1);
@@ -449,4 +451,5 @@ class DenseCompressedBitIndex implements BitIndex {
         for(int i=decoded.nextSetBit(0);i>=0;i=decoded.nextSetBit(i+1));
         System.out.println(decoded);
     }
+
 }

@@ -203,41 +203,45 @@ public abstract class LazyBitIndex implements BitIndex{
         decodedDoubleFields.set(pos);
     }
 
-    protected void setFloatField(int pos) {
-        if(decodedFloatFields==null)
-            decodedFloatFields = new BitSet(pos);
-        decodedFloatFields.set(pos);
-    }
+		protected void setFloatField(int pos) {
+				if(decodedFloatFields==null)
+						decodedFloatFields = new BitSet(pos);
+				decodedFloatFields.set(pos);
+		}
 
-    protected void setDoubleRange(int startPos, int stopPos) {
-        if(decodedDoubleFields==null)
-            decodedDoubleFields = new BitSet(stopPos);
-        decodedDoubleFields.set(startPos,stopPos);
-    }
-    protected void setFloatRange(int startPos, int stopPos) {
-        if(decodedFloatFields==null)
-            decodedFloatFields = new BitSet(stopPos);
-        decodedFloatFields.set(startPos,stopPos);
-    }
-    protected void setScalarRange(int startPos, int stopPos) {
-        if(decodedScalarFields==null)
-            decodedScalarFields = new BitSet(stopPos);
-        decodedScalarFields.set(startPos,stopPos);
-    }
+		protected void setDoubleRange(int startPos, int stopPos) {
+				if(decodedDoubleFields==null)
+						decodedDoubleFields = new BitSet(stopPos);
+				decodedDoubleFields.set(startPos,stopPos);
+		}
+		protected void setFloatRange(int startPos, int stopPos) {
+				if(decodedFloatFields==null)
+						decodedFloatFields = new BitSet(stopPos);
+				decodedFloatFields.set(startPos,stopPos);
+		}
+		protected void setScalarRange(int startPos, int stopPos) {
+				if(decodedScalarFields==null)
+						decodedScalarFields = new BitSet(stopPos);
+				decodedScalarFields.set(startPos,stopPos);
+		}
 
-	public byte[] getEncodedBitMap() {
-		return encodedBitMap;
-	}
+		public byte[] getEncodedBitMap() {
+				return encodedBitMap;
+		}
 
-	public int getEncodedBitMapOffset() {
-		return offset;
-	}
+		public int getEncodedBitMapOffset() {
+				return offset;
+		}
 
-	public int getEncodedBitMapLength() {
-		return length;
-	}    
-	
-	public abstract boolean isCompressed();
+		public int getEncodedBitMapLength() {
+				return length;
+		}
 
+		public abstract boolean isCompressed();
+
+		@Override
+		public int getPredicatePosition(int encodedPos) {
+				return encodedPos;
+		}
 }
 

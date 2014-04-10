@@ -303,16 +303,16 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 			 * In this case, we encode with either the current row location or a
 			 * random UUID (if the current row location is null).
 			 */
-				DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
-						@Override
-						public byte[] get() throws StandardException {
-								if(currentRowLocation!=null)
-										return currentRowLocation.getBytes();
-								return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-						}
-				});
+//				DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+//						@Override
+//						public byte[] get() throws StandardException {
+//								if(currentRowLocation!=null)
+//										return currentRowLocation.getBytes();
+//								return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+//						}
+//				});
 
-				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
+				return new KeyEncoder(NoOpPrefix.INSTANCE,NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
 		}
 
 		@Override

@@ -2,7 +2,7 @@ package com.splicemachine.storage;
 
 /**
  * @author Scott Fines
- *         Date: 4/4/14
+ * Date: 4/4/14
  */
 public interface Indexed {
 
@@ -20,5 +20,5 @@ public interface Indexed {
 
 		boolean isFloatType(int position);
 
-
+		int getPredicatePosition(int encodedPos);
 }
