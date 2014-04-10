@@ -6,7 +6,7 @@
 	<packaging>pom</packaging>
 	<artifactId>structured_hbase</artifactId>
 	<name>structured_hbase</name>
-	<description>Set of modules for getting hbase to function in structure</description>
+	<description>Splice Machine Root POM</description>
 
 	<modules>
 		<module>structured_constants</module>
