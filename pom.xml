@@ -831,6 +831,5 @@
 				<downloadJavadocs>true</downloadJavadocs>
 			</properties>
 		</profile>
-
 	</profiles>
 </project>
