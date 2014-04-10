@@ -102,11 +102,14 @@ public class EntryPredicateFilter {
 						}
 
 						Object[] buffer = valuePredicates.buffer;
-						int ibuffer = valuePredicates.size();
-						for (int i =0; i<ibuffer; i++) {
-								if(((Predicate)buffer[i]).applies(encodedPos) && !((Predicate)buffer[i]).match(encodedPos,array, offset,limit)){
-										rowsFiltered++;
-										return false;
+						int bufferSize = valuePredicates.size();
+						if(bufferSize>0){
+								int predicatePosition = index.getPredicatePosition(encodedPos);
+								for (int i =0; i<bufferSize; i++) {
+										if(((Predicate)buffer[i]).applies(predicatePosition) && !((Predicate)buffer[i]).match(predicatePosition,array, offset,limit)){
+												rowsFiltered++;
+												return false;
+										}
 								}
 						}
 						accumulate(index, encodedPos, accumulator, array, offset, limit);

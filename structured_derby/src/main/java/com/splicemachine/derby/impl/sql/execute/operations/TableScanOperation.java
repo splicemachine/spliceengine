@@ -293,7 +293,7 @@ public class TableScanOperation extends ScanOperation {
 										.indexName(indexName)
 										.keyColumnEncodingOrder(scanInformation.getColumnOrdering())
 										.keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
-										.keyColumnTypes(scanInformation.getConglomerate().getFormat_ids())
+										.keyColumnTypes(getKeyFormatIds())
 										.accessedKeyColumns(scanInformation.getAccessedPkColumns())
 										.keyDecodingMap(getAccessedPksToTemplateRowMap())
 										.rowDecodingMap(baseColumnMap).build();
@@ -319,6 +319,7 @@ public class TableScanOperation extends ScanOperation {
 
 				return currentRow;
 		}
+
 
 		protected void setRowLocation(KeyValue sampleKv) throws StandardException {
 				if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){

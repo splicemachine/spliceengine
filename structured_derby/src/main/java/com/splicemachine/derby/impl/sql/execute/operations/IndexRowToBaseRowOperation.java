@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 
 import com.google.common.base.Strings;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -359,11 +360,30 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				DataValueDescriptor restrictBoolean;
 
 				if(reader==null){
-						reader = IndexRowReader.create(source,conglomId,compactRow,
-										getTransactionID(),
-										indexCols,
-										operationInformation.getBaseColumnMap(),heapOnlyCols,
-										spliceRuntimeContext, getColumnOrdering(), getFormatIds(), mainTableVersion);
+						reader = new IndexRowReaderBuilder()
+										.source(source)
+										.mainTableConglomId(conglomId)
+										.outputTemplate(compactRow)
+										.transactionId(getTransactionID())
+										.indexColumns(indexCols)
+										.mainTableKeyColumnEncodingOrder(getColumnOrdering())
+										.mainTableKeyColumnTypes(getKeyColumnTypes())
+										.mainTableKeyColumnSortOrder(getConglomerate().getAscDescInfo())
+										.mainTableKeyDecodingMap(getMainTableKeyDecodingMap())
+										.mainTableAccessedKeyColumns(getMainTableAccessedKeyColumns())
+										.runtimeContext(spliceRuntimeContext)
+										.mainTableVersion(mainTableVersion)
+										.mainTableRowDecodingMap(operationInformation.getBaseColumnMap())
+										.mainTableAccessedRowColumns(getMainTableRowColumns())
+										.numConcurrentLookups(SpliceConstants.indexLookupBlocks)
+										.lookupBatchSize(SpliceConstants.indexBatchSize)
+										.build();
+
+//						reader = IndexRowReader.create(source,conglomId,compactRow,
+//										getTransactionID(),
+//										indexCols,
+//										operationInformation.getBaseColumnMap(),heapOnlyCols,
+//										spliceRuntimeContext, getColumnOrdering(), getFormatIds(), mainTableVersion);
 				}
 
 				timer.startTiming();
@@ -416,6 +436,63 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				}else
 						timer.tick(1);
 				return retRow;
+		}
+
+		private FormatableBitSet getMainTableAccessedKeyColumns() throws StandardException {
+				int[] keyColumnEncodingOrder = getColumnOrdering();
+				FormatableBitSet accessedKeys = new FormatableBitSet(keyColumnEncodingOrder.length);
+				for(int i=0;i<keyColumnEncodingOrder.length;i++){
+					int keyColumn = keyColumnEncodingOrder[i];
+						if(heapOnlyCols.get(keyColumn))
+								accessedKeys.set(i);
+				}
+				return accessedKeys;
+		}
+
+		private FormatableBitSet getMainTableRowColumns() throws StandardException {
+				int[] keyColumnEncodingOrder = getColumnOrdering();
+				FormatableBitSet accessedKeys = new FormatableBitSet(heapOnlyCols);
+				for(int i=0;i<keyColumnEncodingOrder.length;i++){
+						int keyColumn = keyColumnEncodingOrder[i];
+						if(heapOnlyCols.get(keyColumn))
+								accessedKeys.clear(i);
+				}
+				return accessedKeys;
+		}
+
+		private int[] getKeyColumnTypes() throws StandardException {
+				int[] keyColumnEncodingOrder = getColumnOrdering();
+				if(keyColumnEncodingOrder==null) return null; //no keys to worry about
+				int[] allFormatIds = getConglomerate().getFormat_ids();
+				int[] keyFormatIds = new int[keyColumnEncodingOrder.length];
+				for(int i=0,pos=0;i<keyColumnEncodingOrder.length;i++){
+						int keyColumnPosition = keyColumnEncodingOrder[i];
+						if(keyColumnPosition>=0){
+								keyFormatIds[pos] = allFormatIds[keyColumnPosition];
+								pos++;
+						}
+				}
+				return keyFormatIds;
+		}
+
+		private int[] getMainTableKeyDecodingMap() throws StandardException {
+				FormatableBitSet keyCols = getMainTableAccessedKeyColumns();
+
+				int[] keyColumnEncodingOrder = getColumnOrdering();
+				int[] baseColumnMap = operationInformation.getBaseColumnMap();
+
+				int[] kDecoderMap = new int[keyColumnEncodingOrder.length];
+				Arrays.fill(kDecoderMap, -1);
+				for(int i=0;i<keyColumnEncodingOrder.length;i++){
+						int baseKeyColumnPosition = keyColumnEncodingOrder[i]; //the position of the column in the base row
+						if(keyCols.get(i)){
+								kDecoderMap[i] = baseColumnMap[baseKeyColumnPosition];
+								baseColumnMap[baseKeyColumnPosition] = -1;
+						}else
+								kDecoderMap[i] = -1;
+				}
+
+				return kDecoderMap;
 		}
 
 		@Override

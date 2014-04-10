@@ -19,6 +19,8 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
@@ -162,7 +164,8 @@ public class LastIndexKeyOperation extends ScanOperation {
 												.rowDecodingMap(baseColumnMap)
 												.keyColumnEncodingOrder(scanInformation.getColumnOrdering())
 												.keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
-												.keyColumnTypes(scanInformation.getConglomerate().getFormat_ids())
+												.keyColumnTypes(getKeyFormatIds())
+												.keyDecodingMap(getKeyDecodingMap())
 												.accessedKeyColumns(scanInformation.getAccessedPkColumns())
 												.indexName(indexName)
 												.tableVersion(scanInformation.getTableVersion())
@@ -174,15 +177,30 @@ public class LastIndexKeyOperation extends ScanOperation {
 						currentRow = null;
 						ExecRow lastRow;
 						boolean isTentative = tentativeScanner!=null;
+						boolean shouldContinue;
 						do{
 								lastRow = tableScanner.next(spliceRuntimeContext);
-								if(lastRow==null && isTentative){
-										tableScanner.setRegionScanner(regionScanner);
-										lastRow = tableScanner.next(spliceRuntimeContext);
+								shouldContinue = lastRow!=null;
+								if(lastRow==null){
+										if(currentRow!=null){
+												shouldContinue=false;
+										}else if(isTentative){
+												tableScanner.setRegionScanner(regionScanner);
+												isTentative=false;
+												shouldContinue=true;
+										}
+								}else if(currentRow==null){
+										currentRow = lastRow.getClone();
+										currentRowLocation = (RowLocation)tableScanner.getCurrentRowLocation().cloneValue(true);
+								}else{
+										DataValueDescriptor[] currentFields = currentRow.getRowArray();
+										DataValueDescriptor[] lastFields = lastRow.getRowArray();
+										for(int i=0;i<lastFields.length;i++){
+												currentFields[i].setValue(lastFields[i]);
+										}
+										currentRowLocation.setValue(tableScanner.getCurrentRowLocation());
 								}
-								if(lastRow!=null)
-										currentRow = lastRow;
-						}while(lastRow!=null);
+						}while(shouldContinue);
 //						currentRow = tableScanner.next(spliceRuntimeContext);
 ////								currentRow = nextFromRegionScanner(tentativeScanner);
 ////						}
