@@ -43,6 +43,7 @@ public class InnerJoinIT extends SpliceUnitTest {
 	public static final String TABLE_NAME_5 = "E";
 	public static final String TABLE_NAME_6 = "F";
 	public static final String TABLE_NAME_7 = "G";
+	public static final String TABLE_NAME_8 = "H";
 
 	
 
@@ -55,6 +56,7 @@ public class InnerJoinIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME,"(a varchar(20), b varchar(20), w decimal(4),e varchar(15))");
 	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,CLASS_NAME,"(a varchar(20), b varchar(20), c varchar(10), d decimal, e varchar(15))");
 	protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,CLASS_NAME,"(a varchar(20), b varchar(20), w decimal(4),e varchar(15))");
+	protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8,CLASS_NAME,"(i int)");
 
 	@ClassRule
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -66,6 +68,7 @@ public class InnerJoinIT extends SpliceUnitTest {
         .around(spliceTableWatcher5)
         .around(spliceTableWatcher6)
         .around(spliceTableWatcher7)
+		.around(spliceTableWatcher8)
 		.around(new SpliceDataWatcher() {
             @Override
             protected void starting(Description description) {
@@ -806,5 +809,23 @@ public class InnerJoinIT extends SpliceUnitTest {
 
         Assert.assertArrayEquals(expected.toArray(), results.toArray());
 
+    }
+
+    @Test
+    // DB-1236
+    public void testSinkBothSidesCallsInit() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(
+                "select x.i, y.i from\n" +
+                        "( select h.i from \n" +
+                        "( select c.i from h c join h d --splice-properties joinStrategy=sortmerge\n" +
+                        "on c.i = d.i) h  \n" +
+                        "join h b --splice-properties joinStrategy=sortmerge\n" +
+                        "on h.i = b.i) x join \n" +
+                        "( select c.i from h c join h d --splice-properties joinStrategy=sortmerge\n" +
+                        "on c.i = d.i) y --splice-properties joinStrategy=sortmerge\n" +
+                        "on x.i = y.i");
+        List results = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertEquals(0, results.size());
     }
 }
