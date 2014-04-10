@@ -34,6 +34,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	protected static String TABLE_12 = "L";
 	protected static String TABLE_13 = "M";	
 	protected static String TABLE_14 = "N";	
+	protected static String TABLE_15 = "O";	
 	private static final String AUTO_INCREMENT_TABLE = "INCREMENT";
 
 	
@@ -57,6 +58,9 @@ public class HdfsImportIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher14 = new SpliceTableWatcher(TABLE_14,spliceSchemaWatcher.schemaName,
 			"( C_CUSTKEY INTEGER NOT NULL PRIMARY KEY, C_NAME VARCHAR(25), C_ADDRESS VARCHAR(40), C_NATIONKEY INTEGER NOT NULL,"+
 			"C_PHONE CHAR(15), C_ACCTBAL DECIMAL(15,2), C_MKTSEGMENT  CHAR(10), C_COMMENT VARCHAR(117))");
+	protected static SpliceTableWatcher spliceTableWatcher15 = new SpliceTableWatcher(TABLE_15,spliceSchemaWatcher.schemaName,
+			"( cUsToMeR_pRoDuCt_Id InTeGeR NoT NuLl PrImArY KeY, ShIpPeD_DaTe TiMeStAmP WiTh DeFaUlT CuRrEnT_tImEsTaMp, SoUrCe_SyS_CrEaTe_DtS TiMeStAmP WiTh DeFaUlT cUrReNt_TiMeStAmP NoT NuLl,sOuRcE_SyS_UpDaTe_DtS TiMeStAmP WiTh DeFaUlT cUrReNt_TiMeStAmP NoT NuLl,"+
+							"SdR_cReAtE_dAtE tImEsTaMp wItH DeFaUlT CuRrEnT_tImEsTaMp, SdR_uPdAtE_dAtE TimEstAmp With deFauLT cuRRent_tiMesTamP,Dw_srcC_ExtrC_DttM TimEStamP WitH DefAulT CurrEnt_TimesTamp)");
 
 
 	
@@ -81,6 +85,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 						.around(spliceTableWatcher12)
 						.around(spliceTableWatcher13)
 						.around(spliceTableWatcher14)
+						.around(spliceTableWatcher15)
 						.around(autoIncTableWatcher);
 
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -448,7 +453,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",spliceSchemaWatcher.schemaName,TABLE_11));
         while(rs.next()){
             int i = rs.getInt(1);
-            System.out.println("i = " + i);
+            //System.out.println("i = " + i);
             Assert.assertEquals(i, 10);
         }
     }
@@ -482,6 +487,21 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
 		Assert.assertEquals("10 Records not imported",10,i);
 	}
+
+	@Test
+	public void testNullDatesWithMixedCaseAccuracy() throws Exception {
+        String location = getResourceDirectory()+"datebug.tbl";
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
+                "'%s',',',null,'yyyy-MM-dd HH:mm:ss.SSSSSS',null,null)",spliceSchemaWatcher.schemaName,TABLE_15,location));
+        ps.execute();
+        ResultSet rs = methodWatcher.executeQuery(format("select SHIPPED_DATE from %s.%s",spliceSchemaWatcher.schemaName,TABLE_15));
+        int i =0;
+        while(rs.next()){
+        	i++;
+        	Assert.assertTrue("Date is still null",rs.getDate(1) != null);
+        }
+		Assert.assertEquals("10 Records not imported",10,i);
+	}
 	
 	@Test
 	public void testGZImportWithWarning() throws Exception {
@@ -493,17 +513,20 @@ public class HdfsImportIT extends SpliceUnitTest {
 		Assert.assertTrue(twarning.contains("To load a large single file of data faster,"));
 	}
 
+	@Test
 	public void testGZImportWithoutWarning() throws Exception {
 	    String location = getResourceDirectory()+"t1K.tbl.gz";
+	    String twarning="";
 		PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_14,location));
 		ps.execute();
 		SQLWarning warning = ps.getWarnings();
-		String twarning = warning.getMessage();
-		if(twarning==null){
-			twarning="";
+		if(warning!=null){
+			twarning = warning.getMessage();
+			if(twarning==null){
+				twarning="";
+			}
 		}
 		Assert.assertFalse(twarning.contains("To load a large single file of data faster,"));
 	}
-
 	
 }
