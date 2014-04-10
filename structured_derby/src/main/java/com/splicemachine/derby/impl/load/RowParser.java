@@ -128,7 +128,7 @@ public class RowParser {
 								column.setValue(sequences[columnContext.getColumnNumber()].getNext());
 						else{
 								elem = columnContext.getColumnDefault();
-								if(elem!=null&&elem.equals("CURRENT_TIMESTAMP")){
+								if(elem!=null&&elem.toUpperCase().equals("CURRENT_TIMESTAMP")){
 									DateTime dt = new DateTime();
 									column.setValue(dt.toDateTime());
 								}else{
