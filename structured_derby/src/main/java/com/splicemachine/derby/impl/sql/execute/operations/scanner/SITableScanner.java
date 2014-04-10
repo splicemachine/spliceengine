@@ -368,6 +368,11 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 						return typeProvider.isFloat(keyColumnTypes[currentPosition]);
 				}
 
+				@Override
+				public int getPredicatePosition(int position) {
+						return allPkColumns[position];
+				}
+
 				void reset(){
 						position=0;
 				}

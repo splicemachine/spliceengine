@@ -22,6 +22,7 @@ import com.splicemachine.storage.index.BitIndexing;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
@@ -146,8 +147,13 @@ public class IndexRowReaderTest {
 
         BitSet heapCols = new BitSet(outputDataTypes.length);
         heapCols.set(0,outputDataTypes.length);
+				FormatableBitSet rowCols = new FormatableBitSet((int)heapCols.cardinality());
+				for(int i=0;i<outputDataTypes.length;i++){
+						rowCols.set(i);
+				}
         for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
             heapCols.clear(i);
+						rowCols.clear(i);
         }
 				int[] adjustedBaseColumMap = new int[(int)heapCols.length()];
 				Arrays.fill(adjustedBaseColumMap,-1);
@@ -158,10 +164,24 @@ public class IndexRowReaderTest {
         EntryPredicateFilter epf = new EntryPredicateFilter(heapCols, new ObjectArrayList<Predicate>());
         byte[] epfBytes = epf.toBytes();
         int[] typeIds = new int[]{80, 80};
-        IndexRowReader rowReader = new IndexRowReader(mockService,table,mockSource,
-                1,1,templateOutput,"10.IRO",indexCols,1184l,adjustedBaseColumMap,
-								epfBytes,new SpliceRuntimeContext(new TempTable(SpliceConstants.TEMP_TABLE_BYTES),kryoPool),
-                null,"2.0");
+				IndexRowReader rowReader = new IndexRowReaderBuilder()
+								.table(table)
+								.source(mockSource)
+								.outputTemplate(templateOutput)
+								.lookupBatchSize(1)
+								.transactionId("10.IRO")
+								.mainTableRowDecodingMap(adjustedBaseColumMap)
+								.mainTableAccessedRowColumns(rowCols)
+								.runtimeContext(new SpliceRuntimeContext(new TempTable(SpliceConstants.TEMP_TABLE_BYTES),kryoPool))
+								.mainTableVersion("2.0")
+								.mainTableConglomId(1184l)
+								.indexColumns(indexCols)
+								.build();
+
+//        IndexRowReader rowReader = new IndexRowReader(mockService,table,mockSource,
+//                1,1,templateOutput,"10.IRO",indexCols,1184l,adjustedBaseColumMap,
+//								epfBytes,new SpliceRuntimeContext(new TempTable(SpliceConstants.TEMP_TABLE_BYTES),kryoPool),
+//                null,"2.0");
 
         List<IndexRowReader.RowAndLocation> actualOutput = Lists.newArrayListWithExpectedSize(correctOutput.size());
         IndexRowReader.RowAndLocation rowAndLocation;
@@ -174,7 +194,8 @@ public class IndexRowReaderTest {
         Assert.assertArrayEquals("Incorrect output!", correctOutput.toArray(), actualOutput.toArray());
     }
 
-    private List<IndexRowReader.RowAndLocation> formatOutput(Map<byte[], ExecRow> outputRows) {
+
+		private List<IndexRowReader.RowAndLocation> formatOutput(Map<byte[], ExecRow> outputRows) {
         List<IndexRowReader.RowAndLocation> output = Lists.newArrayListWithCapacity(outputRows.size());
         for(byte[] outputRowKey:outputRows.keySet()){
             ExecRow outputRow = outputRows.get(outputRowKey);

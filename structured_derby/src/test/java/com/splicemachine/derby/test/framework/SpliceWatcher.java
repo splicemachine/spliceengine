@@ -178,18 +178,18 @@ public class SpliceWatcher extends TestWatcher {
 	        * some ugly-ass code. Good luck to you.
 	        *
 	        */
-				ResultSet rs = executeQuery(String.format("select tableid from sys.systables t inner join sys.sysschemas s on t.schemaid = s.schemaid " +
-								"where t.tablename = '%s' and s.schemaname = '%s'",tableName.toUpperCase(),schemaName.toUpperCase()));
+				PreparedStatement ps = prepareStatement("select c.conglomeratenumber from " +
+								"sys.systables t, sys.sysconglomerates c,sys.sysschemas s " +
+								"where t.tableid = c.tableid " +
+								"and s.schemaid = t.schemaid " +
+								"and c.isindex = false " +
+								"and t.tablename = ? " +
+								"and s.schemaname = ?");
+				ps.setString(1,tableName);
+				ps.setString(2,schemaName);
+				ResultSet rs = ps.executeQuery();
 				if(rs.next()){
-						String tableid = rs.getString(1);
-
-						rs = executeQuery(String.format("select * from sys.sysconglomerates where tableid = '%s'",tableid));
-						if(rs.next()){
-								return rs.getLong(3);
-						}else{
-								throw new Exception(String.format("Missing conglomerate to split for table id = %s",tableid));
-						}
-
+						return rs.getLong(1);
 				}else{
 						LOG.warn("Unable to find the conglom id for table  "+tableName);
 				}

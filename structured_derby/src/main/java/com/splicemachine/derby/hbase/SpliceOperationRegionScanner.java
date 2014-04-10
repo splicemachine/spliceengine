@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.management.XplainTaskReporter;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -20,6 +21,7 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.stats.Metrics;
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -59,6 +61,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		private DataHash<ExecRow> rowEncoder;
 		//    private MultiFieldEncoder rowEncoder;
 		private SpliceRuntimeContext spliceRuntimeContext;
+		private byte[] rowKey = new byte[1];
 
 		public SpliceOperationRegionScanner(SpliceOperation topOperation,
 																				SpliceOperationContext context) throws StandardException {
@@ -138,9 +141,23 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 										stats.readAccumulator().tickRecords();
 								}
 
-								//TODO -sf- can we do this better?
-//								RowLocation location = topOperation.getCurrentRowLocation();
-								byte[] row = HConstants.EMPTY_BYTE_ARRAY;
+								/*
+								 * We build the rowkey as meaninglessly as possible, to avoid
+								 * moving excessive bytes over the network. However, we need to have
+								 * at least the hash bucket so that clients work correctly. In that way,
+								 * we copy over just the first byte from the location if we have a location,
+								 * otherwise, we just put in 0x00.
+								 *
+								 * If the bucket size ever grows beyond 256, we'll need to move to more
+								 * than 1 byte, which means we'll need to adjust this.
+								 */
+								RowLocation location = topOperation.getCurrentRowLocation();
+								if(location!=null){
+										ByteSlice slice = ((HBaseRowLocation) location).getSlice();
+										slice.get(rowKey,0,rowKey.length);
+								}else
+									rowKey[0] = 0x00;
+//								byte[] row = location!=null? location.getBytes():SpliceUtils.getUniqueKey();
 
 								if(rowEncoder==null){
 										int[] rowColumns = IntArrays.count(nextRow.nColumns());
@@ -149,7 +166,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 								}
 								rowEncoder.setRow(nextRow);
 								byte[] data = rowEncoder.encode();
-								results.add(new KeyValue(row,SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES,data));
+								results.add(new KeyValue(rowKey,SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES,data));
 
 								//add any additional columns which were specified during the run
 								Iterator<Pair<byte[],byte[]>> addColIter = additionalColumns.iterator();
@@ -158,7 +175,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 										Pair<byte[],byte[]> additionalCol = addColIter.next();
 										byte[] qual = additionalCol.getFirst();
 										byte[] value = additionalCol.getSecond();
-										results.add(new KeyValue(row,SpliceUtils.DEFAULT_FAMILY_BYTES,qual,value));
+										results.add(new KeyValue(rowKey,SpliceUtils.DEFAULT_FAMILY_BYTES,qual,value));
 										addColIter.remove();
 								}
 

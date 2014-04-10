@@ -114,27 +114,6 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				return columnOrdering;
 		}
 
-		protected DataValueDescriptor[] getColumnDVDs() throws StandardException{
-				if (kdvds == null) {
-						int[] columnOrdering = getColumnOrdering();
-						int[] format_ids = scanInformation.getConglomerate().getFormat_ids();
-						kdvds = new DataValueDescriptor[columnOrdering.length];
-						for (int i = 0; i < columnOrdering.length; ++i) {
-								kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
-						}
-				}
-
-				return kdvds;
-		}
-
-		protected EntryPredicateFilter getPredicateFilter(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException{
-				if (!cachedPredicateFilter) {
-						Scan scan = getScan(spliceRuntimeContext);
-						predicateFilter = EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
-						cachedPredicateFilter = true;
-				}
-				return predicateFilter;
-		}
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 				super.readExternal(in);
@@ -193,6 +172,21 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				Scan scan = buildScan(spliceRuntimeContext);
 				deSiify(scan);
 				return scan;
+		}
+
+		protected int[] getKeyFormatIds() throws StandardException {
+				int[] keyColumnEncodingOrder = scanInformation.getColumnOrdering();
+				if(keyColumnEncodingOrder==null) return null; //no keys to worry about
+				int[] allFormatIds = scanInformation.getConglomerate().getFormat_ids();
+				int[] keyFormatIds = new int[keyColumnEncodingOrder.length];
+				for(int i=0,pos=0;i<keyColumnEncodingOrder.length;i++){
+						int keyColumnPosition = keyColumnEncodingOrder[i];
+						if(keyColumnPosition>=0){
+								keyFormatIds[pos] = allFormatIds[keyColumnPosition];
+								pos++;
+						}
+				}
+				return keyFormatIds;
 		}
 
 		protected int[] getAccessedPksToTemplateRowMap() throws StandardException {

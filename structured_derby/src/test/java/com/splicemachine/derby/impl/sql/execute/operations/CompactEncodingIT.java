@@ -68,7 +68,7 @@ public class CompactEncodingIT extends SpliceUnitTest {
                 String.format("select max(i) from %s", this.getTableReference(TABLE_NAME)));
 
         while(rs.next()){
-            Assert.assertEquals((int)rs.getLong(1), MAX);
+            Assert.assertEquals(MAX,rs.getInt(1));
         }
         rs.close();
 
