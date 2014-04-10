@@ -180,6 +180,50 @@ public class TableScanOperation extends ScanOperation {
 								return generator.nextBytes();
 						}
 				});
+//				columnOrdering = scanInformation.getColumnOrdering();
+//
+//				if(columnOrdering != null && columnOrdering.length > 0) {
+//
+//						hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+//								@Override
+//								public byte[] get() throws StandardException {
+////										if(currentRowLocation!=null)
+////												return currentRowLocation.getBytes();
+//										return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+//								}
+//						}){
+//								@Override
+//								public KeyHashDecoder getDecoder() {
+//										try {
+//												SerializerMap serializerMap = VersionedSerializers.forVersion(scanInformation.getTableVersion(), true);
+//												DescriptorSerializer[] serializers = serializerMap.getSerializers(currentRow);
+//												TypeProvider  typeProvider = VersionedSerializers.typesForVersion(scanInformation.getTableVersion());
+//												final int[] allKeyCols = scanInformation.getColumnOrdering();
+//												FormatableBitSet accessedKeys = scanInformation.getAccessedPkColumns();
+//												int[] keyColumnTypes = scanInformation.getConglomerate().getFormat_ids();
+//												return SkippingKeyDecoder.decoder(
+//																												typeProvider,
+//																												serializers,
+//																												allKeyCols,
+//																												keyColumnTypes,
+//																												scanInformation.getConglomerate().getAscDescInfo(),
+//																getAccessedPksToTemplateRowMap(),
+//																accessedKeys);
+//										} catch (StandardException e) {
+//												throw new RuntimeException(e);
+//										}
+//								}
+//						};
+//				}else{
+//						hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+//								@Override
+//								public byte[] get() throws StandardException {
+//										if(currentRowLocation!=null)
+//												return currentRowLocation.getBytes();
+//										return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+//								}
+//						});
+//				}
 
 				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
 		}
