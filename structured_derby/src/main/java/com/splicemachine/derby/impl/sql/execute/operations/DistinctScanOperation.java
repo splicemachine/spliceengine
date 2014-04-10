@@ -8,7 +8,6 @@ import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.sort.SinkSortIterator;
@@ -142,6 +141,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         for(int index=0;index<fihArray.length;index++){
             keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(scanInformation.getAccessedColumns(),fihArray[index].getInt());
         }
+				this.scan = context.getScan();
 				startExecutionTime = System.currentTimeMillis();
     }
 
@@ -186,9 +186,9 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 										.transactionID(transactionID)
 										.keyColumnEncodingOrder(scanInformation.getColumnOrdering())
 										.keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
-										.keyColumnTypes(scanInformation.getConglomerate().getFormat_ids())
+										.keyColumnTypes(getKeyFormatIds())
 										.accessedKeyColumns(scanInformation.getAccessedPkColumns())
-										.keyDecodingMap(getAccessedPksToTemplateRowMap())
+										.keyDecodingMap(getKeyDecodingMap())
 										.tableVersion(scanInformation.getTableVersion())
 										.indexName(indexName)
 										.build();

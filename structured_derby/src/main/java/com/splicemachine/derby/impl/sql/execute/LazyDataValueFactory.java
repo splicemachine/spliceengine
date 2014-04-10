@@ -189,12 +189,12 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
 
 	@Override
 	public DateTimeDataValue getDate(DataValueDescriptor operand) throws StandardException {
-		if (operand instanceof LazyTimestampDataValueDescriptor) {
-			DateTimeDataValue dtdv = this.getNullDate(null);
-			ByteSlice bs = ((LazyDataValueDescriptor) operand).bytes;
-			DerbyBytesUtil.decode(dtdv, bs.array(), bs.offset(), bs.length());
-			return dtdv;
-		}
+//		if (operand instanceof LazyTimestampDataValueDescriptor) {
+//			DateTimeDataValue dtdv = this.getNullDate(null);
+//			ByteSlice bs = ((LazyDataValueDescriptor) operand).bytes;
+//			DerbyBytesUtil.decode(dtdv, bs.array(), bs.offset(), bs.length());
+//			return dtdv;
+//		}
 		return super.getDate(operand);
 	}
     
