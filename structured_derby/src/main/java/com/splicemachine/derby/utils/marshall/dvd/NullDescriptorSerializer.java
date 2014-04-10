@@ -37,6 +37,10 @@ public class NullDescriptorSerializer implements DescriptorSerializer{
 						}
 						@Override public boolean applies(DataValueDescriptor dvd) { return delegate.applies(dvd); }
 						@Override public boolean applies(int typeFormatId) { return delegate.applies(typeFormatId); }
+
+						@Override public boolean isScalar() { return delegate.isScalar(); }
+						@Override public boolean isFloat() { return delegate.isFloat(); }
+						@Override public boolean isDouble() { return delegate.isDouble(); }
 				};
 		}
 
@@ -45,6 +49,9 @@ public class NullDescriptorSerializer implements DescriptorSerializer{
 						@Override public DescriptorSerializer newInstance() { return new NullDescriptorSerializer(delegate.newInstance(),sparse); }
 						@Override public boolean applies(DataValueDescriptor dvd) { return delegate.applies(dvd); }
 						@Override public boolean applies(int typeFormatId) { return delegate.applies(typeFormatId); }
+						@Override public boolean isScalar() { return delegate.isScalar(); }
+						@Override public boolean isFloat() { return delegate.isFloat(); }
+						@Override public boolean isDouble() { return delegate.isDouble(); }
 				};
 		}
 
@@ -64,6 +71,9 @@ public class NullDescriptorSerializer implements DescriptorSerializer{
 						}
 						@Override public boolean applies(DataValueDescriptor dvd) { return delegate.applies(dvd); }
 						@Override public boolean applies(int typeFormatId) { return delegate.applies(typeFormatId); }
+						@Override public boolean isScalar() { return delegate.isScalar(); }
+						@Override public boolean isFloat() { return delegate.isFloat(); }
+						@Override public boolean isDouble() { return delegate.isDouble(); }
 				};
 		}
 

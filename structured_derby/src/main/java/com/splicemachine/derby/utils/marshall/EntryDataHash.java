@@ -55,29 +55,53 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 				BitSet scalarFields = new BitSet(nCols);
 				BitSet floatFields = new BitSet(nCols);
 				BitSet doubleFields = new BitSet(nCols);
-				int i=0;
-				for(DataValueDescriptor field:fields){
-						if(field==null) continue;
-						if(DerbyBytesUtil.isScalarType(field, null))
-								scalarFields.set(i);
-						else if(DerbyBytesUtil.isFloatType(field))
-								floatFields.set(i);
-						else if(DerbyBytesUtil.isDoubleType(field))
-								doubleFields.set(i);
-						i++;
+				if(keyColumns!=null){
+						for( int pos:keyColumns){
+								if(pos<0) continue;
+								DataValueDescriptor field = fields[pos];
+								if(field==null) continue;
+								DescriptorSerializer serializer = serializers[pos];
+								if(serializer.isScalarType())
+										scalarFields.set(pos);
+								else if(serializer.isFloatType())
+										floatFields.set(pos);
+								else if(serializer.isDoubleType())
+										doubleFields.set(pos);
+						}
+				}else{
+						int i=0;
+						for(DataValueDescriptor field:fields){
+								if(field==null) continue;
+								if(DerbyBytesUtil.isScalarType(field, null))
+										scalarFields.set(i);
+								else if(DerbyBytesUtil.isFloatType(field))
+										floatFields.set(i);
+								else if(DerbyBytesUtil.isDoubleType(field))
+										doubleFields.set(i);
+								i++;
+						}
 				}
 				return EntryEncoder.create(kryoPool,nCols,notNullFields,scalarFields,floatFields,doubleFields);
 		}
 
 		protected BitSet getNotNullFields(ExecRow row,BitSet notNullFields) {
 				notNullFields.clear();
-				int i=0;
-				for(DataValueDescriptor dvd:row.getRowArray()){
-						if(dvd!=null &&!dvd.isNull()){
-								if(keyColumns==null||i>=keyColumns.length || keyColumns[i]!=-1)
-										notNullFields.set(i);
+				if(keyColumns!=null){
+						DataValueDescriptor[] fields = row.getRowArray();
+						for(int keyColumn:keyColumns){
+								if(keyColumn<0) continue;
+								DataValueDescriptor dvd = fields[keyColumn];
+								if(dvd!=null &&!dvd.isNull())
+										notNullFields.set(keyColumn);
 						}
-						i++;
+				}else{
+						int i=0;
+						for(DataValueDescriptor dvd:row.getRowArray()){
+								if(dvd!=null &&!dvd.isNull()){
+										notNullFields.set(i);
+								}
+								i++;
+						}
 				}
 				return notNullFields;
 		}

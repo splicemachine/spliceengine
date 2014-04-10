@@ -87,13 +87,14 @@ public class BareKeyHash{
 						for(int i=0;i<keyColumns.length;i++){
 								int pos = keyColumns[i];
 								if(pos<0) continue;
+								boolean desc = !keySortOrder[i];
 								DescriptorSerializer serializer = serializers[pos];
 								DataValueDescriptor field = fields[pos];
-								serializer.decode(decoder,field,!keySortOrder[i]);
+								serializer.decode(decoder,field, desc);
 						}
 				}else if(keyColumns!=null){
 						for(int pos:keyColumns){
-							if(pos==-1) continue;
+								if(pos==-1) continue;
 								DescriptorSerializer serializer = serializers[pos];
 								DataValueDescriptor field = fields[pos];
 								serializer.decode(decoder,field,false);

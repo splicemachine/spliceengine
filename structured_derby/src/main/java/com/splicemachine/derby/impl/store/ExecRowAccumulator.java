@@ -1,12 +1,12 @@
 package com.splicemachine.derby.impl.store;
 
 import com.carrotsearch.hppc.BitSet;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.storage.ByteEntryAccumulator;
 import com.splicemachine.storage.EntryPredicateFilter;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.HConstants;
@@ -16,9 +16,9 @@ import org.apache.hadoop.hbase.HConstants;
  * Date: 3/11/14
  */
 public class ExecRowAccumulator extends ByteEntryAccumulator {
-		private final DataValueDescriptor[] dvds;
-		private final int[] columnMap;
-		private final DescriptorSerializer[] serializers;
+		protected final DataValueDescriptor[] dvds;
+		protected final DescriptorSerializer[] serializers;
+		protected final int[] columnMap;
 
 		private ExecRowAccumulator(EntryPredicateFilter predicateFilter,
 															boolean returnIndex,
@@ -35,13 +35,18 @@ public class ExecRowAccumulator extends ByteEntryAccumulator {
 		public static ExecRowAccumulator newAccumulator(EntryPredicateFilter predicateFilter,
 																										boolean returnIndex,
 																										ExecRow row,
-																										int[] keyColumns,
+																										int[] columnMap,
+																										boolean[] columnSortOrder,
+																										FormatableBitSet cols,
 																										String tableVersion){
 				DataValueDescriptor[] dvds = row.getRowArray();
 				BitSet fieldsToCollect = new BitSet(dvds.length);
-				if(keyColumns!=null){
-						for(int i=0;i<keyColumns.length;i++){
-								int pos = keyColumns[i];
+				if(cols!=null){
+						for(int i=cols.anySetBit();i>=0;i=cols.anySetBit(i))
+								fieldsToCollect.set(i);
+				}else if(columnMap!=null){
+						for(int i=0;i<columnMap.length;i++){
+								int pos = columnMap[i];
 								if(pos<0) continue;
 								if(dvds[pos]!=null)
 										fieldsToCollect.set(i);
@@ -53,20 +58,27 @@ public class ExecRowAccumulator extends ByteEntryAccumulator {
 						}
 				}
 				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion,false).getSerializers(row);
-				return new ExecRowAccumulator(predicateFilter,returnIndex,fieldsToCollect,dvds,keyColumns,serializers);
-
+				if(columnSortOrder!=null)
+						return new Ordered(predicateFilter,returnIndex,fieldsToCollect,dvds,columnMap,serializers,columnSortOrder);
+				else
+						return new ExecRowAccumulator(predicateFilter,returnIndex,fieldsToCollect,dvds,columnMap,serializers);
 		}
+
 		public static ExecRowAccumulator newAccumulator(EntryPredicateFilter predicateFilter,
 																										boolean returnIndex,
 																										ExecRow row,
-																										int[] keyColumns){
-				return newAccumulator(predicateFilter,returnIndex,row,keyColumns,null);
+																										int[] columnMap,
+																										FormatableBitSet cols,
+																										String tableVersion){
+				return newAccumulator(predicateFilter,returnIndex,row,columnMap,null,cols,tableVersion);
 		}
 
 		public static ExecRowAccumulator newAccumulator(EntryPredicateFilter predicateFilter,
 																										boolean returnIndex,
-																										ExecRow row){
-				return newAccumulator(predicateFilter,returnIndex,row,null);
+																										ExecRow row,
+																										int[] keyColumns,
+																										String tableVersion){
+				return newAccumulator(predicateFilter,returnIndex,row,keyColumns,null,tableVersion);
 		}
 
 		@Override
@@ -99,7 +111,7 @@ public class ExecRowAccumulator extends ByteEntryAccumulator {
 				return HConstants.EMPTY_BYTE_ARRAY;
 		}
 
-		private void decode(int position, byte[] data, int offset, int length) {
+		protected void decode(int position, byte[] data, int offset, int length) {
 				DataValueDescriptor dvd = dvds[columnMap[position]];
 				DescriptorSerializer serializer = serializers[columnMap[position]];
 				try {
@@ -110,4 +122,31 @@ public class ExecRowAccumulator extends ByteEntryAccumulator {
 				}
 		}
 
+		private static class Ordered extends ExecRowAccumulator{
+
+				private final boolean[] columnSortOrder;
+
+				private Ordered(EntryPredicateFilter predicateFilter,
+												boolean returnIndex,
+												BitSet fieldsToCollect,
+												DataValueDescriptor[] dvds,
+												int[] columnMap,
+												DescriptorSerializer[] serializers,
+												boolean[] columnSortOrder) {
+						super(predicateFilter, returnIndex, fieldsToCollect, dvds, columnMap, serializers);
+						this.columnSortOrder = columnSortOrder;
+				}
+
+				@Override
+				protected void decode(int position, byte[] data, int offset, int length) {
+						DataValueDescriptor dvd = dvds[columnMap[position]];
+						DescriptorSerializer serializer = serializers[columnMap[position]];
+						try {
+								serializer.decodeDirect(dvd, data, offset, length, !columnSortOrder[position]);
+						} catch (StandardException e) {
+								//TODO -sf- handle this?
+								throw new RuntimeException(e);
+						}
+				}
+		}
 }

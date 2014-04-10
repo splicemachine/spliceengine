@@ -40,5 +40,9 @@ public interface DescriptorSerializer {
 				 * this typeFormatId
 				 */
 				boolean applies(int typeFormatId);
+
+				boolean isScalar();
+				boolean isFloat();
+				boolean isDouble();
 		}
 }

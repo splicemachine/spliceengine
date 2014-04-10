@@ -8,7 +8,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
  * @author Scott Fines
  * Date: 4/3/14
  */
-public class V1SerializerMap implements SerializerMap {
+public class V1SerializerMap implements SerializerMap,TypeProvider {
 		protected final DescriptorSerializer.Factory[] factories;
 		protected final DescriptorSerializer.Factory[] eagerFactories;
 
@@ -40,10 +40,10 @@ public class V1SerializerMap implements SerializerMap {
 				eagerFactories[10] = NullDescriptorSerializer.nullFactory(DecimalDescriptorSerializer.INSTANCE_FACTORY,sparse);
 		}
 
-		public static final SerializerMap SPARSE_MAP = new V1SerializerMap(true);
-		public static final SerializerMap DENSE_MAP = new V1SerializerMap(false);
+		public static final V1SerializerMap SPARSE_MAP = new V1SerializerMap(true);
+		public static final V1SerializerMap DENSE_MAP = new V1SerializerMap(false);
 
-		public static SerializerMap instance(boolean sparse){
+		public static V1SerializerMap instance(boolean sparse){
 				return sparse? SPARSE_MAP: DENSE_MAP;
 		}
 
@@ -89,6 +89,33 @@ public class V1SerializerMap implements SerializerMap {
 				for(DescriptorSerializer.Factory factory: eagerFactories){
 						if(factory.applies(typeFormatId))
 								return factory.newInstance();
+				}
+				throw new IllegalStateException("Unable to find serializer for type format id "+ typeFormatId);
+		}
+
+		@Override
+		public boolean isScalar(int typeFormatId) {
+				for(DescriptorSerializer.Factory factory:eagerFactories){
+						if(factory.applies(typeFormatId))
+								return factory.isScalar();
+				}
+				throw new IllegalStateException("Unable to find serializer for type format id "+ typeFormatId);
+		}
+
+		@Override
+		public boolean isFloat(int typeFormatId) {
+				for(DescriptorSerializer.Factory factory:eagerFactories){
+						if(factory.applies(typeFormatId))
+								return factory.isFloat();
+				}
+				throw new IllegalStateException("Unable to find serializer for type format id "+ typeFormatId);
+		}
+
+		@Override
+		public boolean isDouble(int typeFormatId) {
+				for(DescriptorSerializer.Factory factory:eagerFactories){
+						if(factory.applies(typeFormatId))
+								return factory.isDouble();
 				}
 				throw new IllegalStateException("Unable to find serializer for type format id "+ typeFormatId);
 		}

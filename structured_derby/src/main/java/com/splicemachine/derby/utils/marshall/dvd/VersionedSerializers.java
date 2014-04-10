@@ -8,6 +8,13 @@ public class VersionedSerializers {
 
 		private VersionedSerializers(){}
 
+		public static TypeProvider typesForVersion(String version){
+				if("2.0".equals(version))
+						return V2SerializerMap.instance(true);
+				else
+						return V1SerializerMap.instance(true);
+		}
+
 		public static SerializerMap forVersion(String version,boolean sparse){
 				/*
 				 * Statically defined version checked versioning

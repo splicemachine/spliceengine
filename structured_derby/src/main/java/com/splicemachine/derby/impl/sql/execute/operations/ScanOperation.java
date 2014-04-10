@@ -53,7 +53,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		protected MultiFieldDecoder keyDecoder;
 		protected EntryPredicateFilter predicateFilter;
 		private boolean cachedPredicateFilter = false;
-		protected int[] keyColumns;
+		protected int[] keyDecodingMap;
 
 		public ScanOperation () {
 				super();
@@ -195,22 +195,28 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				return scan;
 		}
 
-		protected int[] getKeyColumns() throws StandardException {
-				if(keyColumns==null){
+		protected int[] getAccessedPksToTemplateRowMap() throws StandardException {
+				if(keyDecodingMap ==null){
 						FormatableBitSet pkCols = scanInformation.getAccessedPkColumns();
-						int[] pkOrder = scanInformation.getColumnOrdering();
-						int[] pkColMap = new int[pkCols.getLength()];
-						Arrays.fill(pkColMap, -1);
-						for(int i=0,pos=0;i<pkOrder.length;i++){
-								int keyPosition = pkOrder[i];
-								if(pkCols.get(keyPosition)){
-										pkColMap[keyPosition] = pos;
-										pos++;
-								}
+
+						int[] keyColumnEncodingOrder = scanInformation.getColumnOrdering();
+						int[] baseColumnMap = operationInformation.getBaseColumnMap();
+
+						int[] kDecoderMap = new int[keyColumnEncodingOrder.length];
+						Arrays.fill(kDecoderMap, -1);
+						for(int i=0;i<keyColumnEncodingOrder.length;i++){
+								int baseKeyColumnPosition = keyColumnEncodingOrder[i]; //the position of the column in the base row
+								if(pkCols.get(i)){
+										kDecoderMap[i] = baseColumnMap[baseKeyColumnPosition];
+										baseColumnMap[baseKeyColumnPosition] = -1;
+								}else
+										kDecoderMap[i] = -1;
 						}
-						keyColumns = pkColMap;
+
+
+						keyDecodingMap = kDecoderMap;
 				}
-				return keyColumns;
+				return keyDecodingMap;
 		}
 
 
@@ -329,5 +335,9 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 								.append(indent).append("scanInformation:").append(scanInformation)
 								.append(indent).append("tableName:").append(tableName)
 								.toString();
+		}
+
+		public int[] getKeyColumns() {
+				return columnOrdering;
 		}
 }

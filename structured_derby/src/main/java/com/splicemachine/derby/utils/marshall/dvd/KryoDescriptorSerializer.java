@@ -45,6 +45,10 @@ public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable 
 												return false;
 								}
 						}
+
+						@Override public boolean isScalar() { return false; }
+						@Override public boolean isFloat() { return false; }
+						@Override public boolean isDouble() { return false; }
 				};
 		}
 

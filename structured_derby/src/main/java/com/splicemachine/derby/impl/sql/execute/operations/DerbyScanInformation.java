@@ -65,6 +65,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     private SpliceConglomerate conglomerate;
     private int colRefItem;
 		private String tableVersion;
+		private int[] keyDecodingMap;
 
 		@SuppressWarnings("UnusedDeclaration")
     @Deprecated
@@ -139,28 +140,39 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     @Override
     public FormatableBitSet getAccessedPkColumns() throws StandardException {
         if(accessedPkCols == null) {
-            int[] columnOrdering = getColumnOrdering();
-            if (columnOrdering == null)
-                return null;
-            FormatableBitSet cols = getAccessedColumns();
-            if (cols == null) {
-                int size = getConglomerate().getFormat_ids().length;
-                cols = new FormatableBitSet(size);
-                for (int i = 0; i < size; ++i) {
-                    cols.set(i);
-                }
-            }
-            accessedPkCols = new FormatableBitSet(cols);
-            accessedPkCols.clear();
-            for (int col:columnOrdering) {
-                if(cols.isSet(col))
-                    accessedPkCols.set(col);
-            }
+						int[] keyColumnEncodingOrder = getColumnOrdering();
+						if(keyColumnEncodingOrder==null) return null; //no keys to decode
+
+						FormatableBitSet accessedColumns = getAccessedColumns();
+						FormatableBitSet accessedKeyCols = new FormatableBitSet(keyColumnEncodingOrder.length);
+						if(accessedColumns==null){
+								/*
+								 * We need to access every column in the key
+								 */
+								for(int i=0;i<keyColumnEncodingOrder.length;i++){
+										accessedKeyCols.set(i);
+								}
+						}else{
+								/*
+								 * accessedColumns is the list of columns IN THE ENTIRE row
+								 * which are being accessed. So if the row looks like (a,b,c,d) and
+								 * I want (a,c) then accessColumns = {0,2}.
+								 *
+								 * I need to turn that into the columns which are present in the key,
+						 		 * with reference to their position IN THE KEY(not in the entire row).
+						 		 */
+								for(int i=0;i<keyColumnEncodingOrder.length;i++){
+										int keyColumn = keyColumnEncodingOrder[i];
+										if(accessedColumns.get(keyColumn))
+												accessedKeyCols.set(i);
+								}
+						}
+						accessedPkCols = accessedKeyCols;
         }
         return accessedPkCols;
     }
 
-    @Override
+		@Override
     public FormatableBitSet getAccessedNonPkColumns() throws StandardException {
         if (accessedNonPkCols == null) {
             FormatableBitSet cols = getAccessedColumns();

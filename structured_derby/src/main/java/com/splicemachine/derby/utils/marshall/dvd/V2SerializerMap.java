@@ -12,12 +12,12 @@ public class V2SerializerMap extends V1SerializerMap {
 		}
 
 
-		public static final SerializerMap SPARSE_MAP = new V2SerializerMap(true);
-		public static final SerializerMap DENSE_MAP = new V2SerializerMap(false);
+		public static final V2SerializerMap SPARSE_MAP = new V2SerializerMap(true);
+		public static final V2SerializerMap DENSE_MAP = new V2SerializerMap(false);
 
 		private static final String tableVersion = "2.0";
 
-		public static SerializerMap instance(boolean sparse){
+		public static V2SerializerMap instance(boolean sparse){
 				return sparse? SPARSE_MAP: DENSE_MAP;
 		}
 
