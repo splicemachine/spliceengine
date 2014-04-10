@@ -7,6 +7,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -50,7 +51,7 @@ public class OperationTree {
 
         //The levelMap is sorted so that lower level number means higher on the tree, so
         //since we need to execute from bottom up, we go in descending order
-				StatementInfo info = runtimeContext.getStatementInfo();
+				final StatementInfo info = runtimeContext.getStatementInfo();
 				boolean setStatement = info !=null;
 				long statementUuid = setStatement? info.getStatementUuid():0l;
         for(Integer level:levelMap.descendingKeySet()){
@@ -63,7 +64,16 @@ public class OperationTree {
                     shuffleFutures.add(levelExecutor.submit(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
-                            opToShuffle.executeShuffle(runtimeContext);
+                            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+                            boolean prepared = false;
+                            try {
+                                transactionResource.prepareContextManager();
+                                prepared = true;
+                                transactionResource.marshallTransaction(info.getTxnId());
+                                opToShuffle.executeShuffle(runtimeContext);
+                            } finally {
+                                resetContext(transactionResource, prepared);
+                            }
                             return null;
                         }
                     }));
@@ -93,6 +103,15 @@ public class OperationTree {
 						return operation.executeProbeScan();
 				else
 						return operation.executeScan(runtimeContext);
+    }
+
+    private static void resetContext(SpliceTransactionResourceImpl impl, boolean prepared) {
+        if(prepared){
+            impl.resetContextManager();
+        }
+        if (impl != null) {
+            impl.cleanup();
+        }
     }
 
     private static NavigableMap<Integer, List<SpliceOperation>> split(SpliceOperation parentOperation) {
@@ -136,4 +155,5 @@ public class OperationTree {
 						numSinks++;
 				return numSinks;
 		}
+
 }
