@@ -38,46 +38,16 @@ public class InnerJoinIT extends SpliceUnitTest {
 	public static final String TABLE_NAME_8 = "H";
 
 
-    protected static DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
-	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(si varchar(40),sa character varying(40),sc varchar(40),sd int,se float)");
-	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(si varchar(40), sa varchar(40))");
-	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME,"(si varchar(40), sa varchar(40))");
-	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4,CLASS_NAME,"(a varchar(20), b varchar(20), c varchar(10), d decimal, e varchar(15))");
-	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME,"(a varchar(20), b varchar(20), w decimal(4),e varchar(15))");
-	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,CLASS_NAME,"(a varchar(20), b varchar(20), c varchar(10), d decimal, e varchar(15))");
-	protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,CLASS_NAME,"(a varchar(20), b varchar(20), w decimal(4),e varchar(15))");
-	protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8,CLASS_NAME,"(i int)");
-
-	@ClassRule
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcher1)
-        .around(spliceTableWatcher2)
-        .around(spliceTableWatcher3)
-        .around(spliceTableWatcher4)
-        .around(spliceTableWatcher5)
-        .around(spliceTableWatcher6)
-        .around(spliceTableWatcher7)
-		.around(new SpliceDataWatcher() {
-            @Override
-            protected void starting(Description description) {
-                try {
-                    PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s (si, sa, sc,sd,se) values (?,?,?,?,?)", TABLE_NAME_1));
-                    for (int i = 0; i < 10; i++) {
-                        ps.setString(1, "" + i);
-                        ps.setString(2, "i");
-                        ps.setString(3, "" + i * 10);
-                        ps.setInt(4, i);
-                        ps.setFloat(5, 10.0f * i);
-                        ps.executeUpdate();
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    spliceClassWatcher.closeAll();
-                }
-            }
+		protected static DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+		protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(si varchar(40),sa character varying(40),sc varchar(40),sd int,se float)");
+		protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(si varchar(40), sa varchar(40))");
+		protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME,"(si varchar(40), sa varchar(40))");
+		protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4,CLASS_NAME,"(a varchar(20), b varchar(20), c varchar(10), d decimal, e varchar(15))");
+		protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME,"(a varchar(20), b varchar(20), w decimal(4),e varchar(15))");
+		protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,CLASS_NAME,"(a varchar(20), b varchar(20), c varchar(10), d decimal, e varchar(15))");
+		protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,CLASS_NAME,"(a varchar(20), b varchar(20), w decimal(4),e varchar(15))");
+		protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8,CLASS_NAME,"(i int)");
 
 		@ClassRule
 		public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -89,6 +59,7 @@ public class InnerJoinIT extends SpliceUnitTest {
 						.around(spliceTableWatcher5)
 						.around(spliceTableWatcher6)
 						.around(spliceTableWatcher7)
+						.around(spliceTableWatcher8)
 						.around(new SpliceDataWatcher() {
 								@Override
 								protected void starting(Description description) {

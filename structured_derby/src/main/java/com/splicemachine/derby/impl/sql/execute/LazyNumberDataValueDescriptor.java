@@ -161,9 +161,4 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
             throw new RuntimeException(e);
         }
     }
-
-	@Override
-	public boolean isDoubleType() {
-		return false;
-	}
 }

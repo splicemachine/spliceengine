@@ -173,6 +173,13 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				return scan;
 		}
 
+		/**
+		 * Get the Stored format ids for the columns in the key. The returned int[] is ordered
+		 * by the encoding order of the keys.
+		 *
+		 * @return the format ids for the columns in the key.
+		 * @throws StandardException
+		 */
 		protected int[] getKeyFormatIds() throws StandardException {
 				int[] keyColumnEncodingOrder = scanInformation.getColumnOrdering();
 				if(keyColumnEncodingOrder==null) return null; //no keys to worry about
@@ -188,7 +195,11 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				return keyFormatIds;
 		}
 
-		protected int[] getAccessedPksToTemplateRowMap() throws StandardException {
+		/**
+		 * @return a map from the accessed (desired) key columns to their position in the decoded row.
+		 * @throws StandardException
+		 */
+		protected int[] getKeyDecodingMap() throws StandardException {
 				if(keyDecodingMap ==null){
 						FormatableBitSet pkCols = scanInformation.getAccessedPkColumns();
 
