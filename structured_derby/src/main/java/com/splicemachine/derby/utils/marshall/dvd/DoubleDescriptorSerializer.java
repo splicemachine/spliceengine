@@ -17,6 +17,10 @@ class DoubleDescriptorSerializer implements DescriptorSerializer {
 				@Override public DescriptorSerializer newInstance() { return INSTANCE; }
 				@Override public boolean applies(DataValueDescriptor dvd) { return dvd!=null && applies(dvd.getTypeFormatId()); }
 				@Override public boolean applies(int typeFormatId) { return typeFormatId == StoredFormatIds.SQL_DOUBLE_ID; }
+
+				@Override public boolean isScalar() { return false; }
+				@Override public boolean isFloat() { return false; }
+				@Override public boolean isDouble() { return true; }
 		};
 
 		private DoubleDescriptorSerializer() { }

@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.hbase.KeyValueUtils;
+import com.splicemachine.si.api.SIFilter;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -8,7 +9,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 
 public class FilterStatePacked<Result, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
-        Scan, Lock, OperationStatus, Mutation, IHTable> implements IFilterState {
+        Scan, Lock, OperationStatus, Mutation, IHTable> implements IFilterState,SIFilter {
     static final Logger LOG = Logger.getLogger(FilterStatePacked.class);
     protected final FilterState<Result, Put, Delete, Get, Scan, Lock, OperationStatus,
 						Mutation, IHTable> simpleFilter;

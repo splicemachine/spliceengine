@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.SpliceKryoRegistry;
@@ -7,18 +7,22 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.FilterState;
 import com.splicemachine.si.impl.FilterStatePacked;
 import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.stats.Counter;
+import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
+import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Indexed;
@@ -51,48 +55,113 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		private RegionScanner regionScanner;
 		private final Scan scan;
 		private final ExecRow template;
+		private final String tableVersion;
+		private final int[] rowDecodingMap;
 
-		private final Provider<MultiFieldDecoder> keyDecoderProvider;
-		private MultiFieldDecoder keyDecoder;
 
-		private final String transactionID;
-		private final int[] rowColumnMap;
-
-		private FilterStatePacked siFilter;
-
+		private SIFilter siFilter;
 		private EntryPredicateFilter predicateFilter;
 		private List<KeyValue> keyValues;
+
 		private RowLocation currentRowLocation;
+		private final boolean[] keyColumnSortOrder;
 		private String indexName;
 		private ByteSlice slice = new ByteSlice();
-		private boolean hasPks = true;
-		private Indexed primaryKeyIndex;
-		private ExecRowAccumulator accumulator;
-		private final String tableVersion;
-		private ExecRowAccumulator keyAccumulator;
-		private int[] pkColumns;
 
-		public SITableScanner(RegionScanner scanner,
+		private boolean isKeyed = true;
+		private KeyIndex primaryKeyIndex;
+		private MultiFieldDecoder keyDecoder;
+		private final Provider<MultiFieldDecoder> keyDecoderProvider;
+		private ExecRowAccumulator keyAccumulator;
+		private int[] keyDecodingMap;
+		private FormatableBitSet accessedKeys;
+
+		private final SIFilterFactory filterFactory;
+
+
+		SITableScanner(RegionScanner scanner,
 													ExecRow template,
-													SpliceRuntimeContext context,
+													MetricFactory metricFactory,
 													Scan scan,
-													int[] rowColumnMap,
+													int[] rowDecodingMap,
 													String transactionID,
-													int[] pkColumns,
-													FormatableBitSet accessedPkColumns,
+													int[] allPkColumns,
+													boolean[] keyColumnSortOrder,
+													int[] keyColumnTypes,
+													int[] keyDecodingMap,
+													FormatableBitSet accessedPks,
 													String indexName,
 													String tableVersion) {
+			this(scanner,
+							template,
+							metricFactory,
+							scan,
+							rowDecodingMap,
+							transactionID,
+							allPkColumns,
+							keyColumnSortOrder,
+							keyColumnTypes,
+							keyDecodingMap,
+							accessedPks,
+							indexName,
+							tableVersion,null);
+		}
+
+		SITableScanner(RegionScanner scanner,
+													final ExecRow template,
+													MetricFactory metricFactory,
+													Scan scan,
+													final int[] rowDecodingMap,
+													final String transactionID,
+													int[] keyColumnEncodingOrder,
+													boolean[] keyColumnSortOrder,
+													int[] keyColumnTypes,
+													int[] keyDecodingMap,
+													FormatableBitSet accessedPks,
+													String indexName,
+													final String tableVersion,
+													SIFilterFactory filterFactory) {
 				this.scan = scan;
 				this.template = template;
-				this.transactionID = transactionID;
+				this.rowDecodingMap = rowDecodingMap;
+				this.keyColumnSortOrder = keyColumnSortOrder;
 				this.indexName = indexName;
-				this.timer = context.newTimer();
-				this.filterCounter = context.newCounter();
+				this.timer = metricFactory.newTimer();
+				this.filterCounter = metricFactory.newCounter();
 				this.regionScanner = scanner;
-				this.pkColumns = pkColumns;
-				this.keyDecoderProvider = getKeyDecoder(template, accessedPkColumns);
-				this.rowColumnMap = rowColumnMap;
+				this.keyDecodingMap = keyDecodingMap;
+				this.accessedKeys = accessedPks;
+				this.keyDecoderProvider = getKeyDecoder(accessedPks, keyColumnEncodingOrder,
+								keyColumnTypes, VersionedSerializers.typesForVersion(tableVersion));
 				this.tableVersion = tableVersion;
+				if(filterFactory==null){
+						this.filterFactory = new SIFilterFactory() {
+								@Override
+								public SIFilter newFilter(EntryPredicateFilter predicateFilter,
+																					EntryDecoder rowEntryDecoder,
+																					EntryAccumulator accumulator,
+																					boolean isCountStar) throws IOException {
+										TransactionId transactionId= new TransactionId(transactionID);
+										IFilterState iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, transactionId);
+
+										HRowAccumulator hRowAccumulator = new HRowAccumulator(predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
+										//noinspection unchecked
+										return new FilterStatePacked((FilterState)iFilterState, hRowAccumulator){
+												@Override
+												protected Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
+														if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
+																if (!accumulator.accumulate(dataKeyValue)) {
+																		return Filter.ReturnCode.NEXT_ROW;
+																}
+																return Filter.ReturnCode.INCLUDE;
+														}else return Filter.ReturnCode.INCLUDE;
+												}
+										};
+								}
+						};
+				}
+				else
+						this.filterFactory = filterFactory;
 		}
 
 		@Override
@@ -104,14 +173,16 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				timer.startTiming();
 
-				FilterStatePacked filter = getSIFilter();
+				SIFilter filter = getSIFilter();
 				if(keyValues==null)
 						keyValues = Lists.newArrayListWithExpectedSize(2);
 				boolean hasRow;
 				do{
 						keyValues.clear();
+						template.resetRowArray();
 						hasRow = regionScanner.next(keyValues);
 						if(keyValues.size()<=0){
+								timer.stopTiming();
 								currentRowLocation = null;
 								return null;
 						}else{
@@ -128,16 +199,14 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 										continue;
 								}
 								setRowLocation(keyValues.get(0));
-								break;
+								timer.tick(1);
+								return template;
 						}
 				}while(hasRow);
-				if(!hasRow){
-						timer.stopTiming();
-						currentRowLocation = null;
-						return null;
-				}else
-						timer.tick(1);
-				return template;
+
+				timer.stopTiming();
+				currentRowLocation = null;
+				return null;
 		}
 
 		public RowLocation getCurrentRowLocation(){
@@ -170,57 +239,32 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 
 /*********************************************************************************************************************/
 		/*Private helper methods*/
-		private Provider<MultiFieldDecoder> getKeyDecoder(ExecRow template, FormatableBitSet pkColumns) {
-				if(pkColumns==null||pkColumns.getNumBitsSet()<=0){
-						hasPks = false;
+		private Provider<MultiFieldDecoder> getKeyDecoder(FormatableBitSet accessedPks,
+																											int[] allPkColumns,
+																											int[] keyColumnTypes,
+																											TypeProvider typeProvider) {
+				if(accessedPks==null||accessedPks.getNumBitsSet()<=0){
+						isKeyed = false;
 						return null;
 				}
 
-				primaryKeyIndex = getIndex(pkColumns,template);
+				primaryKeyIndex = getIndex(allPkColumns,keyColumnTypes,typeProvider);
 
 				keyDecoder = MultiFieldDecoder.create(SpliceKryoRegistry.getInstance());
 				return Providers.basicProvider(keyDecoder);
 		}
 
-		private Indexed getIndex(final FormatableBitSet pkColumns, final ExecRow template) {
-				return new Indexed() {
-						@Override public int nextSetBit(int currentPosition) { return pkColumns.anySetBit(currentPosition-1); }
-
-						@Override public boolean isScalarType(int position) {
-								return DerbyBytesUtil.isScalarType(template.getRowArray()[rowColumnMap[position]], null);
-						}
-
-						@Override public boolean isDoubleType(int position) {
-								return DerbyBytesUtil.isDoubleType(template.getRowArray()[rowColumnMap[position]]);
-						}
-
-						@Override public boolean isFloatType(int position) {
-								return DerbyBytesUtil.isFloatType(template.getRowArray()[rowColumnMap[position]]);
-						}
-				};
+		private KeyIndex getIndex(final int[] allPkColumns, int[] keyColumnTypes,TypeProvider typeProvider) {
+			return new KeyIndex(allPkColumns,keyColumnTypes, typeProvider);
 		}
 
 		@SuppressWarnings("unchecked")
-		private FilterStatePacked getSIFilter() throws IOException {
+		private SIFilter getSIFilter() throws IOException {
 				if(siFilter==null){
 						boolean isCountStar = scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null;
 						predicateFilter= decodePredicateFilter();
-						TransactionId txnId= new TransactionId(this.transactionID);
-						IFilterState iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, txnId);
-						accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowColumnMap, tableVersion);
-
-						HRowAccumulator hRowAccumulator = new HRowAccumulator(predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
-						siFilter = new FilterStatePacked((FilterState)iFilterState, hRowAccumulator){
-								@Override
-								protected Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
-										if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
-												if (!accumulator.accumulate(dataKeyValue)) {
-														return Filter.ReturnCode.NEXT_ROW;
-												}
-												return Filter.ReturnCode.INCLUDE;
-										}else return Filter.ReturnCode.INCLUDE;
-								}
-						};
+						ExecRowAccumulator accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowDecodingMap, tableVersion);
+						siFilter = filterFactory.newFilter(predicateFilter,getRowEntryDecoder(),accumulator,isCountStar);
 				}
 				return siFilter;
 		}
@@ -250,7 +294,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				}
 		}
 
-		private boolean filterRow(FilterStatePacked filter) throws IOException {
+		private boolean filterRow(SIFilter filter) throws IOException {
 				filter.nextRow();
 				Iterator<KeyValue> kvIter = keyValues.iterator();
 				while(kvIter.hasNext()){
@@ -271,20 +315,62 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		}
 
 		private boolean filterRowKey(KeyValue keyValue) throws IOException {
-				if(!hasPks) return true;
+				if(!isKeyed) return true;
 
 				byte[] dataBuffer = keyValue.getBuffer();
 				int dataOffset = keyValue.getRowOffset();
 				int dataLength = keyValue.getRowLength();
-				keyDecoder.set(dataBuffer,dataOffset,dataLength);
+				keyDecoder.set(dataBuffer, dataOffset, dataLength);
 				if(keyAccumulator==null)
-						keyAccumulator = ExecRowAccumulator.newAccumulator(predicateFilter,false,template,pkColumns,tableVersion);
+						keyAccumulator = ExecRowAccumulator.newAccumulator(predicateFilter,false,template,
+																keyDecodingMap, keyColumnSortOrder, accessedKeys, tableVersion);
 
 				keyAccumulator.reset();
-				if(!predicateFilter.match(primaryKeyIndex,keyDecoderProvider,accumulator))
-						keyAccumulator.reset();
+				primaryKeyIndex.reset();
 
-				return predicateFilter.match(primaryKeyIndex, keyDecoderProvider,accumulator);
+				return predicateFilter.match(primaryKeyIndex, keyDecoderProvider, keyAccumulator);
+		}
+
+		private class KeyIndex implements Indexed{
+				private final int[] allPkColumns;
+				private final int[] keyColumnTypes;
+				private final TypeProvider typeProvider;
+				private int position = 0;
+
+				private KeyIndex(int[] allPkColumns,
+												 int[] keyColumnTypes,
+												 TypeProvider typeProvider) {
+						this.allPkColumns = allPkColumns;
+						this.keyColumnTypes = keyColumnTypes;
+						this.typeProvider = typeProvider;
+				}
+
+				@Override public int nextSetBit(int currentPosition) {
+						if(position>=allPkColumns.length)
+								return -1;
+						int pos =position;
+						position++;
+						return pos;
+				}
+
+				@Override public boolean isScalarType(int currentPosition) {
+						assert position>0 : "Cannot call isType() without first calling nextSetBit";
+						return typeProvider.isScalar(keyColumnTypes[currentPosition]);
+				}
+
+				@Override public boolean isDoubleType(int currentPosition) {
+						assert position>0 : "Cannot call isType() without first calling nextSetBit";
+						return typeProvider.isDouble(keyColumnTypes[currentPosition]);
+				}
+
+				@Override public boolean isFloatType(int currentPosition) {
+						assert position>0 : "Cannot call isType() without first calling nextSetBit";
+						return typeProvider.isFloat(keyColumnTypes[currentPosition]);
+				}
+
+				void reset(){
+						position=0;
+				}
 		}
 
 }

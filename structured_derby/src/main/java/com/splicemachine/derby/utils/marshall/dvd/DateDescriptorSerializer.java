@@ -21,6 +21,7 @@ class DateDescriptorSerializer extends AbstractTimeDescriptorSerializer {
 				@Override public DescriptorSerializer newInstance() { return new DateDescriptorSerializer(); }
 
 				@Override public boolean applies(int typeFormatId) { return typeFormatId == StoredFormatIds.SQL_DATE_ID; }
+
 		};
 
 		private DateDescriptorSerializer() { }

@@ -30,6 +30,10 @@ public class ScalarDescriptorSerializer implements DescriptorSerializer{
 										return false;
 						}
 				}
+
+				@Override public boolean isScalar() { return true; }
+				@Override public boolean isFloat() { return false; }
+				@Override public boolean isDouble() { return false; }
 		};
 
 		private ScalarDescriptorSerializer(){}
