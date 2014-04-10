@@ -33,7 +33,14 @@ interface ScanInformation<T> {
 
     FormatableBitSet getAccessedNonPkColumns() throws StandardException;
 
+		/**
+		 * Get the key columns which are accessed WITH RESPECT to their position in the key itself.
+		 *
+		 * @return a bit set representing the key column locations which are interesting to the query.
+		 * @throws StandardException
+		 */
     FormatableBitSet getAccessedPkColumns() throws StandardException;
+
 
     Scan getScan(String txnId) throws StandardException;
     Scan getScan(String txnId, T startKeyHint) throws StandardException;

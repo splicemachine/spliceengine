@@ -42,6 +42,7 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.stats.Metrics;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -160,19 +161,17 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 								}
 
 								//TODO -sf- can we do this better?
-								DataValueDescriptor[] rowArray = nextRow.getRowArray();
-								RowLocation location = topOperation.getCurrentRowLocation();
-								byte[] row = location!=null? location.getBytes():SpliceUtils.getUniqueKey();
+//								RowLocation location = topOperation.getCurrentRowLocation();
+								byte[] row = HConstants.EMPTY_BYTE_ARRAY;
 
 								if(rowEncoder==null){
-										int[] rowColumns = topOperation.getAccessedNonPkColumns();
+										int[] rowColumns = IntArrays.count(nextRow.nColumns());
 										DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(nextRow);
 										rowEncoder = BareKeyHash.encoder(rowColumns,null,serializers);
 								}
 								rowEncoder.setRow(nextRow);
 								byte[] data = rowEncoder.encode();
 								results.add(new KeyValue(row,SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES,data));
-//								RowMarshaller.packed().encodeKeyValues(rowArray,row,rowColumns,rowEncoder,results);
 
 								//add any additional columns which were specified during the run
 								Iterator<Pair<byte[],byte[]>> addColIter = additionalColumns.iterator();

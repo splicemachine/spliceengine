@@ -29,5 +29,9 @@ public abstract class AbstractTimeDescriptorSerializer implements TimeValuedSeri
 
 		protected static abstract class Factory implements DescriptorSerializer.Factory{
 				@Override public boolean applies(DataValueDescriptor dvd) { return dvd!= null && applies(dvd.getTypeFormatId()); }
+
+				@Override public boolean isScalar() { return true; }
+				@Override public boolean isFloat() { return false; }
+				@Override public boolean isDouble() { return false; }
 		}
 }

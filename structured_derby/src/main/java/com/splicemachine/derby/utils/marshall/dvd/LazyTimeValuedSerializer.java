@@ -19,6 +19,10 @@ public class LazyTimeValuedSerializer extends LazyDescriptorSerializer implement
 						@Override public DescriptorSerializer newInstance() { return new LazyTimeValuedSerializer(delegateFactory.newInstance(),tableVersion); }
 						@Override public boolean applies(DataValueDescriptor dvd) { return delegateFactory.applies(dvd); }
 						@Override public boolean applies(int typeFormatId) { return delegateFactory.applies(typeFormatId); }
+
+						@Override public boolean isScalar() { return delegateFactory.isScalar(); }
+						@Override public boolean isFloat() { return delegateFactory.isFloat(); }
+						@Override public boolean isDouble() { return delegateFactory.isDouble(); }
 				};
 		}
 

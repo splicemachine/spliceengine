@@ -9,7 +9,6 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -19,8 +18,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.sort.SinkSortIterator;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
@@ -35,8 +35,6 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.stats.TimeView;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.hash.HashFunctions;
@@ -48,11 +46,9 @@ import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -76,9 +72,6 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 		private byte[] groupingKey;
 		private List<KeyValue> keyValues;
 		private Scan scan;
-
-		@SuppressWarnings("UnusedDeclaration")
-		public DistinctScanOperation() { }
 
     private int hashKeyItem;
     private String tableName;
@@ -196,9 +189,21 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 								}
 						}else
 							colMap = keyColumns;
-						StandardIterator<ExecRow> source = new SITableScanner(regionScanner,template,spliceRuntimeContext,scan,
-										colMap,
-										transactionID,getKeyColumns(),scanInformation.getAccessedPkColumns(),indexName,scanInformation.getTableVersion());
+						StandardIterator<ExecRow> source = new TableScannerBuilder()
+										.scanner(regionScanner)
+										.template(template)
+										.metricFactory(spliceRuntimeContext)
+										.scan(scan)
+										.rowDecodingMap(colMap)
+										.transactionID(transactionID)
+										.keyColumnEncodingOrder(scanInformation.getColumnOrdering())
+										.keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
+										.keyColumnTypes(scanInformation.getConglomerate().getFormat_ids())
+										.accessedKeyColumns(scanInformation.getAccessedPkColumns())
+										.keyDecodingMap(getAccessedPksToTemplateRowMap())
+										.tableVersion(scanInformation.getTableVersion())
+										.indexName(indexName)
+										.build();
 						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(template);
 						KeyEncoder encoder = KeyEncoder.bare(keyColumns,null,serializers);
 						sinkIterator = new SinkSortIterator(buffer, source,encoder);

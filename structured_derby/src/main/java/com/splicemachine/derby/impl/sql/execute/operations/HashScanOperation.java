@@ -267,10 +267,6 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 				return new SpliceNoPutResultSet(activation,this,provider);
 		}
 
-		public int[] getKeyColumns() {
-				return this.keyColumns;
-		}
-
 		public Qualifier[][] getNextQualifier() {
 				return this.nextQualifier;
 		}

@@ -33,6 +33,9 @@ class StringDescriptorSerializer implements DescriptorSerializer{
 						}
 				}
 
+				@Override public boolean isScalar() { return false; }
+				@Override public boolean isFloat() { return false; }
+				@Override public boolean isDouble() { return false; }
 		};
 
 		private StringDescriptorSerializer() { }

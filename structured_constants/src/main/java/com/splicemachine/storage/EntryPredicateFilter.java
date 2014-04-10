@@ -65,7 +65,7 @@ public class EntryPredicateFilter {
 
 				MultiFieldDecoder decoder = decoderProvider.get();
 				for(int encodedPos =index.nextSetBit(0);
-						encodedPos>=0&&encodedPos<=remainingFields.length();
+						remainingFields.cardinality()>0 && encodedPos>=0&&encodedPos<=remainingFields.length();
 						encodedPos=index.nextSetBit(encodedPos + 1)){
 						if(!remainingFields.get(encodedPos)){
 								skipField(decoder,encodedPos,index);

@@ -29,6 +29,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -174,10 +176,20 @@ public class LastIndexKeyOperation extends ScanOperation {
 						tentativeScanner = getTentativeScanner(contextScan);
 						if(tableScanner==null){
 								RegionScanner scanner = tentativeScanner!=null? tentativeScanner: regionScanner;
-								tableScanner = new SITableScanner(scanner,currentRow,
-												spliceRuntimeContext,contextScan,baseColumnMap,
-												transactionID,getKeyColumns(),scanInformation.getAccessedPkColumns(),indexName,
-												scanInformation.getTableVersion());
+								tableScanner = new TableScannerBuilder()
+												.scanner(scanner)
+												.scan(contextScan)
+												.transactionID(transactionID)
+												.template(currentRow)
+												.metricFactory(spliceRuntimeContext)
+												.rowDecodingMap(baseColumnMap)
+												.keyColumnEncodingOrder(scanInformation.getColumnOrdering())
+												.keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
+												.keyColumnTypes(scanInformation.getConglomerate().getFormat_ids())
+												.accessedKeyColumns(scanInformation.getAccessedPkColumns())
+												.indexName(indexName)
+												.tableVersion(scanInformation.getTableVersion())
+												.build();
 						}
 
 						// First we try to get the last row starting close to the end of the region
