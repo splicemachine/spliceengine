@@ -132,7 +132,9 @@ public class JoinSelector extends AbstractSpliceVisitor {
 
         boolean userSupplied = joinContainsStrategyHint(j);
 
-        ConglomerateDescriptor cd = RSUtils.ap(j).getConglomerateDescriptor();
+        AccessPath accessPath = RSUtils.ap(j);
+        ConglomerateDescriptor cd = accessPath != null ?
+                                        accessPath.getConglomerateDescriptor() : null;
         boolean isSystemTable = cd != null &&
                                     cd.getSchemaID().toString()
                                         .equals(SchemaDescriptor.SYSTEM_SCHEMA_UUID);
