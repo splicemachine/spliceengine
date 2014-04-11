@@ -1,8 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.StandardIterator;
@@ -17,8 +19,10 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 
@@ -79,15 +83,45 @@ public class MergeJoinOperation extends JoinOperation {
         super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
-        if (leftHashKeys.length > 1) {
-            throw new RuntimeException(
-                    "MergeJoin cannot currently be used with more than one equijoin key.");
+        if (rightResultSet instanceof TableScanOperation) {
+            TableScanOperation scan = (TableScanOperation) rightResultSet;
+            SpliceConglomerate conglomerate = scan.scanInformation.getConglomerate();
+            int[] columnOrdering = conglomerate.getColumnOrdering();
+            List<Integer> keySortIndexes = Lists.newLinkedList();
+            for (int i = 0; i < rightHashKeys.length; i++) {
+                int col = columnOrdering[i];
+                boolean found = false;
+                for (int j = 0; j < rightHashKeys.length; j++) {
+                    if (col == rightHashKeys[j]) {
+                        found = true;
+                        keySortIndexes.add(j);
+                    }
+                }
+                if (!found) {
+                    break;
+                }
+            }
+            if (keySortIndexes.size() == 0) {
+                throw new RuntimeException("Equijoin predicates for join do not contain" +
+                                               " a reference to the primary sort column for the" +
+                                               " right-hand side of the join, so a Merge join cannot" +
+                                               " be executed.");
+            }
+            int[] leftSortedHashKeys = new int[keySortIndexes.size()];
+            int[] rightSortedHashKeys = new int[keySortIndexes.size()];
+            for (int i = 0; i < keySortIndexes.size(); i++) {
+                leftSortedHashKeys[i] = leftHashKeys[keySortIndexes.get(i)];
+                rightSortedHashKeys[i] = rightHashKeys[keySortIndexes.get(i)];
+            }
+            leftHashKeys = leftSortedHashKeys;
+            rightHashKeys = rightSortedHashKeys;
+
+        } else if (rightResultSet instanceof IndexRowToBaseRowOperation) {
+            throw new RuntimeException("MergeJoin cannot currently be used with a non-covering index on its right side.");
+        } else {
+            throw new RuntimeException("MergeJoin currently can be used only with a simple table scan on its right side.");
         }
-        if (rightResultSet instanceof IndexRowToBaseRowOperation) {
-            throw new RuntimeException(
-                    "MergeJoin cannot currently be used with a non-covering index on its right side.");
-        }
-				startExecutionTime = System.currentTimeMillis();
+        startExecutionTime = System.currentTimeMillis();
     }
 
     @Override
@@ -136,7 +170,7 @@ public class MergeJoinOperation extends JoinOperation {
         ExecRow firstLeft = leftPushBack.next(spliceRuntimeContext);
         if (firstLeft != null) {
             firstLeft = firstLeft.getClone();
-            spliceRuntimeContext.addScanStartOverride(getKeyRow(firstLeft, leftHashKeys[0]));
+            spliceRuntimeContext.addScanStartOverride(getKeyRow(firstLeft, leftHashKeys));
             leftPushBack.pushBack(firstLeft);
         }
         StandardIterator<ExecRow> rightRows = StandardIterators
@@ -157,9 +191,11 @@ public class MergeJoinOperation extends JoinOperation {
 				super.updateStats(stats);
 		}
 
-    private ExecRow getKeyRow(ExecRow row, int keyIdx) throws StandardException {
-        ExecRow keyRow = activation.getExecutionFactory().getValueRow(1);
-        keyRow.setColumn(1, row.getColumn(keyIdx + 1));
+    private ExecRow getKeyRow(ExecRow row, int[] keyIndexes) throws StandardException {
+        ExecRow keyRow = activation.getExecutionFactory().getValueRow(keyIndexes.length);
+        for (int i = 0; i < keyIndexes.length; i++) {
+            keyRow.setColumn(i + 1, row.getColumn(keyIndexes[i] + 1));
+        }
         return keyRow;
     }
 
