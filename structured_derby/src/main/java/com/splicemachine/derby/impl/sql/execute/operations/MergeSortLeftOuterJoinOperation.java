@@ -17,8 +17,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
     private static Logger LOG = Logger.getLogger(MergeSortLeftOuterJoinOperation.class);
 
-		protected String emptyRowFunMethodName;
-
 		@SuppressWarnings("UnusedDeclaration")
 		public MergeSortLeftOuterJoinOperation() {
 				super();
