@@ -17,8 +17,11 @@ import org.junit.runner.Description;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import static com.splicemachine.homeless.TestUtils.o;
 
 /**
  * @author P Trolard
@@ -73,28 +76,77 @@ public class MergeJoinIT extends SpliceUnitTest {
                         spliceClassWatcher.closeAll();
                     }
                 }
-            });
+            })
+        .around(TestUtils.createStringDataWatcher(spliceClassWatcher,
+                                                     "create table people " +
+                                                         "  (fname varchar(25)," +
+                                                         "  lname varchar(25), " +
+                                                         "  age int, " +
+                                                         "  primary key(fname,lname));" +
+                                                         "create table purchase " +
+                                                         "  (fname varchar(25)," +
+                                                         "  lname varchar(25), num int," +
+                                                         "  primary key (fname,lname,num));" +
+                                                         "insert into people values " +
+                                                         "  ('adam', 'scott', 22)," +
+                                                         "  ('scott', 'anchorman', 23)," +
+                                                         "  ('tori', 'spelling', 9);" +
+                                                         "insert into purchase values" +
+                                                         "  ('adam', 'scott', 1)," +
+                                                         "  ('scott', 'anchorman', 1)," +
+                                                         "  ('scott', 'anchorman', 2)," +
+                                                         "  ('tori', 'spelling', 1)," +
+                                                         "  ('adam', 'scott', 10)," +
+                                                         "  ('scott', 'anchorman', 5);",
+                                                     CLASS_NAME));
 
 
     @Rule
     public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
+    public static final List<String> STRATEGIES = Arrays.asList("SORTMERGE", "NESTEDLOOP", "BROADCAST", "MERGE");
+
     @Test
     public void testSimpleJoinOverAllStrategies() throws Exception {
         String query = "select count(*) from orders, lineitem --splice-properties joinStrategy=%s \n" +
                 "where o_orderkey = l_orderkey";
-        List<String> strategies = Arrays.asList("SORTMERGE", "NESTEDLOOP", "MERGE");
         List<Integer> counts = Lists.newArrayList();
 
-        for (String strategy : strategies) {
+        for (String strategy : STRATEGIES) {
             ResultSet rs = methodWatcher.executeQuery(String.format(query, strategy));
             rs.next();
             counts.add(rs.getInt(1));
         }
 
         Assert.assertTrue("Each strategy returns the same number of join results",
-                counts.size() == strategies.size()
+                counts.size() == STRATEGIES.size()
                         && Sets.newHashSet(counts).size() == 1);
+    }
+
+    @Test
+    public void testSimpleJoinOn2Columns() throws Exception {
+        List<Object[]> expected = Arrays.asList(
+                                                   o("adam",1),
+                                                   o("adam",10),
+                                                   o("scott",1),
+                                                   o("scott",2),
+                                                   o("scott",5),
+                                                   o("tori",1));
+        String query = "select p.fname, t.num from people p, purchase t --splice-properties joinStrategy=%s \n" +
+                           "where p.fname = t.fname and p.lname = t.lname order by p.fname, t.num";
+        List<List<Object[]>> results = Lists.newArrayList();
+
+        for (String strategy : STRATEGIES) {
+            ResultSet rs = methodWatcher.executeQuery(String.format(query, strategy));
+            results.add(TestUtils.resultSetToArrays(rs));
+        }
+
+        Assert.assertTrue("Each strategy returns the same join results",
+                             results.size() == STRATEGIES.size());
+        for (List<Object[]> result: results) {
+            Assert.assertArrayEquals("The join results match expected results",
+                                        expected.toArray(), result.toArray());
+        }
     }
 
     @Test
