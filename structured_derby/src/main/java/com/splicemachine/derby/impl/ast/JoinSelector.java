@@ -151,8 +151,6 @@ public class JoinSelector extends AbstractSpliceVisitor {
                 singleRegionSize = HBaseRegionLoads
                                        .memstoreAndStorefileSize(regionLoads.iterator().next());
             }
-
-
         }
 
         return new JoinInfo(strategy(j),

@@ -46,6 +46,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		protected boolean serializeLeftResultSet = true;
 		protected boolean serializeRightResultSet = true;
         protected ExecRow rightTemplate;
+    protected String emptyRowFunMethodName;
+    protected boolean wasRightOuterJoin = false;
+    protected boolean isOuterJoin = false;
 
     public JoinOperation() {
 				super();
@@ -86,6 +89,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				userSuppliedOptimizerOverrides = readNullableString(in);
 				oneRowRightSide = in.readBoolean();
 				notExistsRightSide = in.readBoolean();
+                wasRightOuterJoin = in.readBoolean();
+                isOuterJoin = in.readBoolean();
+                emptyRowFunMethodName = readNullableString(in);
 				boolean readMerged=false;
 				if(in.readBoolean()){
 						leftResultSet = (SpliceOperation) in.readObject();
@@ -115,6 +121,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				writeNullableString(userSuppliedOptimizerOverrides, out);
 				out.writeBoolean(oneRowRightSide);
 				out.writeBoolean(notExistsRightSide);
+                out.writeBoolean(wasRightOuterJoin);
+                out.writeBoolean(isOuterJoin);
+                writeNullableString(emptyRowFunMethodName, out);
 				out.writeBoolean(serializeLeftResultSet);
 				if(serializeLeftResultSet)
 						out.writeObject(leftResultSet);

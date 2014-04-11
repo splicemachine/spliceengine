@@ -47,8 +47,6 @@ import java.util.concurrent.TimeUnit;
 public class BroadcastJoinOperation extends JoinOperation {
     private static final long serialVersionUID = 2l;
     private static Logger LOG = Logger.getLogger(BroadcastJoinOperation.class);
-    protected String emptyRowFunMethodName;
-    protected boolean wasRightOuterJoin;
     protected int leftHashKeyItem;
     protected int[] leftHashKeys;
     protected int rightHashKeyItem;
@@ -57,7 +55,6 @@ public class BroadcastJoinOperation extends JoinOperation {
     protected List<ExecRow> rights;
     private Joiner joiner;
     protected Map<ByteBuffer, List<ExecRow>> rightSideMap;
-    protected boolean isOuterJoin = false;
     protected static final Cache<Integer, Map<ByteBuffer, List<ExecRow>>> broadcastJoinCache;
 
 
@@ -67,7 +64,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         nodeTypes.add(NodeType.SCROLL);
         broadcastJoinCache = CacheBuilder.newBuilder()
                                  .maximumSize(1000)
-                                 .expireAfterAccess(10, TimeUnit.SECONDS)
+                                 .expireAfterAccess(2, TimeUnit.SECONDS)
                                  .removalListener(new RemovalListener<Integer, Map<ByteBuffer, List<ExecRow>>>() {
                                      @Override
                                      public void onRemoval(RemovalNotification<Integer, Map<ByteBuffer, List<ExecRow>>> notification) {
