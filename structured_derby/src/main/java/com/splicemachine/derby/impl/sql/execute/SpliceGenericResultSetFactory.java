@@ -928,7 +928,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
-            SpliceOperation op = new MergeSortLeftOuterJoinOperation(left.getOperation(), leftNumCols,
+            SpliceOperation op = new MergeLeftOuterJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols,leftHashKeyItem,rightHashKeyItem,
                     leftResultSet.getActivation(), joinClause,
                     resultSetNumber,

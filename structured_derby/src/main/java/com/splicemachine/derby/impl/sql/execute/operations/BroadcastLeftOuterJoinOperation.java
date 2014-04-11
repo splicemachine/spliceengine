@@ -21,9 +21,7 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 	protected SpliceMethod<ExecRow> emptyRowFun;
 	protected ExecRow emptyRow;
 
-    {
-        isOuterJoin = true;
-    }
+    { isOuterJoin = true; }
 
 	public BroadcastLeftOuterJoinOperation() {
 		super();
@@ -56,31 +54,22 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
                 recordConstructorTime(); 
 	}
 	
-	@Override
-	public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-		SpliceLogUtils.trace(LOG, "readExternal");
-		super.readExternal(in);
-		emptyRowFunMethodName = readNullableString(in);
-		wasRightOuterJoin = in.readBoolean();
-	}
-
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		SpliceLogUtils.trace(LOG, "writeExternal");
-		super.writeExternal(out);
-		writeNullableString(emptyRowFunMethodName, out);
-		out.writeBoolean(wasRightOuterJoin);
-	}
-
     @Override
     public void init(SpliceOperationContext context) throws StandardException {
         super.init(context);
         emptyRowFun = (emptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(emptyRowFunMethodName,activation);
     }
 
+    @Override
     protected ExecRow getEmptyRow () throws StandardException {
 		if (emptyRow == null)
 				emptyRow = emptyRowFun.invoke();
 		return emptyRow;
-	}	
+	}
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "LeftOuter"+super.prettyPrint(indentLevel);
+    }
+
 }

@@ -14,7 +14,9 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
-public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation { private static Logger LOG = Logger.getLogger(MergeSortLeftOuterJoinOperation.class);
+public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
+    private static Logger LOG = Logger.getLogger(MergeSortLeftOuterJoinOperation.class);
+
 		protected String emptyRowFunMethodName;
 
 		@SuppressWarnings("UnusedDeclaration")
@@ -48,22 +50,6 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation { pr
 				init(SpliceOperationContext.newContext(activation));
 				recordConstructorTime();
 
-		}
-
-		@Override
-		public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-				SpliceLogUtils.trace(LOG, "readExternal");
-				super.readExternal(in);
-				emptyRowFunMethodName = readNullableString(in);
-				wasRightOuterJoin = in.readBoolean();
-		}
-
-		@Override
-		public void writeExternal(ObjectOutput out) throws IOException {
-				SpliceLogUtils.trace(LOG, "writeExternal");
-				super.writeExternal(out);
-				writeNullableString(emptyRowFunMethodName, out);
-				out.writeBoolean(wasRightOuterJoin);
 		}
 
 		@Override
