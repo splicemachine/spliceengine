@@ -65,7 +65,7 @@ public class NoRetryCoprocessorRpcChannel extends CoprocessorRpcChannel {
 
 				final ClientProtos.CoprocessorServiceCall call =
 								ClientProtos.CoprocessorServiceCall.newBuilder()
-												.setRow(ZeroCopyLiteralByteString.wrap(row))
+												.setRow(HBaseZeroCopyByteString.wrap(row))
 												.setServiceName(method.getService().getFullName())
 												.setMethodName(method.getName())
 												.setRequest(request.toByteString()).build();

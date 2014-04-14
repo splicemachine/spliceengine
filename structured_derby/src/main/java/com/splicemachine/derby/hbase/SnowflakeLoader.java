@@ -3,10 +3,9 @@ package com.splicemachine.derby.hbase;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
-
 import com.google.common.collect.Lists;
+import com.google.protobuf.HBaseZeroCopyByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.ZeroCopyLiteralByteString;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
@@ -18,7 +17,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -154,7 +152,7 @@ public class SnowflakeLoader {
         public byte [] toByteArray() {
             SpliceMessage.AllocateFilterMessage.Builder builder =
                     SpliceMessage.AllocateFilterMessage.newBuilder();
-            if (this.addressMatch != null) builder.setAddressMatch(ZeroCopyLiteralByteString.wrap(this.addressMatch));
+            if (this.addressMatch != null) builder.setAddressMatch(HBaseZeroCopyByteString.wrap(this.addressMatch));
             return builder.build().toByteArray();
         }
 
