@@ -136,8 +136,13 @@
 					<artifactId>junit</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
-	</dependencies>
+      </dependency>
+      <dependency>
+         <groupId>org.codehaus.jsr166-mirror</groupId>
+         <artifactId>jsr166y</artifactId>
+         <version>1.7.0</version>
+      </dependency>
+   </dependencies>
 	<build>
 		<resources>
 			<resource>
