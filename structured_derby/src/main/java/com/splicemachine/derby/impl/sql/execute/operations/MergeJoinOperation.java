@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.EmptyRowSupplier;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -21,10 +20,8 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.Callable;
 
 
@@ -167,7 +164,7 @@ public class MergeJoinOperation extends JoinOperation {
             public ExecRow call() throws Exception {
                 return leftResultSet.nextRow(spliceRuntimeContext);
             }
-        });
+        }, leftResultSet);
         StandardPushBackIterator<ExecRow> leftPushBack = new StandardPushBackIterator<ExecRow>(leftRows);
         ExecRow firstLeft = leftPushBack.next(spliceRuntimeContext);
         if (firstLeft != null) {
@@ -190,15 +187,15 @@ public class MergeJoinOperation extends JoinOperation {
                              oneRowRightSide, notExistsRightSide, emptyRowSupplier);
     }
 
-		@Override
-		protected void updateStats(OperationRuntimeStats stats) {
-				int leftRowsSeen = joiner.getLeftRowsSeen();
-				int rightRowsSeen = joiner.getRightRowsSeen();
-				stats.addMetric(OperationMetric.INPUT_ROWS, leftRowsSeen + rightRowsSeen);
-				//filtered = left*right -output
-				stats.addMetric(OperationMetric.FILTERED_ROWS,leftRowsSeen*rightRowsSeen-timer.getNumEvents());
-				super.updateStats(stats);
-		}
+    @Override
+    protected void updateStats(OperationRuntimeStats stats) {
+        int leftRowsSeen = joiner.getLeftRowsSeen();
+        int rightRowsSeen = joiner.getRightRowsSeen();
+        stats.addMetric(OperationMetric.INPUT_ROWS, leftRowsSeen + rightRowsSeen);
+        //filtered = left*right -output
+        stats.addMetric(OperationMetric.FILTERED_ROWS, leftRowsSeen * rightRowsSeen - timer.getNumEvents());
+        super.updateStats(stats);
+    }
 
     private ExecRow getKeyRow(ExecRow row, int[] keyIndexes) throws StandardException {
         ExecRow keyRow = activation.getExecutionFactory().getValueRow(keyIndexes.length);

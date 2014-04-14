@@ -21,7 +21,7 @@ import org.apache.derby.iapi.types.RowLocation;
  *
  */
 
-public interface SpliceOperation  {
+public interface SpliceOperation extends StandardCloseable {
 
     RowLocation getCurrentRowLocation();
 
