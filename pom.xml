@@ -334,7 +334,7 @@
 			<id>hdp2.0.10</id>
 			<activation>
 				<property>
-					<!-- To run, specify -Dhbase.profile=hdp1.3 -->
+					<!-- To run, specify -Dhbase.profile=hdp2.0.10-->
 					<name>hbase.profile</name>
 					<value>hdp2.0.10</value>
 				</property>

@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
 import com.google.common.collect.Lists;
-import com.google.protobuf.HBaseZeroCopyByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.SpliceZeroCopyByteString;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
@@ -152,7 +152,7 @@ public class SnowflakeLoader {
         public byte [] toByteArray() {
             SpliceMessage.AllocateFilterMessage.Builder builder =
                     SpliceMessage.AllocateFilterMessage.newBuilder();
-            if (this.addressMatch != null) builder.setAddressMatch(HBaseZeroCopyByteString.wrap(this.addressMatch));
+            if (this.addressMatch != null) builder.setAddressMatch(SpliceZeroCopyByteString.wrap(this.addressMatch));
             return builder.build().toByteArray();
         }
 
