@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -40,7 +41,9 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     public void start(CoprocessorEnvironment env) {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)env;
         HRegion region = rce.getRegion();
-				splitter = new StoreFileTaskSplitter(region,8,32*1024*1024l);
+				splitter = new StoreFileTaskSplitter(region,
+								SpliceConstants.maxInterRegionTaskSplits,
+								SpliceConstants.interRegionTaskSplitThresholdBytes);
         runningTasks = SpliceDriver.driver().getTaskMonitor().registerRegion(region.getRegionInfo().getRegionNameAsString());
         taskScheduler = SpliceDriver.driver().getTaskScheduler();
         super.start(env);
