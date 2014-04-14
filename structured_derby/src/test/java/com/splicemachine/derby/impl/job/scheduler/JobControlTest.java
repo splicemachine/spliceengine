@@ -30,8 +30,6 @@ import org.mockito.stubbing.Answer;
 
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Set;
-import java.util.SortedSet;
 import java.util.concurrent.*;
 
 import static org.mockito.Matchers.any;
@@ -216,7 +214,7 @@ public class JobControlTest {
         SpliceZooKeeperManager zkManager = mock(SpliceZooKeeperManager.class);
         Map<Integer,RegionTaskControl> actualMap = Maps.newHashMap();
         do{
-            TaskFutureContext tfc = new TaskFutureContext("/test-"+i,Bytes.toBytes(i),0.0d);
+            TaskFutureContext tfc = new TaskFutureContext("/test-"+i,Bytes.toBytes(i),Bytes.toBytes(i),0.0d);
             RegionTaskControl taskControl = new RegionTaskControl(startRow,mock(RegionTask.class),control,tfc,0,zkManager);
             actualMap.put(i,taskControl);
             tasks.add(taskControl);
@@ -236,7 +234,7 @@ public class JobControlTest {
             tasks.remove(taskControl);
 
             byte[] start = Encoding.encode(pos);
-            RegionTaskControl newTask = new RegionTaskControl(start,taskControl.getTask(),control,new TaskFutureContext("/test-"+pos+"-2",Bytes.toBytes(pos),0.0d),0,zkManager);
+            RegionTaskControl newTask = new RegionTaskControl(start,taskControl.getTask(),control,new TaskFutureContext("/test-"+pos+"-2",Bytes.toBytes(pos),Bytes.toBytes(pos),0.0d),0,zkManager);
             tasks.add(newTask);
             Assert.assertEquals("Incorrect size!",10,tasks.size());
         }
@@ -265,11 +263,11 @@ public class JobControlTest {
         doAnswer(new Answer<Void>() {
             @Override
             public Void answer(InvocationOnMock invocation) throws Throwable {
-                TaskFutureContext futureContext = new TaskFutureContext(taskNode1, Bytes.toBytes(1),0.0d);
-                @SuppressWarnings("unchecked") Batch.Callback<TaskFutureContext> o = (Batch.Callback<TaskFutureContext>) invocation.getArguments()[4];
+                TaskFutureContext futureContext = new TaskFutureContext(taskNode1, Bytes.toBytes(1),Bytes.toBytes(1),0.0d);
+                @SuppressWarnings("unchecked") Batch.Callback<TaskFutureContext[]> o = (Batch.Callback<TaskFutureContext[]>) invocation.getArguments()[4];
                 byte[] startKey = (byte[])invocation.getArguments()[1];
 
-                o.update(startKey,startKey,futureContext);
+                o.update(startKey,startKey,new TaskFutureContext[]{futureContext});
                 return null;  //To change body of implemented methods use File | Settings | File Templates.
             }
         }).when(mockTable).coprocessorExec(
