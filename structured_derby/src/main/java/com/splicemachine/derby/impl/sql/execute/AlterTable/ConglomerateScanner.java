@@ -13,7 +13,6 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BufferedRegionScanner;
-import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
@@ -43,17 +42,23 @@ public class ConglomerateScanner {
 
     private ExecRow row;
     private HRegion region;
-    private MeasuredRegionScanner brs;
+    private final byte[] scanStart;
+    private final byte[] scanFinish;
+    private BufferedRegionScanner brs;
     private EntryDecoder entryDecoder;
 
     public ConglomerateScanner(ColumnInfo[] columnInfo,
                                HRegion region,
                                String txnId,
-                               String xplainSchema) throws StandardException{
+                               String xplainSchema,
+                               byte[] scanStart,
+                               byte[] scanFinish) throws StandardException{
         this.columnInfo = columnInfo;
         this.xplainSchema = xplainSchema;
         this.txnId = txnId;
         this.region = region;
+        this.scanStart = scanStart;
+        this.scanFinish = scanFinish;
         initExecRow();
     }
 
@@ -72,8 +77,8 @@ public class ConglomerateScanner {
         // initialize a region scanner
         Scan regionScan = SpliceUtils.createScan(txnId);
         regionScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-        regionScan.setStartRow(region.getStartKey());
-        regionScan.setStopRow(region.getEndKey());
+        regionScan.setStartRow(scanStart);
+        regionScan.setStopRow(scanFinish);
         regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES);
 
         MetricFactory metricFactory = xplainSchema!=null? Metrics.basicMetricFactory(): Metrics.noOpMetricFactory();
