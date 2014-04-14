@@ -4,6 +4,7 @@ import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.metrics.OperationMetric;
@@ -287,6 +288,13 @@ public class ImportTask extends ZkTask{
 		}
 
 		@Override
+		public RegionTask getClone() {
+				throw new UnsupportedOperationException("Should not clone Import tasks!");
+		}
+
+		@Override public boolean isSplittable() { return false; }
+
+		@Override
 		public int getPriority() {
 				return SchedulerPriorities.INSTANCE.getBasePriority(ImportTask.class);
 		}
@@ -297,7 +305,7 @@ public class ImportTask extends ZkTask{
 		}
 
 		@Override
-		public void prepareTask(RegionCoprocessorEnvironment rce,
+		public void prepareTask(byte[] start, byte[] stop,RegionCoprocessorEnvironment rce,
 														SpliceZooKeeperManager zooKeeper) throws ExecutionException {
 				HRegion rceRegion = rce.getRegion();
 				if(LOG.isDebugEnabled()){
@@ -308,7 +316,7 @@ public class ImportTask extends ZkTask{
 										importContext.getFilePath(),Bytes.toStringBinary(startKey),Bytes.toStringBinary(endKey));
 				}
 				fileSystem = rceRegion.getFilesystem();
-				super.prepareTask(rce, zooKeeper);
+				super.prepareTask(start,stop,rce, zooKeeper);
 		}
 
 		public static ExecRow getExecRow(ImportContext context) throws StandardException {

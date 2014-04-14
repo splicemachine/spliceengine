@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
@@ -32,6 +33,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -81,17 +83,50 @@ public class SinkTask extends ZkTask {
 				}
 		}
 
-    @Override
-    public void prepareTask(RegionCoprocessorEnvironment rce,SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+		@Override
+		public RegionTask getClone() {
+				Scan scanCopy = new Scan();
+				scanCopy.setStopRow(scan.getStopRow());
+				scanCopy.setStartRow(scan.getStartRow());
+				scanCopy.setFamilyMap(scan.getFamilyMap());
+				scanCopy.setBatch(scan.getBatch());
+				scanCopy.setCaching(scan.getCaching());
+				scanCopy.setCacheBlocks(scan.getCacheBlocks());
+				for(Map.Entry<String,byte[]>attribute:scan.getAttributesMap().entrySet()){
+						scanCopy.setAttribute(attribute.getKey(),attribute.getValue());
+				}
+				return new SinkTask(jobId,scanCopy,parentTxnId,readOnly,getPriority());
+		}
+
+		@Override public boolean isSplittable() { return true; }
+
+		@Override
+    public void prepareTask(byte[] start, byte[] end,RegionCoprocessorEnvironment rce,SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         //make sure that our task id is properly set
+				adjustScan(start,end);
+
         this.region = rce.getRegion();
-        super.prepareTask(rce, zooKeeper);
+        super.prepareTask(start,end,rce, zooKeeper);
     }
 
-    @Override
+
+		private void adjustScan(byte[] start, byte[] end) {
+				byte[] scanStart =scan.getStartRow();
+				if(scanStart==null||scanStart.length<0||Bytes.compareTo(scanStart,start)<0){
+						scan.setStartRow(start);
+				}
+
+				byte[] scanStop = scan.getStopRow();
+				if(scanStop==null||scanStop.length<0||Bytes.compareTo(end,scanStop)>0)
+						scan.setStopRow(end);
+
+		}
+
+		@Override
     public boolean invalidateOnClose() {
         return true;
     }
+
 
 		@Override
 		public void execute() throws ExecutionException, InterruptedException {
