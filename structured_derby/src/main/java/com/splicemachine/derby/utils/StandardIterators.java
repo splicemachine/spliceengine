@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.derby.iapi.sql.execute.StandardCloseable;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
@@ -28,6 +29,10 @@ public class StandardIterators {
 
     public static <T> StandardIterator<T> wrap(Callable<T> callable){
         return new CallableStandardIterator<T>(callable);
+    }
+
+    public static <T> StandardIterator<T> wrap(Callable<T> callable, StandardCloseable c){
+        return new CallableStandardIterator<T>(callable, c);
     }
 
     private static class IteratorStandardIterator<T> implements StandardIterator<T>{
@@ -73,17 +78,28 @@ public class StandardIterators {
     }
 
     public static class CallableStandardIterator<T> implements StandardIterator<T>{
-        Callable<T> callable;
+        private final Callable<T> callable;
+        private final StandardCloseable c;
 
         public CallableStandardIterator(Callable<T> callable){
             this.callable = callable;
+            this.c = null;
+        }
+
+        public CallableStandardIterator(Callable<T> callable, StandardCloseable c){
+            this.callable = callable;
+            this.c = c;
         }
 
         @Override
         public void open() {}
 
         @Override
-        public void close() {}
+        public void close() throws StandardException, IOException  {
+            if (c != null) {
+                c.close();
+            }
+        }
 
         @Override
         public T next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
