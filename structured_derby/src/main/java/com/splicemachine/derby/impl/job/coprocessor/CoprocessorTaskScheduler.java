@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -17,10 +18,11 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -32,10 +34,13 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     private TaskScheduler<RegionTask> taskScheduler;
     private Set<RegionTask> runningTasks;
 
+		private TaskSplitter splitter;
+
     @Override
     public void start(CoprocessorEnvironment env) {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)env;
         HRegion region = rce.getRegion();
+				splitter = new StoreFileTaskSplitter(region,8,32*1024*1024l);
         runningTasks = SpliceDriver.driver().getTaskMonitor().registerRegion(region.getRegionInfo().getRegionNameAsString());
         taskScheduler = SpliceDriver.driver().getTaskScheduler();
         super.start(env);
@@ -63,20 +68,57 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     }
 
     @Override
-    public TaskFutureContext submit(byte[] taskStart,byte[] taskEnd,final RegionTask task) throws IOException {
+    public TaskFutureContext[] submit(byte[] taskStart,byte[] taskEnd,final RegionTask task) throws IOException {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
 
         //make sure that the task is fully contained within this region
         if(!HRegionUtil.containsRange(rce.getRegion(),taskStart,taskEnd))
             throw new IncorrectRegionException("Incorrect region for Task submission");
 
-        return doSubmit(task, rce);
+				List<Pair<byte[],byte[]>> splitPoints = split(task,taskStart,taskEnd);
+				return submitAll(task, splitPoints, rce);
     }
 
-    private TaskFutureContext doSubmit(final RegionTask task, RegionCoprocessorEnvironment rce) throws IOException {
+		@SuppressWarnings("unchecked")
+		private List<Pair<byte[], byte[]>> split(RegionTask task, byte[] taskStart, byte[] taskEnd) throws IOException {
+				if(!task.isSplittable())
+						return Collections.singletonList(Pair.newPair(taskStart, taskEnd));
+
+				List<byte[]> splitPoints = splitter.split(task,taskStart,taskEnd);
+				if(splitPoints.size()<=0)
+						return Collections.singletonList(Pair.newPair(taskStart, taskEnd));
+
+				List<Pair<byte[],byte[]>> splits = Lists.newArrayListWithCapacity(splitPoints.size()-1);
+				byte[] splitStart = taskStart;
+				for (byte[] splitEnd : splitPoints) {
+						splits.add(Pair.newPair(splitStart, splitEnd));
+						splitStart = splitEnd;
+				}
+
+				splits.add(Pair.newPair(splitStart, taskEnd));
+				return splits;
+		}
+
+		private TaskFutureContext[] submitAll(final RegionTask task,List<Pair<byte[],byte[]>> splitPoints,RegionCoprocessorEnvironment rce) throws IOException{
+				TaskFutureContext[] all = new TaskFutureContext[splitPoints.size()];
+
+				if(splitPoints.size()==1){
+						all[0] = doSubmit(task,splitPoints.get(0).getFirst(),splitPoints.get(0).getSecond(),rce);
+						return all;
+				}
+				int i=0;
+				for(Pair<byte[],byte[]> split:splitPoints){
+						all[i] = doSubmit(task.getClone(),split.getFirst(),split.getSecond(),rce);
+						i++;
+				}
+
+				return all;
+		}
+
+    private TaskFutureContext doSubmit(final RegionTask task,byte[] start, byte[] stop,RegionCoprocessorEnvironment rce) throws IOException {
         try {
             //prepare the task for this specific region
-            task.prepareTask(rce,ZkUtils.getZkManager());
+            task.prepareTask(start,stop,rce,ZkUtils.getZkManager());
 
             runningTasks.add(task);
             /*
@@ -101,7 +143,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
             });
 
             TaskFuture future = taskScheduler.submit(task);
-            return new TaskFutureContext(task.getTaskNode(),future.getTaskId(),future.getEstimatedCost());
+            return new TaskFutureContext(task.getTaskNode(),start,future.getTaskId(),future.getEstimatedCost());
         } catch (ExecutionException e) {
             Throwable t = Throwables.getRootCause(e);
             throw Exceptions.getIOException(t);

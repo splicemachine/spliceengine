@@ -2,6 +2,7 @@ package com.splicemachine.hbase.debug;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.tools.LongHashMap;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
@@ -30,8 +31,8 @@ public class TransactionCountTask extends DebugTask{
     @Override
     protected void doExecute() throws ExecutionException, InterruptedException {
         Scan scan = new Scan();
-        scan.setStartRow(region.getStartKey());
-        scan.setStopRow(region.getEndKey());
+        scan.setStartRow(scanStart);
+        scan.setStopRow(scanStop);
         scan.setCacheBlocks(false);
         scan.setCaching(100);
         scan.setBatch(100);
@@ -148,4 +149,14 @@ public class TransactionCountTask extends DebugTask{
     public boolean invalidateOnClose() {
         return true;
     }
+
+		@Override
+		public RegionTask getClone() {
+				return new TransactionCountTask(jobId,destinationDirectory);
+		}
+
+		@Override
+		public boolean isSplittable() {
+				return true;
+		}
 }

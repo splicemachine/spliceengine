@@ -46,14 +46,21 @@ public class ConglomerateScanner {
     private BufferedRegionScanner brs;
     private EntryDecoder entryDecoder;
 
+		private final byte[] scanStart;
+		private final byte[] scanStop;
+
     public ConglomerateScanner(ColumnInfo[] columnInfo,
                                HRegion region,
                                String txnId,
-                               String xplainSchema) throws StandardException{
+                               String xplainSchema,
+															 byte[] scanStart,
+															 byte[] scanStop) throws StandardException{
         this.columnInfo = columnInfo;
         this.xplainSchema = xplainSchema;
         this.txnId = txnId;
         this.region = region;
+				this.scanStart = scanStart;
+				this.scanStop = scanStop;
         initExecRow();
     }
 
@@ -72,8 +79,8 @@ public class ConglomerateScanner {
         // initialize a region scanner
         Scan regionScan = SpliceUtils.createScan(txnId);
         regionScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-        regionScan.setStartRow(region.getStartKey());
-        regionScan.setStopRow(region.getEndKey());
+        regionScan.setStartRow(scanStart);
+        regionScan.setStopRow(scanStop);
         regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
 
         MetricFactory metricFactory = xplainSchema!=null? Metrics.basicMetricFactory(): Metrics.noOpMetricFactory();

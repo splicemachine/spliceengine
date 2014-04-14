@@ -5,6 +5,7 @@ import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
@@ -30,11 +31,6 @@ public class ForbidPastWritesTask extends ZkTask {
     }
 
     @Override
-    public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
-        super.prepareTask(rce, zooKeeper);
-    }
-
-    @Override
     protected String getTaskType() {
         return "forbidPastWritesTask";
     }
@@ -55,7 +51,15 @@ public class ForbidPastWritesTask extends ZkTask {
     public boolean invalidateOnClose() {
         return true;
     }
-    @Override
+
+		@Override
+		public RegionTask getClone() {
+				throw new UnsupportedOperationException("Should not clone ForbidPastWrites tasks!");
+		}
+
+		@Override public boolean isSplittable() { return false; }
+
+		@Override
     public void doExecute() throws ExecutionException, InterruptedException {
         try{
             //add index to table watcher

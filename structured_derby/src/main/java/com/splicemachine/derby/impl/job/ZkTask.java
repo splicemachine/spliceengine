@@ -158,7 +158,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 		protected abstract void doExecute() throws ExecutionException, InterruptedException;
 
     @Override
-    public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper)
+    public void prepareTask(byte[] start, byte[] stop,RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper)
                                                                 throws ExecutionException {
         taskId = SpliceUtils.getUniqueKey();
         taskPath = jobId+"_"+ getTaskType()+"-"+ Bytes.toLong(taskId);
@@ -342,7 +342,9 @@ public abstract class ZkTask implements RegionTask,Externalizable {
         return taskPath;
     }
 
-    @Override
+		@Override public boolean isSplittable() { return false; }
+
+		@Override
     public boolean isTransactional() {
         return true;
     }
