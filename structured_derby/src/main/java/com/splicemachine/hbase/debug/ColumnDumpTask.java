@@ -3,6 +3,7 @@ package com.splicemachine.hbase.debug;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
@@ -36,7 +37,14 @@ public class ColumnDumpTask extends DebugTask{
         this.columnNumber = columnNumber;
     }
 
-    @Override
+		@Override
+		public RegionTask getClone() {
+				return new ColumnDumpTask(jobId,destinationDirectory,columnNumber);
+		}
+
+		@Override public boolean isSplittable() { return true; }
+
+		@Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
         this.columnNumber = in.readInt();
@@ -51,8 +59,8 @@ public class ColumnDumpTask extends DebugTask{
     @Override
     protected void doExecute() throws ExecutionException, InterruptedException {
         Scan scan = new Scan();
-        scan.setStartRow(region.getStartKey());
-        scan.setStopRow(region.getEndKey());
+        scan.setStartRow(scanStart);
+        scan.setStopRow(scanStop);
         scan.setCacheBlocks(false);
         scan.setCaching(100);
         scan.setBatch(100);
@@ -129,4 +137,5 @@ public class ColumnDumpTask extends DebugTask{
 		public int getPriority() {
 				return SchedulerPriorities.INSTANCE.getMaxPriority();
 		}
+
 }
