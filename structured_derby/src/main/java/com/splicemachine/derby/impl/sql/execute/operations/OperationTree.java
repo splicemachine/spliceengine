@@ -2,8 +2,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.hash.Sink;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -11,8 +13,12 @@ import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
+import jsr166y.ForkJoinPool;
+import jsr166y.ForkJoinTask;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.log4j.Logger;
+
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NavigableMap;
@@ -43,7 +49,10 @@ public class OperationTree {
 
     }
 
-    public static SpliceNoPutResultSet executeTree(SpliceOperation operation, final SpliceRuntimeContext runtimeContext, boolean useProbe) throws StandardException {
+    public static SpliceNoPutResultSet executeTree(SpliceOperation operation, final SpliceRuntimeContext runtimeContext,boolean useProbe) throws StandardException{
+        return executeInFJ(operation, runtimeContext, useProbe);
+        /*
+
         //first form the level Map
         NavigableMap<Integer, List<SpliceOperation>> levelMap = split(operation);
         if (LOG.isDebugEnabled())
@@ -120,6 +129,7 @@ public class OperationTree {
                                    operation.resultSetNumber(),
                                    System.currentTimeMillis() - begin));
         return nprs;
+        */
     }
 
     private static void resetContext(SpliceTransactionResourceImpl impl, boolean prepared) {
@@ -172,5 +182,108 @@ public class OperationTree {
 						numSinks++;
 				return numSinks;
 		}
+
+    private final static ForkJoinPool fjpool = new ForkJoinPool(10);
+
+    public static SpliceNoPutResultSet executeInFJ(SpliceOperation root, final SpliceRuntimeContext ctx, boolean probe)
+            throws StandardException {
+
+        List<SinkingOperation> deps = immediateSinkDependencies(root);
+        if (deps.size() > 0){
+            List<ForkJoinTask<Boolean>> futures = Lists.newArrayListWithExpectedSize(deps.size());
+            for (SinkingOperation s: deps){
+                futures.add(fjpool.submit(sinkTask(s, ctx)));
+            }
+            for (ForkJoinTask<Boolean> f: Lists.reverse(futures)) {
+                f.join();
+            }
+        }
+        if (isSink(root)){
+            shuffle((SinkingOperation)root, ctx);
+        }
+        return probe ? root.executeProbeScan() : root.executeScan(ctx);
+    }
+
+    public static boolean isSink(SpliceOperation op) {
+        return op.getNodeTypes().contains(SpliceOperation.NodeType.REDUCE);
+    }
+
+    public static ForkJoinTask<Boolean> sinkTask(final SinkingOperation sink, final SpliceRuntimeContext ctx) {
+        return new ForkJoinTask<Boolean>() {
+            @Override
+            public Boolean getRawResult() {
+                return null;
+            }
+
+            @Override
+            protected void setRawResult(Boolean o) {
+
+            }
+
+            @Override
+            protected boolean exec() {
+                try {
+                    List<ForkJoinTask<Boolean>> depTasks = Lists.newLinkedList();
+                    for (SinkingOperation s: immediateSinkDependencies(sink)){
+                        LOG.error(String.format("Adding sink dep %s for %s", s.resultSetNumber(), sink.resultSetNumber()));
+                        depTasks.add(sinkTask(s, ctx));
+                    }
+                    // run dependent sinks & wait for completion
+                    invokeAll(depTasks);
+                    LOG.error(String.format("%s done waiting for deps", sink.resultSetNumber()));
+                    runSettingThreadLocals(sink, ctx);
+                    return true;
+                } catch (SQLException e) {
+                    throw new RuntimeException(Exceptions.parseException(e));
+                } catch (StandardException e) {
+                    throw new RuntimeException(Exceptions.parseException(e));
+                }
+            }
+        };
+    }
+
+    public static void runSettingThreadLocals(SinkingOperation op, SpliceRuntimeContext ctx)
+            throws StandardException, SQLException {
+        SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+        boolean prepared = false;
+        try {
+            long begin = System.currentTimeMillis();
+            transactionResource.prepareContextManager();
+            prepared = true;
+            transactionResource.marshallTransaction(
+                  op.getActivation().getTransactionController().getActiveStateTxIdString());
+            shuffle(op, ctx);
+            LOG.debug(String.format("Running shuffle for operation %s taking %dms",
+                     op.resultSetNumber(),
+                     System.currentTimeMillis() - begin));
+        } finally {
+            resetContext(transactionResource, prepared);
+        }
+    }
+
+    public static void shuffle(SinkingOperation op, SpliceRuntimeContext ctx) throws StandardException {
+        final StatementInfo info = ctx.getStatementInfo();
+        boolean setStatement = info != null;
+        long statementUuid = setStatement ? info.getStatementUuid() : 0;
+        if (setStatement){
+            op.setStatementId(statementUuid);
+        }
+        op.executeShuffle(ctx);
+    }
+
+    public static List<SinkingOperation> immediateSinkDependencies(SpliceOperation op){
+        List<SinkingOperation> sinks = Lists.newLinkedList();
+        List<SpliceOperation> children = op instanceof NestedLoopJoinOperation ?
+                                             Arrays.asList(op.getLeftOperation()) :
+                                             op.getSubOperations();
+        for (SpliceOperation child: children) {
+            if (isSink(child)) {
+                sinks.add((SinkingOperation) child);
+            } else if (child != null) {
+                sinks.addAll(immediateSinkDependencies(child));
+            }
+        }
+        return sinks;
+    }
 
 }
