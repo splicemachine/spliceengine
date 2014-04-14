@@ -229,7 +229,7 @@
         <server.start.skip>skipServerStart</server.start.skip>
 
         <!-- ant task start/stop server args -->
-        <run.command>/bin/sh</run.command>
+        <run.command>/bin/bash</run.command>
         <splice.start.script>start-splice.sh</splice.start.script>
         <splice.stop.script>stop-splice.sh</splice.stop.script>
       </properties>
