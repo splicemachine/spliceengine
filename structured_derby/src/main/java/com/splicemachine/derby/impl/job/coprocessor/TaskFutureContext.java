@@ -10,7 +10,7 @@ import java.io.*;
  * Created on: 4/3/13
  */
 public class TaskFutureContext implements Externalizable{
-    private static final long serialVersionUID = 2l;
+    private static final long serialVersionUID =3l;
     private String taskNode;
     private byte[] taskId;
     private double estimatedCost;
