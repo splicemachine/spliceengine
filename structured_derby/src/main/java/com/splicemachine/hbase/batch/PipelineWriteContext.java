@@ -5,13 +5,22 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.batch.RegionWriteHandler.m_Invoke;
+import com.splicemachine.hbase.batch.RegionWriteHandler.m_Invoker;
 import com.splicemachine.hbase.writer.*;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.MessageId;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.ipc.HBaseServer;
 import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.Store;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil.KeyExists;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -204,13 +213,87 @@ public class PipelineWriteContext implements WriteContext{
     public RegionCoprocessorEnvironment getCoprocessorEnvironment() {
         return rce;
     }
+    
+    private static boolean is43 = true;
+    private static Method m=null;
+    private static m_Invoke m_invoker;
+    public interface m_Invoker {
+    	public void m_invoke(RpcCallContext target,String message) throws IOException;
+    }
 
-    @Override
+    private void OnFirstCall(RpcCallContext target,String message) {
+    	if(m==null){
+		     try {
+		    	 m = target.getClass().getMethod("throwExceptionIfCallerDisconnected", new Class[] {});
+		     } catch (NoSuchMethodException e){
+		    	 is43=false;
+		    	 try {
+		    		 m = target.getClass().getMethod("throwExceptionIfCallerDisconnected", new Class[] {String.class});
+		    	 } catch (NoSuchMethodException e1){
+		    		 e1.printStackTrace();
+		    	 }catch(SecurityException e1){
+		    		 e1.printStackTrace();
+		    	 }
+		     }
+    	}
+     	m_invoker = new m_Invoke();
+    }
+
+    public static class m_Invoke implements m_Invoker{
+    	public static m_Invoke  iinvoke = null;
+    	private  m_Invoke getInvoker(RpcCallContext target,String message){
+    	if(is43){
+    		return new m_Invoke(){
+    			@Override
+    				public void m_invoke(RpcCallContext target,String message) throws IOException {
+    					try {
+    						m.invoke(target,  new Object[] {});
+    					} catch (IllegalAccessException e){
+    						e.printStackTrace();
+    					}catch(IllegalArgumentException e){
+    						e.printStackTrace();
+    					}catch(InvocationTargetException e) {
+    						e.printStackTrace();
+    					}
+    			}
+    		};
+    	}else{
+    		return new m_Invoke(){
+    			@Override
+    			public void m_invoke(RpcCallContext target,String message) throws IOException {
+    				try {
+    					m.invoke(target,   new Object[] {message});
+    				} catch (IllegalAccessException e){
+    					e.printStackTrace();
+    				}catch(IllegalArgumentException e){
+    					e.printStackTrace();
+    				}catch(InvocationTargetException e) {
+    					e.printStackTrace();
+    				}
+    			}
+    		};
+    	}
+    	}
+
+		@Override
+		public void m_invoke(RpcCallContext target, String message)
+				throws IOException {
+			iinvoke = getInvoker(target,message);
+		}
+    }
+
+
+	
+	@Override
     public Map<KVPair,WriteResult> finish() throws IOException {
         RpcCallContext currentCall = HBaseServer.getCurrentCall();
-        if(currentCall!=null)
-            currentCall.throwExceptionIfCallerDisconnected();
-        try{
+        if(currentCall!=null){
+        	if(m_invoker==null){
+        		OnFirstCall(currentCall,rce.getRegion().getRegionNameAsString());
+        	}
+    		m_invoker.getInvoker(currentCall,rce.getRegion().getRegionNameAsString());
+        }
+       try{
             WriteNode next = head.next;
             while(next!=null){
                 next.finish();
