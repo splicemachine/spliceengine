@@ -197,7 +197,7 @@ public class BytesUtil {
      * @return whether or not the given byte[] is empty
      */
     private static boolean empty(byte[] x) {
-        return Bytes.compareTo(x, HConstants.EMPTY_BYTE_ARRAY) == 0;
+        return x==null || Bytes.compareTo(x, HConstants.EMPTY_BYTE_ARRAY) == 0;
     }
 
     /**
