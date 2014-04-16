@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
@@ -11,6 +10,7 @@ import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.job.TaskScheduler;
 import com.splicemachine.job.TaskStatus;
+import com.splicemachine.utils.SingletonSortedSet;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -19,11 +19,12 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.Set;
+import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -41,6 +42,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     public void start(CoprocessorEnvironment env) {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)env;
         HRegion region = rce.getRegion();
+//				splitter = NoOpTaskSplitter.INSTANCE;
 				splitter = new StoreFileTaskSplitter(region,
 								SpliceConstants.maxInterRegionTaskSplits,
 								SpliceConstants.interRegionTaskSplitThresholdBytes);
@@ -78,40 +80,31 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         if(!HRegionUtil.containsRange(rce.getRegion(),taskStart,taskEnd))
             throw new IncorrectRegionException("Incorrect region for Task submission");
 
-				List<Pair<byte[],byte[]>> splitPoints = split(task,taskStart,taskEnd);
+				Set<SizedInterval> splitPoints = split(task,taskStart,taskEnd);
 				return submitAll(task, splitPoints, rce);
     }
 
 		@SuppressWarnings("unchecked")
-		private List<Pair<byte[], byte[]>> split(RegionTask task, byte[] taskStart, byte[] taskEnd) throws IOException {
+		private SortedSet<SizedInterval> split(RegionTask task, byte[] taskStart, byte[] taskEnd) throws IOException {
 				if(!task.isSplittable())
-						return Collections.singletonList(Pair.newPair(taskStart, taskEnd));
+						return new SingletonSortedSet<SizedInterval>(new SizedInterval(taskStart, taskEnd,0));
 
-				List<byte[]> splitPoints = splitter.split(task,taskStart,taskEnd);
-				if(splitPoints.size()<=0)
-						return Collections.singletonList(Pair.newPair(taskStart, taskEnd));
-
-				List<Pair<byte[],byte[]>> splits = Lists.newArrayListWithCapacity(splitPoints.size()-1);
-				byte[] splitStart = taskStart;
-				for (byte[] splitEnd : splitPoints) {
-						splits.add(Pair.newPair(splitStart, splitEnd));
-						splitStart = splitEnd;
-				}
-
-				splits.add(Pair.newPair(splitStart, taskEnd));
-				return splits;
+				return splitter.split(task,taskStart,taskEnd);
 		}
 
-		private TaskFutureContext[] submitAll(final RegionTask task,List<Pair<byte[],byte[]>> splitPoints,RegionCoprocessorEnvironment rce) throws IOException{
+		private TaskFutureContext[] submitAll(final RegionTask task,Collection<SizedInterval> splitPoints,RegionCoprocessorEnvironment rce) throws IOException{
 				TaskFutureContext[] all = new TaskFutureContext[splitPoints.size()];
 
 				if(splitPoints.size()==1){
-						all[0] = doSubmit(task,splitPoints.get(0).getFirst(),splitPoints.get(0).getSecond(),rce);
-						return all;
+						//noinspection LoopStatementThatDoesntLoop
+						for(SizedInterval split:splitPoints){
+								all[0] = doSubmit(task,split.startKey,split.endKey,rce);
+								return all;
+						}
 				}
 				int i=0;
-				for(Pair<byte[],byte[]> split:splitPoints){
-						all[i] = doSubmit(task.getClone(),split.getFirst(),split.getSecond(),rce);
+				for(SizedInterval split:splitPoints){
+						all[i] = doSubmit(task.getClone(),split.startKey,split.endKey,rce);
 						i++;
 				}
 

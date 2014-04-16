@@ -24,7 +24,16 @@ import org.cliffc.high_scale_lib.Counter;
  */
 public class HRegionUtil {
 	public static KeyExists keyExists;
-	public interface KeyExists {
+
+		public static void lockStore(Store store) {
+				store.lock.readLock().lock();
+		}
+
+		public static void unlockStore(Store store){
+				store.lock.readLock().unlock();
+		}
+
+		public interface KeyExists {
 		boolean keyExists(Store store, byte[] key) throws IOException;
 	}
 	
