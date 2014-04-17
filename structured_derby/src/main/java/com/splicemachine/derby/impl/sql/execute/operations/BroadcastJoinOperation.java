@@ -298,7 +298,7 @@ public class BroadcastJoinOperation extends JoinOperation {
                     rows.add(rightRow.getClone());
                 }
             } else {
-                rows = new ArrayList<ExecRow>();
+                rows = new LinkedList<ExecRow>();
                 rows.add(rightRow.getClone());
                 cache.put(hashKey, rows);
             }

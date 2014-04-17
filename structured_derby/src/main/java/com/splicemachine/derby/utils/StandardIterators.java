@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.StandardCloseable;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -21,6 +22,10 @@ public class StandardIterators {
 
     public static <T> StandardIterator<T> wrap(Iterable<T> data){
         return new IteratorStandardIterator<T>(data.iterator());
+    }
+
+    public static StandardIterator<ExecRow> wrap(SpliceOperation op) {
+        return new SpliceOpStandardIterator(op);
     }
 
     public static StandardIterator<ExecRow> wrap(NoPutResultSet NPRS){
@@ -53,6 +58,29 @@ public class StandardIterators {
         }
     }
 
+    private static class SpliceOpStandardIterator implements StandardIterator<ExecRow> {
+        private final SpliceOperation op;
+
+        private SpliceOpStandardIterator(SpliceOperation op) {
+            this.op = op;
+        }
+
+        @Override
+        public void open() throws StandardException, IOException {
+            op.open();
+        }
+
+        @Override
+        public ExecRow next(SpliceRuntimeContext ctx) throws StandardException, IOException {
+            return op.nextRow(ctx);
+        }
+
+        @Override
+        public void close() throws StandardException, IOException {
+            op.close();
+        }
+
+    }
     private static class ResultSetStandardIterator implements StandardIterator<ExecRow>{
         private final NoPutResultSet noPut;
 

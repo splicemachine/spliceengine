@@ -17,8 +17,8 @@ public class Joiner {
     private Iterator<ExecRow> rightSideRowIterator;
     private ExecRow currentLeftRow;
     private boolean rightSideReturned;
-    private ExecRow mergedRowTemplate;
 
+    private final ExecRow mergedRowTemplate;
     private final IJoinRowsIterator<ExecRow> joinRowsSource;
     private final boolean isOuterJoin;
     private final boolean wasRightOuterJoin;
