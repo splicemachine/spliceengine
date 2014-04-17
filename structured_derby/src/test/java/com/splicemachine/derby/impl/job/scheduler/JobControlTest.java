@@ -305,7 +305,7 @@ public class JobControlTest {
         }
 
         @Override
-        public void prepareTask(byte[] start, byte[] stop,RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+        public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
             TASK_LOG.trace("Task preparing");
         }
 
@@ -319,17 +319,7 @@ public class JobControlTest {
             return "/test/taskNode";
         }
 
-				@Override
-				public RegionTask getClone() {
-						return this;
-				}
-
-				@Override
-				public boolean isSplittable() {
-						return false;
-				}
-
-				@Override
+        @Override
         public void markStarted() throws ExecutionException, CancellationException {
             TASK_LOG.debug("Task started");
             taskStatus.setStatus(Status.EXECUTING);

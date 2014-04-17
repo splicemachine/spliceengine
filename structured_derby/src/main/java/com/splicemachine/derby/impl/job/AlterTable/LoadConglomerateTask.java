@@ -4,7 +4,6 @@ package com.splicemachine.derby.impl.job.AlterTable;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.AlterTable.ConglomerateLoader;
@@ -59,9 +58,6 @@ public class LoadConglomerateTask extends ZkTask {
     private boolean initialized = false;
     private Timer writeTimer;
 
-		private byte[] scanStart;
-		private byte[] scanStop;
-
     public LoadConglomerateTask() {}
 
     public LoadConglomerateTask (UUID tableId,
@@ -87,25 +83,8 @@ public class LoadConglomerateTask extends ZkTask {
         this.operationId = operationId;
     }
 
-		@Override
-		public RegionTask getClone() {
-				return new LoadConglomerateTask(tableId,
-								fromConglomId,toConglomId,
-								columnInfo,droppedColumnPosition,
-								txnId,jobId,xplainSchema,statementId,operationId);
-		}
-
-		@Override public boolean isSplittable() { return false; }
-
-		@Override
-		public void prepareTask(byte[] start, byte[] stop, RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
-				this.scanStart = start;
-				this.scanStop = stop;
-				super.prepareTask(start, stop, rce, zooKeeper);
-		}
-
-		private void initialize() throws StandardException{
-        scanner = new ConglomerateScanner(columnInfo, region, txnId, xplainSchema,scanStart,scanStop);
+    private void initialize() throws StandardException{
+        scanner = new ConglomerateScanner(columnInfo, region, txnId, xplainSchema);
         transformer = new RowTransformer(tableId, txnId, columnInfo, droppedColumnPosition);
         loader = new ConglomerateLoader(toConglomId, txnId);
         initialized = true;
@@ -166,6 +145,12 @@ public class LoadConglomerateTask extends ZkTask {
     }
 
     @Override
+    public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+        this.region = rce.getRegion();
+        super.prepareTask(rce, zooKeeper);
+    }
+
+    @Override
     protected String getTaskType() {
         return "LoadConglomerateTask";
     }
@@ -175,8 +160,7 @@ public class LoadConglomerateTask extends ZkTask {
         return true;
     }
 
-
-		@Override
+    @Override
     public int getPriority() {
         return SchedulerPriorities.INSTANCE.getBasePriority(LoadConglomerateTask.class);
     }

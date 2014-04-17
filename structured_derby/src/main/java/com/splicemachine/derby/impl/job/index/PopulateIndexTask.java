@@ -10,7 +10,6 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.hbase.writer.WriteStats;
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.hadoop.hbase.KeyValue;
@@ -70,8 +69,6 @@ public class PopulateIndexTask extends ZkTask {
     private KVPair mainPair;
 
 		private String xplainSchema; //could be null, if no stats are to be collected
-		private byte[] scanStart;
-		private byte[] scanStop;
 
 		@SuppressWarnings("UnusedDeclaration")
 		public PopulateIndexTask() { }
@@ -106,23 +103,10 @@ public class PopulateIndexTask extends ZkTask {
         this.format_ids = format_ids;
     }
 
-		@Override
-		public RegionTask getClone() {
-				return new PopulateIndexTask(transactionId,indexConglomId,baseConglomId,mainColToIndexPosMap,indexedColumns,isUnique,
-								isUniqueWithDuplicateNulls,jobId,descColumns,xplainSchema,statementId,operationId,columnOrdering,format_ids);
-		}
-
-		@Override
-		public boolean isSplittable() {
-				return true;
-		}
-
-		@Override
-    public void prepareTask(byte[] start, byte[] end,RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+    @Override
+    public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         this.region = rce.getRegion();
-        super.prepareTask(start,end,rce, zooKeeper);
-				this.scanStart = start;
-				this.scanStop = end;
+        super.prepareTask(rce, zooKeeper);
     }
 
     @Override
@@ -179,14 +163,12 @@ public class PopulateIndexTask extends ZkTask {
     public boolean invalidateOnClose() {
         return true;
     }
-
-
-		@Override
+    @Override
     public void doExecute() throws ExecutionException, InterruptedException {
         Scan regionScan = SpliceUtils.createScan(transactionId);
         regionScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-        regionScan.setStartRow(scanStart);
-        regionScan.setStopRow(scanStop);
+        regionScan.setStartRow(region.getStartKey());
+        regionScan.setStopRow(region.getEndKey());
         regionScan.setCacheBlocks(false);
         regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
         //need to manually add the SIFilter, because it doesn't get added by region.getScanner(

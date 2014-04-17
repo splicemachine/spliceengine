@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.splicemachine.job.Status;
-import org.apache.hadoop.hbase.HConstants;
 
 import java.io.*;
 
@@ -15,13 +14,11 @@ public class TaskFutureContext implements Externalizable{
     private byte[] taskId;
     private double estimatedCost;
     private Status status;
-		private byte[] startRow;
 
-    public TaskFutureContext(String taskNode,byte[] startRow,byte[] taskId,double estimatedCost){
+    public TaskFutureContext(String taskNode,byte[] taskId,double estimatedCost){
         this.taskNode = taskNode;
         this.estimatedCost = estimatedCost;
         this.taskId = taskId;
-				this.startRow = startRow;
     }
 
     public TaskFutureContext(){}
@@ -30,7 +27,6 @@ public class TaskFutureContext implements Externalizable{
         return taskNode;
     }
 
-		public byte[] getStartRow(){ return startRow;}
     public byte[] getTaskId(){
         return taskId;
     }
@@ -45,11 +41,6 @@ public class TaskFutureContext implements Externalizable{
         out.writeDouble(estimatedCost);
         out.writeInt(taskId.length);
         out.write(taskId);
-				out.writeBoolean(startRow!=null);
-				if(startRow!=null){
-						out.writeInt(startRow.length);
-						out.write(startRow);
-				}
     }
 
     @Override
@@ -58,11 +49,6 @@ public class TaskFutureContext implements Externalizable{
         estimatedCost = in.readDouble();
         taskId = new byte[in.readInt()];
         in.readFully(taskId);
-				if(in.readBoolean()){
-						startRow = new byte[in.readInt()];
-						in.readFully(startRow);
-				}else
-						startRow = HConstants.EMPTY_START_ROW;
-		}
+    }
 
 }
