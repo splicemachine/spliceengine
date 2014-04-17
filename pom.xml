@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.splicemachine</groupId>
 	<version>0.5rc10-SNAPSHOT</version>
@@ -7,7 +8,6 @@
 	<artifactId>structured_hbase</artifactId>
 	<name>structured_hbase</name>
 	<description>Splice Machine Root POM</description>
-
 	<modules>
 		<module>structured_constants</module>
 		<module>structured_si</module>
@@ -51,7 +51,7 @@
 		<!-- run chaos monkey -->
 		<log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
 		<assemble>false</assemble>
-		<envClassifier />
+		<envClassifier/>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -122,6 +122,11 @@
 					<artifactId>maven-surefire-plugin</artifactId>
 					<version>2.16</version>
 				</plugin>
+				<plugin>
+					<groupId>com.pyx4me</groupId>
+					<artifactId>proguard-maven-plugin</artifactId>
+					<version>2.0.4</version>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 	</build>
@@ -188,10 +193,10 @@
 			<id>cloudera-cdh4.3.0</id>
 			<activation>
 				<property>
-						<!-- This is the default profile - runs when NO -Dhbase.profile=<profileid> is specified -->
-						<!-- NOTE: since maven does not know about OR (ie, prop not set OR prop set to cloudera-cdh4.3.0), -->
-						<!--     this will NOT run when you set -Dhbase.profile=cloudera-cdh4.3.0 -->
-						<name>!hbase.profile</name>
+					<!-- This is the default profile - runs when NO -Dhbase.profile=<profileid> is specified -->
+					<!-- NOTE: since maven does not know about OR (ie, prop not set OR prop set to cloudera-cdh4.3.0), -->
+					<!--     this will NOT run when you set -Dhbase.profile=cloudera-cdh4.3.0 -->
+					<name>!hbase.profile</name>
 				</property>
 			</activation>
 			<properties>
@@ -252,7 +257,7 @@
 					<exclusions>
 						<exclusion>
 							<artifactId>junit</artifactId>
-						<groupId>junit</groupId>
+							<groupId>junit</groupId>
 						</exclusion>
 					</exclusions>
 				</dependency>
@@ -277,6 +282,16 @@
 				<repository>
 					<id>cloudera</id>
 					<url>https://repository.cloudera.com/content/repositories/releases/</url>
+					<snapshots>
+						<enabled>false</enabled>
+					</snapshots>
+					<releases>
+						<enabled>true</enabled>
+					</releases>
+				</repository>
+				<repository>
+					<id>sonatype-nexus-staging</id>
+					<url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
 					<snapshots>
 						<enabled>false</enabled>
 					</snapshots>
@@ -328,6 +343,33 @@
 								<exclude>**/*Test.java</exclude>
 							</excludes>
 						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>com.pyx4me</groupId>
+						<artifactId>proguard-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<phase>package</phase>
+								<goals>
+									<goal>proguard</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<proguardVersion>4.11</proguardVersion>
+							<libs>
+								<lib>${java.home}/lib/rt.jar</lib>
+								<lib>${java.home}/lib/jsse.jar</lib>
+							</libs>
+						</configuration>
+						<dependencies>
+							<dependency>
+								<groupId>net.sf.proguard</groupId>
+								<artifactId>proguard</artifactId>
+								<version>4.11</version>
+								<scope>runtime</scope>
+							</dependency>
+						</dependencies>
 					</plugin>
 				</plugins>
 			</build>
@@ -401,7 +443,7 @@
 					<exclusions>
 						<exclusion>
 							<artifactId>junit</artifactId>
-						<groupId>junit</groupId>
+							<groupId>junit</groupId>
 						</exclusion>
 					</exclusions>
 				</dependency>
