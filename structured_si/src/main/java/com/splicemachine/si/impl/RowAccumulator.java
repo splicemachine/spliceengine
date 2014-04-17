@@ -11,4 +11,6 @@ public interface RowAccumulator {
     byte[] result();
 		long getBytesVisited();
 		boolean isCountStar();
+
+		void reset();
 }

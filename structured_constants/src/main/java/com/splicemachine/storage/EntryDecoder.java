@@ -149,7 +149,7 @@ public class EntryDecoder implements FieldSkipper,Provider<MultiFieldDecoder>{
         return decoder;
     }
 
-    public void seekForward(MultiFieldDecoder decoder,int position) {
+    public boolean seekForward(MultiFieldDecoder decoder,int position) {
     /*
      * Certain fields may contain zeros--in particular, scalar, float, and double types. We need
      * to skip past those zeros without treating them as delimiters. Since we have that information
@@ -157,20 +157,24 @@ public class EntryDecoder implements FieldSkipper,Provider<MultiFieldDecoder>{
      * However, in some cases it's more efficient to skip the count directly, since we may know the
      * byte size already.
      */
-    	bitIndex.decodeUntil(position);
-        if(bitIndex.isScalarType(position,true)){
-            if(decoder.nextIsNull()){
-                decoder.skip();
-            }else
-                decoder.skipLong(); //don't need the value, just need to seek past it
-        }else if(bitIndex.isFloatType(position,true)){
-            //floats are always 4 bytes, so skip the after delimiter
-            decoder.skipFloat();
-        }else if(bitIndex.isDoubleType(position,true)){
-            decoder.skipDouble();
-        }else
-            decoder.skip();
-    }
+				boolean isNull;
+				bitIndex.decodeUntil(position);
+				if(bitIndex.isScalarType(position,true)){
+						isNull = decoder.nextIsNull();
+						decoder.skipLong(); //don't need the value, just need to seek past it
+				}else if(bitIndex.isFloatType(position,true)){
+						isNull = decoder.nextIsNullFloat();
+						//floats are always 4 bytes, so skip the after delimiter
+						decoder.skipFloat();
+				}else if(bitIndex.isDoubleType(position,true)){
+						isNull = decoder.nextIsNullDouble();
+						decoder.skipDouble();
+				}else{
+						isNull = decoder.nextIsNull();
+						decoder.skip();
+				}
+				return isNull;
+		}
 
     public ByteBuffer nextAsBuffer(MultiFieldDecoder decoder,int position) {
         int offset = decoder.offset();

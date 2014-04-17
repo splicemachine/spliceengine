@@ -94,6 +94,15 @@ public class V1SerializerMap implements SerializerMap,TypeProvider {
 		}
 
 		@Override
+		public DescriptorSerializer[] getSerializers(int[] typeFormatIds) {
+				DescriptorSerializer[] serializers = new DescriptorSerializer[typeFormatIds.length];
+				for(int i=0;i<typeFormatIds.length;i++){
+						serializers[i] = getSerializer(typeFormatIds[i]);
+				}
+				return serializers;
+		}
+
+		@Override
 		public boolean isScalar(int typeFormatId) {
 				for(DescriptorSerializer.Factory factory:eagerFactories){
 						if(factory.applies(typeFormatId))

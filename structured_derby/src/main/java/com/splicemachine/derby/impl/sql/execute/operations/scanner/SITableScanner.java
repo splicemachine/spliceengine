@@ -14,10 +14,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
-import com.splicemachine.si.impl.FilterState;
-import com.splicemachine.si.impl.FilterStatePacked;
-import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.impl.*;
 import com.splicemachine.stats.Counter;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.TimeView;
@@ -188,7 +185,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 						}else{
 								template.resetRowArray();
 								if(template.nColumns()>0){
-										if(!filterRow(filter)||!filterRowKey(keyValues.get(0))){
+										if(!filterRowKey(keyValues.get(0))||!filterRow(filter)){
 												//filter the row first, then filter the row key
 												filterCounter.increment();
 												continue;
@@ -311,7 +308,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 										//these are okay--they mean the encoding is good
 						}
 				}
-				return filter.getAccumulator().result() != null && keyValues.size()>0;
+				return keyValues.size() > 0 && filter.getAccumulator().result() != null;
 		}
 
 		private boolean filterRowKey(KeyValue keyValue) throws IOException {

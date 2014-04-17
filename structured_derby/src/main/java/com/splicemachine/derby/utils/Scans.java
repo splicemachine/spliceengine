@@ -5,17 +5,17 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.storage.*;
+import com.splicemachine.storage.AndPredicate;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.OrPredicate;
+import com.splicemachine.storage.Predicate;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DataValueFactory;
-import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.CompareFilter;
 
 import java.io.IOException;
 
@@ -118,8 +118,11 @@ public class Scans extends SpliceUtils {
 																 Qualifier[][] qualifiers,
 																 boolean[] sortOrder,
 																 FormatableBitSet scanColumnList,
-																 String transactionId,boolean sameStartStopPosition, 
-																 int[] formatIds, int[] columnOrdering, DataValueFactory dataValueFactory,
+																 String transactionId,
+																 boolean sameStartStopPosition,
+																 int[] formatIds,
+																 int[] columnOrdering,
+																 DataValueFactory dataValueFactory,
 																 String tableVersion) throws StandardException {
 				Scan scan = SpliceUtils.createScan(transactionId, scanColumnList!=null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
 				scan.setCaching(DEFAULT_CACHE_SIZE);
@@ -128,35 +131,44 @@ public class Scans extends SpliceUtils {
 										stopKeyValue, stopSearchOperator,
 										scanColumnList, sortOrder, formatIds, columnOrdering, dataValueFactory, tableVersion);
 
-						buildPredicateFilter(startKeyValue, startSearchOperator, qualifiers, scanColumnList, columnOrdering, formatIds, scan,tableVersion);
+
+						PredicateBuilder pb = new PredicateBuilder(columnOrdering,sortOrder,formatIds,tableVersion);
+						buildPredicateFilter(
+										qualifiers, scanColumnList,scan,pb,columnOrdering);
 				}catch(IOException e){
 						throw Exceptions.parseException(e);
 				}
 				return scan;
 		}
 
-		public static void buildPredicateFilter(DataValueDescriptor[] startKeyValue,
-                                                int startSearchOperator,
-                                                Qualifier[][] qualifiers,
-                                                FormatableBitSet scanColumnList,
-                                                int[] columnOrdering,
-                                                int[] formatIds, Scan scan,
-																								String tableVersion) throws StandardException, IOException {
-                EntryPredicateFilter pqf = getPredicates(startKeyValue,startSearchOperator,qualifiers,scanColumnList, columnOrdering, formatIds,tableVersion);
+		public static void buildPredicateFilter(Qualifier[][] qualifiers,
+																						FormatableBitSet scanColumnList,
+																						int[] keyColumnEncodingMap,
+																						int[] columnTypes,
+																						Scan scan,
+																						String tableVersion) throws StandardException, IOException {
+				PredicateBuilder pb = new PredicateBuilder(keyColumnEncodingMap,null,columnTypes,tableVersion);
+				buildPredicateFilter(qualifiers,scanColumnList,scan,pb,keyColumnEncodingMap);
+		}
+
+		public static void buildPredicateFilter(Qualifier[][] qualifiers,
+																						FormatableBitSet scanColumnList,
+																						Scan scan,
+																						PredicateBuilder pb,
+																						int[] keyColumnEncodingOrder) throws StandardException, IOException {
+				EntryPredicateFilter pqf = getPredicates( qualifiers,
+								scanColumnList, pb,keyColumnEncodingOrder);
 				scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,pqf.toBytes());
 		}
 
-		public static EntryPredicateFilter getPredicates(DataValueDescriptor[] startKeyValue,
-                                                         int startSearchOperator,
-                                                         Qualifier[][] qualifiers,
-                                                         FormatableBitSet scanColumnList,
-                                                         int[] columnOrdering,
-                                                         int[] formatIds,
-																												 String tableVersion) throws StandardException {
+		public static EntryPredicateFilter getPredicates(Qualifier[][] qualifiers,
+																										 FormatableBitSet scanColumnList,
+																										 PredicateBuilder pb,
+																										 int[] keyColumnEncodingOrder) throws StandardException {
 				ObjectArrayList<Predicate> predicates;
 				BitSet colsToReturn = new BitSet();
 				if(qualifiers!=null){
-						predicates = getQualifierPredicates(qualifiers,tableVersion);
+						predicates = getQualifierPredicates(qualifiers,pb);
 						for(Qualifier[] qualifierList:qualifiers){
 								for(Qualifier qualifier:qualifierList){
 										colsToReturn.set(qualifier.getColumnId()); //make sure that that column is returned
@@ -174,9 +186,10 @@ public class Scans extends SpliceUtils {
 				}
 
                //exclude any primary key columns
-               if (columnOrdering != null && columnOrdering.length > 0) {
-                   for (int col:columnOrdering) {
-                       colsToReturn.clear(col);
+               if (keyColumnEncodingOrder != null && keyColumnEncodingOrder.length > 0) {
+                   for (int col:keyColumnEncodingOrder) {
+											 if(col>=0)
+													 colsToReturn.clear(col);
                    }
                }
 //        if(startKeyValue!=null && startSearchOperator != ScanController.GT){
@@ -184,10 +197,11 @@ public class Scans extends SpliceUtils {
 //            if(indexPredicate!=null)
 //                predicates.add(indexPredicate);
 //        }
-				return new EntryPredicateFilter(colsToReturn,predicates,true, columnOrdering, formatIds);
+				return new EntryPredicateFilter(colsToReturn,predicates,true);
 		}
 
-		public static ObjectArrayList<Predicate> getQualifierPredicates(Qualifier[][] qualifiers,String tableVersion) throws StandardException {
+		public static ObjectArrayList<Predicate> getQualifierPredicates(Qualifier[][] qualifiers,
+																																		PredicateBuilder pb) throws StandardException {
         /*
          * Qualifiers are set up as follows:
          *
@@ -198,7 +212,7 @@ public class Scans extends SpliceUtils {
          */
 				ObjectArrayList<Predicate> andPreds = ObjectArrayList.newInstanceWithCapacity(qualifiers[0].length);
 				for(Qualifier andQual:qualifiers[0]){
-						andPreds.add(getPredicate(andQual,tableVersion));
+						andPreds.add(pb.getPredicate(andQual));
 				}
 
 
@@ -207,7 +221,7 @@ public class Scans extends SpliceUtils {
 						Qualifier[] orQuals = qualifiers[i];
 						ObjectArrayList<Predicate> orPreds = ObjectArrayList.newInstanceWithCapacity(orQuals.length);
 						for(Qualifier orQual:orQuals){
-								orPreds.add(getPredicate(orQual,tableVersion));
+								orPreds.add(pb.getPredicate(orQual));
 						}
 						andedOrPreds.add(new OrPredicate(orPreds));
 				}
@@ -217,70 +231,6 @@ public class Scans extends SpliceUtils {
 				Predicate firstAndPredicate = new AndPredicate(andPreds);
 				return ObjectArrayList.from(firstAndPredicate);
 		}
-
-		private static Predicate getPredicate(Qualifier qualifier,String tableVersion) throws StandardException {
-				DataValueDescriptor dvd = qualifier.getOrderable();
-				if(dvd==null||dvd.isNull()||dvd.isNullOp().getBoolean()){
-						boolean filterIfMissing = qualifier.negateCompareResult();
-						boolean isNullvalue = dvd==null||dvd.isNull();
-						boolean isOrderedNulls = qualifier.getOrderedNulls();
-						boolean isNullNumericalComparison = (isNullvalue && !isOrderedNulls);
-						if(dvd==null)
-								return new NullPredicate(filterIfMissing,isNullNumericalComparison,qualifier.getColumnId(),false,false);
-						else if(DerbyBytesUtil.isDoubleType(dvd))
-								return new NullPredicate(filterIfMissing,isNullNumericalComparison,qualifier.getColumnId(),true,false);
-						else if(DerbyBytesUtil.isFloatType(dvd))
-								return new NullPredicate(filterIfMissing,isNullNumericalComparison,qualifier.getColumnId(),false,true);
-						else
-								return new NullPredicate(filterIfMissing,isNullNumericalComparison,qualifier.getColumnId(),false,false);
-				}else{
-						byte[] bytes = VersionedSerializers.forVersion(tableVersion, true).getSerializer(dvd).encodeDirect(dvd, false);
-//						byte[] bytes = DerbyBytesUtil.generateBytes(dvd);
-						if(dvd instanceof StringDataValue){
-								return new CharValuePredicate(getHBaseCompareOp(qualifier.getOperator(),
-												qualifier.negateCompareResult()),qualifier.getColumnId(),bytes,true);
-						}else{
-								return new ValuePredicate(getHBaseCompareOp(qualifier.getOperator(),qualifier.negateCompareResult()),
-												qualifier.getColumnId(),
-												bytes,true);
-						}
-				}
-		}
-
-		private static CompareFilter.CompareOp getHBaseCompareOp(int operator, boolean negateResult) {
-				if(negateResult){
-						switch(operator){
-								case DataValueDescriptor.ORDER_OP_EQUALS:
-										return CompareFilter.CompareOp.NOT_EQUAL;
-								case DataValueDescriptor.ORDER_OP_LESSTHAN:
-										return CompareFilter.CompareOp.GREATER_OR_EQUAL;
-								case DataValueDescriptor.ORDER_OP_GREATERTHAN:
-										return CompareFilter.CompareOp.LESS_OR_EQUAL;
-								case DataValueDescriptor.ORDER_OP_LESSOREQUALS:
-										return CompareFilter.CompareOp.GREATER;
-								case DataValueDescriptor.ORDER_OP_GREATEROREQUALS:
-										return CompareFilter.CompareOp.LESS;
-								default:
-										throw new AssertionError("Unknown Derby operator "+ operator);
-						}
-				}else{
-						switch(operator){
-								case DataValueDescriptor.ORDER_OP_EQUALS:
-										return CompareFilter.CompareOp.EQUAL;
-								case DataValueDescriptor.ORDER_OP_LESSTHAN:
-										return CompareFilter.CompareOp.LESS;
-								case DataValueDescriptor.ORDER_OP_GREATERTHAN:
-										return CompareFilter.CompareOp.GREATER;
-								case DataValueDescriptor.ORDER_OP_LESSOREQUALS:
-										return CompareFilter.CompareOp.LESS_OR_EQUAL;
-								case DataValueDescriptor.ORDER_OP_GREATEROREQUALS:
-										return CompareFilter.CompareOp.GREATER_OR_EQUAL;
-								default:
-										throw new AssertionError("Unknown Derby operator "+ operator);
-						}
-				}
-		}
-
 
 		private static void attachScanKeys(Scan scan, DataValueDescriptor[] startKeyValue, int startSearchOperator,
 																			 DataValueDescriptor[] stopKeyValue, int stopSearchOperator,

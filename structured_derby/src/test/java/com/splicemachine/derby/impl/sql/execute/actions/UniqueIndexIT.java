@@ -267,18 +267,10 @@ public class UniqueIndexIT extends SpliceUnitTest {
     public void testCanDeleteIndexWithNulls() throws Exception{
         new SpliceIndexWatcher(TABLE_NAME_9,CLASS_NAME,INDEX_61,CLASS_NAME,"(val)",false).starting(null);
 				PreparedStatement ps = methodWatcher.prepareStatement(String.format("insert into %s (name,val) values (?,?)",spliceTableWatcher9));
-				ps.setString(1,"sfines");
-				ps.setInt(2,2);
-				ps.addBatch();
-				ps.setString(1,"lfines");
-				ps.setInt(2,-2);
-				ps.addBatch();
-				ps.setNull(1, Types.VARCHAR);
-				ps.setNull(2,Types.INTEGER);
-				ps.addBatch();
-				ps.setString(1,"0");
-				ps.setInt(2,0);
-				ps.addBatch();
+				ps.setString(1,"sfines"); ps.setInt(2,2); ps.addBatch();
+				ps.setString(1,"lfines"); ps.setInt(2,-2); ps.addBatch();
+				ps.setNull(1, Types.VARCHAR); ps.setNull(2,Types.INTEGER); ps.addBatch();
+				ps.setString(1,"0"); ps.setInt(2,0); ps.addBatch();
 				int[] updated = ps.executeBatch();
 				Assert.assertEquals("Incorrect update number!",4,updated.length);
 				System.out.println(Arrays.toString(updated));

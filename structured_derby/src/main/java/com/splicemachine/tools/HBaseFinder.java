@@ -66,7 +66,7 @@ public class HBaseFinder {
             System.exit(3);
         }
 
-        Predicate predicate = new ValuePredicate(CompareFilter.CompareOp.EQUAL,colNum,dataBytes,false);
+        Predicate predicate = new ValuePredicate(CompareFilter.CompareOp.EQUAL,colNum,dataBytes,false,false);
         EntryPredicateFilter edf = new EntryPredicateFilter(new BitSet(),ObjectArrayList.from(predicate));
 
         Scan scan = new Scan();

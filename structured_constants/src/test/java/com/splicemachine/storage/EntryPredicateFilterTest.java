@@ -28,9 +28,9 @@ public class EntryPredicateFilterTest {
 
         byte[] bytes = Bytes.toBytesBinary(binary);
 
-        Predicate p1 = new ValuePredicate(CompareFilter.CompareOp.EQUAL,0,Encoding.encode(1250),true);
-        Predicate p2 = new ValuePredicate(CompareFilter.CompareOp.EQUAL,1,Encoding.encode(3),true);
-        Predicate p3 = new ValuePredicate(CompareFilter.CompareOp.EQUAL,2,Encoding.encode(1155),true);
+        Predicate p1 = new ValuePredicate(CompareFilter.CompareOp.EQUAL,0,Encoding.encode(1250),true,false);
+        Predicate p2 = new ValuePredicate(CompareFilter.CompareOp.EQUAL,1,Encoding.encode(3),true,false);
+        Predicate p3 = new ValuePredicate(CompareFilter.CompareOp.EQUAL,2,Encoding.encode(1155),true,false);
 
         Predicate and = new AndPredicate(ObjectArrayList.from(p1,p2,p3));
 
@@ -81,7 +81,7 @@ public class EntryPredicateFilterTest {
 
         byte[] bytes = encoder.encode();
 
-        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,0,Encoding.encode(testField1),true);
+        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,0,Encoding.encode(testField1),true,false);
         Predicate pred2 = new NullPredicate(false,false,1,false,false);
 
         Predicate finalPred = new AndPredicate(ObjectArrayList.from((Predicate) new OrPredicate(ObjectArrayList.from(pred1,pred2))));
@@ -158,7 +158,7 @@ public class EntryPredicateFilterTest {
         String testType1 = "test";
         BigDecimal testType2 = new BigDecimal("2.345");
 
-        Predicate pred = new ValuePredicate(CompareFilter.CompareOp.EQUAL,1, Encoding.encode("test2"),true);
+        Predicate pred = new ValuePredicate(CompareFilter.CompareOp.EQUAL,1, Encoding.encode("test2"),true,false);
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn,
         		ObjectArrayList.from(pred),true);
 
@@ -178,7 +178,7 @@ public class EntryPredicateFilterTest {
     public void testReturnsEverythingThatMatchesPredicate() throws Exception {
      String testType1 = "test";
      BigDecimal testType2 = new BigDecimal("2.345");
-     Predicate pred = new ValuePredicate(CompareFilter.CompareOp.EQUAL,0, Encoding.encode(testType1),true);
+     Predicate pred = new ValuePredicate(CompareFilter.CompareOp.EQUAL,0, Encoding.encode(testType1),true,false);
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(new BitSet(),
         		ObjectArrayList.from(pred),true);
 

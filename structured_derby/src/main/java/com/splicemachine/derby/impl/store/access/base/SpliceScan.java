@@ -151,8 +151,12 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 
 		protected void attachFilter() {
 				try {
-						Scans.buildPredicateFilter(startKeyValue, 2, qualifier, null, spliceConglomerate.getColumnOrdering(),
-										spliceConglomerate.getFormatIds(), scan,"1.0");
+						Scans.buildPredicateFilter(
+										qualifier,
+										null,
+										spliceConglomerate.getColumnOrdering(),
+										spliceConglomerate.getFormatIds(),
+										scan,"1.0");
 				} catch (Exception e) {
 						throw new RuntimeException("error attaching Filter",e);
 				}

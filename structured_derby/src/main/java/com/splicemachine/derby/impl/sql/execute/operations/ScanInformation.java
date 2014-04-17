@@ -43,7 +43,8 @@ interface ScanInformation<T> {
 
 
     Scan getScan(String txnId) throws StandardException;
-    Scan getScan(String txnId, T startKeyHint) throws StandardException;
+
+    Scan getScan(String txnId, T startKeyHint,int[] keyDecodingMap) throws StandardException;
 
     Qualifier[][] getScanQualifiers() throws StandardException;
 
