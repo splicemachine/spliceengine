@@ -11,16 +11,12 @@
 		<groupId>com.splicemachine</groupId>
 		<version>1.0.1-SNAPSHOT</version>
 	</parent>
-
-
 	<dependencies>
- 
 	<dependency>
 		<groupId>org.scala-lang</groupId>
 		<artifactId>scala-library</artifactId>
 		<version>2.9.3</version>
 	</dependency>
-
 	<dependency>
 		<groupId>com.splicemachine</groupId>
 		<artifactId>splice_machine</artifactId>
@@ -32,8 +28,6 @@
 		<version>0.7.2</version>
 		<type>jar</type>
 	</dependency>
-
-	
 	</dependencies>
 	<build>
 		<!-- Some plugins (javadoc for example) can be used in the normal build- 
@@ -41,7 +35,6 @@
 			section below. These settings can be overwritten here. -->
 		<pluginManagement>
 			<plugins>
-
 				<plugin>
 					<artifactId>maven-assembly-plugin</artifactId>
 					<version>2.2-beta-5</version>
@@ -54,7 +47,6 @@
 					<artifactId>maven-source-plugin</artifactId>
 					<version>2.1.1</version>
 				</plugin>
-
 				<plugin>
 					<artifactId>maven-javadoc-plugin</artifactId>
 					<version>2.6.1</version>
@@ -63,10 +55,8 @@
 					<artifactId>maven-clean-plugin</artifactId>
 					<version>2.4</version>
 				</plugin>
-
 			</plugins>
 		</pluginManagement>
-
 		<plugins>
 		</plugins>
 	</build>

@@ -1,67 +1,64 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>structured_trx</artifactId>
 	<packaging>jar</packaging>
 	<name>structured_trx</name>
 	<description>transactional/indexing layers on top of hbase</description>
-		<parent>
+	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
 		<version>1.0.1-SNAPSHOT</version>
 	</parent>
-
-
-	
-	<dependencies>		
-        <dependency>
-        	<groupId>com.splicemachine</groupId>
-        	<artifactId>structured_constants</artifactId>
-        	<version>1.0.1-SNAPSHOT</version>
-        </dependency>
+	<dependencies>
+		<dependency>
+			<groupId>com.splicemachine</groupId>
+			<artifactId>structured_constants</artifactId>
+			<version>1.0.1-SNAPSHOT</version>
+		</dependency>
 	</dependencies>
-	 <build>
-         <resources>
-             <resource>
-                 <directory>src/main/resources</directory>
-                 <filtering>true</filtering>
-             </resource>
-         </resources>
-         <plugins>
-             <plugin>
-                 <groupId>org.codehaus.mojo</groupId>
-                 <artifactId>buildnumber-maven-plugin</artifactId>
-                 <version>1.2</version>
-                 <executions>
-                     <execution>
-                         <phase>validate</phase>
-                         <goals>
-                             <goal>create</goal>
-                         </goals>
-                     </execution>
-                 </executions>
-                 <configuration>
-                     <shortRevisionLength>10</shortRevisionLength>
-                     <doCheck>false</doCheck>
-                     <doUpdate>false</doUpdate>
-                 </configuration>
-             </plugin>
-    <plugin>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <configuration>
-            <forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
-            <argLine>-Xms2g -Xmx2g</argLine>
-            <redirectTestOutputToFile>true</redirectTestOutputToFile>
-          </configuration>
-          <dependencies>
-                <dependency>
-        	<groupId>com.splicemachine</groupId>
-        	<artifactId>structured_constants</artifactId>
-          	<version>1.0.1-SNAPSHOT</version>
-        </dependency>
-          </dependencies>
-        </plugin>
-            
-    </plugins>
-  </build>
+	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
+		<plugins>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>buildnumber-maven-plugin</artifactId>
+				<version>1.2</version>
+				<executions>
+					<execution>
+						<phase>validate</phase>
+						<goals>
+							<goal>create</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<shortRevisionLength>10</shortRevisionLength>
+					<doCheck>false</doCheck>
+					<doUpdate>false</doUpdate>
+				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
+					<argLine>-Xms2g -Xmx2g</argLine>
+					<redirectTestOutputToFile>true</redirectTestOutputToFile>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>com.splicemachine</groupId>
+						<artifactId>structured_constants</artifactId>
+						<version>1.0.1-SNAPSHOT</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+		</plugins>
+	</build>
 </project>

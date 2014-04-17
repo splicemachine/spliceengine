@@ -1,49 +1,49 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <groupId>com.splicemachine</groupId>
-    <version>0.5rc5-SNAPSHOT</version>
-    <packaging>pom</packaging>
-    <artifactId>splice_scripts</artifactId>
-    <name>splice_scripts</name>
-    <description>Set of platform specific installer / driver scripts</description>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.splicemachine</groupId>
+	<version>0.5rc5-SNAPSHOT</version>
+	<packaging>pom</packaging>
+	<artifactId>splice_scripts</artifactId>
+	<name>splice_scripts</name>
+	<description>Set of platform specific installer / driver scripts</description>
 	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
 		<version>0.5rc5-SNAPSHOT</version>
 	</parent>
-    <distributionManagement>
-    </distributionManagement>
-    <properties>
-        <finalName>${project.artifactId}-${project.version}-${envClassifier}_complete</finalName>
-    </properties>
-    <dependencies>
-        <dependency>
-            <groupId>com.splicemachine</groupId>
-            <artifactId>splice_machine</artifactId>
-            <version>0.5rc4-SNAPSHOT</version>
-            <classifier>${envClassifier}_complete</classifier>
-        </dependency>
-    </dependencies>
-    <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-assembly-plugin</artifactId>
-            <configuration>
-              <descriptors>
-                <descriptor>src/main/assembly/assembly.xml</descriptor>
-              </descriptors>
-            </configuration>
-            <executions>
-              <execution>
-                <id>make</id>
-                <phase>package</phase>
-                <goals>
-                  <goal>assembly</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-         </plugins>
-      </build>
-  </project>
+	<distributionManagement>
+	</distributionManagement>
+	<properties>
+		<finalName>${project.artifactId}-${project.version}-${envClassifier}_complete</finalName>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>com.splicemachine</groupId>
+			<artifactId>splice_machine</artifactId>
+			<version>0.5rc4-SNAPSHOT</version>
+			<classifier>${envClassifier}_complete</classifier>
+		</dependency>
+	</dependencies>
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<descriptors>
+						<descriptor>src/main/assembly/assembly.xml</descriptor>
+					</descriptors>
+				</configuration>
+				<executions>
+					<execution>
+						<id>make</id>
+						<phase>package</phase>
+						<goals>
+							<goal>assembly</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>
