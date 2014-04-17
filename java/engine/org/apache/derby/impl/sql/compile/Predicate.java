@@ -68,6 +68,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 	protected boolean startKey;
 	protected boolean stopKey;
 	protected boolean isQualifier;
+    private boolean pulled;
 
 	/* Hashtable used for tracking the search clause types that have been
 	 * pushed through this predicate (if an equijoin) via transitive closure.
@@ -78,6 +79,13 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 	// getPredScopedForResultSet() method of this class for more.
 	private boolean scoped;
 
+    public void setPulled(boolean pulled) {
+        this.pulled = pulled;
+    }
+
+    public boolean getPulled() {
+        return pulled;
+    }
 	/**
 	 * Initializer.
 	 *

@@ -1698,7 +1698,7 @@ public class JoinNode extends TableOperatorNode {
             if (table != null) {
                 for(int i = table.nonStoreRestrictionList.size() - 1; i >= 0; i--){
                     Predicate op = (Predicate)table.nonStoreRestrictionList.getOptPredicate(i);
-                    if (op.isJoinPredicate()){
+                    if (op.isJoinPredicate() || op.getPulled()){
                         table.nonStoreRestrictionList.removeOptPredicate(i);
                     }
                 }
