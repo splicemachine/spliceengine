@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.load;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.KVPair;
@@ -14,9 +13,7 @@ import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -533,13 +530,6 @@ public class ImportTaskTest {
 						protected ImportErrorReporter getErrorReporter(ExecRow rowTemplate, RowErrorLogger errorLogger) {
 								return FailAlwaysReporter.INSTANCE;
 						}
-
-						@Override
-						public RegionTask getClone() {
-								return this;
-						}
-
-						@Override public boolean isSplittable() { return false; }
 				};
         importTask.doExecute();
 

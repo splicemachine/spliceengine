@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
@@ -33,8 +32,8 @@ public class NonTransactionalCounterTask extends DebugTask{
     @Override
     protected void doExecute() throws ExecutionException, InterruptedException {
         Scan scan = new Scan();
-        scan.setStartRow(scanStart);
-        scan.setStopRow(scanStop);
+        scan.setStartRow(region.getStartKey());
+        scan.setStopRow(region.getEndKey());
         scan.setCacheBlocks(false);
         scan.setCaching(100);
         scan.setBatch(100);
@@ -86,14 +85,4 @@ public class NonTransactionalCounterTask extends DebugTask{
     public boolean invalidateOnClose() {
         return true;
     }
-
-		@Override
-		public RegionTask getClone() {
-				return new NonTransactionalCounterTask(jobId,getPriority(),readOnly,destinationDirectory);
-		}
-
-		@Override
-		public boolean isSplittable() {
-				return true;
-		}
 }

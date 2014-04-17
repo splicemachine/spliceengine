@@ -3,9 +3,6 @@ package com.splicemachine.derby.impl.job.coprocessor;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.Task;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.util.Pair;
-
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -14,7 +11,7 @@ import java.util.concurrent.ExecutionException;
  */
 public interface RegionTask extends Task {
 
-    void prepareTask(byte[] start,byte[] end,RegionCoprocessorEnvironment rce,
+    void prepareTask(RegionCoprocessorEnvironment rce,
                      SpliceZooKeeperManager zooKeeper ) throws ExecutionException;
 
     /**
@@ -23,8 +20,4 @@ public interface RegionTask extends Task {
     boolean invalidateOnClose();
 
     String getTaskNode();
-
-		RegionTask getClone();
-
-		boolean isSplittable();
 }

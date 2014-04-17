@@ -3,7 +3,6 @@ package com.splicemachine.hbase.debug;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.si.api.TransactionStatus;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
@@ -31,8 +30,8 @@ public class TransactionDump extends DebugTask {
     @Override
     protected void doExecute() throws ExecutionException, InterruptedException {
         Scan scan = new Scan();
-        scan.setStartRow(scanStart);
-        scan.setStopRow(scanStop);
+        scan.setStartRow(region.getStartKey());
+        scan.setStopRow(region.getEndKey());
         scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
         scan.setAttribute(SIConstants.SI_EXEMPT, Bytes.toBytes(true));
         scan.setCaching(100);
@@ -135,14 +134,4 @@ public class TransactionDump extends DebugTask {
     protected String getTaskType() {
         return "transactionDump";
     }
-
-		@Override
-		public RegionTask getClone() {
-				return new TransactionDump(jobId,destinationDirectory);
-		}
-
-		@Override
-		public boolean isSplittable() {
-				return false;
-		}
 }

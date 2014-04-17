@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
 import com.google.common.collect.Lists;
-import com.google.common.io.Closeables;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
@@ -216,11 +215,13 @@ class JobControl implements JobFuture {
         } catch (ZooKeeperConnectionException e) {
             throw new ExecutionException(e);
         } finally {
-						try {
-								for (Closeable c : closables) {
-										Closeables.closeQuietly(c);
-								}
-            }finally {
+            try {
+                for (Closeable c : closables) {
+                    c.close();
+                }
+            } catch (IOException ioe) {
+                throw new ExecutionException(ioe);
+            } finally {
                 closables.clear();
                 completedTasks.clear();
                 failedTasks.clear();
@@ -344,24 +345,22 @@ class JobControl implements JobFuture {
 
         try{
             table.coprocessorExec(SpliceSchedulerProtocol.class,start,stop,
-                    new BoundCall<SpliceSchedulerProtocol, TaskFutureContext[]>() {
+                    new BoundCall<SpliceSchedulerProtocol, TaskFutureContext>() {
                         @Override
-                        public TaskFutureContext[] call(SpliceSchedulerProtocol instance) throws IOException {
+                        public TaskFutureContext call(SpliceSchedulerProtocol instance) throws IOException {
                             throw new UnsupportedOperationException();
                         }
 
                         @Override
-                        public TaskFutureContext[] call(byte[] startKey, byte[] stopKey, SpliceSchedulerProtocol instance) throws IOException {
+                        public TaskFutureContext call(byte[] startKey, byte[] stopKey, SpliceSchedulerProtocol instance) throws IOException {
                             return instance.submit(startKey,stopKey,task);
                         }
-                    }, new Batch.Callback<TaskFutureContext[]>() {
+                    }, new Batch.Callback<TaskFutureContext>() {
                         @Override
-                        public void update(byte[] region, byte[] row, TaskFutureContext[] results) {
-														for(TaskFutureContext result:results){
-																RegionTaskControl control = new RegionTaskControl(result.getStartRow(),task,JobControl.this,result,tryCount,zkManager);
-																tasksToWatch.add(control);
-																taskChanged(control);
-														}
+                        public void update(byte[] region, byte[] row, TaskFutureContext result) {
+                            RegionTaskControl control = new RegionTaskControl(row,task,JobControl.this,result,tryCount,zkManager);
+                            tasksToWatch.add(control);
+                            taskChanged(control);
                         }
                     });
             jobMetrics.addJob(job);
