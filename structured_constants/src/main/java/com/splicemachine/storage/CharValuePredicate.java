@@ -19,8 +19,9 @@ public class CharValuePredicate extends ValuePredicate{
 		public CharValuePredicate(CompareFilter.CompareOp compareOp,
 															int column,
 															byte[] compareValue,
-															boolean removeNullEntries) {
-				super(compareOp, column, compareValue, removeNullEntries);
+															boolean removeNullEntries,
+															boolean desc) {
+				super(compareOp, column, compareValue, removeNullEntries,desc);
 		}
 
 		@Override

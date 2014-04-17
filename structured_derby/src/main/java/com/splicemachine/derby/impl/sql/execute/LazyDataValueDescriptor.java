@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.TimeValuedSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.ByteSlice;
@@ -100,7 +101,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
         if( !isDeserialized() && isSerialized()){
             try{
 								if(serializer==null)
-										serializer = VersionedSerializers.forVersion(tableVersion,true).getSerializer(typeFormatId);
+										serializer = VersionedSerializers.forVersion(tableVersion,true).getEagerSerializer(typeFormatId);
 								serializer.decodeDirect(dvd, bytes.array(), bytes.offset(), bytes.length(), descendingOrder);
                 deserialized=true;
             }catch(Exception e){
@@ -239,6 +240,8 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
     @Override
     public Timestamp getTimestamp(Calendar cal) throws StandardException {
+				if(cal!=null && serializer !=null && serializer instanceof TimeValuedSerializer)
+						((TimeValuedSerializer)serializer).setCalendar(cal);
         forceDeserialization();
         return dvd.getTimestamp(cal);
     }

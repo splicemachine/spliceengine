@@ -233,11 +233,11 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
 
     @Override
     public Scan getScan(String txnId) throws StandardException {
-        return getScan(txnId, null);
+        return getScan(txnId, null,null);
     }
 
     @Override
-    public Scan getScan(String txnId, ExecRow startKeyOverride) throws StandardException {
+    public Scan getScan(String txnId, ExecRow startKeyOverride,int[] keyDecodingMap) throws StandardException {
         boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
         ExecIndexRow startPosition = getStartPosition();
         ExecIndexRow stopPosition = sameStartStop ? startPosition : getStopPosition();
@@ -271,7 +271,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
                 conglomerate.getAscDescInfo(),
                 getAccessedNonPkColumns(),
                 txnId,sameStartStop,
-                conglomerate.getFormat_ids(),conglomerate.getColumnOrdering(), activation.getDataValueFactory(),
+                conglomerate.getFormat_ids(),
+								keyDecodingMap, activation.getDataValueFactory(),
 								tableVersion);
     }
 

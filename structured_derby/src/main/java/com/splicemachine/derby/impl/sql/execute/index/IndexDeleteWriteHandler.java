@@ -17,6 +17,7 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -26,7 +27,7 @@ import java.util.List;
 public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
     private final List<KVPair> deletes = Lists.newArrayListWithExpectedSize(0);
-    private final IndexTransformer transformer;
+    private final IndexTransformer2 transformer;
     private CallBuffer<KVPair> indexBuffer;
     private final int expectedWrites;
 
@@ -43,22 +44,42 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
     }
 
     public IndexDeleteWriteHandler(BitSet indexedColumns,
-                                   int[] mainColToIndexPosMap,
+                                   int[] keyEncodingMap,
                                    byte[] indexConglomBytes,
                                    BitSet descColumns,
                                    boolean keepState,
                                    boolean unique,
                                    boolean uniqueWithDuplicateNulls,
                                    int expectedWrites,
-                                   int[] columnOrdering,
-                                   int[] formatIds){
-        super(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState);
+                                   int[] keyColumnEncodingOrder,
+                                   int[] mainTableTypes){
+        super(indexedColumns,keyEncodingMap,indexConglomBytes,descColumns,keepState);
         BitSet nonUniqueIndexColumn = (BitSet)translatedIndexColumns.clone();
         nonUniqueIndexColumn.set(translatedIndexColumns.length());
         this.expectedWrites = expectedWrites;
-        this.transformer = new IndexTransformer(indexedColumns,
-                translatedIndexColumns,nonUniqueIndexColumn,descColumns,mainColToIndexPosMap,unique,
-                uniqueWithDuplicateNulls, SpliceDriver.getKryoPool(),columnOrdering,formatIds);
+				boolean[] destAscDescColumns = new boolean[keyEncodingMap.length];
+				Arrays.fill(destAscDescColumns, true);
+				for(int key:keyEncodingMap){
+						if(descColumns.get(key))
+								destAscDescColumns[key] = false;
+				}
+				int[] keyDecodingMap = new int[(int)indexedColumns.length()];
+				Arrays.fill(keyDecodingMap,-1);
+				for(int i=indexedColumns.nextSetBit(0);i>=0; i= indexedColumns.nextSetBit(i+1)){
+						keyDecodingMap[i] = keyEncodingMap[i];
+				}
+				this.transformer = new IndexTransformer2(
+								unique,
+								uniqueWithDuplicateNulls,
+								null, //TODO -sf- make this table version match
+								keyColumnEncodingOrder,
+								mainTableTypes,
+								null,
+								keyDecodingMap,
+								destAscDescColumns);
+//        this.transformer = new IndexTransformer(indexedColumns,
+//                translatedIndexColumns,nonUniqueIndexColumn,descColumns,keyEncodingMap,unique,
+//                uniqueWithDuplicateNulls, SpliceDriver.getKryoPool(),keyColumnEncodingOrder,mainTableTypes);
     }
 
     @Override
