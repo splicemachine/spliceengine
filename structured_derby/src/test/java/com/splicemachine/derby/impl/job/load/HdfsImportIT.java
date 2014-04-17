@@ -488,31 +488,30 @@ public class HdfsImportIT extends SpliceUnitTest {
 		Assert.assertEquals("10 Records not imported",10,i);
 	}
 
-		@Test
-		public void testNullDatesWithMixedCaseAccuracy() throws Exception {
-				String location = getResourceDirectory()+"datebug.tbl";
-				PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
-								"'%s',',',null,'yyyy-MM-dd HH:mm:ss.SSSSSS',null,null)",spliceSchemaWatcher.schemaName,TABLE_15,location));
-				ps.execute();
-				ResultSet rs = methodWatcher.executeQuery(format("select SHIPPED_DATE from %s.%s",spliceSchemaWatcher.schemaName,TABLE_15));
-				int i =0;
-				while(rs.next()){
-						i++;
-						Assert.assertTrue("Date is still null",rs.getDate(1) != null);
-				}
-				Assert.assertEquals("10 Records not imported",10,i);
-		}
-
-		@Test
-		public void testGZImportWithWarning() throws Exception {
-				String location = getResourceDirectory()+"t1M.tbl.gz";
-				PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_14,location));
-				ps.execute();
-				SQLWarning warning = ps.getWarnings();
-				Assert.assertNotNull("No warning returned",warning);
-				String twarning = warning.getMessage();
-				Assert.assertTrue(twarning.contains("To load a large single file of data faster,"));
-		}
+	@Test
+	public void testNullDatesWithMixedCaseAccuracy() throws Exception {
+        String location = getResourceDirectory()+"datebug.tbl";
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
+                "'%s',',',null,'yyyy-MM-dd HH:mm:ss.SSSSSS',null,null)",spliceSchemaWatcher.schemaName,TABLE_15,location));
+        ps.execute();
+        ResultSet rs = methodWatcher.executeQuery(format("select SHIPPED_DATE from %s.%s",spliceSchemaWatcher.schemaName,TABLE_15));
+        int i =0;
+        while(rs.next()){
+        	i++;
+        	Assert.assertTrue("Date is still null",rs.getDate(1) != null);
+        }
+		Assert.assertEquals("10 Records not imported",10,i);
+	}
+	
+	@Test
+	public void testGZImportWithWarning() throws Exception {
+	    String location = getResourceDirectory()+"t1M.tbl.gz";
+		PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_14,location));
+		ps.execute();
+		SQLWarning warning = ps.getWarnings();
+		String twarning = warning.getMessage();
+		Assert.assertTrue(twarning.contains("To load a large single file of data faster,"));
+	}
 
 	@Test
 	public void testGZImportWithoutWarning() throws Exception {
