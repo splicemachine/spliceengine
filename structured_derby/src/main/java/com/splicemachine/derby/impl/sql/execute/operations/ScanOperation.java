@@ -240,7 +240,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 
 
 		protected Scan getScan(SpliceRuntimeContext ctx) throws StandardException {
-				return scanInformation.getScan(getTransactionID(), ctx.getScanStartOverride());
+				return scanInformation.getScan(getTransactionID(), ctx.getScanStartOverride(),getKeyDecodingMap());
 		}
 
 		@Override

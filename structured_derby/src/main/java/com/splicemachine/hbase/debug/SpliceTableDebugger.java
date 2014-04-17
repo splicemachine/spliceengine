@@ -163,7 +163,7 @@ public class SpliceTableDebugger extends Configured implements Tool {
                 byte[] bytes = dataType.encode(colValue);
                 BitSet cols = new BitSet(colNum);
                 cols.set(colNum);
-                Predicate predicate = new ValuePredicate(CompareFilter.CompareOp.EQUAL,colNum,bytes,true);
+                Predicate predicate = new ValuePredicate(CompareFilter.CompareOp.EQUAL,colNum,bytes,true,false);
 
                 EntryPredicateFilter epf = new EntryPredicateFilter(cols, ObjectArrayList.from(predicate));
 

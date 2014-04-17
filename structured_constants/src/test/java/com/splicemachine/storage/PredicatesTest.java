@@ -28,11 +28,11 @@ public class PredicatesTest {
     @Test
     public void testCanEncodeDecodePredicatesList() throws Exception {
         ObjectArrayList<Predicate> firstPreds = ObjectArrayList.from(
-                (Predicate)new ValuePredicate(CompareFilter.CompareOp.EQUAL,1,new byte[]{0x02,0x01},false)
+                (Predicate)new ValuePredicate(CompareFilter.CompareOp.EQUAL,1,new byte[]{0x02,0x01},false,false)
         );
         ObjectArrayList<Predicate> secondPreds = ObjectArrayList.from(
-                (Predicate)new ValuePredicate(CompareFilter.CompareOp.GREATER_OR_EQUAL,0,new byte[]{0x01,0x03},true),
-                (Predicate)new ValuePredicate(CompareFilter.CompareOp.GREATER_OR_EQUAL,1,new byte[]{0x01,0x04},false)
+                (Predicate)new ValuePredicate(CompareFilter.CompareOp.GREATER_OR_EQUAL,0,new byte[]{0x01,0x03},true,false),
+                (Predicate)new ValuePredicate(CompareFilter.CompareOp.GREATER_OR_EQUAL,1,new byte[]{0x01,0x04},false,false)
         );
         ObjectArrayList<Predicate> predicates = ObjectArrayList.from(
                 (Predicate)new AndPredicate(firstPreds),

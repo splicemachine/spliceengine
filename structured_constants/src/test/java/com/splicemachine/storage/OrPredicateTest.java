@@ -18,7 +18,7 @@ public class OrPredicateTest {
     @Test
     public void testMatchesOneColumnNull() throws Exception {
         byte[] encoded1 = Encoding.encode(10030);
-        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,0,encoded1,true);
+        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,0,encoded1,true,false);
         Predicate pred2 = new NullPredicate(false,false,0,false,false);
 
         OrPredicate orPred = new OrPredicate(ObjectArrayList.from(pred1,pred2));
@@ -30,7 +30,7 @@ public class OrPredicateTest {
     @Test
     public void testMatchesOneColumnNullAnotherWrongColumn() throws Exception {
         byte[] encoded1 = Encoding.encode(10030);
-        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,1,encoded1,true);
+        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,1,encoded1,true,false);
         Predicate pred2 = new NullPredicate(false,false,0,false,false);
 
         OrPredicate orPred = new OrPredicate(ObjectArrayList.from(pred1,pred2));
@@ -44,7 +44,7 @@ public class OrPredicateTest {
     @Test
     public void testFailsIfNoPredicatesPassDifferentColumn() throws Exception {
         byte[] encoded1 = Encoding.encode(10030);
-        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,1,encoded1,true);
+        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,1,encoded1,true,false);
         Predicate pred2 = new NullPredicate(true,false,0,false,false);
 
         OrPredicate orPred = new OrPredicate(ObjectArrayList.from(pred1,pred2));
@@ -65,7 +65,7 @@ public class OrPredicateTest {
     @Test
     public void testMatchesNoColumnsFails() throws Exception {
         byte[] encoded1 = Encoding.encode(10030);
-        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,0,encoded1,true);
+        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,0,encoded1,true,false);
         Predicate pred2 = new NullPredicate(false,false,0,false,false);
 
         OrPredicate orPred = new OrPredicate(ObjectArrayList.from(pred1,pred2));
@@ -77,7 +77,7 @@ public class OrPredicateTest {
     @Test
     public void testOnePredicateChecksAfterCausesOrToCheckAfter() throws Exception {
         byte[] encoded1 = Encoding.encode(10030);
-        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,0,encoded1,true);
+        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,0,encoded1,true,false);
         Predicate pred2 = new NullPredicate(false,false,0,false,false);
 
         OrPredicate orPred = new OrPredicate(ObjectArrayList.from(pred1,pred2));
@@ -88,8 +88,8 @@ public class OrPredicateTest {
     @Test
     public void testNoPredicatesCheckAfterCausesOrNotToCheckAfter() throws Exception {
         byte[] encoded1 = Encoding.encode(10030);
-        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS_OR_EQUAL,0,encoded1,false);
-        Predicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER_OR_EQUAL,0,encoded1,false);
+        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS_OR_EQUAL,0,encoded1,false,true);
+        Predicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER_OR_EQUAL,0,encoded1,false,true);
 
         OrPredicate orPred = new OrPredicate(ObjectArrayList.from(pred1,pred2));
 
@@ -99,7 +99,7 @@ public class OrPredicateTest {
     @Test
     public void testAppliesIfOnePredicateApplies() throws Exception {
         byte[] encoded1 = Encoding.encode(10030);
-        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,1,encoded1,true);
+        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,1,encoded1,true,false);
         Predicate pred2 = new NullPredicate(false,false,0,false,false);
 
         OrPredicate orPred = new OrPredicate(ObjectArrayList.from(pred1,pred2));
@@ -110,7 +110,7 @@ public class OrPredicateTest {
     @Test
     public void testDoesNotApplyIfNoPredicatesApply() throws Exception {
         byte[] encoded1 = Encoding.encode(10030);
-        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,1,encoded1,true);
+        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,1,encoded1,true,false);
         Predicate pred2 = new NullPredicate(false,false,2,false,false);
 
         OrPredicate orPred = new OrPredicate(ObjectArrayList.from(pred1,pred2));

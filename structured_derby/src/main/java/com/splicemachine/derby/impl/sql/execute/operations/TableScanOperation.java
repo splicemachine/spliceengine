@@ -17,6 +17,7 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.SerializerMap;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.IntArrays;
@@ -30,6 +31,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -177,65 +179,8 @@ public class TableScanOperation extends ScanOperation {
 								return generator.nextBytes();
 						}
 				});
-//				columnOrdering = scanInformation.getColumnOrdering();
-//
-//				if(columnOrdering != null && columnOrdering.length > 0) {
-//
-//						hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
-//								@Override
-//								public byte[] get() throws StandardException {
-////										if(currentRowLocation!=null)
-////												return currentRowLocation.getBytes();
-//										return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-//								}
-//						}){
-//								@Override
-//								public KeyHashDecoder getDecoder() {
-//										try {
-//												SerializerMap serializerMap = VersionedSerializers.forVersion(scanInformation.getTableVersion(), true);
-//												DescriptorSerializer[] serializers = serializerMap.getSerializers(currentRow);
-//												TypeProvider  typeProvider = VersionedSerializers.typesForVersion(scanInformation.getTableVersion());
-//												final int[] allKeyCols = scanInformation.getColumnOrdering();
-//												FormatableBitSet accessedKeys = scanInformation.getAccessedPkColumns();
-//												int[] keyColumnTypes = scanInformation.getConglomerate().getFormat_ids();
-//												return SkippingKeyDecoder.decoder(
-//																												typeProvider,
-//																												serializers,
-//																												allKeyCols,
-//																												keyColumnTypes,
-//																												scanInformation.getConglomerate().getAscDescInfo(),
-//																getAccessedPksToTemplateRowMap(),
-//																accessedKeys);
-//										} catch (StandardException e) {
-//												throw new RuntimeException(e);
-//										}
-//								}
-//						};
-//				}else{
-//						hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
-//								@Override
-//								public byte[] get() throws StandardException {
-//										if(currentRowLocation!=null)
-//												return currentRowLocation.getBytes();
-//										return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-//								}
-//						});
-//				}
 
 				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
-		}
-
-
-		private int[] getDecodingColumns(int n) {
-				int[] columns = new int[baseColumnMap.length];
-				System.arraycopy(baseColumnMap, 0, columns, 0, columns.length);
-				// Skip primary key columns to save space
-				for(int pkCol:columnOrdering) {
-						if (pkCol < baseColumnMap.length)
-								columns[pkCol] = -1;
-				}
-
-				return columns;
 		}
 
 		@Override
@@ -295,17 +240,8 @@ public class TableScanOperation extends ScanOperation {
 										.keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
 										.keyColumnTypes(getKeyFormatIds())
 										.accessedKeyColumns(scanInformation.getAccessedPkColumns())
-										.keyDecodingMap(getAccessedPksToTemplateRowMap())
+										.keyDecodingMap(getKeyDecodingMap())
 										.rowDecodingMap(baseColumnMap).build();
-//						tableScanner = new SITableScanner(regionScanner,currentRow,
-//										spliceRuntimeContext,scan,baseColumnMap,
-//										transactionID,
-//										scanInformation.getColumnOrdering(),
-//										scanInformation.getConglomerate().getFormat_ids(),
-//										getAccessedPksToTemplateRowMap(),
-//										scanInformation.getAccessedPkColumns(),
-//										indexName,
-//										scanInformation.getTableVersion());
 				}
 
 				currentRow = tableScanner.next(spliceRuntimeContext);

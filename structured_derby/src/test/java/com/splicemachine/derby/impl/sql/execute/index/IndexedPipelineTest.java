@@ -491,7 +491,7 @@ public class IndexedPipelineTest {
          * 3 is hard to do--we basically have to compare the first N bytes of every row key, instead of
          * just doing a direct equality
          */
-        IndexTransformer transformer = writeHandler.transformer;
+        IndexTransformer2 transformer = writeHandler.transformer;
         assertMainAndIndexRowsMatch(mainTableWrites, indexedRows, mainTablePairs, finishedResults, transformer);
     }
 
@@ -550,7 +550,7 @@ public class IndexedPipelineTest {
     											ObjectArrayList<KVPair> indexedRows,
     											ObjectArrayList<KVPair> mainTablePairs,
                                              Map<KVPair, WriteResult> finishedResults,
-                                             IndexTransformer transformer) throws IOException, StandardException {
+                                             IndexTransformer2 transformer) throws IOException, StandardException {
     	Object[] pairBuffer = mainTablePairs.buffer;
     	for (int i = 0; i<mainTablePairs.size();i++) {
         	KVPair mainTablePair = (KVPair) pairBuffer[i];

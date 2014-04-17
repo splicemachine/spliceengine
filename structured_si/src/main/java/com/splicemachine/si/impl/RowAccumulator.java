@@ -9,6 +9,8 @@ public interface RowAccumulator {
     boolean accumulate(Cell value) throws IOException;
     boolean isFinished();
     byte[] result();
-    long getBytesVisited();
-    boolean isCountStar();
+		long getBytesVisited();
+		boolean isCountStar();
+
+		void reset();
 }

@@ -26,6 +26,7 @@ import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
+import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer2;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -53,6 +54,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -203,9 +205,25 @@ public class PopulateIndexTask extends ZkTask {
 						try{
 								List<Cell> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
 								boolean shouldContinue = true;
-								IndexTransformer transformer =
-												IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,
-																isUnique,isUniqueWithDuplicateNulls,columnOrdering,format_ids);
+								boolean[] ascDescInfo = new boolean[format_ids.length];
+								Arrays.fill(ascDescInfo,true);
+								for(int i=descColumns.nextSetBit(0);i>=0;i=descColumns.nextSetBit(i+1))
+										ascDescInfo[i] = false;
+
+								int[] keyEncodingMap = new int[format_ids.length];
+								Arrays.fill(keyEncodingMap,-1);
+								for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
+										keyEncodingMap[i] = mainColToIndexPosMap[i];
+								}
+								IndexTransformer2 transformer = new IndexTransformer2(isUnique,isUniqueWithDuplicateNulls,null,
+												columnOrdering,
+												format_ids,
+												null,
+												keyEncodingMap,
+												ascDescInfo);
+//								IndexTransformer transformer =
+//                                        IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,
+//                                                isUnique,isUniqueWithDuplicateNulls,columnOrdering,format_ids);
 
 								byte[] indexTableLocation = Bytes.toBytes(Long.toString(indexConglomId));
 								writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTaskStatus().getTransactionId(),metricFactory);
@@ -269,9 +287,9 @@ public class PopulateIndexTask extends ZkTask {
 				}
 		}
 
-		private void translateResult(List<Cell> result,
-																 IndexTransformer transformer,
-																 CallBuffer<KVPair> writeBuffer,
+		private void translateResult(List<KeyValue> result,
+                                 IndexTransformer2 transformer,
+                                 CallBuffer<KVPair> writeBuffer,
 																 Timer manipulationTimer) throws Exception {
 				//we know that there is only one KeyValue for each row
 				manipulationTimer.startTiming();

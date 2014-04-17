@@ -100,6 +100,7 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
     @Override
     public void nextRow() {
         simpleFilter.nextRow();
+				accumulator.reset();
         lastValidKeyValue = null;
         excludeRow = false;
     }

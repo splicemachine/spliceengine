@@ -68,4 +68,9 @@ public class HRowAccumulator implements RowAccumulator {
 	public boolean isCountStar() {
 		return this.countStar;
 	}
+
+		@Override
+		public void reset() {
+				entryAccumulator.reset();
+		}
 }

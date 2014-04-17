@@ -3,23 +3,18 @@ package com.splicemachine.derby.impl.load;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.utils.SpliceUtils;
-
-import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
-import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -49,9 +44,11 @@ class ImportFile {
 	
 		static {
 				try {
-				FileStatus.class.getMethod(IS_DIRECTORY, null); 
+						//noinspection NullArgumentToVariableArgMethod
+						FileStatus.class.getMethod(IS_DIRECTORY, null);
 				directory = new Directory() {
 						@Override
+						@SuppressWarnings("NullArgumentToVariableArgMethod")
 						public boolean isDirectory(FileStatus fileStatus) throws IOException {
 							try {
 								Method method = fileStatus.getClass().getMethod(IS_DIRECTORY, null);
@@ -66,13 +63,13 @@ class ImportFile {
 				catch (NoSuchMethodException e) {
 					directory = new Directory() {
 						@Override
+						@SuppressWarnings("NullArgumentToVariableArgMethod")
 						public boolean isDirectory(FileStatus fileStatus) throws IOException {
 							try {
 								Method method = fileStatus.getClass().getMethod(IS_DIR, null);
 								return (Boolean) method.invoke(fileStatus, null);
 							} catch (Exception e) {
 								throw new IOException("Error with Hadoop Version, directory lookup off",e);
-								
 							}
 						}
 					};
@@ -132,8 +129,8 @@ class ImportFile {
 		private static ArrayList<Path> getInputPaths(String input) {
 				String [] list = StringUtils.split(input);
 				ArrayList<Path> result = new ArrayList<Path>();
-				for (int i = 0; i < list.length; i++) {
-						result.add(new Path(StringUtils.unEscapeString(list[i])));
+				for (String aList : list) {
+						result.add(new Path(StringUtils.unEscapeString(aList)));
 				}
 				return result;
 		}
@@ -145,7 +142,7 @@ class ImportFile {
 		 *   - handles importing a directory of files
 		 *   - if a directory is provided, processes all subdirectories recursively
 		 *   - (still needs to handle filtering properly - * chars, etc) 
-		 * @param fs
+		 * @param fs The File system to use
 		 * @param input - string of files to import - as a file or a directory.
 		 * @return - a list of files to import
 		 * @throws IOException

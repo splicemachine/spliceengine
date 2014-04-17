@@ -308,7 +308,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				int[] nonPkCols = getAccessedNonPkColumns();
-				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(mainTableVersion,true).getSerializers(compactRow);
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(compactRow);
 				return BareKeyHash.encoder(nonPkCols,null,serializers);
 
 		}
