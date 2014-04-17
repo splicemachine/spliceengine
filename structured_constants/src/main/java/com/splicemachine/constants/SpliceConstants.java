@@ -635,14 +635,6 @@ public class SpliceConstants {
 		@DefaultValue(METADATA_CACHE_LEASE_DURATION) private static final long DEFAULT_METADATA_CACHE_LEASE_DURATION = 0;
 		public static long metadataCacheLease;
 
-		@SpliceConstants.Parameter private static final String INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES="splice.interRegion.splitThresholdBytes";
-		@SpliceConstants.DefaultValue(INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES) private static final long DEFAULT_INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES=32*1024*1024l;
-		public static long interRegionTaskSplitThresholdBytes;
-
-		@Parameter private static final String MAX_INTER_REGION_TASK_SPLITS="splice.interRegion.maxSplits";
-		@DefaultValue(MAX_INTER_REGION_TASK_SPLITS) private static final int DEFAULT_MAX_INTER_REGION_TASK_SPLITS=8;
-		public static int maxInterRegionTaskSplits;
-
 		/*
 		 * Setting the cache update interval <0 indicates that caching is to be turned off.
 		 * This is a performance killer, but is useful when debugging issues.
@@ -854,9 +846,6 @@ public class SpliceConstants {
 				}
 
 				importLogQueueWaitTimeMs = config.getLong(IMPORT_LOG_QUEUE_WAIT_TIME,DEFAULT_IMPORT_LOG_QUEUE_WAIT_TIME);
-
-				interRegionTaskSplitThresholdBytes = config.getLong(INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES,DEFAULT_INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES);
-				maxInterRegionTaskSplits = config.getInt(MAX_INTER_REGION_TASK_SPLITS,DEFAULT_MAX_INTER_REGION_TASK_SPLITS);
 		}
 
 		public static void reloadConfiguration(Configuration configuration) {
