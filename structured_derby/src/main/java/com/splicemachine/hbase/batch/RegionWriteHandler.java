@@ -5,15 +5,12 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 
-import java.lang.reflect.InvocationTargetException;
-
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.si.api.ConstraintChecker;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.coprocessors.RollForwardQueueMap;
@@ -24,9 +21,6 @@ import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.tools.ResettableCountDownLatch;
 
-import java.lang.reflect.Method;
-
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.*;
@@ -35,8 +29,6 @@ import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
-import org.apache.hadoop.hbase.regionserver.Store;
-import org.apache.hadoop.hbase.regionserver.HRegionUtil.KeyExists;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
@@ -127,83 +119,13 @@ public class RegionWriteHandler implements WriteHandler {
 
     }
 
-    private static boolean is43 = true;
-    private static Method m=null;
-    private static m_Invoke m_invoker;
-    public interface m_Invoker {
-    	public void m_invoke(RpcCallContext target,String message) throws IOException;
-    }
-
-    private void OnFirstCall(RpcCallContext target,String message) {
-    	if(m==null){
-		     try {
-		    	 m = target.getClass().getMethod("throwExceptionIfCallerDisconnected", new Class[] {});
-		     } catch (NoSuchMethodException e){
-		    	 is43=false;
-		    	 try {
-		    		 m = target.getClass().getMethod("throwExceptionIfCallerDisconnected", new Class[] {String.class});
-		    	 } catch (NoSuchMethodException e1){
-		    		 e1.printStackTrace();
-		    	 }catch(SecurityException e1){
-		    		 e1.printStackTrace();
-		    	 }
-		     }
-    	}
-     	m_invoker = new m_Invoke();
-    }
-
-    public static class m_Invoke implements m_Invoker{
-    	public static m_Invoke  iinvoke = null;
-    	private  m_Invoke getInvoker(RpcCallContext target,String message){
-    	if(is43){
-    		return new m_Invoke(){
-    			@Override
-    				public void m_invoke(RpcCallContext target,String message) throws IOException {
-    					try {
-    						m.invoke(target,  new Object[] {});
-    					} catch (IllegalAccessException e){
-    						e.printStackTrace();
-    					}catch(IllegalArgumentException e){
-    						e.printStackTrace();
-    					}catch(InvocationTargetException e) {
-    						e.printStackTrace();
-    					}
-    			}
-    		};
-    	}else{
-    		return new m_Invoke(){
-    			@Override
-    			public void m_invoke(RpcCallContext target,String message) throws IOException {
-    				try {
-    					m.invoke(target,   new Object[] {message});
-    				} catch (IllegalAccessException e){
-    					e.printStackTrace();
-    				}catch(IllegalArgumentException e){
-    					e.printStackTrace();
-    				}catch(InvocationTargetException e) {
-    					e.printStackTrace();
-    				}
-    			}
-    		};
-    	}
-    	}
-
-		@Override
-		public void m_invoke(RpcCallContext target, String message)
-				throws IOException {
-			iinvoke = getInvoker(target,message);
-		}
-    }
 
     @Override
     public void finishWrites(final WriteContext ctx) throws IOException {
         //make sure that the write aborts if the caller disconnects
         RpcCallContext currentCall = HBaseServer.getCurrentCall();
         if(currentCall!=null){
-        	if(m_invoker==null){
-        		OnFirstCall(currentCall,ctx.getRegion().getRegionNameAsString());
-        	}
-    		m_invoker.getInvoker(currentCall,ctx.getRegion().getRegionNameAsString());
+        	ThrowIfDisconnected.getThrowIfDisconnected().invoke(currentCall, ctx.getRegion().getRegionNameAsString());
         }
         /*
          * We have to block here in case someone did a table manipulation under us.
