@@ -61,7 +61,7 @@
     <dependency>
       <groupId>com.splicemachine</groupId>
       <artifactId>splice_protocol</artifactId>
-      <version>0.5rc8-SNAPSHOT</version>
+      <version>0.5rc10-SNAPSHOT</version>
       <classifier>${envClassifier}</classifier>
       <type>jar</type>
       <scope>compile</scope>
@@ -238,7 +238,7 @@
         <server.start.skip>skipServerStart</server.start.skip>
 
         <!-- ant task start/stop server args -->
-        <run.command>/bin/sh</run.command>
+        <run.command>/bin/bash</run.command>
         <splice.start.script>start-splice.sh</splice.start.script>
         <splice.stop.script>stop-splice.sh</splice.stop.script>
       </properties>
