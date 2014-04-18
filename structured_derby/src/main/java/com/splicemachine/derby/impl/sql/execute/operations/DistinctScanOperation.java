@@ -1,8 +1,30 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
+
 import com.google.common.collect.Lists;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.io.FormatableIntHolder;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.shared.common.reference.SQLState;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.EntryPredicateUtils;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
@@ -19,8 +41,27 @@ import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.*;
-import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.EntryPredicateUtils;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.FormatableBitSetUtils;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.BucketingPrefix;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.FixedPrefix;
+import com.splicemachine.derby.utils.marshall.HashPrefix;
+import com.splicemachine.derby.utils.marshall.KeyDecoder;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
+import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import com.splicemachine.derby.utils.marshall.KeyMarshaller;
+import com.splicemachine.derby.utils.marshall.KeyPostfix;
+import com.splicemachine.derby.utils.marshall.NoOpPostfix;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.derby.utils.marshall.SuppliedDataHash;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.job.JobResults;
@@ -30,28 +71,6 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.hash.HashFunctions;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableArrayHolder;
-import org.apache.derby.iapi.services.io.FormatableIntHolder;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -280,7 +299,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 						else{
 								decoder = getTempDecoder();
 						}
-						return new DistributedClientScanProvider("distinctScanReduce", SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
+						return new DistributedClientScanProvider("distinctScanReduce", SpliceConstants.TEMP_TABLE_BYTES,reduceScan,decoder, spliceRuntimeContext);
 				} catch (IOException e) {
             throw Exceptions.parseException(e);
         }
