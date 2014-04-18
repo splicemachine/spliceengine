@@ -122,6 +122,11 @@
 					<artifactId>maven-surefire-plugin</artifactId>
 					<version>2.16</version>
 				</plugin>
+				<plugin>
+					<groupId>com.github.wvengen</groupId>
+					<artifactId>proguard-maven-plugin</artifactId>
+					<version>2.0.7</version>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 	</build>
@@ -174,6 +179,16 @@
 			<url>http://google-gson.googlecode.com/svn/mavenrepo</url>
 			<snapshots>
 				<enabled>true</enabled>
+			</snapshots>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+		</repository>
+		<repository>
+			<id>sonatype-nexus-staging</id>
+			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+			<snapshots>
+				<enabled>false</enabled>
 			</snapshots>
 			<releases>
 				<enabled>true</enabled>
@@ -804,7 +819,7 @@
 								<exclude>**/HdfsImportIT.java</exclude>
 								<exclude>**/ImportErrorIT.java</exclude>
 								<exclude>**/IndexIT.java</exclude>
-								<exclude>**/MicostrategiesCustomerIT.java</exclude>
+								<exclude>**/MicrostrategiesCustomerIT.java</exclude>
 								<exclude>**/MicrostrategiesDemoIT.java</exclude>
 								<exclude>**/MicrostrategiesItemIT.java</exclude>
 								<exclude>**/MsOrderDetailIT.java</exclude>
