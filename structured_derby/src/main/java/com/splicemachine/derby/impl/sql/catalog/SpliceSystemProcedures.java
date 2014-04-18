@@ -40,7 +40,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         }
 
         // Only one initialization at a time.
-        synchronized (this) {
+        // Synchronize on the parent class since the lists of system procedures are all static members of it.
+        synchronized (DefaultSystemProcedureGenerator.class) {
 
         	// Check if the list was initialized while we were waiting.
         	if (initialized) {
