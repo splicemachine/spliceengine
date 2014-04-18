@@ -47,13 +47,10 @@ class JobControl implements JobFuture {
     private final int maxResubmissionAttempts;
     private final JobMetrics jobMetrics;
     private final String jobPath;
-    private final List<Callable<Void>> finalCleanupTasks;
-		private final List<Callable<Void>> intermediateCleanupTasks;
+    private final LinkedList<Closeable> closables;
     private volatile boolean cancelled = false;
-		private volatile boolean cleanedUp = false;
-		private volatile boolean intermediateCleanedUp = false;
 
-		JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
+    JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
         this.job = job;
         this.jobPath = jobPath;
         this.zkManager = zkManager;
@@ -65,8 +62,7 @@ class JobControl implements JobFuture {
         this.failedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
         this.completedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
         this.cancelledTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
-        this.finalCleanupTasks = Lists.newLinkedList();
-				this.intermediateCleanupTasks = Lists.newLinkedList();
+        this.closables = Lists.newLinkedList();
         this.maxResubmissionAttempts = maxResubmissionAttempts;
     }
 
@@ -196,21 +192,23 @@ class JobControl implements JobFuture {
 
     @Override
     public void cleanup() throws ExecutionException {
-				if(cleanedUp)
-						return; //don't try cleaning up twice
-				else
-					cleanedUp = true;
         SpliceLogUtils.trace(LOG, "cleaning up job %s", job.getJobId());
-				intermediateCleanup(); //in case cleanups don't get called
         try {
             ZooKeeper zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
             zooKeeper.delete(jobPath, -1, new AsyncCallback.VoidCallback() {
                 @Override
                 public void processResult(int i, String s, Object o) {
-										if(LOG.isTraceEnabled())
-												LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
+                    LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
                 }
             }, this);
+            for (RegionTaskControl task : tasksToWatch) {
+                zooKeeper.delete(task.getTaskNode(), -1, new AsyncCallback.VoidCallback() {
+                    @Override
+                    public void processResult(int i, String s, Object o) {
+                        LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
+                    }
+                }, this);
+            }
         } catch (ZooKeeperConnectionException e) {
             throw new ExecutionException(e);
 				} finally {
@@ -230,53 +228,13 @@ class JobControl implements JobFuture {
         }
     }
 
-		@Override
-		public void intermediateCleanup() throws ExecutionException {
-				if(intermediateCleanedUp)
-						return; //don't cleanup twice
-				else
-					intermediateCleanedUp = true;
-
-				ZooKeeper zooKeeper;
-				try {
-						zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
-				} catch (ZooKeeperConnectionException e) {
-						throw new ExecutionException(e);
-				}
-				for (RegionTaskControl task : tasksToWatch) {
-						zooKeeper.delete(task.getTaskNode(), -1, new AsyncCallback.VoidCallback() {
-								@Override
-								public void processResult(int i, String s, Object o) {
-										if(LOG.isTraceEnabled())
-												LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
-								}
-						}, this);
-				}
-
-				Throwable error = null;
-				for(Callable<Void> c:intermediateCleanupTasks){
-						try {
-								c.call();
-						} catch (Exception e) {
-								error = e;
-						}
-				}
-				if(error!=null)
-						throw new ExecutionException(error);
-		}
-
-		@Override
-    public void addCleanupTask(Callable<Void> closable) {
-        // prepend, so finalCleanupTasks are closed in reverse
-        finalCleanupTasks.add(0, closable);
+    @Override
+    public void addCleanupTask(Closeable closable) {
+        // prepend, so closables are closed in reverse
+        closables.add(0, closable);
     }
 
-		@Override
-		public void addIntermediateCleanupTask(Callable<Void> callable) {
-				intermediateCleanupTasks.add(callable);
-		}
-
-		@Override public JobStats getJobStats() { return stats; }
+    @Override public JobStats getJobStats() { return stats; }
     @Override public int getNumTasks() { return tasksToWatch.size(); }
 
     @Override

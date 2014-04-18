@@ -1,12 +1,17 @@
 package com.splicemachine.derby.impl;
 
-import com.splicemachine.utils.SpliceLogUtils;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.impl.sql.execute.BaseActivation;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.utils.SpliceLogUtils;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -16,7 +21,6 @@ public class SpliceMethod<T> {
 	protected String methodName;
 	protected Activation activation;
 	protected Method method;
-	protected GeneratedMethod genMethod;
 	private static final HashMap<String,GeneratedMethod> directs;
 	 static {
 		directs = new HashMap<String,GeneratedMethod>(10);
@@ -36,8 +40,7 @@ public class SpliceMethod<T> {
 	
 	@SuppressWarnings("unchecked")
 	public T invoke() throws StandardException{
-		if (genMethod == null && method==null)
-			genMethod = directs.get(methodName);
+		GeneratedMethod genMethod = directs.get(methodName);
 		if (genMethod != null)
 			return (T) genMethod.invoke(activation);
 		else { 	
@@ -57,6 +60,7 @@ public class SpliceMethod<T> {
 		private final int which;
 
 		DirectCall(int which) {
+
 			this.which = which;
 		}
 

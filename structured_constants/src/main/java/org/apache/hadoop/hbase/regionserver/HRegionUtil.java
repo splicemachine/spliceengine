@@ -188,8 +188,6 @@ public class HRegionUtil {
     }
     
     public static List<byte[]> getCutpoints(Store store, byte[] start, byte[] end) throws IOException {
-    	System.out.println("start " + start + " end " + end);
-    	System.out.println("start " + start.length + " end " + end.length);
     	assert Bytes.compareTo(start, end) <= 0 || start.length == 0 || end.length ==0;
 	    List<StoreFile> storeFiles;
 	      storeFiles = store.getStorefiles();
