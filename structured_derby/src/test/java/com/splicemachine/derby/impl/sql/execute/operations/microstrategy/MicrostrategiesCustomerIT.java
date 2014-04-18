@@ -22,9 +22,9 @@ import java.util.Set;
  * Created on: 2/24/13
  */
 @Category(MicrostrategiesTests.class)
-public class MicostrategiesCustomerIT extends SpliceUnitTest { 
+public class MicrostrategiesCustomerIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	public static final String CLASS_NAME = MicostrategiesCustomerIT.class.getSimpleName().toUpperCase();
+	public static final String CLASS_NAME = MicrostrategiesCustomerIT.class.getSimpleName().toUpperCase();
 	public static final String TABLE_NAME = "A";
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceCustomerTable spliceTableWatcher = new SpliceCustomerTable(TABLE_NAME,CLASS_NAME); 	
