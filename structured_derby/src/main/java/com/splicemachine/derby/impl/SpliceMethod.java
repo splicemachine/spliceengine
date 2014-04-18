@@ -16,6 +16,7 @@ public class SpliceMethod<T> {
 	protected String methodName;
 	protected Activation activation;
 	protected Method method;
+	protected GeneratedMethod genMethod;
 	private static final HashMap<String,GeneratedMethod> directs;
 	 static {
 		directs = new HashMap<String,GeneratedMethod>(10);
@@ -35,7 +36,8 @@ public class SpliceMethod<T> {
 	
 	@SuppressWarnings("unchecked")
 	public T invoke() throws StandardException{
-		GeneratedMethod genMethod = directs.get(methodName);
+		if (genMethod == null && method==null)
+			genMethod = directs.get(methodName);
 		if (genMethod != null)
 			return (T) genMethod.invoke(activation);
 		else { 	
@@ -55,7 +57,6 @@ public class SpliceMethod<T> {
 		private final int which;
 
 		DirectCall(int which) {
-
 			this.which = which;
 		}
 
