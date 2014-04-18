@@ -22,7 +22,7 @@ import java.lang.reflect.Method;
         if (thrower == null) {
             try {
                 // Cloudera 4.3
-                final Method throwIfD = RpcCallContext.class.getMethod("throwExceptionIfCallerDisconnected", null);
+                final Method throwIfD = RpcCallContext.class.getMethod("throwExceptionIfCallerDisconnected",new Class[]{});
                 thrower = new throwIfDisconnected() {
                     @Override
                     public void invoke(RpcCallContext target, String message) throws IOException {
