@@ -1,7 +1,5 @@
 #!/bin/bash
 
-chmod 777 structured_derby/target/classes/bin/sqlshell.sh
-
 # Splice Machine SQL Shell
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd )"
 pushd "${SCRIPT_DIR}/structured_derby" &>/dev/null
