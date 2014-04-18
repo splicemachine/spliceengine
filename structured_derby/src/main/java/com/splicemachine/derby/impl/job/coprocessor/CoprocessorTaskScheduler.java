@@ -43,10 +43,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     public void start(CoprocessorEnvironment env) {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)env;
         HRegion region = rce.getRegion();
-//				splitter = NoOpTaskSplitter.INSTANCE;
-				splitter = new StoreFileTaskSplitter(region,
-								SpliceConstants.maxInterRegionTaskSplits,
-								SpliceConstants.interRegionTaskSplitThresholdBytes);
+		splitter = new BytesCopyTaskSplitter(region);
         runningTasks = SpliceDriver.driver().getTaskMonitor().registerRegion(region.getRegionInfo().getRegionNameAsString());
         taskScheduler = SpliceDriver.driver().getTaskScheduler();
         super.start(env);
@@ -84,12 +81,12 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         if(!HRegionUtil.containsRange(region,taskStart,taskEnd))
             throw new IncorrectRegionException("Incorrect region for Task submission");
 
-				Set<SizedInterval> splitPoints = split(task,taskStart,taskEnd);
+				Collection<SizedInterval> splitPoints = split(task,taskStart,taskEnd);
 				return submitAll(task, splitPoints, rce);
     }
 
 		@SuppressWarnings("unchecked")
-		private SortedSet<SizedInterval> split(RegionTask task, byte[] taskStart, byte[] taskEnd) throws IOException {
+		private Collection<SizedInterval> split(RegionTask task, byte[] taskStart, byte[] taskEnd) throws IOException {
 				if(!task.isSplittable())
 						return new SingletonSortedSet<SizedInterval>(new SizedInterval(taskStart, taskEnd,0));
 

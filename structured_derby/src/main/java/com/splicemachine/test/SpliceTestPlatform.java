@@ -173,6 +173,7 @@ public class SpliceTestPlatform extends TestConstants {
         configuration.setInt("hbase.client.pause", 100);
         configuration.setFloat("hbase.store.compaction.ratio", 025f);
         configuration.setInt("hbase.hstore.compaction.min", 5);
+        configuration.setInt("hfile.index.block.max.size", 16 * 1024);
         configuration.setLong("hbase.hregion.memstore.flush.size", 512 * 1024 * 1024L);
         configuration.setInt("hbase.hstore.compaction.max", 10);
         configuration.setLong("hbase.hstore.compaction.min.size", 16 * 1024 * 1024L);

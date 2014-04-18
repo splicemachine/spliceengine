@@ -41,12 +41,14 @@ public class ErrorTransport implements Externalizable{
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
+		System.out.println("writing external error message ?" + messageId);
         out.writeUTF(messageId);
         out.writeBoolean(isStandard);
         out.writeBoolean(shouldRetry);
         out.writeInt(args!=null?args.length:0);
 				if(args!=null){
 						for(Object o:args){
+							System.out.println("writing external error message ?" + o.getClass());
 								out.writeBoolean(o!=null);
 								if(o!=null)
 										out.writeObject(o);
@@ -70,6 +72,7 @@ public class ErrorTransport implements Externalizable{
     }
 
     public static ErrorTransport newTransport(StandardException se){
+    	System.out.println("New StandardException " + se);
         String mId = se.getMessageId();
         Object[] args = se.getArguments();
         boolean shouldRetry = false;
@@ -77,7 +80,8 @@ public class ErrorTransport implements Externalizable{
     }
 
     public static ErrorTransport newTransport(Throwable t){
-        t = Exceptions.getRootCause(t);
+       	System.out.println("New Throwable " + t.getClass());
+    	t = Exceptions.getRootCause(t);
         if(t instanceof StandardException)
             return newTransport((StandardException)t);
 
