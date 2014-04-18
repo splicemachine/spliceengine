@@ -198,8 +198,8 @@
 			<!-- =========================================================== -->
 			<id>cloudera-cdh5.0.0</id>
 						<!-- This is the default profile - runs when NO -Dhbase.profile=<profileid> is specified -->
-						<!-- NOTE: since maven does not know about OR (ie, prop not set OR prop set to cloudera-cdh5.0.0-beta-2), -->
-						<!--     this will NOT run when you set -Dhbase.profile=cloudera-cdh5.0.0-beta-2 -->
+						<!-- NOTE: since maven does not know about OR (ie, prop not set OR prop set to cloudera-cdh5.0.0), -->
+						<!--     this will NOT run when you set -Dhbase.profile=cloudera-cdh5.0.0 -->
       <activation>
         <property>
 					<name>!hbase.profile</name>

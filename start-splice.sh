@@ -16,13 +16,13 @@ usage() {
     echo "    monkey NOT run. To see if you have the chaos monkey running, execute: "
     echo "        grep 'task fail' structured_derby/splice.log"
     echo "  -p <hbase_profile> is the optional splice hbase platform to run.  One of:"
-    echo "    cloudera-cdh5.0.0-beta-2, cloudera-cdh4.3.0, hdp1.3, apache-hbase-0.94.9, mapr-0.94.5, mapr-0.94.9. Default is cloudera-cdh5.0.0-beta-2"
+    echo "    cloudera-cdh5.0.0, cloudera-cdh4.3.0, hdp1.3, apache-hbase-0.94.9, mapr-0.94.5, mapr-0.94.9. Default is cloudera-cdh5.0.0-beta-2"
     echo "  -b Used by Jenkins when starting server; env var BUILD_TAG, eg \"jenkins-Splice-Continuous-Build-325\""
     echo "  -h => print this message"
 }
 
 CHAOS="FALSE"
-PROFILE="cloudera-cdh5.0.0-beta-2"  # default hbase platform profile
+PROFILE="cloudera-cdh5.0.0"  # default hbase platform profile
 BUILD_TAG=""
 
 while getopts ":chp:b:" flag ; do
