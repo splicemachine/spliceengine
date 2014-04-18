@@ -1,8 +1,7 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.SortedSet;
+import java.util.Collection;
 
 /**
  * Strategy pattern for splitting a single region task into many, based on some
@@ -13,5 +12,5 @@ import java.util.SortedSet;
  */
 public interface TaskSplitter {
 
-		SortedSet<SizedInterval> split(RegionTask task, byte[] taskStart,byte[] taskStop) throws IOException;
+		Collection<SizedInterval> split(RegionTask task, byte[] taskStart,byte[] taskStop) throws IOException;
 }
