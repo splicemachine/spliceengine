@@ -179,6 +179,12 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
     }
 
     @Override
+    public ConcatableDataValue replace(StringDataValue fromStr, StringDataValue toStr, ConcatableDataValue result) throws StandardException {
+        forceDeserialization();
+        return sdv.replace(fromStr, toStr, result);
+    }
+
+    @Override
     public void setWidth(int desiredWidth, int desiredScale, boolean errorOnTrunc) throws StandardException {
         forceDeserialization();
         sdv.setWidth(desiredWidth, desiredScale, errorOnTrunc);
