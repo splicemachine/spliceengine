@@ -1,6 +1,7 @@
 package org.apache.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
+
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -11,8 +12,7 @@ import org.junit.runner.Description;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.List;
+
 
 /**
  * @author Scott Fines
@@ -25,12 +25,18 @@ public class TernaryOperationIT {
 
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
-    private static final SpliceTableWatcher tableWatcher = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(c varchar(20),a int, b int)");
+    private static final SpliceTableWatcher tableWatcher = new SpliceTableWatcher(
+        "A",schemaWatcher.schemaName,"(c varchar(20),a int, b int)");
+
+    // Table for 'replace' testing.
+    private static final SpliceTableWatcher tableWatcherB = new SpliceTableWatcher(
+    	"B", schemaWatcher.schemaName, "(a int, b varchar(30), c varchar(30), d varchar(30), e varchar(30))");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
             .around(tableWatcher)
+            .around(tableWatcherB)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -45,6 +51,47 @@ public class TernaryOperationIT {
                         ps = classWatcher.prepareStatement("insert into "+ tableWatcher +"(b) values (?)");
                         ps.setInt(1,3);
                         ps.execute();
+                        
+                        // Each of the following inserted rows represent individual test units,
+                        // including expected result (column 'e'), for less test code
+                        // testReplaceFunction method.
+                        ps = classWatcher.prepareStatement(
+                            "insert into " + tableWatcherB + " (a, b, c, d, e) values (?, ?, ?, ?, ?)");
+                        ps.setInt   (1,1); // row 1
+                        ps.setObject(2,"having fun yet?");
+                        ps.setString(3,"fun");
+                        ps.setString(4,"craziness");
+                        ps.setString(5,"having craziness yet?");
+                        ps.execute();
+
+                        ps.setInt   (1,2); // row 2
+                        ps.setObject(2,"one yep two yep");
+                        ps.setString(3,"yep");
+                        ps.setString(4,"nope");
+                        ps.setString(5,"one nope two nope");
+                        ps.execute();
+
+                        ps.setInt   (1,3); // row 3
+                        ps.setObject(2,"one yep two yep");
+                        ps.setString(3,"yep");
+                        ps.setString(4,"");
+                        ps.setString(5,"one  two ");
+                        ps.execute();
+
+                        ps.setInt   (1,4); // row 4
+                        ps.setObject(2,"yep yep yep yep");
+                        ps.setString(3,"gonk");
+                        ps.setString(4,"nope");
+                        ps.setString(5,"yep yep yep yep");
+                        ps.execute();
+
+                        ps.setInt   (1,5); // row 5
+                        ps.setObject(2,null);
+                        ps.setString(3,null);
+                        ps.setString(4,"not null");
+                        ps.setString(5,null);
+                        ps.execute();
+
                     }catch (Exception e) {
                         throw new RuntimeException(e);
                     }finally{
@@ -83,6 +130,24 @@ public class TernaryOperationIT {
         Assert.assertTrue("Positive not found!",positiveFound);
 
         Assert.assertEquals("Incorrect row count returned!",3,count);
+    }
+    
+    @Test
+    public void testReplaceFunction() throws Exception {
+        int count = 0;
+	    String sCell1 = null;
+	    String sCell2 = null;
+	    ResultSet rs;
+	    
+	    rs = methodWatcher.executeQuery("select replace(b, c, d), e from " + tableWatcherB);
+	    count = 0;
+	    while (rs.next()) {
+    		sCell1 = rs.getString(1);
+            sCell2 = rs.getString(2);
+            Assert.assertEquals("Wrong result value", sCell1, sCell2);
+            count++;
+	    }
+	    Assert.assertEquals("Incorrect row count", 5, count);
     }
 }
 
