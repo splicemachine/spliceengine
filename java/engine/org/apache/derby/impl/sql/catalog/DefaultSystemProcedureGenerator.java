@@ -354,10 +354,6 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .smallint("DEFRAGMENT_ROWS")
                 .smallint("TRUNCATE_END").build()
             ,
-            Procedure.newBuilder().name("SYSCS_RELOAD_SECURITY_POLICY").numOutputParams(0).numResultSets(0)
-            	.sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-            	.ownerClass(SYSTEM_PROCEDURES).build()
-            ,
             Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE_NOWAIT").numOutputParams(0).numResultSets(0)
                 .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
                 .ownerClass(SYSTEM_PROCEDURES)
@@ -460,7 +456,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .smallint("replace")
                 .build()
             ,
-            Procedure.newBuilder().name("SYSCS_RELOACD_SECURITY_POLICY")
+            Procedure.newBuilder().name("SYSCS_RELOAD_SECURITY_POLICY")
                 .numOutputParams(0).numResultSets(0).sqlControl(RoutineAliasInfo.NO_SQL)
                 .returnType(null).isDeterministic(false)
                 .ownerClass(SYSTEM_PROCEDURES)
