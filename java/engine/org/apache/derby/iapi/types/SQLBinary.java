@@ -1124,6 +1124,15 @@ abstract class SQLBinary
 		return varbitResult;
 	}
 
+    public ConcatableDataValue replace(
+		StringDataValue fromStr,
+		StringDataValue toStr,
+		ConcatableDataValue result)
+	    throws StandardException
+    {
+    	throw StandardException.newException(SQLState.NOT_IMPLEMENTED);
+    }
+
 	/**
 		Host variables are rejected if their length is
 		bigger than the declared length, regardless of

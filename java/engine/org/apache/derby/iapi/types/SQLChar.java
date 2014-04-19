@@ -2534,6 +2534,37 @@ public class SQLChar
         return stringResult;
     }
 
+    public ConcatableDataValue replace(
+		StringDataValue fromStr,
+		StringDataValue toStr,
+		ConcatableDataValue result)
+	    throws StandardException
+	{
+	    StringDataValue stringResult;
+	    
+	    if (result == null)
+	    {
+	        result = getNewVarchar();
+	    }
+	
+	    stringResult = (StringDataValue) result;
+		    
+	    // The result is null if the receiver (this) is null
+	    // or either operand is null.
+	    
+	    if (this.isNull() ||
+	        fromStr.isNull() || fromStr.getString() == null ||
+	        toStr.isNull() || toStr.getString() == null)
+        {
+	        stringResult.setToNull();
+	        return stringResult;
+        }
+
+	    stringResult.setValue(getString().replace(fromStr.getString(), toStr.toString()));
+	    
+	    return stringResult;
+	}
+
     /**
      * This function public for testing purposes.
      *

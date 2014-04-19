@@ -74,21 +74,24 @@ public class TernaryOperatorNode extends OperatorNode
 	public static final int LIKE = 3;
 	public static final int TIMESTAMPADD = 4;
 	public static final int TIMESTAMPDIFF = 5;
-	static final String[] TernaryOperators = {"trim", "LOCATE", "substring", "like", "TIMESTAMPADD", "TIMESTAMPDIFF"};
-	static final String[] TernaryMethodNames = {"ansiTrim", "locate", "substring", "like", "timestampAdd", "timestampDiff"};
+	public static final int REPLACE = 6;
+	static final String[] TernaryOperators = {"trim", "LOCATE", "substring", "like", "TIMESTAMPADD", "TIMESTAMPDIFF", "replace"};
+	static final String[] TernaryMethodNames = {"ansiTrim", "locate", "substring", "like", "timestampAdd", "timestampDiff", "replace"};
 	static final String[] TernaryResultType = {ClassName.StringDataValue, 
 			ClassName.NumberDataValue,
 			ClassName.ConcatableDataValue,
 			ClassName.BooleanDataValue,
             ClassName.DateTimeDataValue, 
-			ClassName.NumberDataValue};
+			ClassName.NumberDataValue,
+			ClassName.ConcatableDataValue};
 	static final String[][] TernaryArgType = {
 	{ClassName.StringDataValue, ClassName.StringDataValue, "java.lang.Integer"},
 	{ClassName.StringDataValue, ClassName.StringDataValue, ClassName.NumberDataValue},
 	{ClassName.ConcatableDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue},
 	{ClassName.DataValueDescriptor, ClassName.DataValueDescriptor, ClassName.DataValueDescriptor},
     {ClassName.DateTimeDataValue, "java.lang.Integer", ClassName.NumberDataValue}, // time.timestampadd( interval, count)
-    {ClassName.DateTimeDataValue, "java.lang.Integer", ClassName.DateTimeDataValue}// time2.timestampDiff( interval, time1)
+    {ClassName.DateTimeDataValue, "java.lang.Integer", ClassName.DateTimeDataValue},// time2.timestampDiff( interval, time1)
+	{ClassName.ConcatableDataValue, ClassName.StringDataValue, ClassName.StringDataValue} // replace
 	};
 
 	/**
@@ -218,6 +221,8 @@ public class TernaryOperatorNode extends OperatorNode
             timestampAddBind();
 		else if (operatorType == TIMESTAMPDIFF)
             timestampDiffBind();
+		else if (operatorType == REPLACE)
+            replaceBind();
 
 		return this;
 	}
@@ -352,6 +357,23 @@ public class TernaryOperatorNode extends OperatorNode
 			nargs = 4;
 			receiverType = receiverInterfaceType;
         }
+		else if (operatorType == REPLACE)
+		{
+			leftOperand.generateExpression(acb, mb); 
+			mb.upCast(leftInterfaceType);
+			if (rightOperand != null)
+			{
+				rightOperand.generateExpression(acb, mb);
+				mb.upCast(rightInterfaceType);
+			}
+			else
+			{
+				mb.pushNull(rightInterfaceType);
+			}
+			mb.getField(field);
+			nargs = 3;
+			receiverType = receiverInterfaceType;
+		}
             
 		mb.callMethod(VMOpcode.INVOKEINTERFACE, receiverType, methodName, resultInterfaceType, nargs);
 
@@ -854,6 +876,90 @@ public class TernaryOperatorNode extends OperatorNode
 		return this;
 	}
 
+	/**
+	 * Binds the replace expression.  
+	 *
+	 * @return the new top of the expression tree.
+	 *
+	 * @exception StandardException thrown on error
+	 */
+
+ 	public ValueNode replaceBind() 
+			throws StandardException
+	{
+		TypeId	receiverType;
+		TypeId	resultType = TypeId.getBuiltInTypeId(Types.VARCHAR);
+
+		// See substrBind() method also, for additional comments.
+		
+		/* Is there a ? parameter for the receiver? */
+		if (receiver.requiresTypeFromContext())
+		{
+			// According to the SQL standard, if replace has a ? receiver,
+			// its type is varchar with the implementation-defined maximum length
+			// for a varchar.
+			receiver.setType(getVarcharDescriptor());
+
+			// collation of ? operand should be same as the compilation schema 
+			// because that is the only context available for us to pick up the
+			// collation. There are no other character operands to SUBSTR method
+			// to pick up the collation from.
+			receiver.setCollationUsingCompilationSchema();
+		}
+
+		/* Is there a ? parameter on the left? */
+		if (leftOperand.requiresTypeFromContext())
+		{
+			/* Set the left operand type to VARCHAR. */
+			leftOperand.setType(							
+				new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true)); 
+		}
+
+		/* Is there a ? parameter on the right? */
+		if ((rightOperand != null) && rightOperand.requiresTypeFromContext())
+		{
+			/* Set the right operand type to VARCHAR. */
+			rightOperand.setType(							
+				new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true)); 
+		}
+
+		bindToBuiltIn();
+
+		if (!leftOperand.getTypeId().isStringTypeId() ||
+			(rightOperand != null && !rightOperand.getTypeId().isStringTypeId()))
+			throw StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, "REPLACE", "FUNCTION");
+
+		// Check the type of the receiver - this function is allowed only on
+		// string value types.  
+		receiverType = receiver.getTypeId();
+		switch (receiverType.getJDBCTypeId())
+		{
+			case Types.CHAR:
+			case Types.VARCHAR:
+			case Types.LONGVARCHAR:
+			case Types.CLOB:
+				break;
+			default:
+			{
+				throwBadType("REPLACE", receiverType.getSQLTypeName());
+			}
+		}
+		if (receiverType.getTypeFormatId() == StoredFormatIds.CLOB_TYPE_ID) {
+			// See comments in substrBind method, where this is also done.
+			resultType = receiverType;
+		}
+
+		// Determine the maximum length of the result string
+		int maxResultLen = receiver.getTypeServices().getMaximumWidth();
+		setType(new DataTypeDescriptor(resultType, true, maxResultLen));
+		
+		// Result of REPLACE should pick up the collation of the 1st argument
+		// to REPLACE. The 1st argument to REPLACE is represented by the variable
+		// receiver in this class.
+        setCollationInfo(receiver.getTypeServices());
+        
+		return this;
+	}
 
 	/**
 	 * Bind TIMESTAMPADD expression.  

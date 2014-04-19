@@ -486,6 +486,7 @@ public class NodeFactoryImpl extends NodeFactory implements ModuleControl, Modul
 		  case C_NodeTypes.TRIM_OPERATOR_NODE:
 		  case C_NodeTypes.TIMESTAMP_ADD_FN_NODE:
 		  case C_NodeTypes.TIMESTAMP_DIFF_FN_NODE:
+		  case C_NodeTypes.REPLACE_OPERATOR_NODE:
 		  	return C_NodeNames.TERNARY_OPERATOR_NODE_NAME;
 
 		  case C_NodeTypes.SELECT_NODE:

@@ -72,4 +72,24 @@ public interface ConcatableDataValue extends DataValueDescriptor, VariableSizeDa
 				ConcatableDataValue result,
 				int maxLen)
 		throws StandardException;
+
+	/**
+	 * The SQL replace() function.
+	 *
+	 * @param fromStr the substring to be found and replaced
+	 *        within this containing string
+	 * @param toStr the string to replace the provided substring
+	 *        <code>fromStr</code> within this containing string
+	 * @param result the result of a previous call to this method,
+	 *        or null if not called yet.
+	 *
+	 * @return ConcatableDataValue containing the result of the replace()
+	 *
+	 * @exception StandardException if an error occurs
+	 */
+	public ConcatableDataValue replace(
+            StringDataValue fromStr,
+            StringDataValue toStr,
+            ConcatableDataValue result)
+            throws StandardException;
 }

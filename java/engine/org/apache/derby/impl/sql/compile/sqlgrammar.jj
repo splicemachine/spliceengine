@@ -1875,6 +1875,28 @@ public class SQLParser
 						    getContextManager());
     }
 
+    /**
+     * Gets a replace node based on the specified arguments.
+     * @param stringValue the input string
+     * @param the from sub string
+     * @param the to string
+     * @exception StandardException thrown on error
+     */
+    ValueNode getReplaceNode(
+        ValueNode stringValue,
+        ValueNode fromString, 
+        ValueNode toString) throws StandardException
+    {
+        return (ValueNode) nodeFactory.getNode(
+	    					C_NodeTypes.REPLACE_OPERATOR_NODE,
+		    				stringValue,
+			    			fromString,
+			    			toString,
+				    		ReuseFactory.getInteger(TernaryOperatorNode.REPLACE),
+					    	null,
+						    getContextManager());
+    }
+
     final public TableName
     qualifiedName(int id_length_limit) throws ParseException, StandardException
     {
@@ -2456,6 +2478,7 @@ TOKEN [IGNORE_CASE] :
 |	<REAL: "real">
 |	<REFERENCES: "references">
 |	<RELATIVE: "relative">
+|	<REPLACE: "replace">
 |	<RESTRICT: "restrict">
 |	<REVOKE: "revoke">
 |	<RIGHT: "right">
@@ -6287,7 +6310,6 @@ nonSecondDatetimeField() :
 	}
 }
 
-
 ValueNode
 escapedValueFunction() throws StandardException :
 {
@@ -6307,6 +6329,12 @@ escapedValueFunction() throws StandardException :
     <SUBSTRING> <LEFT_PAREN> value = additiveExpression(null, 0) <COMMA> startPosition = additiveExpression(null, 0) [ <COMMA> length = additiveExpression(null, 0) ] <RIGHT_PAREN>
 	{
         return getSubstringNode(value, startPosition, length, Boolean.FALSE);
+	}
+|
+	/* Escaped function replace() */
+    <REPLACE> <LEFT_PAREN> value = additiveExpression(null, 0) <COMMA> str1 = additiveExpression(null, 0) <COMMA> str2 = additiveExpression(null, 0) <RIGHT_PAREN>
+	{
+        return getReplaceNode(value, str1, str2);
 	}
 |
 	/* CURDATE() is an escaped function supported by JCC 2.2 or higher */
@@ -6663,6 +6691,11 @@ characterValueFunction() throws StandardException :
         return getSubstringNode( value, startPosition, length, Boolean.FALSE );
 	}
 |
+	<REPLACE> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> str1 = additiveExpression(null,0) <COMMA> str2 = additiveExpression(null,0) <RIGHT_PAREN>
+	{
+        return getReplaceNode( value, str1, str2 );
+	}
+|
 	( upperTok = <UPPER> | lowerTok = <LOWER> ) <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
 	{
 		return (ValueNode) nodeFactory.getNode(
@@ -6948,6 +6981,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == IDENTITY_VAL_LOCAL ||
                 getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == SUBSTR ||
+                getToken(1).kind == REPLACE ||
                 getToken(1).kind == UPPER ||
                 getToken(1).kind == LOWER ||
                 getToken(1).kind == UCASE ||
@@ -14814,6 +14848,7 @@ reservedKeyword() :
 |	tok = <REAL>
 |	tok = <REFERENCES>
 |	tok = <RELATIVE>
+|	tok = <REPLACE>
 |	tok = <RESTRICT>
 |	tok = <REVOKE>
 |	tok = <RIGHT>
