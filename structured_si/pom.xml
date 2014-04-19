@@ -67,9 +67,106 @@
 						<version>2.0.7</version>
 						<configuration>
 							<proguardVersion>4.11</proguardVersion>
-							<proguardInclude>${basedir}/proguard.conf</proguardInclude>
+							<obfuscate>true</obfuscate>
 							<injar>${project.build.finalName}-${envClassifier}.jar</injar>
+							<attach>true</attach>
+							<attachArtifactClassifier>obfuscated</attachArtifactClassifier>
 							<injarNotExistsSkip>true</injarNotExistsSkip>
+							<includeDependency>true</includeDependency>
+							<outputDirectory>${project.build.directory}</outputDirectory>
+							<options>
+								<!-- # Write out an obfuscation mapping file for de-obfuscating any stack traces. -->
+								<!-- # Or for incremental obfuscation of extensions... this will allow for patching obfuscated code if needed. -->
+								<option>-printmapping ${project.build.directory}/${project.build.finalName}-${envClassifier}.map</option>
+								<!-- # Kick-ass option to list all classes and class members that match the various -keep options. -->
+								<!-- # Awesome for debugging config files. -->
+								<option>-printseeds ${project.build.directory}/${project.build.finalName}-${envClassifier}.keep</option>
+								<!-- ################################################# -->
+								<!-- ### From the example for a typical library... ### -->
+								<!-- ################################################# -->
+								<!-- # SourceFile and LineNumberTable are needed for useful obfuscated stack traces.  Without these, the stack traces cannot be deciphered later on. -->
+								<!-- # *Annotation* is needed to preserve @MXBean annotations for TransactionStatus. -->
+								<option>-renamesourcefileattribute SourceFile</option>
+								<option>-keepattributes SourceFile,LineNumberTable,*Annotation*.</option>
+								<!-- # Needed to keep enumerations working. -->
+								<option>-keepclassmembers,allowoptimization enum * {
+									public static **[] values();
+									public static ** valueOf(java.lang.String);
+									}</option>
+								<!-- # Preserves methods and members for Serializable classes that are actually used. -->
+								<!-- # TODO: Do we need to add Formattable too? -->
+								<option>-keepclassmembers class * implements java.io.Serializable {
+									static final long serialVersionUID;
+									private static final java.io.ObjectStreamField[] serialPersistentFields;
+									private void writeObject(java.io.ObjectOutputStream);
+									private void readObject(java.io.ObjectInputStream);
+									java.lang.Object writeReplace();
+									java.lang.Object readResolve();
+									}</option>
+								<!-- ################################################################ -->
+								<!-- ### From the example of obfuscating the ProGuard jar file... ### -->
+								<!-- ################################################################ -->
+								<!-- # Allow methods with the same signature, except for the return type, to get the same obfuscation name. -->
+								<option>-overloadaggressively</option>
+								<!-- # Put all obfuscated classes into the nameless root package. -->
+								<option>-repackageclasses ''</option>
+								<!-- # Allow classes and class members to be made public. -->
+								<option>-allowaccessmodification</option>
+								<!-- ################################### -->
+								<!-- ### Overrides for structured_si ### -->
+								<!-- ################################### -->
+								<!-- # Just ignore the duplicate class definitions for now.  Our class path is crazy long and probably needs to be cleaned up.-->
+								<option>-dontnote</option>
+								<!-- # Ignore bogus warnings that are being generated from the Apache Derby java/stubs source code.-->
+								<!-- # I believe these files could just be deleted from our repo.  This should be confirmed before deletion.-->
+								<option>-ignorewarnings</option>
+								<!-- ################################### -->
+								<!-- ### Overrides for structured_si ### -->
+								<!-- ################################### -->
+								<!-- # Preserve the classes accessed externally. -->
+								<option>-keep public class com.splicemachine.si.impl.WriteConflict { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.DDLFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.FilterStatePacked { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.PushBackIterator { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.HRowAccumulator { public *; }</option>
+								<option>-keep public class com.splicemachine.si.coprocessors.SIObserver { public *; }</option>
+								<option>-keep public class com.splicemachine.si.coprocessors.SIFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.coprocessors.RollForwardQueueMap { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.Transactor { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionReadController { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.ClientTransactor { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.ConstraintChecker { public *; }</option>
+								<!-- ### Method: beginTransaction ### -->
+								<option>-keep public class com.splicemachine.si.api.TransactionManager { public *; }</option>
+								<!-- ### Needed for SpliceDriver.registerJMX() during database booting. ### -->
+								<option>-keep public class com.splicemachine.si.api.HTransactorFactory { public *; }</option>
+								<!-- ### Method: beginTransaction ### -->
+								<option>-keep public class com.splicemachine.si.impl.SITransactionManager { public *; }</option>
+								<!-- ### Needed as return value from TransactionManager.beginTransaction() ### -->
+								<option>-keep public class com.splicemachine.si.impl.TransactionId { public *; }</option>
+								<!-- ### Needed as return value from HTransactorFactory.getTransactorStatus() in SpliceDriver.registerJMX(). ### -->
+								<option>-keep public class com.splicemachine.si.jmx.ManagedTransactor { public *; }</option>
+								<!-- ### Needed as return value from HTransactorFactory.getTransactorStatus() in SpliceDriver.registerJMX(). ### -->
+								<option>-keep public class com.splicemachine.si.jmx.TransactorStatus { public *; }</option>
+								<!-- ### Needed by ij for SELECT queries. ### -->
+								<option>-keep public class com.splicemachine.si.impl.RowAccumulator { public *; }</option>
+								<!-- ### Method, newFilterState, needed by ij for SELECT queries. TODO: only need method? ### -->
+								<option>-keep public class com.splicemachine.si.api.TransactionReadController { public *; }</option>
+								<!-- ### Method, newFilterState, needs this as a parameter. ### -->
+								<option>-keep public class com.splicemachine.si.api.RollForwardQueue { public *; }</option>
+								<!-- ### Method, newFilterState, needs this as a parameter. ### -->
+								<option>-keep public class com.splicemachine.si.impl.IFilterState { public *; }</option>
+								<!-- ### Method, newFilterState, needs this as a parameter. ### -->
+								<option>-keep public class com.splicemachine.si.impl.FilterState { public *; }</option>
+								<!-- ### Needed by ij for INSERT statements. ### -->
+								<option>-keep public class com.splicemachine.si.data.hbase.HbRegion { public *; }</option>
+							</options>
+							<libs>
+								<lib>${java.home}/lib/rt.jar</lib>
+								<lib>${java.home}/lib/jsse.jar</lib>
+								<lib>${java.home}/lib/jce.jar</lib>
+								<lib>${java.home}/lib/charsets.jar</lib>
+							</libs>
 						</configuration>
 						<executions>
 							<execution>
