@@ -15,7 +15,7 @@ public class SpliceHConnection extends HConnectionManager.HConnectionImplementat
 
     public static HConnection createConnection(Configuration conf) throws IOException {
         // TODO: implement ExecutorService "pool" to allow HBase to manage our connections?
-        // HConnection connection = HConnectionManager.createConnection(conf, pool);
+//        HConnection connection = HConnectionManager.createConnection(conf, pool);
         // See: "HTablePool Deprecated in CDH 5" under http://www.cloudera.com/content/cloudera-content/cloudera-docs/CDH5/latest/CDH5-Release-Notes/cdh5rn_topic_3_5.html
         HConnection connection = new SpliceHConnection(conf, true);
         return connection;
@@ -62,7 +62,7 @@ public class SpliceHConnection extends HConnectionManager.HConnectionImplementat
      *
      * @param conf Configuration object
      */
-    public SpliceHConnection(Configuration conf, boolean managed) throws IOException {
+    private SpliceHConnection(Configuration conf, boolean managed) throws IOException {
         super(conf, managed);
     }
 

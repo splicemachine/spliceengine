@@ -60,6 +60,12 @@ public class SpliceHTable extends HTable {
     }
 
     @Override
+    public void close() throws IOException {
+        super.close();
+//        connection.close();
+    }
+
+    @Override
     public Pair<byte[][], byte[][]> getStartEndKeys() throws IOException {
         try {
             SortedSet<HRegionInfo> regions = regionCache.getRegions(tableName);
