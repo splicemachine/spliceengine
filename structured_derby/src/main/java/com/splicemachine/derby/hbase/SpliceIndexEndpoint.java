@@ -299,7 +299,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     }
 
     public static void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
-        ObjectName coordinatorName = new ObjectName("com.splicemachine.dery.hbase:type=ActiveWriteHandlers");
+        ObjectName coordinatorName = new ObjectName("com.splicemachine.derby.hbase:type=ActiveWriteHandlers");
         mbs.registerMBean(ActiveWriteHandlers.get(),coordinatorName);
     }
 
