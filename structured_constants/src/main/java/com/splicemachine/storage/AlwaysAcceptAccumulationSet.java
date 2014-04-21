@@ -31,5 +31,5 @@ public class AlwaysAcceptAccumulationSet extends EntryAccumulationSet {
 
 		public void complete(){ this.completed = true; }
 
-		@Override public boolean isInteresting(int position) { return true; }
+		@Override public boolean isInteresting(int position) { return occupiedFields.get(position); }
 }
