@@ -9,7 +9,6 @@ import com.google.common.collect.Lists;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -238,7 +237,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
      * {@code region} is responsible for.
      */
     public static RegionAwareScanner create(String transactionId, HRegion region, ScanBoundary boundary,
-                                            TableName tableName,
+                                            byte[] tableName,
                                             byte[] scanStart,
                                             byte[] scanFinish,
 																						MetricFactory metricFactory){
@@ -247,7 +246,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
     }
 
     public static RegionAwareScanner create(String txnId, HRegion region, Scan localScan,
-                                            TableName tableName,ScanBoundary boundary, MetricFactory metricFactory){
+                                            byte[] tableName,ScanBoundary boundary, MetricFactory metricFactory){
         HTableInterface table = SpliceAccessManager.getHTable(tableName);
         return new RegionAwareScanner(txnId,table,region,localScan,boundary, metricFactory);
     }

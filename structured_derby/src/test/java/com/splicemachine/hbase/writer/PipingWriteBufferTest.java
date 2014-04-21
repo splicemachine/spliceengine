@@ -1,49 +1,37 @@
 package com.splicemachine.hbase.writer;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import javax.management.InstanceAlreadyExistsException;
-import javax.management.MBeanRegistrationException;
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.NotCompliantMBeanException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.stats.Metrics;
+
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import javax.management.*;
+
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.junit.Assert;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Scott Fines
@@ -59,7 +47,7 @@ public class PipingWriteBufferTest{
 
 		@Test
 		public void testAddDataFlushThenAddMoreDataSameRegion() throws Exception {
-				TableName tableName = TableName.valueOf("test");
+				byte[] tableName = Bytes.toBytes("test");
 				RegionCache regionCache = mock(RegionCache.class);
 
 				//is BYTES_COMPARATOR correct here? it might put start in the incorrect location
@@ -121,7 +109,7 @@ public class PipingWriteBufferTest{
 
 		@Test
 		public void testAddDataFlushThenAddMoreDataDifferentRegions() throws Exception {
-				TableName tableName = TableName.valueOf("test");
+				byte[] tableName = Bytes.toBytes("test");
 				RegionCache regionCache = mock(RegionCache.class);
 
 				//is BYTES_COMPARATOR correct here? it might put start in the incorrect location
@@ -183,7 +171,7 @@ public class PipingWriteBufferTest{
 
 		@Test
 		public void testAddingUntilEntryLimitForcesFlush() throws Exception {
-				TableName tableName = TableName.valueOf("test");
+				byte[] tableName = Bytes.toBytes("test");
 				RegionCache regionCache = mock(RegionCache.class);
 
 				//is BYTES_COMPARATOR correct here? it might put start in the incorrect location
@@ -216,12 +204,12 @@ public class PipingWriteBufferTest{
 				Assert.assertEquals("Buffer flushed more entries than it should!", 0, outputs.size());
 		}
 
-		protected SortedSet<HRegionInfo> getFakeRegions(TableName tableName, int numRegions,final int regionSpace) {
+		protected SortedSet<HRegionInfo> getFakeRegions(byte[] tableName, int numRegions,final int regionSpace) {
 				SortedSet<HRegionInfo> regions = new TreeSet<HRegionInfo>();
-				HRegionInfo info = new HRegionInfo(TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, tableName.getNameAsString()), HConstants.EMPTY_START_ROW, Encoding.encode(2));
+				HRegionInfo info = new HRegionInfo(TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, Bytes.toString(tableName)), HConstants.EMPTY_START_ROW, Encoding.encode(2));
 				regions.add(info);
 				for(int i=0,regionStart = 2;i<numRegions;i++,regionStart+=regionSpace){
-						info = new HRegionInfo(TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, tableName.getNameAsString()),Encoding.encode(regionStart),Encoding.encode(regionStart+regionSpace));
+						info = new HRegionInfo(TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, Bytes.toString(tableName)),Encoding.encode(regionStart),Encoding.encode(regionStart+regionSpace));
 						regions.add(info);
 				}
 				return regions;
@@ -229,7 +217,7 @@ public class PipingWriteBufferTest{
 
 		@Test
 		public void testAddingUntilHeapSizeForcesFlush() throws Exception {
-            TableName tableName = TableName.valueOf("test");
+				byte[] tableName = Bytes.toBytes("test");
 				RegionCache regionCache = mock(RegionCache.class);
 
 				//is BYTES_COMPARATOR correct here? it might put start in the incorrect location
@@ -264,7 +252,7 @@ public class PipingWriteBufferTest{
 
 		@Test
 		public void testAddingRowOnBoundaryOnlyAddedToOneRegion() throws Exception {
-            TableName tableName = TableName.valueOf("test");
+				byte[] tableName = Bytes.toBytes("test");
 				RegionCache regionCache = mock(RegionCache.class);
 
 				//is BYTES_COMPARATOR correct here? it might put start in the incorrect location
@@ -308,7 +296,7 @@ public class PipingWriteBufferTest{
 
 		protected Writer getFakeWriter(final SortedMap<byte[], List<BulkWrite>> outputs) throws ExecutionException {
 				Writer fakedWriter = mock(Writer.class);
-				when(fakedWriter.write(any(TableName.class),any(BulkWrite.class),any(Writer.WriteConfiguration.class)))
+				when(fakedWriter.write(any(byte[].class),any(BulkWrite.class),any(Writer.WriteConfiguration.class)))
 								.thenAnswer(new Answer<Future<Void>>() {
 										@Override
 										public Future<Void> answer(InvocationOnMock invocationOnMock) throws Throwable {
@@ -331,7 +319,7 @@ public class PipingWriteBufferTest{
 
 		@Test
     public void testRebuildingRegionToBufferMap() throws Exception {
-        TableName tableName = TableName.valueOf("testTable");
+        byte[] tableName = Bytes.toBytes("testTable");
         FakedHBaseRegionCache regionCache = new FakedHBaseRegionCache(tableName);
         Monitor monitor = new Monitor(SpliceConstants.writeBufferSize,SpliceConstants.maxBufferEntries,SpliceConstants.numRetries,SpliceConstants.pause,SpliceConstants.maxFlushesPerRegion);
 
@@ -387,10 +375,10 @@ public class PipingWriteBufferTest{
     }
 
     public class FakedHBaseRegionCache implements RegionCache {
-				private final TableName tableName;
+				private final byte[] tableName;
         private final ConcurrentHashMap<Integer,SortedSet<HRegionInfo>> regionCache;
 
-        public  FakedHBaseRegionCache (TableName tableName) {
+        public  FakedHBaseRegionCache (byte[] tableName) {
             this.regionCache = new  ConcurrentHashMap<Integer,SortedSet<HRegionInfo>>();
 						this.tableName = tableName;
             //populate the cache with HRegionInfo
@@ -400,7 +388,7 @@ public class PipingWriteBufferTest{
         private void populateCache() {
 
             // Populate the cache with two regions
-            Integer key = Bytes.mapKey(tableName.getName());
+            Integer key = Bytes.mapKey(tableName);
             SortedSet<HRegionInfo> infos =  new ConcurrentSkipListSet<HRegionInfo>();
             HRegionInfo info = new HRegionInfo(SpliceUtils.getTableName(tableName), null, Bytes.toBytes("cccc"));
             infos.add(info);
@@ -412,7 +400,7 @@ public class PipingWriteBufferTest{
         public void reload() {
 
             // Populate the cache with two regions
-            Integer key = Bytes.mapKey(tableName.getName());
+            Integer key = Bytes.mapKey(tableName);
             SortedSet<HRegionInfo> infos =  regionCache.get(key);
             infos.clear();
             HRegionInfo info = new HRegionInfo(SpliceUtils.getTableName(tableName), null, Bytes.toBytes("bbba"));
@@ -446,12 +434,12 @@ public class PipingWriteBufferTest{
         }
 
         @Override
-        public void invalidate(TableName tableName){
+        public void invalidate(byte[] tableName){
         }
 
         @Override
-        public SortedSet<HRegionInfo> getRegions(TableName tableName) throws ExecutionException {
-            return regionCache.get(Bytes.mapKey(tableName.getName()));
+        public SortedSet<HRegionInfo> getRegions(byte[] tableName) throws ExecutionException {
+            return regionCache.get(Bytes.mapKey(tableName));
         }
 
         @Override

@@ -1,19 +1,15 @@
 package com.splicemachine.hbase.batch;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.writer.*;
 
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.writer.WriteCoordinator;
-import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.hbase.writer.Writer;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Scott Fines
@@ -34,9 +30,9 @@ public interface WriteContext {
 
     HRegion getRegion();
 
-    HTableInterface getHTable(TableName indexConglomBytes);
+    HTableInterface getHTable(byte[] indexConglomBytes);
 
-    CallBuffer<KVPair> getWriteBuffer(TableName conglomBytes,
+    CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,
                                       WriteCoordinator.PreFlushHook preFlushListener,
                                       Writer.WriteConfiguration writeConfiguration,
                                       int expectedSize) throws Exception;

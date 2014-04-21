@@ -1,36 +1,28 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import java.io.IOException;
-import java.net.ConnectException;
-import java.util.concurrent.ExecutionException;
-
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.RegionTooBusyException;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.regionserver.WrongRegionException;
-import org.apache.log4j.Logger;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
-import com.splicemachine.hbase.writer.BulkWrite;
-import com.splicemachine.hbase.writer.BulkWriteResult;
-import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.writer.WriteCoordinator;
-import com.splicemachine.hbase.writer.WriteFailedException;
-import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.hbase.writer.Writer;
+import com.splicemachine.hbase.writer.*;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.RegionTooBusyException;
+import org.apache.hadoop.hbase.regionserver.WrongRegionException;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.net.ConnectException;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -55,7 +47,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
      * indexConglomBytes is a cached byte[] representation of the indexConglomId
      * to speed up transformations.
      */
-    protected final TableName indexConglomBytes;
+    protected final byte[] indexConglomBytes;
     private static final Logger LOG = Logger.getLogger(AbstractIndexWriteHandler.class);
 
     protected boolean failed;
@@ -81,7 +73,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
     protected final BitSet descColumns;
     protected final boolean keepState;
 
-    protected AbstractIndexWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,TableName indexConglomBytes,BitSet descColumns,boolean keepState) {
+    protected AbstractIndexWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes,BitSet descColumns,boolean keepState) {
         this.indexedColumns = indexedColumns;
         this.mainColToIndexPosMap = mainColToIndexPosMap;
         this.indexConglomBytes = indexConglomBytes;

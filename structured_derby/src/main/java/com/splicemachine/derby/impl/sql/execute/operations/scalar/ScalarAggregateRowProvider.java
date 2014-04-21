@@ -8,15 +8,16 @@ import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGener
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.util.Pair;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * When no row is returned from the actual operation, this provides a default value ONCE.
@@ -67,7 +68,7 @@ public class ScalarAggregateRowProvider implements RowProvider {
 		@Override public void open() throws StandardException { delegate.open(); }
 		@Override public void close() throws StandardException { delegate.close(); }
 		@Override public RowLocation getCurrentRowLocation() { return delegate.getCurrentRowLocation(); }
-		@Override public TableName getTableName() { return delegate.getTableName(); }
+		@Override public byte[] getTableName() { return delegate.getTableName(); }
 		@Override public int getModifiedRowCount() { return delegate.getModifiedRowCount(); }
 
 		@Override public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {

@@ -18,7 +18,6 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
@@ -108,7 +107,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
 		}
 
 		@Override
-    public RecordingCallBuffer<KVPair> writeBuffer(TableName tableName, String txnId){
+    public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, String txnId){
         monitor.outstandingBuffers.incrementAndGet();
 
         return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,synchronousWriter,regionCache,noOpFlushHook,defaultWriteConfiguration,monitor){
@@ -121,7 +120,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
     }
 
 		@Override
-		public RecordingCallBuffer<KVPair> writeBuffer(TableName tableName, String txnId, final MetricFactory metricFactory) {
+		public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, String txnId, final MetricFactory metricFactory) {
 				Writer.WriteConfiguration config = defaultWriteConfiguration;
 				//if it isn't active, don't bother creating the extra object
 				if(metricFactory.isActive()){
@@ -133,13 +132,13 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
 		}
 
 		@Override
-		public RecordingCallBuffer<KVPair> writeBuffer(TableName tableName, String txnId,
+		public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, String txnId,
 																									 Writer.WriteConfiguration writeConfiguration){
 				return writeBuffer(tableName,txnId,noOpFlushHook,writeConfiguration);
 		}
 
     @Override
-    public RecordingCallBuffer<KVPair> writeBuffer(TableName tableName, String txnId,
+    public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, String txnId,
                                                    PreFlushHook flushHook, Writer.WriteConfiguration writeConfiguration){
         monitor.outstandingBuffers.incrementAndGet();
         return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,synchronousWriter,regionCache, flushHook, writeConfiguration,monitor) {
@@ -152,7 +151,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
     }
 
 		@Override
-		public RecordingCallBuffer<KVPair> writeBuffer(TableName tableName, String txnId, final int maxEntries) {
+		public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, String txnId, final int maxEntries) {
 				BufferConfiguration config = new BufferConfiguration() {
 						@Override public long getMaxHeapSize() { return Long.MAX_VALUE; }
 						@Override public int getMaxEntries() { return maxEntries; }
@@ -170,7 +169,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
 		}
 
 		@Override
-    public RecordingCallBuffer<KVPair> synchronousWriteBuffer(TableName tableName,
+    public RecordingCallBuffer<KVPair> synchronousWriteBuffer(byte[] tableName,
                                                               String txnId, PreFlushHook flushHook,
                                                               Writer.WriteConfiguration writeConfiguration){
         monitor.outstandingBuffers.incrementAndGet();
@@ -184,7 +183,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
     }
 
     @Override
-    public RecordingCallBuffer<KVPair> synchronousWriteBuffer(TableName tableName,
+    public RecordingCallBuffer<KVPair> synchronousWriteBuffer(byte[] tableName,
                                                               String txnId,
                                                               PreFlushHook flushHook,
                                                               Writer.WriteConfiguration writeConfiguration,

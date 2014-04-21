@@ -1,5 +1,16 @@
 package com.splicemachine.derby.impl.storage;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHashPrefix;
@@ -11,15 +22,6 @@ import com.splicemachine.derby.utils.marshall.BucketHasher;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.utils.SpliceLogUtils;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.log4j.Logger;
 
 /**
  * RowProvider which uses an HBase client ResultScanner to
@@ -30,7 +32,7 @@ import org.apache.log4j.Logger;
  */
 public class DistributedClientScanProvider extends AbstractMultiScanProvider {
     private static final Logger LOG = Logger.getLogger(DistributedClientScanProvider.class);
-    private final TableName tableName;
+    private final byte[] tableName;
     private HTableInterface htable;
     private final Scan scan;
     private final RowKeyDistributorByHashPrefix keyDistributor;
@@ -39,7 +41,7 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
 
 
     public DistributedClientScanProvider(String type,
-                                         TableName tableName,
+                                         byte[] tableName,
                                          Scan scan,
                                          PairDecoder decoder,
                                          SpliceRuntimeContext spliceRuntimeContext) {
@@ -71,7 +73,7 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
         try {
             scanner = DistributedScanner.create(htable, scan, keyDistributor, spliceRuntimeContext);
         } catch (IOException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG, "unable to open table " + tableName.getNameAsString(), e);
+            SpliceLogUtils.logAndThrowRuntime(LOG, "unable to open table " + Bytes.toString(tableName), e);
         }
     }
 
@@ -109,7 +111,7 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
             try {
                 htable.close();
             } catch (IOException e) {
-                SpliceLogUtils.logAndThrowRuntime(LOG, "unable to close htable for " + tableName.getNameAsString(), e);
+                SpliceLogUtils.logAndThrowRuntime(LOG, "unable to close htable for " + Bytes.toString(tableName), e);
             }
     }
 
@@ -123,7 +125,7 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
     }
 
     @Override
-    public TableName getTableName() {
+    public byte[] getTableName() {
         return tableName;
     }
 

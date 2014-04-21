@@ -27,16 +27,6 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ExecutionException;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -47,15 +37,16 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -280,7 +271,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 								}
 
 								@Override
-								public TableName getTableName() {
+								public byte[] getTableName() {
 										return scanProvider.getTableName();
 								}
 
@@ -362,7 +353,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 				private ResultScanner currentScan = null;
 				private final long totalOffset;
 				private long rowsSkipped;
-				private TableName tableName;
+				private byte[] tableName;
 				private HTableInterface table;
 				private SpliceOperation operation;
 
@@ -370,7 +361,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 																			PairDecoder rowDecoder,
 																			Scan fullScan,
 																			long totalOffset,
-                                                                            TableName tableName,
+																			byte[] tableName,
 																			SpliceRuntimeContext spliceRuntimeContext) {
 						super(rowDecoder, "offsetScan",spliceRuntimeContext);
 						this.fullScan = fullScan;
@@ -446,7 +437,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 				}
 
 				@Override
-				public TableName getTableName() {
+				public byte[] getTableName() {
 						return tableName;
 				}
 
@@ -550,7 +541,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 				}
 				@Override public void close() throws StandardException { provider.close(); }
 				@Override public RowLocation getCurrentRowLocation() { return provider.getCurrentRowLocation(); }
-				@Override public TableName getTableName() { return provider.getTableName(); }
+				@Override public byte[] getTableName() { return provider.getTableName(); }
 				@Override public int getModifiedRowCount() { return provider.getModifiedRowCount(); }
 
 				@Override

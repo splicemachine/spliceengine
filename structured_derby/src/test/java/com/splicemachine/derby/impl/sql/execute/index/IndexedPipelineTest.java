@@ -1,36 +1,22 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import com.carrotsearch.hppc.BitSet;
-import com.carrotsearch.hppc.ObjectArrayList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.MockRegion;
-import com.splicemachine.hbase.RegionCache;
-import com.splicemachine.hbase.batch.PipelineWriteContext;
-import com.splicemachine.hbase.batch.RegionWriteHandler;
-import com.splicemachine.hbase.writer.BufferConfiguration;
-import com.splicemachine.hbase.writer.BulkWrite;
-import com.splicemachine.hbase.writer.PipingWriteBuffer;
-import com.splicemachine.hbase.writer.WriteCoordinator;
-import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.hbase.writer.WriteStats;
-import com.splicemachine.hbase.writer.Writer;
-import com.splicemachine.stats.Metrics;
-import com.splicemachine.storage.EntryEncoder;
-import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.storage.index.BitIndexing;
-import com.splicemachine.tools.ResettableCountDownLatch;
-import com.splicemachine.utils.Snowflake;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.notNull;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -45,11 +31,27 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.notNull;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.MockRegion;
+import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.hbase.batch.PipelineWriteContext;
+import com.splicemachine.hbase.batch.RegionWriteHandler;
+import com.splicemachine.hbase.writer.BufferConfiguration;
+import com.splicemachine.hbase.writer.BulkWrite;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.writer.PipingWriteBuffer;
+import com.splicemachine.hbase.writer.WriteCoordinator;
+import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.hbase.writer.WriteStats;
+import com.splicemachine.hbase.writer.Writer;
+import com.splicemachine.stats.Metrics;
+import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.index.BitIndexing;
+import com.splicemachine.tools.ResettableCountDownLatch;
+import com.splicemachine.utils.Snowflake;
 
 /**
  * @author Scott Fines
@@ -81,12 +83,12 @@ public class IndexedPipelineTest {
         BitSet indexedColumns = new BitSet(1);
         indexedColumns.set(0);
         final IndexUpsertWriteHandler writeHandler = getIndexWriteHandler(indexedColumns);
-        when(testCtx.getWriteBuffer(any(TableName.class), any(WriteCoordinator.PreFlushHook.class), any(Writer.WriteConfiguration.class),any(int.class)))
+        when(testCtx.getWriteBuffer(any(byte[].class), any(WriteCoordinator.PreFlushHook.class), any(Writer.WriteConfiguration.class),any(int.class)))
                 .thenAnswer(new Answer<PipingWriteBuffer>() {
                     @Override
                     public PipingWriteBuffer answer(InvocationOnMock invocation) throws Throwable {
                         Object[] args = invocation.getArguments();
-                        TableName indexName = (TableName) args[0];
+                        byte[] indexName = (byte[]) args[0];
                         WriteCoordinator.PreFlushHook preFlushHook = (WriteCoordinator.PreFlushHook) args[1];
                         Writer.WriteConfiguration configuration = (Writer.WriteConfiguration) args[2];
                         int expectedSize = (Integer) args[3];
@@ -160,12 +162,12 @@ public class IndexedPipelineTest {
         BitSet indexedColumns = new BitSet(1);
         indexedColumns.set(0);
         final IndexUpsertWriteHandler writeHandler = getIndexWriteHandler(indexedColumns);
-        when(testCtx.getWriteBuffer(any(TableName.class), any(WriteCoordinator.PreFlushHook.class), any(Writer.WriteConfiguration.class),any(int.class)))
+        when(testCtx.getWriteBuffer(any(byte[].class), any(WriteCoordinator.PreFlushHook.class), any(Writer.WriteConfiguration.class),any(int.class)))
                 .thenAnswer(new Answer<PipingWriteBuffer>() {
                     @Override
                     public PipingWriteBuffer answer(InvocationOnMock invocation) throws Throwable {
                         Object[] args = invocation.getArguments();
-                        TableName indexName = (TableName) args[0];
+                        byte[] indexName = (byte[]) args[0];
                         WriteCoordinator.PreFlushHook preFlushHook = (WriteCoordinator.PreFlushHook) args[1];
                         Writer.WriteConfiguration configuration = (Writer.WriteConfiguration) args[2];
                         int expectedSize = (Integer) args[3];
@@ -254,12 +256,12 @@ public class IndexedPipelineTest {
         BitSet indexedColumns = new BitSet(1);
         indexedColumns.set(0);
         final IndexUpsertWriteHandler writeHandler = getIndexWriteHandler(indexedColumns);
-        when(testCtx.getWriteBuffer(any(TableName.class), any(WriteCoordinator.PreFlushHook.class), any(Writer.WriteConfiguration.class),any(int.class)))
+        when(testCtx.getWriteBuffer(any(byte[].class), any(WriteCoordinator.PreFlushHook.class), any(Writer.WriteConfiguration.class),any(int.class)))
                 .thenAnswer(new Answer<PipingWriteBuffer>() {
                     @Override
                     public PipingWriteBuffer answer(InvocationOnMock invocation) throws Throwable {
                         Object[] args = invocation.getArguments();
-                        TableName indexName = (TableName) args[0];
+                        byte[] indexName = (byte[]) args[0];
                         WriteCoordinator.PreFlushHook preFlushHook = (WriteCoordinator.PreFlushHook) args[1];
                         Writer.WriteConfiguration configuration = (Writer.WriteConfiguration) args[2];
                         int expectedSize = (Integer) args[3];
@@ -347,12 +349,12 @@ public class IndexedPipelineTest {
         BitSet indexedColumns = new BitSet(1);
         indexedColumns.set(0);
         final IndexUpsertWriteHandler writeHandler = getIndexWriteHandler(indexedColumns);
-        when(testCtx.getWriteBuffer(any(TableName.class), any(WriteCoordinator.PreFlushHook.class), any(Writer.WriteConfiguration.class),any(int.class)))
+        when(testCtx.getWriteBuffer(any(byte[].class), any(WriteCoordinator.PreFlushHook.class), any(Writer.WriteConfiguration.class),any(int.class)))
                 .thenAnswer(new Answer<PipingWriteBuffer>() {
                     @Override
                     public PipingWriteBuffer answer(InvocationOnMock invocation) throws Throwable {
                         Object[] args = invocation.getArguments();
-                        TableName indexName = (TableName) args[0];
+                        byte[] indexName = (byte[]) args[0];
                         WriteCoordinator.PreFlushHook preFlushHook = (WriteCoordinator.PreFlushHook) args[1];
                         Writer.WriteConfiguration configuration = (Writer.WriteConfiguration) args[2];
                         int expectedSize = (Integer)args[3];
@@ -428,12 +430,12 @@ public class IndexedPipelineTest {
 				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
         when(config.getMaximumRetries()).thenReturn(3);
 
-        when(testCtx.getWriteBuffer(any(TableName.class), any(WriteCoordinator.PreFlushHook.class), notNull(Writer.WriteConfiguration.class),any(int.class)))
+        when(testCtx.getWriteBuffer(any(byte[].class), any(WriteCoordinator.PreFlushHook.class), notNull(Writer.WriteConfiguration.class),any(int.class)))
                 .thenAnswer(new Answer<PipingWriteBuffer>() {
                     @Override
                     public PipingWriteBuffer answer(InvocationOnMock invocation) throws Throwable {
                         Object[] args = invocation.getArguments();
-                        TableName indexName = (TableName) args[0];
+                        byte[] indexName = (byte[]) args[0];
                         WriteCoordinator.PreFlushHook preFlushHook = (WriteCoordinator.PreFlushHook) args[1];
                         Writer.WriteConfiguration configuration = (Writer.WriteConfiguration) args[2];
                         int expectedSize = (Integer) args[3];
@@ -495,7 +497,7 @@ public class IndexedPipelineTest {
 
     private Writer mockSuccessWriter(final ObjectArrayList<KVPair> indexedRows) throws ExecutionException {
         Writer fakeWriter = mock(Writer.class);
-        when(fakeWriter.write(any(TableName.class),any(BulkWrite.class),any(Writer.WriteConfiguration.class)))
+        when(fakeWriter.write(any(byte[].class),any(BulkWrite.class),any(Writer.WriteConfiguration.class)))
                 .then(new Answer<Future<WriteStats>>() {
                     @Override
                     public Future<WriteStats> answer(InvocationOnMock invocation) throws Throwable {
@@ -517,7 +519,7 @@ public class IndexedPipelineTest {
         indexRegionInfos.add(indexRegionInfo);
 
         RegionCache fakeCache = mock(RegionCache.class);
-        when(fakeCache.getRegions(any(TableName.class))).thenReturn(indexRegionInfos);
+        when(fakeCache.getRegions(any(byte[].class))).thenReturn(indexRegionInfos);
         return fakeCache;
     }
 
@@ -528,7 +530,7 @@ public class IndexedPipelineTest {
         boolean unique = false;
         boolean uniqueWithDuplicateNulls = false;
         int expectedWrites = 10;
-        TableName indexConglomBytes = TableName.valueOf("1184");
+        byte[] indexConglomBytes = Bytes.toBytes("1184");
         int[] format_ids = new int[]{80};
 
         Snowflake snowflake = new Snowflake((short)1);

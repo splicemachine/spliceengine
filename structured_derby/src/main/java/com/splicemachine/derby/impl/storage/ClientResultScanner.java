@@ -5,7 +5,6 @@ import java.util.Iterator;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -35,7 +34,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class ClientResultScanner extends ReopenableScanner implements SpliceResultScanner{
     private static Logger LOG = Logger.getLogger(ClientResultScanner.class);
     private ResultScanner scanner;
-    private final TableName tableName;
+    private final byte[] tableName;
     private final Scan scan;
     private final RowKeyDistributorByHashPrefix keyDistributor;
 		private final MetricFactory metricFactory;
@@ -45,7 +44,7 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
 		private final Timer remoteReadTimer;
 		private final Counter remoteBytesRead;
 
-    public ClientResultScanner(TableName tableName,
+    public ClientResultScanner(byte[] tableName,
 															 Scan scan,
 															 boolean bucketed,
 															 MetricFactory metricFactory) {

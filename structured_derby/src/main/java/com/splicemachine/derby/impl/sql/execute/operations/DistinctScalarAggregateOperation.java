@@ -47,7 +47,6 @@ import org.apache.derby.iapi.sql.execute.ExecPreparedStatement;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
@@ -141,7 +140,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 						serializeSource=false;
 						SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
 						serializeSource=true;
-						TableName tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+						byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
 						return new DistributedClientScanProvider("distinctScalarAggregateReduce",tempTableBytes,reduceScan,rowDecoder, spliceRuntimeContext);
 				}else{
         	/* 
@@ -159,7 +158,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 				serializeSource = spliceRuntimeContext.isFirstStepInMultistep();
 				SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
 				serializeSource = serializeSourceTemp;
-            TableName tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
 				return new DistributedClientScanProvider("distinctScalarAggregateMap",tempTableBytes,reduceScan,rowDecoder, spliceRuntimeContext);
 		}
 
@@ -445,7 +444,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 
 		private SpliceResultScanner getResultScanner(final int[] keyColumns,SpliceRuntimeContext spliceRuntimeContext, final byte[] uniqueID) throws StandardException {
 				if(!spliceRuntimeContext.isSink()){
-                    TableName tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+						byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
 						buildReduceScan(uniqueSequenceID);
 						return new ClientResultScanner(tempTableBytes,reduceScan,true,spliceRuntimeContext);
 				}

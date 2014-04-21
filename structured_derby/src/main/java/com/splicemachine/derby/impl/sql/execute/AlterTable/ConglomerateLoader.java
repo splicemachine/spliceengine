@@ -1,16 +1,16 @@
 package com.splicemachine.derby.impl.sql.execute.AlterTable;
 
-import java.util.concurrent.ExecutionException;
-
 import com.google.common.base.Throwables;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
+
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
+import java.util.concurrent.ExecutionException;
 
 /**
  *
@@ -37,7 +37,7 @@ public class ConglomerateLoader {
     }
 
     private void initialize() {
-        TableName table = TableName.valueOf(Long.toString(toConglomId));
+        byte[] table = Bytes.toBytes(Long.toString(toConglomId));
         writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(table, txnId);
         initialized = true;
     }

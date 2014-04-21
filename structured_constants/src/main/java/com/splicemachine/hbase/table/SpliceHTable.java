@@ -44,7 +44,7 @@ public class SpliceHTable extends HTable {
     private static Logger LOG = Logger.getLogger(SpliceHTable.class);
     private final HConnection connection;
     private final ExecutorService tableExecutor;
-    private final TableName tableName;
+    private final byte[] tableName;
     private final RegionCache regionCache;
     private final int maxRetries = SpliceConstants.numRetries;
 
@@ -54,7 +54,7 @@ public class SpliceHTable extends HTable {
         super(tableName, connection, pool);
         Logger.getLogger(SpliceHTable.class).trace("Initialized super");
         this.regionCache = regionCache;
-        this.tableName = TableName.valueOf(tableName);
+        this.tableName = tableName;
         this.tableExecutor = pool;
         this.connection = connection;
     }
@@ -118,12 +118,12 @@ public class SpliceHTable extends HTable {
                 if (LOG.isDebugEnabled())
                     LOG.debug("Exception caught when submitting coprocessor exec", ee);
                 if (ee instanceof IncorrectRegionException || ee instanceof NotServingRegionException) {
-                    /*
-                     * We sent it to the wrong place, so we need to resubmit it. But since we
-                     * pulled it from the cache, we first invalidate that cache
-                     */
+										/*
+										 * We sent it to the wrong place, so we need to resubmit it. But since we
+										 * pulled it from the cache, we first invalidate that cache
+										 */
                     wait(context.attemptCount); //wait for a bit to see if it clears up
-                    connection.clearRegionCache(tableName);
+                    connection.clearRegionCache(TableName.valueOf(tableName));
                     regionCache.invalidate(tableName);
 
                     Pair<byte[], byte[]> failedKeys = context.keyBoundary;
@@ -178,14 +178,15 @@ public class SpliceHTable extends HTable {
                 if (LOG.isDebugEnabled())
                     LOG.debug("Exception caught when submitting coprocessor exec", cause);
                 if (cause instanceof IncorrectRegionException || cause instanceof NotServingRegionException) {
-                    /*
-                     * We sent it to the wrong place, so we need to resubmit it. But since we
-                     * pulled it from the cache, we first invalidate that cache
-                     */
+										/*
+										 * We sent it to the wrong place, so we need to resubmit it. But since we
+										 * pulled it from the cache, we first invalidate that cache
+										 */
                     ExecContext context = completedFuture.getKey();
                     wait(context.attemptCount); //wait for a bit to see if it clears up
                     regionCache.invalidate(tableName);
-                    connection.clearRegionCache(tableName);
+                    //TODO -sf- store the TableName instead of creating it
+                    connection.clearRegionCache(TableName.valueOf(tableName));
 
                     Pair<byte[], byte[]> failedKeys = context.keyBoundary;
                     context.errors.add(cause);
@@ -222,13 +223,13 @@ public class SpliceHTable extends HTable {
     }
 
     private Pair<byte[], byte[]> getContainingRegion(byte[] startKey, int attemptCount) throws IOException {
-        HRegionLocation regionLocation = this.connection.getRegionLocation(tableName, startKey,
+        HRegionLocation regionLocation = this.connection.getRegionLocation(TableName.valueOf(tableName), startKey,
                                                                            attemptCount > 0);
         for (int i = 0; i < 5; i++) {
             if (!regionLocation.getRegionInfo().isSplitParent())
                 break;
             else
-                this.connection.getRegionLocation(tableName, startKey, true);
+                this.connection.getRegionLocation(TableName.valueOf(tableName), startKey, true);
         }
         Preconditions.checkArgument(!regionLocation.getRegionInfo().isSplitParent(),
                                     "Unable to get a region that is not split!");
@@ -247,7 +248,7 @@ public class SpliceHTable extends HTable {
         if (attemptCount > maxRetries) {
             SpliceLogUtils.error(LOG, "Unable to obtain full region set from cache");
             throw new RetriesExhaustedException("Unable to obtain full region set from cache after "
-                                                    + attemptCount + " attempts on table " + tableName.getNameAsString()
+                                                    + attemptCount + " attempts on table " + Bytes.toString(tableName)
                                                     + " with startKey " + Bytes.toStringBinary(startKey) + " and end " +
                                                     "key " + Bytes.toStringBinary(endKey));
         }
@@ -269,7 +270,7 @@ public class SpliceHTable extends HTable {
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.error(LOG, "Keys to use miss");
             wait(attemptCount);
-            connection.clearRegionCache(tableName);
+            connection.clearRegionCache(TableName.valueOf(tableName));
             regionCache.invalidate(tableName);
             return getKeys(startKey, endKey, attemptCount + 1);
         }
@@ -287,7 +288,7 @@ public class SpliceHTable extends HTable {
         if (!Arrays.equals(start.getFirst(), startKey)) {
             SpliceLogUtils.error(LOG, "First Key Miss, invalidate");
             wait(attemptCount);
-            connection.clearRegionCache(tableName);
+            connection.clearRegionCache(TableName.valueOf(tableName));
             regionCache.invalidate(tableName);
             return getKeys(startKey, endKey, attemptCount + 1);
         }
@@ -299,7 +300,7 @@ public class SpliceHTable extends HTable {
                     SpliceLogUtils.error(LOG, "Keys are not contiguous miss, invalidate");
                 wait(attemptCount);
                 //we are missing some data, so recursively try again
-                connection.clearRegionCache(tableName);
+                connection.clearRegionCache(TableName.valueOf(tableName));
                 regionCache.invalidate(tableName);
                 return getKeys(startKey, endKey, attemptCount + 1);
             }
@@ -311,7 +312,7 @@ public class SpliceHTable extends HTable {
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.error(LOG, "Last Key Miss, invalidate");
             wait(attemptCount);
-            connection.clearRegionCache(tableName);
+            connection.clearRegionCache(TableName.valueOf(tableName));
             regionCache.invalidate(tableName);
             return getKeys(startKey, endKey, attemptCount + 1);
         }
@@ -341,7 +342,7 @@ public class SpliceHTable extends HTable {
                                                ExecContext context) throws Exception {
         Pair<byte[], byte[]> keys = context.keyBoundary;
         byte[] startKeyToUse = keys.getFirst();
-        NoRetryCoprocessorRpcChannel channel = new NoRetryCoprocessorRpcChannel(connection, tableName, startKeyToUse);
+        NoRetryCoprocessorRpcChannel channel = new NoRetryCoprocessorRpcChannel(connection, TableName.valueOf(tableName), startKeyToUse);
         T instance = ProtobufUtil.newServiceStub(protocol, channel);
 //				NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(getConfiguration(), connection, protocol, tableName, startKeyToUse, context.attemptCount>0);
 //				@SuppressWarnings("unchecked") T instance = (T) Proxy.newProxyInstance(getConfiguration().getClassLoader(), new Class[]{protocol}, invoker);

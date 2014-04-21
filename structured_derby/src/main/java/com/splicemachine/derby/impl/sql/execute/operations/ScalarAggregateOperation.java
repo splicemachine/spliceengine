@@ -26,7 +26,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -101,7 +100,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 						throw Exceptions.parseException(e);
 				}
 				SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
-            TableName tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
 				RowProvider delegate = new ClientScanProvider("scalarAggregateReduce", tempTableBytes,reduceScan,rowDecoder,spliceRuntimeContext);
 				return new ScalarAggregateRowProvider(rowDecoder.getTemplate(),aggregates,delegate,returnDefaultValue);
 		}

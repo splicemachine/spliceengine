@@ -13,19 +13,19 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
-import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.CallBufferFactory;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.Snowflake;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
 
 /**
  * @author Scott Fines
@@ -68,7 +68,7 @@ public class OperationSink {
         return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter(), transactionId,statementId,waitTimeNs);
     }
 
-    public TaskStats sink(TableName destinationTable, SpliceRuntimeContext spliceRuntimeContext) throws Exception {
+    public TaskStats sink(byte[] destinationTable, SpliceRuntimeContext spliceRuntimeContext) throws Exception {
 				//add ourselves to the task id list
 				List<byte[]> bytes = taskChain.get();
 				if(bytes==null){
@@ -152,9 +152,9 @@ public class OperationSink {
 				return new TaskStats(totalTimer.getTime().getWallClockTime(),rowsRead,rowsWritten);
     }
 
-		private String getTransactionId(SpliceRuntimeContext context, TableName destinationTable) {
-				TableName tempTable = context.getTempTable().getTempTableName();
-				if(destinationTable.equals(tempTable)){
+		private String getTransactionId(SpliceRuntimeContext context, byte[] destinationTable) {
+				byte[] tempTableBytes = context.getTempTable().getTempTableName();
+				if(Bytes.equals(destinationTable, tempTableBytes)){
 						/*
 						 * We are writing to the TEMP Table.
 						 *

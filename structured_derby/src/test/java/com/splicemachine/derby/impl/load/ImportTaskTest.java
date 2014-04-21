@@ -13,7 +13,6 @@ import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
@@ -510,8 +509,8 @@ public class ImportTaskTest {
         }).when(testingBuffer).add(any(KVPair.class));
 
         @SuppressWarnings("unchecked") CallBufferFactory<KVPair> fakeBufferFactory = mock(CallBufferFactory.class);
-        when(fakeBufferFactory.writeBuffer(any(TableName.class),any(String.class))).thenReturn(testingBuffer);
-				when(fakeBufferFactory.writeBuffer(any(TableName.class),any(String.class),any(Writer.WriteConfiguration.class))).thenReturn(testingBuffer);
+        when(fakeBufferFactory.writeBuffer(any(byte[].class),any(String.class))).thenReturn(testingBuffer);
+				when(fakeBufferFactory.writeBuffer(any(byte[].class),any(String.class),any(Writer.WriteConfiguration.class))).thenReturn(testingBuffer);
         final Snowflake snowflake = new Snowflake((short)1);
 				KryoPool kryoPool = KryoPool.defaultPool();
 				Importer importer = new SequentialImporter(ctx,template,"TEXT_TXN",fakeBufferFactory, kryoPool,FailAlwaysReporter.INSTANCE){

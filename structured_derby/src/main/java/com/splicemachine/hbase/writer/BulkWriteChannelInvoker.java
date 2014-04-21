@@ -1,19 +1,19 @@
 package com.splicemachine.hbase.writer;
 
-import java.io.IOException;
-
 import com.google.protobuf.ByteString;
+import com.splicemachine.coprocessor.SpliceMessage;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.hbase.NoRetryCoprocessorRpcChannel;
+import com.splicemachine.hbase.table.IncorrectRegionException;
+import com.splicemachine.hbase.table.SpliceRpcController;
+
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 
-import com.splicemachine.coprocessor.SpliceMessage;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.hbase.NoRetryCoprocessorRpcChannel;
-import com.splicemachine.hbase.table.IncorrectRegionException;
-import com.splicemachine.hbase.table.SpliceRpcController;
+import java.io.IOException;
 
 /**
  * @author Scott Fines
@@ -22,9 +22,9 @@ import com.splicemachine.hbase.table.SpliceRpcController;
 public class BulkWriteChannelInvoker implements BulkWriteInvoker{
 
 		private final HConnection connection;
-		private final TableName tableName;
+		private final byte[] tableName;
 
-		public BulkWriteChannelInvoker(HConnection connection, TableName tableName) {
+		public BulkWriteChannelInvoker(HConnection connection, byte[] tableName) {
 				this.connection = connection;
 				this.tableName = tableName;
 		}
@@ -32,7 +32,7 @@ public class BulkWriteChannelInvoker implements BulkWriteInvoker{
 		@Override
 		public BulkWriteResult invoke(BulkWrite write, boolean refreshCache) throws IOException {
 				NoRetryCoprocessorRpcChannel channel
-								= new NoRetryCoprocessorRpcChannel(connection, tableName,write.getRegionKey());
+								= new NoRetryCoprocessorRpcChannel(connection, TableName.valueOf(tableName),write.getRegionKey());
 
 				try {
 						SpliceMessage.SpliceIndexService service =
@@ -51,7 +51,7 @@ public class BulkWriteChannelInvoker implements BulkWriteInvoker{
 								 * We sent it to the wrong place, so we need to resubmit it. But since we
 								 * pulled it from the cache, we first invalidate that cache
 								 */
-								connection.clearRegionCache(tableName);
+								connection.clearRegionCache(TableName.valueOf(tableName));	
 							}
 							throw Exceptions.getIOException(error);
 						}
@@ -64,9 +64,9 @@ public class BulkWriteChannelInvoker implements BulkWriteInvoker{
 
 		public static class Factory implements BulkWriteInvoker.Factory{
 				private final HConnection connection;
-				private final TableName tableName;
+				private final byte[] tableName;
 
-				public Factory(HConnection connection, TableName tableName) {
+				public Factory(HConnection connection, byte[] tableName) {
 						this.connection = connection;
 						this.tableName = tableName;
 				}

@@ -1,13 +1,20 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Properties;
+import java.util.Vector;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.ddl.DDLChange;
-import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.impl.job.AlterTable.DropColumnJob;
-import com.splicemachine.derby.impl.job.AlterTable.LoadConglomerateJob;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.management.OperationInfo;
@@ -20,16 +27,6 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.utils.SpliceLogUtils;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
-import java.util.Vector;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
 import org.apache.derby.catalog.DefaultInfo;
 import org.apache.derby.catalog.Dependable;
 import org.apache.derby.catalog.DependableFinder;
@@ -64,11 +61,11 @@ import org.apache.derby.iapi.sql.dictionary.GenericDescriptorList;
 import org.apache.derby.iapi.sql.dictionary.IndexLister;
 import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
 import org.apache.derby.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
-import org.apache.derby.iapi.sql.dictionary.SPSDescriptor;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.dictionary.StatisticsDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TriggerDescriptor;
+import org.apache.derby.iapi.sql.dictionary.SPSDescriptor;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -98,6 +95,10 @@ import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
+import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
+import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.derby.impl.job.AlterTable.LoadConglomerateJob;
+import com.splicemachine.derby.impl.job.AlterTable.DropColumnJob;
 
 /**
  *	This class  describes actions that are ALWAYS performed for an
@@ -1757,7 +1758,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
         notifyMetadataChange(ddlChange);
 
-        HTableInterface table = SpliceAccessManager.getHTable(tableConglomId);
+        HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
         try {
             //Add a handler to drop a column to all regions
             tentativeDropColumn(table, newHeapConglom, tableConglomId, ddlChange);
@@ -1946,7 +1947,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         JobInfo info = null;
         try{
             long fromConglomId = td.getHeapConglomerateId();
-            HTableInterface table = SpliceAccessManager.getHTable(fromConglomId);
+            HTableInterface table = SpliceAccessManager.getHTable(Long.toString(fromConglomId).getBytes());
 
             ColumnInfo[] allColumnInfo = DataDictionaryUtils.getColumnInfo(td);
             LoadConglomerateJob job = new LoadConglomerateJob(table, tableId, fromConglomId, toConglomId, allColumnInfo, droppedColumnPosition, DropColumnTxnId,
@@ -2355,7 +2356,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
             notifyMetadataChange(ddlChange);
 
-            HTableInterface table = SpliceAccessManager.getHTable(newHeapConglom);
+            HTableInterface table = SpliceAccessManager.getHTable(Long.toString(newHeapConglom).getBytes());
             try{
                 // Add the indexes to the exisiting regions
                 createIndex(activation, ddlChange, table, td);

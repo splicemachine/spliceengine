@@ -20,7 +20,6 @@ import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
 
@@ -501,7 +500,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
     private static class IndexFactory{
         private final long indexConglomId;
-        private final TableName indexConglomTableName;
+        private final byte[] indexConglomBytes;
         private final boolean isUnique;
         private final boolean isUniqueWithDuplicateNulls;
         private BitSet indexedColumns;
@@ -513,7 +512,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
         private IndexFactory(long indexConglomId){
             this.indexConglomId = indexConglomId;
-            this.indexConglomTableName = TableName.valueOf(Long.toString(indexConglomId));
+            this.indexConglomBytes = Long.toString(indexConglomId).getBytes();
             this.isUnique=false;
             isUniqueWithDuplicateNulls = false;
         }
@@ -522,7 +521,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                              boolean isUniqueWithDuplicateNulls,BitSet descColumns, DDLChange ddlChange,
                              int[] columnOrdering, int[] formatIds) {
             this.indexConglomId = indexConglomId;
-            this.indexConglomTableName = TableName.valueOf(Long.toString(indexConglomId));
+            this.indexConglomBytes = Long.toString(indexConglomId).getBytes();
             this.isUnique=isUnique;
             this.isUniqueWithDuplicateNulls=isUniqueWithDuplicateNulls;
             this.indexedColumns=indexedColumns;
@@ -593,15 +592,15 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
         public void addTo(PipelineWriteContext ctx,boolean keepState,int expectedWrites) throws IOException {
             IndexDeleteWriteHandler deleteHandler =
-                    new IndexDeleteWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomTableName, descColumns,
+                    new IndexDeleteWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes, descColumns,
                             keepState, isUnique, isUniqueWithDuplicateNulls, expectedWrites, baseTableColumnOrdering, formatIds);
             IndexUpsertWriteHandler writeHandler;
             if (isUnique) {
                 writeHandler = new UniqueIndexUpsertWriteHandler(indexedColumns, mainColToIndexPosMap,
-                                                                 indexConglomTableName, descColumns, keepState, isUniqueWithDuplicateNulls, expectedWrites,
+                        indexConglomBytes, descColumns, keepState, isUniqueWithDuplicateNulls, expectedWrites,
                         baseTableColumnOrdering, formatIds);
             } else {
-                writeHandler = new IndexUpsertWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomTableName,
+                writeHandler = new IndexUpsertWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes,
                         descColumns, keepState, false, false, expectedWrites, baseTableColumnOrdering, formatIds);
             }
             if (ddlChange == null) {

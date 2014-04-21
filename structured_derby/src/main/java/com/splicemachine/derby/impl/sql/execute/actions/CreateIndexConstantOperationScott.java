@@ -1,15 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.job.index.PopulateIndexJob;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.job.JobFuture;
-import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
+
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -27,10 +21,21 @@ import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.job.index.PopulateIndexJob;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * Operation to create an index in a Splice-efficient fashion
@@ -185,7 +190,7 @@ public class CreateIndexConstantOperationScott extends IndexConstantOperation im
         final boolean isUnique = cgd.getIndexDescriptor().isUnique();
         final boolean uniqueWithDuplicateNulls = cgd.getIndexDescriptor().isUniqueWithDuplicateNulls();
         final String transactionId = getTransactionId(activation.getLanguageConnectionContext().getTransactionExecute());
-        HTableInterface table = SpliceAccessManager.getHTable(tableConglomId);
+        HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
         JobFuture future = null;
         try{
             boolean [] desc = new boolean[ascending.length];

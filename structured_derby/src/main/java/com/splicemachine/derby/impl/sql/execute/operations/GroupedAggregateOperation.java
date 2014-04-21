@@ -33,7 +33,6 @@ import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
@@ -416,7 +415,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
 		private SpliceResultScanner getResultScanner(final int[] groupColumns,SpliceRuntimeContext spliceRuntimeContext, final int prefixOffset) {
 				if(!spliceRuntimeContext.isSink()){
-						TableName tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+						byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
 						return new ClientResultScanner(tempTableBytes,reduceScan,true,spliceRuntimeContext);
 				}
 

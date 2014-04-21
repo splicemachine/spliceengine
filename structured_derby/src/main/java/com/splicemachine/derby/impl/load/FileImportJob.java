@@ -13,7 +13,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -70,12 +69,12 @@ public class FileImportJob extends ImportJob{
 				ImportContext ctx = ((ImportTask) originalTask).getContext();
 				Pair<T, Pair<byte[], byte[]>> retPair = Pair.newPair(originalTask, getTaskBoundary(ctx));
 				//invalidate the region cache so that it forces a check in the event of region splits
-				HBaseRegionCache.getInstance().invalidate(TableName.valueOf(ctx.getTableName()));
+				HBaseRegionCache.getInstance().invalidate(Bytes.toBytes(ctx.getTableName()));
 				return retPair;
     }
 
     private Pair<byte[],byte[]> getTaskBoundary(ImportContext ctx) throws IOException{
-        TableName tableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+        byte[] tableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
 				List<HRegionInfo> regions;
 				HBaseAdmin admin = new HBaseAdmin(SpliceConstants.config);
 				try{

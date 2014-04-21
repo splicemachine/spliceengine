@@ -4,6 +4,13 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.RegionCache;
+
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.client.Row;
+import org.apache.hadoop.hbase.util.Bytes;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -12,11 +19,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.apache.hadoop.hbase.client.Row;
 
 /**
  * @author Scott Fines
@@ -32,7 +34,7 @@ public abstract class BucketingWriter implements Writer{
     }
 
 //    @Override
-    public final Future<WriteStats> write(TableName tableName, ObjectArrayList<KVPair> buffer, String transactionId,WriteConfiguration writeConfiguration) throws ExecutionException {
+    public final Future<WriteStats> write(byte[] tableName, ObjectArrayList<KVPair> buffer, String transactionId,WriteConfiguration writeConfiguration) throws ExecutionException {
         try {
             List<Throwable> errors = Lists.newArrayListWithExpectedSize(0);
             List<BulkWrite> bulkWrites = bucketWrites(writeConfiguration.getMaximumRetries(),tableName,buffer,transactionId,errors, writeConfiguration);
@@ -48,7 +50,7 @@ public abstract class BucketingWriter implements Writer{
     }
 
 
-    protected final List<BulkWrite> bucketWrites(int tries,TableName tableName,ObjectArrayList<KVPair> buffer,String txnId,List<Throwable> errors,WriteConfiguration writeConfiguration) throws Exception{
+    protected final List<BulkWrite> bucketWrites(int tries,byte[] tableName,ObjectArrayList<KVPair> buffer,String txnId,List<Throwable> errors,WriteConfiguration writeConfiguration) throws Exception{
         if(tries<=0)
             throw getError(errors);
 
@@ -57,7 +59,7 @@ public abstract class BucketingWriter implements Writer{
             //TODO -sf- add error handling in here
             Thread.sleep(WriteUtils.getWaitTime(writeConfiguration.getMaximumRetries() - tries + 1, writeConfiguration.getPause()));
             regionCache.invalidate(tableName);
-            errors.add(new IOException("Unable to determine regions for table "+ tableName.getNameAsString()));
+            errors.add(new IOException("Unable to determine regions for table "+ Bytes.toString(tableName)));
             return bucketWrites(tries-1,tableName,buffer,txnId,errors, writeConfiguration);
         }
         List<BulkWrite> buckets = Lists.newArrayListWithCapacity(regions.size());

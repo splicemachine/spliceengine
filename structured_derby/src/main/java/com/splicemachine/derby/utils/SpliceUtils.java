@@ -199,8 +199,8 @@ public class SpliceUtils extends SpliceUtilities {
     	return TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, tableName);
     }
     
-    public static TableName getTableName(TableName tableName) {
-    	return getTableName(tableName.getNameAsString());
+    public static TableName getTableName(byte[] tableName) {
+    	return getTableName(Bytes.toString(tableName));
     }
     
     private static boolean attachTransactionNA(OperationWithAttributes op, String transactionId) {

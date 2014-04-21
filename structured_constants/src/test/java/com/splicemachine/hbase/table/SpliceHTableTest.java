@@ -48,7 +48,7 @@ public class SpliceHTableTest {
         }
         byte[] endKey = HConstants.EMPTY_END_ROW;
         regions.add(new HRegionInfo(tableName,startKey,endKey));
-        when(cache.getRegions(tableName)).thenReturn(regions);
+        when(cache.getRegions(tableName.getName())).thenReturn(regions);
 
         HConnection connection = mock(HConnection.class);
         Configuration config  = SpliceConstants.config;
@@ -97,7 +97,7 @@ public class SpliceHTableTest {
         }
         byte[] endKey = HConstants.EMPTY_END_ROW;
         regions.add(new HRegionInfo(tableName,startKey,endKey));
-        when(cache.getRegions(tableName)).thenReturn(regions);
+        when(cache.getRegions(tableName.getName())).thenReturn(regions);
 
         HConnection connection = mock(HConnection.class);
         Configuration config  = SpliceConstants.config;
@@ -144,7 +144,7 @@ public class SpliceHTableTest {
         }
         byte[] endKey = HConstants.EMPTY_END_ROW;
         regions.add(new HRegionInfo(tableName,startKey,endKey));
-        when(cache.getRegions(tableName)).thenReturn(regions);
+        when(cache.getRegions(tableName.getName())).thenReturn(regions);
 
         HConnection connection = mock(HConnection.class);
         Configuration config  = SpliceConstants.config;

@@ -6,7 +6,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -655,11 +654,11 @@ public class SpliceConstants {
 		public static final String SYSSCHEMAS_INDEX1_ID_CACHE = "SYSSCHEMAS_INDEX1_ID_CACHE";
 		public static final String[] SYSSCHEMAS_CACHES = {SYSSCHEMAS_CACHE,SYSSCHEMAS_INDEX1_ID_CACHE};
 
-		public static TableName TEMP_TABLE_BYTES = TableName.valueOf(TEMP_TABLE);
+		public static byte[] TEMP_TABLE_BYTES = Bytes.toBytes(TEMP_TABLE);
 		public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
 		public static final byte[] TENTATIVE_TABLE_BYTES = Bytes.toBytes(TENTATIVE_TABLE);
-		public static final TableName CONGLOMERATE_TABLE_NAME_BYTES = TableName.valueOf(CONGLOMERATE_TABLE_NAME);
-		public static final TableName SEQUENCE_TABLE_NAME_BYTES = TableName.valueOf(SEQUENCE_TABLE_NAME);
+		public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
+		public static final byte[] SEQUENCE_TABLE_NAME_BYTES = Bytes.toBytes(SEQUENCE_TABLE_NAME);
 		public static final int PACKED_COLUMN = 7;
 		public static final String PACKED_COLUMN_STRING = PACKED_COLUMN+"";
 		public static final byte[] PACKED_COLUMN_BYTES = Bytes.toBytes(PACKED_COLUMN_STRING);

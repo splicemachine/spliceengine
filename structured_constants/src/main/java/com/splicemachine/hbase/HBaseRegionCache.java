@@ -22,7 +22,6 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.MetaScanner;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -87,13 +86,13 @@ public class HBaseRegionCache implements RegionCache {
     }
 
     @Override
-    public SortedSet<HRegionInfo> getRegions(TableName tableName) throws ExecutionException {
-        return regionCache.get(Bytes.mapKey(tableName.getName()));
+    public SortedSet<HRegionInfo> getRegions(byte[] tableName) throws ExecutionException {
+        return regionCache.get(Bytes.mapKey(tableName));
     }
 
     @Override
-    public void invalidate(TableName tableName){
-        regionCache.invalidate(Bytes.mapKey(tableName.getName()));
+    public void invalidate(byte[] tableName){
+        regionCache.invalidate(Bytes.mapKey(tableName));
     }
 
     @Override

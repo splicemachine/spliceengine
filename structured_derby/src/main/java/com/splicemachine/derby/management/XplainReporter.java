@@ -15,7 +15,6 @@ import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryEncoder;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
@@ -79,9 +78,9 @@ public abstract class XplainReporter<T> {
 												long conglomId = getConglomerateId(schema,tableName);
 												CallBufferFactory<KVPair> nonThreadSafeBufferFactory = SpliceDriver.driver().getTableWriter();
 												return new ConcurrentWriteBuffer(10, nonThreadSafeBufferFactory.writeBuffer(
-                                                    TableName.valueOf(Long.toString(conglomId)),
-                                                    txnId,
-                                                    10));
+																Bytes.toBytes(Long.toString(conglomId)),
+																txnId,
+																10));
 										}
 								});
 		}

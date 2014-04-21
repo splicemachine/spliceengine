@@ -13,12 +13,6 @@ import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.utils.SpliceLogUtils;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -28,9 +22,15 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.shared.common.sanity.SanityManager;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class OnceOperation extends SpliceBaseOperation {
 		private static final long serialversionUID = 1l;
@@ -230,7 +230,7 @@ public class OnceOperation extends SpliceBaseOperation {
 				}
 				@Override public void close() throws StandardException { delegate.close(); }
 				@Override public RowLocation getCurrentRowLocation() { return delegate.getCurrentRowLocation(); }
-				@Override public TableName getTableName() { return delegate.getTableName(); }
+				@Override public byte[] getTableName() { return delegate.getTableName(); }
 				@Override public int getModifiedRowCount() { return delegate.getModifiedRowCount(); }
 
 				@Override

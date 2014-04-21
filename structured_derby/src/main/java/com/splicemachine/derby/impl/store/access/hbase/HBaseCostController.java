@@ -1,19 +1,21 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
-import java.util.concurrent.ExecutionException;
-
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
+import com.splicemachine.hbase.HBaseRegionCache;
 import org.apache.derby.iapi.services.sanity.SanityManager;
+
+import org.apache.derby.iapi.error.StandardException; 
 import org.apache.derby.iapi.store.access.RowUtil;
 import org.apache.derby.iapi.store.access.StoreCostController;
 import org.apache.derby.iapi.store.access.StoreCostResult;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.TableName;
-
+import org.apache.derby.iapi.services.io.FormatableBitSet;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
-import com.splicemachine.hbase.HBaseRegionCache;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.util.Bytes;
+
+import java.util.SortedSet;
+import java.util.concurrent.ExecutionException;
 
 
 /**
@@ -304,7 +306,8 @@ public class HBaseCostController implements StoreCostController
         }
 
         // Scale by number of regions
-        int numregions = getNumberOfRegions(open_conglom.getConglomerate().getContainerid());
+        int numregions = getNumberOfRegions(open_conglom
+                                                .getConglomerate().getContainerid());
 
         cost_result.setEstimatedCost(derbyCost * numregions);
         cost_result.setEstimatedRowCount(derby_estimated_row_count * numregions);
@@ -313,11 +316,11 @@ public class HBaseCostController implements StoreCostController
     }
 
     private static int getNumberOfRegions(long conglomId) {
-        TableName tableName = TableName.valueOf(Long.toString(conglomId));
+        String table = Long.toString(conglomId);
         int numregions = 1;
         try {
             numregions = HBaseRegionCache.getInstance()
-                             .getRegions(tableName).size();
+                             .getRegions(Bytes.toBytes(table)).size();
         } catch (ExecutionException e) {
         }
         return numregions;

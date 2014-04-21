@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -31,7 +30,7 @@ public class ScalarAggregateScan implements ScalarAggregateSource{
         this.scanDecoder = scanDecoder;
 				//TODO -sf- is this safe?
 				final byte bucket = localScan.getStartRow()[0];
-				final TableName table = region.getTableDesc().getTableName();
+				final byte[] table = region.getTableDesc().getName();
 
 				int prefixOffset = scanDecoder.getKeyPrefixOffset();
 				final byte[] prefix = new byte[prefixOffset];

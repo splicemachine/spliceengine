@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -114,7 +113,7 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
                                                   PairDecoder rightDecoder,
                                                   HRegion region,
 																									MetricFactory metricFactory) {
-				TableName tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
         RegionAwareScanner ras = RegionAwareScanner.create(txnId,region,scan, tempTableBytes,
                 new MergeSortScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES, rightDecoder.getKeyPrefixOffset()),metricFactory);
         return new ResultMergeScanner(ras,leftDecoder,rightDecoder);
@@ -124,7 +123,7 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
 																									 PairDecoder leftDecoder,
 																									 PairDecoder rightDecoder,
 																									 MetricFactory metricFactory) {
-        TableName tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
         ClientResultScanner scanner = new ClientResultScanner(tempTableBytes,reduceScan,true,metricFactory);
         return new ResultMergeScanner(scanner,leftDecoder,rightDecoder);
     }

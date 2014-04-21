@@ -1,6 +1,29 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
+
 import com.google.common.collect.Lists;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.io.FormatableIntHolder;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.shared.common.reference.SQLState;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -48,27 +71,6 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.hash.HashFunctions;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.List;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableArrayHolder;
-import org.apache.derby.iapi.services.io.FormatableIntHolder;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.log4j.Logger;
 
 /**
  * @author Scott Fines
@@ -335,7 +337,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
         Scan scan = buildScan(runtimeContext);
         
-        RowProvider provider = new ClientScanProvider("shuffle", TableName.valueOf(Long.toString(scanInformation.getConglomerateId())),scan,null,runtimeContext);
+        RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(scanInformation.getConglomerateId())),scan,null,runtimeContext);
 
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this,runtimeContext);
         return provider.shuffleRows(soi);
