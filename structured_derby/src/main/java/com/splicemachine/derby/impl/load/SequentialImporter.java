@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.load;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
@@ -172,6 +173,8 @@ public class SequentialImporter implements Importer{
 						writeTimer.stopTiming();
 				} catch (Exception e) {
 						throw new IOException(e);
+				}finally{
+						Closeables.closeQuietly(entryEncoder);
 				}
 		}
 

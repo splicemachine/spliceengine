@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job.AlterTable;
 
 
+import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
@@ -116,7 +117,8 @@ public class LoadConglomerateTask extends ZkTask {
         }catch (Exception e) {
             throw new ExecutionException("Error loading conglomerate " + fromConglomId, e);
         } finally {
-            writeTimer.startTiming();
+						Closeables.closeQuietly(transformer);
+						writeTimer.startTiming();
             loader.close();
             writeTimer.stopTiming();
             if(xplainSchema!=null){

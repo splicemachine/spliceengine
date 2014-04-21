@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.store;
 
 import com.carrotsearch.hppc.BitSet;
+import com.google.common.io.Closeables;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.storage.ByteEntryAccumulator;
@@ -10,6 +11,8 @@ import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.HConstants;
+
+import java.io.IOException;
 
 /**
  * @author Scott Fines
@@ -119,6 +122,12 @@ public class ExecRowAccumulator extends ByteEntryAccumulator {
 				} catch (StandardException e) {
 						//TODO -sf- handle this?
 						throw new RuntimeException(e);
+				}
+		}
+
+		public void close() {
+				for(DescriptorSerializer serializer:serializers){
+						Closeables.closeQuietly(serializer);
 				}
 		}
 

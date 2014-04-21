@@ -7,6 +7,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 
 /**
@@ -52,8 +53,7 @@ class DecimalDescriptorSerializer implements DescriptorSerializer {
 		}
 
 		@Override public boolean isScalarType() { return false; }
-
 		@Override public boolean isFloatType() { return false; }
-
 		@Override public boolean isDoubleType() { return false; }
+		@Override public void close() throws IOException {  }
 }

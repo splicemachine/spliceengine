@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils.marshall;
 
+import com.google.common.io.Closeables;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -104,6 +105,12 @@ public class BareKeyHash{
 								DataValueDescriptor field = fields[pos];
 								serializer.decode(decoder,field,false);
 						}
+				}
+		}
+
+		public void close() throws IOException{
+				for(DescriptorSerializer serializer:serializers){
+						Closeables.closeQuietly(serializer);
 				}
 		}
 

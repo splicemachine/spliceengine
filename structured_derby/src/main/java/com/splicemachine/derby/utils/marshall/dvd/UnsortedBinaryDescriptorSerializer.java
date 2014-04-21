@@ -11,8 +11,8 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
  * @author Scott Fines
  * Date: 4/2/14
  */
-class SortedBinaryDescriptorSerializer implements DescriptorSerializer{
-		private static final DescriptorSerializer INSTANCE = new SortedBinaryDescriptorSerializer();
+class UnsortedBinaryDescriptorSerializer implements DescriptorSerializer{
+		private static final DescriptorSerializer INSTANCE = new UnsortedBinaryDescriptorSerializer();
 		public static final Factory INSTANCE_FACTORY = new Factory() {
 				@Override public DescriptorSerializer newInstance() { return INSTANCE; }
 
@@ -40,7 +40,7 @@ class SortedBinaryDescriptorSerializer implements DescriptorSerializer{
 				@Override public boolean isDouble() { return false; }
 		};
 
-		private SortedBinaryDescriptorSerializer() { }
+		private UnsortedBinaryDescriptorSerializer() { }
 
 
 		@Override
@@ -67,4 +67,6 @@ class SortedBinaryDescriptorSerializer implements DescriptorSerializer{
 		@Override public boolean isScalarType() { return false; }
 		@Override public boolean isFloatType() { return false; }
 		@Override public boolean isDoubleType() { return false; }
+
+		@Override public void close() { }
 }

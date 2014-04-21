@@ -1,5 +1,7 @@
 package com.splicemachine.derby.utils.marshall;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  *         Date: 11/18/13
@@ -23,4 +25,6 @@ public class FixedBucketPrefix implements HashPrefix{
 				bytes[offset] = bucket;
 				delegate.encode(bytes, offset+1, hashBytes);
 		}
+
+		@Override public void close() throws IOException {  }
 }

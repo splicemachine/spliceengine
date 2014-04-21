@@ -2,11 +2,13 @@ package com.splicemachine.derby.utils.marshall;
 
 import org.apache.derby.iapi.error.StandardException;
 
+import java.io.Closeable;
+
 /**
  * @author Scott Fines
  * Date: 11/15/13
  */
-public interface KeyPostfix {
+public interface KeyPostfix extends Closeable {
 
 		/**
 		 * @param hash the hash for the row to encode.

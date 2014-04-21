@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -129,6 +130,8 @@ public class UpdateOperation extends DMLWriteOperation{
 								public byte[] encode() throws StandardException, IOException {
 										return ((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
 								}
+
+								@Override public void close() throws IOException {  }
 
 								@Override
 								public KeyHashDecoder getDecoder() {
@@ -518,9 +521,16 @@ public class UpdateOperation extends DMLWriteOperation{
                         encoder.setRawBytes(decoder.array(),offset,limit);
                     }
                 }
-
             }
-            @Override
+
+						@Override
+						public void close() throws IOException {
+								for(DescriptorSerializer serializer:serializers){
+										Closeables.closeQuietly(serializer);
+								}
+						}
+
+						@Override
             public KeyHashDecoder getDecoder() {
                 return NoOpKeyHashDecoder.INSTANCE;
             }

@@ -1,6 +1,7 @@
 package com.splicemachine.mapreduce;
 
 import au.com.bytecode.opencsv.CSVParser;
+import com.google.common.io.Closeables;
 import com.google.gson.Gson;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.load.FailAlwaysReporter;
@@ -45,17 +46,6 @@ public class HBaseBulkLoadMapper extends Mapper<LongWritable, Text,
 						outputKey.set(row);
 						outputValue.set(kvPair.getValue());
 						context.write(outputKey,outputValue);
-//						KeyValue dataKv = new KeyValue(row,
-//										SpliceConstants.DEFAULT_FAMILY_BYTES,
-//										RowMarshaller.PACKED_COLUMN_KEY,
-//										txnId,kvPair.getValue());
-//						KeyValue siKv =
-//						new KeyValue(row,
-//										SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,
-//										SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
-//										txnId,SIConstants.EMPTY_BYTE_ARRAY);
-//						context.write(outputKey,dataKv);
-//						context.write(outputKey,siKv);
 				} catch (StandardException e) {
 						e.printStackTrace();
 						throw new IOException(e);
@@ -82,6 +72,12 @@ public class HBaseBulkLoadMapper extends Mapper<LongWritable, Text,
 				} catch (StandardException e) {
 						throw new IOException(e);
 				}
+		}
+
+		@Override
+		protected void cleanup(Context context) throws IOException, InterruptedException {
+				Closeables.closeQuietly(entryEncoder);
+				super.cleanup(context);
 		}
 
 		private PairEncoder newEntryEncoder(String tableVersion,ExecRow row) {
