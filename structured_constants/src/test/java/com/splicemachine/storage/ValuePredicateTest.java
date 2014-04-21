@@ -3,7 +3,6 @@ package com.splicemachine.storage;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.junit.Assert;
 import org.junit.Test;
@@ -70,13 +69,13 @@ public class ValuePredicateTest {
 
         ValuePredicate predicate = new ValuePredicate(CompareFilter.CompareOp.EQUAL,0,correctVal,true,false);
 
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(),2);
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(2);
         encoder.encodeNext(2);
         encoder.encodeNext(1);
 
         byte[] testVal = encoder.build();
 
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(testVal,KryoPool.defaultPool());
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(testVal);
         int offset = decoder.offset();
         decoder.skip();
         int length = decoder.offset()-1;
@@ -119,13 +118,13 @@ public class ValuePredicateTest {
 
         ValuePredicate predicate = new ValuePredicate(CompareFilter.CompareOp.NOT_EQUAL,0,correctVal,true,false);
 
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(),2);
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(2);
         encoder.encodeNext(2);
         encoder.encodeNext(1);
 
         byte[] testVal = encoder.build();
 
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(testVal,KryoPool.defaultPool());
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(testVal);
         int offset = decoder.offset();
         decoder.skip();
         int length = decoder.offset()-1;
@@ -165,14 +164,14 @@ public class ValuePredicateTest {
 
         ValuePredicate predicate = new ValuePredicate(CompareFilter.CompareOp.GREATER,0,correctVal,true,false);
 
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(),3);
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(3);
         encoder.encodeNext(2);
         encoder.encodeNext(1);
         encoder.encodeNext(3);
 
         byte[] testVal = encoder.build();
 
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(testVal,KryoPool.defaultPool());
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(testVal);
         int offset = decoder.offset();
         decoder.skip();
         int length = decoder.offset()-1;
@@ -220,14 +219,14 @@ public class ValuePredicateTest {
 
         ValuePredicate predicate = new ValuePredicate(CompareFilter.CompareOp.GREATER_OR_EQUAL,0,correctVal,true,false);
 
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(),3);
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(3);
         encoder.encodeNext(2);
         encoder.encodeNext(1);
         encoder.encodeNext(3);
 
         byte[] testVal = encoder.build();
 
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(testVal,KryoPool.defaultPool());
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(testVal);
         int offset = decoder.offset();
         decoder.skip();
         int length = decoder.offset()-1;
@@ -274,14 +273,14 @@ public class ValuePredicateTest {
 
         ValuePredicate predicate = new ValuePredicate(CompareFilter.CompareOp.LESS_OR_EQUAL,0,correctVal,true,false);
 
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(),3);
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(3);
         encoder.encodeNext(2);
         encoder.encodeNext(1);
         encoder.encodeNext(3);
 
         byte[] testVal = encoder.build();
 
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(testVal,KryoPool.defaultPool());
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(testVal);
         int offset = decoder.offset();
         decoder.skip();
         int length = decoder.offset()-1;
@@ -328,13 +327,13 @@ public class ValuePredicateTest {
 
         ValuePredicate predicate = new ValuePredicate(CompareFilter.CompareOp.LESS,0,correctVal,true,false);
 
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(),2);
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(2);
         encoder.encodeNext(2);
         encoder.encodeNext(1);
 
         byte[] testVal = encoder.build();
 
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(testVal,KryoPool.defaultPool());
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(testVal);
         int offset = decoder.offset();
         decoder.skip();
         int length = decoder.offset()-1;

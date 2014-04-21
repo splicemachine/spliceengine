@@ -1,6 +1,5 @@
 package com.splicemachine.derby.utils.marshall;
 
-import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -66,7 +65,7 @@ public class SkippingKeyDecoder implements KeyHashDecoder {
 		@Override
 		public void decode(ExecRow destination) throws StandardException {
 				if(fieldDecoder==null)
-						fieldDecoder = MultiFieldDecoder.create(SpliceKryoRegistry.getInstance());
+						fieldDecoder = MultiFieldDecoder.create();
 
 				fieldDecoder.set(bytes,offset,length);
 				unpack(destination,fieldDecoder);

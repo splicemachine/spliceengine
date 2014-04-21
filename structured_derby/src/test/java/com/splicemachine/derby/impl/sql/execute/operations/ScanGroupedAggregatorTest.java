@@ -1,8 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
@@ -106,7 +104,7 @@ public class ScanGroupedAggregatorTest {
             GroupedRow groupedRow = results.get(i);
             ExecRow dataRow = groupedRow.getRow();
             byte[] groupKey = groupedRow.getGroupingKey();
-            MultiFieldDecoder decoder = MultiFieldDecoder.wrap(groupKey, SpliceKryoRegistry.getInstance());
+            MultiFieldDecoder decoder = MultiFieldDecoder.wrap(groupKey);
             boolean allNull=true;
             for(int colPos=0;colPos<groupColumns.length;colPos++){
                 if(decoder.nextIsNull()){

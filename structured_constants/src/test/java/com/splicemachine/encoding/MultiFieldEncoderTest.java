@@ -1,19 +1,12 @@
 package com.splicemachine.encoding;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.util.Pair;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.CodingErrorAction;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -114,7 +107,7 @@ public class MultiFieldEncoderTest {
 
     @Test
     public void testCanEncodeAndDecodeAllFieldsCorrectlyDescending() throws Exception {
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(),types.size());
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(types.size());
         int i=0;
         for(Pair<TestType,Object> type:types){
             TestType t = type.getFirst();
@@ -123,7 +116,7 @@ public class MultiFieldEncoderTest {
             i++;
         }
 
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(encoder.build(),KryoPool.defaultPool());
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(encoder.build());
         i =0;
         for(Pair<TestType,Object> cTestType:types){
             TestType cT = cTestType.getFirst();
@@ -135,14 +128,14 @@ public class MultiFieldEncoderTest {
 
     @Test
     public void testCanEncodeAndDecodeAllFieldsCorrectly() throws Exception {
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(),types.size());
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(types.size());
         for(Pair<TestType,Object> type:types){
             TestType t = type.getFirst();
             Object c = type.getSecond();
             t.load(encoder,c);
         }
 
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(encoder.build(),KryoPool.defaultPool());
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(encoder.build());
         for(Pair<TestType,Object> cTestType:types){
             TestType cT = cTestType.getFirst();
             Object correct = cTestType.getSecond();

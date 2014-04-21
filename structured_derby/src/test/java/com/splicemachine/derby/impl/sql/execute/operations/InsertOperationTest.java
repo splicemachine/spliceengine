@@ -256,7 +256,7 @@ public class InsertOperationTest {
                 pks[i] = primaryKeys[i]-1;
                 cols[primaryKeys[i]-1] = -1; // exclude primary key columns for a row encoding
             }
-            kEncoder = MultiFieldEncoder.create(kryoPool, primaryKeys.length);
+            kEncoder = MultiFieldEncoder.create(primaryKeys.length);
         }
         final int[] pksToUse = pks;
         final int[] colsToUse = cols;

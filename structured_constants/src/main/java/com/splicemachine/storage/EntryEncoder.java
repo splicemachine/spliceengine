@@ -32,13 +32,13 @@ public class EntryEncoder {
 
     private EntryEncoder(KryoPool kryoPool,BitIndex bitIndex){
         this.bitIndex = bitIndex;
-        this.encoder = MultiFieldEncoder.create(kryoPool,bitIndex.cardinality());
+        this.encoder = MultiFieldEncoder.create(bitIndex.cardinality());
         this.kryoPool = kryoPool;
     }
 
     public MultiFieldEncoder getEntryEncoder(){
         if(encoder==null)
-            encoder = MultiFieldEncoder.create(kryoPool,bitIndex.cardinality());
+            encoder = MultiFieldEncoder.create(bitIndex.cardinality());
         return encoder;
     }
 
@@ -98,7 +98,7 @@ public class EntryEncoder {
         } else {
             //close the old encoder to prevent resource leaks
             encoder.close();
-            encoder = MultiFieldEncoder.create(kryoPool, bitIndex.cardinality());
+            encoder = MultiFieldEncoder.create(bitIndex.cardinality());
         }
     }
 

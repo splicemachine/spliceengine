@@ -8,7 +8,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
@@ -97,7 +96,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 
 		protected MultiFieldDecoder getKeyDecoder() {
 				if (keyDecoder == null)
-						keyDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+						keyDecoder = MultiFieldDecoder.create();
 				return keyDecoder;
 		}
 

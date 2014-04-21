@@ -1,7 +1,6 @@
 package com.splicemachine.derby.utils.marshall;
 
 import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -11,7 +10,6 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
 import java.io.IOException;
-import java.util.GregorianCalendar;
 
 /**
  * @author Scott Fines
@@ -119,7 +117,7 @@ public class BareKeyHash{
 				@Override
 				public void set(byte[] bytes, int hashOffset,int length) {
 						if(decoder==null)
-								decoder = MultiFieldDecoder.create(kryoPool);
+								decoder = MultiFieldDecoder.create();
 
 						decoder.set(bytes,hashOffset,length);
 				}
@@ -149,9 +147,9 @@ public class BareKeyHash{
 				public byte[] encode() throws StandardException, IOException {
 						if(encoder==null){
 								if(keyColumns==null)
-										encoder = MultiFieldEncoder.create(kryoPool,currentRow.nColumns());
+										encoder = MultiFieldEncoder.create(currentRow.nColumns());
 								else
-										encoder = MultiFieldEncoder.create(kryoPool,keyColumns.length);
+										encoder = MultiFieldEncoder.create(keyColumns.length);
 						}
 
 						pack(encoder,currentRow);
