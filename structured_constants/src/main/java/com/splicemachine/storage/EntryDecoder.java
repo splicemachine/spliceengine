@@ -143,7 +143,7 @@ public class EntryDecoder implements FieldSkipper,Provider<MultiFieldDecoder>{
     public MultiFieldDecoder getEntryDecoder() throws IOException{
         decompressIfNeeded();
         if(decoder==null){
-            decoder = MultiFieldDecoder.wrap(data,offset+dataOffset,length-dataOffset,kryoPool);
+            decoder = MultiFieldDecoder.wrap(data,offset+dataOffset,length-dataOffset);
         }
         decoder.seek(offset+dataOffset);
         return decoder;

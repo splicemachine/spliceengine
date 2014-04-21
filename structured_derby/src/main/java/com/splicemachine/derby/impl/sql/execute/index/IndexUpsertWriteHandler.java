@@ -139,7 +139,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     private MultiFieldDecoder createKeyDecoder() {
         if (keyDecoder == null)
-            keyDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+            keyDecoder = MultiFieldDecoder.create();
         return keyDecoder;
     }
 

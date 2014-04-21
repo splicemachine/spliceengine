@@ -86,7 +86,7 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
         if(ordinal == JoinUtils.JoinSide.RIGHT.ordinal()){
             ExecRow rightRow = rightDecoder.decode(CellUtils.matchDataColumn(result.rawCells()));
             if(rightSideRow==null){
-                rightKeyDecoder = MultiFieldDecoder.wrap(rowKey, SpliceDriver.getKryoPool());
+                rightKeyDecoder = MultiFieldDecoder.wrap(rowKey);
                 rightSideRow = new JoinSideExecRow(rightRow, JoinUtils.JoinSide.RIGHT);
             }else{
                 rightKeyDecoder.set(rowKey);
@@ -100,7 +100,7 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
         }else{
             ExecRow leftRow = leftDecoder.decode(CellUtils.matchDataColumn(result.rawCells()));
             if(leftSideRow==null){
-                leftKeyDecoder = MultiFieldDecoder.wrap(rowKey, SpliceDriver.getKryoPool());
+                leftKeyDecoder = MultiFieldDecoder.wrap(rowKey);
                 leftSideRow = new JoinSideExecRow(leftRow, JoinUtils.JoinSide.LEFT);
             }else{
                 leftKeyDecoder.set(rowKey);

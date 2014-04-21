@@ -501,9 +501,9 @@ public class UpdateOperation extends DMLWriteOperation{
             public byte[] encode() throws StandardException, IOException {
                 rowKey = ((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
                 if (encoder == null)
-                    encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),keyColumns.length);
+                    encoder = MultiFieldEncoder.create(keyColumns.length);
                 if (decoder == null)
-                    decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+                    decoder = MultiFieldDecoder.create();
                 pack();
                 return encoder.build();
             }

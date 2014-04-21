@@ -1,20 +1,16 @@
 package com.splicemachine.derby.utils.test;
 
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.monitor.ModuleFactory;
 import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.J2SEDataValueFactory;
 import org.apache.derby.iapi.types.StringDataValue;
-import org.apache.derby.impl.sql.execute.GenericScanQualifier;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -107,7 +103,7 @@ public class DerbyBytesUtilTest {
 
 		@Test
 	public void testIndexGeneration() throws IOException {
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(),2);
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(2);
         byte[] testKey = encoder.encodeNext("John").encodeNext(11).build();
 
         encoder.reset();

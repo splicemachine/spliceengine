@@ -208,7 +208,7 @@ public class IndexUpsertWriteHandlerTest {
 
     private void assertPresentInIndex(Collection<KVPair> pairs, List<KVPair> indexPairs) throws IOException, StandardException {
         //make sure that every main row is found by doing a lookup on every index row
-        MultiFieldDecoder decoder = MultiFieldDecoder.create(SpliceKryoRegistry.getInstance());
+        MultiFieldDecoder decoder = MultiFieldDecoder.create();
         for(KVPair indexPair:indexPairs){
             decoder.set(indexPair.getRow());
             DataValueDescriptor dvd = LazyDataValueFactory.getLazyNull(80);

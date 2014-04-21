@@ -186,7 +186,7 @@ public class IndexTransformer {
 
     private void createKeyDecoder() {
         if (keyDecoder == null)
-            keyDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+            keyDecoder = MultiFieldDecoder.create();
         else
             keyDecoder.reset();
     }
