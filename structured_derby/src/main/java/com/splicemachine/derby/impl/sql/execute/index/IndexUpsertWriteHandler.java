@@ -5,27 +5,32 @@ import java.util.List;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.storage.*;
-import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.storage.ByteEntryAccumulator;
+import com.splicemachine.storage.EntryAccumulator;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.Predicate;
 import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.kryo.KryoPool;
 
 /**
  * @author Scott Fines
@@ -50,7 +55,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     public IndexUpsertWriteHandler(BitSet indexedColumns,
                                    int[] mainColToIndexPos,
-                                   byte[] indexConglomBytes,
+                                   TableName indexConglomBytes,
                                    BitSet descColumns,
                                    boolean keepState,
                                    boolean unique,

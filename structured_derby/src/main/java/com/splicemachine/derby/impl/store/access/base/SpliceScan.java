@@ -17,6 +17,7 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.BackingStoreHashtable;
@@ -29,10 +30,12 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-import java.io.IOException;
 
 public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	protected static Logger LOG = Logger.getLogger(SpliceScan.class);
@@ -90,7 +93,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		this.transID = SpliceUtils.getTransID(trans);
 		setupScan();
 		attachFilter();
-		tableName = Bytes.toString(SpliceConstants.TEMP_TABLE_BYTES);
+		tableName = SpliceConstants.TEMP_TABLE;
         setupRowColumns();
 //		table = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 	}

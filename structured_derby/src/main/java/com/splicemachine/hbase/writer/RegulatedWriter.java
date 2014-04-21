@@ -1,11 +1,18 @@
 package com.splicemachine.hbase.writer;
 
-import com.splicemachine.tools.SemaphoreValve;
-import com.splicemachine.tools.Valve;
-import org.apache.hadoop.hbase.RegionTooBusyException;
-import javax.management.*;
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+
+import org.apache.hadoop.hbase.RegionTooBusyException;
+import org.apache.hadoop.hbase.TableName;
+
+import com.splicemachine.tools.SemaphoreValve;
+import com.splicemachine.tools.Valve;
 
 /**
  * Writer which regulates how many concurrent writes are allowed, gating flushes as necessary (forcing flushes
@@ -34,7 +41,7 @@ public class RegulatedWriter implements Writer{
 
 
     @Override
-    public Future<WriteStats> write(byte[] tableName,
+    public Future<WriteStats> write(TableName tableName,
 																		BulkWrite action,
 																		WriteConfiguration writeConfiguration) throws ExecutionException {
         int version = valve.tryAllow();
@@ -66,7 +73,7 @@ public class RegulatedWriter implements Writer{
 
     public static interface WriteRejectedHandler{
 
-        public Future<WriteStats> writeRejected(byte[] tableName, BulkWrite action, WriteConfiguration writeConfiguration) throws ExecutionException;
+        public Future<WriteStats> writeRejected(TableName tableName, BulkWrite action, WriteConfiguration writeConfiguration) throws ExecutionException;
     }
 
     /**
@@ -84,7 +91,7 @@ public class RegulatedWriter implements Writer{
         private final Writer otherWriter;
 
         @Override
-        public Future<WriteStats> writeRejected(byte[] tableName, BulkWrite action, WriteConfiguration writeConfiguration) throws ExecutionException {
+        public Future<WriteStats> writeRejected(TableName tableName, BulkWrite action, WriteConfiguration writeConfiguration) throws ExecutionException {
             return otherWriter.write(tableName,action,writeConfiguration);
         }
     }

@@ -9,6 +9,8 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.*;
 import com.splicemachine.storage.EntryEncoder;
+
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 
@@ -22,10 +24,10 @@ public class AsyncTableWritingMetricsReporter implements RuntimeMetricsReporter{
 		private static final Logger LOG = Logger.getLogger(AsyncTableWritingMetricsReporter.class);
 		private final BlockingQueue<OperationRuntimeStats> statsQueue;
 		private final ThreadPoolExecutor writerThreads;
-		private final byte[] destinationTable;
+		private final TableName destinationTable;
 		private long flushTimeWindow;
 
-		public AsyncTableWritingMetricsReporter(byte[] destinationTable,int reporterThreads, long flushTimeWindowSeconds) {
+		public AsyncTableWritingMetricsReporter(TableName destinationTable,int reporterThreads, long flushTimeWindowSeconds) {
 				this.flushTimeWindow = flushTimeWindowSeconds;
 				ThreadFactory factory = new ThreadFactoryBuilder()
 								.setDaemon(true).setNameFormat("metrics-reporter-%d").build();

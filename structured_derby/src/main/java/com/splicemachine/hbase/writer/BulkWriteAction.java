@@ -23,6 +23,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.RegionTooBusyException;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Row;
@@ -49,7 +50,7 @@ final class BulkWriteAction implements Callable<WriteStats> {
     private final Writer.WriteConfiguration writeConfiguration;
     private final RegionCache regionCache;
 		private final ActionStatusReporter statusReporter;
-    private final byte[] tableName;
+    private final TableName tableName;
     private final long id = idGen.incrementAndGet();
 
 		private final BulkWriteInvoker.Factory invokerFactory;
@@ -62,7 +63,7 @@ final class BulkWriteAction implements Callable<WriteStats> {
 		private final Counter rejectedCounter;
 		private final Counter partialFailureCounter;
 
-		public BulkWriteAction(byte[] tableName,
+		public BulkWriteAction(TableName tableName,
                            BulkWrite bulkWrite,
                            RegionCache regionCache,
                            Writer.WriteConfiguration writeConfiguration,
@@ -73,7 +74,7 @@ final class BulkWriteAction implements Callable<WriteStats> {
 								new BulkWriteChannelInvoker.Factory(connection,tableName),Sleeper.THREAD_SLEEPER);
     }
 
-		BulkWriteAction(byte[] tableName,
+		BulkWriteAction(TableName tableName,
 										BulkWrite write,
 										RegionCache regionCache,
 										Writer.WriteConfiguration writeConfiguration,
@@ -84,7 +85,7 @@ final class BulkWriteAction implements Callable<WriteStats> {
 								invokerFactory,Sleeper.THREAD_SLEEPER);
 		}
 
-		BulkWriteAction(byte[] tableName,
+		BulkWriteAction(TableName tableName,
 										BulkWrite write,
 										RegionCache regionCache,
 										Writer.WriteConfiguration writeConfiguration,

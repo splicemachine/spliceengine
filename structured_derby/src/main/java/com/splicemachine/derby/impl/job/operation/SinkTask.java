@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
@@ -182,11 +183,11 @@ public class SinkTask extends ZkTask {
 
 		@Override
 		protected TransactionId beginChildTransaction(TransactionManager transactor, TransactionId parent) throws IOException {
-				byte[] table = null;
+				TableName table = null;
 				if(instructions.getTopOperation() instanceof DMLWriteOperation){
 						table = ((DMLWriteOperation)instructions.getTopOperation()).getDestinationTable();
 				}
-				return transactor.beginChildTransaction(parent, !readOnly, table);
+				return transactor.beginChildTransaction(parent, !readOnly, table.getName());
 		}
 
 		@Override

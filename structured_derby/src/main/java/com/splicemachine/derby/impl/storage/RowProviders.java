@@ -22,23 +22,31 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.writer.WriteStats;
-import com.splicemachine.job.*;
+import com.splicemachine.job.CompositeJobResults;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobResults;
+import com.splicemachine.job.JobStats;
+import com.splicemachine.job.SimpleJobResults;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Static utility methods for managing RowProviders.
@@ -216,7 +224,7 @@ public class RowProviders {
 				}
 				@Override public void close() throws StandardException { provider.close(); }
 				//		@Override public Scan toScan() { return provider.toScan(); }
-				@Override public byte[] getTableName() { return provider.getTableName(); }
+				@Override public TableName getTableName() { return provider.getTableName(); }
 				@Override public int getModifiedRowCount() { return provider.getModifiedRowCount(); }
 				@Override public boolean hasNext() throws StandardException, IOException { return provider.hasNext(); }
 
@@ -292,7 +300,7 @@ public class RowProviders {
 								if (op instanceof DMLWriteOperation)
 										stats = new LocalTaskJobStats(opSink.sink(((DMLWriteOperation) op).getDestinationTable(), spliceRuntimeContext));
 								else {
-										byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+										TableName tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
 										stats = new LocalTaskJobStats(opSink.sink(tempTableBytes, spliceRuntimeContext));
 								}
 
@@ -310,7 +318,7 @@ public class RowProviders {
 
 				@Override public RowLocation getCurrentRowLocation() { return null; }
 				@Override public Scan toScan() { return null; }
-				@Override public byte[] getTableName() { return null; }
+				@Override public TableName getTableName() { return null; }
 
 				@Override
 				public int getModifiedRowCount() {
@@ -419,7 +427,7 @@ public class RowProviders {
 				}
 
 				@Override
-				public byte[] getTableName() {
+				public TableName getTableName() {
 						if(onFirst) return firstRowProvider.getTableName();
 						else return secondRowProvider.getTableName();
 				}

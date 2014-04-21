@@ -63,7 +63,7 @@ public class BulkWriteActionTest {
 				final Set<HRegionInfo> twoRegions = Sets.newTreeSet();
 				twoRegions.add(new HRegionInfo(TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, "test"),HConstants.EMPTY_START_ROW,Encoding.encode(6)));
 				twoRegions.add(new HRegionInfo(TableName.valueOf(SpliceConstants.SPLICE_HBASE_NAMESPACE, "test"),Encoding.encode(6),HConstants.EMPTY_END_ROW));
-				when(cache.getRegions(any(byte[].class))).thenAnswer(new Answer<Set<HRegionInfo>>() {
+				when(cache.getRegions(any(TableName.class))).thenAnswer(new Answer<Set<HRegionInfo>>() {
 						@Override
 						public Set<HRegionInfo> answer(InvocationOnMock invocation) throws Throwable {
 								if(splitPoint[0])
@@ -152,7 +152,7 @@ public class BulkWriteActionTest {
 						}
 				});
 
-				BulkWriteAction action = new BulkWriteAction(Bytes.toBytes("test"),write,cache,config,new BulkWriteAction.ActionStatusReporter(),new BulkWriteInvoker.Factory() {
+				BulkWriteAction action = new BulkWriteAction(TableName.valueOf("test"),write,cache,config,new BulkWriteAction.ActionStatusReporter(),new BulkWriteInvoker.Factory() {
 						@Override
 						public BulkWriteInvoker newInstance() {
 								return invoker;
@@ -164,7 +164,7 @@ public class BulkWriteActionTest {
 
 		@Test
 		public void testWorks() throws Exception {
-				byte[] tableName = Bytes.toBytes("testTable");
+            TableName tableName = TableName.valueOf("testTable");
 
 				ObjectArrayList<KVPair> mutations = ObjectArrayList.newInstanceWithCapacity(5);
 				for(int i=0;i<5;i++){
@@ -190,7 +190,7 @@ public class BulkWriteActionTest {
 
 		@Test(expected= StandardException.class)
 		public void testFailsOnNonRetryableFailure() throws Throwable {
-				byte[] tableName = Bytes.toBytes("testTable");
+            TableName tableName = TableName.valueOf("testTable");
 
 				ObjectArrayList<KVPair> mutations = ObjectArrayList.newInstanceWithCapacity(5);
 				for(int i=0;i<5;i++){
@@ -226,7 +226,7 @@ public class BulkWriteActionTest {
 
 		@Test
 		public void testRetriesOnRegionTooBusyCode() throws Exception {
-				byte[] tableName = Bytes.toBytes("testTable");
+            TableName tableName = TableName.valueOf("testTable");
 
 				ObjectArrayList<KVPair> mutations = ObjectArrayList.newInstanceWithCapacity(5);
 				for(int i=0;i<5;i++){
@@ -271,7 +271,7 @@ public class BulkWriteActionTest {
 
 		@Test
 		public void testRetriesOnRegionTooBusy() throws Exception {
-				byte[] tableName = Bytes.toBytes("testTable");
+            TableName tableName = TableName.valueOf("testTable");
 
 				ObjectArrayList<KVPair> mutations = ObjectArrayList.newInstanceWithCapacity(5);
 				for(int i=0;i<5;i++){
@@ -317,7 +317,7 @@ public class BulkWriteActionTest {
 
 		@Test(expected = DoNotRetryIOException.class)
 		public void testRetryFailsWhenCacheCantFill() throws Exception {
-				byte[] tableName = Bytes.toBytes("testTable");
+            TableName tableName = TableName.valueOf("testTable");
 				ObjectArrayList<KVPair> mutations = ObjectArrayList.newInstanceWithCapacity(5);
 				for(int i=0;i<10;i++){
 						mutations.add(new KVPair(Encoding.encode(i), Encoding.encode(i)));
@@ -414,7 +414,7 @@ public class BulkWriteActionTest {
 
 		@Test
 		public void testRetriesCorrectlyOnRegionSplit() throws Exception {
-				byte[] tableName = Bytes.toBytes("testTable");
+            TableName tableName = TableName.valueOf("testTable");
 				ObjectArrayList<KVPair> mutations = ObjectArrayList.newInstanceWithCapacity(5);
 				for(int i=0;i<10;i++){
 						mutations.add(new KVPair(Encoding.encode(i), Encoding.encode(i)));
@@ -523,7 +523,7 @@ public class BulkWriteActionTest {
 
 		@Test
 		public void testRetriesCorrectlyOnRegionSplitWithCodeAndNotRunInsteadOfError() throws Exception {
-				byte[] tableName = Bytes.toBytes("testTable");
+            TableName tableName = TableName.valueOf("testTable");
 				ObjectArrayList<KVPair> mutations = ObjectArrayList.newInstanceWithCapacity(5);
 				for(int i=0;i<10;i++){
 						mutations.add(new KVPair(Encoding.encode(i), Encoding.encode(i)));
@@ -636,7 +636,7 @@ public class BulkWriteActionTest {
 
 		@Test
 		public void testRetriesCorrectlyOnWrongRegion() throws Exception {
-				byte[] tableName = Bytes.toBytes("testTable");
+            TableName tableName = TableName.valueOf("testTable");
 
 				ObjectArrayList<KVPair> mutations = ObjectArrayList.newInstanceWithCapacity(5);
 				for(int i=0;i<10;i++){

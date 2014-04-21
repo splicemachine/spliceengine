@@ -1,11 +1,19 @@
 package com.splicemachine.hbase.writer;
 
-import com.splicemachine.hbase.MonitoredThreadPool;
-import com.splicemachine.hbase.RegionCache;
-import org.apache.hadoop.hbase.client.HConnection;
-import javax.management.*;
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.HConnection;
+
+import com.splicemachine.hbase.MonitoredThreadPool;
+import com.splicemachine.hbase.RegionCache;
 
 /**
  * @author Scott Fines
@@ -26,7 +34,7 @@ public class AsyncBucketingWriter extends BucketingWriter {
     }
 
     @Override
-    public Future<WriteStats> write(byte[] tableName, BulkWrite bulkWrite, WriteConfiguration writeConfiguration) throws ExecutionException {
+    public Future<WriteStats> write(TableName tableName, BulkWrite bulkWrite, WriteConfiguration writeConfiguration) throws ExecutionException {
         WriteConfiguration countingWriteConfiguration = new CountingWriteConfiguration(writeConfiguration,statusMonitor);
         BulkWriteAction action = new BulkWriteAction(tableName,
                 bulkWrite,

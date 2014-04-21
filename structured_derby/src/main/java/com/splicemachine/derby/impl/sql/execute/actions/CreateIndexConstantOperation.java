@@ -1,11 +1,18 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.google.common.io.Closeables;
+import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.TentativeIndexDesc;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Properties;
-
-import com.google.common.io.Closeables;
-import com.splicemachine.si.api.TransactionManager;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -43,15 +50,6 @@ import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.derby.impl.sql.execute.RowUtil;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.derby.ddl.DDLChange;
-import com.splicemachine.derby.ddl.TentativeIndexDesc;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.utils.SpliceLogUtils;
 
 
 public class CreateIndexConstantOperation extends IndexConstantOperation {
@@ -742,7 +740,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             notifyMetadataChange(ddlChange);
 
             final long tableConglomId = td.getHeapConglomerateId();
-            HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
+            HTableInterface table = SpliceAccessManager.getHTable(tableConglomId);
             try{
                 // Add the indexes to the exisiting regions
                 createIndex(activation, ddlChange, table, td);

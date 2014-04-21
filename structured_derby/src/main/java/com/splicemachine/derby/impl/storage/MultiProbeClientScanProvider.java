@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.metrics.OperationMetric;
@@ -11,18 +10,14 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.utils.SpliceLogUtils;
-
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.List;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.log4j.Logger;
 
 /**
  *
@@ -31,14 +26,14 @@ import java.util.List;
  */
 public class MultiProbeClientScanProvider extends AbstractMultiScanProvider {
 		private static final Logger LOG = Logger.getLogger(MultiProbeClientScanProvider.class);
-		private final byte[] tableName;
+		private final TableName tableName;
 		private HTableInterface htable;
 		private final List<Scan> scans;
 		private SpliceResultScanner scanner;
 		private long startTimestamp;
 		private long stopTimestamp;
 
-		public MultiProbeClientScanProvider(String type,byte[] tableName,
+		public MultiProbeClientScanProvider(String type,TableName tableName,
 																				List<Scan> scans,
 																				PairDecoder decoder,
 																				SpliceRuntimeContext spliceRuntimeContext) {
@@ -69,7 +64,7 @@ public class MultiProbeClientScanProvider extends AbstractMultiScanProvider {
 				try {
 						scanner = ProbeDistributedScanner.create(htable, scans,spliceRuntimeContext);
 				} catch (IOException e) {
-						SpliceLogUtils.logAndThrowRuntime(LOG,"unable to open table "+ Bytes.toString(tableName),e);
+						SpliceLogUtils.logAndThrowRuntime(LOG,"unable to open table "+ tableName.getNameAsString(),e);
 				}
 				startTimestamp = System.currentTimeMillis();
 		}
@@ -83,7 +78,7 @@ public class MultiProbeClientScanProvider extends AbstractMultiScanProvider {
 						try {
 								htable.close();
 						} catch (IOException e) {
-								SpliceLogUtils.logAndThrowRuntime(LOG,"unable to close htable for "+ Bytes.toString(tableName),e);
+								SpliceLogUtils.logAndThrowRuntime(LOG,"unable to close htable for "+ tableName.getNameAsString(),e);
 						}
 		}
 
@@ -93,7 +88,7 @@ public class MultiProbeClientScanProvider extends AbstractMultiScanProvider {
 		}
 
 		@Override
-		public byte[] getTableName() {
+		public TableName getTableName() {
 				return tableName;
 		}
 		@Override

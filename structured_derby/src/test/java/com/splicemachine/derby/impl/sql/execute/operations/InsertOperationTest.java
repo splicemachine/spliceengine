@@ -39,6 +39,7 @@ import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Before;
@@ -322,8 +323,8 @@ public class InsertOperationTest {
             }
         }).when(outputBuffer).add(any(KVPair.class));
         final CallBufferFactory<KVPair> bufferFactory = mock(CallBufferFactory.class);
-        when(bufferFactory.writeBuffer(any(byte[].class), any(String.class))).thenReturn(outputBuffer);
-				when(bufferFactory.writeBuffer(any(byte[].class), any(String.class),any(MetricFactory.class))).thenReturn(outputBuffer);
+        when(bufferFactory.writeBuffer(any(TableName.class), any(String.class))).thenReturn(outputBuffer);
+				when(bufferFactory.writeBuffer(any(TableName.class), any(String.class),any(MetricFactory.class))).thenReturn(outputBuffer);
 
         RowProvider mockProvider = mock(RowProvider.class);
         when(mockProvider.shuffleRows(any(SpliceObserverInstructions.class))).thenAnswer(new Answer<JobResults>(){
@@ -336,7 +337,7 @@ public class InsertOperationTest {
 
                 OperationSink opSink = new OperationSink(Bytes.toBytes("TEST_TASK"),(DMLWriteOperation)op,bufferFactory,"TEST_TXN",-1l,0l);
 
-                TaskStats sink = opSink.sink(Bytes.toBytes("1184"), new SpliceRuntimeContext(table,kryoPool));
+                TaskStats sink = opSink.sink(TableName.valueOf("1184"), new SpliceRuntimeContext(table,kryoPool));
                 JobStats stats = mock(JobStats.class);
                 when(stats.getTaskStats()).thenReturn(Arrays.asList(sink));
 

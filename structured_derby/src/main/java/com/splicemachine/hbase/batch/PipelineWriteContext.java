@@ -1,6 +1,16 @@
 package com.splicemachine.hbase.batch;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 import com.google.common.collect.Maps;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
@@ -10,15 +20,6 @@ import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.hbase.writer.Writer;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 /**
  * @author Scott Fines
@@ -70,12 +71,12 @@ public class PipelineWriteContext implements WriteContext{
         }
 
         @Override
-        public HTableInterface getHTable(byte[] indexConglomBytes) {
+        public HTableInterface getHTable(TableName indexConglomBytes) {
             return PipelineWriteContext.this.getHTable(indexConglomBytes);
         }
 
         @Override
-        public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,
+        public CallBuffer<KVPair> getWriteBuffer(TableName conglomBytes,
                                                  WriteCoordinator.PreFlushHook preFlushListener,
                                                  Writer.WriteConfiguration writeConfiguration,
                                                  int maxEntries) throws Exception {
@@ -180,23 +181,22 @@ public class PipelineWriteContext implements WriteContext{
     }
 
     @Override
-    public HTableInterface getHTable(byte[] indexConglomBytes) {
-        HTableInterface table = tableCache.get(indexConglomBytes);
+    public HTableInterface getHTable(TableName indexConglomBytes) {
+        byte[] tableNameKey = indexConglomBytes.getName();
+        HTableInterface table = tableCache.get(tableNameKey);
         if(table==null){
             try {
-//                table = getCoprocessorEnvironment().getTable(indexConglomBytes);
-                // FIXME: jc - equivalent?
-                table = getCoprocessorEnvironment().getTable(TableName.valueOf(indexConglomBytes));
+                table = getCoprocessorEnvironment().getTable(indexConglomBytes);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            tableCache.put(indexConglomBytes,table);
+            tableCache.put(tableNameKey,table);
         }
         return table;
     }
 
     @Override
-    public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,
+    public CallBuffer<KVPair> getWriteBuffer(TableName conglomBytes,
                                              WriteCoordinator.PreFlushHook preFlushListener,
                                              Writer.WriteConfiguration writeConfiguration, int maxSize) throws Exception {
         if(useAsyncWriteBuffers)

@@ -44,6 +44,7 @@ import org.apache.derby.iapi.store.raw.ContainerKey;
 import org.apache.derby.iapi.store.raw.LockingPolicy;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.shared.common.reference.Attribute;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -1014,13 +1015,13 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 	public static HTableInterface getHTable(Long id) {
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("Getting HTable " + id);
-		return singleRPCPool.getTable(Long.toString(id));
+		return singleRPCPool.getTable(TableName.valueOf(Long.toString(id)).getNameAsString());
 	}
 
-	public static HTableInterface getHTable(byte[] tableName) {
+	public static HTableInterface getHTable(TableName tableName) {
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("Getting HTable " + Bytes.toString(tableName));
-		return singleRPCPool.getTable(Bytes.toString(tableName));
+		return singleRPCPool.getTable(tableName.getNameAsString());
 	}
 
 	public static HTableInterface getFlushableHTable(byte[] tableName) {

@@ -1,20 +1,19 @@
 package com.splicemachine.derby.impl.temp;
 
+import com.google.common.primitives.Longs;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.utils.marshall.SpreadBucket;
+import com.splicemachine.utils.Snowflake;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
-
-import com.google.common.primitives.Longs;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
-
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.marshall.SpreadBucket;
-import com.splicemachine.utils.Snowflake;
 
 /**
  * Representation of the current state of a TempTable.
@@ -27,10 +26,10 @@ import com.splicemachine.utils.Snowflake;
  * Date: 11/18/13
  */
 public class TempTable {
-		private final byte[] tempTableName;
+		private final TableName tempTableName;
 		private AtomicReference<SpreadBucket> spread;
 
-		public TempTable(byte[] tempTableName) {
+		public TempTable(TableName tempTableName) {
 				this.tempTableName = tempTableName;
 				this.spread = new AtomicReference<SpreadBucket>(SpreadBucket.SIXTEEN);
 		}
@@ -96,7 +95,7 @@ public class TempTable {
 				return Longs.min(activeTimestamps)-maxClockSkew;
 		}
 
-		public byte[] getTempTableName() {
+		public TableName getTempTableName() {
 				return tempTableName;
 		}
 

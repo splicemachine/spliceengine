@@ -8,15 +8,14 @@ import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.utils.SpliceLogUtils;
+import java.util.List;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
-import java.util.List;
 
 
 /**
@@ -95,7 +94,7 @@ public class MiscOperation extends NoRowsOperation
 				}
 
 				@Override public RowLocation getCurrentRowLocation() { return null; }
-				@Override public byte[] getTableName() { return null; }
+				@Override public TableName getTableName() { return null; }
 
 				@Override
 				public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {

@@ -1,12 +1,26 @@
 package com.splicemachine.derby.impl.load;
 
+import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.*;
+import com.splicemachine.hbase.writer.BulkWrite;
+import com.splicemachine.hbase.writer.BulkWriteResult;
+import com.splicemachine.hbase.writer.CallBufferFactory;
+import com.splicemachine.hbase.writer.ForwardingWriteConfiguration;
+import com.splicemachine.hbase.writer.RecordingCallBuffer;
+import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.hbase.writer.WriteStats;
+import com.splicemachine.hbase.writer.Writer;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
@@ -14,11 +28,6 @@ import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoPool;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -107,7 +116,7 @@ public class SequentialImporter implements Importer{
 								return metricFactory;
 						}
 				};
-				writeBuffer = callBufferFactory.writeBuffer(importContext.getTableName().getBytes(), txnId,config);
+				writeBuffer = callBufferFactory.writeBuffer(TableName.valueOf(importContext.getTableName().getBytes()), txnId,config);
 		}
 
 		@Override

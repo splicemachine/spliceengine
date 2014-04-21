@@ -8,6 +8,7 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 
@@ -36,7 +37,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
     public IndexDeleteWriteHandler(BitSet indexedColumns,
                                    int[] mainColToIndexPosMap,
-                                   byte[] indexConglomBytes,
+                                   TableName indexConglomBytes,
                                    BitSet descColumns,
                                    boolean keepState,
                                    int expectedWrites,
@@ -48,7 +49,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
     public IndexDeleteWriteHandler(BitSet indexedColumns,
                                    int[] mainColToIndexPosMap,
-                                   byte[] indexConglomBytes,
+                                   TableName indexConglomBytes,
                                    BitSet descColumns,
                                    boolean keepState,
                                    boolean unique,

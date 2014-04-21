@@ -27,6 +27,7 @@ import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -127,8 +128,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				stopExecutionTime = System.currentTimeMillis();
 		}
 
-		public byte[] getDestinationTable(){
-				return Long.toString(heapConglom).getBytes();
+		public TableName getDestinationTable(){
+				return TableName.valueOf(Long.toString(heapConglom));
 		}
 
 		@Override
@@ -446,7 +447,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
 				@Override public RowLocation getCurrentRowLocation() { return null; }
 				@Override public Scan toScan() { return null; }
-				@Override public byte[] getTableName() { return null; }
+				@Override public TableName getTableName() { return null; }
 
 				@Override
 				public int getModifiedRowCount() {

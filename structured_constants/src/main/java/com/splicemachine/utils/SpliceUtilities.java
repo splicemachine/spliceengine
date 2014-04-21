@@ -173,7 +173,7 @@ public class SpliceUtilities extends SIConstants {
             if(!admin.tableExists(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES)){
                 HTableDescriptor td = generateNonSITable(SEQUENCE_TABLE_NAME);
                 admin.createTable(td);
-                SpliceLogUtils.info(LOG,SpliceConstants.SEQUENCE_TABLE_NAME_BYTES+" created");
+                SpliceLogUtils.info(LOG,SpliceConstants.SEQUENCE_TABLE_NAME_BYTES.getNameAsString()+" created");
             }
 
             

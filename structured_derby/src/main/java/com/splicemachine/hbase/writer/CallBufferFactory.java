@@ -1,5 +1,7 @@
 package com.splicemachine.hbase.writer;
 
+import org.apache.hadoop.hbase.TableName;
+
 import com.splicemachine.stats.MetricFactory;
 
 /**
@@ -8,22 +10,22 @@ import com.splicemachine.stats.MetricFactory;
  */
 public interface CallBufferFactory<T> {
 
-		RecordingCallBuffer<T> writeBuffer(byte[] tableName, String txnId, MetricFactory metricFactory);
+		RecordingCallBuffer<T> writeBuffer(TableName tableName, String txnId, MetricFactory metricFactory);
 
-    RecordingCallBuffer<T> writeBuffer(byte[] tableName, String txnId);
+    RecordingCallBuffer<T> writeBuffer(TableName tableName, String txnId);
 
-    RecordingCallBuffer<T> writeBuffer(byte[] tableName, String txnId,
+    RecordingCallBuffer<T> writeBuffer(TableName tableName, String txnId,
                                             WriteCoordinator.PreFlushHook flushHook, Writer.WriteConfiguration writeConfiguration);
 
-		RecordingCallBuffer<T> writeBuffer(byte[] tableName, String txnId,Writer.WriteConfiguration writeConfiguration);
+		RecordingCallBuffer<T> writeBuffer(TableName tableName, String txnId,Writer.WriteConfiguration writeConfiguration);
 
-		RecordingCallBuffer<T> writeBuffer(byte[] tableName, String txnId, int maxEntries);
+		RecordingCallBuffer<T> writeBuffer(TableName tableName, String txnId, int maxEntries);
 
-    RecordingCallBuffer<T> synchronousWriteBuffer(byte[] tableName,
+    RecordingCallBuffer<T> synchronousWriteBuffer(TableName tableName,
                                                        String txnId, WriteCoordinator.PreFlushHook flushHook,
                                                        Writer.WriteConfiguration writeConfiguration);
 
-    RecordingCallBuffer<T> synchronousWriteBuffer(byte[] tableName,
+    RecordingCallBuffer<T> synchronousWriteBuffer(TableName tableName,
                                                        String txnId,
                                                        WriteCoordinator.PreFlushHook flushHook,
                                                        Writer.WriteConfiguration writeConfiguration,

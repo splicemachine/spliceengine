@@ -7,23 +7,24 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.MultiProbeClientScanProvider;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.ArrayUtil;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.compile.RowOrdering;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
-// These are for javadoc "@see" tags.
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.ArrayUtil;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.compile.RowOrdering;
+import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Scan;
+
+// These are for javadoc "@see" tags.
 
 /**
  * Result set that fetches rows from a scan by "probing" the underlying
@@ -209,7 +210,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 					//remove SI behavior from scan to make sure that we do it ourselves
 					deSiify(scan);
 			}
-			MultiProbeClientScanProvider provider = new MultiProbeClientScanProvider("tableScan",Bytes.toBytes(tableName),
+			MultiProbeClientScanProvider provider = new MultiProbeClientScanProvider("tableScan", TableName.valueOf(tableName),
 							scans, decoder,spliceRuntimeContext);
 		nextTime += System.currentTimeMillis() - beginTime;
 		return provider;

@@ -1,25 +1,29 @@
 package com.splicemachine.hbase.writer;
 
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.RegionCache;
-import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.stats.Metrics;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.Metrics;
 
 /**
  * A CallBuffer which pre-maps entries to a separate buffer based on which region
@@ -40,7 +44,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     private NavigableMap<byte[],PreMappedBuffer> regionToBufferMap;
     private final Writer writer;
     private final Writer synchronousWriter;
-    private final byte[] tableName;
+    private final TableName tableName;
     private final String txnId;
     private final RegionCache regionCache;
 
@@ -65,7 +69,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     private final WriteCoordinator.PreFlushHook preFlushHook;
 
 
-    public PipingWriteBuffer(byte[] tableName,
+    public PipingWriteBuffer(TableName tableName,
                       String txnId,
                       Writer writer,
                       Writer synchronousWriter,
@@ -152,7 +156,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
                 numTries--;
             }
             if(regions.size()<=0)
-                throw new IOException("Unable to get region information for table "+ Bytes.toString(tableName));
+                throw new IOException("Unable to get region information for table "+ tableName.getNameAsString());
         }
 
         for(HRegionInfo region:regions){
@@ -392,7 +396,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
         }
 
         @Override
-        public Future<WriteStats> writeRejected(byte[] tableName, BulkWrite action, Writer.WriteConfiguration writeConfiguration) throws ExecutionException {
+        public Future<WriteStats> writeRejected(TableName tableName, BulkWrite action, Writer.WriteConfiguration writeConfiguration) throws ExecutionException {
             bufferConfiguration.writeRejected();
             return otherWriterHandler.writeRejected(tableName,action,writeConfiguration);
         }

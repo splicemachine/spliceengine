@@ -9,6 +9,7 @@ import com.google.protobuf.SpliceZeroCopyByteString;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
@@ -111,7 +112,7 @@ public class SnowflakeLoader {
 
     public static void unload(short machineId) throws Exception{
         byte[] counterNameRow = MACHINE_ID_COUNTER.getBytes();
-        HTableInterface table = SpliceAccessManager.getHTable(counterNameRow);
+        HTableInterface table = SpliceAccessManager.getHTable(TableName.valueOf(counterNameRow));
         try{
             Put put = new Put(counterNameRow);
             put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Encoding.encode(machineId),HConstants.EMPTY_START_ROW);

@@ -1,11 +1,16 @@
 package com.splicemachine.hbase.writer;
 
-import com.splicemachine.stats.IOStats;
-import com.splicemachine.stats.MetricFactory;
-
-import javax.management.*;
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+
+import org.apache.hadoop.hbase.TableName;
+
+import com.splicemachine.stats.MetricFactory;
 
 /**
  * @author Scott Fines
@@ -13,7 +18,7 @@ import java.util.concurrent.Future;
  */
 public interface Writer {
 
-    public Future<WriteStats> write(byte[] tableName, BulkWrite action, WriteConfiguration writeConfiguration) throws ExecutionException;
+    public Future<WriteStats> write(TableName tableName, BulkWrite action, WriteConfiguration writeConfiguration) throws ExecutionException;
 
     void stopWrites();
 

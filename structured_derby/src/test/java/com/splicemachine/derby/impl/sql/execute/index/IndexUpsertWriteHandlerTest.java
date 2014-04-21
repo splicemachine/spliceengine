@@ -1,33 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.junit.Assert;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
@@ -45,6 +21,29 @@ import com.splicemachine.hbase.writer.Writer;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.junit.Assert;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Scott Fines
@@ -85,7 +84,7 @@ public class IndexUpsertWriteHandlerTest {
         int[] formatIds = new int[]{80};
         //get a delete write handler
         IndexDeleteWriteHandler deleteHandler = new IndexDeleteWriteHandler(
-                indexedColumns,mainColToIndexPos,Bytes.toBytes("1184"),new BitSet(),true,6, null, formatIds);
+                indexedColumns,mainColToIndexPos, TableName.valueOf("1184"),new BitSet(),true,6, null, formatIds);
 
         //delete every other row in pairs
         Set<KVPair> deletedPairs = Sets.newTreeSet();
@@ -251,7 +250,7 @@ public class IndexUpsertWriteHandlerTest {
         });
 
         when(testCtx.getWriteBuffer(
-                any(byte[].class),
+                any(TableName.class),
                 any(WriteCoordinator.PreFlushHook.class),
                 any(Writer.WriteConfiguration.class),any(int.class))).thenReturn(writingBuffer);
         return testCtx;
@@ -263,7 +262,7 @@ public class IndexUpsertWriteHandlerTest {
         boolean unique = false;
         boolean uniqueWithDuplicateNulls = false;
         int expectedWrites = 10;
-        byte[] indexConglomBytes = Bytes.toBytes("1184");
+        TableName indexConglomBytes = TableName.valueOf("1184");
         int[] formatIds = new int[] {80};
         IndexUpsertWriteHandler writeHandler = new IndexUpsertWriteHandler(indexedColumns,
                 mainColToIndexPos,

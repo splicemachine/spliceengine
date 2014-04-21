@@ -5,13 +5,12 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
-import com.splicemachine.job.JobStats;
+import java.util.List;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.util.Pair;
-
-import java.util.List;
 
 /**
  * Provides ExecRows for later stages in the execution computation.
@@ -57,7 +56,7 @@ public interface RowProvider extends RowProviderIterator<ExecRow>  {
      *
      * @return the table name, or {@code null} if no table name exists
      */
-    byte[] getTableName();
+    TableName getTableName();
 
 		/**
 		 * @return the number of rows which are being modified, or 0 if no rows are being modified by this (e.g.
