@@ -11,6 +11,10 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.index.BitIndex;
 
+import java.io.IOException;
+
+import org.apache.hadoop.hbase.KeyValue;
+
 public class HRowAccumulator implements RowAccumulator {
     private final EntryPredicateFilter predicateFilter;
     private final EntryAccumulator entryAccumulator;
@@ -39,9 +43,15 @@ public class HRowAccumulator implements RowAccumulator {
 		return entryAccumulator.isInteresting(currentIndex);
     }
 
-    @Override
-    public boolean accumulate(Cell keyValue) throws IOException {
-		bytesAccumulated+= CellUtils.getLength(keyValue);
+		@Override
+		public void close() throws IOException {
+				if(entryAccumulator instanceof Closeable)
+						((Closeable) entryAccumulator).close();
+		}
+
+		@Override
+    public boolean accumulate(KeyValue keyValue) throws IOException {
+		bytesAccumulated+=keyValue.getLength();
 //        decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength()); //do we need to do this twice?
         boolean pass = predicateFilter.match(decoder, entryAccumulator);
         if(!pass)

@@ -4,21 +4,7 @@ import java.io.IOException;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-
+import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -143,6 +129,8 @@ public class UpdateOperation extends DMLWriteOperation{
 								public byte[] encode() throws StandardException, IOException {
 										return ((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
 								}
+
+								@Override public void close() throws IOException {  }
 
 								@Override
 								public KeyHashDecoder getDecoder() {
@@ -532,9 +520,16 @@ public class UpdateOperation extends DMLWriteOperation{
                         encoder.setRawBytes(decoder.array(),offset,limit);
                     }
                 }
-
             }
-            @Override
+
+						@Override
+						public void close() throws IOException {
+								for(DescriptorSerializer serializer:serializers){
+										Closeables.closeQuietly(serializer);
+								}
+						}
+
+						@Override
             public KeyHashDecoder getDecoder() {
                 return NoOpKeyHashDecoder.INSTANCE;
             }

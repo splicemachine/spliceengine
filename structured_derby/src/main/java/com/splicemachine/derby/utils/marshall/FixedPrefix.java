@@ -1,5 +1,7 @@
 package com.splicemachine.derby.utils.marshall;
 
+import java.io.IOException;
+
 /**
  * Prefix which always attaches the same byte[] to the front
  * of the hash.
@@ -20,4 +22,6 @@ public class FixedPrefix implements HashPrefix{
 		public void encode(byte[] bytes, int offset, byte[] hashBytes) {
 				System.arraycopy(prefix,0,bytes,offset,prefix.length);
 		}
+
+		@Override public void close() throws IOException {  }
 }

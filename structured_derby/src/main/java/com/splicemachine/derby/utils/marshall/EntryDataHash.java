@@ -114,5 +114,6 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 		public void close() throws IOException {
 				if(entryEncoder!=null)
 						entryEncoder.close();
+				super.close();
 		}
 }

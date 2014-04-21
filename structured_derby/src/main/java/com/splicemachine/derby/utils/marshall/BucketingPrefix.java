@@ -3,6 +3,8 @@ package com.splicemachine.derby.utils.marshall;
 
 import com.splicemachine.utils.hash.ByteHash32;
 
+import java.io.IOException;
+
 /**
  * Prefix which appends a 1-byte "bucket" to the front
  * of the prefix.
@@ -41,4 +43,5 @@ public class BucketingPrefix implements HashPrefix{
 				return spreadBucket.bucket(hashFunction.hash(hashBytes,0,hashBytes.length));
 		}
 
+		@Override public void close() throws IOException {  }
 }

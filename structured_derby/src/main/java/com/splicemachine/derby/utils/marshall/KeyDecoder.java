@@ -4,11 +4,14 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  * Date: 11/15/13
  */
-public class KeyDecoder {
+public class KeyDecoder implements Closeable{
 		private final KeyHashDecoder hashDecoder;
 		private final int prefixOffset;
 
@@ -40,5 +43,10 @@ public class KeyDecoder {
 
 		public static KeyDecoder bareDecoder(int[] keyColumnsMap, DescriptorSerializer[] serializers) {
 				return new KeyDecoder(BareKeyHash.decoder(keyColumnsMap,null,serializers),0);
+		}
+
+		@Override
+		public void close() throws IOException {
+				hashDecoder.close();
 		}
 }

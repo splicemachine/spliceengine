@@ -1,16 +1,18 @@
 package com.splicemachine.derby.utils.marshall;
 
+import com.google.common.io.Closeables;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 /**
  * @author Scott Fines
  * Date: 11/15/13
  */
-public class KeyEncoder {
+public class KeyEncoder implements Closeable {
 		private final HashPrefix prefix;
 		private final DataHash hash;
 		private final KeyPostfix postfix;
@@ -19,6 +21,13 @@ public class KeyEncoder {
 				this.prefix = prefix;
 				this.hash = hash;
 				this.postfix = postfix;
+		}
+
+		@Override
+		public void close() throws IOException {
+				Closeables.closeQuietly(prefix);
+				Closeables.closeQuietly(hash);
+				Closeables.closeQuietly(postfix);
 		}
 
 		public byte[] getKey(ExecRow row) throws StandardException, IOException {

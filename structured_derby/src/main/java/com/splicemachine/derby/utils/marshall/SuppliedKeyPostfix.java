@@ -3,6 +3,8 @@ package com.splicemachine.derby.utils.marshall;
 import com.splicemachine.derby.utils.StandardSupplier;
 import org.apache.derby.iapi.error.StandardException;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  *         Date: 11/18/13
@@ -25,4 +27,6 @@ public class SuppliedKeyPostfix implements KeyPostfix {
 		public void encodeInto(byte[] keyBytes, int postfixPosition, byte[] hashBytes) {
 			System.arraycopy(bytesToEncode,0,keyBytes,postfixPosition,bytesToEncode.length);
 		}
+
+		@Override public void close() throws IOException {  }
 }

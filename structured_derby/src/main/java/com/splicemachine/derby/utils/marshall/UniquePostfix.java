@@ -4,6 +4,8 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.utils.Snowflake;
 import org.apache.derby.iapi.error.StandardException;
 
+import java.io.IOException;
+
 /**
  * Postfix which uses UUIDs to ensure that the postfix is unique.
  *
@@ -34,4 +36,6 @@ public class UniquePostfix implements KeyPostfix{
 				System.arraycopy(uuidBytes,0,keyBytes,postfixPosition,uuidBytes.length);
 				System.arraycopy(baseBytes,0,keyBytes,postfixPosition+uuidBytes.length,baseBytes.length);
 		}
+
+		@Override public void close() throws IOException {  }
 }

@@ -1,7 +1,6 @@
 package com.splicemachine.derby.utils.marshall;
 
 import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -40,6 +39,13 @@ public class EntryDataDecoder extends BareKeyHash implements KeyHashDecoder{
 						entryDecoder =new EntryDecoder(SpliceKryoRegistry.getInstance());
 
 				entryDecoder.set(bytes,hashOffset,length);
+		}
+
+		@Override
+		public void close() throws IOException {
+				super.close();
+				if(entryDecoder!=null)
+						entryDecoder.close();
 		}
 
 		@Override

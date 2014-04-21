@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -240,7 +241,9 @@ class IndexRowReader {
 //    }
 
     public void close() throws IOException {
-        if(entryDecoder!=null)
+				Closeables.closeQuietly(this.rowDecoder);
+				Closeables.closeQuietly(this.keyDecoder);
+				if(entryDecoder!=null)
             entryDecoder.close();
         if(table!=null)
             table.close();

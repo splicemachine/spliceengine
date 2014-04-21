@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils.marshall;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 /**
@@ -12,7 +13,7 @@ import java.io.IOException;
  * @author Scott Fines
  * Date: 11/15/13
  */
-public interface DataHash<T> {
+public interface DataHash<T> extends Closeable {
 
 		void setRow(T rowToEncode);
 

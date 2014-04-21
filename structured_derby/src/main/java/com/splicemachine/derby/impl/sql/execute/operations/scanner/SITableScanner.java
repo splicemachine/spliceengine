@@ -215,7 +215,10 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 
 		@Override
 		public void close() throws StandardException, IOException {
-
+				if(keyAccumulator!=null)
+						keyAccumulator.close();
+				if(siFilter!=null)
+						siFilter.getAccumulator().close();
 		}
 
 		public TimeView getTime(){

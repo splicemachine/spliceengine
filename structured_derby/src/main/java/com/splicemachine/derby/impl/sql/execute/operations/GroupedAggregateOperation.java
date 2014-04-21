@@ -232,6 +232,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 										return uniquePostfix.getPostfixLength(hashBytes);
 						}
 
+						@Override public void close() throws IOException {  }
+
 						@Override
 						public void encodeInto(byte[] keyBytes, int postfixPosition, byte[] hashBytes) {
 								if(isCurrentDistinct){

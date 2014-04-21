@@ -59,8 +59,9 @@ public class DeleteOperation extends DMLWriteOperation {
 								return location.getBytes();
 						}
 
-						@Override
-						public KeyHashDecoder getDecoder() {
+						@Override public void close() throws IOException {  }
+
+						@Override public KeyHashDecoder getDecoder() {
 								return NoOpKeyHashDecoder.INSTANCE;
 						}
 				},NoOpPostfix.INSTANCE);
