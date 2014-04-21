@@ -62,7 +62,6 @@ public class SpliceHTable extends HTable {
     @Override
     public void close() throws IOException {
         super.close();
-//        connection.close();
     }
 
     @Override

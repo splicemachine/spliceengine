@@ -13,6 +13,7 @@ public class SpliceHConnection extends HConnectionManager.HConnectionImplementat
 		private volatile ZooKeeperKeepAliveConnection zooKeeper;
 		private volatile boolean closed = false;
 
+    // TODO: This class may no longer be necessary. Used to bind multiple splice-pooled HConnections to a Zookeeper conn, HConnectionManager doing binding now.
     public static HConnection createConnection(Configuration conf) throws IOException {
         // TODO: implement ExecutorService "pool" to allow HBase to manage our connections?
 //        HConnection connection = HConnectionManager.createConnection(conf, pool);
