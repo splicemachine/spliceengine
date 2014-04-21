@@ -305,10 +305,14 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 								row.setRowArray(destRow);
 								DescriptorSerializer[] serializers = VersionedSerializers.forVersion("1.0",true).getSerializers(destRow);
 								EntryDataDecoder decoder = new EntryDataDecoder(null,null,serializers);
-								KeyValue kv = KeyValueUtils.matchDataColumn(currentResult.raw());
-								decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
-								decoder.decode(row);
-								this.currentRow = destRow;
+								try{
+										KeyValue kv = KeyValueUtils.matchDataColumn(currentResult.raw());
+										decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
+										decoder.decode(row);
+										this.currentRow = destRow;
+								}finally{
+										Closeables.closeQuietly(decoder);
+								}
 						}
 						this.currentRowLocation = new HBaseRowLocation(currentResult.getRow());
 				} catch (Exception e) {
@@ -362,12 +366,16 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 												spliceConglomerate.getTransaction().getDataValueFactory(),
 												null, spliceConglomerate.getFormatIds(), spliceConglomerate.getCollationIds());
 								DescriptorSerializer[] serializers = VersionedSerializers.forVersion("1.0",true).getSerializers(fetchedRow);
-								ExecRow row = new ValueRow(fetchedRow.length);
-								row.setRowArray(fetchedRow);
 								EntryDataDecoder decoder = new EntryDataDecoder(null,null,serializers);
-								KeyValue kv = KeyValueUtils.matchDataColumn(currentResult.raw());
-								decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
-								decoder.decode(row);
+								try{
+										ExecRow row = new ValueRow(fetchedRow.length);
+										row.setRowArray(fetchedRow);
+										KeyValue kv = KeyValueUtils.matchDataColumn(currentResult.raw());
+										decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
+										decoder.decode(row);
+								}finally{
+										Closeables.closeQuietly(decoder);
+								}
 								hashTable.putRow(false, fetchedRow);
 								this.currentRowLocation = new HBaseRowLocation(currentResult.getRow());
 								rowCount++;
@@ -441,13 +449,14 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 										row.setRowArray(kdvds);
 										DescriptorSerializer[] serializers = VersionedSerializers.forVersion("1.0", true).getSerializers(kdvds);
 										KeyHashDecoder decoder = new EntryDataDecoder(null,null,serializers);
-//										if(entryDecoder==null)
-//												entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
-
-										if (results[i] != null) {
-												KeyValue kv = KeyValueUtils.matchDataColumn(results[i].raw());
-												decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
-												decoder.decode(row);
+										try{
+												if (results[i] != null) {
+														KeyValue kv = KeyValueUtils.matchDataColumn(results[i].raw());
+														decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
+														decoder.decode(row);
+												}
+										}finally{
+												Closeables.closeQuietly(decoder);
 										}
 								}
 								this.currentRowLocation = new HBaseRowLocation(results[results.length-1].getRow());
@@ -468,10 +477,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 						int[] validCols = SpliceUtils.bitSetToMap(validColumns);
 						Put put = SpliceUtils.createPut(currentRowLocation.getBytes(),transID);
 
-//						if(entryEncoder==null){
-								DescriptorSerializer[] serializers = VersionedSerializers.forVersion("1.0",true).getSerializers(row);
-								entryEncoder = new EntryDataHash(validCols,null,serializers);
-//						}
+						DescriptorSerializer[] serializers = VersionedSerializers.forVersion("1.0",true).getSerializers(row);
+						entryEncoder = new EntryDataHash(validCols,null,serializers);
 						ExecRow execRow = new ValueRow(row.length);
 						execRow.setRowArray(row);
 						entryEncoder.setRow(execRow);

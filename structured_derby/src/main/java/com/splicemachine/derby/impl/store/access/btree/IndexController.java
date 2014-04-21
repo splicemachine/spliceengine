@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.store.access.btree;
 
 import java.io.IOException;
 
+import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
@@ -109,21 +110,21 @@ public class IndexController  extends SpliceController  {
 								execRow.setRowArray(oldValues);
 								DescriptorSerializer[] serializers = VersionedSerializers.forVersion("1.0",true).getSerializers(execRow);
 								KeyHashDecoder decoder = BareKeyHash.decoder(null,null,serializers);
-								KeyValue kv = KeyValueUtils.matchDataColumn(result.raw());
-								decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
-								decoder.decode(execRow);
-//								MultiFieldDecoder fieldDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
-//								for(KeyValue kv:result.raw()){
-//										RowMarshaller.sparsePacked().decode(kv, oldValues, null, fieldDecoder);
-//								}
-								validCols = new int[validColumns.getNumBitsSet()];
-								int pos=0;
-								for(int i=validColumns.anySetBit();i!=-1;i=validColumns.anySetBit(i)){
-										oldValues[i] = row[i];
-										validCols[pos] = i;
+								try{
+										KeyValue kv = KeyValueUtils.matchDataColumn(result.raw());
+										decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
+										decoder.decode(execRow);
+										validCols = new int[validColumns.getNumBitsSet()];
+										int pos=0;
+										for(int i=validColumns.anySetBit();i!=-1;i=validColumns.anySetBit(i)){
+												oldValues[i] = row[i];
+												validCols[pos] = i;
+										}
+										byte[] rowKey = generateIndexKey(row,sortOrder);
+										put = SpliceUtils.createPut(rowKey,transID);
+								}finally{
+										Closeables.closeQuietly(decoder);
 								}
-								byte[] rowKey = generateIndexKey(row,sortOrder);
-								put = SpliceUtils.createPut(rowKey,transID);
 						}
 
 						encodeRow(row,put,validCols,validColumns);

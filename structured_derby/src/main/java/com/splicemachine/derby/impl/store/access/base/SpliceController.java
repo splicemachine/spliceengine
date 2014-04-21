@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.store.access.base;
 
+import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
@@ -60,8 +61,7 @@ public abstract class SpliceController implements ConglomerateController {
 		}
 
 		public void close() throws StandardException {
-//				if(entryEncoder!=null)
-//						entryEncoder.close();
+				Closeables.closeQuietly(entryEncoder);
 				try {
 						if ((openSpliceConglomerate != null) && (openSpliceConglomerate.getTransactionManager() != null))
 								openSpliceConglomerate.getTransactionManager().closeMe(this);

@@ -1,6 +1,7 @@
 package com.splicemachine.derby.utils;
 
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.google.common.io.Closeables;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.storage.*;
@@ -77,6 +78,9 @@ public class PredicateBuilder {
 		}
 
 		public Predicate build(){
+				for(DescriptorSerializer serializer:serializers)
+						Closeables.closeQuietly(serializer);
+				serializers = null; //unlink the serializers to force new ones to be created if needed
 				return new AndPredicate(predicates);
 		}
 

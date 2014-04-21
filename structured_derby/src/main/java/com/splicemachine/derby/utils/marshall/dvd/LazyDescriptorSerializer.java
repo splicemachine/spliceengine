@@ -7,6 +7,8 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  * Date: 4/2/14
@@ -25,10 +27,7 @@ public class LazyDescriptorSerializer implements DescriptorSerializer {
 				DescriptorSerializer delegate = delegateFactory.newInstance();
 				final LazyDescriptorSerializer me = new LazyDescriptorSerializer(delegate, tableVersion);
 				return new Factory() {
-						@Override
-						public DescriptorSerializer newInstance() {
-								return me;
-						}
+						@Override public DescriptorSerializer newInstance() { return me; }
 
 						@Override public boolean applies(DataValueDescriptor dvd) { return delegateFactory.applies(dvd); }
 						@Override public boolean applies(int typeFormatId) { return delegateFactory.applies(typeFormatId); }
@@ -83,4 +82,6 @@ public class LazyDescriptorSerializer implements DescriptorSerializer {
 		@Override public boolean isScalarType() { return delegate.isScalarType(); }
 		@Override public boolean isFloatType() { return delegate.isFloatType(); }
 		@Override public boolean isDoubleType() { return delegate.isDoubleType(); }
+
+		@Override public void close() throws IOException { delegate.close(); }
 }

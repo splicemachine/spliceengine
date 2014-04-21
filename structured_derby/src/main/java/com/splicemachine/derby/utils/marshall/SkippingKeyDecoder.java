@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils.marshall;
 
+import com.google.common.io.Closeables;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -7,6 +8,8 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+
+import java.io.IOException;
 
 /**
  * @author Scott Fines
@@ -100,6 +103,13 @@ public class SkippingKeyDecoder implements KeyHashDecoder {
 						fieldDecoder.skipDouble();
 				else
 						fieldDecoder.skip();
+		}
+
+		@Override
+		public void close() throws IOException {
+				for(DescriptorSerializer serializer:serializers){
+						Closeables.closeQuietly(serializer);
+				}
 		}
 
 		private static class Ordered extends SkippingKeyDecoder{

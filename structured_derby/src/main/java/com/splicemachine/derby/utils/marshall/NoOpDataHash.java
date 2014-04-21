@@ -3,6 +3,8 @@ package com.splicemachine.derby.utils.marshall;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
+import java.io.IOException;
+
 /**
  * Represents a DataHash which does not encode or decode anything.
  *
@@ -40,6 +42,11 @@ public class NoOpDataHash implements DataHash,KeyHashDecoder{
 
 		@Override
 		public void decode(ExecRow destination) throws StandardException {
+				//no-op
+		}
+
+		@Override
+		public void close() throws IOException {
 				//no-op
 		}
 }

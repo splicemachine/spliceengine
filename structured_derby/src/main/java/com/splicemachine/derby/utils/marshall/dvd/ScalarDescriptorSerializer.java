@@ -7,6 +7,8 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  * Date: 4/2/14
@@ -106,4 +108,6 @@ public class ScalarDescriptorSerializer implements DescriptorSerializer{
 		@Override public boolean isScalarType() { return true; }
 		@Override public boolean isFloatType() { return false; }
 		@Override public boolean isDoubleType() { return false; }
+
+		@Override public void close() throws IOException {  }
 }

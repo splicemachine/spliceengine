@@ -150,6 +150,12 @@ public abstract class XplainReporter<T> {
 				}
 
 				protected abstract EntryEncoder buildEncoder();
+
+				@Override
+				public void close() throws IOException {
+						if(entryEncoder!=null)
+								entryEncoder.close();
+				}
 		}
 
 		protected  static abstract class KeyWriteableHash<T> extends WriteableHash<T>{
@@ -167,6 +173,11 @@ public abstract class XplainReporter<T> {
 				}
 
 				protected abstract int getNumFields();
+
+				@Override
+				public void close() throws IOException {
+
+				}
 		}
 
 		private class Writer implements Runnable{

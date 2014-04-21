@@ -1,5 +1,7 @@
 package com.splicemachine.derby.utils.marshall;
 
+import java.io.Closeable;
+
 /**
  * Represent a "Prefix" for a RowKey.
  *
@@ -14,7 +16,7 @@ package com.splicemachine.derby.utils.marshall;
  * @author Scott Fines
  * Date: 11/15/13
  */
-public interface HashPrefix {
+public interface HashPrefix extends Closeable {
 
 		int getPrefixLength();
 

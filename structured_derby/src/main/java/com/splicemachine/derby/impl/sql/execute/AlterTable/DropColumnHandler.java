@@ -8,6 +8,7 @@ package com.splicemachine.derby.impl.sql.execute.AlterTable;
  * To change this template use File | Settings | File Templates.
  */
 
+import com.google.common.io.Closeables;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
 import com.splicemachine.hbase.KVPair;
@@ -84,6 +85,8 @@ public class DropColumnHandler implements WriteHandler {
             loader.flush();
         } catch (Exception e) {
             throw new IOException(e);
-        }
+        }finally{
+						Closeables.closeQuietly(rowTransformer);
+				}
     }
 }

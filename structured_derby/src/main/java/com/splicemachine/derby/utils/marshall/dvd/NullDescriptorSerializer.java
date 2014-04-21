@@ -1,11 +1,14 @@
 package com.splicemachine.derby.utils.marshall.dvd;
 
+import com.google.common.io.Closeables;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.HConstants;
+
+import java.io.IOException;
 
 /**
  * @author Scott Fines
@@ -80,6 +83,10 @@ public class NullDescriptorSerializer implements DescriptorSerializer{
 		@Override public boolean isScalarType() { return delegate.isScalarType(); }
 		@Override public boolean isFloatType() { return delegate.isFloatType(); }
 		@Override public boolean isDoubleType() { return delegate.isDoubleType(); }
+
+		@Override public void close() throws IOException{
+				Closeables.close(delegate,true);
+		}
 
 		@Override
 		public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {

@@ -8,6 +8,7 @@ package com.splicemachine.derby.impl.sql.execute.AlterTable;
  * To change this template use File | Settings | File Templates.
  */
 
+import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
@@ -25,9 +26,10 @@ import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.KeyValue;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.sql.SQLException;
-public class RowTransformer {
+public class RowTransformer implements Closeable {
 
     private UUID tableId;
     private String txnId;
@@ -141,11 +143,6 @@ public class RowTransformer {
 
 						rowDecoder.set(kvPair.getValue(),0,kvPair.getValue().length);
 						rowDecoder.decode(oldRow);
-//            if(oldColumnOrdering != null && oldColumnOrdering.length > 0) {
-//                // decode the old primary key columns
-//                keyMarshaller.decode(kv, oldFields, baseColumnMap, keyDecoder, oldColumnOrdering, kdvds);
-//            }
-//            RowMarshaller.sparsePacked().decode(kv, oldFields, baseColumnMap, rowDecoder);
 				}
 
 				// encode the result
@@ -170,11 +167,6 @@ public class RowTransformer {
 
 						rowDecoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
 						rowDecoder.decode(oldRow);
-//            if(oldColumnOrdering != null && oldColumnOrdering.length > 0) {
-//                // decode the old primary key columns
-//                keyMarshaller.decode(kv, oldFields, baseColumnMap, keyDecoder, oldColumnOrdering, kdvds);
-//            }
-//            RowMarshaller.sparsePacked().decode(kv, oldFields, baseColumnMap, rowDecoder);
         }
 
         // encode the result
@@ -184,5 +176,11 @@ public class RowTransformer {
         newPair.setKey(kv.getRow());
         return newPair;
     }
+
+		public void close() {
+				Closeables.closeQuietly(keyDecoder);
+				Closeables.closeQuietly(rowDecoder);
+				Closeables.closeQuietly(entryEncoder);
+		}
 
 }

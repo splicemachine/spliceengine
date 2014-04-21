@@ -72,7 +72,9 @@ public class DerbyBytesUtil {
 						}
 						return encoder.build();
 				} finally {
-						encoder.close();
+						for(DescriptorSerializer serializer:serializers){
+								Closeables.closeQuietly(serializer);
+						}
 				}
 		}
 
@@ -124,7 +126,7 @@ public class DerbyBytesUtil {
 
 
 		public static boolean isScalarType(DataValueDescriptor dvd, String tableVersion) {
-				return dvd != null && VersionedSerializers.forVersion(tableVersion, true).getSerializer(dvd).isScalarType();
+				return dvd != null && VersionedSerializers.typesForVersion(tableVersion).isScalar(dvd.getTypeFormatId());
 		}
 
 		public static boolean isFloatType(DataValueDescriptor dvd){

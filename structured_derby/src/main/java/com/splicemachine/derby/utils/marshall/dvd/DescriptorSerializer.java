@@ -5,11 +5,14 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  * Date: 4/2/14
  */
-public interface DescriptorSerializer {
+public interface DescriptorSerializer extends Closeable {
 		void encode(MultiFieldEncoder fieldEncoder,DataValueDescriptor dvd, boolean desc) throws StandardException;
 
 		byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException;
