@@ -524,8 +524,10 @@ public class UpdateOperation extends DMLWriteOperation{
 
 						@Override
 						public void close() throws IOException {
-								for(DescriptorSerializer serializer:serializers){
-										Closeables.closeQuietly(serializer);
+								if(serializers!=null){
+										for(DescriptorSerializer serializer:serializers){
+												Closeables.closeQuietly(serializer);
+										}
 								}
 						}
 

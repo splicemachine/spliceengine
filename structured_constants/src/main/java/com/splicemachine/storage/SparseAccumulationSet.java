@@ -55,7 +55,7 @@ public class SparseAccumulationSet extends EntryAccumulationSet {
 
 		@Override
 		public boolean isInteresting(int position) {
-			return allFields.get(position);
+				return allFields.get(position);
 		}
 
 		@Override
