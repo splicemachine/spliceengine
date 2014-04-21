@@ -83,7 +83,7 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 	 */
 	protected static final String ORIGINAL_TABLE_VERSION = "1.0"; 
 	//the current version for creating new tables with
-	protected static final String CURRENT_TABLE_VERSION = "2.0"; 
+	protected static final String CURRENT_TABLE_VERSION = "1.0"; 
 	
 	// all indexes are unique.
 
