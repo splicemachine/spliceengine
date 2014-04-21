@@ -223,7 +223,7 @@ public class EntryPredicateFilterTest {
         Assert.assertFalse("got double type, when expected untyped",returnedIndex.isDoubleType(1));
 
         //make sure returned data is correct
-        MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(retBytes, i + 1, retBytes.length - (i + 1), KryoPool.defaultPool());
+        MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(retBytes, i + 1, retBytes.length - (i + 1));
 
         String decodedField = fieldDecoder.decodeNextString();
         Assert.assertEquals("Incorrect string returned!",testType1,decodedField);
@@ -280,7 +280,7 @@ public class EntryPredicateFilterTest {
         Assert.assertFalse("got double type, when expected untyped",returnedIndex.isDoubleType(1));
 
         //make sure returned data is correct
-        MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(retBytes, i + 1, retBytes.length - (i + 1), KryoPool.defaultPool());
+        MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(retBytes, i + 1, retBytes.length - (i + 1));
 
         String decodedField = fieldDecoder.decodeNextString();
         Assert.assertEquals("Incorrect string returned!",testType1,decodedField);
@@ -337,7 +337,7 @@ public class EntryPredicateFilterTest {
         Assert.assertFalse("got double type, when expected untyped",returnedIndex.isDoubleType(0));
 
         //make sure returned data is correct
-        MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(retBytes, i + 1, retBytes.length - (i + 1), KryoPool.defaultPool());
+        MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(retBytes, i + 1, retBytes.length - (i + 1));
 
         String decodedField = fieldDecoder.decodeNextString();
         Assert.assertEquals("Incorrect string returned!",testType1,decodedField);

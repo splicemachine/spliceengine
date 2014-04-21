@@ -4,13 +4,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.derby.impl.load.ImportTestUtils;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.utils.kryo.KryoPool;
-import com.sun.tools.javac.jvm.ClassFile;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -137,7 +135,7 @@ public class BareKeyHashTest {
 				byte[] data = bareKeyHash.encode();
 
 
-				MultiFieldDecoder decoder = MultiFieldDecoder.wrap(data,kryoPool);
+				MultiFieldDecoder decoder = MultiFieldDecoder.wrap(data);
 
 				for(int i=0;i<dataTypes.length;i++){
 						TestingDataType dt = dataTypes[i];

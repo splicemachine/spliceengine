@@ -226,7 +226,7 @@ public class IndexTransformer2 {
 
 		private MultiFieldDecoder getKeyDecoder() {
 				if(keyDecoder==null)
-						keyDecoder = MultiFieldDecoder.create(SpliceKryoRegistry.getInstance());
+						keyDecoder = MultiFieldDecoder.create();
 				return keyDecoder;
 		}
 

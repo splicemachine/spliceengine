@@ -32,7 +32,7 @@ public class ReopenableScannerTest {
 
     private KryoPool kryoPool = mock(KryoPool.class);
     private static final int tableSize = 10;
-    private MultiFieldDecoder decoder = MultiFieldDecoder.create(kryoPool);
+    private MultiFieldDecoder decoder = MultiFieldDecoder.create();
 
     @Test
     public void testMeasuredResultScanner() throws IOException{
@@ -102,7 +102,7 @@ public class ReopenableScannerTest {
     }
     private List<Result> initTable() {
 
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(kryoPool, 1);
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(1);
         List<Result> l = Lists.newArrayListWithExpectedSize(tableSize);
         for (int i = 0; i < tableSize; ++i) {
             encoder.reset();

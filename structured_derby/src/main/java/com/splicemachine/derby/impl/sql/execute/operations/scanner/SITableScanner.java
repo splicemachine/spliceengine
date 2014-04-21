@@ -247,7 +247,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 
 				primaryKeyIndex = getIndex(allPkColumns,keyColumnTypes,typeProvider);
 
-				keyDecoder = MultiFieldDecoder.create(SpliceKryoRegistry.getInstance());
+				keyDecoder = MultiFieldDecoder.create();
 				return Providers.basicProvider(keyDecoder);
 		}
 

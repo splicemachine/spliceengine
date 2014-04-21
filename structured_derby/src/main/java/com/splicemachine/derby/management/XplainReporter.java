@@ -158,7 +158,7 @@ public abstract class XplainReporter<T> {
 				@Override
 				public final byte[] encode() throws StandardException, IOException {
 						if(entryEncoder==null)
-								entryEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),getNumFields());
+								entryEncoder = MultiFieldEncoder.create(getNumFields());
 						else
 							entryEncoder.reset();
 

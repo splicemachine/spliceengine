@@ -271,7 +271,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						 * the excess grouping keys
 						 */
 						if(decoder==null)
-								decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+								decoder = MultiFieldDecoder.create();
 
 						decoder.set(hashBytes);
 						int offset = decoder.offset();
@@ -433,12 +433,12 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				ScanBoundary boundary = new BaseHashAwareScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES){
 						@Override
 						public byte[] getStartKey(Result result) {
-								MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
+								MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow());
 								fieldDecoder.seek(prefixOffset+1); //skip the prefix value
 
 								byte[] slice = DerbyBytesUtil.slice(fieldDecoder, groupColumns, cols);
 								fieldDecoder.reset();
-								MultiFieldEncoder encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),2);
+								MultiFieldEncoder encoder = MultiFieldEncoder.create(2);
 								encoder.setRawBytes(fieldDecoder.slice(prefixOffset+1));
 								encoder.setRawBytes(slice);
 								return encoder.build();

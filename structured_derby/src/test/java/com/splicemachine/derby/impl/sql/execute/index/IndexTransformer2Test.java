@@ -45,7 +45,7 @@ public class IndexTransformer2Test {
 				Assert.assertNotNull("No row key set!", key);
 				Assert.assertTrue("No bytes in the row key!",key.length>0);
 
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create(SpliceKryoRegistry.getInstance());
+				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(key);
 
 				Assert.assertTrue("Incorrect row key!",keyDecoder.nextIsNull());
@@ -84,7 +84,7 @@ public class IndexTransformer2Test {
 				Assert.assertNotNull("No row key set!", key);
 				Assert.assertTrue("No bytes in the row key!",key.length>0);
 
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create(SpliceKryoRegistry.getInstance());
+				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(key);
 
 				int keyField = keyDecoder.decodeNextInt();
@@ -120,7 +120,7 @@ public class IndexTransformer2Test {
 				Assert.assertNotNull("No row key set!", key);
 				Assert.assertTrue("No bytes in the row key!",key.length>0);
 
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create(SpliceKryoRegistry.getInstance());
+				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(key);
 
 				int keyField = keyDecoder.decodeNextInt();
@@ -157,7 +157,7 @@ public class IndexTransformer2Test {
 				Assert.assertNotNull("No row key set!", key);
 				Assert.assertTrue("No bytes in the row key!",key.length>0);
 
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create(SpliceKryoRegistry.getInstance());
+				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(key);
 
 				int keyField = keyDecoder.decodeNextInt();
@@ -200,7 +200,7 @@ public class IndexTransformer2Test {
 				Assert.assertNotNull("No row key set!", key);
 				Assert.assertTrue("No bytes in the row key!",key.length>0);
 
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create(SpliceKryoRegistry.getInstance());
+				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(key);
 
 				int keyField = keyDecoder.decodeNextInt();
@@ -243,7 +243,7 @@ public class IndexTransformer2Test {
 				Assert.assertNotNull("No row key set!", key);
 				Assert.assertTrue("No bytes in the row key!",key.length>0);
 
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create(SpliceKryoRegistry.getInstance());
+				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(key);
 
 				Assert.assertTrue("Incorrectly missed a null entry!",keyDecoder.nextIsNull());
@@ -285,7 +285,7 @@ public class IndexTransformer2Test {
 				Assert.assertNotNull("No row key set!", key);
 				Assert.assertTrue("No bytes in the row key!",key.length>0);
 
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create(SpliceKryoRegistry.getInstance());
+				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(key);
 
 				int keyField = keyDecoder.decodeNextInt();
@@ -328,7 +328,7 @@ public class IndexTransformer2Test {
 				Assert.assertNotNull("No row key set!", key);
 				Assert.assertTrue("No bytes in the row key!",key.length>0);
 
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create(SpliceKryoRegistry.getInstance());
+				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(key);
 
 				int keyField = keyDecoder.decodeNextInt();

@@ -5,7 +5,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.Snowflake;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLInteger;
@@ -30,7 +29,7 @@ public class MergeSortScanBoundaryTest {
 		public void testScanBoundaryCorrect() throws Exception {
 				Snowflake snowflake = new Snowflake((short)1);
 
-				MultiFieldEncoder encoder = MultiFieldEncoder.create(mock(KryoPool.class),6);
+				MultiFieldEncoder encoder = MultiFieldEncoder.create(6);
 				encoder.setRawBytes(new byte[1]);
 				encoder.setRawBytes(snowflake.nextUUIDBytes());
 				encoder.mark();

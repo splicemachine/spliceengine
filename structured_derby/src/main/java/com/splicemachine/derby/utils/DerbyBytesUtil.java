@@ -1,20 +1,15 @@
 package com.splicemachine.derby.utils;
 
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.Calendar;
-import com.carrotsearch.hppc.BitSet;
+
 import com.google.common.io.Closeables;
-import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.ByteDataOutput;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.store.access.ScanController;
@@ -24,63 +19,10 @@ import org.apache.derby.iapi.types.SQLTime;
 import org.apache.derby.iapi.types.SQLTimestamp;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
-
-public class DerbyBytesUtil extends BaseDerbyBytesUtil{
-	private static Logger LOG = Logger.getLogger(DerbyBytesUtil.class);
 
 
 public class DerbyBytesUtil {
 		private static Logger LOG = Logger.getLogger(DerbyBytesUtil.class);
-
-		private static final Serializer lazySerializer = new AbstractSerializer() {
-				@Override
-				public byte[] encode(DataValueDescriptor dvd) throws StandardException {
-						return dvd.getBytes();
-				}
-
-				@Override
-				public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
-						LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor)dvd;
-						ldvd.initForDeserialization(data);
-				}
-
-				@Override
-				public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
-            /*
-             * We can safely setRawBytes() here because the LazyDataValueDescriptor will do it's own encoding (potentially
-             * just copying values out from a KeyValue).
-             */
-						LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor)dvd;
-						ldvd.serializeIfNeeded(desc);
-						encoder.setRawBytes(ldvd.getRawBytes(),ldvd.getByteOffset(),ldvd.getByteLength());
-				}
-
-				@Override
-				public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
-						LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor)dvd;
-
-						byte[] bytes = decoder.array();
-						int offset = decoder.offset();
-						skipField(decoder, dvd);
-
-						int length = decoder.offset()-offset-1;
-						ldvd.initForDeserialization(bytes, offset,length,desc);
-				}
-
-				@Override
-				public boolean isScalarType() {
-						throw new UnsupportedOperationException("Unable to get length from Lazy serializer");
-				}
-
-				@Override
-				public void decode(DataValueDescriptor dvd, byte[] data, int offset, int length) throws StandardException {
-						LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor)dvd;
-						ldvd.initForDeserialization(data,offset,length,false);
-				}
-		};
 
 		@SuppressWarnings("unchecked")
 		public static <T> T fromBytes(byte[] bytes) throws StandardException {
@@ -90,7 +32,7 @@ public class DerbyBytesUtil {
 						return (T) bdi.readObject();
 				} catch (Exception e) {
 						Closeables.closeQuietly(bdi);
-						SpliceLogUtils.logAndThrow(LOG,"fromBytes Exception",Exceptions.parseException(e));
+						SpliceLogUtils.logAndThrow(LOG, "fromBytes Exception", Exceptions.parseException(e));
 						return null; //can't happen
 				}
 		}
@@ -110,7 +52,7 @@ public class DerbyBytesUtil {
 
 
 		public static byte[] generateIndexKey(DataValueDescriptor[] descriptors, boolean[] sortOrder,String tableVersion) throws IOException, StandardException {
-				MultiFieldEncoder encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),descriptors.length);
+				MultiFieldEncoder encoder = MultiFieldEncoder.create(descriptors.length);
 				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion,false).getSerializers(descriptors);
 				DescriptorSerializer rowLocSerializer = VersionedSerializers.forVersion(tableVersion,false).getSerializer(StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID);
 				try {

@@ -464,7 +464,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 				ScanBoundary boundary = new BaseHashAwareScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES){
 						@Override
 						public byte[] getStartKey(Result result) {
-								MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow(), SpliceDriver.getKryoPool());
+								MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow());
 								fieldDecoder.seek(uniqueID.length+1);
 
 								int adjusted = DerbyBytesUtil.skip(fieldDecoder,keyColumns,cols);

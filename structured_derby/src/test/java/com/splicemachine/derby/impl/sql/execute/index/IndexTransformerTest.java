@@ -65,7 +65,7 @@ public class IndexTransformerTest {
 
 				/*row key validation*/
 
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create(KryoPool.defaultPool());
+				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(indexPair.getRow());
 				Assert.assertEquals("Incorrect key element in position 0",1,keyDecoder.decodeNextInt());
 				Assert.assertArrayEquals("Incorrect key element in position 1", mainPair.getRow(),
@@ -118,7 +118,7 @@ public class IndexTransformerTest {
 				Assert.assertEquals("Incorrect index size!",0,indexIndex.length());
 
 				/*row key validation*/
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create(KryoPool.defaultPool());
+				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(indexPair.getRow());
 				Assert.assertEquals("Incorrect key element in position 0",1,keyDecoder.decodeNextInt(true));
 				Assert.assertArrayEquals("Incorrect key element in position 1",mainPair.getRow(),
