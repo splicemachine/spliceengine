@@ -1,14 +1,5 @@
 package com.splicemachine.si.api;
 
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Scan;
-
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.table.BetterHTablePool;
@@ -42,7 +33,13 @@ import com.splicemachine.si.txn.ZooKeeperStatTimestampSource;
 import com.splicemachine.utils.Provider;
 import com.splicemachine.utils.Providers;
 import com.splicemachine.utils.ZkUtils;
-import org.apache.zookeeper.KeeperException;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Scan;
 
 /**
  * Used to construct a transactor object that is bound to the HBase types and that provides SI functionality. This is
@@ -143,7 +140,7 @@ public class HTransactorFactory extends SIConstants {
 //								throw new RuntimeException(e);
 //						}
 						TimestampSource timestampSource = new ZooKeeperStatTimestampSource(ZkUtils.getRecoverableZooKeeper(),zkSpliceTransactionPath);
-						BetterHTablePool hTablePool = new BetterHTablePool(new SpliceHTableFactory(true,1),
+						BetterHTablePool hTablePool = new BetterHTablePool(new SpliceHTableFactory(true),
 										SpliceConstants.tablePoolCleanerInterval, TimeUnit.SECONDS,
 										SpliceConstants.tablePoolMaxSize,SpliceConstants.tablePoolCoreSize);
 						final HPoolTableSource tableSource = new HPoolTableSource(hTablePool);
