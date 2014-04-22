@@ -16,13 +16,14 @@
 			</excludes>
 		</dependencySet>
 	</dependencySets>
-	<files>
-		<file>
-			<source>../structured_si/target/structured_si-0.5rc10-SNAPSHOT-cloudera-cdh4.3.0-obfuscated.jar</source>
-			<outputDirectory>splicemachine/lib</outputDirectory>
-		</file>
-	</files>
 	<fileSets>
+		<fileSet>
+			<directory>../structured_si/target</directory>
+			<outputDirectory>splicemachine/lib</outputDirectory>
+			<includes>
+				<include>*obfuscated.jar</include>
+			</includes>
+		</fileSet>
 		<fileSet>
 			<directory>target</directory>
 			<outputDirectory>splicemachine/lib</outputDirectory>
