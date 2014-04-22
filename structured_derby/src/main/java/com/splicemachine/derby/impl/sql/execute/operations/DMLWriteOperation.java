@@ -304,19 +304,19 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				public void open()  {
 						SpliceLogUtils.trace(LOG, "open");
 						this.isOpen = true;
-						try {
-								if (rowProvider != null)
-										rowProvider.open();
-								else
-										/* Cache query plan text for source, before it gets blown away */
-								if(operationInformation.isRuntimeStatisticsEnabled()) {
-										/* savedSource nulled after run time statistics generation */
-										savedSource = source;
-								}
-						} catch (StandardException e) {
-								SpliceLogUtils.logAndThrowRuntime(LOG, e);
-						}
 						if(!getNodeTypes().contains(NodeType.REDUCE)){
+                try {
+                    if (rowProvider != null)
+                        rowProvider.open();
+                    else
+										/* Cache query plan text for source, before it gets blown away */
+                        if(operationInformation.isRuntimeStatisticsEnabled()) {
+										/* savedSource nulled after run time statistics generation */
+                            savedSource = source;
+                        }
+                } catch (StandardException e) {
+                    SpliceLogUtils.logAndThrowRuntime(LOG, e);
+                }
                 /*
                  * We are executing the operation directly, because there's no need
                  * to submit a parallel task

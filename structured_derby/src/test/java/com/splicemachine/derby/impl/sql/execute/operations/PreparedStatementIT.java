@@ -1,13 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.*;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Arrays;
@@ -40,23 +39,40 @@ public class PreparedStatementIT {
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
         .around(tableSchema)
-        .around(custTable);
+        .around(custTable)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                   for(String rowVal:customerVals){
+                       try {
+                           spliceClassWatcher.getStatement().executeUpdate("insert into "+ custTable.toString()+" values "+ rowVal);
+                       } catch (Exception e) {
+                           throw new RuntimeException(e);
+                       }
+                   }
+                }
+            });
 
-    @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher();
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+
+    private TestConnection conn;
 
     @Before
     public void fillTable() throws Exception {
-        //  load customer table
-        for (String rowVal : customerVals) {
-            spliceClassWatcher.getStatement().executeUpdate("insert into " + custTable.toString() + " values " + rowVal);
-        }
+        conn = methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
+//        //  load customer table
+//        for (String rowVal : customerVals) {
+//            spliceClassWatcher.getStatement().executeUpdate("insert into " + custTable.toString() + " values " + rowVal);
+//        }
     }
-
+//
     @After
     public void emptyTable() throws Exception {
-        //  empty customer table
-        spliceClassWatcher.getStatement().execute(String.format("delete from %s where customerid > 0", custTable.toString()));
+        conn.rollback();
+        conn.reset();
+//        //  empty customer table
+//        spliceClassWatcher.getStatement().execute(String.format("delete from %s where customerid > 0", custTable.toString()));
     }
 
     /**
@@ -66,27 +82,27 @@ public class PreparedStatementIT {
      */
     @Test
     public void testPrepStatementDeleteResultCount() throws Exception {
-        // should all 5 rows
-        ResultSet rs = methodWatcher.executeQuery(SELECT_STAR_QUERY);
+        // should see all 5 rows
+        ResultSet rs = conn.prepareStatement(SELECT_STAR_QUERY).executeQuery();
         Assert.assertEquals(5, SpliceUnitTest.resultSetSize(rs));
 
         String rowsToDeleteQuery = String.format("select * from %s.%s where customerid >= 4", tableSchema.schemaName, CUST_TABLE_NAME);
         // should see 2 rows that will be deleted by prepared statement
-        rs = methodWatcher.executeQuery(rowsToDeleteQuery);
+        rs = conn.query(rowsToDeleteQuery);
         Assert.assertEquals(2, SpliceUnitTest.resultSetSize(rs));
 
-        PreparedStatement psc1 = methodWatcher.prepareStatement(String.format("delete from %s.%s where customerid >= 4",
+        PreparedStatement psc1 = conn.prepareStatement(String.format("delete from %s.%s where customerid >= 4",
                 tableSchema.schemaName, CUST_TABLE_NAME));
         // should delete 2 rows
         int effected = psc1.executeUpdate();
         Assert.assertEquals(2, effected);
 
         // expecting 0 rows after delete
-        rs = methodWatcher.executeQuery(rowsToDeleteQuery);
+        rs = conn.query(rowsToDeleteQuery);
         Assert.assertEquals(0, SpliceUnitTest.resultSetSize(rs));
 
         // expecting 3 rows remaining after delete
-        rs = methodWatcher.executeQuery(SELECT_STAR_QUERY);
+        rs = conn.query(SELECT_STAR_QUERY);
         Assert.assertEquals(3, SpliceUnitTest.resultSetSize(rs));
 
         // should delete nothing
@@ -101,21 +117,22 @@ public class PreparedStatementIT {
      */
     @Test
     public void testPrepStatementUpdateResultCount() throws Exception {
+
         // should see all 5 rows
-        ResultSet rs = methodWatcher.executeQuery(SELECT_STAR_QUERY);
+        ResultSet rs = conn.query(SELECT_STAR_QUERY);
         Assert.assertEquals(5, SpliceUnitTest.resultSetSize(rs));
 
-        PreparedStatement psc1 = methodWatcher.prepareStatement(String.format("delete from %s.%s where customerid >= 3",
+        PreparedStatement psc1 = conn.prepareStatement(String.format("delete from %s.%s where customerid >= 3",
                 tableSchema.schemaName, CUST_TABLE_NAME));
         int effected = psc1.executeUpdate();
         // should delete 3 rows
         Assert.assertEquals(3, effected);
 
-        rs = methodWatcher.executeQuery(SELECT_STAR_QUERY);
+        rs = conn.query(SELECT_STAR_QUERY);
         // should see 2 rows left
         Assert.assertEquals(2, SpliceUnitTest.resultSetSize(rs));
 
-        PreparedStatement psc2 = methodWatcher.prepareStatement(String.format("update %s.%s set customerid = customerid + 10 where customerid > 1",
+        PreparedStatement psc2 = conn.prepareStatement(String.format("update %s.%s set customerid = customerid + 10 where customerid > 1",
                 tableSchema.schemaName, CUST_TABLE_NAME));
         effected = psc2.executeUpdate();
         // should update 1 row
@@ -125,7 +142,7 @@ public class PreparedStatementIT {
         // should delete 1 row
         Assert.assertEquals(1, effected);
 
-        rs = methodWatcher.executeQuery(SELECT_STAR_QUERY);
+        rs = conn.query(SELECT_STAR_QUERY);
         // 1 row remains
         Assert.assertEquals(1, SpliceUnitTest.resultSetSize(rs));
 
@@ -142,10 +159,10 @@ public class PreparedStatementIT {
     @Test
     public void testPrepStatementMultipleUpdateResultCount() throws Exception {
         // should see all 5 rows
-        ResultSet rs = methodWatcher.executeQuery(SELECT_STAR_QUERY);
+        ResultSet rs = conn.query(SELECT_STAR_QUERY);
         Assert.assertEquals(5, SpliceUnitTest.resultSetSize(rs));
 
-        PreparedStatement ps1 = methodWatcher.prepareStatement(String.format("update %s.%s set city = ? where lastname = 'Smith' and state = 'CA'",
+        PreparedStatement ps1 = conn.prepareStatement(String.format("update %s.%s set city = ? where lastname = 'Smith' and state = 'CA'",
                 tableSchema.schemaName, CUST_TABLE_NAME));
         ps1.setString(1, "Sacto");
         int effected = ps1.executeUpdate();
@@ -172,10 +189,10 @@ public class PreparedStatementIT {
     @Test
     public void testPrepStatementInsertResultCount() throws Exception {
         // should see all 5 rows
-        ResultSet rs = methodWatcher.executeQuery(SELECT_STAR_QUERY);
+        ResultSet rs = conn.query(SELECT_STAR_QUERY);
         Assert.assertEquals(5, SpliceUnitTest.resultSetSize(rs));
 
-        PreparedStatement psc = methodWatcher.prepareStatement(String.format("insert into %s.%s values (?,?,?,?,?)",
+        PreparedStatement psc = conn.prepareStatement(String.format("insert into %s.%s values (?,?,?,?,?)",
                 tableSchema.schemaName, CUST_TABLE_NAME));
         for (int i =6; i<16; i++) {
             psc.setInt(1, i);
@@ -192,10 +209,10 @@ public class PreparedStatementIT {
     @Test
     public void testPrepStatementGroupedAggregate() throws Exception {
         // should see all 5 rows
-        ResultSet rs = methodWatcher.executeQuery(SELECT_STAR_QUERY);
+        ResultSet rs = conn.query(SELECT_STAR_QUERY);
         Assert.assertEquals(5, SpliceUnitTest.resultSetSize(rs));
 
-        PreparedStatement psc = methodWatcher.prepareStatement(String.format("select lastname, count(*) from %s.%s where lastname=? group by lastname",
+        PreparedStatement psc = conn.prepareStatement(String.format("select lastname, count(*) from %s.%s where lastname=? group by lastname",
                 tableSchema.schemaName, CUST_TABLE_NAME));
         psc.setString(1, "Smith");
         rs = psc.executeQuery();
