@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.RowAccumulator;
@@ -23,6 +24,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
@@ -181,8 +183,8 @@ public class FixedSITableScannerTest {
 				}
 
 				@Override
-				public Filter.ReturnCode filterKeyValue(KeyValue kv) throws IOException {
-						if(!com.splicemachine.hbase.KeyValueUtils.singleMatchingQualifier(kv,SpliceConstants.PACKED_COLUMN_BYTES))
+				public Filter.ReturnCode filterCell(Cell kv) throws IOException {
+						if(!CellUtils.singleMatchingQualifier(kv, SpliceConstants.PACKED_COLUMN_BYTES))
 								return Filter.ReturnCode.SKIP;
 						if(!accumulator.isFinished() && accumulator.isOfInterest(kv)){
 								if(!accumulator.accumulate(kv))
@@ -270,7 +272,7 @@ public class FixedSITableScannerTest {
 						}
 				};
 				//noinspection unchecked
-				when(scanner.nextRaw(any(List.class),any(String.class))).thenAnswer(rowReturnAnswer);
+				when(scanner.nextRaw(any(List.class),any(Integer.class))).thenAnswer(rowReturnAnswer);
 				//noinspection unchecked
 				when(scanner.next(any(List.class))).thenAnswer(rowReturnAnswer);
 

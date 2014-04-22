@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.store.access.base;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -15,6 +14,7 @@ import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -33,7 +33,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Properties;
 
 public abstract class SpliceController implements ConglomerateController {
@@ -173,8 +172,8 @@ public abstract class SpliceController implements ConglomerateController {
 						ExecRow row = new ValueRow(destRow.length);
 						row.setRowArray(destRow);
 						row.resetRowArray();
-						KeyValue keyValue = KeyValueUtils.matchDataColumn(result.raw());
-						rowDecoder.set(keyValue.getBuffer(), keyValue.getValueOffset(), keyValue.getValueLength());
+						Cell keyValue = CellUtils.matchDataColumn(result.raw());
+						rowDecoder.set(keyValue.getValueArray(), keyValue.getValueOffset(), keyValue.getValueLength());
 						rowDecoder.decode(row);
 						return true;
 				} catch (Exception e) {

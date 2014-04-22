@@ -100,10 +100,10 @@ public class ColumnDumpTask extends DebugTask{
     }
 
     private static final String outputPattern = "%-20s\t%8d\t%s%n";
-    private void writeRow(Writer writer,List<KeyValue> keyValues) throws IOException {
-        for(KeyValue kv:keyValues){
-            if(!kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES))
-                continue;
+    private void writeRow(Writer writer,List<Cell> keyValues) throws IOException {
+        for(Cell kv:keyValues){
+						if(!CellUtils.matchingColumn(kv,SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES))
+								continue;
             long txnId = kv.getTimestamp();
 
             byte[] value = kv.getValueArray();

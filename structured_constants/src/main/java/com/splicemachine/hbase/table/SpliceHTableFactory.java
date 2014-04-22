@@ -104,7 +104,7 @@ public class SpliceHTableFactory implements HTableInterfaceFactory {
             SpliceLogUtils.trace(LOG, "creating actual HTable after connection created");
 //            final HTable htable = new SpliceHTable(tableName, connections.get(increment.incrementAndGet() % 10),
 //            final HTable htable = new SpliceHTable(tableName, SpliceHConnection.createConnection(config),
-            final HTable htable = new SpliceHTable(tableName, HConnectionManager.createConnection(config),
+            final HTable htable = new SpliceHTable(tableName, HConnectionManager.getConnection(config),
                                                    tableExecutor, HBaseRegionCache.getInstance());
             htable.setAutoFlushTo(autoFlush);
             SpliceLogUtils.trace(LOG, "Returning created table");

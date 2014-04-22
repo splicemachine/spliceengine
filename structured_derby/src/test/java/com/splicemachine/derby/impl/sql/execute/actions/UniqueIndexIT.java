@@ -1,14 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
-import java.util.Arrays;
-import java.util.List;
-
 import com.google.common.collect.Lists;
-import com.splicemachine.tools.splice;
+import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -18,14 +14,12 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.utils.ErrorState;
-import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -502,33 +496,44 @@ public class UniqueIndexIT extends SpliceUnitTest {
 
     @Test(timeout = 10000)
     public void testCanInsertThenDeleteEntryInTransaction() throws Exception {
-        new SpliceIndexWatcher(TABLE_NAME_6, CLASS_NAME, INDEX_61, CLASS_NAME, "(name)", true).starting(null);
-        insertThenDelete();
-        methodWatcher.getOrCreateConnection().commit();
+				SpliceIndexWatcher spliceIndexWatcher = new SpliceIndexWatcher(TABLE_NAME_6, CLASS_NAME, INDEX_61, CLASS_NAME, "(name)", true);
+				spliceIndexWatcher.starting(null);
+				try{
+						insertThenDelete();
+						methodWatcher.getOrCreateConnection().commit();
+				}finally{
+						spliceIndexWatcher.drop();
+				}
     }
 
     private void insertThenDelete() throws Exception {
         methodWatcher.getOrCreateConnection().setAutoCommit(false);
-        String name = "sfines";
+        String name = "sfines3";
         int value = 2;
         methodWatcher.getStatement().execute(format("insert into %s (name, val) values ('%s', %s)", this.getTableReference(TABLE_NAME_6), name, value));
         methodWatcher.getStatement().execute(format("delete from %s where name = '%s'", this.getTableReference(TABLE_NAME_6), name));
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference(TABLE_NAME_6), name));
         List<String> results = Lists.newArrayListWithExpectedSize(0);
-        while (rs.next()) {
-            String retName = rs.getString(1);
-            int val = rs.getInt(2);
-            results.add(String.format("name:%s,value:%d", retName, val));
-        }
-        Assert.assertEquals("Incorrect number of rows returned!", 0, results.size());
+				Assert.assertFalse("Rows were returned incorrectly!",rs.next());
+//        while (rs.next()) {
+//            String retName = rs.getString(1);
+//            int val = rs.getInt(2);
+//            results.add(String.format("name:%s,value:%d", retName, val));
+//        }
+//        Assert.assertEquals("Incorrect number of rows returned!", 0, results.size());
     }
 
     @Test(timeout = 10000)
     public void testCanInsertThenDeleteThenInsertAgainInTransaction() throws Exception{
-        new SpliceIndexWatcher(TABLE_NAME_6, CLASS_NAME, INDEX_61, CLASS_NAME, "(name)", true).starting(null);
-        insertThenDelete();
-        insertThenDelete();
-        methodWatcher.getOrCreateConnection().commit();
+				SpliceIndexWatcher spliceIndexWatcher = new SpliceIndexWatcher(TABLE_NAME_6, CLASS_NAME, INDEX_61, CLASS_NAME, "(name)", true);
+				spliceIndexWatcher.starting(null);
+				try{
+						insertThenDelete();
+						insertThenDelete();
+						methodWatcher.getOrCreateConnection().commit();
+				}finally{
+						spliceIndexWatcher.drop();
+				}
     }
 
 //    @Test(timeout= 10000)

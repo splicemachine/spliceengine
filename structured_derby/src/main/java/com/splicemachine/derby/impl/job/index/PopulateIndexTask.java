@@ -10,6 +10,8 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.hbase.writer.WriteStats;
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -288,7 +290,7 @@ public class PopulateIndexTask extends ZkTask {
 				}
 		}
 
-		private void translateResult(List<KeyValue> result,
+		private void translateResult(List<Cell> result,
                                  IndexTransformer2 transformer,
                                  CallBuffer<KVPair> writeBuffer,
 																 Timer manipulationTimer) throws Exception {

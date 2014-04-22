@@ -594,7 +594,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(DerbyGroupedAggregateContext.class,EXTERNALIZABLE_SERIALIZER,137);
         instance.register(LastIndexKeyOperation.class,EXTERNALIZABLE_SERIALIZER,138);
         instance.register(MergeJoinOperation.class, EXTERNALIZABLE_SERIALIZER,139);
-        instance.register(MergeLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER,157);
 
         instance.register(AggregateAliasInfo.class, EXTERNALIZABLE_SERIALIZER,140);
         instance.register(UserDefinedAggregator.class, EXTERNALIZABLE_SERIALIZER,141);
@@ -676,5 +675,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 				instance.register(ColumnInfo.class,EXTERNALIZABLE_SERIALIZER,171);
 				instance.register(ColumnInfo[].class,172);
 				instance.register(LoadConglomerateTask.class,EXTERNALIZABLE_SERIALIZER,173);
+				instance.register(MergeLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER,174);
     }
 }

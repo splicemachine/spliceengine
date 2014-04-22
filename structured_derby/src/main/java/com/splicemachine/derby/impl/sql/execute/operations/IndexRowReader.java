@@ -266,8 +266,8 @@ class IndexRowReader {
         if(entryDecoder==null)
             entryDecoder = new EntryDecoder(runtimeContext.getKryoPool());
 
-        for(KeyValue kv:nextFetchedData.raw()){
-						byte[] buffer = kv.getBuffer();
+        for(Cell kv:nextFetchedData.raw()){
+						byte[] buffer = kv.getRowArray();
 						keyDecoder.decode(buffer,kv.getRowOffset(),kv.getRowLength(),nextScannedRow.row);
 						rowDecoder.set(buffer,kv.getValueOffset(),kv.getValueLength());
 						rowDecoder.decode(nextScannedRow.row);

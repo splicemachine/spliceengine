@@ -14,7 +14,10 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
-import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.FilterState;
+import com.splicemachine.si.impl.FilterStatePacked;
+import com.splicemachine.si.impl.IFilterState;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.stats.Counter;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.TimeView;
@@ -31,7 +34,7 @@ import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
@@ -58,7 +61,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 
 		private SIFilter siFilter;
 		private EntryPredicateFilter predicateFilter;
-		private List<KeyValue> keyValues;
+		private List<Cell> keyValues;
 
 		private RowLocation currentRowLocation;
 		private final boolean[] keyColumnSortOrder;
@@ -145,7 +148,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 										//noinspection unchecked
 										return new FilterStatePacked((FilterState)iFilterState, hRowAccumulator){
 												@Override
-												protected Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
+												protected Filter.ReturnCode doAccumulate(Cell dataKeyValue) throws IOException {
 														if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
 																if (!accumulator.accumulate(dataKeyValue)) {
 																		return Filter.ReturnCode.NEXT_ROW;
@@ -277,7 +280,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				return EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
 		}
 
-		protected void setRowLocation(KeyValue sampleKv) throws StandardException {
+		protected void setRowLocation(Cell sampleKv) throws StandardException {
 				if(indexName!=null && template.nColumns() > 0 && template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
 					 /*
 						* If indexName !=null, then we are currently scanning an index,
@@ -286,7 +289,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 						*/
 						currentRowLocation = (RowLocation) template.getColumn(template.nColumns());
 				} else {
-						slice.set(sampleKv.getBuffer(), sampleKv.getRowOffset(), sampleKv.getRowLength());
+						slice.set(sampleKv.getRowArray(), sampleKv.getRowOffset(), sampleKv.getRowLength());
 						if(currentRowLocation==null)
 								currentRowLocation = new HBaseRowLocation(slice);
 						else
@@ -296,10 +299,10 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 
 		private boolean filterRow(SIFilter filter) throws IOException {
 				filter.nextRow();
-				Iterator<KeyValue> kvIter = keyValues.iterator();
+				Iterator<Cell> kvIter = keyValues.iterator();
 				while(kvIter.hasNext()){
-						KeyValue kv = kvIter.next();
-						Filter.ReturnCode returnCode = filter.filterKeyValue(kv);
+						Cell kv = kvIter.next();
+						Filter.ReturnCode returnCode = filter.filterCell(kv);
 						switch(returnCode){
 								case NEXT_COL:
 								case NEXT_ROW:
@@ -314,10 +317,10 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				return keyValues.size() > 0 && filter.getAccumulator().result() != null;
 		}
 
-		private boolean filterRowKey(KeyValue keyValue) throws IOException {
+		private boolean filterRowKey(Cell keyValue) throws IOException {
 				if(!isKeyed) return true;
 
-				byte[] dataBuffer = keyValue.getBuffer();
+				byte[] dataBuffer = keyValue.getRowArray();
 				int dataOffset = keyValue.getRowOffset();
 				int dataLength = keyValue.getRowLength();
 				keyDecoder.set(dataBuffer, dataOffset, dataLength);

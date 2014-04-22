@@ -142,7 +142,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
 
 		@Override
-		public boolean next(final List<KeyValue> results) throws IOException {
+		public boolean next(final List<Cell> results) throws IOException {
 				SpliceLogUtils.trace(LOG, "next ");
 				if(finished)return false;
 				impl.prepareContextManager();
@@ -253,7 +253,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
 
 		@Override
-		public boolean next(List<KeyValue> result, int limit) throws IOException {
+		public boolean next(List<Cell> result, int limit) throws IOException {
 				throw new RuntimeException("Not Implemented");
 		}
 
@@ -295,7 +295,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		}
 
 		@Override
-		public boolean isFilterDone() {
+		public boolean isFilterDone() throws IOException {
 				SpliceLogUtils.trace(LOG,"isFilterDone");
 				return regionScanner.isFilterDone();
 		}

@@ -5,7 +5,6 @@ import java.io.IOException;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
@@ -15,6 +14,7 @@ import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -111,8 +111,8 @@ public class IndexController  extends SpliceController  {
 								DescriptorSerializer[] serializers = VersionedSerializers.forVersion("1.0",true).getSerializers(execRow);
 								KeyHashDecoder decoder = BareKeyHash.decoder(null,null,serializers);
 								try{
-										KeyValue kv = KeyValueUtils.matchDataColumn(result.raw());
-										decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
+										Cell kv = CellUtils.matchDataColumn(result.raw());
+										decoder.set(kv.getValueArray(),kv.getValueOffset(),kv.getValueLength());
 										decoder.decode(execRow);
 										validCols = new int[validColumns.getNumBitsSet()];
 										int pos=0;

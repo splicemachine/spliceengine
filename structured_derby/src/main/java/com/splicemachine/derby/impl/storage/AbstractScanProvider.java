@@ -16,6 +16,9 @@ import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import java.io.IOException;
+import java.util.NoSuchElementException;
+
 /**
  *
  * Basic Provider implementation for fetching rows from HBase.

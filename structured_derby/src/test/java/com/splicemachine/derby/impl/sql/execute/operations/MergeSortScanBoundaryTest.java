@@ -1,10 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import static org.mockito.Mockito.mock;
-
-import java.util.Collections;
-import java.util.List;
-
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
@@ -19,12 +14,8 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Test;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.utils.Snowflake;
-import com.splicemachine.utils.kryo.KryoPool;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Scott Fines

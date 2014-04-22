@@ -1,15 +1,13 @@
 package com.splicemachine.tools;
 
-import java.util.Arrays;
-
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.encoding.debug.DataType;
 import com.splicemachine.encoding.Encoding;
+import com.splicemachine.encoding.debug.DataType;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.storage.*;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -20,17 +18,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.debug.DataType;
-import com.splicemachine.hbase.CellUtils;
-import com.splicemachine.storage.EntryAccumulator;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
-import com.splicemachine.storage.ValuePredicate;
+import java.util.Arrays;
 
 /**
  * Debugging utility that allows one to scan a table and look for any row which has an entry in a specific column.
@@ -106,8 +94,8 @@ public class HBaseFinder {
                 edf.reset();
                 byte[] row = result.getRow();
                 String rowBytes = Bytes.toStringBinary(row);
-                for(KeyValue kv:result.raw()){
-                    if(!kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES)) continue; //skip non-data columns
+                for(Cell kv:result.raw()){
+										if(!CellUtils.matchingColumn(kv,SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES)) continue; //skip non-data columns
                     long ts = kv.getTimestamp();
                     byte[] value = CellUtil.cloneValue(kv);
                     if(value.length<=0) continue;

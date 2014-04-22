@@ -1,5 +1,6 @@
 package com.splicemachine.si.data.hbase;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 import org.apache.hadoop.hbase.Cell;
@@ -50,8 +51,8 @@ public class HRowAccumulator implements RowAccumulator {
 		}
 
 		@Override
-    public boolean accumulate(KeyValue keyValue) throws IOException {
-		bytesAccumulated+=keyValue.getLength();
+    public boolean accumulate(Cell keyValue) throws IOException {
+		bytesAccumulated+=keyValue.getRowArray().length;
 //        decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength()); //do we need to do this twice?
         boolean pass = predicateFilter.match(decoder, entryAccumulator);
         if(!pass)

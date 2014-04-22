@@ -289,7 +289,7 @@ public class TableScanOperation extends ScanOperation {
 				currentRow = tableScanner.next(spliceRuntimeContext);
 				if(currentRow!=null){
 						setCurrentRow(currentRow);
-						setCurrentRowLocation(tableScanner.getCurrentRowLocation());
+						this.currentRowLocation = tableScanner.getCurrentRowLocation();
 				}else{
 						clearCurrentRow();
 						currentRowLocation = null;

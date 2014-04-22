@@ -1,26 +1,21 @@
 package com.splicemachine.derby.impl.storage;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.JobInfo;
-import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.job.*;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.util.Collection;
-import java.util.LinkedList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -42,25 +37,12 @@ public abstract class MultiScanRowProvider implements RowProvider {
 
     @Override
     public List<Pair<JobFuture, JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-        StandardException baseError = null;
-        List<Scan> scans = getScans();
+				List<Scan> scans = getScans();
         HTableInterface table = SpliceAccessManager.getHTable(getTableName());
-        LinkedList<Pair<JobFuture, JobInfo>> outstandingJobs = Lists.newLinkedList();
-        try {
-            for (Scan scan : scans) {
-                outstandingJobs.add(RowProviders.submitScanJob(scan, table, instructions, spliceRuntimeContext));
-            }
-            return outstandingJobs;
 
-        } catch (Exception e) {
-            baseError = Exceptions.parseException(e.getCause());
-            throw baseError;
-        } finally {
-            if (baseError != null) {
-                cancelAll(outstandingJobs);
-            }
-        }
-    }
+				Pair<JobFuture,JobInfo> jobPair = RowProviders.submitMultiScanJob(scans,table,instructions,spliceRuntimeContext);
+				return Collections.singletonList(jobPair);
+		}
 
     @Override
     public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobs) throws StandardException {

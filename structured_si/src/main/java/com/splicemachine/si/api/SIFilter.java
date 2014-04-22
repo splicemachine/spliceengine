@@ -1,6 +1,7 @@
 package com.splicemachine.si.api;
 
 import com.splicemachine.si.impl.RowAccumulator;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.Filter;
 
@@ -28,5 +29,5 @@ public interface SIFilter {
 		 * @return a return code denoting whether or not this KeyValue should be included
 		 * or not.
 		 */
-		Filter.ReturnCode filterKeyValue(KeyValue kv) throws IOException;
+		Filter.ReturnCode filterCell(Cell kv) throws IOException;
 }

@@ -4,6 +4,9 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.hbase.CellUtils;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -131,14 +134,8 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
                 return;
             }
 
-            KeyValue resultValue = null;
-            for(KeyValue value:result.raw()){
-                if(value.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES)){
-                    resultValue = value;
-                    break;
-                }
-            }
-            KVPair resultPair = new KVPair(get.getRow(), CellUtil.cloneValue(resultValue), KVPair.Type.DELETE);
+						Cell cell = CellUtils.matchDataColumn(result.rawCells());
+            KVPair resultPair = new KVPair(CellUtil.cloneRow(cell), CellUtil.cloneValue(cell), KVPair.Type.DELETE);
             KVPair indexDelete = transformer.translate(resultPair);
             indexBuffer.add(indexDelete);
         } catch (IOException e) {

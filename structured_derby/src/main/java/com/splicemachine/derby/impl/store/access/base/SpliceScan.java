@@ -6,7 +6,6 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.LazyScan;
 import com.splicemachine.derby.impl.sql.execute.ParallelScan;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -17,8 +16,8 @@ import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -30,12 +29,13 @@ import org.apache.derby.iapi.store.access.ScanInfo;
 import org.apache.derby.iapi.store.access.conglomerate.ScanManager;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 
 public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
@@ -95,7 +95,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				this.transID = SpliceUtils.getTransID(trans);
 				setupScan();
 				attachFilter();
-				tableName = Bytes.toString(SpliceOperationCoprocessor.TEMP_TABLE);
+				tableName = SpliceConstants.TEMP_TABLE;
 				setupRowColumns();
 //		table = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
 		}
@@ -305,8 +305,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 								DescriptorSerializer[] serializers = VersionedSerializers.forVersion("1.0",true).getSerializers(destRow);
 								EntryDataDecoder decoder = new EntryDataDecoder(null,null,serializers);
 								try{
-										KeyValue kv = KeyValueUtils.matchDataColumn(currentResult.raw());
-										decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
+										Cell kv = CellUtils.matchDataColumn(currentResult.raw());
+										decoder.set(kv.getValueArray(),kv.getValueOffset(),kv.getValueLength());
 										decoder.decode(row);
 										this.currentRow = destRow;
 								}finally{
@@ -369,8 +369,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 								try{
 										ExecRow row = new ValueRow(fetchedRow.length);
 										row.setRowArray(fetchedRow);
-										KeyValue kv = KeyValueUtils.matchDataColumn(currentResult.raw());
-										decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
+										Cell kv = CellUtils.matchDataColumn(currentResult.raw());
+										decoder.set(kv.getValueArray(),kv.getValueOffset(),kv.getValueLength());
 										decoder.decode(row);
 								}finally{
 										Closeables.closeQuietly(decoder);
@@ -450,8 +450,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 										KeyHashDecoder decoder = new EntryDataDecoder(null,null,serializers);
 										try{
 												if (results[i] != null) {
-														KeyValue kv = KeyValueUtils.matchDataColumn(results[i].raw());
-														decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
+														Cell kv = CellUtils.matchDataColumn(results[i].raw());
+														decoder.set(kv.getValueArray(),kv.getValueOffset(),kv.getValueLength());
 														decoder.decode(row);
 												}
 										}finally{

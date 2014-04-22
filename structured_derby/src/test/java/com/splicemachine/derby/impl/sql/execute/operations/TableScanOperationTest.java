@@ -1,18 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Random;
-
 import com.carrotsearch.hppc.BitSet;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
@@ -24,7 +11,6 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.kryo.KryoPool;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -41,16 +27,11 @@ import org.junit.runners.Parameterized;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.derby.utils.test.TestingDataType;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.storage.EntryEncoder;
-import com.splicemachine.utils.kryo.KryoPool;
+import java.io.IOException;
+import java.util.*;
+
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit tests to verify that TableScanOperation works correctly

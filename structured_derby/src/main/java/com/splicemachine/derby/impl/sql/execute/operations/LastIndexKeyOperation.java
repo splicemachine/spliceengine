@@ -1,29 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CellUtil;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -245,32 +221,10 @@ public class LastIndexKeyOperation extends ScanOperation {
 //								}
 //						}
 
-            ExecRow currentRow = null;
-            // First we try to get the last row starting close to the end of the region
-            tentativeScanner = getTentativeScanner(contextScan);
-            if (tentativeScanner != null) {
-                currentRow = nextFromRegionScanner(tentativeScanner);
-            }
-            if (currentRow == null) {
-                // If we didn't find any suitable row starting from the end, scan the whole region
-                currentRow = nextFromRegionScanner(regionScanner);
-            }
-            if (currentRow != null) {
-                if (indexName != null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID) {
-                    /*
-                     * If indexName !=null, then we are currently scanning an index,
-                     *so our RowLocation should point to the main table, and not to the
-                     * index (that we're actually scanning)
-                     */
-                    currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
-                } else {
-                    currentRowLocation.setValue(keyValues.get(0).getRow());
-                }
-            }
-
-            returnedRow = true;
+						returnedRow = true;
             setCurrentRow(currentRow);
-            timer.stopTiming();
+						currentRowLocation = tableScanner.getCurrentRowLocation();
+//            timer.stopTiming();
 
 						stopExecutionTime = System.currentTimeMillis();
 				}
@@ -285,42 +239,7 @@ public class LastIndexKeyOperation extends ScanOperation {
             tentativeScanner.close();
     }
 
-    private ExecRow nextFromRegionScanner(RegionScanner regionScanner) throws IOException, StandardException {
-        KeyValue[] prev = new KeyValue[2];
-        keyValues.clear();
-        regionScanner.next(keyValues);
-        ExecRow currentRow = getExecRowDefinition();
-
-        if (keyValues.isEmpty()) {
-            return null;
-        }
-        while (!keyValues.isEmpty()) {
-            keyValues.toArray(prev);
-            keyValues.clear();
-            rowsFiltered++;
-            regionScanner.next(keyValues);
-        }
-
-        Collections.addAll(keyValues, prev);
-        currentRow.resetRowArray();
-        DataValueDescriptor[] fields = currentRow.getRowArray();
-
-        for (KeyValue kv : keyValues) {
-            //should only be 1
-            if (kv != null) {
-                RowMarshaller.sparsePacked().decode(kv, fields, baseColumnMap, getRowDecoder());
-                if (scanInformation.getAccessedPkColumns() != null &&
-                        scanInformation.getAccessedPkColumns().getNumBitsSet() > 0) {
-                    getKeyMarshaller().decode(kv, fields, baseColumnMap, getKeyDecoder(),
-                            getColumnOrdering(), getColumnDVDs());
-                }
-            }
-        }
-
-        return currentRow;
-    }
-
-    @Override
+		@Override
     public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         SpliceLogUtils.trace(LOG, "getMapRowProvider");
         beginTime = System.currentTimeMillis();

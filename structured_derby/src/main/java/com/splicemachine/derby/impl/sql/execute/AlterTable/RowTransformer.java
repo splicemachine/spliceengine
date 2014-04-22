@@ -24,6 +24,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.derby.impl.sql.execute.ValueRow;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 
 import java.io.Closeable;
@@ -153,7 +154,7 @@ public class RowTransformer implements Closeable {
 				return newPair;
 		}
 
-    public KVPair transform(KeyValue kv) throws StandardException, SQLException, IOException{
+    public KVPair transform(Cell kv) throws StandardException, SQLException, IOException{
         if (!initialized) {
             initialize();
         }
@@ -162,10 +163,10 @@ public class RowTransformer implements Closeable {
         oldRow.resetRowArray();
         DataValueDescriptor[] oldFields = oldRow.getRowArray();
         if (oldFields.length != 0) {
-						keyDecoder.set(kv.getBuffer(),kv.getKeyOffset(),kv.getKeyLength());
+						keyDecoder.set(kv.getRowArray(),kv.getRowOffset(),kv.getRowLength());
 						keyDecoder.decode(oldRow);
 
-						rowDecoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
+						rowDecoder.set(kv.getValueArray(),kv.getValueOffset(),kv.getValueLength());
 						rowDecoder.decode(oldRow);
         }
 
