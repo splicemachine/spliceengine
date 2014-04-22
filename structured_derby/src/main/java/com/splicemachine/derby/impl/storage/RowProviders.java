@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.storage;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
@@ -11,6 +12,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.job.operation.MultiScanOperationJob;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.JobFutureFromResults;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
@@ -29,6 +31,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.tools.run;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
@@ -152,17 +155,16 @@ public class RowProviders {
 				}
 		}
 
-		public static Pair<JobFuture,JobInfo> submitScanJob(Scan scan, HTableInterface table,
-																												SpliceObserverInstructions instructions,
-																												SpliceRuntimeContext runtimeContext)
-						throws StandardException {
+		public static Pair<JobFuture,JobInfo> submitMultiScanJob(List<Scan> scans, HTableInterface table,
+																														 SpliceObserverInstructions instructions,
+																														 SpliceRuntimeContext runtimeContext) throws StandardException {
 				instructions.setSpliceRuntimeContext(runtimeContext);
 				JobFuture jobFuture = null;
 				JobInfo info = null;
 				StatementInfo stmtInfo = instructions.getSpliceRuntimeContext().getStatementInfo();
 				try {
 						long startTimeMs = System.currentTimeMillis();
-						OperationJob job = getJob(table, instructions, scan);
+						MultiScanOperationJob job = getMultiJob(table,instructions,scans);
 						jobFuture = SpliceDriver.driver().getJobScheduler().submit(job);
 						info = new JobInfo(job.getJobId(), jobFuture.getNumTasks(), startTimeMs);
 						info.setJobFuture(jobFuture);
@@ -189,19 +191,39 @@ public class RowProviders {
 						}
 						throw Exceptions.parseException(e.getCause());
 				}
+
+		}
+		public static Pair<JobFuture,JobInfo> submitScanJob(Scan scan, HTableInterface table,
+																												SpliceObserverInstructions instructions,
+																												SpliceRuntimeContext runtimeContext) throws StandardException {
+				return submitMultiScanJob(Collections.singletonList(scan),table,instructions, runtimeContext);
 		}
 
-		private static OperationJob getJob(HTableInterface table, SpliceObserverInstructions instructions, Scan scan) {
-				if (scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS) == null)
-						SpliceUtils.setInstructions(scan, instructions);
+		private static MultiScanOperationJob getMultiJob(HTableInterface table, SpliceObserverInstructions instructions,List<Scan> scans){
+				for(Scan scan:scans){
+						if (scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS) == null)
+								SpliceUtils.setInstructions(scan, instructions);
+				}
 				boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
-				StatementInfo info = instructions.getSpliceRuntimeContext().getStatementInfo();
+//				StatementInfo info = instructions.getSpliceRuntimeContext().getStatementInfo();
 
-				long statementId = info!=null? info.getStatementUuid(): -1l;
-				Activation activation = instructions.getTopOperation().getActivation();
-				LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-				return new OperationJob(scan, instructions, table, readOnly,lcc.getRunTimeStatisticsMode(),statementId,lcc.getXplainSchema());
+//				long statementId = info!=null? info.getStatementUuid(): -1l;
+//				Activation activation = instructions.getTopOperation().getActivation();
+//				LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+				return new MultiScanOperationJob(scans, instructions, table, SpliceConstants.operationTaskPriority,readOnly);
 		}
+
+//		private static OperationJob getJob(HTableInterface table, SpliceObserverInstructions instructions, Scan scan) {
+//				if (scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS) == null)
+//						SpliceUtils.setInstructions(scan, instructions);
+//				boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
+//				StatementInfo info = instructions.getSpliceRuntimeContext().getStatementInfo();
+//
+//				long statementId = info!=null? info.getStatementUuid(): -1l;
+//				Activation activation = instructions.getTopOperation().getActivation();
+//				LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+//				return new OperationJob(scan, instructions, table, readOnly,lcc.getRunTimeStatisticsMode(),statementId,lcc.getXplainSchema());
+//		}
 
 		public static abstract class DelegatingRowProvider implements RowProvider{
 
