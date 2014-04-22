@@ -107,6 +107,7 @@ public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
             Predicate p = (Predicate)pl.getOptPredicate(i);
             if (shouldPull.apply(p)) {
                 pulled.add(p);
+                p.setPulled(true);
                 if (LOG.isDebugEnabled()) {
                     LOG.debug(String.format("Pulled pred %s from Table=%s",
                             PredicateUtils.predToString.apply((Predicate) p), t.getResultSetNumber()));

@@ -192,6 +192,12 @@ public class OnceOperation extends SpliceBaseOperation {
 				return operations;
 		}
 
+        @Override
+        public int[] getAccessedNonPkColumns() throws StandardException{
+            // by default return null
+            return source.getAccessedNonPkColumns();
+        }
+
 //	@Override
 //	public long getTimeSpent(int type)
 //	{
@@ -310,6 +316,7 @@ public class OnceOperation extends SpliceBaseOperation {
 		}
 		protected ExecRow validateNextRow(RowSource rowSource,boolean returnNullRow) throws StandardException, IOException {
 				ExecRow row = rowSource.next();
+                currentRowLocation = source.getCurrentRowLocation();
 				if(row!=null){
 						switch (cardinalityCheck) {
 								case DO_CARDINALITY_CHECK:

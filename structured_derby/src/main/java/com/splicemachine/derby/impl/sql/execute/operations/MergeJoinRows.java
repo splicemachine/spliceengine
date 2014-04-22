@@ -11,10 +11,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  * IJoinRowsIterator for MergeJoin.
@@ -35,7 +32,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
     final StandardPushBackIterator<ExecRow> rightRS;
     final Comparator<ExecRow> comparator;
     final List<Pair<Integer,Integer>> joinKeys;
-    List<ExecRow> currentRights = new ArrayList<ExecRow>();
+    List<ExecRow> currentRights = new LinkedList<ExecRow>();
 
     private int leftRowsSeen;
     private int rightRowsSeen;
@@ -92,7 +89,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
             return currentRights.iterator();
         }
         // If not, look for the ones that do
-        currentRights = new ArrayList<ExecRow>();
+        currentRights = new LinkedList<ExecRow>();
         ExecRow right;
         while ((right = rightRS.next(null)) != null){
             rightRowsSeen++;
@@ -101,8 +98,8 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
             if (comparison == 0) {
                 currentRights.add(right.getClone());
             // if is greater than left, push back & stop
-            } else if (comparison == -1) {
-								rightRowsSeen--;
+            } else if (comparison < 0) {
+                rightRowsSeen--;
                 rightRS.pushBack(right);
                 break;
             }

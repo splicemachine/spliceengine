@@ -16,8 +16,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 		private static Logger LOG = Logger.getLogger(NestedLoopLeftOuterJoinOperation.class);
-		protected String emptyRowFunMethodName;
-		protected boolean wasRightOuterJoin;
 		protected GeneratedMethod emptyRowFun;
 		protected Qualifier[][] qualifierProbe;
 		public int emptyRightRowsReturned = 0;
@@ -49,23 +47,6 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 				this.wasRightOuterJoin = wasRightOuterJoin;
 				init(SpliceOperationContext.newContext(activation));
 				recordConstructorTime();
-		}
-
-		@Override
-		public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-				SpliceLogUtils.trace(LOG, "readExternal");
-				super.readExternal(in);
-				emptyRowFunMethodName = readNullableString(in);
-				wasRightOuterJoin = in.readBoolean();
-		}
-
-		@Override
-		public void writeExternal(ObjectOutput out) throws IOException {
-				SpliceLogUtils.trace(LOG, "writeExternal");
-				super.writeExternal(out);
-				writeNullableString(emptyRowFunMethodName, out);
-				out.writeBoolean(wasRightOuterJoin);
-
 		}
 
 		@Override

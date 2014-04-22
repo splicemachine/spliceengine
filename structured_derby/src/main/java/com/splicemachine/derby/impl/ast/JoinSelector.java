@@ -1,17 +1,18 @@
 package com.splicemachine.derby.impl.ast;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Properties;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.splicemachine.hbase.HBaseRegionLoads;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.JoinStrategy;
 import org.apache.derby.iapi.sql.compile.Optimizable;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -31,8 +32,6 @@ import org.apache.derby.impl.sql.compile.ResultSetNode;
 import org.apache.derby.impl.sql.compile.RowResultSetNode;
 import org.apache.hadoop.hbase.RegionLoad;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.hbase.HBaseRegionLoads;
 
 /**
  * @author P Trolard
@@ -149,7 +148,9 @@ public class JoinSelector extends AbstractSpliceVisitor {
 
         boolean userSupplied = joinContainsStrategyHint(j);
 
-        ConglomerateDescriptor cd = RSUtils.ap(j).getConglomerateDescriptor();
+        AccessPath accessPath = RSUtils.ap(j);
+        ConglomerateDescriptor cd = accessPath != null ?
+                                        accessPath.getConglomerateDescriptor() : null;
         boolean isSystemTable = cd != null &&
                                     cd.getSchemaID().toString()
                                         .equals(SchemaDescriptor.SYSTEM_SCHEMA_UUID);
@@ -166,8 +167,6 @@ public class JoinSelector extends AbstractSpliceVisitor {
                     && regionLoads.size() == 1) {
                 singleRegionSize = HBaseRegionLoads.memstoreAndStorefileSize(regionLoads.iterator().next());
             }
-
-
         }
 
         return new JoinInfo(strategy(j),

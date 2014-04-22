@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>structured_test</artifactId>
 	<packaging>jar</packaging>
@@ -41,12 +42,11 @@
 			<version>2.1</version>
 		</dependency>
 		<!--<dependency>-->
-			<!--<groupId>com.splicemachine</groupId>-->
-			<!--<artifactId>splice_machine</artifactId>-->
-			<!--<version>0.5rc10-SNAPSHOT</version>-->
-			<!--<classifier>${envClassifier}</classifier>-->
+		<!--<groupId>com.splicemachine</groupId>-->
+		<!--<artifactId>splice_machine</artifactId>-->
+		<!--<version>0.5rc10-SNAPSHOT</version>-->
+		<!--<classifier>${envClassifier}</classifier>-->
 		<!--</dependency>		-->
-
 	</dependencies>
 	<build>
 		<resources>
@@ -66,7 +66,6 @@
 			section below. These settings can be overwritten here. -->
 		<pluginManagement>
 			<plugins>
-
 				<plugin>
 					<artifactId>maven-assembly-plugin</artifactId>
 					<version>2.2-beta-5</version>
@@ -79,7 +78,6 @@
 					<artifactId>maven-source-plugin</artifactId>
 					<version>2.1.1</version>
 				</plugin>
-
 				<plugin>
 					<artifactId>maven-javadoc-plugin</artifactId>
 					<version>2.6.1</version>
@@ -88,10 +86,8 @@
 					<artifactId>maven-clean-plugin</artifactId>
 					<version>2.4</version>
 				</plugin>
-
 			</plugins>
 		</pluginManagement>
-
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -101,13 +97,13 @@
 					<classpathDependencyExcludes>
 						<classpathDependencyExclude>com.splicemachine:splice_machine</classpathDependencyExclude>
 					</classpathDependencyExcludes>
-                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                    <includes>
-                        <include>**/*Test.java</include>
-                    </includes>
-                    <excludes>
-                        <exclude>**/*IT.java</exclude>
-                    </excludes>
+					<redirectTestOutputToFile>true</redirectTestOutputToFile>
+					<includes>
+						<include>**/*Test.java</include>
+					</includes>
+					<excludes>
+						<exclude>**/*IT.java</exclude>
+					</excludes>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -116,7 +112,7 @@
 				<configuration>
 					<skipTests>${skip.integration.tests}</skipTests>
 					<argLine>-Xms256M -Xmx1024M</argLine>
-                    <argLine>-Dlog4j.configuration=file:${basedir}/src/test/resources/info-log4j.properties</argLine>
+					<argLine>-Dlog4j.configuration=file:${basedir}/src/test/resources/info-log4j.properties</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
 					<includes>
 						<include>**/*IT.java</include>
@@ -135,11 +131,9 @@
 					</execution>
 				</executions>
 			</plugin>
-
 		</plugins>
 	</build>
 	<profiles>
-
 		<profile>
 			<id>apache-derby</id>
 			<activation>
@@ -161,27 +155,22 @@
 					<artifactId>derbytools</artifactId>
 					<version>10.9.1.0</version>
 				</dependency>
-
 			</dependencies>
 		</profile>
-
 		<profile>
-<!--			<id>integration-tests</id> -->
-            <!-- temporarily commented out -->
-            <id>do-not-run</id>
+			<!--			<id>integration-tests</id> -->
+			<!-- temporarily commented out -->
+			<id>do-not-run</id>
 			<properties>
 				<!-- enable failsafe integration tests -->
 				<skip.integration.tests>false</skip.integration.tests>
-
 				<!-- skip server start/stop if server already running -->
 				<server.start.skip>skipServerStart</server.start.skip>
-
 				<!-- ant task start/stop server args -->
 				<run.command>/bin/bash</run.command>
 				<splice.start.script>start-splice.sh</splice.start.script>
 				<splice.stop.script>stop-splice.sh</splice.stop.script>
 			</properties>
-
 			<build>
 				<plugins>
 					<plugin>
@@ -190,46 +179,47 @@
 						<version>2.16</version>
 						<configuration>
 							<classpathDependencyExcludes>
-								<classpathDependencyExclude>com.splicemachine:splice_machine</classpathDependencyExclude>
+								<classpathDependencyExclude>com.splicemachine:splice_machine
+								</classpathDependencyExclude>
 							</classpathDependencyExcludes>
 						</configuration>
 					</plugin>
-                    <plugin>
-                        <artifactId>maven-antrun-plugin</artifactId>
-                        <version>1.6</version>
-                        <executions>
-                            <execution>
-                                <id>############## start-splice ################</id>
-                                <phase>pre-integration-test</phase>
-                                <configuration>
-                                    <target name="StartSpliceServer" unless="${server.start.skip}">
-                                        <exec executable="${run.command}" dir="${basedir}" spawn="false">
-                                            <arg value="${basedir}/../${splice.start.script}" />
-                                            <arg value="${failTasksRandomly}" />
-                                            <arg value="${envClassifier}" />
-                                        </exec>
-                                    </target>
-                                </configuration>
-                                <goals>
-                                    <goal>run</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>############## stop-splice ################</id>
-                                <phase>post-integration-test</phase>
-                                <configuration>
-                                    <target name="StopSpliceServer" unless="${server.start.skip}">
-                                        <exec executable="${run.command}" dir="${basedir}" spawn="false">
-                                            <arg value="${basedir}/../${splice.stop.script}" />
-                                        </exec>
-                                    </target>
-                                </configuration>
-                                <goals>
-                                    <goal>run</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
+					<plugin>
+						<artifactId>maven-antrun-plugin</artifactId>
+						<version>1.6</version>
+						<executions>
+							<execution>
+								<id>############## start-splice ################</id>
+								<phase>pre-integration-test</phase>
+								<configuration>
+									<target name="StartSpliceServer" unless="${server.start.skip}">
+										<exec executable="${run.command}" dir="${basedir}" spawn="false">
+											<arg value="${basedir}/../${splice.start.script}"/>
+											<arg value="${failTasksRandomly}"/>
+											<arg value="${envClassifier}"/>
+										</exec>
+									</target>
+								</configuration>
+								<goals>
+									<goal>run</goal>
+								</goals>
+							</execution>
+							<execution>
+								<id>############## stop-splice ################</id>
+								<phase>post-integration-test</phase>
+								<configuration>
+									<target name="StopSpliceServer" unless="${server.start.skip}">
+										<exec executable="${run.command}" dir="${basedir}" spawn="false">
+											<arg value="${basedir}/../${splice.stop.script}"/>
+										</exec>
+									</target>
+								</configuration>
+								<goals>
+									<goal>run</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
 				</plugins>
 			</build>
 		</profile>

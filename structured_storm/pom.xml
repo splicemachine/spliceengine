@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.splicemachine</groupId>
 	<artifactId>structured_storm</artifactId>
@@ -13,27 +13,22 @@
 		<groupId>com.splicemachine</groupId>
 		<version>1.0.0-SNAPSHOT</version>
 	</parent>
-
-
 	<dependencies>
-
 		<dependency>
-        	<groupId>org.apache.derby</groupId>
-        	<artifactId>derby</artifactId>
-        	<version>${derby.version}</version>
-        </dependency>
-
+			<groupId>org.apache.derby</groupId>
+			<artifactId>derby</artifactId>
+			<version>${derby.version}</version>
+		</dependency>
 		<dependency>
-        	<groupId>junit</groupId>
-        	<artifactId>junit</artifactId>
-        	<version>${junit.version}</version>
-        </dependency>
-
-          <dependency>
-        	<groupId>org.apache.derby</groupId>
-        	<artifactId>derbynet</artifactId>
-        	<version>${derby.version}</version>
-        </dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>${junit.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.derby</groupId>
+			<artifactId>derbynet</artifactId>
+			<version>${derby.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.apache.derby</groupId>
 			<artifactId>derbyclient</artifactId>
@@ -45,73 +40,73 @@
 			<version>2.0.3</version>
 		</dependency>
 		<dependency>
-        	<groupId>org.apache.derby</groupId>
-        	<artifactId>derbytools</artifactId>
-        	<version>${derby.version}</version>
-        </dependency>
-        <dependency>
-        	<groupId>org.apache.derby</groupId>
-        	<artifactId>derbyrun</artifactId>
-        	<version>${derby.version}</version>
-        </dependency>
-        		<dependency>
-        			<groupId>org.slf4j</groupId>
-        			<artifactId>slf4j-log4j12</artifactId>
-        			<version>1.7.1</version>
-        			<type>jar</type>
-        			<scope>compile</scope>
-        		</dependency>
-        		<dependency>
-        			<groupId>org.aspectj</groupId>
-        			<artifactId>aspectjrt</artifactId>
-        			<version>1.6.11</version>
-        			<type>jar</type>
-        			<scope>compile</scope>
-        		</dependency>
-        		<dependency>
-        			<groupId>org.aspectj</groupId>
-        			<artifactId>aspectjweaver</artifactId>
-        			<version>1.6.11</version>
-        			<type>jar</type>
-        			<scope>compile</scope>
-        		</dependency>
-        		<dependency>
-        			<groupId>com.splicemachine</groupId>
-        			<artifactId>structured_trx</artifactId>
-        			<version>1.0.0-SNAPSHOT</version>
-        			<type>jar</type>
-        			<scope>compile</scope>
-        			<exclusions>
-        				<exclusion>
-        					<artifactId>zookeeper</artifactId>
-        					<groupId>org.apache.zookeeper</groupId>
-        				</exclusion>
-        			</exclusions>
-        		</dependency>
-        <dependency>
+			<groupId>org.apache.derby</groupId>
+			<artifactId>derbytools</artifactId>
+			<version>${derby.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.derby</groupId>
+			<artifactId>derbyrun</artifactId>
+			<version>${derby.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>1.7.1</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.aspectj</groupId>
+			<artifactId>aspectjrt</artifactId>
+			<version>1.6.11</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.aspectj</groupId>
+			<artifactId>aspectjweaver</artifactId>
+			<version>1.6.11</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.splicemachine</groupId>
+			<artifactId>structured_trx</artifactId>
+			<version>1.0.0-SNAPSHOT</version>
+			<type>jar</type>
+			<scope>compile</scope>
+			<exclusions>
+				<exclusion>
+					<artifactId>zookeeper</artifactId>
+					<groupId>org.apache.zookeeper</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
 			<groupId>org.apache.hbase</groupId>
 			<artifactId>hbase</artifactId>
 			<version>${hbase.version}</version>
-					<exclusions>
-        				<exclusion>
-        					<artifactId>zookeeper</artifactId>
-        					<groupId>org.apache.zookeeper</groupId>
-        				</exclusion>
-        			</exclusions>
+			<exclusions>
+				<exclusion>
+					<artifactId>zookeeper</artifactId>
+					<groupId>org.apache.zookeeper</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
-        <dependency>
-        	<groupId>com.google.code.gson</groupId>
-        	<artifactId>gson</artifactId>
-        	<version>2.2.2</version>
-        	<type>jar</type>
-        	<scope>compile</scope>
-        </dependency>
-        <dependency>
-  		<groupId>storm</groupId>
-  		<artifactId>storm</artifactId>
-  		<version>0.8.1</version>
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.2.2</version>
+			<type>jar</type>
+			<scope>compile</scope>
 		</dependency>
-        		<dependency>
+		<dependency>
+			<groupId>storm</groupId>
+			<artifactId>storm</artifactId>
+			<version>0.8.1</version>
+		</dependency>
+		<dependency>
 			<groupId>storm-test</groupId>
 			<artifactId>storm-test</artifactId>
 			<version>0.2.0</version>
@@ -123,7 +118,6 @@
 			section below. These settings can be overwritten here. -->
 		<pluginManagement>
 			<plugins>
-
 				<plugin>
 					<artifactId>maven-assembly-plugin</artifactId>
 					<version>2.2-beta-5</version>
@@ -136,7 +130,6 @@
 					<artifactId>maven-source-plugin</artifactId>
 					<version>2.1.1</version>
 				</plugin>
-
 				<plugin>
 					<artifactId>maven-javadoc-plugin</artifactId>
 					<version>2.6.1</version>
@@ -145,12 +138,9 @@
 					<artifactId>maven-clean-plugin</artifactId>
 					<version>2.4</version>
 				</plugin>
-
 			</plugins>
 		</pluginManagement>
-
 		<plugins>
-
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>2.5</version>
@@ -167,7 +157,6 @@
 					</dependency>
 				</dependencies>
 			</plugin>
-
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<!-- THIS might not be doable <executions> <execution> <phase>package</phase> 
@@ -186,18 +175,17 @@
 			<id>central</id>
 			<url>http://repo1.maven.org/maven2</url>
 		</repository>
-		
-			<repository>
+
+		<repository>
 			<id>inciteretail</id>
 			<url>http://www.inciteretail.com/nexus/content/repositories/releases/</url>
-						<snapshots>
+			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
 			<releases>
 				<enabled>true</enabled>
 			</releases>
 		</repository>
-
 		<repository>
 			<id>gson-repo</id>
 			<url>http://google-gson.googlecode.com/svn/mavenrepo</url>
@@ -212,6 +200,5 @@
 			<id>clojars.org</id>
 			<url>http://clojars.org/repo</url>
 		</repository>
-
 	</repositories>
 </project>

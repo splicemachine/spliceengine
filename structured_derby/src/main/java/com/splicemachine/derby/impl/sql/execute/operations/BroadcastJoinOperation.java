@@ -1,33 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-
 import com.carrotsearch.sizeof.RamUsageEstimator;
 import com.google.common.base.Function;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.shared.common.reference.MessageId;
-import org.apache.hadoop.hbase.RegionLoad;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -47,12 +25,31 @@ import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.stats.Counter;
 import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.shared.common.reference.MessageId;
+import org.apache.hadoop.hbase.RegionLoad;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 
 public class BroadcastJoinOperation extends JoinOperation {
     private static final long serialVersionUID = 2l;
     private static Logger LOG = Logger.getLogger(BroadcastJoinOperation.class);
-    protected String emptyRowFunMethodName;
-    protected boolean wasRightOuterJoin;
     protected int leftHashKeyItem;
     protected int[] leftHashKeys;
     protected int rightHashKeyItem;
@@ -61,7 +58,6 @@ public class BroadcastJoinOperation extends JoinOperation {
     protected List<ExecRow> rights;
     private Joiner joiner;
     protected Map<ByteBuffer, List<ExecRow>> rightSideMap;
-    protected boolean isOuterJoin = false;
     protected static final Cache<Integer, Map<ByteBuffer, List<ExecRow>>> broadcastJoinCache;
 
 
@@ -71,7 +67,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         nodeTypes.add(NodeType.SCROLL);
         broadcastJoinCache = CacheBuilder.newBuilder()
                                  .maximumSize(1000)
-                                 .expireAfterAccess(10, TimeUnit.SECONDS)
+                                 .expireAfterAccess(2, TimeUnit.SECONDS)
                                  .removalListener(new RemovalListener<Integer, Map<ByteBuffer, List<ExecRow>>>() {
                                      @Override
                                      public void onRemoval(RemovalNotification<Integer, Map<ByteBuffer, List<ExecRow>>> notification) {
@@ -305,7 +301,7 @@ public class BroadcastJoinOperation extends JoinOperation {
                     rows.add(rightRow.getClone());
                 }
             } else {
-                rows = new ArrayList<ExecRow>();
+                rows = new LinkedList<ExecRow>();
                 rows.add(rightRow.getClone());
                 cache.put(hashKey, rows);
             }

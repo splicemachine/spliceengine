@@ -188,4 +188,25 @@ public class PreparedStatementIT {
             Assert.assertEquals(1, effected);
         }
     }
+
+    @Test
+    public void testPrepStatementGroupedAggregate() throws Exception {
+        // should see all 5 rows
+        ResultSet rs = methodWatcher.executeQuery(SELECT_STAR_QUERY);
+        Assert.assertEquals(5, SpliceUnitTest.resultSetSize(rs));
+
+        PreparedStatement psc = methodWatcher.prepareStatement(String.format("select lastname, count(*) from %s.%s where lastname=? group by lastname",
+                tableSchema.schemaName, CUST_TABLE_NAME));
+        psc.setString(1, "Smith");
+        rs = psc.executeQuery();
+        rs.next();
+        Assert.assertEquals(rs.getInt(2), 4);
+        rs.close();
+
+        psc.setString(1, "Doe");
+        rs = psc.executeQuery();
+        rs.next();
+        Assert.assertEquals(rs.getInt(2), 1);
+        rs.close();
+    }
 }

@@ -186,7 +186,7 @@ public class SpliceTestPlatform extends TestConstants {
         configuration.set("hbase.zookeeper.dns.interface", interfaceName);
         configuration.set("hbase.regionserver.dns.interface", interfaceName);
         configuration.set("hbase.master.dns.interface", interfaceName);
-        configuration.setLong(HConstants.HREGION_MAX_FILESIZE, 1024 * 1024 * 1024L);
+        configuration.setLong(HConstants.HREGION_MAX_FILESIZE, 1024 * 1024 * 1024L); // 128?
 
         //set a low value threshold for gz file size on import
         configuration.setLong(SpliceConstants.SEQUENTIAL_IMPORT_FILESIZE_THREASHOLD, 1024 * 1024L);

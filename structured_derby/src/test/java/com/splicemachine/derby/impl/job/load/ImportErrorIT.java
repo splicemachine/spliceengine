@@ -85,8 +85,12 @@ public class ImportErrorIT {
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!","XIE04",se.getSQLState());
 
+                //se.getMessage() can return message either with a period or without a period.  So we check for each.
                 String correctErrorMessage = String.format("Data file not found: File %s does not exist",location);
-                Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
+                String correctErrorMessage1 = String.format("Data file not found: File %s does not exist.",location);
+                String retval = se.getMessage();
+                Assert.assertTrue("Incorrect error message!", retval.equals(correctErrorMessage)||retval.equals(correctErrorMessage1));
+//                Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
 

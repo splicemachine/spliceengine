@@ -20,22 +20,18 @@ import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.tools.ResettableCountDownLatch;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import javax.annotation.Nullable;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.ipc.CallerDisconnectedException;
-import org.apache.hadoop.hbase.ipc.RpcCallContext;
-import org.apache.hadoop.hbase.ipc.RpcServer;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.log4j.Logger;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -49,7 +45,7 @@ public class RegionWriteHandler implements WriteHandler {
     private final ResettableCountDownLatch writeLatch;
     private final int writeBatchSize;
     private RollForwardQueue queue;
-		private BatchConstraintChecker constraintChecker;
+	private BatchConstraintChecker constraintChecker;
 
     public RegionWriteHandler(HRegion region, ResettableCountDownLatch writeLatch, int writeBatchSize,
 															BatchConstraintChecker constraintChecker) {
@@ -120,8 +116,9 @@ public class RegionWriteHandler implements WriteHandler {
 
     @Override
     public void finishWrites(final WriteContext ctx) throws IOException {
+
         //make sure that the write aborts if the caller disconnects
-				HBaseServerUtils.checkCallerDisconnect(ctx.getCoprocessorEnvironment().getRegion(),"RegionWrite");
+				HBaseServerUtils.checkCallerDisconnect(ctx.getCoprocessorEnvironment().getRegion(), "RegionWrite");
 
         /*
          * We have to block here in case someone did a table manipulation under us.
@@ -241,7 +238,4 @@ public class RegionWriteHandler implements WriteHandler {
 		throw new RuntimeException("Not Supported");
 	}
 
-		public void setConstraintChecker(BatchConstraintChecker constraintChecker) {
-				this.constraintChecker = constraintChecker;
-		}
 }

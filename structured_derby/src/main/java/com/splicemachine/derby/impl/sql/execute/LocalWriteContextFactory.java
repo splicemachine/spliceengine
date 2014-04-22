@@ -93,11 +93,9 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     public WriteContext create(String txnId, RegionCoprocessorEnvironment rce,
                                RollForwardQueue queue,int expectedWrites) throws IOException, InterruptedException {
         PipelineWriteContext context = new PipelineWriteContext(txnId,rce);
-				RegionWriteHandler handler = new RegionWriteHandler(rce.getRegion(), tableWriteLatch, writeBatchSize, queue,null);
-				context.addLast(handler);
-        addIndexInformation(expectedWrites, context);
 				BatchConstraintChecker checker = buildConstraintChecker();
-				handler.setConstraintChecker(checker);
+        context.addLast(new RegionWriteHandler(rce.getRegion(), tableWriteLatch, writeBatchSize, queue,checker));
+        addIndexInformation(expectedWrites, context);
         return context;
     }
 

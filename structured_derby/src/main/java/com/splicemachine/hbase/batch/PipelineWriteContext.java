@@ -10,15 +10,14 @@ import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.hbase.writer.Writer;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 /**
  * @author Scott Fines
@@ -184,8 +183,6 @@ public class PipelineWriteContext implements WriteContext{
         HTableInterface table = tableCache.get(indexConglomBytes);
         if(table==null){
             try {
-//                table = getCoprocessorEnvironment().getTable(indexConglomBytes);
-                // FIXME: jc - equivalent?
                 table = getCoprocessorEnvironment().getTable(TableName.valueOf(indexConglomBytes));
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -211,7 +208,7 @@ public class PipelineWriteContext implements WriteContext{
 
     @Override
     public Map<KVPair,WriteResult> finish() throws IOException {
-				HBaseServerUtils.checkCallerDisconnect(getCoprocessorEnvironment().getRegion(),"WritePipeline");
+				HBaseServerUtils.checkCallerDisconnect(getCoprocessorEnvironment().getRegion(), "WritePipeline");;
         try{
             WriteNode next = head.next;
             while(next!=null){

@@ -147,8 +147,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		}
 
 		private void buildReduceScan() throws StandardException {
-				if(reduceScan!=null) return;
-				try {
+                try {
 						reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
