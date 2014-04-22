@@ -11,19 +11,26 @@
 			<outputDirectory>splicemachine/lib</outputDirectory>
 			<scope>runtime</scope>
 			<useProjectArtifact>false</useProjectArtifact>
+			<excludes>
+				<exclude>*:structured_si*</exclude>
+			</excludes>
 		</dependencySet>
 	</dependencySets>
+	<files>
+		<file>
+			<source>../structured_si/target/structured_si-0.5rc10-SNAPSHOT-cloudera-cdh4.3.0-obfuscated.jar</source>
+			<outputDirectory>splicemachine/lib</outputDirectory>
+		</file>
+	</files>
 	<fileSets>
 		<fileSet>
 			<directory>target</directory>
 			<outputDirectory>splicemachine/lib</outputDirectory>
 			<includes>
 				<include>*.jar</include>
-				<include>structured_si-0.5rc10-SNAPSHOT-cloudera-cdh4.3.0-obfuscated.jar</include>
 			</includes>
 			<excludes>
 				<exclude>*complete.jar</exclude>
-				<exclude>structured_si-0.5rc10-SNAPSHOT-cloudera-cdh4.3.0.jar</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>
