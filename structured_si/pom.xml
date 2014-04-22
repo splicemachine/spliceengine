@@ -160,6 +160,10 @@
 								<option>-keep public class com.splicemachine.si.impl.FilterState { public *; }</option>
 								<!-- ### Needed by ij for INSERT statements. ### -->
 								<option>-keep public class com.splicemachine.si.data.hbase.HbRegion { public *; }</option>
+                                                                <!-- ### Needed for ITs. ### -->
+                                                                <option>-keep public class com.splicemachine.si.api.TransactionStatus { public *; }</option>
+                                                                <option>-keep public class com.splicemachine.si.api.TransactorListener { public *; }</option>
+                                                                <option>-keep public class com.splicemachine.si.api.SIFilter { public *; }</option>
 							</options>
 							<libs>
 								<lib>${java.home}/lib/rt.jar</lib>
