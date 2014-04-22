@@ -25,7 +25,7 @@ CHAOS="FALSE"
 PROFILE="cloudera-cdh4.3.0"  # default hbase platform profile
 BUILD_TAG=""
 
-while getopts ":chp:b:" flag ; do
+while getopts ":cohp:b:" flag ; do
     case $flag in
         h* | \?)
             usage
@@ -34,6 +34,10 @@ while getopts ":chp:b:" flag ; do
         c)
         # start server with the chaos monkey (random task failures)
             CHAOS="TRUE"
+        ;;
+        o)
+        # start server with the obfuscated tar ball
+            OBFUSCATED="TRUE"
         ;;
         p)
         # the hbase profile
@@ -50,14 +54,19 @@ while getopts ":chp:b:" flag ; do
     esac
 done
 
-echo "Runing with hbase profile \"${PROFILE}\" and chaos monkey = ${CHAOS} ${BUILD_TAG}"
+echo "Runing with hbase profile \"${PROFILE}\", chaos monkey = ${CHAOS} and obfuscation = ${OBFUSCATED} ${BUILD_TAG}"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd )"
 pushd "${SCRIPT_DIR}/structured_derby" &>/dev/null
 ROOT_DIR="$( pwd )"
 
 SPLICE_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -Ev '(^\[|INFO|Download)' | tr -d [[:space:]])
-TARBALL="${ROOT_DIR}"/target/splice_machine-${SPLICE_VERSION}-${PROFILE}_simple.tar.gz
+if [ ${OBFUSCATED} == "TRUE" ]; then
+	TARBALL="${ROOT_DIR}"/target/splice_machine-${SPLICE_VERSION}-${PROFILE}_simple_obfuscated.tar.gz
+else
+	TARBALL="${ROOT_DIR}"/target/splice_machine-${SPLICE_VERSION}-${PROFILE}_simple.tar.gz
+fi
+
 if [[ ! -e ${TARBALL} ]]; then
     # Maven assembly is required for server dependencies and executable start/stop scripts.
     # It's not present. Attempt to build assembly (only if it's not already built).
