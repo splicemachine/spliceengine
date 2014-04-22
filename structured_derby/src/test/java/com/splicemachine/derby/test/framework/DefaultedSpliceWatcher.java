@@ -12,8 +12,8 @@ public class DefaultedSpliceWatcher extends SpliceWatcher{
     }
 
     @Override
-    public Connection createConnection() throws Exception {
-        Connection conn = super.createConnection();
+    public TestConnection createConnection() throws Exception {
+        TestConnection conn = super.createConnection();
 
         PreparedStatement stmt = conn.prepareStatement("SET SCHEMA ?");
         stmt.setString(1, defaultSchema);

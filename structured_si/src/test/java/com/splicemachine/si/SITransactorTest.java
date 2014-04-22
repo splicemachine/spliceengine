@@ -28,7 +28,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("unchecked")
-@Ignore
+//@Ignore
 public class SITransactorTest extends SIConstants {
     boolean useSimple = true;
     static StoreSetup storeSetup;
@@ -2834,7 +2834,7 @@ public class SITransactorTest extends SIConstants {
         final TransactionId t1 = control.beginTransaction();
         try {
             control.getActiveTransactionIds(t1);
-            Assert.fail();
+            Assert.fail("Did not receive a runtime exception");
         } catch (RuntimeException ex) {
             Assert.assertTrue(ex.getMessage().startsWith("expected max id of"));
         }

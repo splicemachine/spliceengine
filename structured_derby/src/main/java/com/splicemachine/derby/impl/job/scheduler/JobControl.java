@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
 import com.google.common.collect.Lists;
-import com.google.common.io.Closeables;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
@@ -47,8 +46,11 @@ class JobControl implements JobFuture {
     private final int maxResubmissionAttempts;
     private final JobMetrics jobMetrics;
     private final String jobPath;
-    private final LinkedList<Closeable> closables;
+    private final List<Callable<Void>> finalCleanupTasks;
+		private final List<Callable<Void>> intermediateCleanupTasks;
     private volatile boolean cancelled = false;
+		private volatile boolean cleanedUp = false;
+		private volatile boolean intermediateCleanedUp = false;
 
     JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
         this.job = job;
@@ -62,7 +64,8 @@ class JobControl implements JobFuture {
         this.failedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
         this.completedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
         this.cancelledTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
-        this.closables = Lists.newLinkedList();
+        this.finalCleanupTasks = Lists.newLinkedList();
+				this.intermediateCleanupTasks = Lists.newLinkedList();
         this.maxResubmissionAttempts = maxResubmissionAttempts;
     }
 
@@ -192,23 +195,21 @@ class JobControl implements JobFuture {
 
     @Override
     public void cleanup() throws ExecutionException {
+				if(cleanedUp)
+						return; //don't try cleaning up twice
+				else
+					cleanedUp = true;
         SpliceLogUtils.trace(LOG, "cleaning up job %s", job.getJobId());
+				intermediateCleanup(); //in case cleanups don't get called
         try {
             ZooKeeper zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
             zooKeeper.delete(jobPath, -1, new AsyncCallback.VoidCallback() {
                 @Override
                 public void processResult(int i, String s, Object o) {
+										if(LOG.isTraceEnabled())
                     LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
                 }
             }, this);
-            for (RegionTaskControl task : tasksToWatch) {
-                zooKeeper.delete(task.getTaskNode(), -1, new AsyncCallback.VoidCallback() {
-                    @Override
-                    public void processResult(int i, String s, Object o) {
-                        LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
-                    }
-                }, this);
-            }
         } catch (ZooKeeperConnectionException e) {
             throw new ExecutionException(e);
 				} finally {
@@ -229,10 +230,50 @@ class JobControl implements JobFuture {
     }
 
     @Override
-    public void addCleanupTask(Closeable closable) {
-        // prepend, so closables are closed in reverse
-        closables.add(0, closable);
+		public void intermediateCleanup() throws ExecutionException {
+				if(intermediateCleanedUp)
+						return; //don't cleanup twice
+				else
+					intermediateCleanedUp = true;
+
+				ZooKeeper zooKeeper;
+				try {
+						zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
+				} catch (ZooKeeperConnectionException e) {
+						throw new ExecutionException(e);
+				}
+				for (RegionTaskControl task : tasksToWatch) {
+						zooKeeper.delete(task.getTaskNode(), -1, new AsyncCallback.VoidCallback() {
+								@Override
+								public void processResult(int i, String s, Object o) {
+										if(LOG.isTraceEnabled())
+												LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
+								}
+						}, this);
+				}
+
+				Throwable error = null;
+				for(Callable<Void> c:intermediateCleanupTasks){
+						try {
+								c.call();
+						} catch (Exception e) {
+								error = e;
+						}
+				}
+				if(error!=null)
+						throw new ExecutionException(error);
+		}
+
+		@Override
+    public void addCleanupTask(Callable<Void> closable) {
+        // prepend, so finalCleanupTasks are closed in reverse
+        finalCleanupTasks.add(0, closable);
     }
+
+		@Override
+		public void addIntermediateCleanupTask(Callable<Void> callable) {
+				intermediateCleanupTasks.add(callable);
+		}
 
     @Override public JobStats getJobStats() { return stats; }
     @Override public int getNumTasks() { return tasksToWatch.size(); }
@@ -341,7 +382,7 @@ class JobControl implements JobFuture {
         final byte[] stop = range.getSecond();
 
         try{
-            table.coprocessorExec(SpliceSchedulerProtocol.class,start,stop,
+            table.coprocessorExec(SpliceSchedulerProtocol.class, start, stop,
                     new BoundCall<SpliceSchedulerProtocol, TaskFutureContext[]>() {
                         @Override
                         public TaskFutureContext[] call(SpliceSchedulerProtocol instance) throws IOException {
@@ -350,18 +391,19 @@ class JobControl implements JobFuture {
 
                         @Override
                         public TaskFutureContext[] call(byte[] startKey, byte[] stopKey, SpliceSchedulerProtocol instance) throws IOException {
-                            return instance.submit(startKey,stopKey,task);
+                            return instance.submit(startKey, stopKey, task, tryCount == 0); //only allow splitting the first time
                         }
                     }, new Batch.Callback<TaskFutureContext[]>() {
                         @Override
                         public void update(byte[] region, byte[] row, TaskFutureContext[] results) {
-														for(TaskFutureContext result:results){
-																RegionTaskControl control = new RegionTaskControl(result.getStartRow(),task,JobControl.this,result,tryCount,zkManager);
-																tasksToWatch.add(control);
-																taskChanged(control);
-														}
+                            for (TaskFutureContext result : results) {
+                                RegionTaskControl control = new RegionTaskControl(result.getStartRow(), task, JobControl.this, result, tryCount, zkManager);
+                                tasksToWatch.add(control);
+                                taskChanged(control);
+                            }
                         }
-                    });
+                    }
+            );
             jobMetrics.addJob(job);
         }catch (Throwable throwable) {
             throw new ExecutionException(throwable);

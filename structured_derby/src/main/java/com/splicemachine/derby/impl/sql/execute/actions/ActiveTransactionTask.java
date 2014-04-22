@@ -6,6 +6,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.SpreadBucket;
@@ -21,11 +22,13 @@ import com.splicemachine.si.impl.TransactionStore;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.utils.hash.ByteHash32;
 import com.splicemachine.utils.hash.HashFunctions;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -146,6 +149,13 @@ public class ActiveTransactionTask extends ZkTask {
             Closeables.closeQuietly(scanner);
         }
     }
+
+    @Override
+    public RegionTask getClone() {
+        return new ActiveTransactionTask(jobId,minTxnId,maxTxnId,writeTable,operationUUID);
+    }
+
+    @Override public boolean isSplittable() { return false; }
 
     private boolean isActiveChildTxn(TransactionStore txnStore,List<KeyValue> kvs) throws IOException {
         /*
