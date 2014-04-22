@@ -1,7 +1,6 @@
 package com.splicemachine.concurrent;
 
 import com.google.common.collect.Lists;
-import com.sun.xml.internal.ws.util.CompletedFuture;
 
 import java.util.Collection;
 import java.util.List;
@@ -87,5 +86,32 @@ public class SameThreadExecutorService implements ExecutorService{
 		@Override
 		public void execute(Runnable command) {
 				command.run();
+		}
+
+		private static class CompletedFuture<T> implements Future<T>{
+				private final T element;
+				private final Throwable error;
+
+				private CompletedFuture(T element, Throwable error) {
+						this.element = element;
+						this.error = error;
+				}
+
+				@Override public boolean cancel(boolean mayInterruptIfRunning) { return false; }
+
+				@Override public boolean isCancelled() { return false; }
+
+				@Override public boolean isDone() { return true; }
+
+				@Override
+				public T get() throws InterruptedException, ExecutionException {
+						if(error!=null) throw new ExecutionException(error);
+						return element;
+				}
+
+				@Override
+				public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+						return get();
+				}
 		}
 }
