@@ -22,6 +22,7 @@ usage() {
 }
 
 CHAOS="FALSE"
+OBFUSCATED="FALSE"
 PROFILE="cloudera-cdh4.3.0"  # default hbase platform profile
 BUILD_TAG=""
 
@@ -61,7 +62,7 @@ pushd "${SCRIPT_DIR}/structured_derby" &>/dev/null
 ROOT_DIR="$( pwd )"
 
 SPLICE_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -Ev '(^\[|INFO|Download)' | tr -d [[:space:]])
-if [ ${OBFUSCATED} == "TRUE" ]; then
+if [ "${OBFUSCATED}" == "TRUE" ]; then
 	TARBALL="${ROOT_DIR}"/target/splice_machine-${SPLICE_VERSION}-${PROFILE}_simple_obfuscated.tar.gz
 else
 	TARBALL="${ROOT_DIR}"/target/splice_machine-${SPLICE_VERSION}-${PROFILE}_simple.tar.gz
