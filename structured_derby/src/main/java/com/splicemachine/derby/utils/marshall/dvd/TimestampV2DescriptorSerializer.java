@@ -20,15 +20,20 @@ public class TimestampV2DescriptorSerializer extends TimestampV1DescriptorSerial
 
 		@Override
 		protected long toLong(Timestamp timestamp) throws StandardException {
-				long millis = timestamp.getTime();
-				long micros = timestamp.getNanos()/NANOS_TO_MICROS;
-
-				return millis*MICROS_TO_SECOND + micros;
+				return formatLong(timestamp);
 		}
 
 		@Override
 		protected Timestamp toTimestamp(long time) {
 				return parseTimestamp(time);
+		}
+
+
+		public static long formatLong(Timestamp timestamp){
+				long millis = timestamp.getTime();
+				long micros = timestamp.getNanos()/NANOS_TO_MICROS;
+
+				return millis*MICROS_TO_SECOND + micros;
 		}
 
 		public static Timestamp parseTimestamp(long time) {
