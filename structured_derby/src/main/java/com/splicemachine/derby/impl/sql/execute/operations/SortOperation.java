@@ -27,7 +27,6 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.sun.tools.javac.jvm.ClassFile;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -37,7 +36,6 @@ import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.Versioned;
 
 import java.io.IOException;
 import java.io.ObjectInput;
