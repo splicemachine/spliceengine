@@ -396,5 +396,9 @@ public class ImportContext implements Externalizable{
 										timestampFormat,dateFormat,timeFormat, byteOffset, bytesToRead,
 										recordStats,xplainSchema,maxBadRecords,badLogDirectory,tableVersion);
 				}
+
+				public long getDestinationConglomerate() {
+						return this.tableId;
+				}
 		}
 }
