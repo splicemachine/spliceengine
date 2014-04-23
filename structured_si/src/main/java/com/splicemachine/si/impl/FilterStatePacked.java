@@ -13,7 +13,7 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
     static final Logger LOG = Logger.getLogger(FilterStatePacked.class);
     protected final FilterState<Result, Put, Delete, Get, Scan, Lock, OperationStatus,
 						Mutation, IHTable> simpleFilter;
-    protected final RowAccumulator accumulator;
+    public final RowAccumulator accumulator;
     private KeyValue lastValidKeyValue;
     protected boolean excludeRow = false;
 
@@ -61,7 +61,7 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
 				return Filter.ReturnCode.SKIP;
 		}
 
-		protected Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
+		public Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
 				if (!accumulator.isFinished() && !excludeRow && accumulator.isOfInterest(dataKeyValue)) {
 						if (!accumulator.accumulate(simpleFilter.keyValue)) {
 								excludeRow = true;
