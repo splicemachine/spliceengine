@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.load;
 
-import org.joda.time.DateTime;
 import com.google.common.base.Joiner;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
@@ -14,9 +13,12 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLDate;
 import org.apache.derby.iapi.types.SQLTime;
-import org.apache.derby.iapi.types.SQLTimestamp;
+import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+
+import java.text.ParseException;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 
 /**
@@ -26,16 +28,17 @@ import java.util.HashMap;
 public class RowParser {
     private final ExecRow template;
 
-    private DateTimeFormatter timestampFormat;
     private DateTimeFormatter dateFormat;
     private DateTimeFormatter timeFormat;
-    private String timestampFormatStr;
     private String dateFormatStr;
     private String timeFormatStr;
+
+		private final TimestampParser timestampParser;
     private final HashMap<String,String> columnTimestampFormats;
 	private SpliceSequence[] sequences;
 
 		private final ImportErrorReporter errorReporter;
+		private GregorianCalendar calendar;
 
 		public RowParser(ExecRow template,
                      String dateFormat,
@@ -52,18 +55,15 @@ public class RowParser {
 				if(ctxTimeFormat ==null)
 						ctxTimeFormat = "HH:mm:ss";
 				this.timeFormatStr = ctxTimeFormat;
-				String ctxTimestampFormat = timestampFormat;
-				if(ctxTimestampFormat ==null)
-						ctxTimestampFormat = "yyy-MM-dd HH:mm:ss";
-				this.timestampFormatStr = ctxTimestampFormat;
-        columnTimestampFormats = new HashMap<String,String>();
-        if(timestampFormat != null && timestampFormat.contains("@")) {
-        	String[] tmp = timestampFormat.split("\\|");
+				columnTimestampFormats = new HashMap<String,String>();
+				if(timestampFormat != null && timestampFormat.contains("@")) {
+						String[] tmp = timestampFormat.split("\\|");
 						for (String aTmp : tmp) {
 								int indexOfAt = aTmp.indexOf("@");
 								columnTimestampFormats.put(aTmp.substring(indexOfAt + 1).trim(), aTmp.substring(0, indexOfAt).trim());
 						}
-        }
+				}
+				this.timestampParser = new TimestampParser(timestampFormat);
 		}
 
 
@@ -93,13 +93,13 @@ public class RowParser {
         for(ColumnContext context:columnContexts){
             String value = pos>=line.length ||line[pos]==null||line[pos].length()==0?null: line[pos];
 						//TODO -sf- this seems really inefficient, make this more better
-            if (timestampFormatStr != null && timestampFormatStr.contains("@") && context.getColumnType() == 93 && context.getColumnNumber() == pos) {
-            	String tmpstr = columnTimestampFormats.get(String.valueOf(context.getColumnNumber()+1));
-            	if (tmpstr.equals("null") || tmpstr.equals("NULL") || tmpstr == null) {
-            	    context.setFormatStr(null);
-            	} else
-            		context.setFormatStr(tmpstr);
-            }
+//            if (timestampFormatStr != null && timestampFormatStr.contains("@") && context.getColumnType() == 93 && context.getColumnNumber() == pos) {
+//            	String tmpstr = columnTimestampFormats.get(String.valueOf(context.getColumnNumber()+1));
+//            	if (tmpstr.equals("null") || tmpstr.equals("NULL") || tmpstr == null) {
+//            	    context.setFormatStr(null);
+//            	} else
+//            		context.setFormatStr(tmpstr);
+//            }
 						try{
 								setColumn(context, value,line);
 						}catch(StandardException se){
@@ -185,20 +185,28 @@ public class RowParser {
 								break;
 						case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
 						case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
-						case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
-							DateTimeFormatter format = getDateFormat(column, elem);															 
+								DateTimeFormatter format = getDateFormat(column, elem);
 								try{
-								        DateTime date = format.parseDateTime(elem);								        
+										DateTime date = format.parseDateTime(elem);
 										column.setValue(date);
 								}catch (IllegalArgumentException p){
-									throw ErrorState.LANG_DATE_SYNTAX_EXCEPTION.newException();
-                }
-                break;
-            default:
-                throw new IllegalStateException("Unable to parse column type "+ column.getTypeName());
-        }
-        columnContext.validate(column);
-    }
+										throw ErrorState.LANG_DATE_SYNTAX_EXCEPTION.newException();
+								}
+								break;
+						case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
+								try {
+										if(calendar==null)
+												calendar = new GregorianCalendar();
+										column.setValue(timestampParser.parse(elem),calendar);
+								} catch (ParseException e) {
+										throw ErrorState.LANG_DATE_SYNTAX_EXCEPTION.newException();
+								}
+								break;
+						default:
+								throw new IllegalStateException("Unable to parse column type "+ column.getTypeName());
+				}
+				columnContext.validate(column);
+		}
 
 		/*Convenience method to re-join a failed row*/
 		private Joiner joiner = null;
@@ -210,12 +218,7 @@ public class RowParser {
 
 		private DateTimeFormatter getDateFormat(DataValueDescriptor dvd, String elem) throws StandardException {
 			DateTimeFormatter format;
-				if(dvd instanceof SQLTimestamp){
-						if(timestampFormat==null){
-								timestampFormat = DateTimeFormat.forPattern(timestampFormatStr);
-						}
-						format = timestampFormat;
-				}else if(dvd instanceof SQLDate){
+				if(dvd instanceof SQLDate){
 						if(dateFormat==null){
 								dateFormat = DateTimeFormat.forPattern(dateFormatStr);
 						}
