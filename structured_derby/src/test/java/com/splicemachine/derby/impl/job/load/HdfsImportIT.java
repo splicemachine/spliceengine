@@ -284,7 +284,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 				methodWatcher.executeUpdate("delete from "+spliceTableWatcher9);
 
 				PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
-								",',','\"','yyyy-MM-dd hh:mm:ss.SSZ',null,null)",spliceSchemaWatcher.schemaName,TABLE_9));
+								",',','\"','yyyy-MM-dd hh:mm:ss.SSSZ',null,null)",spliceSchemaWatcher.schemaName,TABLE_9));
 				ps.setString(1,getResourceDirectory()+"tz_ms_order_date.csv");
 				ps.execute();
 
