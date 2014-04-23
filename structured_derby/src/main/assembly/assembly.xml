@@ -1,5 +1,5 @@
 <assembly>
-	<id>${envClassifier}_complete</id>
+	<id>${envClassifier}${obfuscate.si}_complete</id>
 	<formats>
 		<format>jar</format>
 	</formats>

@@ -6,12 +6,11 @@ import java.io.Closeable;
 import java.io.IOException;
 
 public interface RowAccumulator extends Closeable {
-    boolean isOfInterest(KeyValue value);
-    boolean accumulate(KeyValue value) throws IOException;
-    boolean isFinished();
-    byte[] result();
-		long getBytesVisited();
-		boolean isCountStar();
-
-		void reset();
+    public boolean isOfInterest(KeyValue value);
+    public boolean accumulate(KeyValue value) throws IOException;
+    public boolean isFinished();
+    public byte[] result();
+    public long getBytesVisited();
+    public boolean isCountStar();
+    public void reset();
 }

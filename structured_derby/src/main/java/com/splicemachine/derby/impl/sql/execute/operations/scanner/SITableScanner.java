@@ -145,7 +145,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 										//noinspection unchecked
 										return new FilterStatePacked((FilterState)iFilterState, hRowAccumulator){
 												@Override
-												protected Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
+												public Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
 														if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
 																if (!accumulator.accumulate(dataKeyValue)) {
 																		return Filter.ReturnCode.NEXT_ROW;

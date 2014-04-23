@@ -12,13 +12,13 @@ public interface TransactionManager {
     /**
      * Start a writable transaction in "snapshot isolation" concurrency mode.
      */
-    TransactionId beginTransaction() throws IOException;
+    public TransactionId beginTransaction() throws IOException;
 
 
     /**
      * Start a transaction in "snapshot isolation" concurrency mode.
      */
-    TransactionId beginTransaction(boolean allowWrites) throws IOException;
+    public TransactionId beginTransaction(boolean allowWrites) throws IOException;
 
 		/**
 		 * Start a transaction which is allowed to modify the given table (if not null).
@@ -28,7 +28,7 @@ public interface TransactionManager {
 		 * @return the transaction id for this transaction
 		 * @throws IOException
 		 */
-		TransactionId beginTransaction(byte[] writeTable) throws IOException;
+    public TransactionId beginTransaction(byte[] writeTable) throws IOException;
     /**
      * Start a transaction with the specified isolation mode.
      * @param allowWrites boolean indicator of whether the new transaction is allowed to write
@@ -36,11 +36,11 @@ public interface TransactionManager {
      * @param readCommitted indicator of whether to read data from committed transactions that occur after this new
      *                      transaction is begun
      */
-    TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException;
+    public TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException;
 
-    TransactionId beginChildTransaction(TransactionId parent, boolean allowWrites) throws IOException;
+    public TransactionId beginChildTransaction(TransactionId parent, boolean allowWrites) throws IOException;
 
-		TransactionId beginChildTransaction(TransactionId parent, byte[] writeTable) throws IOException;
+    public TransactionId beginChildTransaction(TransactionId parent, byte[] writeTable) throws IOException;
 
     /**
      *
@@ -51,9 +51,9 @@ public interface TransactionManager {
      * @return
      * @throws java.io.IOException
      */
-    TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites) throws IOException;
+    public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites) throws IOException;
 
-		TransactionId beginChildTransaction(TransactionId parent, boolean dependent, byte[] table) throws IOException;
+    public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, byte[] table) throws IOException;
 
     /**
      * @param parent              The new transaction should be a child of parent.
@@ -72,7 +72,7 @@ public interface TransactionManager {
      * @return a TransactionId representing a transaction which is the child of the specified parent.
      * @throws IOException
      */
-    TransactionId beginChildTransaction(TransactionId parent, boolean dependent,
+    public TransactionId beginChildTransaction(TransactionId parent, boolean dependent,
                                         boolean allowWrites,
 																				boolean additive,
 																				Boolean readUncommitted,
@@ -97,7 +97,7 @@ public interface TransactionManager {
 		 * @return a TransactionId representing a transaction which is the child of the specified parent.
 		 * @throws IOException
 		 */
-		TransactionId beginChildTransaction(TransactionId parent,
+    public TransactionId beginChildTransaction(TransactionId parent,
 																				boolean dependent,
 																				boolean additive,
 																				Boolean readUncommitted,
@@ -105,18 +105,18 @@ public interface TransactionManager {
 																				TransactionId transactionToCommit,
 																				byte[] writeTable) throws IOException;
 
-    void keepAlive(TransactionId transactionId) throws IOException;
-    void commit(TransactionId transactionId) throws IOException;
-    void rollback(TransactionId transactionId) throws IOException;
-    void fail(TransactionId transactionId) throws IOException;
-    TransactionStatus getTransactionStatus(TransactionId transactionId) throws IOException;
+    public void keepAlive(TransactionId transactionId) throws IOException;
+    public void commit(TransactionId transactionId) throws IOException;
+    public void rollback(TransactionId transactionId) throws IOException;
+    public void fail(TransactionId transactionId) throws IOException;
+    public TransactionStatus getTransactionStatus(TransactionId transactionId) throws IOException;
 
-    TransactionId transactionIdFromString(String transactionId);
+    public TransactionId transactionIdFromString(String transactionId);
 
-    List<TransactionId> getActiveTransactionIds(TransactionId max) throws IOException;
+    public List<TransactionId> getActiveTransactionIds(TransactionId max) throws IOException;
 
-		List<TransactionId> getActiveWriteTransactionIds(TransactionId max, byte[] table) throws IOException;
+    public List<TransactionId> getActiveWriteTransactionIds(TransactionId max, byte[] table) throws IOException;
 
-    boolean forbidWrites(String tableName, TransactionId transactionId) throws IOException;
+    public boolean forbidWrites(String tableName, TransactionId transactionId) throws IOException;
 
 }

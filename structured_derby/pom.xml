@@ -56,7 +56,7 @@
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_si</artifactId>
 			<version>0.5rc10-SNAPSHOT</version>
-			<classifier>${envClassifier}</classifier>
+			<classifier>${envClassifier}${obfuscate.si}</classifier>
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
@@ -201,7 +201,6 @@
 							<descriptors>
 								<descriptor>${project.basedir}/src/main/assembly/assembly.xml</descriptor>
 								<descriptor>${project.basedir}/src/main/assembly/simple_assembly.xml</descriptor>
-								<descriptor>${project.basedir}/src/main/assembly/obfuscated_assembly.xml</descriptor>
 							</descriptors>
 						</configuration>
 						<executions>
