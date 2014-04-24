@@ -6,13 +6,18 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.hbase.HBaseRegionLoads;
 
+import org.apache.hadoop.hbase.HServerLoad;
+import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.*;
 import java.text.SimpleDateFormat;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -35,6 +40,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 	protected static String TABLE_13 = "M";	
 	protected static String TABLE_14 = "N";	
 	protected static String TABLE_15 = "O";	
+	protected static String TABLE_16 = "P";	
+	protected static String TABLE_17 = "Q";	
 	private static final String AUTO_INCREMENT_TABLE = "INCREMENT";
 
 	
@@ -61,6 +68,10 @@ public class HdfsImportIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher15 = new SpliceTableWatcher(TABLE_15,spliceSchemaWatcher.schemaName,
 			"( cUsToMeR_pRoDuCt_Id InTeGeR NoT NuLl PrImArY KeY, ShIpPeD_DaTe TiMeStAmP WiTh DeFaUlT CuRrEnT_tImEsTaMp, SoUrCe_SyS_CrEaTe_DtS TiMeStAmP WiTh DeFaUlT cUrReNt_TiMeStAmP NoT NuLl,sOuRcE_SyS_UpDaTe_DtS TiMeStAmP WiTh DeFaUlT cUrReNt_TiMeStAmP NoT NuLl,"+
 							"SdR_cReAtE_dAtE tImEsTaMp wItH DeFaUlT CuRrEnT_tImEsTaMp, SdR_uPdAtE_dAtE TimEstAmp With deFauLT cuRRent_tiMesTamP,Dw_srcC_ExtrC_DttM TimEStamP WitH DefAulT CurrEnt_TimesTamp)");
+	protected static SpliceTableWatcher spliceTableWatcher16 = new SpliceTableWatcher(TABLE_16,spliceSchemaWatcher.schemaName,"( A INT, D double, B INT,C INT,E INT)");
+	protected static SpliceTableWatcher spliceTableWatcher17 = new SpliceTableWatcher(TABLE_17,spliceSchemaWatcher.schemaName,
+			"( C_CUSTKEY INTEGER NOT NULL PRIMARY KEY, C_NAME VARCHAR(25), C_ADDRESS VARCHAR(40), C_NATIONKEY INTEGER NOT NULL,"+
+			"C_PHONE CHAR(15), C_ACCTBAL DECIMAL(15,2), C_MKTSEGMENT  CHAR(10), C_COMMENT VARCHAR(117))");
 
 
 	
@@ -86,6 +97,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 						.around(spliceTableWatcher13)
 						.around(spliceTableWatcher14)
 						.around(spliceTableWatcher15)
+						.around(spliceTableWatcher16)
+						.around(spliceTableWatcher17)
 						.around(autoIncTableWatcher);
 
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -530,5 +543,112 @@ public class HdfsImportIT extends SpliceUnitTest {
 		}
 		Assert.assertFalse(twarning.contains("To load a large single file of data faster,"));
 	}
-	
+
+	@Test
+	public void GetReadWriteCountMultipleSingleRecordWrites() throws Exception{
+		String tableID="";
+        Connection conn = methodWatcher.createConnection();
+        ResultSet rs = conn.createStatement().executeQuery(String.format("select t1.tableid, t2.tablename, t1.CONGLOMERATENUMBER from sys.sysconglomerates t1, sys.systables t2 where t1.tableid=t2.tableid and t2.tablename = '%s'",TABLE_16));
+        if(rs.next()){
+        	tableID = rs.getString("CONGLOMERATENUMBER");
+        }
+        rs.close();
+        HBaseRegionLoads.update();
+        long drin =-1;
+        long drout =-1;
+        Collection<HServerLoad.RegionLoad> regions = HBaseRegionLoads.getCachedRegionLoadsForTable(tableID);
+        Iterator<RegionLoad> it = regions.iterator();
+        while(it.hasNext()){
+        	HServerLoad.RegionLoad hsr = (RegionLoad) it.next();
+        	drin = hsr.getWriteRequestsCount();
+        	drout = hsr.getReadRequestsCount();
+        }
+        Assert.assertEquals(0, drin);
+        Assert.assertEquals(0, drout);
+        for (int j = 0 ; j < 100; ++j) {
+            for (int i=0; i<10; i++) {
+                conn.createStatement().execute(
+                    String.format("insert into %s.%s (a, d, b, c, e) values (%d, %f, %d,%d,%d)",
+                    		CLASS_NAME,TABLE_16, i, i * 1.0,i*50,i*j,i*j*25));
+            }
+        }
+        ResultSet resultSet = conn.createStatement().executeQuery(String.format("select * from %s.%s", CLASS_NAME,TABLE_16));
+        Assert.assertEquals(1000, resultSetSize(resultSet));
+        Thread.sleep(20000);
+        HBaseRegionLoads.update();
+        drin =-1;
+        drout =-1;
+        Collection<HServerLoad.RegionLoad> regions1 = HBaseRegionLoads.getCachedRegionLoadsForTable(tableID);
+        Iterator<RegionLoad> it0 = regions1.iterator();
+        while(it0.hasNext()){
+        	HServerLoad.RegionLoad hsr = (RegionLoad) it0.next();
+        	drin = hsr.getWriteRequestsCount();
+        	drout = hsr.getReadRequestsCount();
+        }
+        Assert.assertEquals(3000, drin);
+        Assert.assertEquals(3000, drout);
+        for (int j = 0 ; j < 100; ++j) {
+            for (int i=0; i<10; i++) {
+                conn.createStatement().execute(
+                    String.format("insert into %s.%s (a, d, b, c, e) values (%d, %f, %d,%d,%d)",
+                    		CLASS_NAME,TABLE_16, i, i * 1.0,i*50,i*j,i*j*25));
+            }
+        }
+        Thread.sleep(20000);
+        HBaseRegionLoads.update();
+        drin =-1;
+        drout =-1;
+        regions = HBaseRegionLoads.getCachedRegionLoadsForTable(tableID);
+        Iterator<RegionLoad> it1 = regions.iterator();
+        while(it1.hasNext()){
+        	HServerLoad.RegionLoad hsr = (RegionLoad) it1.next();
+        	drin = hsr.getWriteRequestsCount();
+        	drout = hsr.getReadRequestsCount();
+        }
+        Assert.assertEquals(6000, drin);
+        Assert.assertEquals(4000, drout);
+        resultSet.close();
+	}
+
+	@Test
+	public void GetReadWriteCountBulkRecordWrites() throws Exception{
+		String tableID="";
+        Connection conn = methodWatcher.createConnection();
+        ResultSet rs = conn.createStatement().executeQuery(String.format("select t1.tableid, t2.tablename, t1.CONGLOMERATENUMBER from sys.sysconglomerates t1, sys.systables t2 where t1.tableid=t2.tableid and t2.tablename = '%s'",TABLE_17));
+        if(rs.next()){
+        	tableID = rs.getString("CONGLOMERATENUMBER");
+        }
+        rs.close();
+        Thread.sleep(20000);
+        HBaseRegionLoads.update();
+        long drin =-1;
+        long drout =-1;
+        Collection<HServerLoad.RegionLoad> regions = HBaseRegionLoads.getCachedRegionLoadsForTable(tableID);
+        Iterator<RegionLoad> it = regions.iterator();
+        while(it.hasNext()){
+        	HServerLoad.RegionLoad hsr = (RegionLoad) it.next();
+        	drin = hsr.getWriteRequestsCount();
+        	drout = hsr.getReadRequestsCount();
+        }
+        Assert.assertEquals(0, drin);
+        Assert.assertEquals(0, drout);
+
+		String location = getResourceDirectory()+"t1K.tbl.gz";
+		PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_17,location));
+		ps.execute();
+        Thread.sleep(20000);
+        HBaseRegionLoads.update();
+        drin =-1;
+        drout =-1;
+        regions = HBaseRegionLoads.getCachedRegionLoadsForTable(tableID);
+        Iterator<RegionLoad> it1 = regions.iterator();
+        while(it1.hasNext()){
+        	HServerLoad.RegionLoad hsr = (RegionLoad) it1.next();
+        	drin = hsr.getWriteRequestsCount();
+        	drout = hsr.getReadRequestsCount();
+        }
+        Assert.assertEquals(20010, drin);
+        Assert.assertEquals(10000, drout);
+	}
+
 }

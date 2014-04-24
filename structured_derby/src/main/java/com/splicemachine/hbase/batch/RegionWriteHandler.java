@@ -212,10 +212,7 @@ public class RegionWriteHandler implements WriteHandler {
             }
             i++;
         }
-        int success = i-failed;
-        if(!siTable)
-            HRegionUtil.updateWriteRequests(region, success - 1); // subtract 1 b/c HBase has added 1 to writeReqs in region.batchMutate(),
-                                                                  //  & we want writeRequests to reflect actual rows written
+        HRegionUtil.updateWriteRequests(region, toProcess.size()-failed); 
     }
 
     private OperationStatus[] doNonSIWrite(Collection<KVPair> toProcess,WriteContext ctx) throws IOException {
