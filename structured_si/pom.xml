@@ -21,9 +21,7 @@
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
-			<groupId>
-				com.github.stephenc.high-scale-lib
-			</groupId>
+			<groupId>com.github.stephenc.high-scale-lib</groupId>
 			<artifactId>high-scale-lib</artifactId>
 			<version>1.1.1</version>
 		</dependency>
@@ -59,16 +57,15 @@
 	<profiles>
 		<profile>
 			<id>obfuscate</id>
-				<activation>
+			<activation>
 				<property>
 					<name>obfuscate</name>
 					<value>true</value>
 				</property>
-			</activation>			
+			</activation>
 			<properties>
 				<obfuscate.si>-obfuscated</obfuscate.si>
 			</properties>
-			
 			<build>
 				<plugins>
 					<plugin>
@@ -85,10 +82,9 @@
 							<includeDependency>true</includeDependency>
 							<outputDirectory>${project.build.directory}</outputDirectory>
 							<options>
-							    <!-- This has to be set or all generics are lost.  -->
+								<!-- This has to be set or all generics are lost.  -->
 								<option>-keepattributes Signature</option>
 								<option>-keepattributes Exceptions</option>
-							
 								<!-- # Write out an obfuscation mapping file for de-obfuscating any stack traces. -->
 								<!-- # Or for incremental obfuscation of extensions... this will allow for patching obfuscated code if needed. -->
 								<option>-printmapping ${project.build.directory}/${project.build.finalName}-${envClassifier}.map</option>
@@ -144,14 +140,14 @@
 								<option>-keep public class com.splicemachine.si.impl.PushBackIterator { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.Transaction { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.TransactionStore { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.RowAccumulator { public *; }</option>																
+								<option>-keep public class com.splicemachine.si.impl.RowAccumulator { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.HRowAccumulator { public *; }</option>
-								<option>-keep public class com.splicemachine.si.data.hbase.IHTable { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.IHTable { public *; } </option>
 								<option>-keep public class com.splicemachine.si.coprocessors.SIObserver { public *; }</option>
 								<option>-keep public class com.splicemachine.si.coprocessors.SIFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.coprocessors.RollForwardQueueMap { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.Transactor { public *; }</option>
-								<option>-keep public class com.splicemachine.si.api.TransactionalFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionalFilter { public *; } </option>
 								<option>-keep public class com.splicemachine.si.api.TransactionReadController { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.ClientTransactor { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.ConstraintChecker { public *; }</option>
@@ -168,7 +164,7 @@
 								<!-- ### Needed as return value from HTransactorFactory.getTransactorStatus() in SpliceDriver.registerJMX(). ### -->
 								<option>-keep public class com.splicemachine.si.jmx.TransactorStatus { public *; }</option>
 								<!-- ### Needed by ij for SELECT queries. ### -->
-								<option>-keep public class com.splicemachine.si.impl.RowAccumulator { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.RowAccumulator { public *; } </option>
 								<!-- ### Method, newFilterState, needed by ij for SELECT queries. TODO: only need method? ### -->
 								<option>-keep public class com.splicemachine.si.api.TransactionReadController { public *; }</option>
 								<!-- ### Method, newFilterState, needs this as a parameter. ### -->
@@ -179,10 +175,10 @@
 								<option>-keep public class com.splicemachine.si.impl.FilterState { public *; }</option>
 								<!-- ### Needed by ij for INSERT statements. ### -->
 								<option>-keep public class com.splicemachine.si.data.hbase.HbRegion { public *; }</option>
-                                                                <!-- ### Needed for ITs. ### -->
-                                                                <option>-keep public class com.splicemachine.si.api.TransactionStatus { public *; }</option>
-                                                                <option>-keep public class com.splicemachine.si.api.TransactorListener { public *; }</option>
-                                                                <option>-keep public class com.splicemachine.si.api.SIFilter { public *; }</option>
+								<!-- ### Needed for ITs. ### -->
+								<option>-keep public class com.splicemachine.si.api.TransactionStatus { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactorListener { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.SIFilter { public *; }</option>
 							</options>
 							<libs>
 								<lib>${java.home}/lib/rt.jar</lib>
