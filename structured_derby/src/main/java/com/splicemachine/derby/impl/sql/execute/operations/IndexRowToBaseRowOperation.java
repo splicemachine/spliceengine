@@ -78,11 +78,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		protected int indexColMapItem;
 		private ExecRow compactRow;
 		RowLocation baseRowLocation = null;
-		boolean copiedFromSource = false;
-        int[] columnOrdering;
+		int[] columnOrdering;
         int[] format_ids;
-        DataValueDescriptor[] kdvds;
-        SpliceConglomerate conglomerate;
+		SpliceConglomerate conglomerate;
 		/*
 			* Variable here to stash pre-generated DataValue definitions for use in
 			* getExecRowDefinition(). Save a little bit of performance by caching it
@@ -122,7 +120,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				this.restrictionMethodName = restriction==null? null: restriction.getMethodName();
 				init(SpliceOperationContext.newContext(activation));
 				recordConstructorTime();
-                getKeyColumnDVDs();
+//                getKeyColumnDVDs();
 		}
 
 		@Override
@@ -269,47 +267,37 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
 		}
 
-        private void getKeyColumnDVDs() throws StandardException{
-            if (kdvds == null && getColumnOrdering() != null) {
-                int len = columnOrdering.length;
-                kdvds = new DataValueDescriptor[len];
-                getFormatIds();
-                for (int i = 0; i < len; ++i) {
-                    kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
-                }
-            }
-        }
-		@Override
-		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-            int[] keyColumns = new int[getColumnOrdering().length];
-            int[] baseColumnMap = operationInformation.getBaseColumnMap();
-            for (int i = 0; i <keyColumns.length; ++i)
-                keyColumns[i] = -1;
-            for (int i = 0; i < keyColumns.length && columnOrdering[i] < baseColumnMap.length; ++i) {
-                keyColumns[i] = baseColumnMap[columnOrdering[i]];
-            }
-			/*
-			 * We only ask for this KeyEncoder if we are the top of a RegionScan.
-			 * In this case, we encode with either the current row location or a
-			 * random UUID (if the current row location is null).
-			 */
-            DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
-                @Override
-                public byte[] get() throws StandardException {
-                    if(currentRowLocation!=null)
-                        return currentRowLocation.getBytes();
-                    return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-                }
-            });
-
-            return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
-		}
+		//		@Override
+//		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+//            int[] keyColumns = new int[getColumnOrdering().length];
+//            int[] baseColumnMap = operationInformation.getBaseColumnMap();
+//            for (int i = 0; i <keyColumns.length; ++i)
+//                keyColumns[i] = -1;
+//            for (int i = 0; i < keyColumns.length && columnOrdering[i] < baseColumnMap.length; ++i) {
+//                keyColumns[i] = baseColumnMap[columnOrdering[i]];
+//            }
+//			/*
+//			 * We only ask for this KeyEncoder if we are the top of a RegionScan.
+//			 * In this case, we encode with either the current row location or a
+//			 * random UUID (if the current row location is null).
+//			 */
+//            DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+//                @Override
+//                public byte[] get() throws StandardException {
+//                    if(currentRowLocation!=null)
+//                        return currentRowLocation.getBytes();
+//                    return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+//                }
+//            });
+//
+//            return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
+//		}
 
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				int[] nonPkCols = getAccessedNonPkColumns();
 				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(compactRow);
-				return BareKeyHash.encoder(nonPkCols,null,serializers);
+				return BareKeyHash.encoder(adjustedBaseColumnMap,null,serializers);
 
 		}
 
