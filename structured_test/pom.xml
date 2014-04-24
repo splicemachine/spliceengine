@@ -41,12 +41,12 @@
 			<artifactId>commons-io</artifactId>
 			<version>2.1</version>
 		</dependency>
-		<!--<dependency>-->
-		<!--<groupId>com.splicemachine</groupId>-->
-		<!--<artifactId>splice_machine</artifactId>-->
-		<!--<version>0.5rc10-SNAPSHOT</version>-->
-		<!--<classifier>${envClassifier}</classifier>-->
-		<!--</dependency>		-->
+		<!-- dependency>
+			<groupId>com.splicemachine</groupId>
+			<artifactId>splice_machine</artifactId>
+			<version>0.5rc10-SNAPSHOT</version>
+			<classifier>${envClassifier}</classifier>
+		</dependency -->
 	</dependencies>
 	<build>
 		<resources>
@@ -158,7 +158,7 @@
 			</dependencies>
 		</profile>
 		<profile>
-			<!--			<id>integration-tests</id> -->
+			<!-- id>integration-tests</id -->
 			<!-- temporarily commented out -->
 			<id>do-not-run</id>
 			<properties>

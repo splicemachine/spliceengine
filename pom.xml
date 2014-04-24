@@ -1,333 +1,352 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>com.splicemachine</groupId>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.splicemachine</groupId>
 	<version>0.5rc10-SNAPSHOT</version>
-  <packaging>pom</packaging>
-  <artifactId>structured_hbase</artifactId>
-  <name>structured_hbase</name>
-  <description>Set of modules for getting hbase to function in structure</description>
-
-    <modules>
-        <module>structured_constants</module>
-        <module>structured_si</module>
+	<packaging>pom</packaging>
+	<artifactId>structured_hbase</artifactId>
+	<name>structured_hbase</name>
+	<description>Set of modules for getting hbase to function in structure</description>
+	<modules>
+		<module>structured_constants</module>
+		<module>structured_si</module>
 		<module>splice_protocol</module>
-        <module>structured_derby</module>
-        <module>structured_test</module>
-    </modules>
-  <scm>
-    <connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>
-    <developerConnection>scm:git:git@github.com:splicemachine/spliceengine.git</developerConnection>
-  </scm>
-  <distributionManagement>
-    <repository>
-      <uniqueVersion>false</uniqueVersion>
-      <id>structured-hbase-release</id>
-      <name>Structured HBase Release</name>
-      <url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
-    </repository>
-
-    <snapshotRepository>
-      <uniqueVersion>true</uniqueVersion>
-      <id>structured-hbase-snapshot</id>
-      <name>Structured HBase Snapshot</name>
-      <url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
-    </snapshotRepository>
-  </distributionManagement>
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <junit.version>4.11</junit.version>
-    <gson.version>1.6</gson.version>
-    <maven.compiler.source>1.6</maven.compiler.source>
-    <maven.compiler.target>1.6</maven.compiler.target>
-    <maven.jar.plugin.version>2.3.1</maven.jar.plugin.version>
-    <log4j.version>1.2.15</log4j.version>
-    <derby.version>10.9.1.0.splice</derby.version>
-    <gson.version>2.2.2</gson.version>
-    <kryo.version>2.22</kryo.version>
-    <mockito.version>1.9.5</mockito.version>
-    <maven.build.timestamp.format>yyyy-MM-dd HH:mm Z</maven.build.timestamp.format>
-    <skip.integration.tests>true</skip.integration.tests>
-    <failTasksRandomly>true</failTasksRandomly>
-    <!-- run chaos monkey -->
-    <log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
-    <assemble>false</assemble>
-		<envClassifier />
-  </properties>
-
-  <dependencies>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
-    </dependency>
-  </dependencies>
-
-  <build>
-    <extensions>
-      <!-- Enabling the use of FTP -->
-      <extension>
-        <groupId>org.apache.maven.wagon</groupId>
-        <artifactId>wagon-ssh</artifactId>
-        <version>1.0-beta-6</version>
-      </extension>
-    </extensions>
-    <pluginManagement>
-      <plugins>
-
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-source-plugin</artifactId>
-          <executions>
-            <execution>
-              <goals>
-                <goal>jar</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-jar-plugin</artifactId>
-          <configuration>
-            <classifier>${envClassifier}</classifier>
-            <archive>
-              <manifestEntries>
-                <Implementation-Version>${buildNumber}</Implementation-Version>
-                <Release>0.5</Release>
-                <URL>http://www.splicemachine.com</URL>
-              </manifestEntries>
-            </archive>
-            <excludes>
-              <exclude>**/*log4j.properties</exclude>
-            </excludes>
-
-          </configuration>
-          <executions>
-            <execution>
-              <id>attach-sources</id>
-              <goals>
-                <goal>jar</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-
-        <plugin>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>2.1</version>
-          <configuration>
-            <source>1.6</source>
-            <target>1.6</target>
-            <showWarnings>true</showWarnings>
-            <showDeprecation>true</showDeprecation>
-          </configuration>
-        </plugin>
-
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.16</version>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-  </build>
-  <reporting>
-    <plugins>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>emma-maven-plugin</artifactId>
-        <version>1.0-alpha-3</version>
-        <inherited>true</inherited>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>surefire-report-maven-plugin</artifactId>
-        <version>2.16</version>
-        <inherited>true</inherited>
-      </plugin>
-    </plugins>
-  </reporting>
-  <pluginRepositories>
-    <pluginRepository>
-      <id>codehaus-release-repo</id>
-      <name>Codehaus Release Repo</name>
-      <url>http://repository.codehaus.org</url>
-    </pluginRepository>
-  </pluginRepositories>
-  <repositories>
-    <repository>
-      <id>central</id>
-      <url>http://repo1.maven.org/maven2</url>
-    </repository>
-    <repository>
-      <id>splicemachine</id>
-      <url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-    </repository>
-    <repository>
-      <id>protostuff-repo</id>
-      <name>protostuff-repo</name>
-      <url>http://protostuff.googlecode.com/svn/repos/maven2</url>
-    </repository>
-    <repository>
-      <id>smartgwt</id>
-      <url>http://www.smartclient.com/maven2/</url>
-    </repository>
-
-    <repository>
-      <id>gson-repo</id>
-      <url>http://google-gson.googlecode.com/svn/mavenrepo</url>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-    </repository>
-  </repositories>
-  <profiles>
-
-
-    <profile>
+		<module>structured_derby</module>
+		<module>structured_test</module>
+	</modules>
+	<scm>
+		<connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>
+		<developerConnection>scm:git:git@github.com:splicemachine/spliceengine.git</developerConnection>
+	</scm>
+	<distributionManagement>
+		<repository>
+			<uniqueVersion>false</uniqueVersion>
+			<id>structured-hbase-release</id>
+			<name>Structured HBase Release</name>
+			<url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
+		</repository>
+		<snapshotRepository>
+			<uniqueVersion>true</uniqueVersion>
+			<id>structured-hbase-snapshot</id>
+			<name>Structured HBase Snapshot</name>
+			<url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<junit.version>4.11</junit.version>
+		<gson.version>1.6</gson.version>
+		<maven.compiler.source>1.6</maven.compiler.source>
+		<maven.compiler.target>1.6</maven.compiler.target>
+		<maven.jar.plugin.version>2.3.1</maven.jar.plugin.version>
+		<log4j.version>1.2.15</log4j.version>
+		<derby.version>10.9.1.0.splice</derby.version>
+		<gson.version>2.2.2</gson.version>
+		<kryo.version>2.22</kryo.version>
+		<mockito.version>1.9.5</mockito.version>
+		<maven.build.timestamp.format>yyyy-MM-dd HH:mm Z</maven.build.timestamp.format>
+		<skip.integration.tests>true</skip.integration.tests>
+		<failTasksRandomly>true</failTasksRandomly>
+		<!-- run chaos monkey -->
+		<log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
+		<assemble>false</assemble>
+		<envClassifier/>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>${junit.version}</version>
+		</dependency>
+	</dependencies>
+	<build>
+		<extensions>
+			<!-- Enabling the use of FTP -->
+			<extension>
+				<groupId>org.apache.maven.wagon</groupId>
+				<artifactId>wagon-ssh</artifactId>
+				<version>1.0-beta-6</version>
+			</extension>
+		</extensions>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-source-plugin</artifactId>
+					<executions>
+						<execution>
+							<goals>
+								<goal>jar</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-jar-plugin</artifactId>
+					<configuration>
+						<classifier>${envClassifier}</classifier>
+						<archive>
+							<manifestEntries>
+								<Implementation-Version>${buildNumber}</Implementation-Version>
+								<Release>0.5</Release>
+								<URL>http://www.splicemachine.com</URL>
+							</manifestEntries>
+						</archive>
+						<excludes>
+							<exclude>**/*log4j.properties</exclude>
+						</excludes>
+					</configuration>
+					<executions>
+						<execution>
+							<id>attach-sources</id>
+							<goals>
+								<goal>jar</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+				<plugin>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>2.1</version>
+					<configuration>
+						<source>1.6</source>
+						<target>1.6</target>
+						<showWarnings>true</showWarnings>
+						<showDeprecation>true</showDeprecation>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<version>2.16</version>
+				</plugin>
+				<plugin>
+					<groupId>com.github.wvengen</groupId>
+					<artifactId>proguard-maven-plugin</artifactId>
+					<version>2.0.7</version>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+	</build>
+	<reporting>
+		<plugins>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>emma-maven-plugin</artifactId>
+				<version>1.0-alpha-3</version>
+				<inherited>true</inherited>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>surefire-report-maven-plugin</artifactId>
+				<version>2.16</version>
+				<inherited>true</inherited>
+			</plugin>
+		</plugins>
+	</reporting>
+	<pluginRepositories>
+		<pluginRepository>
+			<id>codehaus-release-repo</id>
+			<name>Codehaus Release Repo</name>
+			<url>http://repository.codehaus.org</url>
+		</pluginRepository>
+	</pluginRepositories>
+	<repositories>
+		<repository>
+			<id>central</id>
+			<url>http://repo1.maven.org/maven2</url>
+		</repository>
+		<repository>
+			<id>splicemachine</id>
+			<url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+		</repository>
+		<repository>
+			<id>protostuff-repo</id>
+			<name>protostuff-repo</name>
+			<url>http://protostuff.googlecode.com/svn/repos/maven2</url>
+		</repository>
+		<repository>
+			<id>smartgwt</id>
+			<url>http://www.smartclient.com/maven2/</url>
+		</repository>
+		<repository>
+			<id>gson-repo</id>
+			<url>http://google-gson.googlecode.com/svn/mavenrepo</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+		</repository>
+		<repository>
+			<id>sonatype-nexus-staging</id>
+			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+		</repository>
+	</repositories>
+	<profiles>
+		<profile>
+			<id>no_obfuscate</id>
+			<activation>
+				<property>
+					<name>!obfuscate</name>
+				</property>
+			</activation>
+			<properties>
+				<obfuscate.si></obfuscate.si>
+			</properties>
+		</profile>
+		<profile>
+			<id>obfuscate</id>
+			<activation>
+				<property>
+					<name>obfuscate</name>
+					<value>true</value>
+				</property>
+			</activation>
+			<properties>
+				<obfuscate.si>-obfuscated</obfuscate.si>
+			</properties>
+		</profile>
+		<profile>
 			<!-- =========================================================== -->
 			<!--                   cloudera-cdh5.0.0	                     -->
 			<!-- =========================================================== -->
 			<id>cloudera-cdh5.0.0</id>
-						<!-- This is the default profile - runs when NO -Dhbase.profile=<profileid> is specified -->
-						<!-- NOTE: since maven does not know about OR (ie, prop not set OR prop set to cloudera-cdh5.0.0), -->
-						<!--     this will NOT run when you set -Dhbase.profile=cloudera-cdh5.0.0 -->
-      <activation>
-        <property>
+			<!-- This is the default profile - runs when NO -Dhbase.profile=<profileid> is specified -->
+			<!-- NOTE: since maven does not know about OR (ie, prop not set OR prop set to cloudera-cdh5.0.0), -->
+			<!--     this will NOT run when you set -Dhbase.profile=cloudera-cdh5.0.0 -->
+			<activation>
+				<property>
 					<name>!hbase.profile</name>
-        </property>
-      </activation>
-      <properties>
-        <zookeeper.version>3.4.5-cdh5.0.0</zookeeper.version>
-        <hbase.version>0.96.1.1-cdh5.0.0</hbase.version>
-        <hadoop.version>2.3.0-cdh5.0.0</hadoop.version>
-		<envClassifier>cloudera-cdh5.0.0</envClassifier>
-      </properties>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.hbase</groupId>
-          <artifactId>hbase-client</artifactId>
-          <version>${hbase.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.hbase</groupId>
-          <artifactId>hbase-protocol</artifactId>
-          <version>${hbase.version}</version>
-        </dependency>
-
-        <dependency>
-          <groupId>org.apache.hbase</groupId>
-          <artifactId>hbase-testing-util</artifactId>
-          <version>${hbase.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.hbase</groupId>
-          <artifactId>hbase-common</artifactId>
-          <version>${hbase.version}</version>
-          <classifier>tests</classifier>
-        </dependency>
-
-        <dependency>
-          <groupId>org.apache.hbase</groupId>
-          <artifactId>hbase-server</artifactId>
-          <version>${hbase.version}</version>
-        </dependency>
-
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-common</artifactId>
-          <version>${hadoop.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-hdfs</artifactId>
-          <version>${hadoop.version}</version>
-          <classifier>tests</classifier>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-client</artifactId>
-          <version>${hadoop.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-hdfs</artifactId>
-          <version>${hadoop.version}</version>
-        </dependency>
-      </dependencies>
-      <repositories>
-        <repository>
-          <id>cloudera</id>
-          <url>https://repository.cloudera.com/content/repositories/releases/</url>
-          <snapshots>
-            <enabled>false</enabled>
-          </snapshots>
-          <releases>
-            <enabled>true</enabled>
-          </releases>
-        </repository>
-      </repositories>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-surefire-plugin</artifactId>
-            <version>2.15</version>
-            <configuration>
-              <argLine>-Xms256M -Xmx1024M</argLine>
-              <redirectTestOutputToFile>true</redirectTestOutputToFile>
-              <includes>
-				<include>**/*Suite.java</include>
-                <include>**/*Test.java</include>
-              </includes>
-              <excludes>
-                  <!-- Skip ITs -->
-                  <exclude>**/si/**/*Test.java</exclude>
-                <exclude>**/*IT.java</exclude>
-              </excludes>
-            </configuration>
-          </plugin>
-          <plugin>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>integration-tests</id>
-                <goals>
-                  <goal>integration-test</goal>
-                  <goal>verify</goal>
-                </goals>
-              </execution>
-            </executions>
-            <version>2.12.2</version>
-            <configuration>
-              <skipTests>${skip.integration.tests}</skipTests>
-              <argLine>-Xms256M -Xmx1024M</argLine>
-              <redirectTestOutputToFile>true</redirectTestOutputToFile>
-              <includes>
-                <include>**/*IT.java</include>
-              </includes>
-              <excludes>
-                <!-- Skip all unit tests -->
-                <exclude>**/*Test.java</exclude>
-              </excludes>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
-
-
-
-
-    <profile>
+				</property>
+			</activation>
+			<properties>
+				<zookeeper.version>3.4.5-cdh5.0.0</zookeeper.version>
+				<hbase.version>0.96.1.1-cdh5.0.0</hbase.version>
+				<hadoop.version>2.3.0-cdh5.0.0</hadoop.version>
+				<envClassifier>cloudera-cdh5.0.0</envClassifier>
+			</properties>
+			<dependencies>
+				<dependency>
+					<groupId>org.apache.hbase</groupId>
+					<artifactId>hbase-client</artifactId>
+					<version>${hbase.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.hbase</groupId>
+					<artifactId>hbase-protocol</artifactId>
+					<version>${hbase.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.hbase</groupId>
+					<artifactId>hbase-testing-util</artifactId>
+					<version>${hbase.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.hbase</groupId>
+					<artifactId>hbase-common</artifactId>
+					<version>${hbase.version}</version>
+					<classifier>tests</classifier>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.hbase</groupId>
+					<artifactId>hbase-server</artifactId>
+					<version>${hbase.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.hadoop</groupId>
+					<artifactId>hadoop-common</artifactId>
+					<version>${hadoop.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.hadoop</groupId>
+					<artifactId>hadoop-hdfs</artifactId>
+					<version>${hadoop.version}</version>
+					<classifier>tests</classifier>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.hadoop</groupId>
+					<artifactId>hadoop-client</artifactId>
+					<version>${hadoop.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.hadoop</groupId>
+					<artifactId>hadoop-hdfs</artifactId>
+					<version>${hadoop.version}</version>
+				</dependency>
+			</dependencies>
+			<repositories>
+				<repository>
+					<id>cloudera</id>
+					<url>https://repository.cloudera.com/content/repositories/releases/</url>
+					<snapshots>
+						<enabled>false</enabled>
+					</snapshots>
+					<releases>
+						<enabled>true</enabled>
+					</releases>
+				</repository>
+			</repositories>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>2.15</version>
+						<configuration>
+							<argLine>-Xms256M -Xmx1024M</argLine>
+							<redirectTestOutputToFile>true</redirectTestOutputToFile>
+							<includes>
+								<include>**/*Suite.java</include>
+								<include>**/*Test.java</include>
+							</includes>
+							<excludes>
+								<!-- Skip ITs -->
+								<exclude>**/si/**/*Test.java</exclude>
+								<exclude>**/*IT.java</exclude>
+							</excludes>
+						</configuration>
+					</plugin>
+					<plugin>
+						<artifactId>maven-failsafe-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>integration-tests</id>
+								<goals>
+									<goal>integration-test</goal>
+									<goal>verify</goal>
+								</goals>
+							</execution>
+						</executions>
+						<version>2.12.2</version>
+						<configuration>
+							<skipTests>${skip.integration.tests}</skipTests>
+							<argLine>-Xms256M -Xmx1024M</argLine>
+							<redirectTestOutputToFile>true</redirectTestOutputToFile>
+							<includes>
+								<include>**/*IT.java</include>
+							</includes>
+							<excludes>
+								<!-- Skip all unit tests -->
+								<exclude>**/*Test.java</exclude>
+							</excludes>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
 			<!-- =========================================================== -->
 			<!--                       hdp2.0.10.0-1                         -->
 			<!-- =========================================================== -->
@@ -427,30 +446,30 @@
 						<artifactId>maven-surefire-plugin</artifactId>
 						<version>2.15</version>
 						<configuration>
-						<argLine>-Xms256M -Xmx1024M</argLine>
-						<redirectTestOutputToFile>true</redirectTestOutputToFile>
-						<includes>
-						<include>**/*Suite.java</include>
-						<include>**/*Test.java</include>
-						</includes>
-						<excludes>
-						<!-- Skip ITs -->
-						<exclude>**/si/**/*Test.java</exclude>
-						<exclude>**/*IT.java</exclude>
-						</excludes>
+							<argLine>-Xms256M -Xmx1024M</argLine>
+							<redirectTestOutputToFile>true</redirectTestOutputToFile>
+							<includes>
+								<include>**/*Suite.java</include>
+								<include>**/*Test.java</include>
+							</includes>
+							<excludes>
+								<!-- Skip ITs -->
+								<exclude>**/si/**/*Test.java</exclude>
+								<exclude>**/*IT.java</exclude>
+							</excludes>
 						</configuration>
 					</plugin>
 					<plugin>
 						<artifactId>maven-failsafe-plugin</artifactId>
-							<executions>
-								<execution>
-									<id>integration-tests</id>
-									<goals>
-										<goal>integration-test</goal>
-										<goal>verify</goal>
-									</goals>
-								</execution>
-							</executions>
+						<executions>
+							<execution>
+								<id>integration-tests</id>
+								<goals>
+									<goal>integration-test</goal>
+									<goal>verify</goal>
+								</goals>
+							</execution>
+						</executions>
 						<version>2.12.2</version>
 						<configuration>
 							<skipTests>${skip.integration.tests}</skipTests>
@@ -467,20 +486,18 @@
 					</plugin>
 				</plugins>
 			</build>
-	</profile>
-
-    <profile>
-      <id>downloadSources</id>
-      <activation>
-        <property>
-          <name>download.sources</name>
-        </property>
-      </activation>
-      <properties>
-        <downloadSources>true</downloadSources>
-        <downloadJavadocs>true</downloadJavadocs>
-      </properties>
-    </profile>
-  </profiles>
-
+		</profile>
+		<profile>
+			<id>downloadSources</id>
+			<activation>
+				<property>
+					<name>download.sources</name>
+				</property>
+			</activation>
+			<properties>
+				<downloadSources>true</downloadSources>
+				<downloadJavadocs>true</downloadJavadocs>
+			</properties>
+		</profile>
+	</profiles>
 </project>
