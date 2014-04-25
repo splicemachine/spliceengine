@@ -488,6 +488,147 @@
 			</build>
 		</profile>
 		<profile>
+			<!-- =========================================================== -->
+			<!--                       hdp2.1.1                              -->
+			<!-- =========================================================== -->
+			<id>hdp2.1.1</id>
+			<activation>
+				<property>
+					<!-- To run, specify -Dhbase.profile=hdp2.1.1-->
+					<name>hbase.profile</name>
+					<value>hdp2.1.1</value>
+				</property>
+			</activation>
+			<properties>
+				<zookeeper.version>3.4.5.2.1.1.0-385</zookeeper.version>
+				<hbase.version>0.98.0.2.1.1.0-385-hadoop2</hbase.version>
+				<hadoop.version>2.4.0.2.1.1.0-385</hadoop.version>
+				<envClassifier>hdp2.1.1</envClassifier>
+			</properties>
+			<dependencies>
+				<dependency>
+					<groupId>org.apache.hbase</groupId>
+					<artifactId>hbase-client</artifactId>
+					<version>${hbase.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.hbase</groupId>
+					<artifactId>hbase-protocol</artifactId>
+					<version>${hbase.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.hbase</groupId>
+					<artifactId>hbase-testing-util</artifactId>
+					<version>${hbase.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.hbase</groupId>
+					<artifactId>hbase-common</artifactId>
+					<version>${hbase.version}</version>
+					<classifier>tests</classifier>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.hbase</groupId>
+					<artifactId>hbase-server</artifactId>
+					<version>${hbase.version}</version>
+				</dependency>
+				<!--
+				<dependency>
+					<groupId>org.apache.hadoop</groupId>
+					<artifactId>hadoop-test</artifactId>
+					<version>${hadoop.version}</version>
+					<exclusions>
+						<exclusion>
+							<artifactId>junit</artifactId>
+							<groupId>junit</groupId>
+						</exclusion>
+					</exclusions>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.hadoop</groupId>
+					<artifactId>hadoop-core</artifactId>
+					<version>${hadoop.version}</version>
+					<exclusions>
+						<exclusion>
+							<artifactId>junit</artifactId>
+							<groupId>junit</groupId>
+						</exclusion>
+					</exclusions>
+				</dependency>
+				-->
+				<dependency>
+					<groupId>org.apache.hadoop</groupId>
+					<artifactId>hadoop-minicluster</artifactId>
+					<version>${hadoop.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.hadoop</groupId>
+					<artifactId>hadoop-client</artifactId>
+					<version>${hadoop.version}</version>
+				</dependency>
+			</dependencies>
+			<repositories>
+				<repository>
+					<id>HDPReleases</id>
+					<name>HDP Releases</name>
+					<releases>
+						<enabled>true</enabled>
+					</releases>
+					<snapshots>
+						<enabled>false</enabled>
+					</snapshots>
+					<url>http://repo.hortonworks.com/content/repositories/releases</url>
+					<layout>default</layout>
+				</repository>
+			</repositories>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>2.15</version>
+						<configuration>
+							<argLine>-Xms256M -Xmx1024M</argLine>
+							<redirectTestOutputToFile>true</redirectTestOutputToFile>
+							<includes>
+								<include>**/*Suite.java</include>
+								<include>**/*Test.java</include>
+							</includes>
+							<excludes>
+								<!-- Skip ITs -->
+								<exclude>**/si/**/*Test.java</exclude>
+								<exclude>**/*IT.java</exclude>
+							</excludes>
+						</configuration>
+					</plugin>
+					<plugin>
+						<artifactId>maven-failsafe-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>integration-tests</id>
+								<goals>
+									<goal>integration-test</goal>
+									<goal>verify</goal>
+								</goals>
+							</execution>
+						</executions>
+						<version>2.12.2</version>
+						<configuration>
+							<skipTests>${skip.integration.tests}</skipTests>
+							<argLine>-Xms256M -Xmx1024M</argLine>
+							<redirectTestOutputToFile>true</redirectTestOutputToFile>
+							<includes>
+								<include>**/*IT.java</include>
+							</includes>
+							<excludes>
+								<!-- Skip all unit tests -->
+								<exclude>**/*Test.java</exclude>
+							</excludes>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
 			<id>downloadSources</id>
 			<activation>
 				<property>
