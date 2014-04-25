@@ -81,9 +81,7 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
             }
 						this.isNull = result == null;
 						if(!isNull){
-								if(bytes==null)
-										bytes = new ByteSlice();
-								bytes.set(result,0,result.length);
+								initForDeserialization(tableVersion,result,0,result.length,descendingOrder); //TODO -sf- is descendingOrder always right?
 						}
         } else {
             dvd.normalize(dtd, source);

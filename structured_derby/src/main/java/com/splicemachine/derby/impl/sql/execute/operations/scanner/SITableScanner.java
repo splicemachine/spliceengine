@@ -186,7 +186,6 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 								currentRowLocation = null;
 								return null;
 						}else{
-								template.resetRowArray();
 								if(template.nColumns()>0){
 										if(!filterRowKey(keyValues.get(0))||!filterRow(filter)){
 												//filter the row first, then filter the row key
