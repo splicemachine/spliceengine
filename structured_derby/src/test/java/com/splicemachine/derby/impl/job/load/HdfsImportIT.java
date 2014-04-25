@@ -545,112 +545,75 @@ public class HdfsImportIT extends SpliceUnitTest {
 	}
 
 	@Test
-	@Ignore("Until I find out why the count of 0 is comming back at 12.")
 	public void GetReadWriteCountMultipleSingleRecordWrites() throws Exception{
-		String tableID="";
         Connection conn = methodWatcher.createConnection();
-        ResultSet rs = conn.createStatement().executeQuery(String.format("select t1.tableid, t2.tablename, t1.CONGLOMERATENUMBER from sys.sysconglomerates t1, sys.systables t2 where t1.tableid=t2.tableid and t2.tablename = '%s'",TABLE_16));
-        if(rs.next()){
-        	tableID = rs.getString("CONGLOMERATENUMBER");
-        }
-        rs.close();
-        HBaseRegionLoads.update();
-        long drin =-1;
-        long drout =-1;
-        Collection<HServerLoad.RegionLoad> regions = HBaseRegionLoads.getCachedRegionLoadsForTable(tableID);
-        Iterator<RegionLoad> it = regions.iterator();
-        while(it.hasNext()){
-        	HServerLoad.RegionLoad hsr = (RegionLoad) it.next();
-        	drin = hsr.getWriteRequestsCount();
-        	drout = hsr.getReadRequestsCount();
-        }
-        Assert.assertEquals(0, drin);
-        Assert.assertEquals(0, drout);
-        for (int j = 0 ; j < 100; ++j) {
-            for (int i=0; i<10; i++) {
-                conn.createStatement().execute(
-                    String.format("insert into %s.%s (a, d, b, c, e) values (%d, %f, %d,%d,%d)",
-                    		CLASS_NAME,TABLE_16, i, i * 1.0,i*50,i*j,i*j*25));
-            }
-        }
+		String tableID=getConglomerateNumber(conn,TABLE_16);
+        Assert.assertFalse("Table conglomerate number does not exist", tableID.equals(""));
+        checkReturnValue(5000,tableID,0,0,0);
+        Insert1000Records(conn);
         ResultSet resultSet = conn.createStatement().executeQuery(String.format("select * from %s.%s", CLASS_NAME,TABLE_16));
         Assert.assertEquals(1000, resultSetSize(resultSet));
-        Thread.sleep(20000);
-        HBaseRegionLoads.update();
-        drin =-1;
-        drout =-1;
-        Collection<HServerLoad.RegionLoad> regions1 = HBaseRegionLoads.getCachedRegionLoadsForTable(tableID);
-        Iterator<RegionLoad> it0 = regions1.iterator();
-        while(it0.hasNext()){
-        	HServerLoad.RegionLoad hsr = (RegionLoad) it0.next();
-        	drin = hsr.getWriteRequestsCount();
-        	drout = hsr.getReadRequestsCount();
-        }
-        Assert.assertEquals(3000, drin);
-        Assert.assertEquals(3000, drout);
-        for (int j = 0 ; j < 100; ++j) {
-            for (int i=0; i<10; i++) {
-                conn.createStatement().execute(
-                    String.format("insert into %s.%s (a, d, b, c, e) values (%d, %f, %d,%d,%d)",
-                    		CLASS_NAME,TABLE_16, i, i * 1.0,i*50,i*j,i*j*25));
-            }
-        }
-        Thread.sleep(20000);
-        HBaseRegionLoads.update();
-        drin =-1;
-        drout =-1;
-        regions = HBaseRegionLoads.getCachedRegionLoadsForTable(tableID);
-        Iterator<RegionLoad> it1 = regions.iterator();
-        while(it1.hasNext()){
-        	HServerLoad.RegionLoad hsr = (RegionLoad) it1.next();
-        	drin = hsr.getWriteRequestsCount();
-        	drout = hsr.getReadRequestsCount();
-        }
-        Assert.assertEquals(6000, drin);
-        Assert.assertEquals(4000, drout);
         resultSet.close();
+        checkReturnValue(15000,tableID,3000,3000,6000);
+        Insert1000Records(conn);
+        checkReturnValue(15000,tableID,6000,4000,10000);
+		conn.close();
 	}
-
+	
 	@Test
-	@Ignore("Until I find out why the count of 0 is comming back at 34.")
 	public void GetReadWriteCountBulkRecordWrites() throws Exception{
-		String tableID="";
-        Connection conn = methodWatcher.createConnection();
-        ResultSet rs = conn.createStatement().executeQuery(String.format("select t1.tableid, t2.tablename, t1.CONGLOMERATENUMBER from sys.sysconglomerates t1, sys.systables t2 where t1.tableid=t2.tableid and t2.tablename = '%s'",TABLE_17));
-        if(rs.next()){
-        	tableID = rs.getString("CONGLOMERATENUMBER");
-        }
-        rs.close();
-        Thread.sleep(20000);
-        HBaseRegionLoads.update();
-        long drin =-1;
-        long drout =-1;
-        Collection<HServerLoad.RegionLoad> regions = HBaseRegionLoads.getCachedRegionLoadsForTable(tableID);
-        Iterator<RegionLoad> it = regions.iterator();
-        while(it.hasNext()){
-        	HServerLoad.RegionLoad hsr = (RegionLoad) it.next();
-        	drin = hsr.getWriteRequestsCount();
-        	drout = hsr.getReadRequestsCount();
-        }
-        Assert.assertEquals(0, drin);
-        Assert.assertEquals(0, drout);
-
+		Connection conn = methodWatcher.createConnection();
+		String tableID=getConglomerateNumber(conn,TABLE_17);
+		conn.close();
+        Assert.assertFalse("Table conglomerate number does not exist", tableID.equals(""));
+        checkReturnValue(15000,tableID,0,0,0);
 		String location = getResourceDirectory()+"t1K.tbl.gz";
 		PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_17,location));
 		ps.execute();
-        Thread.sleep(20000);
-        HBaseRegionLoads.update();
-        drin =-1;
-        drout =-1;
-        regions = HBaseRegionLoads.getCachedRegionLoadsForTable(tableID);
-        Iterator<RegionLoad> it1 = regions.iterator();
-        while(it1.hasNext()){
-        	HServerLoad.RegionLoad hsr = (RegionLoad) it1.next();
-        	drin = hsr.getWriteRequestsCount();
-        	drout = hsr.getReadRequestsCount();
-        }
-        Assert.assertEquals(20010, drin);
-        Assert.assertEquals(10000, drout);
+        checkReturnValue(15000,tableID,20010,10000,30010);
 	}
 
+	private void checkReturnValue(int sleep,String tableID,int countWrite,int countRead,int countTotal) throws Exception{
+        Thread.sleep(sleep);//Wait for things to settle down 
+        HBaseRegionLoads.update();
+        long drin =0;
+        long drout =0;
+        long dr=0;
+        Collection<HServerLoad.RegionLoad> regions = HBaseRegionLoads.getCachedRegionLoadsForTable(tableID);
+        Iterator<RegionLoad> it = regions.iterator();
+        while(it.hasNext()){
+        	HServerLoad.RegionLoad hsr = (RegionLoad) it.next();
+        	drin+= hsr.getWriteRequestsCount();
+        	drout+= hsr.getReadRequestsCount();
+        	dr+=hsr.getRequestsCount();
+        }
+        Assert.assertEquals(String.format("This Region Write Count should be %d however is returning %d",countWrite, drin),countWrite, drin);
+        Assert.assertEquals(String.format("This Region Read Count should be %d however is returning %d",countRead, drin),countRead, drout);
+        Assert.assertEquals(String.format("This Total Read/Write Count should be %d however is returning %d",countTotal, dr),countTotal, dr);
+	}
+	
+	private String getConglomerateNumber(Connection conn,String tableName) throws Exception{
+		if(conn==null){
+			Connection t = methodWatcher.createConnection();
+			conn = t;
+		}
+		String tableID="";
+        conn = methodWatcher.createConnection();
+        ResultSet rs = conn.createStatement().executeQuery(String.format("select t1.tableid, t2.tablename, t1.CONGLOMERATENUMBER from sys.sysconglomerates t1, sys.systables t2 where t1.tableid=t2.tableid and t2.tablename = '%s' order by t1.conglomeratenumber desc",tableName));
+        if(rs.next()){
+        	tableID = rs.getString("CONGLOMERATENUMBER");
+        }
+        rs.close();
+        return tableID;
+	}
+	
+	private void Insert1000Records(Connection conn) throws Exception{
+        for (int j = 0 ; j < 100; ++j) {
+            for (int i=0; i<10; i++) {
+                conn.createStatement().execute(
+                    String.format("insert into %s.%s (a, d, b, c, e) values (%d, %f, %d,%d,%d)",
+                    		CLASS_NAME,TABLE_16, i, i * 1.0,i*50,i*j,i*j*25));
+            }
+        }
+	}
 }
