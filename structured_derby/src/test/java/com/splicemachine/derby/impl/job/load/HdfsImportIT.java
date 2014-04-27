@@ -588,7 +588,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         	dr+=hsr.getRequestsCount();
         }
         Assert.assertEquals(String.format("This Region Write Count should be %d however is returning %d",countWrite, drin),countWrite, drin);
-        Assert.assertEquals(String.format("This Region Read Count should be %d however is returning %d",countRead, drin),countRead, drout);
+        Assert.assertEquals(String.format("This Region Read Count should be %d however is returning %d",countRead, drout),countRead, drout);
         Assert.assertEquals(String.format("This Total Read/Write Count should be %d however is returning %d",countTotal, dr),countTotal, dr);
 	}
 	
