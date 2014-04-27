@@ -13,7 +13,8 @@ SPLICE_PID_FILE="${ROOT_DIR}"/splice_pid
 export CLASSPATH
 LOG4J_CONFIG="-Dlog4j.configuration=$LOG4J_PATH"
 
-SYS_ARGS="-Xmx3g -Xms1g \
+SYS_ARGS="-Xmx4g -Xms1g \
+ -XX:MaxPermSize=128M \
  -Djava.awt.headless=true \
  ${LOG4J_CONFIG} \
  -Djava.net.preferIPv4Stack=true \

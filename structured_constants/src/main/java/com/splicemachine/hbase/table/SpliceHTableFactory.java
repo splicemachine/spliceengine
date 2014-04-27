@@ -18,7 +18,6 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.HTableInterfaceFactory;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Threads;
 import org.apache.log4j.Logger;
 
 public class SpliceHTableFactory implements HTableInterfaceFactory {
@@ -70,40 +69,60 @@ public class SpliceHTableFactory implements HTableInterfaceFactory {
 
         return new ThreadPoolExecutor(1, maxThreads, keepAliveTime, TimeUnit.SECONDS,
                 new SynchronousQueue<Runnable>(),
-                new NamedThreadFactory(),
+                new NamedThreadFactory("htable-pool-"),
                 new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
     private ExecutorService createConnectionPool(Configuration conf) {
-        int maxThreads = conf.getInt("hbase.hconnection.threads.max", 256);
-        int coreThreads = conf.getInt("hbase.hconnection.threads.core", 0);
+        int coreThreads = conf.getInt("hbase.hconnection.threads.core", 10);
+        if (coreThreads == 0) {
+            coreThreads = 10;
+        }
+        int maxThreads = conf.getInt("hbase.hconnection.threads.max", 32);
         if (maxThreads == 0) {
             maxThreads = Runtime.getRuntime().availableProcessors() * 8;
         }
-        long keepAliveTime = conf.getLong("hbase.hconnection.threads.keepalivetime", 10);
+        long keepAliveTime = conf.getLong("hbase.hconnection.threads.keepalivetime", 60);
         LinkedBlockingQueue<Runnable> workQueue =
                 new LinkedBlockingQueue<Runnable>(maxThreads *
                         conf.getInt(HConstants.HBASE_CLIENT_MAX_TOTAL_TASKS,
                                 HConstants.DEFAULT_HBASE_CLIENT_MAX_TOTAL_TASKS));
-        return new ThreadPoolExecutor(
-                coreThreads,
-                maxThreads,
-                keepAliveTime,
-                TimeUnit.SECONDS,
+        return new ThreadPoolExecutor(coreThreads,  maxThreads, keepAliveTime, TimeUnit.SECONDS,
                 workQueue,
-                Threads.newDaemonThreadFactory(toString() + "-shared-"));
+                new NamedThreadFactory("connection-pool-"),
+                new ThreadPoolExecutor.AbortPolicy());
 
     }
+//    private ExecutorService createConnectionPool(Configuration conf) {
+//        int maxThreads = conf.getInt("hbase.hconnection.threads.max", 256);
+//        int coreThreads = conf.getInt("hbase.hconnection.threads.core", 0);
+//        if (maxThreads == 0) {
+//            maxThreads = Runtime.getRuntime().availableProcessors() * 8;
+//        }
+//        long keepAliveTime = conf.getLong("hbase.hconnection.threads.keepalivetime", 10);
+//        LinkedBlockingQueue<Runnable> workQueue =
+//                new LinkedBlockingQueue<Runnable>(maxThreads *
+//                        conf.getInt(HConstants.HBASE_CLIENT_MAX_TOTAL_TASKS,
+//                                HConstants.DEFAULT_HBASE_CLIENT_MAX_TOTAL_TASKS));
+//        return new ThreadPoolExecutor(
+//                coreThreads,
+//                maxThreads,
+//                keepAliveTime,
+//                TimeUnit.SECONDS,
+//                workQueue,
+//                Threads.newDaemonThreadFactory(toString() + "-shared-"));
+//
+//    }
 
     private class NamedThreadFactory implements ThreadFactory {
         private ThreadGroup group;
         private String namePrefix;
         private AtomicInteger threadNumber = new AtomicInteger(1);
 
-        private NamedThreadFactory() {
+        private NamedThreadFactory(String namePrefix) {
             SecurityManager s = System.getSecurityManager();
             group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
-            namePrefix = "htable-pool-";
+            this.namePrefix = namePrefix;
         }
 
         @Override
