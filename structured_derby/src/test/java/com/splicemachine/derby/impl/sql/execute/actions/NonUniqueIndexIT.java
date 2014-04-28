@@ -250,7 +250,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
     @Test
     public void testRepeatedAddDuplicateAndDelete() throws Exception {
         new SpliceIndexWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,INDEX_51,spliceSchemaWatcher.schemaName,"(name)").starting(null);
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 50; i++) {
             System.out.println(i);
             String name = Integer.toString(i);
             addDuplicateAndDeleteTest(name);
