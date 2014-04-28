@@ -240,21 +240,10 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 
 		@Override
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				SpliceLogUtils.trace(LOG, "executeScan");
-				final List<SpliceOperation> operationStack = getOperationStack();
-				SpliceLogUtils.trace(LOG,"operationStack=%s",operationStack);
-				SpliceOperation regionOperation = operationStack.get(0);
-				SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-				RowProvider provider;
-				PairDecoder decoder = OperationUtils.getPairDecoder(this,runtimeContext);
-				if(regionOperation.getNodeTypes().contains(NodeType.REDUCE)&&this!=regionOperation){
-						SpliceLogUtils.trace(LOG,"Scanning temp tables");
-						provider = regionOperation.getReduceRowProvider(this,decoder,runtimeContext, true);
-				}else {
-						SpliceLogUtils.trace(LOG,"scanning Map table");
-						provider = regionOperation.getMapRowProvider(this,decoder,runtimeContext);
-				}
-				return new SpliceNoPutResultSet(activation,this, provider);
+				RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext, true);
+				SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
+				nextTime += getCurrentTimeMillis() - beginTime;
+				return rs;
 		}
 
 		@Override
@@ -293,13 +282,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 //            return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
 //		}
 
-		@Override
-		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				int[] nonPkCols = getAccessedNonPkColumns();
-				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(compactRow);
-				return BareKeyHash.encoder(adjustedBaseColumnMap,null,serializers);
-
-		}
 
 		@Override
 		public SpliceOperation getLeftOperation() {

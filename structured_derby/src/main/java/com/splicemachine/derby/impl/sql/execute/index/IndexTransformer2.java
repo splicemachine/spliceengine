@@ -86,7 +86,7 @@ public class IndexTransformer2 {
 						keyDecoder.set(mutation.getRow());
 						for(int i=0;i<sourceKeyColumnEncodingOrder.length;i++){
 								int sourceKeyColumnPos = sourceKeyColumnEncodingOrder[i];
-								int destKeyPos = destKeyEncodingMap[sourceKeyColumnPos];
+								int destKeyPos = sourceKeyColumnPos<destKeyEncodingMap.length? destKeyEncodingMap[sourceKeyColumnPos]:-1;
 								if(destKeyPos<0){
 										skip(keyDecoder, columnTypes[i]);
 								}else{

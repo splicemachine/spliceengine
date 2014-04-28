@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils.marshall;
 
+import com.carrotsearch.hppc.BitSet;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
@@ -26,7 +27,7 @@ public class SkippingKeyDecoder implements KeyHashDecoder {
 
 		private final int[] keyColumnEncodingOrder;
 		private final int[] keyColumnTypes;
-		private final FormatableBitSet accessedKeys;
+		private final BitSet accessedColumns;
 		private final int[] keyDecodingMap;
 
 		public static SkippingKeyDecoder decoder(TypeProvider typeProvider,
@@ -51,7 +52,14 @@ public class SkippingKeyDecoder implements KeyHashDecoder {
 															int[] keyDecodingMap) {
 				this.serializers = serializers;
 				this.keyColumnEncodingOrder = keyColumnEncodingOrder;
-				this.accessedKeys = accessedKeys;
+				if(accessedKeys !=null){
+						this.accessedColumns = new BitSet(accessedKeys.getLength());
+						for(int i= accessedKeys.anySetBit();i>=0;i= accessedKeys.anySetBit(i)){
+								accessedColumns.set(i);
+						}
+				}else{
+						this.accessedColumns = null;
+				}
 				this.keyColumnTypes = keyColumnTypes;
 				this.typeProvider = typeProvider;
 				this.keyDecodingMap = keyDecodingMap;
@@ -79,11 +87,11 @@ public class SkippingKeyDecoder implements KeyHashDecoder {
 				DataValueDescriptor[] fields = destination.getRowArray();
 				for(int i=0;i< keyColumnEncodingOrder.length;i++){
 						int keyColumnPosition = keyColumnEncodingOrder[i];
-						if(keyColumnPosition<0||(accessedKeys!=null && !accessedKeys.get(keyColumnPosition))){
+						if(keyColumnPosition<0||(accessedColumns !=null && !accessedColumns.get(i))){
 							skip(i,fieldDecoder);
 						}else{
-								DescriptorSerializer serializer = serializers[keyDecodingMap[keyColumnPosition]];
-								DataValueDescriptor field = fields[keyDecodingMap[keyColumnPosition]];
+								DescriptorSerializer serializer = serializers[keyDecodingMap[i]];
+								DataValueDescriptor field = fields[keyDecodingMap[i]];
 								serializer.decode(fieldDecoder, field, getSortOrder(i));
 						}
 				}
