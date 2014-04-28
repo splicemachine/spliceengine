@@ -84,6 +84,9 @@ if [[ ${CYGWIN} == CYGWIN* ]]; then
         rm -rf "/tmp_bak"
         mv "/tmp" "/tmp_bak"
     fi
+    if [[ ! -e "/cygdrive/c/tmp" ]]; then
+        mkdir "/cygdrive/c/tmp"
+    fi
     if [[ ! -e "/tmp" && ! -L "/tmp" ]]; then
         ln -s "/cygdrive/c/tmp" "/tmp"
     fi
