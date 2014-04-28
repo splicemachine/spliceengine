@@ -184,11 +184,19 @@ public class RowParser {
 								column.setValue(elem);
 								break;
 						case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
-						case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
-								DateTimeFormatter format = getDateFormat(column, elem);
+								DateTimeFormatter dateFormat = getDateFormat(column, elem);
 								try{
-										DateTime date = format.parseDateTime(elem);
-										column.setValue(date);
+										DateTime date = dateFormat.parseDateTime(elem);
+										column.setValue(new java.sql.Date(date.getMillis()));
+								}catch (IllegalArgumentException p){
+										throw ErrorState.LANG_DATE_SYNTAX_EXCEPTION.newException();
+								}
+								break;
+						case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
+								DateTimeFormatter timeFormat = getDateFormat(column, elem);
+								try{
+										DateTime date = timeFormat.parseDateTime(elem);
+										column.setValue(new java.sql.Time(date.getMillis()));
 								}catch (IllegalArgumentException p){
 										throw ErrorState.LANG_DATE_SYNTAX_EXCEPTION.newException();
 								}
