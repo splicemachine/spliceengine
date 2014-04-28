@@ -2,11 +2,14 @@ package org.apache.derby.impl.sql.execute.operations;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.splicemachine.homeless.TestUtils;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -22,6 +25,8 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+
+import static com.splicemachine.homeless.TestUtils.o;
 
 public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -55,10 +60,16 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
 					spliceClassWatcher.closeAll();
 				}
 			}
-			
-		});
-	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+
+		})
+        .around(TestUtils
+                    .createStringDataWatcher(spliceClassWatcher,
+                                                "create table t1 (c1 int, c2 int); " +
+                                                    "insert into t1 values (null, null), (1,1), " +
+                                                    "(null, null), (2,1), (3,1), (10,10);",
+                                                CLASS_NAME));
+
+    public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
     public void testMultipleDistinctAggregates() throws Exception {
@@ -106,5 +117,10 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
         }
         Assert.assertEquals("Incorrect row count!",3,j);
         Assert.assertEquals("Incorrect number of oids returned!",0,correctOids.size());
-	}		
+	}
+
+    @Test
+    public void testDistinctAndNonDistinctAggregate() throws Exception {
+        List<Object[]> expected = Arrays.asList(o());
+    }
 }
