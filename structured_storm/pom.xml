@@ -177,8 +177,8 @@
 		</repository>
 
 		<repository>
-			<id>inciteretail</id>
-			<url>http://www.inciteretail.com/nexus/content/repositories/releases/</url>
+			<id>splicemachine</id>
+			<url>http://nexus.splicemachine.com/nexus/content/repositories/releases/</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
