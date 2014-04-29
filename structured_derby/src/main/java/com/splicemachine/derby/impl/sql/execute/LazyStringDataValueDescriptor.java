@@ -2,10 +2,12 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
 import com.splicemachine.utils.ByteSlice;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.jdbc.CharacterStreamDescriptor;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.types.*;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.derby.iapi.util.StringUtil;
 import org.apache.log4j.Logger;
 
@@ -241,5 +243,13 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
 	public boolean isDoubleType() {
 		return false;
 	}
+
+	@Override
+	public Format getFormat() {
+	    	return Format.VARCHAR;
+	}
+	
+	
+	
 
 }
