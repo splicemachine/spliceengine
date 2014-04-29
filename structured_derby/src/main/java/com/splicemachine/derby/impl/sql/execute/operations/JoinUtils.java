@@ -13,7 +13,7 @@ public class JoinUtils {
 	public static enum JoinSide {RIGHT,LEFT};
 	public static final byte[] JOIN_SIDE_COLUMN = Encoding.encode(-1);
 	
-	public static ExecRow getMergedRow(ExecRow leftRow, ExecRow rightRow, boolean wasRightOuterJoin,int rightNumCols, int leftNumCols, ExecRow mergedRow) {
+	public static ExecRow oldGetMergdeRow(ExecRow leftRow, ExecRow rightRow, boolean wasRightOuterJoin,int rightNumCols, int leftNumCols, ExecRow mergedRow) {
 //		SpliceLogUtils.trace(LOG, "getMergedRow with leftRow %s,right row %s, rightOuterJoin?%b" , leftRow , rightRow,wasRightOuterJoin);
         // if mergedRow is null, we'll get an NPE below. Return the trash passed to us.
         if (mergedRow == null) {
@@ -64,7 +64,7 @@ public class JoinUtils {
 		return mergedRow;
 	}
 	
-	public static ExecRow getNonStreamMergedRow(ExecRow leftRow, ExecRow rightRow, boolean wasRightOuterJoin,int rightNumCols, int leftNumCols, ExecRow mergedRow) {
+	public static ExecRow getMergedRow(ExecRow leftRow, ExecRow rightRow, boolean wasRightOuterJoin,int rightNumCols, int leftNumCols, ExecRow mergedRow) {
         if (mergedRow == null) {
             return null;
         }
