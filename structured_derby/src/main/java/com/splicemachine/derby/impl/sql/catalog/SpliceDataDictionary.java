@@ -13,6 +13,9 @@ import org.apache.derby.iapi.types.Orderable;
 import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.derby.impl.sql.catalog.*;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.constants.SpliceConstants;
+
 import java.util.List;
 import java.util.Properties;
 
@@ -122,6 +125,32 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         initSystemIndexVariables(pkTable);
         return pkTable;
     }
+
+	/**
+	 * Initialize system catalogs. This is where Derby performs upgrade.
+	 * This is where Splice updates (reloads) the system stored procedures
+	 * when the <code>splice.updateSystemProcs</code> system property is set to true.
+	 *
+	 *	@param	tc				TransactionController
+	 *	@param	ddg				DataDescriptorGenerator
+	 *	@param	startParams		Properties
+	 *
+	 * 	@exception StandardException		Thrown on error
+	 */
+    @Override
+	protected void updateSystemProcedures(TransactionController tc)
+		throws StandardException
+	{        
+    	// Update (or create) the system stored procedures if requested.
+    	if (SpliceConstants.updateSystemProcs) {
+    		createOrUpdateAllSystemProcedures(getSysIBMSchemaDescriptor().getSchemaName(), tc);
+    		createOrUpdateAllSystemProcedures(SchemaDescriptor.STD_SQLJ_SCHEMA_NAME, tc);
+    		createOrUpdateAllSystemProcedures(getSystemUtilSchemaDescriptor().getSchemaName(), tc);
+    	}
+    	// Only update the system procedures once.  Otherwise, each time an ij session is created, the system procedures will be dropped/created again.
+    	// It would be better if it was possible to detect when the database is being booted during server startup versus the database being booted during ij startup.
+    	SpliceConstants.updateSystemProcs = false;
+	}
 
     @Override
     protected void createDictionaryTables(Properties params,

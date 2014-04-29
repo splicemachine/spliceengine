@@ -534,6 +534,14 @@ public class SpliceConstants {
 		public static double debugTaskFailureRate;
 		public static final double DEFAULT_DEBUG_TASK_FAILURE_RATE= 0.1; //fail 10% of tasks when enabled
 
+		/**
+		 * When enabled, will update the data dictionary with all system stored procedures defined in the Splice jar.
+		 * If a system stored procedure already exists in the data dictionary, it will be dropped and then created again.
+		 *
+		 * Defaults to false (off)
+		 */
+		@Parameter public static final String UPDATE_SYSTEM_PROCS ="splice.updateSystemProcs";
+		public static boolean updateSystemProcs;
 
 		/**
 		 * When enabled, will collect timing stats for TableScans, Index lookups, and a few other
@@ -823,6 +831,8 @@ public class SpliceConstants {
 
 				long regionMaxFileSize = config.getLong(HConstants.HREGION_MAX_FILESIZE,HConstants.DEFAULT_MAX_FILE_SIZE);
 				tempTableMaxFileSize = config.getLong(TEMP_MAX_FILE_SIZE,100*1024 * 1024 * 1024L); // 100 Gigs...
+
+				updateSystemProcs = Boolean.getBoolean(UPDATE_SYSTEM_PROCS);
 
 				collectStats = config.getBoolean(COLLECT_PERF_STATS,DEFAULT_COLLECT_STATS);
 				pause = config.getLong(CLIENT_PAUSE,DEFAULT_CLIENT_PAUSE);
