@@ -14,7 +14,6 @@ import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.shared.common.sanity.SanityManager;
 
 import java.sql.Types;
 import java.util.*;
@@ -97,8 +96,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     	UUID schemaId = sd.getUUID();
     	AliasDescriptor ad = dictionary.getAliasDescriptor(schemaId.toString(), procName, AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
     	if (ad != null) {  // Drop the procedure if it already exists.
-    		// Log a message to the debug stream (derby.log) to track what has been dropped/created.
-    		SanityManager.DEBUG_PRINT("updateSystemProcs", String.format("Dropping already existing procedure: %s.%s", sd.getSchemaName(), procName));
+//    		System.out.println(String.format("Dropping already existing procedure: %s.%s", sd.getSchemaName(), procName));
     		dictionary.dropAliasDescriptor(ad, tc);
     	}
 
@@ -107,8 +105,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     	if (procedure == null) {
     		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
     	} else {
-    		// Log a message to the debug stream (derby.log) to track what has been dropped/created.
-    		SanityManager.DEBUG_PRINT("updateSystemProcs", String.format("Creating procedure: %s.%s", sd.getSchemaName(), procName));
+//    		System.out.println(String.format("Creating procedure: %s.%s", sd.getSchemaName(), procName));
     		newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc));
     	}
     }
