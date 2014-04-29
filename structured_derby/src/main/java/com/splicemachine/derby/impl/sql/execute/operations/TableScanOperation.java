@@ -321,7 +321,7 @@ public class TableScanOperation extends ScanOperation {
 								currentRow = null;
 								currentRowLocation = null;
 						} else {
-								currentRow.resetRowArray();
+								//currentRow.resetRowArray();
 								DataValueDescriptor[] fields = currentRow.getRowArray();
 								if (fields.length != 0) {
 										// Apply predicate to the row key first
