@@ -25,7 +25,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.KeyValue;
 
 import java.io.Closeable;
 import java.io.IOException;

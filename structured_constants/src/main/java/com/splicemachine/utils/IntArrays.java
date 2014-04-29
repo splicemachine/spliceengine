@@ -25,7 +25,9 @@ public class IntArrays {
 				}
 
 				int mapSize = size-numMissingFields;
-				assert mapSize>0: "Incorrent map size";
+				assert mapSize>=0: "Cannot construct a complement with more missing fields than present!";
+				if(mapSize==0) return new int[]{};
+
 				int[] finalData = new int[mapSize];
 				int pos=0,i=0;
 				while(i<map.length){

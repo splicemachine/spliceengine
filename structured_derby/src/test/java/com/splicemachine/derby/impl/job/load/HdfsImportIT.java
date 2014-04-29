@@ -1,21 +1,33 @@
 package com.splicemachine.derby.impl.job.load;
 
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLWarning;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.text.SimpleDateFormat;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-
-import org.junit.*;
+import com.splicemachine.hbase.HBaseRegionLoads;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-
-import java.sql.*;
-import java.text.SimpleDateFormat;
-import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
 
 public class HdfsImportIT extends SpliceUnitTest {
 		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -35,6 +47,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 	protected static String TABLE_13 = "M";	
 	protected static String TABLE_14 = "N";	
 	protected static String TABLE_15 = "O";	
+	protected static String TABLE_16 = "P";	
+	protected static String TABLE_17 = "Q";	
 	private static final String AUTO_INCREMENT_TABLE = "INCREMENT";
 
 	
@@ -61,6 +75,10 @@ public class HdfsImportIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher15 = new SpliceTableWatcher(TABLE_15,spliceSchemaWatcher.schemaName,
 			"( cUsToMeR_pRoDuCt_Id InTeGeR NoT NuLl PrImArY KeY, ShIpPeD_DaTe TiMeStAmP WiTh DeFaUlT CuRrEnT_tImEsTaMp, SoUrCe_SyS_CrEaTe_DtS TiMeStAmP WiTh DeFaUlT cUrReNt_TiMeStAmP NoT NuLl,sOuRcE_SyS_UpDaTe_DtS TiMeStAmP WiTh DeFaUlT cUrReNt_TiMeStAmP NoT NuLl,"+
 							"SdR_cReAtE_dAtE tImEsTaMp wItH DeFaUlT CuRrEnT_tImEsTaMp, SdR_uPdAtE_dAtE TimEstAmp With deFauLT cuRRent_tiMesTamP,Dw_srcC_ExtrC_DttM TimEStamP WitH DefAulT CurrEnt_TimesTamp)");
+	protected static SpliceTableWatcher spliceTableWatcher16 = new SpliceTableWatcher(TABLE_16,spliceSchemaWatcher.schemaName,"( A INT, D double, B INT,C INT,E INT)");
+	protected static SpliceTableWatcher spliceTableWatcher17 = new SpliceTableWatcher(TABLE_17,spliceSchemaWatcher.schemaName,
+			"( C_CUSTKEY INTEGER NOT NULL PRIMARY KEY, C_NAME VARCHAR(25), C_ADDRESS VARCHAR(40), C_NATIONKEY INTEGER NOT NULL,"+
+			"C_PHONE CHAR(15), C_ACCTBAL DECIMAL(15,2), C_MKTSEGMENT  CHAR(10), C_COMMENT VARCHAR(117))");
 
 
 	
@@ -86,6 +104,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 						.around(spliceTableWatcher13)
 						.around(spliceTableWatcher14)
 						.around(spliceTableWatcher15)
+						.around(spliceTableWatcher16)
+						.around(spliceTableWatcher17)
 						.around(autoIncTableWatcher);
 
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -530,5 +550,77 @@ public class HdfsImportIT extends SpliceUnitTest {
 		}
 		Assert.assertFalse(twarning.contains("To load a large single file of data faster,"));
 	}
+
+	@Test
+	public void GetReadWriteCountMultipleSingleRecordWrites() throws Exception{
+        Connection conn = methodWatcher.createConnection();
+		String tableID=getConglomerateNumber(conn,TABLE_16);
+        Assert.assertFalse("Table conglomerate number does not exist", tableID.equals(""));
+        checkReturnValue(5000,tableID,0,0,0);
+        Insert1000Records(conn);
+        ResultSet resultSet = conn.createStatement().executeQuery(String.format("select * from %s.%s", CLASS_NAME,TABLE_16));
+        Assert.assertEquals(1000, resultSetSize(resultSet));
+        resultSet.close();
+        checkReturnValue(15000,tableID,3000,3000,6000);
+        Insert1000Records(conn);
+        checkReturnValue(15000,tableID,6000,4000,10000);
+		conn.close();
+	}
 	
+	@Test
+	public void GetReadWriteCountBulkRecordWrites() throws Exception{
+		Connection conn = methodWatcher.createConnection();
+		String tableID=getConglomerateNumber(conn,TABLE_17);
+		conn.close();
+        Assert.assertFalse("Table conglomerate number does not exist", tableID.equals(""));
+        checkReturnValue(15000,tableID,0,0,0);
+		String location = getResourceDirectory()+"t1K.tbl.gz";
+		PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_17,location));
+		ps.execute();
+        checkReturnValue(15000,tableID,20010,10000,30010);
+	}
+
+	private void checkReturnValue(int sleep,String tableID,int countWrite,int countRead,int countTotal) throws Exception{
+        Thread.sleep(sleep);//Wait for things to settle down 
+        HBaseRegionLoads.update();
+        long drin =0;
+        long drout =0;
+        long dr=0;
+        Collection<org.apache.hadoop.hbase.RegionLoad> regions = HBaseRegionLoads.getCachedRegionLoadsForTable(tableID);
+        Iterator<org.apache.hadoop.hbase.RegionLoad> it = regions.iterator();
+        while(it.hasNext()){
+        	org.apache.hadoop.hbase.RegionLoad hsr = (org.apache.hadoop.hbase.RegionLoad) it.next();
+        	drin+= hsr.getWriteRequestsCount();
+        	drout+= hsr.getReadRequestsCount();
+        	dr+=hsr.getRequestsCount();
+        }
+        Assert.assertEquals(String.format("This Region Write Count should be %d however is returning %d",countWrite, drin),countWrite, drin);
+        Assert.assertEquals(String.format("This Region Read Count should be %d however is returning %d",countRead, drout),countRead, drout);
+        Assert.assertEquals(String.format("This Total Read/Write Count should be %d however is returning %d",countTotal, dr),countTotal, dr);
+	}
+	
+	private String getConglomerateNumber(Connection conn,String tableName) throws Exception{
+		if(conn==null){
+			Connection t = methodWatcher.createConnection();
+			conn = t;
+		}
+		String tableID="";
+        conn = methodWatcher.createConnection();
+        ResultSet rs = conn.createStatement().executeQuery(String.format("select t1.tableid, t2.tablename, t1.CONGLOMERATENUMBER from sys.sysconglomerates t1, sys.systables t2 where t1.tableid=t2.tableid and t2.tablename = '%s' order by t1.conglomeratenumber desc",tableName));
+        if(rs.next()){
+        	tableID = rs.getString("CONGLOMERATENUMBER");
+        }
+        rs.close();
+        return tableID;
+	}
+	
+	private void Insert1000Records(Connection conn) throws Exception{
+        for (int j = 0 ; j < 100; ++j) {
+            for (int i=0; i<10; i++) {
+                conn.createStatement().execute(
+                    String.format("insert into %s.%s (a, d, b, c, e) values (%d, %f, %d,%d,%d)",
+                    		CLASS_NAME,TABLE_16, i, i * 1.0,i*50,i*j,i*j*25));
+            }
+        }
+	}
 }

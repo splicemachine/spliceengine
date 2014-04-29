@@ -1,3 +1,4 @@
+
 package com.splicemachine.concurrent;
 
 import com.google.common.collect.Lists;
@@ -87,31 +88,41 @@ public class SameThreadExecutorService implements ExecutorService{
 		public void execute(Runnable command) {
 				command.run();
 		}
+    private static class CompletedFuture <T> implements Future<T> {
+        private final T element;
 
-		private static class CompletedFuture<T> implements Future<T>{
-				private final T element;
-				private final Throwable error;
+        private final Throwable error;
 
-				private CompletedFuture(T element, Throwable error) {
-						this.element = element;
-						this.error = error;
-				}
+        private CompletedFuture(T element, Throwable error) {
+            this.element = element;
+            this.error = error;
+        }
 
-				@Override public boolean cancel(boolean mayInterruptIfRunning) { return false; }
+        @Override
+        public boolean cancel(boolean b) {
+            return false;
+        }
 
-				@Override public boolean isCancelled() { return false; }
+        @Override
+        public boolean isCancelled() {
+            return false;
+        }
 
-				@Override public boolean isDone() { return true; }
+        @Override
+        public boolean isDone() {
+            return true;
+        }
 
-				@Override
-				public T get() throws InterruptedException, ExecutionException {
-						if(error!=null) throw new ExecutionException(error);
-						return element;
-				}
+        @Override
+        public T get() throws InterruptedException, ExecutionException {
+            if (error != null)
+                throw new ExecutionException(error);
+            return element;
+        }
 
-				@Override
-				public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-						return get();
-				}
-		}
+        @Override
+        public T get(long l, TimeUnit timeUnit) throws InterruptedException, ExecutionException, TimeoutException {
+            return get();
+        }
+    }
 }

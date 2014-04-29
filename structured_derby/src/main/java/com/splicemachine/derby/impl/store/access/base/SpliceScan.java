@@ -305,7 +305,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 								DescriptorSerializer[] serializers = VersionedSerializers.forVersion("1.0",true).getSerializers(destRow);
 								EntryDataDecoder decoder = new EntryDataDecoder(null,null,serializers);
 								try{
-										Cell kv = CellUtils.matchDataColumn(currentResult.raw());
+                                    Cell kv = CellUtils.matchDataColumn(currentResult.rawCells());
 										decoder.set(kv.getValueArray(),kv.getValueOffset(),kv.getValueLength());
 										decoder.decode(row);
 										this.currentRow = destRow;

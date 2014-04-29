@@ -103,6 +103,7 @@ public class LoadConglomerateTask extends ZkTask {
             List<Cell> result = null;
 
             do {
+								SpliceBaseOperation.checkInterrupt(numRecordsRead, SpliceConstants.interruptLoopCheck);
                 result = scanner.next();
                 if (result == null) break;
                 Cell kv = CellUtils.matchDataColumn(result);

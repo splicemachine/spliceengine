@@ -8,14 +8,6 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import com.google.common.collect.Lists;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.filter.FilterBase;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
-
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
@@ -27,15 +19,22 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.filter.FilterBase;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
 
 /**
  * @author Scott Fines
- * Created on: 9/16/13
+ *         Created on: 9/16/13
  */
-public class ScanTask extends DebugTask{
+public class ScanTask extends DebugTask {
+    private static final String outputPattern = "%-20s\t%8d\t%s%n";
     private EntryPredicateFilter predicateFilter;
     private HRegion region;
-
     private EntryDecoder decoder = new EntryDecoder(SpliceDriver.getKryoPool());
 
     public ScanTask() {
@@ -83,42 +82,41 @@ public class ScanTask extends DebugTask{
 
         Writer writer;
         RegionScanner scanner;
-        try{
+        try {
 
             writer = getWriter();
             scanner = region.getScanner(scan);
             List<Cell> keyValues = Lists.newArrayList();
             region.startRegionOperation();
             System.out.println("Starting scan task");
-            try{
-                writer.write(String.format("%d%n",System.currentTimeMillis()));
+            try {
+                writer.write(String.format("%d%n", System.currentTimeMillis()));
                 boolean shouldContinue;
-                do{
+                do {
                     keyValues.clear();
                     shouldContinue = scanner.nextRaw(keyValues);
-                    if(keyValues.size()>0){
-                        writeRow(writer,keyValues);
+                    if (keyValues.size() > 0) {
+                        writeRow(writer, keyValues);
                     }
-                }while(shouldContinue);
+                } while (shouldContinue);
                 //make sure everyone knows we succeeded
                 writer.write(String.format("FINISHED%n"));
                 System.out.println("Scan Task finished successfully");
-            }finally{
+            } finally {
                 writer.flush();
                 writer.close();
                 scanner.close();
                 region.closeRegionOperation();
             }
-        }catch (IOException e) {
+        } catch (IOException e) {
             throw new ExecutionException(e);
         }
     }
 
-    private static final String outputPattern = "%-20s\t%8d\t%s%n";
-    private void writeRow(Writer writer,List<Cell> keyValues) throws IOException {
-        for(Cell kv:keyValues){
-						if(!CellUtils.matchingColumn(kv,SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES))
-								continue;
+    private void writeRow(Writer writer, List<Cell> keyValues) throws IOException {
+        for (Cell kv : keyValues) {
+            if (!CellUtils.matchingColumn(kv, SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES))
+                continue;
             String row = BytesUtil.toHex(kv.getRowArray());
             long txnId = kv.getTimestamp();
 
@@ -128,10 +126,10 @@ public class ScanTask extends DebugTask{
             StringBuilder valueStr = new StringBuilder();
             BitIndex encodedIndex = decoder.getCurrentIndex();
             MultiFieldDecoder fieldDecoder = decoder.getEntryDecoder();
-            boolean isFirst=true;
-            for(int pos=encodedIndex.nextSetBit(0);
-                pos >=0;pos=encodedIndex.nextSetBit(pos+1)){
-                if(!isFirst)
+            boolean isFirst = true;
+            for (int pos = encodedIndex.nextSetBit(0);
+                 pos >= 0; pos = encodedIndex.nextSetBit(pos + 1)) {
+                if (!isFirst)
                     valueStr = valueStr.append(",");
                 else
                     isFirst = false;
@@ -141,7 +139,7 @@ public class ScanTask extends DebugTask{
             valueStr.append("\n");
             String data = valueStr.toString();
 
-            String line = String.format(outputPattern,row,txnId,data);
+            String line = String.format(outputPattern, row, txnId, data);
             writer.write(line);
         }
     }
@@ -156,16 +154,16 @@ public class ScanTask extends DebugTask{
         return true;
     }
 
-		/*
-		 * This is used only for debugging, don't bother fixing it until you want to use it.
-		 */
-		@Deprecated
-		private class HBaseEntryPredicateFilter extends FilterBase {
+    /*
+     * This is used only for debugging, don't bother fixing it until you want to use it.
+     */
+    @Deprecated
+    private class HBaseEntryPredicateFilter extends FilterBase {
         private EntryPredicateFilter epf;
         private EntryAccumulator accumulator;
         private EntryDecoder decoder;
-
         private boolean filterRow = false;
+
         public HBaseEntryPredicateFilter(EntryPredicateFilter epf) {
             this.epf = epf;
             this.accumulator = epf.newAccumulator();
@@ -185,26 +183,26 @@ public class ScanTask extends DebugTask{
 
         @Override
         public ReturnCode filterKeyValue(Cell ignored) {
-						if(!CellUtils.matchingColumn(ignored,SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES))
-								return ReturnCode.INCLUDE;
+            if (!CellUtils.matchingColumn(ignored, SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES))
+                return ReturnCode.INCLUDE;
 
             try {
-                if(ignored.getValueLength()==0){
+                if (ignored.getValueLength() == 0) {
                     //skip records with no data
-                    filterRow=true;
+                    filterRow = true;
                     return ReturnCode.NEXT_COL;
                 }
 
                 decoder.set(ignored.getValue());
-                if(epf.match(decoder,accumulator)){
+                if (epf.match(decoder, accumulator)) {
                     return ReturnCode.INCLUDE;
-                }else{
+                } else {
                     filterRow = true;
                     return ReturnCode.NEXT_COL;
                 }
             } catch (IOException e) {
                 e.printStackTrace();
-                filterRow=true;
+                filterRow = true;
                 return ReturnCode.NEXT_COL;
             }
         }

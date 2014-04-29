@@ -2,7 +2,11 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -13,6 +17,12 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
@@ -27,13 +37,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
 
 public class HashScanOperation extends ScanOperation implements SinkingOperation {
 		private static Logger LOG = Logger.getLogger(HashScanOperation.class);

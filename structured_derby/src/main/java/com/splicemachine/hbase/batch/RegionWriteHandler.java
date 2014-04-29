@@ -116,7 +116,6 @@ public class RegionWriteHandler implements WriteHandler {
 
     @Override
     public void finishWrites(final WriteContext ctx) throws IOException {
-
         //make sure that the write aborts if the caller disconnects
 				HBaseServerUtils.checkCallerDisconnect(ctx.getCoprocessorEnvironment().getRegion(), "RegionWrite");
 
@@ -206,10 +205,7 @@ public class RegionWriteHandler implements WriteHandler {
             }
             i++;
         }
-        int success = i-failed;
-        if(!siTable)
-            HRegionUtil.updateWriteRequests(region, success - 1); // subtract 1 b/c HBase has added 1 to writeReqs in region.batchMutate(),
-                                                                  //  & we want writeRequests to reflect actual rows written
+        HRegionUtil.updateWriteRequests(region, toProcess.size()-failed); 
     }
 
     private OperationStatus[] doNonSIWrite(Collection<KVPair> toProcess,WriteContext ctx) throws IOException {

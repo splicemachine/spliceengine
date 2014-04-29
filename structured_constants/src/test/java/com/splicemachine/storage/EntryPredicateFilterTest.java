@@ -103,7 +103,7 @@ public class EntryPredicateFilterTest {
     }
 
     @Test
-		@Ignore("Not actually encountered in reality")
+		@Ignore("This doesn't happen in practice")
     public void testFiltersOutRowsWithMissingColumnsToRemove() throws Exception {
         /*
          * Test that if we have a NullPredicate that is never touched explicitly, that

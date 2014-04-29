@@ -132,15 +132,15 @@ public class LastIndexKeyOperation extends ScanOperation {
         return new BufferedRegionScanner(region,baseScanner,scan, SpliceConstants.DEFAULT_CACHE_SIZE, new SpliceRuntimeContext());
     }
 
-		@Override
-		public List<SpliceOperation> getSubOperations() {
-				return Collections.emptyList();
-		}
+    @Override
+    public List<SpliceOperation> getSubOperations() {
+        return Collections.emptyList();
+    }
 
-		@Override
-		public List<NodeType> getNodeTypes() {
-				return nodeTypes;
-		}
+    @Override
+    public List<NodeType> getNodeTypes() {
+        return nodeTypes;
+    }
 
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
@@ -221,15 +221,14 @@ public class LastIndexKeyOperation extends ScanOperation {
 //								}
 //						}
 
-						returnedRow = true;
+            returnedRow = true;
             setCurrentRow(currentRow);
 						currentRowLocation = tableScanner.getCurrentRowLocation();
-//            timer.stopTiming();
 
-						stopExecutionTime = System.currentTimeMillis();
-				}
-				return currentRow;
-		}
+            stopExecutionTime = System.currentTimeMillis();
+        }
+        return currentRow;
+    }
 
     @Override
     public void close() throws StandardException, IOException {

@@ -45,6 +45,7 @@ import org.apache.derby.shared.common.reference.MessageId;
 import org.apache.hadoop.hbase.RegionLoad;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import org.codehaus.jackson.Versioned;
 
 public class BroadcastJoinOperation extends JoinOperation {
     private static final long serialVersionUID = 2l;

@@ -119,7 +119,7 @@ public class ConstraintOrderingTest {
                         foundCount++;
                         //make sure the rows match
                         Cell keyValue = ((Put) mutation).get(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES).get(0);
-                        if(Bytes.equals(keyValue.getValue(),original.getValue()))
+                        if(Bytes.equals(keyValue.getValueArray(),original.getValue()))
                             Assert.fail("Same Row key with incorrect value is present in final list!");
                     }
                 }
@@ -137,7 +137,7 @@ public class ConstraintOrderingTest {
                         foundCount++;
                         //make sure the rows match
                         Cell keyValue = ((Put) mutation).get(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES).get(0);
-                        if(!Bytes.equals(keyValue.getValue(),original.getValue()))
+                        if(!Bytes.equals(keyValue.getValueArray(),original.getValue()))
                             Assert.fail("Same Row key with incorrect value is present in final list!");
                     }
                 }

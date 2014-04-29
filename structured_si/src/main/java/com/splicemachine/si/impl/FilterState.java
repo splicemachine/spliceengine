@@ -1,27 +1,25 @@
 package com.splicemachine.si.impl;
 
-import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.INCLUDE;
-import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.NEXT_COL;
-import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
-
+import com.splicemachine.si.api.RollForwardQueue;
+import com.splicemachine.si.api.TransactionStatus;
+import com.splicemachine.si.data.api.SDataLib;
 import java.io.IOException;
-
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.si.api.RollForwardQueue;
-import com.splicemachine.si.api.TransactionStatus;
-import com.splicemachine.si.data.api.SDataLib;
+import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.INCLUDE;
+import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.NEXT_COL;
+import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
 
 /**
  * Contains the logic for performing an HBase-style filter using "snapshot isolation" logic. This means it filters out
  * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
  */
 public class FilterState<Result, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
-    Scan, Lock, OperationStatus, Mutation extends OperationWithAttributes, IHTable>
-    implements IFilterState {
+        Scan, Lock, OperationStatus, Mutation extends OperationWithAttributes, IHTable>
+        implements IFilterState {
     static final Logger LOG = Logger.getLogger(FilterState.class);
     /**
      * The transactions that have been loaded as part of running this filter.
@@ -57,12 +55,12 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
         this.rowState = new FilterRowState();
     }
 
-
     /**
-     * The public entry point. This returns an HBase filter code and is expected to serve as the heart of an HBase
-     * filter
+     * The public entry point. This returns an HBase filter code and is expected to serve as the heart of an HBase filter
      * implementation.
      * The order of the column families is important. It is expected that the SI family will be processed first.
+     *
+     * @param dataKeyValue
      */
     @Override
     public Filter.ReturnCode filterCell(Cell dataKeyValue) throws IOException {
@@ -134,7 +132,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
     private void processDataTimestamp() throws IOException {
         log("processCommitTimestamp");
         if (rowState.transactionCache.get(keyValue.timestamp()) != null) { // Already processed,
-        // must have been committed or failed...
+            // must have been committed or failed...
             return;
         }
         Transaction transaction = transactionCache.get(keyValue.timestamp()); // hit the major cache
@@ -147,8 +145,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
     private Transaction processDataTimestamp(long timestamp) throws IOException {
         log("processCommitTimestamp");
         Transaction transaction;
-        if ((transaction = rowState.transactionCache.get(timestamp)) != null) { // Already processed,
-        // must have been committed or failed...
+        if ((transaction = rowState.transactionCache.get(timestamp)) != null) { // Already processed, must have been committed or failed...
             return transaction;
         }
         transaction = transactionCache.get(timestamp); // hit the major cache
@@ -166,7 +163,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
             transactionCache.put(keyValue.timestamp(), transaction);
         } else {
             transaction = transactionStore.makeStubCommittedTransaction(keyValue.timestamp(),
-                                                                        dataLib.decode(keyValue.value(), Long.class));
+                    dataLib.decode(keyValue.value(), Long.class));
             transactionCache.put(keyValue.timestamp(), transaction);
         }
         return transaction;
@@ -184,7 +181,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
         Transaction transaction = transactionCache.get(timestamp);
         if (transaction == null) {
             if (!myTransaction.getEffectiveReadCommitted() && !myTransaction.getEffectiveReadUncommitted()
-                && !myTransaction.isAncestorOf(transactionStore.getImmutableTransaction(timestamp))) {
+                    && !myTransaction.isAncestorOf(transactionStore.getImmutableTransaction(timestamp))) {
                 transaction = transactionStore.getTransactionAsOf(timestamp, myTransaction.getLongTransactionId());
             } else {
                 transaction = transactionStore.getTransaction(timestamp);
@@ -335,7 +332,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
      */
     private boolean isVisibleToCurrentTransaction() throws IOException {
         if (keyValue.timestamp() == myTransaction.getTransactionId().getId() && !myTransaction.getTransactionId()
-            .independentReadOnly) {
+                .independentReadOnly) {
             return true;
         } else {
             final Transaction transaction = loadTransaction();
@@ -349,7 +346,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
     private Transaction loadTransaction() throws IOException {
         final Transaction transaction = rowState.transactionCache.get(keyValue.timestamp());
         assert transaction != null : "All transaction should already be loaded from the si family for the data row, " +
-            "txn id: " + keyValue.timestamp();
+                "txn id: " + keyValue.timestamp();
 
         return transaction;
     }
