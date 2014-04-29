@@ -710,6 +710,9 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 			if (SanityManager.DEBUG)
 				SanityManager.ASSERT((authorizationDatabaseOwner != null), "Failed to get Database Owner authorization");
 
+			// Update (or create) the system stored procedures if requested.
+			updateSystemProcedures(bootingTC);
+
 			/* Commit & destroy the create database */
 			bootingTC.commit();
 			cm.getContext(ExecutionContext.CONTEXT_ID).popMe(); // done with ctx
@@ -7816,6 +7819,23 @@ public class DataDictionaryImpl extends BaseDataDictionary {
         resetDatabaseOwner( tc );
         
 		softwareVersion.upgradeIfNeeded(dictionaryVersion, tc, startParams);
+	}
+
+	/**
+	 * Initialize system procedures. This is where Derby performs upgrade.
+	 * This is where Splice updates (reloads) the system stored procedures
+	 * when the <code>splice.updateSystemProcs</code> system property is set to true.
+	 *
+	 *	@param	tc				TransactionController
+	 *	@param	ddg				DataDescriptorGenerator
+	 *	@param	startParams		Properties
+	 *
+	 * 	@exception StandardException		Thrown on error
+	 */
+	protected void updateSystemProcedures(TransactionController tc)
+		throws StandardException
+	{
+		// No-op
 	}
 
 	/**
