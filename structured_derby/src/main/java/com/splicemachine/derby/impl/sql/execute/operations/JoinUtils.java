@@ -63,6 +63,37 @@ public class JoinUtils {
         //SpliceLogUtils.trace(LOG, "final mergedRow %s",mergedRow);
 		return mergedRow;
 	}
+	
+	public static ExecRow getNonStreamMergedRow(ExecRow leftRow, ExecRow rightRow, boolean wasRightOuterJoin,int rightNumCols, int leftNumCols, ExecRow mergedRow) {
+        if (mergedRow == null) {
+            return null;
+        }
+		int colInCtr;
+		int colOutCtr;
+		if (wasRightOuterJoin) {
+			ExecRow tmp;
+			tmp = leftRow;
+			leftRow = rightRow;
+			rightRow = tmp;
+            int tmpNCols = leftNumCols;
+			leftNumCols = rightNumCols;
+			rightNumCols = tmpNCols;
+		} 
+
+		try {
+			for (colInCtr = 1, colOutCtr = 1; colInCtr <= leftNumCols;colInCtr++, colOutCtr++) {
+				mergedRow.setColumn(colOutCtr, leftRow.getColumn(colInCtr));
+			}
+			for (colInCtr = 1; colInCtr <= rightNumCols;colInCtr++, colOutCtr++) {
+				mergedRow.setColumn(colOutCtr, rightRow.getColumn(colInCtr));
+			}
+		} catch (Exception e) {
+			SpliceLogUtils.logAndThrowRuntime(LOG, "Error merging rows", e);
+		}
+		return mergedRow;
+	}
+
+	
 
 	
 }
