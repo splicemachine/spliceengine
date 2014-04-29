@@ -1,0 +1,401 @@
+\section{Transactional Structure}
+It is useful to take some time and define transactions cleanly, so that future conversations can use consistent notation and terminology.
+
+Loosely speaking, a transaction is a sequence of events that appears to be single-threaded to the end user, even if there are multiple such transactions concurrently modifying the same data.
+
+More precisely, we choose a \emph{begin timestamp} $T_b$ and a \emph{commit timestamp} $T_c$ to be positive numbers such that $T_c >T_b$ (e.g. the commit timestamp must \emph{always} come after the begin timestamp). Then, we define a \emph{transaction} $T$ to be the interval $[T_b,T_c)$ such that all event which occur between $T_b$ and $T_c$ are viewed sequentially.
+
+Of course, "Sequentially" gets us into some trouble here, but to be clear, let us consider two transactions $T_1 = [T_{b1},T_{c1})$ and $T_2 = [T_{b2},T_{c2})$. We have the following possibilities:
+
+\begin{enumerate}
+				\item $T_{c1} < T_{b2}$. In this case $T_1$ is said to have occurred \emph{before} $T_2$.
+				\item $T_{c2} < T_{b1}$. In this case $T_2$ occurs \emph{before} $T_1$.
+				\item $T_{b1} < T_{b2} < T_{c1}$. In this case, $T_1$ and $T_2$ are said to be occurring \emph{simultaneously}
+\end{enumerate}
+
+Our intuition tells us that, in any "sequential" situation, $T_1$ occuring before $T_2$ implies that any actions taken by $T_1$ should affect $T_2$. In this sense, we say that an action is \emph{visible} to a transaction whenever it can affect the transaction's behavior. So, if $T_1$ occurs before $T_2$, any writes that were made inside of $T_1$ should be visible to $T_2$, in that $T_2$'s queries will be affected by them.
+
+This defines the central rule of transactions: 
+
+\begin{theorem}
+				If a transaction $T_1 = [T_{b1},T_{c1})$ occurs before another transaction $T_2 = [T_{b2},T_{c2})$(that is, $T_{c1} < T_{b2}$), then any actions taken by $T_1$ are visible to $T_2$.
+\end{theorem}
+
+\begin{exmp}[Transaction Visibility]
+				Suppose Alice wishes to write the value "hello" to a row. To do this, she
+				\begin{enumerate}
+					\item acquires begin timestamp $T_{ba} = 1$
+					\item writes data
+					\item acquires commit timestamp $T_{ca} = 2$ and finishes her transaction
+				\end{enumerate}
+				After this is done, Bob wishes to read the same row. To do this, he acquires a begin timestamp $T_{bb} = 3$ and attempts to read the row. Because $T_{ca} < T_{bb}$, Alice's write is visible, so Bob's transaction sees the value "hello".
+\end{exmp}
+
+This rule does not illustrate what is to be done when $T_1$ and $T_2$ occur simultaneously; this is an abiguity which cannot be resolved without assistance from the user.
+
+To deal with this ambiguity,we introduce the concept of \emph{isolation levels}. In essence, an isolation level is simply a user-defined rule for how to deal with simultaneous transaction activity.
+
+Consider those same transactions $T_1$ and $T_2$ again, but suppose that they are occurring simultaneously. There are three possible approaches for a user to take:
+
+\begin{description}
+				\item[Read Uncommitted] Data is visible to $T_2$ whenever $T_{b1} < T_{c2}$.
+				\item[Read Committed] Data is visible to $T_2$ whenever $T_{c1} < T_{c2}$.
+				\item[Repeatable Reads] Data is visible to $T_2$ whenever $T_{c1} < T_{b2}$.
+\end{description}
+
+These three are defined as the three possible isolation levels\footnote{Sometimes, there is a fourth level: \emph{Serializable}, which deals with how to deal with conflicting write attempts. It is pretty heavily tied to transaction implementations, and as such I leave it out here. }.
+
+\subsection{Read Uncommitted Visibility}
+Consider the following example.
+\begin{exmp}[Read Uncommitted Visibility]
+				Suppose that there is a row containing the content "hello". Alice wishes to modify that data, and Bob wishes to read that data, and both are attempting to operate simultaneously in time. Then the following sequence occurs:
+				\begin{enumerate}
+					\item Alice acquires begin timestamp $T_{ba} = 1$.
+					\item Alice writes "goodbye" to row
+					\item Bob acquires begin timestamp $T_{bb} = 2$
+					\item Bob reads row. Because $T_{ba} < T_{bb}$ and Bob is using a Read Uncommitted isolation level, Bob is able to see Alice's changes, so he sees the text "goodbye"
+					\item Alice acquires commit timestamp $T_{ca} = 3$ and commits her write	
+				\end{enumerate}
+\end{exmp}
+In this case, Bob was able to see Alice's writes,even though Alice had not yet committed, a situation we call \emph{dirty reading}. There are advantages to read uncommitted (usually performance), but it is subject to several transactional anomalies.
+
+First, there is a \emph{false reads} issue. Consider this variation on the above example:
+
+\begin{exmp}[Dirty Read Anomaly]
+				Suppose that there is a row containing the content "hello". Alice wishes to modify that data, and Bob wishes to read that data, and both are attempting to operate simultaneously in time. Then the following sequence occurs:
+\begin{enumerate}
+	\item Alice acquires begin timestamp $T_{ba} = 1$.
+	\item Alice writes "goodbye" to row
+	\item Bob acquires begin timestamp $T_{bb} = 2$
+	\item Bob reads row. Because $T_{ba} < T_{bb}$ and Bob is using a Read Uncommitted isolation level, Bob is able to see Alice's changes, so he sees the text "goodbye"
+	\item Alice writes "hello" back to row
+	\item Alice acquires commit timestamp $T_{ca} = 3$ and commits her write	
+\end{enumerate}
+\end{exmp}
+At the end of this operation, the row contains data "hello", but Bob acted upon it as if it were "goodbye", potentially causing incorrect results\footnote{This is even more significant when the possibility of rolling back a transaction is introduced}.
+
+Secondly, there is an ordering issue. Notice in the above example that Alice wrote "goodbye" before Bob attempted to read it. However, the following sequence is equally possible:
+
+\begin{exmp}[Operation Ordering anomaly]
+				Suppose that there is a row containing the content "hello". Alice wishes to modify that data, and Bob wishes to read that data, and both are attempting to operate simultaneously in time. Then the following sequence occurs:
+\begin{enumerate}
+	\item Alice acquires begin timestamp $T_{ba} = 1$.
+	\item Bob acquires begin timestamp $T_{bb} = 2$
+	\item Bob reads row. Because Alice has not yet physically written her data, Bob will see the previous value "hello"
+	\item Alice writes "goodbye" to row
+	\item Alice acquires commit timestamp $T_{ca} = 3$ and commits her write	
+\end{enumerate}
+\end{exmp}
+So read uncommitted can (and often does) result in nondeterministic results--the physical ordering of writes in the implementation determines the results of the query, even within the same transaction.
+
+\subsection{Read Committed Visibility}
+Read Committed is a somewhat stronger isolation level than Read Uncommitted, in that it not only requires data to be written, but that the writing transaction to have committed as well before the data becomes visible.
+
+Consider a similar example as in Read Uncommitted:
+\begin{exmp}[Read Committed Visibility]
+				Suppose that there is a row containing the content "hello". Alice wishes to modify that data, and Bob wishes to read that data, and both are attempting to operate simultaneously. Then the following sequence occurs:
+				\begin{enumerate}
+					\item Alice acquires begin timestamp $T_{ba} = 1$.
+					\item Alice writes "goodbye" to row
+					\item Bob acquires begin timestamp $T_{bb} = 2$
+					\item Bob reads row. Because Bob is reading using Read Committed and Alice has not yet committed, Bob is not able to see Alice's change, and instead sees "hello"
+					\item Alice acquires commit timestamp $T_{ca} = 3$ and commits her write	
+					\item Bob reads row. Because Bob is reading using Read Committed and $T_{ca}$ occurrs before Bob committed (hence $T_{ca} < T_{cb}$), Bob is able to see Alice's change, and sees "goodbye"
+				\end{enumerate}
+\end{exmp}
+With this example, it's easy to see two important factors. First, the dirty read anomaly is impossible. Secondly, Read Committed does \emph{not} eliminate the anomalies with Operation Ordering.
+
+\subsection{Repeatable Reads}
+The Repeatable Reads isolation level imposes a significantly higher restriction on data visibility than Read Committed and Read Uncommitted; not only does data have to be committed (as in Read Committed), but it must also have been committed \emph{before} the reading transaction began. Thus, if we consider the now canonical example, we have
+
+\begin{exmp}[Repeatable Reads Visibility]
+				Suppose that there is a row containing the content "hello". Alice wishes to modify that data, and Bob wishes to read that data, and both are attempting to operate simultaneously. Then the following sequence occurs:
+				\begin{enumerate}
+					\item Alice acquires begin timestamp $T_{ba} = 1$.
+					\item Alice writes "goodbye" to row
+					\item Bob acquires begin timestamp $T_{bb} = 2$
+					\item Bob reads row. Because Bob is reading using Repeatable Reads and Alice has not yet committed, Bob is not able to see Alice's change, and instead sees "hello"
+					\item Alice acquires commit timestamp $T_{ca} = 3$ and commits her write	
+					\item Bob reads row. Because Bob is reading using Repeatable Reads and $T_{ca} > T_{ba}$, Bob is not able to see Alice's change, and instead sees "hello"
+				\end{enumerate}
+\end{exmp}
+This eliminates the ordering issue present in Read Committed and Read Uncommitted levels, and is the highest level of read isolation.
+
+In v0.5, SpliceMachine only supports Read Committed iosolation level, but has been designed with Read Uncommitted and Repeatable Reads in mind for future implementations.
+
+\subsection{Write Conflicts}
+In the normal case of writes, we see the following example
+
+\begin{exmp}[Non-conflicting writes]
+	Suppose that Alice wishes to write "hello". Simultaneously, Bob wishes to write "goodbye" to the same location. Consider the following sequence
+	\begin{enumerate}
+		\item Alice Acquires begin timestamp $T_{ba} = 1$
+		\item Alice writes "hello" to storage
+		\item Alice acquires commit timestamp $T_{ca} = 2$ and commits
+		\item Bob acquires begin timestamp $T_{bb} = 3$
+		\item Bob writes "goodbye" to storage. 
+		\item Bob acquires commit timestamp $T_{cb} = 4$ and commits
+	\end{enumerate}
+\end{exmp}
+This is a perfectly correct and normal scenario--Alice's writes were applied, and then Bob's, in logical sequential order. However, consider this variation:
+\begin{exmp}[Unresolved Conflicting writes]
+	Suppose that Alice wishes to write "hello". Simultaneously, Bob wishes to write "goodbye" to the same location. Consider the following sequence
+	\begin{enumerate}
+		\item Alice Acquires begin timestmamp $T_{ba} = 1$
+		\item Bob acquires begin timestamp $T_{bb} = 3$
+		\item Bob writes "goodbye" to storage. 
+		\item Alice writes "Peekaboo" to storage
+		\item Alice acquires commit timestamp $T_{ca} = 2$ and commits
+		\item Bob acquires commit timestamp $T_{cb} = 4$ and commits
+	\end{enumerate}
+\end{exmp}
+In this situation,there is a disagreement between Alice and Bob for what should be the contents of the row; Bob believes it to be "goodbye", while Alice believes it to be "Peekaboo"! This situation is referred to as a \emph{Write/Write Conflict}, and is an irreconcilable assault on the consistency of the database\footnote{Eventually Consistent databases such as Apache Cassandra and Amazon Dynamo often display this ambiguity--hence the term "eventually consistent"}. To avoid this situation, we have four options: 
+
+\begin{enumerate}
+				\item Make Bob wait for Alice's transaction to complete (e.g. Alice \emph{locks} the row until her transaction is complete)
+				\item Make Alice wait for Bob's transaction to complete (e.g. Bob locks the row until his transaction is complete)
+				\item Throw an error at Bob and force him to deal with the conflict manually
+				\item Throw an error at Alice and force her to deal with the conflict manually
+				\item Allow the ambiguity to be resolved by the reader
+\end{enumerate}
+
+When you consider these options, (1) and (2) are the same, and (3) and (4) are identical, with different victims, while (5) is the approach taken by eventually consistent datastores. 
+
+In most consistent systems, the physical ordering of writes determines whose write succeeds and whose must either wait or fail. For example, if Alice manages to physically write her change before Bob is able to physically write his, then either situation (1) or (3) would apply; if Bob succeeds with his physical write first, then situation (2) or (4) would apply instead. 
+
+In practice, the locked solution above has dramatic consequences for performance and scalability; imagine that Alice's transaction lasted for days; Bob could be waiting for forever for his operation to complete, because of a single row! To avoid perpetual waiting (and the associated deadlocks), SpliceMachine will throw a WriteConflict exception and force end user to manually resolve the conflicting write, rather than attempting to resolve it internally.
+
+So far, this discussion has nothing to do with implementations--as long as these rules are followed, a transactional system can be implemented in any way the developer sees fit. In practice, though, there are really only two major ways of implementing transactional systems: Lock-based, and Snapshot Isolation. SpliceMachine implements a Snapshot Isolation mechanism\footnote{Locks won't be discussed here. If you are interested in how those are implemented, have a look at Derby's lock architecture, or any good database book}.
+
+\section{Snapshot Isolation}
+Snapshot Isolation is a \emph{non-blocking} transactional architecture that uses explicit \emph{versions} to enforce isolation levels. In a Snapshot Isolation system, whenever data is written, a \emph{transaction id}(which is usually the begin timestamp, but is not required to be) is written as well. Then,whenever that piece of data is considered, the writing transaction is looked up. If the transaction's begin and end timestamps fall in line with the isolation levels, the row is visible.
+
+More precisely, if data is written as a row $R$, then Snapshot Isolation writes the tuple $(R,t)$, where $t$ is a unique identifier of the transaction which performed the write. Any operation wishing to read this row will see $(R,t)$ and filter out $R$ if it is not visible to the reading transaction.
+
+\begin{exmp}[Snapshot Isolation Write]
+	Suppose that Alice wishes to write the data $R$ = "hello". To do this, Alice
+	\begin{enumerate}
+		\item acquires begin timestmamp $T_{ba} = 1$, and transaction id = $t_a$
+		\item writes $(R,t_a)$ to storage
+		\item acquires commit timestamp $T_{ca} = 2$ and commits
+	\end{enumerate}
+	Now suppose that Bob wishes to read $R$'s value. To do this, Bob
+	\begin{enumerate}
+		\item acquires begin timestamp $T_{bb} = 3$
+		\item reads $(R,t_a)$ from storage
+		\item looks up Transaction information for $t_a$, and sees that it was committed with timestamp $T_{ca}$
+		\item since $T_{ca} < T_{bb}$, the row is visible to Bob, so he sees the value "hello"
+	\end{enumerate}	
+\end{exmp}
+
+The biggest advantage to Snapshot Isolation is that it only requires atomic reads and writes at a single row (rather than range lock and table locks like what are present in many lock-based databases).Additionally, Snapshot Isolation only operates at the individual row level, which means that no communication is needed between multiple machines in order to write data; this makes Snapshot Isolation far more durable to machine failures and network partitions than a lock-based approach would be.
+
+\section{Transaction Rollbacks}
+Up to now, we've described transactions as an interval having two distinct states: \emph{active} and \emph{committed}. A transaction is called \emph{active} if no commit timestamp has yet been acquired, and \emph{committed} if the commit timestamp has been acquired and initiated.
+
+However, there are additional states that a transaction can be in, which are not mathematically required, but which are necessary features in the practical implementation of SpliceMachine.
+
+Suppose that Alice (in our prior examples) performs some writes inside of a transaction, but then decides (for any reason at all) that those writes are not correct, and need to be undone. At this point, Alice may not know which rows were changed or even that rows were changed at all; restoring the database to it's previous state is therefore a problematic operation to perform. To allow Alice to undo all operations made in a single efficient action, SpliceMachine\footnote{and any other legitimate transactional system} allows a transaction to be \emph{rolled back}. A rolled-back transaction is a transaction where activities may have been performed, but the database must remain in a state \emph{as if the transaction never happened}. Any data written using a transaction that has been rolled back will be treated as if it was never written in the first place.
+
+This has substantial impact on read-uncommitted isolation levels, because of the dirty read anomaly. When a scan is performed using a read-uncommitted isolation level, it is possible for data which belongs to a rolled-back transaction to appear during queries (depending on the physical ordering of operations), which compounds the prior anomalies discussed with read-uncommitted isolation. It is important to note that only read-uncommitted suffers from this anomaly--read committed and repeatable reads levels are not affected by rolled back transactions.
+
+In SpliceMachine, rolled back data is not immediately removed from physical storage. Instead, background processes (i.e. compactions) may optionally remove rolled back data at a later time. In the meantime, rolled back data \emph{will} occupy disk space and \emph{will} require IO operations, which imposes a performance penalty on reading data in SpliceMachine.
+
+\section{Transaction Lifecycle}
+A given transaction always begins in the ACTIVE state. From there, there are several possibilities:
+
+\begin{enumerate}
+	\item rollback. The transaction state is moved to the ROLLED\_BACK state, and the transaction is considered rolled back
+	\item committed. The transaction is committed using the committing cycle
+	\item error. At any point during the process, the Transaction encountered an uncontrollable error, and had to terminate. This state is logically equivalent to a ROLLED\_BACK transaction, but is distinct in the sense that it represents a systemic error in the SpliceMachine environment. When a transaction has entered the ERROR state, something very serious has gone wrong with the cluster, and needs to be investigated by the System Administrator.
+\end{enumerate}
+
+\subsection{Committing process}
+Rollbacks and error state migrations are simple processes, because they require no ordering guarantees\footnote{in fact, they remove a transaction from ordering consideration}. However, the committing process has a difficult scenario that it must be careful of.
+
+Consider the following example:
+
+\begin{exmp}[Committing/Reading Race condition]
+				Suppose that a row has data "hello", and Alice wishes to write data "goodbye" to it. Simultaneously, Bob wishes to read that row's data. Consider the following sequence of events
+				\begin{enumerate}
+					\item Alice acquires begin timestamp $T_{ba} = 1$.
+					\item Alice writes "goodbye" to row
+					\item Alice acquires commit timestamp $T_{ca} = 2$.
+					\item Bob acquires begin timestamp $T_{bb} = 3$.
+					\item Bob reads data using read committed isolation level. Because Alice has not completed her commit yet, Bob understand her transaction as still in the Active state. Thus, he reads "hello"
+					\item Alice commits
+				\end{enumerate}
+\end{exmp}
+In this scenario, Alice commits her data before Bob begins reading it (because $T_{ca} < T_{bb}$), but because of physical latencies, Bob believes that her transaction is still active. Because he's using Read committed, Bob will erroneously filter out Alice's changes.
+
+To resolve this situation, SpliceMachine uses an internal state of COMMITTING. Before a transaction can commit, it must first enter the COMMITTING state. Once that has occurred, it may acquire a commit timestamp and attempt to move to the COMMITTED state. This results in the following modification of the above scenario:
+
+\begin{exmp}[Committing State]
+				Suppose that a row has data "hello", and Alice wishes to write data "goodbye" to it. Simultaneously, Bob wishes to read that row's data. Consider the following sequence of events
+				\begin{enumerate}
+					\item Alice acquires begin timestamp $T_{ba} = 1$.
+					\item Alice writes "goodbye" to row
+					\item Alice moves her transaction to the COMMITTING state
+					\item Alice acquires commit timestamp $T_{ca} = 2$.
+					\item Bob acquires begin timestamp $T_{bb} = 3$.
+					\item Bob notices that Alice's transaction modified this row, and that it is in the COMMITTING state. He waits for the COMMITTING state to resolve (using polling)
+					\item Alice commits
+					\item Bob sees that Alice has committed with timestamp $T_{ca} < T_{bb}$. Thus, Alice's changes are visible to him, so he reads "goodbye"
+				\end{enumerate}
+\end{exmp}
+
+This state introduces some additional latency (in practice, it means 2 writes to the same location in HBase, instead of 1), but avoids the commit/read race condition scenario.
+
+\section{Child Transactions}
+Transactions are a very effective tool in simulating "sequential" behavior in a concurrent environment, but they are themselves a sequential abstraction--that is, operations within a transaction occur sequentially by definition. On the other hand, using a single process to sequentially perform operations on an extremely large dataset is not a very high-performance architecture--to analyze very large data sets, a higher degree of concurrency is required.
+
+So, we are in a world where performance requires us to perform operations as concurrently as possible, but transactional constructs require us to perform operations sequentially, even within the same execution plan. We are faced with the need to resolve this essential paradox.
+
+The mechanism by which we resolve this paradox is that of a \emph{child transaction} $C(T)$. A child transaction is itself a transaction, but which depends on the lifecycle of its parent for usability. Whenever a parent transaction is committed, then all of its child transactions are also committed, and the same for rollbacks and error state transitions. However, committing (or rolling back) a child transaction does not affect the state of the parent. Additionally, a transaction may have several child transactions which are active simultaneously, allowing it to perform operations in parallel across multiple compute nodes without affecting the global state of the operation.
+
+Consider the following
+\begin{exmp}[Child Transactions for Parallel execution]
+	Suppose that Alice wishes to read a large volume of data using N parallel tasks. To do this, Alice
+
+	\begin{enumerate}
+		\item begins a transaction $T_a$
+		\item for each parallel subtask, creates a child transaction $C_i(T_a)$.
+		\item each parallel task executes using the transaction $C_i(T_a)$.
+		\item as each parallel task completes, it commits $C_i(T_a)$
+		\item once all parallel operations complete, Alice commits $T_a$ and all child operations become visible at the same time
+	\end{enumerate}
+\end{exmp}
+
+Thus, a transaction may write a large volume of data, using many parallel transactions concurrently, but requiring that those writes not become visible to other transactions until the parent transaction itself completes.
+
+There are counter-intuitive visibility behaviors for child transactions. Consider a parent transaction $T_p = [T_{pb},T_{bc})$  and a child transaction $T_c = [T_{cb},T_{cc})$. In general, we want a child transaction to mimic the parent as much as possible, which means that anything visible to the parent should also be visible to the child (implying that $T_{cb} > T_{pb}$). This rule implies that child actions are \emph{not} necessarily visible to the parent transaction (after all, $T_{cb} > T_{pb}$). In typical engineering style, we would like this to indicate that the parent transaction's isolation level determines what actions by the child are visible to the parent, exactly as if the child were any other transaction. However, if the parent transaction were using a repeatable reads isolation level, it would \emph{never} see any writes done by any of its children (since $T_{cb} > T_{pb}$ by definition). This does not square with our construction that a child transaction mimics the behavior of the parent--after all, writes by the parent transaction are visible to itself! As a consequence, we have only two isolation levels: read Uncommitted (in which case the parent can see all writes by any child), or Read Committed (in which case the parent can see all committed writes of the child). If the parent uses the Repeated Reads isolation level, then it should effectively use the Read Committed isolation level with respect to its own children.
+
+This use of child transactions has the added side-benefit of allowing SpliceMachine to handle errors in discrete chunks--if a child transaction has any failure of any kind, then the child transaction can be rolled back, and then retried (in the event of a retryable error) without involving the end user at all.
+ormally
+\subsection{Child begin and commit timestamps}
+One of the practical issues in SpliceMachine is how to generate timestamps efficiently. Unfortunately, an inherent requirement is that timestamps be generated as if all transactions were part of the same timeline--it is not allowed for two transactions to have either the same begin timestamp \emph{or} the same commit timestamp\footnote{Lest the universe explode}. Since SpliceMachine works in a distributed, shared-nothing architecture, we have the problem of generated a unique, monotonically increasing sequence in a distributed environment, which is a significant challenge to implement efficiently.
+
+As a result, generating transaction timestamps can pose a significant scalability bottleneck, and creating child transactions can increase this bottleneck. To improve performance, we use a separate counter which is physically stored with the parent transaction's metadata\footnote{We use a column in HBase which is updated using HBase's column increment function}. This counter generates timestamps which begin from 1. Thus, even if the parent transaction's begin timestamp is 10, the first child't begin timestamp will be 1.
+
+In order to line this up logically with non-child transactions, we can map the child transaction's timestamp to be $T_{cb} = T_{pb} + \frac{t_c}{2^{32}}$, where $t_c$ is the timestamp generated by the parent transaction's counter\footnote{The actual implementation does not do this, it's merely a convenience to avoid having to make a million special cases for child transactions in every argument}. This satisfies the criteria that $T_{cb} > T_{pb}$ always.
+
+Similarly, a child's commit timestamp is generated from the parent's counter column as well. However, even though a child transaction may have been committed, it is not treated as committed until its parent has, resulting in the introduction of the \emph{effective commit timestamp}. The effective commit timestamp is the timestamp that the transaction should be treated as being committed at, even if its actual commit timestamp differs. In the case of parent transactions, the effective commit timestamp is the same as the normal commit timestamp, while child transactions will have an effective commit timestamp that is the parent's commit timestamp. 
+
+\subsection{Independent Read-Only Transactions}
+All user transactions will incur the cost of generating a universal timestamp, but some sub operations do not write data. Because they don't modify data, there is no requirement that those operations have independent transactions--they can inherit all behavior from the parent directly. Such transactions are called \emph{Independent Read-Only}(IRO) transactions. Because they do not modify data, and Independent read only transaction directly inherits the timestamps from the parent transaction, and does not attempt to generate new ones (it has no need of them). This is significantly less expensive for read-only operations.
+
+
+\section{Tombstones and Anti-Tombstones}
+In a Snapshot-isolation system, different transactions will need to read different versions of the same data point simultaneously in physical time. This has the practical effect of preventing SpliceMachine from physically removing data from disk. Instead, a \emph{tombstone} is written, which indicates that data prior to this point should be treated as absent in a physical sense. In particular, SpliceMachine implements a tombstone by an additional point of metadata inside the transactional system. Take, for example
+
+\begin{exmp}[Transactional delete]
+	Suppose there is a row $R$ which contains data "hello". Alice wishes to delete this row, and Bob wishes to read this row. Consider the following sequence:
+
+	\begin{enumerate}
+		\item Alice acquires begin timestamp $T_{ba}$ and transaction id $t_a$.
+		\item Alice writes a tombstone field to $R$.
+		\item Alice acquires commit timestamp $T_{ca}$ and commits.
+		\item Bob acquires begin timestamp $T_{bb}$ and transaction id $t_b$.
+		\item Bob attempts to read $R$. Because $T_{bb} > T_{ca}$, Bob see's Alice's tombstone, and treats $R$ as deleted
+	\end{enumerate}
+\end{exmp}
+
+Now suppose the ordering is slightly different, as in this example
+
+\begin{exmp}[Delete with prior Version]
+	Suppose there is a row $R$ which contains data "hello". Alice wishes to delete this row, and Bob wishes to read this row with read committed isolation level. Consider the following sequence:
+
+	\begin{enumerate}
+		\item Alice acquires begin timestamp $T_{ba}$ and transaction id $t_a$.
+		\item Bob acquires begin timestamp $T_{bb}$ and transaction id $t_b$.
+		\item Alice writes a tombstone field to $R$.
+		\item Bob attempts to read $R$. Because Bob is using read committed isolation level, and Alice has not yet committed,Alice's write is not visible, so Bob sees "hello"
+		\item Alice acquires commit timestamp $T_{ca}$ and commits.
+	\end{enumerate}
+\end{exmp}
+
+in SpliceMachine, the presence of a tombstone is an indication that the row should be ignored, and (as long as the transactional isolation level holds)the data in that row will not be processed beyond that point. This has the disadvantage that future writes will also be ignored. To prevent this problem, a write to a row that owns a tombstone will \emph{also} write an \emph{anti-tombstone}, which is an indication to the system that the row is present and should be processed.
+
+\section{Timestamp generation}
+The nature of transactions relies on our ability to place operations in order based on their begin and commit timestamps, which implicitly requires that timestamps never repeat, and never decrease (e.g. time always moves forward). More formally, we require a timestamp generator which is \emph{unique} and \emph{strictly monotonically increasing}. 
+
+In non-distributed systems, this is a relatively trivial: a single atomic counter which durably logs to disk is sufficient\footnote{we require the durable logging to prevent repeats after restarting}. However, in a distributed world, this will not prevent duplicate timestamps from being created. Instead, we must use a central timestamp generator for all nodes in the cluster.
+
+\subsection{ZooKeeper Version-based}
+As of v0.5, SpliceMachine implements timestamp generation using a counter which is durably stored in ZooKeeper. This counter emits 64-bit longs which take values between 0 and $2^{64}$. Once a timestamp is generated, it is never returned, and once the number of timestamps have been exhausted, the database is functionally unusable. Note, however, that in order to exhaust all possible timestamps, one would need to generated 2 billion timestamps every second for $\approx 136$ years, which is too impractical to be concerned about.
+
+This counter is actually implemented using two zookeeper znodes, the \emph{high} and \emph{low} nodes, each of which stores information about 32-bits of the timestamp. The low node is a simple counter node. When a new timestamp is generated, the low number is incremented by writing an empty string to the node (ZooKeeper will automatically increment the version number). The returned version number is the low 32-bits of the timestamp. 
+
+Because ZooKeeper's versions are 32-bit integers, the low node will run out of available versions after $\approx 2$ billion timestamps. When this happens, the version counter will become negative, which informs us that this low node is exhausted. At this point, a new low node will be created. In order to point all nodes to the new node, the location of the low node will be written to the high node. This also serves to increment the version number on the high node, which picks up the additional 32 bits necessary. Thus, the high node's version is the upper 32 bits of the timestamp, and the low node's version is the lower 32 bits of the timestamp.
+
+This approach has advantages--it's relatively simple and requires no additional external systems (since ZooKeeper is already required for SpliceMachine to operate). It does, however, have limited throughput--ZooKeeper can only write data so quickly, and this requires 1 network write for every timestamp. 
+
+\section{Transaction Caching}
+The essential component of reading data involves performing lookups. As each row is visited, to determine if it should be included or not, the transaction which was responsible for writing that data must be looked up, and the begin and commit timestamps are compared. Because the Transaction table is a normal HBase table, this involves performing numerous lookups over the network, which can be prohibitively expensive to perform. To alleviate this performance problem, we cache transactions heavily.
+
+In general, if the transaction is in a \emph{terminal state}(any state except for ACTIVE and COMMITTING) it can be cached completely for all subsequent transactions, because it will no longer change. In those cases a simple in-memory cache is used to hold transaction information on each node in the cluster. As reads are performed, this \emph{Completed Transactions Cache} is checked; if the transaction is present in the cache then it will be used, otherwise a network lookup will be performed.
+
+Note however, that during an individual operation, a transaction is either considered ACTIVE or in a terminal state. That is, a transaction's writes cannot switch from being invisible to being visible in the middle of an operation. To help with this, and simultaneously assist performance, a transaction may optionally be able to use the \emph{Active Transactions Cache}, which allows an individual operation to keep transaction information cached for the lifetime of the operation itself (as opposed to forever).
+
+\section{RollForward Action}
+The ultimate caching process, however, revolves around our understanding of transactions themselves. Recall the central tenent of transactional ordering: if $T_{c1} < T_{b2}$, then transaction $T_1$ is visible to transaction $T_2$. This means that once a transaction is committed, no further information aside from a commit timestamp is truly needed for any subsequent transaction. 
+
+To take advantage of this, SpliceMachine will perform a \emph{roll forward} periodically. This roll forward will write the commit timestamp into an entry alongside the row itself. Then, when a read is performed, the reader can check for the existence of this column--when it is present and occupied, the commit timestamp is compared directly, and if that commit timestamp satisfies the isolation level of the reading query, the row is visible without any further operations required.
+
+The main strength of this optimization is that it performs the same number of I/O and network operations as the initial read of the data does, which means that there is only the (very small) cost of reading the commit timestamp information when performing a transactional read of data, making for an extremely light-weight transactional system.
+
+\section{Transaction Table}
+Transaction information must be durably stored for future reference(lest servers fail and transactions be lost). In SpliceMachine, this is stored using the SPLICE\_TXN Hbase Table, which has the following columns:
+
+\begin{center}
+\begin{tabular}{|l|c|p{5cm}|}
+				\hline
+				\bf{Column}									&	\bf{Data Type}	&	\bf{Description} \\ \hline
+				Transaction Id							&	Long			&	A unique transaction identifier \\ \hline
+				Begin Timestamp							&	Long			&	The begin timestamp \\ \hline
+				Parent Transaction Id				&	Long			&	The unique id for this transaction's parent, or null if this transaction has no parent.	\\ \hline
+				Dependent										&	Boolean		& When true, this transaction is not considered committed until its parent has also committed. This is never true for non-child transactions\\ \hline
+				Allows Writes								&	Boolean		&	True if this transaction allows writes, false if it is read-only \\ \hline
+				Is Additive									&	Boolean		&	Whether or not this transaction is considered additive. An additive transaction will not incur Write/Write conflicts. \\ \hline
+				Read Uncommitted						&	Boolean		&	True if this transaction can read uncommitted data \\ \hline
+				Read Committed							&	Boolean		&	True if this transaction can read committed data \\ \hline
+				Commit Timestamp						&	Long			&	The timestamp at which this transaction was committed, or null if it has not been committed \\	\hline
+				Effective Commit Timestamp	&	Long			& If this is a child transaction, the timestamp at which the parent transaction was committed. \\ \hline
+				Global Commit Timestamp			&	Long			&	The global commit timestamp. \\ \hline
+				Status											&	Varchar		&	The current status of the transaction \\ \hline
+				Keepalive Timestamp					&	Timestamp	& The System clock time when this transaction last issued a keep alive \\ \hline
+				Counter											&	Integer		&	A unique counter for generating child transaction ids. \\ \hline
+				Destination Conglomerate		&	Varchar		&	Comma-separated list of Conglomerates which this Transaction writes to, or null if the transaction is read-only	\\ \hline
+\end{tabular}
+\end{center}
+This table is a normal HBase table, but is \emph{not} a normal SpliceMachine table (i.e. it is not scannable). Additionally, this table is \emph{not} governed by transactional semantics--instead, it relies on HBase's atomic row operations (specifically $increment$, $compareAndSet$, and $put$ operations). The HBase row key which is used is the 8-byte transaction id, with it's bits reversed\footnote{The bits are reversed so that transactions are uniformly distributed, instead of sequentially ordered. This improves write and read performance since this avoids the hotspot region problem present in HBase}.
+
+\subsection{Stored Procedures for Manipulating Transactions}
+Because SPLICE\_TXN is not a normal Splice table, it cannot be accessed directly through SQL. Instead, there is are several Stored Procedures which allow you to safely work with the transaction table as an external user.
+
+First, to view the contents of SPLICE\_TXN, use the procedure
+
+\begin{lstlisting}[frame=single,captionpos=b,language=SQL,caption=Procedure to Dump Transaction Table]
+call SYSCS_UTIL.SYSCS_DUMP_TRANSACTIONS();
+\end{lstlisting}
+
+This will dump the \emph{entire} contents of SPLICE\_TXN to the console, making it possible to investigate transactional behavior in an offline mode.
+
+Secondly, it is possible to acquire the value of the current transaction, using
+
+\begin{lstlisting}[frame=single,captionpos=b,language=SQL,caption=Procedure to Dump Transaction Table]
+call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION();
+\end{lstlisting}
+
+Which will output the transaction id of the current transaction. 
+
+Finally, one can "kill" a transaction using
+\begin{lstlisting}[frame=single,captionpos=b,language=SQL,caption=Procedure to Dump Transaction Table]
+call SYSCS_UTIL.SYSCS_KILL_TRANSACTION(id);
+\end{lstlisting}
+
+This command will move a transaction from the ACTIVE state to the ERROR state, forcing an effective rollback of the transaction, and preventing future WriteWrite conflicts from occurring with this transaction. Typically, this is used by engineers to deal with bugs in the transactional system, it is \emph{not} recommended for common administrative usage.
+
+It is important to stress that this procedure is \emph{extremely} dangerous--an administrator can effectively undo absolutely \emph{any} writes performed on the cluster, with absolutely \emph{zero} recourse or reversion of the action. Use this procedure with extreme caution!
+
+%End Transaction Chapter
