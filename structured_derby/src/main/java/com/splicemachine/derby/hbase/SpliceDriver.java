@@ -413,8 +413,8 @@ public class SpliceDriver extends SIConstants {
             mbs.registerMBean(jobScheduler.getJobMetrics(), jobSchedulerName);
 
             //register transaction stuff
-            ObjectName transactorName = new ObjectName("com.splicemachine.txn:type=TransactorStatus");
-            mbs.registerMBean(HTransactorFactory.getTransactorStatus(), transactorName);
+//            ObjectName transactorName = new ObjectName("com.splicemachine.txn:type=TransactorStatus");
+//            mbs.registerMBean(HTransactorFactory.getTransactorStatus(), transactorName);
         } catch (MalformedObjectNameException e) {
             //we want to log the message, but this shouldn't affect startup
             SpliceLogUtils.error(LOG, "Unable to register JMX entries", e);
