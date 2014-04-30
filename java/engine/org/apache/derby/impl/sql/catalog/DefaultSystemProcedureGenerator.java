@@ -132,6 +132,9 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     	}
 
     	List procedureList = findProceduresForSchema(schemaName, tc);
+    	if (procedureList == null) {
+    		throw StandardException.newException(SQLState.PROPERTY_INVALID_VALUE, "SCHEMA", (schemaName));
+    	}
     	Iterator/*<Procedure>*/ procedures = procedureList.iterator();
     	while (procedures.hasNext()) {
     		Object n = procedures.next();
