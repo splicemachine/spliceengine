@@ -17,13 +17,11 @@ public class SpliceHConnection extends HConnectionManager.HConnectionImplementat
 
     public SpliceHConnection(Configuration config, ExecutorService connectionPool) throws IOException {
         super(config, false, connectionPool, UserProvider.instantiate(config).getCurrent());
-        System.out.println("+++ Creating SpliceHConnection");
     }
 
     @Override
     public synchronized ZooKeeperKeepAliveConnection getKeepAliveZooKeeperWatcher() throws
         ZooKeeperConnectionException {
-        System.out.println("+++ Zoo is "+(zooKeeper != null?(zooKeeper.isAborted()?"aborted":"alive"):"null"));
         if (zooKeeper == null) {
             if (this.isClosed()) {
                 try {
@@ -33,13 +31,11 @@ public class SpliceHConnection extends HConnectionManager.HConnectionImplementat
                 }
             }
             try {
-                System.out.println("+++ Creating new Zoo");
                 zooKeeper = super.getKeepAliveZooKeeperWatcher();
             } catch (IOException e) {
                 throw new ZooKeeperConnectionException("An error is preventing a connection to ZooKeeper", e);
             }
         }
-        System.out.println("+++ returning zoo "+zooKeeper);
         return zooKeeper;
     }
 
@@ -50,7 +46,6 @@ public class SpliceHConnection extends HConnectionManager.HConnectionImplementat
 
     @Override
     public void close() {
-        System.out.println("+++ Closing SpliceHConnection "+this);
         closed = true;
         super.close();
     }
