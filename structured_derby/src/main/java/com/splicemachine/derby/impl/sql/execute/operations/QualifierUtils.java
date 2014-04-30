@@ -44,18 +44,30 @@ public class QualifierUtils {
             return convertTime(qualifier,columnFormat,dataValueFactory);            
         }else return qualifier; //nothing to do
     }
-    
-    public static DataValueDescriptor adjustDataValueDescriptor(DataValueDescriptor dvd, int columnFormat,DataValueFactory dataValueFactory) throws StandardException {
-        if(isFloatType(columnFormat)){
-            return convertFloatingPoint(dvd,columnFormat,dataValueFactory);
-        }else if(isScalarType(columnFormat)){
-            return convertScalar(dvd,columnFormat,dataValueFactory);
-        }else if(isTimestamp(columnFormat)){
-            return convertTimestamp(dvd,columnFormat,dataValueFactory);
-        }else if(isDate(columnFormat)){
-            return convertDate(dvd,columnFormat,dataValueFactory);
-        }else if(isTime(columnFormat)){
-            return convertTime(dvd,columnFormat,dataValueFactory);            
+
+		/**
+		 *
+		 * Note: This method may truncate values (e.g. scanning an integer column with a double qualifier will truncate
+		 * the double).
+		 *
+		 * @param dvd the data value descriptor given in the qualifier
+		 * @param columnDataType the data type of the actual column
+		 * @param dataValueFactory a factory to generate a DataValueDescriptor with the type of {@code columnDataType},
+		 *                         and the contents of {@code dvd}
+		 * @return a DataValueDescriptor with the type of {@code columnDataType}, and the contents of {@code dvd}
+		 * @throws StandardException if something goes wrong
+		 */
+    public static DataValueDescriptor adjustDataValueDescriptor(DataValueDescriptor dvd, int columnDataType,DataValueFactory dataValueFactory) throws StandardException {
+        if(isFloatType(columnDataType)){
+            return convertFloatingPoint(dvd,columnDataType,dataValueFactory);
+        }else if(isScalarType(columnDataType)){
+            return convertScalar(dvd,columnDataType,dataValueFactory);
+        }else if(isTimestamp(columnDataType)){
+            return convertTimestamp(dvd,columnDataType,dataValueFactory);
+        }else if(isDate(columnDataType)){
+            return convertDate(dvd,columnDataType,dataValueFactory);
+        }else if(isTime(columnDataType)){
+            return convertTime(dvd,columnDataType,dataValueFactory);
         }else return dvd; //nothing to do
     }
     

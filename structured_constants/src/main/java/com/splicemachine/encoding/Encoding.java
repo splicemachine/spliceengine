@@ -694,7 +694,8 @@ public final class Encoding {
     
 
     public static void main(String... args) throws Exception{
-				System.out.println(decodeLong(BytesUtil.fromHex("E4051EB0")));
+				byte b = (byte)0x01;
+				System.out.println(BytesUtil.toHex(new byte[]{(byte)(b^0xff)}));
     }
 
 		public static boolean isNullDOuble(byte[] data, int offset, int length) {
