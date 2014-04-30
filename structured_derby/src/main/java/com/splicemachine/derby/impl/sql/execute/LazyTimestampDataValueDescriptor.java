@@ -137,7 +137,6 @@ public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor im
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 
         super.readExternal(in);
-        DVDSerializer extSerializer = LazyDataValueFactory.getDVDSerializer(typeFormatId);
 
         dtdv = (DateTimeDataValue)dvd;
         init(dtdv);

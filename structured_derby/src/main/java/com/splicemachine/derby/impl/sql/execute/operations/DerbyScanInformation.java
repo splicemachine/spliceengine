@@ -272,7 +272,9 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
                 getAccessedNonPkColumns(),
                 txnId,sameStartStop,
                 conglomerate.getFormat_ids(),
-								keyDecodingMap, activation.getDataValueFactory(),
+								keyDecodingMap,
+								getColumnOrdering(),
+								activation.getDataValueFactory(),
 								tableVersion);
     }
 

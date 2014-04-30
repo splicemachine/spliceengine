@@ -170,7 +170,9 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 						scan = Scans.setupScan(startKeyValue, startSearchOperator, stopKeyValue, stopSearchOperator, qualifier,
 										sortOrder, scanColumnList, transID,sameStartStop,
 										((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).format_ids,
-										((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).columnOrdering, null, "1.0");
+										((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).columnOrdering,
+										((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).columnOrdering,
+										null, "1.0");
 				} catch (Exception e) {
 						LOG.error("Exception creating start key");
 						throw new RuntimeException(e);
