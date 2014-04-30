@@ -17,17 +17,19 @@ import java.util.TimeZone;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.hbase.HBaseRegionLoads;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
 
 public class HdfsImportIT extends SpliceUnitTest {
 		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -551,6 +553,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 		Assert.assertFalse(twarning.contains("To load a large single file of data faster,"));
 	}
 
+    @Ignore("DB-1259")
 	@Test
 	public void GetReadWriteCountMultipleSingleRecordWrites() throws Exception{
         Connection conn = methodWatcher.createConnection();
@@ -567,7 +570,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 		conn.close();
 	}
 	
-	@Test
+	@Ignore("DB-1259")
+    @Test
 	public void GetReadWriteCountBulkRecordWrites() throws Exception{
 		Connection conn = methodWatcher.createConnection();
 		String tableID=getConglomerateNumber(conn,TABLE_17);

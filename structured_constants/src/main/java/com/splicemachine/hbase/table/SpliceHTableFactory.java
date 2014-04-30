@@ -1,9 +1,5 @@
 package com.splicemachine.hbase.table;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.hbase.HBaseRegionCache;
-import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -12,6 +8,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
@@ -22,6 +20,10 @@ import org.apache.hadoop.hbase.client.HTableInterfaceFactory;
 import org.apache.hadoop.hbase.client.SpliceHConnection;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.hbase.HBaseRegionCache;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceHTableFactory implements HTableInterfaceFactory {
     private static Logger LOG = Logger.getLogger(SpliceHTableFactory.class);
