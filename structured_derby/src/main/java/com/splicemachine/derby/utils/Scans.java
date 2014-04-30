@@ -121,7 +121,8 @@ public class Scans extends SpliceUtils {
 																 String transactionId,
 																 boolean sameStartStopPosition,
 																 int[] formatIds,
-																 int[] columnOrdering,
+																 int[] keyDecodingMap,
+																 int[] keyTablePositionMap,
 																 DataValueFactory dataValueFactory,
 																 String tableVersion) throws StandardException {
 				Scan scan = SpliceUtils.createScan(transactionId, scanColumnList!=null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
@@ -129,12 +130,12 @@ public class Scans extends SpliceUtils {
 				try{
 						attachScanKeys(scan, startKeyValue, startSearchOperator,
 										stopKeyValue, stopSearchOperator,
-										scanColumnList, sortOrder, formatIds, columnOrdering, dataValueFactory, tableVersion);
+										scanColumnList, sortOrder, formatIds, keyTablePositionMap,dataValueFactory, tableVersion);
 
 
-						PredicateBuilder pb = new PredicateBuilder(columnOrdering,sortOrder,formatIds,tableVersion);
+						PredicateBuilder pb = new PredicateBuilder(keyDecodingMap,sortOrder,formatIds,tableVersion);
 						buildPredicateFilter(
-										qualifiers, scanColumnList,scan,pb,columnOrdering);
+										qualifiers, scanColumnList,scan,pb,keyDecodingMap);
 				}catch(IOException e){
 						throw Exceptions.parseException(e);
 				}
@@ -148,7 +149,7 @@ public class Scans extends SpliceUtils {
 																						Scan scan,
 																						String tableVersion) throws StandardException, IOException {
 				PredicateBuilder pb = new PredicateBuilder(keyColumnEncodingMap,null,columnTypes,tableVersion);
-				buildPredicateFilter(qualifiers,scanColumnList,scan,pb,keyColumnEncodingMap);
+				buildPredicateFilter(qualifiers, scanColumnList, scan, pb, keyColumnEncodingMap);
 		}
 
 		public static void buildPredicateFilter(Qualifier[][] qualifiers,
@@ -232,40 +233,44 @@ public class Scans extends SpliceUtils {
 				return ObjectArrayList.from(firstAndPredicate);
 		}
 
-		private static void attachScanKeys(Scan scan, DataValueDescriptor[] startKeyValue, int startSearchOperator,
+		private static void attachScanKeys(Scan scan,
+																			 DataValueDescriptor[] startKeyValue, int startSearchOperator,
 																			 DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
 																			 FormatableBitSet scanColumnList,
 																			 boolean[] sortOrder,
-																			 int[] formatIds, int[] columnOrdering, DataValueFactory dataValueFactory, String tableVersion) throws IOException {
+																			 int[] columnTypes, //the types of the column in the ENTIRE Row
+																			 int[] keyTablePositionMap, //the location in the ENTIRE row of the key columns
+																			 DataValueFactory dataValueFactory,
+																			 String tableVersion) throws IOException {
 				if(scanColumnList!=null && (scanColumnList.anySetBit() != -1)) {
 						scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES);
 				}
-				try{						
-						
+				try{
+
 						// Determines whether we can generate a key and also handles type conversion...
-					
+
 						boolean generateKey = true;
 						if(startKeyValue!=null && stopKeyValue!=null){
-							for (int i=0;i<startKeyValue.length;i++) {
-								DataValueDescriptor startDesc = startKeyValue[i];
-								if(startDesc ==null || startDesc.isNull()){
-									generateKey=false;
-									break;
+								for (int i=0;i<startKeyValue.length;i++) {
+										DataValueDescriptor startDesc = startKeyValue[i];
+										if(startDesc ==null || startDesc.isNull()){
+												generateKey=false;
+												break;
+										}
+										if (keyTablePositionMap != null && keyTablePositionMap.length > 0 &&
+														startDesc.getTypeFormatId() != columnTypes[keyTablePositionMap[i]]) {
+												startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc,columnTypes[keyTablePositionMap[i]],dataValueFactory);
+										}
 								}
-								if (columnOrdering != null && columnOrdering.length > 0 && 
-										startDesc.getTypeFormatId() != formatIds[columnOrdering[i]]) {
-									startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc,formatIds[columnOrdering[i]],dataValueFactory);
+
+								for (int i=0;i<stopKeyValue.length;i++) {
+										DataValueDescriptor stopDesc = stopKeyValue[i];
+										if (keyTablePositionMap != null && keyTablePositionMap.length > 0 &&
+														stopDesc.getTypeFormatId() != columnTypes[keyTablePositionMap[i]]) {
+												stopKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc,columnTypes[keyTablePositionMap[i]],dataValueFactory);
+										}
 								}
-							}
-							
-							for (int i=0;i<stopKeyValue.length;i++) {
-								DataValueDescriptor stopDesc = stopKeyValue[i];
-								if (columnOrdering != null && columnOrdering.length > 0 && 
-										stopDesc.getTypeFormatId() != formatIds[columnOrdering[i]]) {
-									stopKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc,formatIds[columnOrdering[i]],dataValueFactory);
-								}
-							}
-							
+
 						}
 
 						if(generateKey){
