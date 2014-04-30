@@ -127,6 +127,9 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         } else {
             reduceScan = context.getScan();
         }
+        if (failedTasks.size() > 0) {
+            reduceScan.setFilter(new SuccessFilter(failedTasks));
+        }
         JoinUtils.getMergedRow(leftRow, rightRow, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
         startExecutionTime = System.currentTimeMillis();
     }
@@ -259,6 +262,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 // rightRow, and mergedRow fields having already been populated; in order to ensure that
                 // they have been, we have to invoke init()
                 init(SpliceOperationContext.newContext(activation));
+
                 serializeLeftResultSet = false;
                 serializeRightResultSet = false;
                 SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
