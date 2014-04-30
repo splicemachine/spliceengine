@@ -62,6 +62,7 @@ public abstract class AbstractRowKeyDistributor {
             scans[i] = new Scan(original);
             scans[i].setStartRow(intervals[i].getFirst());
             scans[i].setStopRow(intervals[i].getSecond());
+            scans[i].setFilter(original.getFilter());
         }
         return scans;
     }
