@@ -114,49 +114,62 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 
 	
 	@Test
-	@Ignore
+//	@Ignore
 	public void testField1x() throws Exception{
+		
+		//charforbitdata1,charforbitdata2
 		try {
 			String returnval;
-			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_2+" where lvarchar1 = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
+			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_2+" where charforbitdata1 = X'bcdefa202020202020202020202020202020202020202020'");
 			if(rs.next()){
-				returnval = rs.getString("lvarchar1");
-				//System.out.println("lvarchar1 = "+returnval);
-				Assert.assertTrue("aaaaaaaaaaaaaaaaaaaaaaaaaa".equals(returnval));
+				returnval = rs.getString("charforbitdata1");
+				System.out.println("charforbitdata = "+returnval);
+				Assert.assertTrue(returnval.equals("bcdefa202020202020202020202020202020202020202020"));
 			}
 			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_2+" where lvarchar1 between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
+			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_2+" where CAST(lvarchar1 as varchar(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
 			while(rs.next()){
 				returnval = rs.getString("lvarchar1");
-				//System.out.println("lvarchar1 = "+returnval);
+				System.out.println("lvarchar1 = "+returnval);
 				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa")||returnval.equals("bbbbbbbbbbbbbbbbbbbbbbbbbb")||returnval.equals("cccccccccccccccccccccccccc"));
 			}
 			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_2+" group by lvarchar1 having lvarchar1 = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
+// Group by for LONG VARCHAR are not supported.			
+//			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_2+" group by lvarchar1 having CAST(lvarchar1 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
+//				int retval = rs.getInt("retval");
+//			if(rs.next()){
+//				System.out.println("retval = "+retval);
+//				Assert.assertEquals(1,retval);
+//			}
+//			rs.close();
+			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_2+" where CAST(lvarchar1 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar1 as varchar(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ");
 			if(rs.next()){
 				int retval = rs.getInt("retval");
-				//System.out.println("retval = "+retval);
-				Assert.assertEquals(1,retval);
+				System.out.println("retval = "+retval);
+				Assert.assertEquals(2,retval);
 			}
 			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_2+" where lvarchar2 = 1");
+			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_2+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
 			if(rs.next()){
 				returnval = rs.getString("lvarchar2");
-				//System.out.println("smallint1 = "+returnval);
-				Assert.assertEquals(3,returnval);
+				System.out.println("smallint1 = "+returnval);
+				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa"));
 			}
 			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_2+" where lvarchar1 between between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
-			if(rs.next()){
+			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_2+" where CAST(lvarchar2 AS VARCHAR(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
+			while(rs.next()){
 				returnval = rs.getString("lvarchar2");
-				//System.out.println("smallint2 = "+returnval);
-				Assert.assertEquals(3,returnval);
+				System.out.println("lvarchar1 = "+returnval);
+				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa")||returnval.equals("bbbbbbbbbbbbbbbbbbbbbbbbbb")||returnval.equals("cccccccccccccccccccccccccc"));
 			}
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_2+" group by lvarchar2 having lvarchar2 = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
+			rs.close();
+//Group by not supported.
+//			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_2+" group by lvarchar2 having CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
+			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_2+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or  CAST(lvarchar2 AS VARCHAR(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb'");
 			if(rs.next()){
 				int retval = rs.getInt("retval");
-				//System.out.println("retval = "+retval);
-				Assert.assertEquals(1,retval);
+				System.out.println("retval = "+retval);
+				Assert.assertEquals(2,retval);
 			}
 			rs.close();
 			Assert.assertTrue(true);;
@@ -167,109 +180,121 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	}
 
 	
+	private boolean runandtestqueryri(String query,int lookfor,String field) throws Exception{
+		int returnval;
+		try{
+			ResultSet rs = methodWatcher.executeQuery(query);
+			if(rs.next()){
+				returnval = rs.getInt(field);
+				Assert.assertEquals(lookfor,returnval);
+			}
+			rs.close();
+		}catch(Exception e){
+			throw new Exception(e);
+		}
+		return true;
+	}
+
+	private boolean runandtestqueryrd(String query,double lookfor,String field) throws Exception{
+		double returnval;
+		try{
+			ResultSet rs = methodWatcher.executeQuery(query);
+			if(rs.next()){
+				returnval = rs.getDouble(field);
+				Assert.assertTrue(Math.abs(lookfor-returnval)<0.0001);
+			}
+			rs.close();
+		}catch(Exception e){
+			throw new Exception(e);
+		}
+		return true;
+	}
+	private boolean runandtestqueryrs(String query,String lookfor,String field) throws Exception{
+		String returnval;
+		try{
+			ResultSet rs = methodWatcher.executeQuery(query);
+			if(rs.next()){
+				returnval = rs.getString(field);
+				Assert.assertTrue(lookfor.equals(returnval));
+			}
+			rs.close();
+		}catch(Exception e){
+			throw new Exception(e);
+		}
+		return true;
+	}
+
+	
+	private boolean runandtestqueryR3(String query,int lookfor1,int lookfor2, int lookfor3,String field) throws Exception{
+		int returnval;
+		try{
+			ResultSet rs = methodWatcher.executeQuery(query);
+			while(rs.next()){
+				returnval = rs.getInt(field);
+				Assert.assertTrue(returnval==lookfor1||returnval==lookfor2||returnval==lookfor3);
+			}
+			rs.close();
+		}catch(Exception e){
+			throw new Exception(e);
+		}
+		return true;
+	}
+	
+	private boolean runandtestqueryR3D(String query,double lookfor1,double lookfor2, double lookfor3,String field) throws Exception{
+		Double returnval;
+		try{
+			ResultSet rs = methodWatcher.executeQuery(query);
+			while(rs.next()){
+				returnval = rs.getDouble(field);
+				Assert.assertTrue(Math.abs(lookfor1-returnval)<0.0001||Math.abs(lookfor2-returnval)<0.0001||Math.abs(lookfor3-returnval)<0.0001);
+			}
+			rs.close();
+		}catch(Exception e){
+			throw new Exception(e);
+		}
+		return true;
+	}
+
+	private boolean runandtestqueryR3S(String query,String lookfor1,String lookfor2, String lookfor3,String field) throws Exception{
+		String returnval;
+		try{
+			ResultSet rs = methodWatcher.executeQuery(query);
+			while(rs.next()){
+				returnval = rs.getString(field);
+				Assert.assertTrue(returnval.equals(lookfor1)||returnval.equals(lookfor2)||returnval.equals(lookfor3));
+			}
+			rs.close();
+		}catch(Exception e){
+			throw new Exception(e);
+		}
+		return true;
+	}
 	
 	
 	@Test
 	public void testField1() throws Exception{
-		int returnval;
 		try {
-			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where smallint1 = 1");
-			if(rs.next()){
-				returnval = rs.getInt("smallint1");
-				//System.out.println("smallint1 = "+returnval);
-				Assert.assertEquals(1,returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where smallint1 between 1 and 3");
-			if(rs.next()){
-				returnval = rs.getInt("smallint1");
-				//System.out.println("smallint1 = "+returnval);
-				Assert.assertEquals(1,returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by smallint1 having smallint1 = 2");
-			if(rs.next()){
-				returnval = rs.getInt("retval");
-				//System.out.println("retval = "+returnval);
-				Assert.assertEquals(1,returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where smallint2 = 1");
-			if(rs.next()){
-				returnval = rs.getInt("smallint1");
-				//System.out.println("smallint1 = "+returnval);
-				Assert.assertEquals(3,returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where smallint2 between 1 and 3");
-			if(rs.next()){
-				returnval = rs.getInt("smallint2");
-				//System.out.println("smallint2 = "+returnval);
-				Assert.assertEquals(3,returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by smallint2 having smallint2 = 2");
-			if(rs.next()){
-				returnval = rs.getInt("retval");
-				//System.out.println("retval = "+returnval);
-				Assert.assertEquals(1,returnval);
-			}
-			rs.close();
-			Assert.assertTrue(true);;
+			Assert.assertTrue(runandtestqueryri("select * from "+CLASS_NAME+"."+TABLE_1+" where smallint1 = 1",1,"smallint1"));
+			Assert.assertTrue(runandtestqueryR3("select * from "+CLASS_NAME+"."+TABLE_1+" where smallint1 between 1 and 3",1,2,3,"smallint1"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by smallint1 having smallint1 = 2",1,"retval"));
+		 	Assert.assertTrue(runandtestqueryri("select * from "+CLASS_NAME+"."+TABLE_1+" where smallint2 = 1",3,"smallint1"));
+		 	Assert.assertTrue(runandtestqueryri("select * from "+CLASS_NAME+"."+TABLE_1+" where smallint2 between 1 and 3",3,"smallint2"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by smallint2 having smallint2 = 2",1,"retval"));
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
 	}
-	 
 	
 	@Test
 	public void testField2() throws Exception{
-		int returnval;
 		try {
-			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where integer1 = 1");
-			if(rs.next()){
-				returnval = rs.getInt("integer1");
-				//System.out.println("integer1 = "+returnval);
-				Assert.assertEquals(1,returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where integer1 between 1 and 3");
-			if(rs.next()){
-				returnval = rs.getInt("integer1");
-				//System.out.println("integer1 = "+returnval);
-				Assert.assertEquals(1,returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by integer1 having integer1 = 2");
-			if(rs.next()){
-				returnval = rs.getInt("retval");
-				//System.out.println("retval = "+returnval);
-				Assert.assertEquals(1,returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where integer2 = 1");
-			if(rs.next()){
-				returnval = rs.getInt("integer2");
-				//System.out.println("integer2 = "+returnval);
-				Assert.assertEquals(1,returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where integer2 between 1 and 3");
-			if(rs.next()){
-				returnval = rs.getInt("integer2");
-				//System.out.println("integer2 = "+returnval);
-				Assert.assertEquals(3,returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by integer2 having integer2 = 2");
-			if(rs.next()){
-				returnval = rs.getInt("retval");
-				//System.out.println("retval = "+returnval);
-				Assert.assertEquals(1,returnval);
-			}
-			rs.close();
-			Assert.assertTrue(true);;
+			Assert.assertTrue(runandtestqueryri("select * from "+CLASS_NAME+"."+TABLE_1+" where integer1 = 1",1,"integer1"));
+			Assert.assertTrue(runandtestqueryR3("select * from "+CLASS_NAME+"."+TABLE_1+" where integer1 between 1 and 3",1,2,3,"integer1"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by integer1 having integer1 = 2",1,"retval"));
+		 	Assert.assertTrue(runandtestqueryri("select * from "+CLASS_NAME+"."+TABLE_1+" where integer2 = 1",1,"integer2"));
+		 	Assert.assertTrue(runandtestqueryR3("select * from "+CLASS_NAME+"."+TABLE_1+" where integer2 between 1 and 3",1,2,3,"integer2"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by integer2 having integer2 = 2",1,"retval"));
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
@@ -279,50 +304,13 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	
 	@Test
 	public void testField3() throws Exception{
-		int returnval;
 		try {
-			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where bigint1 = 1");
-			if(rs.next()){
-				returnval = rs.getInt("bigint1");
-				//System.out.println("bigint1 = "+returnval);
-				Assert.assertEquals(1,returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where bigint1 between 1 and 3");
-			if(rs.next()){
-				returnval = rs.getInt("bigint1");
-				//System.out.println("bigint1 = "+returnval);
-				Assert.assertEquals(1,returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by bigint1 having bigint1 = 2");
-			if(rs.next()){
-				returnval = rs.getInt("retval");
-				//System.out.println("retval = "+returnval);
-				Assert.assertEquals(1,returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where bigint2 = 1");
-			if(rs.next()){
-				returnval = rs.getInt("bigint2");
-				//System.out.println("bigint2 = "+returnval);
-				Assert.assertEquals(1,returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where bigint2 between 1 and 3");
-			if(rs.next()){
-				returnval = rs.getInt("bigint2");
-				//System.out.println("bigint2 = "+returnval);
-				Assert.assertEquals(3,returnval);
-			}
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by bigint2 having bigint2 = 2");
-			if(rs.next()){
-				returnval = rs.getInt("retval");
-				//System.out.println("retval = "+returnval);
-				Assert.assertEquals(1,returnval);
-			}
-			rs.close();
-			Assert.assertTrue(true);;
+			Assert.assertTrue(runandtestqueryri("select * from "+CLASS_NAME+"."+TABLE_1+" where bigint1 = 1",1,"bigint1"));
+			Assert.assertTrue(runandtestqueryR3("select * from "+CLASS_NAME+"."+TABLE_1+" where bigint1 between 1 and 3",1,2,3,"bigint1"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by bigint1 having bigint1 = 2",1,"retval"));
+		 	Assert.assertTrue(runandtestqueryri("select * from "+CLASS_NAME+"."+TABLE_1+" where bigint2 = 1",1,"bigint2"));
+		 	Assert.assertTrue(runandtestqueryR3("select * from "+CLASS_NAME+"."+TABLE_1+" where bigint2 between 1 and 3",1,2,3,"bigint2"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by bigint2 having bigint2 = 2",1,"retval"));
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
@@ -334,104 +322,28 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	public void testField4() throws Exception{
 		double returnval;
 		try {
-			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where decimal1 = 1");
-			if(rs.next()){
-				returnval = rs.getDouble("decimal1");
-				//System.out.println("decimal1 = "+returnval);
-				Assert.assertTrue(Math.abs(1.0-returnval)<0.0001);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where decimal1 between 1 and 3");
-			if(rs.next()){
-				returnval = rs.getDouble("decimal1");
-				//System.out.println("decimal1 = "+returnval);
-				Assert.assertTrue(Math.abs(1.0-returnval)<0.0001);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by decimal1 having decimal1 = 2");
-			if(rs.next()){
-				int retval = rs.getInt("retval");
-				//System.out.println("retval = "+retval);
-				Assert.assertEquals(1,retval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where decimal2 = 1");
-			if(rs.next()){
-				returnval = rs.getDouble("decimal2");
-				//System.out.println("decimal2 = "+returnval);
-				Assert.assertTrue(Math.abs(1.0-returnval)<0.0001);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where decimal2 between 1 and 3");
-			if(rs.next()){
-				returnval = rs.getDouble("decimal2");
-				//System.out.println("decimal2 = "+returnval);
-				Assert.assertTrue(Math.abs(3.0-returnval)<0.0001);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by decimal2 having decimal2 = 2");
-			if(rs.next()){
-				int retval = rs.getInt("retval");
-				//System.out.println("retval = "+retval);
-				Assert.assertEquals(1,retval);
-			}
-			rs.close();
-			Assert.assertTrue(true);;
+			Assert.assertTrue(runandtestqueryrd("select * from "+CLASS_NAME+"."+TABLE_1+" where decimal1 = 1",1.0,"decimal1"));
+			Assert.assertTrue(runandtestqueryR3D("select * from "+CLASS_NAME+"."+TABLE_1+" where decimal1 between 1.0 and 3.0",1.0,2.0,3.0,"decimal1"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by decimal1 having decimal1 = 2.0",1,"retval"));
+			Assert.assertTrue(runandtestqueryrd("select * from "+CLASS_NAME+"."+TABLE_1+" where decimal2 = 1.0",1.0,"decimal2"));
+			Assert.assertTrue(runandtestqueryR3D("select * from "+CLASS_NAME+"."+TABLE_1+" where decimal2 between 1 and 3",1.0,2.0,3.0,"decimal2"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by decimal2 having decimal2 = 2.0",1,"retval"));
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
-		Assert.assertTrue(true);
 	}
 	 
 	
 	@Test
 	public void testField5() throws Exception{
-		double returnval;
 		try {
-			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where real1 = 1.0");
-			if(rs.next()){
-				returnval = rs.getDouble("real1");
-				//System.out.println("real1 = "+returnval);
-				Assert.assertTrue(Math.abs(1.0-returnval)<0.0001);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where real1 between 1.5 and 2.5");
-			if(rs.next()){
-				returnval = rs.getDouble("real1");
-				//System.out.println("real1 = "+returnval);
-				Assert.assertTrue(Math.abs(2.0-returnval)<0.0001);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by real1 having real1 = 2.0");
-			if(rs.next()){
-				int retval = rs.getInt("retval");
-				//System.out.println("retval = "+retval);
-				Assert.assertEquals(1,retval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where real2 = 1.0");
-			if(rs.next()){
-				returnval = rs.getDouble("real2");
-				//System.out.println("real2 = "+returnval);
-				Assert.assertTrue(Math.abs(1.0-returnval)<0.0001);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where real2 between 1.5 and 2.5");
-			if(rs.next()){
-				returnval = rs.getDouble("real2");
-				//System.out.println("real2 = "+returnval);
-				Assert.assertTrue(Math.abs(2.0-returnval)<0.0001);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by real2 having real2 = 2.0");
-			if(rs.next()){
-				int retval = rs.getInt("retval");
-				//System.out.println("retval = "+retval);
-				Assert.assertEquals(1,retval);
-			}
-			rs.close();
-			Assert.assertTrue(true);;
+			Assert.assertTrue(runandtestqueryrd("select * from "+CLASS_NAME+"."+TABLE_1+" where real1 = 1",1.0,"real1"));
+			Assert.assertTrue(runandtestqueryR3D("select * from "+CLASS_NAME+"."+TABLE_1+" where real1 between 1.5 and 2.5",1.5,2.0,2.5,"real1"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by real1 having real1 = 2.0",1,"retval"));
+			Assert.assertTrue(runandtestqueryrd("select * from "+CLASS_NAME+"."+TABLE_1+" where real2 = 1",1.0,"real2"));
+			Assert.assertTrue(runandtestqueryR3D("select * from "+CLASS_NAME+"."+TABLE_1+" where real2 between 1.5 and 2.5",1.5,2.0,2.5,"real2"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by real2 having real2 = 2.0",1,"retval"));
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
@@ -443,54 +355,16 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	public void testField6() throws Exception{
 		double returnval;
 		try {
-			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where double1 = 1.0");
-			if(rs.next()){
-				returnval = rs.getDouble("double1");
-				//System.out.println("double1 = "+returnval);
-				Assert.assertTrue(Math.abs(1.0-returnval)<0.0001);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where double1 between 1.5 and 2.5");
-			if(rs.next()){
-				returnval = rs.getDouble("double1");
-				//System.out.println("double1 = "+returnval);
-				Assert.assertTrue(Math.abs(2.0-returnval)<0.0001);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by double1 having double1 = 2.0");
-			if(rs.next()){
-				int retval = rs.getInt("retval");
-				//System.out.println("retval = "+retval);
-				Assert.assertEquals(1,retval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where double2 = 1.0");
-			if(rs.next()){
-				returnval = rs.getDouble("double2");
-				//System.out.println("double2 = "+returnval);
-				Assert.assertTrue(Math.abs(1.0-returnval)<0.0001);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where double2 between 1.5 and 2.5");
-			if(rs.next()){
-				returnval = rs.getDouble("double2");
-				//System.out.println("double2 = "+returnval);
-				Assert.assertTrue(Math.abs(2.0-returnval)<0.0001);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by double2 having double2 = 2.0");
-			if(rs.next()){
-				int retval = rs.getInt("retval");
-				//System.out.println("retval = "+retval);
-				Assert.assertEquals(1,retval);
-			}
-			rs.close();
-			Assert.assertTrue(true);;
+			Assert.assertTrue(runandtestqueryrd("select * from "+CLASS_NAME+"."+TABLE_1+" where double1 = 1",1.0,"double1"));
+			Assert.assertTrue(runandtestqueryR3D("select * from "+CLASS_NAME+"."+TABLE_1+" where double1 between 1.5 and 2.5",1.5,2.0,2.5,"double1"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by double1 having double1 = 2.0",1,"retval"));
+			Assert.assertTrue(runandtestqueryrd("select * from "+CLASS_NAME+"."+TABLE_1+" where double2 = 1",1.0,"double2"));
+			Assert.assertTrue(runandtestqueryR3D("select * from "+CLASS_NAME+"."+TABLE_1+" where double2 between 1.5 and 2.5",1.5,2.0,2.5,"double2"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by double2 having double2 = 2.0",1,"retval"));
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
-		Assert.assertTrue(true);
 	}
 
 	
@@ -498,49 +372,12 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	public void testField7() throws Exception{
 		double returnval;
 		try {
-			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where float1 = 1.0");
-			if(rs.next()){
-				returnval = rs.getDouble("float1");
-				//System.out.println("float1 = "+returnval);
-				Assert.assertTrue(Math.abs(1.0-returnval)<0.0001);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where float1 between 1.5 and 2.5");
-			if(rs.next()){
-				returnval = rs.getDouble("float1");
-				//System.out.println("float1 = "+returnval);
-				Assert.assertTrue(Math.abs(2.0-returnval)<0.0001);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by float1 having float1 = 2.0");
-			if(rs.next()){
-				int retval = rs.getInt("retval");
-				//System.out.println("retval = "+retval);
-				Assert.assertEquals(1,retval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where float2 = 1.0");
-			if(rs.next()){
-				returnval = rs.getDouble("float2");
-				//System.out.println("float2 = "+returnval);
-				Assert.assertTrue(Math.abs(1.0-returnval)<0.0001);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where float2 between 1.5 and 2.5");
-			if(rs.next()){
-				returnval = rs.getDouble("float2");
-				//System.out.println("float2 = "+returnval);
-				Assert.assertTrue(Math.abs(2.0-returnval)<0.0001);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by float2 having float2 = 2.0");
-			if(rs.next()){
-				int retval = rs.getInt("retval");
-				//System.out.println("retval = "+retval);
-				Assert.assertEquals(1,retval);
-			}
-			rs.close();
-			Assert.assertTrue(true);;
+			Assert.assertTrue(runandtestqueryrd("select * from "+CLASS_NAME+"."+TABLE_1+" where float1 = 1",1.0,"float1"));
+			Assert.assertTrue(runandtestqueryR3D("select * from "+CLASS_NAME+"."+TABLE_1+" where float1 between 1.5 and 2.5",1.5,2.0,2.5,"float1"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by float1 having float1 = 2.0",1,"retval"));
+			Assert.assertTrue(runandtestqueryrd("select * from "+CLASS_NAME+"."+TABLE_1+" where float2 = 1",1.0,"float2"));
+			Assert.assertTrue(runandtestqueryR3D("select * from "+CLASS_NAME+"."+TABLE_1+" where float2 between 1.5 and 2.5",1.5,2.0,2.5,"float2"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by float2 having float2 = 2.0",1,"retval"));
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
@@ -552,49 +389,12 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	public void testField8() throws Exception{
 		String returnval;
 		try {
-			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where char1 = 'a'");
-			if(rs.next()){
-				returnval = rs.getString("char1");
-				//System.out.println("smallint1 = "+returnval);
-				Assert.assertEquals("a",returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where char1 between 'a' and 'c'");
-			if(rs.next()){
-				returnval = rs.getString("char1");
-				//System.out.println("char1 = "+returnval);
-				Assert.assertEquals("a",returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by char1 having char1 = 'b'");
-			if(rs.next()){
-				int retval = rs.getInt("retval");
-				//System.out.println("retval = "+retval);
-				Assert.assertEquals(1,retval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where char2 = 'a'");
-			if(rs.next()){
-				returnval = rs.getString("char2");
-				//System.out.println("char2 = "+returnval);
-				Assert.assertEquals("a",returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where char2 between 'a' and 'c'");
-			while(rs.next()){
-				returnval = rs.getString("char2");
-				//System.out.println("char2 = "+returnval);
-				Assert.assertTrue("abc".contains(returnval));
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by char2 having char2 = 'b'");
-			if(rs.next()){
-				int retval = rs.getInt("retval");
-				//System.out.println("retval = "+retval);
-				Assert.assertEquals(1,retval);
-			}
-			rs.close();
-			Assert.assertTrue(true);;
+			Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+TABLE_1+" where char1 = 'a'","a","char1"));
+			Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+TABLE_1+" where char1 between 'a' and 'c'","a","b","c","char1"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by char1 having char1 = 'b'",1,"retval"));
+			Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+TABLE_1+" where char2 = 'a'","a","char2"));
+			Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+TABLE_1+" where char2 between 'a' and 'c'","a","b","c","char2"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by char2 having char2 = 'b'",1,"retval"));
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
@@ -608,46 +408,74 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	public void testField9() throws Exception{
 		String returnval;
 		try {
-			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where varchar1 = 'a'");
+			Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+TABLE_1+" where varchar1 = 'a'","a","varchar1"));
+			Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+TABLE_1+" where varchar1 between 'a' and 'c'","a","b","c","varchar1"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by varchar1 having varchar1 = 'b'",1,"retval"));
+			Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+TABLE_1+" where varchar2 = 'a'","a","varchar2"));
+			Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+TABLE_1+" where varchar2 between 'a' and 'c'","a","b","c","varchar2"));
+		 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by varchar2 having varchar2 = 'b'",1,"retval"));
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
+	}
+
+	
+	@Test
+//	@Ignore
+	public void testField10() throws Exception{
+		try {
+			String returnval;
+			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_2+" where CAST(lvarchar1 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
 			if(rs.next()){
-				returnval = rs.getString("varchar1");
-				//System.out.println("varchar1 = "+returnval);
-				Assert.assertEquals("a",returnval);
+				returnval = rs.getString("lvarchar1");
+				System.out.println("lvarchar1 = "+returnval);
+				Assert.assertTrue("aaaaaaaaaaaaaaaaaaaaaaaaaa".equals(returnval));
 			}
 			rs.close();
-	    	rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where varchar1 between 'a' and 'c'");
-			if(rs.next()){
-				returnval = rs.getString("varchar1");
-				//System.out.println("varchar1 = "+returnval);
-				Assert.assertEquals("a",returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by varchar1 having varchar1 = 'b'");
-			if(rs.next()){
-				int retval = rs.getInt("retval");
-				//System.out.println("retval = "+retval);
-				Assert.assertEquals(1,retval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where varchar2 = 'a'");
-			if(rs.next()){
-				returnval = rs.getString("varchar2");
-				//System.out.println("varchar2 = "+returnval);
-				Assert.assertEquals("a",returnval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_1+" where varchar2 between 'a' and 'c'");
+			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_2+" where CAST(lvarchar1 as varchar(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
 			while(rs.next()){
-				returnval = rs.getString("varchar2");
-				//System.out.println("varchar2 = "+returnval);
-				Assert.assertTrue("abc".contains(returnval));
+				returnval = rs.getString("lvarchar1");
+				System.out.println("lvarchar1 = "+returnval);
+				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa")||returnval.equals("bbbbbbbbbbbbbbbbbbbbbbbbbb")||returnval.equals("cccccccccccccccccccccccccc"));
 			}
 			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_1+" group by varchar2 having varchar2 = 'b'");
+// Group by for LONG VARCHAR are not supported.			
+//			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_2+" group by lvarchar1 having CAST(lvarchar1 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
+//			if(rs.next()){
+//				int retval = rs.getInt("retval");
+//				System.out.println("retval = "+retval);
+//				Assert.assertEquals(1,retval);
+//			}
+//			rs.close();
+			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_2+" where CAST(lvarchar1 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar1 as varchar(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ");
 			if(rs.next()){
 				int retval = rs.getInt("retval");
-				//System.out.println("retval = "+retval);
-				Assert.assertEquals(1,retval);
+				System.out.println("retval = "+retval);
+				Assert.assertEquals(2,retval);
+			}
+			rs.close();
+			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_2+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
+			if(rs.next()){
+				returnval = rs.getString("lvarchar2");
+				System.out.println("smallint1 = "+returnval);
+				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa"));
+			}
+			rs.close();
+			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_2+" where CAST(lvarchar2 AS VARCHAR(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
+			while(rs.next()){
+				returnval = rs.getString("lvarchar2");
+				System.out.println("lvarchar1 = "+returnval);
+				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa")||returnval.equals("bbbbbbbbbbbbbbbbbbbbbbbbbb")||returnval.equals("cccccccccccccccccccccccccc"));
+			}
+			rs.close();
+//Group by not supported.
+//			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_2+" group by lvarchar2 having CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
+			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_2+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or  CAST(lvarchar2 AS VARCHAR(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb'");
+			if(rs.next()){
+				int retval = rs.getInt("retval");
+				System.out.println("retval = "+retval);
+				Assert.assertEquals(2,retval);
 			}
 			rs.close();
 			Assert.assertTrue(true);;
@@ -655,8 +483,8 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
-		Assert.assertTrue(true);
 	}
+
 	
 	
 	public static String getResource(String name) {
