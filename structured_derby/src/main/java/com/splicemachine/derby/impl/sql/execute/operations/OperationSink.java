@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
@@ -77,17 +78,16 @@ public class OperationSink {
 				}
 				bytes.add(taskId);
         RecordingCallBuffer<KVPair> writeBuffer;
-				PairEncoder encoder;
 				long rowsRead = 0;
 				long rowsWritten = 0;
 				Timer writeTimer = spliceRuntimeContext.newTimer();
-        try{
-						KeyEncoder keyEncoder = operation.getKeyEncoder(spliceRuntimeContext);
-						DataHash rowHash = operation.getRowHash(spliceRuntimeContext);
+				KeyEncoder keyEncoder = operation.getKeyEncoder(spliceRuntimeContext);
+				DataHash rowHash = operation.getRowHash(spliceRuntimeContext);
 
-						KVPair.Type dataType = operation instanceof UpdateOperation? KVPair.Type.UPDATE: KVPair.Type.INSERT;
-						dataType = operation instanceof DeleteOperation? KVPair.Type.DELETE: dataType;
-						encoder = new PairEncoder(keyEncoder,rowHash,dataType);
+				KVPair.Type dataType = operation instanceof UpdateOperation? KVPair.Type.UPDATE: KVPair.Type.INSERT;
+				dataType = operation instanceof DeleteOperation? KVPair.Type.DELETE: dataType;
+				PairEncoder encoder = new PairEncoder(keyEncoder,rowHash,dataType);
+        try{
             String txnId = getTransactionId(spliceRuntimeContext, destinationTable);
 						writeBuffer = operation.transformWriteBuffer(tableWriter.writeBuffer(destinationTable, txnId,spliceRuntimeContext));
 
@@ -137,6 +137,7 @@ public class OperationSink {
 						else
 								throw e;
 				}finally{
+						Closeables.closeQuietly(encoder);
 						bytes = taskChain.get();
 						bytes.remove(bytes.size()-1);
 						if(bytes.size()<=0){

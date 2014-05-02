@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.hbase.KeyValueUtils;
+import com.splicemachine.si.api.SIFilter;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -8,11 +9,11 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 
 public class FilterStatePacked<Result, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
-        Scan, Lock, OperationStatus, Mutation, IHTable> implements IFilterState {
+        Scan, Lock, OperationStatus, Mutation, IHTable> implements IFilterState,SIFilter {
     static final Logger LOG = Logger.getLogger(FilterStatePacked.class);
     protected final FilterState<Result, Put, Delete, Get, Scan, Lock, OperationStatus,
 						Mutation, IHTable> simpleFilter;
-    protected final RowAccumulator accumulator;
+    public final RowAccumulator accumulator;
     private KeyValue lastValidKeyValue;
     protected boolean excludeRow = false;
 
@@ -60,7 +61,7 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
 				return Filter.ReturnCode.SKIP;
 		}
 
-		protected Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
+		public Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
 				if (!accumulator.isFinished() && !excludeRow && accumulator.isOfInterest(dataKeyValue)) {
 						if (!accumulator.accumulate(simpleFilter.keyValue)) {
 								excludeRow = true;
@@ -96,6 +97,7 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
     @Override
     public void nextRow() {
         simpleFilter.nextRow();
+				accumulator.reset();
         lastValidKeyValue = null;
         excludeRow = false;
     }

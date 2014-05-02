@@ -1,10 +1,7 @@
 package com.splicemachine.encoding;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
 import com.google.common.base.Preconditions;
-import com.splicemachine.utils.kryo.KryoPool;
-import org.apache.hadoop.hbase.util.Bytes;
+
 import java.math.BigDecimal;
 
 /**
@@ -14,38 +11,32 @@ import java.math.BigDecimal;
  * Created on: 6/12/13
  */
 public class MultiFieldDecoder {
-    private final KryoPool kryoPool;
-    private byte[] data;
+		private byte[] data;
     private int currentOffset;
     private int length;
     private long[] intValueLength;
     private int offset;
-    private Kryo kryo;
 
-    private MultiFieldDecoder(KryoPool kryoPool){
+    private MultiFieldDecoder(){
         this.currentOffset=-1;
-        this.kryoPool = kryoPool;
+		}
+
+    public static MultiFieldDecoder create(){
+        return new MultiFieldDecoder();
     }
 
-    public static MultiFieldDecoder create(KryoPool kryoPool){
-        return new MultiFieldDecoder(kryoPool);
+    public static MultiFieldDecoder wrap(byte[] row) {
+        return wrap(row,0,row.length);
     }
 
-    public static MultiFieldDecoder wrap(byte[] row,KryoPool kryoPool) {
-        return wrap(row,0,row.length,kryoPool);
-    }
-
-    public static MultiFieldDecoder wrap(byte[] row,int offset, int length,KryoPool kryoPool) {
-        MultiFieldDecoder next = new MultiFieldDecoder(kryoPool);
+    public static MultiFieldDecoder wrap(byte[] row, int offset, int length) {
+        MultiFieldDecoder next = new MultiFieldDecoder();
         next.set(row,offset,length);
         next.reset();
         return next;
     }
 
-    public void close(){
-        if(kryo!=null)
-            kryoPool.returnInstance(kryo);
-    }
+    public void close(){ }
 
     public MultiFieldDecoder set(byte[] newData){
         return set(newData,0,newData.length);
@@ -298,20 +289,7 @@ public class MultiFieldDecoder {
         return value;
     }
 
-    public Object decodeNextObject(){
-        if(!available())
-            return null;
-        if(kryo==null)
-            kryo = kryoPool.get();
-
-        byte[] bytes = decodeNextBytesUnsorted();
-        if(bytes==null||bytes.length==0) return null;
-
-        Input input = new Input(bytes);
-        return kryo.readClassAndObject(input);
-    }
-
-    public int skip() {
+		public int skip() {
         //read out raw bytes, and throw them away
         if(!available())
             return 0; //off the end of the array, so nothing to skip
@@ -363,9 +341,8 @@ public class MultiFieldDecoder {
     }
 
     public boolean nextIsNullFloat(){
-        if(!available()) return true;
-        return check2ByteNull(Encoding.encodedNullFloat());
-    }
+				return !available() || check2ByteNull(Encoding.encodedNullFloat());
+		}
 
     public int skipDouble() {
         if(!available()) return 0;

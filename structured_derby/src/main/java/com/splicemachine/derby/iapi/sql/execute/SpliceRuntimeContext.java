@@ -6,6 +6,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.management.StatementInfo;
+import com.splicemachine.derby.utils.marshall.dvd.SerializerMap;
 import com.splicemachine.stats.*;
 import com.splicemachine.utils.kryo.KryoPool;
 
@@ -81,7 +82,6 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		public void addRightRuntimeContext(int resultSetNumber) {
 				this.addPath(resultSetNumber, 1);
 		}
-
 
 		public void addSinkRuntimeContext(boolean firstStepInMultistep) {
 				this.firstStepInMultistep = firstStepInMultistep;

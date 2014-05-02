@@ -1,5 +1,7 @@
 package com.splicemachine.derby.utils.marshall;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  *         Date: 11/15/13
@@ -11,4 +13,6 @@ public class NoOpPrefix implements HashPrefix {
 
 		@Override public int getPrefixLength() {return 0;}
 		@Override public void encode(byte[] bytes, int offset, byte[] hashBytes) {}//no-op
+
+		@Override public void close() throws IOException {  }
 }

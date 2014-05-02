@@ -11,9 +11,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBufferFactory;
@@ -154,6 +154,7 @@ public class InsertOperationTest {
         DMLWriteInfo writeInfo = mock(DMLWriteInfo.class);
         when(writeInfo.getPkColumnMap()).thenReturn(usePks? primaryKeys:null);
         when(writeInfo.getPkColumns()).thenReturn(usePks? DerbyDMLWriteInfo.fromIntArray(primaryKeys):null);
+				when(writeInfo.getTableVersion()).thenReturn("2.0");
 
         final List<ExecRow> rowsToWrite = Lists.newArrayList(correctOutputRows);
 
@@ -230,9 +231,9 @@ public class InsertOperationTest {
         BitSet setCols = new BitSet(dataTypes.length);
         setCols.set(0,dataTypes.length);
         if(usePrimaryKeys){
-            for (int i = 0; i < primaryKeys.length; ++i) {
-                setCols.clear(primaryKeys[i]-1);
-            }
+						for (int primaryKey : primaryKeys) {
+								setCols.clear(primaryKey - 1);
+						}
         }
 
         BitSet scalarCols = TestingDataType.getScalarFields(dataTypes);
@@ -255,30 +256,30 @@ public class InsertOperationTest {
                 pks[i] = primaryKeys[i]-1;
                 cols[primaryKeys[i]-1] = -1; // exclude primary key columns for a row encoding
             }
-            kEncoder = MultiFieldEncoder.create(kryoPool, primaryKeys.length);
+            kEncoder = MultiFieldEncoder.create(primaryKeys.length);
         }
         final int[] pksToUse = pks;
         final int[] colsToUse = cols;
         final MultiFieldEncoder keyEncoder = kEncoder;
 
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(rowsToWrite.get(0));
+				final EntryDataHash hash = new EntryDataHash(colsToUse,null,serializers);
         return Lists.newArrayList(Lists.transform(rowsToWrite,new Function<ExecRow, KVPair>() {
             @Override
             public KVPair apply(@Nullable ExecRow input) {
                 MultiFieldEncoder fieldEncoder = encoder.getEntryEncoder();
                 fieldEncoder.reset();
 
+								byte[] dataBytes;
                 try {
                     //noinspection ConstantConditions
-                    RowMarshaller.sparsePacked().encodeRow(input.getRowArray(),colsToUse, fieldEncoder);
+										hash.setRow(input);
+										dataBytes =hash.encode();
                 } catch (StandardException e) {
                     throw new RuntimeException(e);
-                }
-                byte[] dataBytes;
-                try {
-                    dataBytes = encoder.encode();
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+										throw new RuntimeException(e);
+								}
                 if(!usePrimaryKeys)
                     return new KVPair(snowflake.nextUUIDBytes(),dataBytes);
                 else{
@@ -286,12 +287,18 @@ public class InsertOperationTest {
                     try {
 
                         keyEncoder.reset();
-                        KeyType.BARE.encodeKey(input.getRowArray(), pksToUse, null, null, keyEncoder);
-                        return new KVPair(fieldEncoder.build(),dataBytes);
+												DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(input);
+												DataHash keyHash = BareKeyHash.encoder(pksToUse, null, null, serializers);
+												keyHash.setRow(input);
+												byte[] encode = keyHash.encode();
+
+                        return new KVPair(encode,dataBytes);
                     } catch (StandardException e) {
                         throw new RuntimeException(e);
-                    }
-                }
+                    } catch (IOException e) {
+												throw new RuntimeException(e);
+										}
+								}
 
             }
         }));

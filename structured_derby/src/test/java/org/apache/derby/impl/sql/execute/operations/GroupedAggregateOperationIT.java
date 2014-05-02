@@ -73,13 +73,12 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
     @Test
     // Bugzilla #376: nested sub-query in HAVING
     public void testHavingWithSubQuery() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(format("SELECT T1.PNUM FROM %1$s.T1 T1 GROUP BY T1.PNUM " +
-                "HAVING T1.PNUM IN " +
-                // Progressively more simple sub-queries:
-                "(SELECT T2.PNUM FROM %1$s.T2 T2 GROUP BY T2.PNUM HAVING SUM(T2.BUDGET) > 25000)",
-                //"(SELECT T2.PNUM FROM %s.T2 T2 WHERE T2.PNUM IN ('P1', 'P2', 'P3'))",
-                //"(SELECT 'P1' FROM %s.T2)",
-                CLASS_NAME, CLASS_NAME));
+				String query = format("SELECT T1.PNUM FROM %1$s.T1 T1 GROUP BY T1.PNUM " +
+								"HAVING T1.PNUM IN " +
+								"(SELECT T2.PNUM FROM %1$s.T2 T2 GROUP BY T2.PNUM HAVING SUM(T2.BUDGET) > 25000)",
+								CLASS_NAME, CLASS_NAME);
+				System.out.println(query);
+				ResultSet rs = methodWatcher.executeQuery(query);
         Assert.assertEquals(3, TestUtils.resultSetToMaps(rs).size());
     }
 

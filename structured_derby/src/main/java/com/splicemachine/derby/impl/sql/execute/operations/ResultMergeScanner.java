@@ -7,17 +7,13 @@ import com.splicemachine.derby.impl.storage.ClientResultScanner;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.storage.RegionAwareScanner;
 import com.splicemachine.derby.impl.storage.SpliceResultScanner;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.JoinSideExecRow;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.TimeView;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Result;
@@ -83,7 +79,7 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
         if(ordinal == JoinUtils.JoinSide.RIGHT.ordinal()){
             ExecRow rightRow = rightDecoder.decode(KeyValueUtils.matchDataColumn(result.raw()));
             if(rightSideRow==null){
-                rightKeyDecoder = MultiFieldDecoder.wrap(rowKey, SpliceDriver.getKryoPool());
+                rightKeyDecoder = MultiFieldDecoder.wrap(rowKey);
                 rightSideRow = new JoinSideExecRow(rightRow, JoinUtils.JoinSide.RIGHT);
             }else{
                 rightKeyDecoder.set(rowKey);
@@ -97,7 +93,7 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
         }else{
             ExecRow leftRow = leftDecoder.decode(KeyValueUtils.matchDataColumn(result.raw()));
             if(leftSideRow==null){
-                leftKeyDecoder = MultiFieldDecoder.wrap(rowKey, SpliceDriver.getKryoPool());
+                leftKeyDecoder = MultiFieldDecoder.wrap(rowKey);
                 leftSideRow = new JoinSideExecRow(leftRow, JoinUtils.JoinSide.LEFT);
             }else{
                 leftKeyDecoder.set(rowKey);

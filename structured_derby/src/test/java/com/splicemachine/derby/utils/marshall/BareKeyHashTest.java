@@ -4,7 +4,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.derby.impl.load.ImportTestUtils;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.utils.kryo.KryoPool;
@@ -128,22 +129,34 @@ public class BareKeyHashTest {
 				for(int i=0;i<keyColumns.length;i++){
 						keyColumns[i] = i;
 				}
-				DataHash bareKeyHash = BareKeyHash.encoder(keyColumns,null);
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(execRow);
+				DataHash bareKeyHash = BareKeyHash.encoder(keyColumns,null,serializers);
 				bareKeyHash.setRow(execRow);
 				byte[] data = bareKeyHash.encode();
 
 
-				MultiFieldDecoder decoder = MultiFieldDecoder.wrap(data,kryoPool);
+				MultiFieldDecoder decoder = MultiFieldDecoder.wrap(data);
 
 				for(int i=0;i<dataTypes.length;i++){
 						TestingDataType dt = dataTypes[i];
 						DataValueDescriptor field = execRow.getColumn(i+1);
 						if(row[i].isNull()){
-								Assert.assertTrue("Incorrectly encoded a null value!", DerbyBytesUtil.isNextFieldNull(decoder, field));
+								String errorMsg = "Incorrectly encoded a null value!";
+								if(dt==TestingDataType.REAL)
+										Assert.assertTrue(errorMsg,decoder.nextIsNullFloat());
+								else if(dt==TestingDataType.DOUBLE)
+										Assert.assertTrue(errorMsg,decoder.nextIsNullDouble());
+								else
+										Assert.assertTrue(errorMsg,decoder.nextIsNull());
 								continue;
 						}
-
-						Assert.assertFalse("Incorrectly encoded a non-null field as null!", DerbyBytesUtil.isNextFieldNull(decoder, field));
+						String errorMsg = "Incorrectly encoded a non-null field as null!";
+						if(dt==TestingDataType.REAL)
+								Assert.assertFalse(errorMsg,decoder.nextIsNullFloat());
+						else if(dt==TestingDataType.DOUBLE)
+								Assert.assertFalse(errorMsg,decoder.nextIsNullDouble());
+						else
+								Assert.assertFalse(errorMsg,decoder.nextIsNull());
 
 						dt.decodeNext(field,decoder);
 						Assert.assertEquals("Row<"+ Arrays.toString(row)+">Incorrect serialization of field "+ row[i],row[i],field);
@@ -162,7 +175,8 @@ public class BareKeyHashTest {
 				for(int i=0;i<keyColumns.length;i++){
 						keyColumns[i] = i;
 				}
-				DataHash bareKeyHash = BareKeyHash.encoder(keyColumns,null);
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(execRow);
+				DataHash bareKeyHash = BareKeyHash.encoder(keyColumns,null,serializers);
 				bareKeyHash.setRow(execRow);
 				byte[] data = bareKeyHash.encode();
 
@@ -193,7 +207,8 @@ public class BareKeyHashTest {
 						colIt.remove();
 				}
 
-				DataHash bareKeyHash = BareKeyHash.encoder(keyColumns,null);
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(execRow);
+				DataHash bareKeyHash = BareKeyHash.encoder(keyColumns,null,serializers);
 				bareKeyHash.setRow(execRow);
 				byte[] data = bareKeyHash.encode();
 

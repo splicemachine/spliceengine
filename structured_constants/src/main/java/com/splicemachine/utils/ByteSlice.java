@@ -78,6 +78,14 @@ public class ByteSlice implements Externalizable {
 				System.arraycopy(buffer,offset,destination,destOffset,length);
 		}
 
+		public void get(byte[] destination, int destOffset,int destLength){
+				assert destOffset + destLength <=destination.length: "Incorrect size to copy!";
+				if(length<=0) return; //nothing to do
+				int l = Math.min(destLength,length);
+
+				System.arraycopy(buffer,offset,destination,destOffset,l);
+		}
+
 		public void set(byte[] buffer, int offset, int length) {
 				this.buffer = buffer;
 				this.offset = offset;

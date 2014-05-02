@@ -23,4 +23,9 @@ public class FixedDataHash<T> implements DataHash<T> {
 		public byte[] encode() throws StandardException, IOException {
 				return bytes;
 		}
+
+		@Override
+		public void close() throws IOException {
+
+		}
 }

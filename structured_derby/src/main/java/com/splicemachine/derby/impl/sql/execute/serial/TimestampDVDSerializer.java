@@ -14,16 +14,6 @@ import org.joda.time.DateTime;
  */
 public class TimestampDVDSerializer implements DVDSerializer {
 
-    @Override
-    public void deserialize(byte[] bytes, DataValueDescriptor dvd) throws Exception {
-        dvd.setValue(new DateTime(Encoding.decodeLong(bytes)));
-    }
-
-    @Override
-    public void deserialize(byte[] bytes, DataValueDescriptor dvd,boolean desc) throws Exception {
-        dvd.setValue(new DateTime(Encoding.decodeLong(bytes, desc)));
-    }
-
 		@Override
 		public void deserialize(DataValueDescriptor ldvd, byte[] bytes, int offset, int length, boolean desc) throws Exception {
 				ldvd.setValue(new DateTime(Encoding.decodeLong(bytes,offset,desc)));

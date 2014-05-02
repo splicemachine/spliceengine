@@ -2,15 +2,12 @@ package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractStandardIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.StandardIterator;
-import com.splicemachine.derby.utils.marshall.KeyMarshall;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -23,19 +20,18 @@ import java.io.IOException;
  */
 public class ScanGroupedAggregateIterator extends GroupedAggregateIterator{
     private final GroupedAggregateBuffer buffer;
-    private final boolean[] groupSortByColumns;
-    private MultiFieldEncoder groupKeyEncoder;
-    private KeyMarshall groupKeyHasher;
+		private final KeyEncoder groupKeyEncoder;
 
     public ScanGroupedAggregateIterator(GroupedAggregateBuffer buffer,
                                  StandardIterator<ExecRow> source,
-                                 int[] groupColumns,
-                                 boolean[] groupSortByColumns,
+																 KeyEncoder encoder,
+																 int[] groupColumns,
                                  boolean isRollup) {
 				super(source,isRollup,groupColumns);
         this.buffer = buffer;
-        this.groupSortByColumns = groupSortByColumns;
-        groupKeyHasher = KeyType.BARE;
+				this.groupKeyEncoder = encoder;
+//        this.groupSortByColumns = groupSortByColumns;
+//        groupKeyHasher = KeyType.BARE;
         int maxEvicted = isRollup? groupColumns.length+1: 1;
         evictedRows = Lists.newArrayListWithCapacity(maxEvicted);
     }
@@ -110,12 +106,17 @@ public class ScanGroupedAggregateIterator extends GroupedAggregateIterator{
     }
 
     private byte[] getGroupingKey(ExecRow rollup) throws StandardException {
-        if(groupKeyEncoder==null)
-            groupKeyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupColumns.length);
-
-        groupKeyEncoder.reset();
-        groupKeyHasher.encodeKey(rollup.getRowArray(),groupColumns,groupSortByColumns,null,groupKeyEncoder);
-        return groupKeyEncoder.build();
+				try {
+						return groupKeyEncoder.getKey(rollup);
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+//        if(groupKeyEncoder==null)
+//            groupKeyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupColumns.length);
+//
+//        groupKeyEncoder.reset();
+//        groupKeyHasher.encodeKey(rollup.getRowArray(),groupColumns,groupSortByColumns,null,groupKeyEncoder);
+//        return groupKeyEncoder.build();
     }
 
     private void rollupRows(ExecRow row) throws StandardException{

@@ -20,7 +20,7 @@ public class LazyNumberDataValueDescriptorTest {
         @Test
         public void testCanSerializeAndDeserializeProperly() throws Exception {
             NumberDataValue actual = new SQLDouble(12);
-            LazyNumberDataValueDescriptor dvd = new LazyNumberDataValueDescriptor(actual,new DoubleDVDSerializer());
+            LazyNumberDataValueDescriptor dvd = new LazyNumberDataValueDescriptor(actual);
 
             Kryo kryo = SpliceDriver.getKryoPool().get();
             Output output = new Output(4096,-1);
@@ -40,7 +40,7 @@ public class LazyNumberDataValueDescriptorTest {
         @Test
         public void testCanSerializeNullsCorrectly() throws Exception {
             NumberDataValue actual = new SQLDouble();
-            LazyNumberDataValueDescriptor dvd = new LazyNumberDataValueDescriptor(actual,new DoubleDVDSerializer());
+            LazyNumberDataValueDescriptor dvd = new LazyNumberDataValueDescriptor(actual);
 
             Kryo kryo = SpliceDriver.getKryoPool().get();
             Output output = new Output(4096,-1);

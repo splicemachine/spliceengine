@@ -12,7 +12,7 @@ public class LazyNumberDataValueDescriptorTest {
     @Test
     public void testSetDoubleValue() throws StandardException {
 
-        LazyNumberDataValueDescriptor lndvd = new LazyNumberDataValueDescriptor(new SQLDouble(), new DoubleDVDSerializer());
+        LazyNumberDataValueDescriptor lndvd = new LazyNumberDataValueDescriptor(new SQLDouble());
         Assert.assertTrue(lndvd.isNull());
 
         lndvd.setValue(new Double(3.3));

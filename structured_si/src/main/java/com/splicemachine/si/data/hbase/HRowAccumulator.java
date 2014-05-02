@@ -6,6 +6,7 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.index.BitIndex;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 import org.apache.hadoop.hbase.KeyValue;
@@ -38,7 +39,13 @@ public class HRowAccumulator implements RowAccumulator {
 		return entryAccumulator.isInteresting(currentIndex);
     }
 
-    @Override
+		@Override
+		public void close() throws IOException {
+				if(entryAccumulator instanceof Closeable)
+						((Closeable) entryAccumulator).close();
+		}
+
+		@Override
     public boolean accumulate(KeyValue keyValue) throws IOException {
 		bytesAccumulated+=keyValue.getLength();
 //        decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength()); //do we need to do this twice?
@@ -67,4 +74,9 @@ public class HRowAccumulator implements RowAccumulator {
 	public boolean isCountStar() {
 		return this.countStar;
 	}
+
+		@Override
+		public void reset() {
+				entryAccumulator.reset();
+		}
 }

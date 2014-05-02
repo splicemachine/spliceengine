@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import org.apache.hadoop.hbase.KeyValue;
 
 import java.util.List;
@@ -32,11 +31,11 @@ public class KeyValueUtils {
 
 		public static KeyValue matchDataColumn(KeyValue[] kvs){
 				return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES,
-								RowMarshaller.PACKED_COLUMN_KEY);
+								SpliceConstants.PACKED_COLUMN_BYTES);
 		}
 
 		public static KeyValue matchDataColumn(List<KeyValue> kvs){
 				return matchKeyValue(kvs, SpliceConstants.DEFAULT_FAMILY_BYTES,
-								RowMarshaller.PACKED_COLUMN_KEY);
+								SpliceConstants.PACKED_COLUMN_BYTES);
 		}
 }

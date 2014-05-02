@@ -1,7 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.TimeValuedSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -12,26 +14,17 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.derby.iapi.types.SQLBoolean;
-import org.apache.hadoop.hbase.util.ByteBufferUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
 
+import javax.management.Descriptor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.util.Arrays;
+import java.sql.*;
 import java.util.Calendar;
-
-import org.joda.time.DateTime;
 /**
  * Lazy subclass of DataValueDescriptor.  Holds a byte array representing the data value
  * and the DVDSerializer for converting to/from bytes.  There is also some duplication
@@ -51,7 +44,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
      */
 	protected ByteSlice bytes;
 
-    protected DVDSerializer dvdSerializer;
+//    protected DVDSerializer dvdSerializer;
     protected boolean deserialized;
     protected boolean descendingOrder;
 
@@ -62,37 +55,29 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     //Also the cached dvd.getTypeFormat(), avoids the double method invocation when calling
     //this.getTypeFormatId
     protected int typeFormatId;
+		protected String tableVersion;
+		protected DescriptorSerializer serializer;
 
 		public LazyDataValueDescriptor(){
 
     }
 
-    public LazyDataValueDescriptor(DataValueDescriptor dvd, DVDSerializer dvdSerializer){
-       init(dvd, dvdSerializer);
+    public LazyDataValueDescriptor(DataValueDescriptor dvd){
+       init(dvd);
     }
 
-    public void setDescendingOrder(boolean descendingOrder){
-        assert isNull();
-        this.descendingOrder = descendingOrder;
-    }
-
-    protected void init(DataValueDescriptor dvd, DVDSerializer dvdSerializer){
+		protected void init(DataValueDescriptor dvd){
         this.dvd = dvd;
         typeFormatId = dvd.getTypeFormatId();
         updateNullFlag();
         deserialized = ! dvd.isNull();
-        this.dvdSerializer = dvdSerializer;
     }
 
     protected void updateNullFlag(){
         isNull = dvd.isNull() && (bytes == null || bytes.length() == 0) ;
     }
 
-    public void initForDeserialization(byte[] bytes){
-				initForDeserialization(bytes,0,bytes.length,false);
-    }
-
-		public void initForDeserialization(byte[] bytes,int offset,int length, boolean desc){
+		public void initForDeserialization(String tableVersion,byte[] bytes,int offset,int length, boolean desc){
 				if(this.bytes==null)
 						this.bytes = new ByteSlice();
 				this.bytes.set(bytes,offset,length);
@@ -100,13 +85,11 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 				deserialized = false;
 				updateNullFlag();
 				this.descendingOrder = desc;
+				this.tableVersion = tableVersion;
+				this.serializer = VersionedSerializers.forVersion(tableVersion,true).getEagerSerializer(dvd.getTypeFormatId());
 		}
 
-    public void initForDeserialization(byte[] bytes,boolean desc){
-				initForDeserialization(bytes,0,bytes.length,desc);
-    }
-
-    public boolean isSerialized(){
+		public boolean isSerialized(){
 				return bytes!=null && bytes.length()>0;
     }
 
@@ -117,7 +100,9 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     protected void forceDeserialization()  {
         if( !isDeserialized() && isSerialized()){
             try{
-                dvdSerializer.deserialize(dvd,bytes.array(),bytes.offset(),bytes.length(),descendingOrder);
+								if(serializer==null)
+										serializer = VersionedSerializers.forVersion(tableVersion,true).getEagerSerializer(typeFormatId);
+								serializer.decodeDirect(dvd, bytes.array(), bytes.offset(), bytes.length(), descendingOrder);
                 deserialized=true;
             }catch(Exception e){
                 SpliceLogUtils.error(LOG, "Error lazily deserializing bytes", e);
@@ -126,16 +111,19 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     }
 
 		protected void forceSerialization(){
-			forceSerialization(descendingOrder);
+			forceSerialization(descendingOrder,tableVersion);
 		}
-    protected void forceSerialization(boolean desc){
+    protected void forceSerialization(boolean desc,String destinationVersion){
         if(!isSerialized()){
             try{
 								if(bytes==null)
 										bytes = new ByteSlice();
-								byte[] serialize = dvdSerializer.serialize(dvd,desc);
+								if(serializer==null)
+										serializer = VersionedSerializers.forVersion(destinationVersion,true).getSerializer(typeFormatId);
+								byte[] serialize = serializer.encodeDirect(dvd, desc);
 								bytes.set(serialize,0,serialize.length);
                 descendingOrder=desc;
+								tableVersion = destinationVersion;
             }catch(Exception e){
                 SpliceLogUtils.error(LOG, "Error serializing DataValueDescriptor to bytes", e);
             }
@@ -146,6 +134,16 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 						}
 						bytes.set(data,0,data.length);
 						descendingOrder = desc;
+				}else if(tableVersion==null || !tableVersion.equals(destinationVersion)){
+						/*
+						 * If our table versions don't match, forcibly deserialize then reserialize with the proper version
+						 */
+						forceDeserialization();
+						if(bytes!=null)
+								bytes.reset();
+						serializer = null;
+						tableVersion = destinationVersion;
+						forceSerialization(desc,destinationVersion);
 				}
     }
 
@@ -242,6 +240,8 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
     @Override
     public Timestamp getTimestamp(Calendar cal) throws StandardException {
+				if(cal!=null && serializer !=null && serializer instanceof TimeValuedSerializer)
+						((TimeValuedSerializer)serializer).setCalendar(cal);
         forceDeserialization();
         return dvd.getTimestamp(cal);
     }
@@ -659,28 +659,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
         resetForSerialization();
     }
 
-    protected void writeDvdBytes(ObjectOutput out) throws IOException {
-        if(!isSerialized()){
-            forceSerialization();
-        }
-
-        byte[] bytes;
-
-        try{
-            bytes = getBytes();
-        }catch(StandardException e){
-            throw new IOException("Error reading bytes from DVD", e);
-        }
-
-        out.writeBoolean(bytes != null);
-
-        if(bytes != null){
-            out.writeInt(bytes.length);
-            out.write(bytes);
-        }
-    }
-
-    @Override
+		@Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeInt(typeFormatId);
         boolean isN = isNull();
@@ -697,21 +676,11 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
             out.writeInt(bytes.length);
             out.write(bytes);
+						out.writeUTF(tableVersion);
         }
     }
 
-    protected void readDvdBytes(ObjectInput in) throws IOException, ClassNotFoundException {
-        if(!in.readBoolean()) return;
-
-        int numBytes = in.readInt();
-				byte[] data = new byte[numBytes];
-				in.readFully(data);
-				if(bytes==null)
-						bytes = new ByteSlice();
-				bytes.set(data,0,data.length);
-    }
-
-    @Override
+		@Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         typeFormatId = in.readInt();
         if(!in.readBoolean()){
@@ -720,12 +689,14 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 						if(bytes==null)
 								bytes = new ByteSlice();
 						bytes.set(data,0,data.length);
+						tableVersion = in.readUTF();
+						this.serializer = VersionedSerializers.forVersion(tableVersion,true).getEagerSerializer(typeFormatId);
         }else{
             isNull = true;
         }
 
         DataValueDescriptor externalDVD= createNullDVD(typeFormatId);
-        init(externalDVD, LazyDataValueFactory.getDVDSerializer(typeFormatId));
+        init(externalDVD);
     }
 
     protected DataValueDescriptor createNullDVD(int typeId) throws IOException {
@@ -741,15 +712,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
         return externalDVD;
     }
 
-    protected Object createClassInstance(String className) throws IOException {
-        try{
-            return Class.forName(className).newInstance();
-        }catch (Exception e){
-            throw new IOException("Error Instantiating Class: " + className, e);
-        }
-    }
-
-    @Override
+		@Override
     public int getTypeFormatId() {
         return typeFormatId;
     }
@@ -790,45 +753,18 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
         return result;
     }
 
-    protected DVDSerializer getDVDSerializer(){
-        return dvdSerializer;
+    public byte[] getBytes(boolean desc,String tableVersion) throws StandardException{
+				forceSerialization(desc,tableVersion);
+				return getBytes();
     }
 
-    public byte[] getBytes(boolean desc) throws StandardException{
-        byte[] bytes = getBytes();
-        byte[] retBytes = new byte[bytes.length];
-        System.arraycopy(bytes,0,retBytes,0,bytes.length);
-        if(desc && !this.descendingOrder){
-            //need to convert to descending order
-            for(int i=0;i<retBytes.length;i++){
-                retBytes[i] ^=0xff;
-            }
-        }else if(!desc && this.descendingOrder){
-            //need to convert to ascending order
-            for(int i=0;i<retBytes.length;i++){
-                retBytes[i] ^=0xff;
-            }
-        }
-        return retBytes;
-    }
-
-		public void serializeIfNeeded(boolean desc) {
-				forceSerialization(desc);
+		public void encodeInto(MultiFieldEncoder fieldEncoder, boolean desc,String destinationVersion) {
+				forceSerialization(desc,destinationVersion);
+				fieldEncoder.setRawBytes(bytes.array(),bytes.offset(),bytes.length());
 		}
 
-		public byte[] getRawBytes() {
-				if(bytes==null) return null;
-				return bytes.array();
-		}
-
-		public int getByteOffset() {
-				if(bytes==null) return 0;
-				return bytes.offset();
-		}
-
-		public int getByteLength(){
-				if(bytes==null) return 0;
-				return bytes.length();
+		public void setSerializer(DescriptorSerializer serializer) {
+				this.serializer = serializer;
 		}
 
 		@Override

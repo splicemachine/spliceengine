@@ -4,13 +4,11 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -68,7 +66,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
             //we can't update an index if the conglomerate id isn't positive--it's probably a temp table or something
             byte[] row = put.getRow();
-            List<KeyValue> data = put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
+            List<KeyValue> data = put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES);
             KVPair kv;
             if(data!=null&&data.size()>0){
                 byte[] value = data.get(0).getValue();

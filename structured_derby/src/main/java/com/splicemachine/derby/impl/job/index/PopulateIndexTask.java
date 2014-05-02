@@ -1,40 +1,27 @@
 package com.splicemachine.derby.impl.job.index;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.splicemachine.hbase.writer.WriteStats;
-import org.apache.derby.iapi.services.io.ArrayUtil;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
-
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
+import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer2;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.hbase.BufferedRegionScanner;
-import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
+import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
@@ -43,6 +30,20 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+import org.apache.derby.iapi.services.io.ArrayUtil;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -170,30 +171,46 @@ public class PopulateIndexTask extends ZkTask {
         regionScan.setStartRow(region.getStartKey());
         regionScan.setStopRow(region.getEndKey());
         regionScan.setCacheBlocks(false);
-        regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
+        regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES);
         //need to manually add the SIFilter, because it doesn't get added by region.getScanner(
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, ObjectArrayList.<Predicate>newInstance() ,true);
         regionScan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
 				//TODO -sf- disable when stats tracking is disabled
-                MetricFactory metricFactory = xplainSchema!=null? Metrics.samplingMetricFactory(SpliceConstants.sampleTimingSize): Metrics.noOpMetricFactory();
-                long numRecordsRead = 0l;
+				MetricFactory metricFactory = xplainSchema!=null? Metrics.samplingMetricFactory(SpliceConstants.sampleTimingSize): Metrics.noOpMetricFactory();
+				long numRecordsRead = 0l;
 				long startTime = System.currentTimeMillis();
 
-                Timer transformationTimer = metricFactory.newTimer();
+				Timer transformationTimer = metricFactory.newTimer();
 				try{
 						//backfill the index with previously committed data
 						RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
 						if(sourceScanner==null)
 								sourceScanner = region.getScanner(regionScan);
 						BufferedRegionScanner brs = new BufferedRegionScanner(region,sourceScanner,regionScan,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory);
-                        RecordingCallBuffer<KVPair> writeBuffer = null;
-                        try{
+						RecordingCallBuffer<KVPair> writeBuffer = null;
+						try{
 								List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
 								boolean shouldContinue = true;
-								IndexTransformer transformer =
-                                        IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,
-                                                isUnique,isUniqueWithDuplicateNulls,columnOrdering,format_ids);
+								boolean[] ascDescInfo = new boolean[format_ids.length];
+								Arrays.fill(ascDescInfo,true);
+								for(int i=descColumns.nextSetBit(0);i>=0;i=descColumns.nextSetBit(i+1))
+										ascDescInfo[i] = false;
+
+								int[] keyEncodingMap = new int[format_ids.length];
+								Arrays.fill(keyEncodingMap,-1);
+								for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
+										keyEncodingMap[i] = mainColToIndexPosMap[i];
+								}
+								IndexTransformer2 transformer = new IndexTransformer2(isUnique,isUniqueWithDuplicateNulls,null,
+												columnOrdering,
+												format_ids,
+												null,
+												keyEncodingMap,
+												ascDescInfo);
+//								IndexTransformer transformer =
+//                                        IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,
+//                                                isUnique,isUniqueWithDuplicateNulls,columnOrdering,format_ids);
 
 								byte[] indexTableLocation = Bytes.toBytes(Long.toString(indexConglomId));
 								writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTaskStatus().getTransactionId(),metricFactory);
@@ -258,7 +275,7 @@ public class PopulateIndexTask extends ZkTask {
 		}
 
 		private void translateResult(List<KeyValue> result,
-                                 IndexTransformer transformer,
+                                 IndexTransformer2 transformer,
                                  CallBuffer<KVPair> writeBuffer,
 																 Timer manipulationTimer) throws Exception {
         //we know that there is only one KeyValue for each row

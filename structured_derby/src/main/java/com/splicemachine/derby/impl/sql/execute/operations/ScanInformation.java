@@ -23,7 +23,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
  */
 interface ScanInformation<T> {
 
-    void initialize(SpliceOperationContext opContext);
+    void initialize(SpliceOperationContext opContext) throws StandardException;
 
     ExecRow getResultRow() throws StandardException;
 
@@ -33,10 +33,18 @@ interface ScanInformation<T> {
 
     FormatableBitSet getAccessedNonPkColumns() throws StandardException;
 
+		/**
+		 * Get the key columns which are accessed WITH RESPECT to their position in the key itself.
+		 *
+		 * @return a bit set representing the key column locations which are interesting to the query.
+		 * @throws StandardException
+		 */
     FormatableBitSet getAccessedPkColumns() throws StandardException;
 
+
     Scan getScan(String txnId) throws StandardException;
-    Scan getScan(String txnId, T startKeyHint) throws StandardException;
+
+    Scan getScan(String txnId, T startKeyHint,int[] keyDecodingMap) throws StandardException;
 
     Qualifier[][] getScanQualifiers() throws StandardException;
 
@@ -52,5 +60,5 @@ interface ScanInformation<T> {
 
     SpliceConglomerate getConglomerate() throws StandardException;
 
-    DataValueDescriptor[] getKeyColumnDVDs() throws StandardException;
+		String getTableVersion() throws StandardException;
 }

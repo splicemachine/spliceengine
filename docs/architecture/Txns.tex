@@ -1,0 +1,28 @@
+\documentclass[10pt]{amsart}
+\usepackage[top=1.5in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
+
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{exmp}{Example}[section]
+
+\begin{document}
+\title{Transactions in SpliceMachine}
+\author{Scott Fines}
+
+\begin{abstract}
+This document serves as a reference architecture for Transactions in SpliceMachine. It includes a common background intended to create a consistent terminology and notational system for future converstaions, as well as descriptions of the most important components of the transactional design. It is \emph{not} a code reference for transactions; this document focuses solely on design and architecture.
+\end{abstract}
+
+\maketitle
+
+\input{Transactions}
+
+\end{document}
+

@@ -6,7 +6,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -17,6 +16,7 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import org.apache.derby.iapi.error.StandardException;
@@ -43,7 +43,6 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.UnsafeCallBuffer;
 import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.hbase.writer.Writer;
-import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
@@ -153,7 +152,7 @@ public class IndexUpsertWriteHandlerTest {
         BitSet indexedColumns = new BitSet(1);
         indexedColumns.set(0);
         BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns,new BitSet(),new BitSet(),new BitSet());
-        EntryEncoder encoder = EntryEncoder.create(SpliceDriver.getKryoPool(), index);
+        EntryEncoder encoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(), index);
         MultiFieldEncoder fieldEncoder = encoder.getEntryEncoder();
         Collection<KVPair> pairs = Sets.newTreeSet();
         for(int i=0;i<10;i++){
@@ -185,7 +184,9 @@ public class IndexUpsertWriteHandlerTest {
         int[] mainColToIndexPos = new int[]{0};
         IndexUpsertWriteHandler writeHandler = getIndexUpsertWriteHandler(indexedColumns, mainColToIndexPos);
 
+				int i=0;
         for(KVPair pair:pairs){
+						i++;
             writeHandler.updateIndex(pair,testCtx);
         }
 
@@ -205,7 +206,7 @@ public class IndexUpsertWriteHandlerTest {
 
     private void assertPresentInIndex(Collection<KVPair> pairs, List<KVPair> indexPairs) throws IOException, StandardException {
         //make sure that every main row is found by doing a lookup on every index row
-        MultiFieldDecoder decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+        MultiFieldDecoder decoder = MultiFieldDecoder.create();
         for(KVPair indexPair:indexPairs){
             decoder.set(indexPair.getRow());
             DataValueDescriptor dvd = LazyDataValueFactory.getLazyNull(80);

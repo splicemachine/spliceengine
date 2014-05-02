@@ -1,7 +1,6 @@
 package com.splicemachine.mapreduce;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -39,7 +38,7 @@ public class HBaseBulkLoadReducer extends Reducer<ImmutableBytesWritable,
 												throw new IOException("Duplicate entries detected for key "+ Bytes.toStringBinary(rowBytes));
 								} else seen = true;
 
-								KeyValue dataKv = new KeyValue(rowBytes, SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY,txnId,value.get());
+								KeyValue dataKv = new KeyValue(rowBytes, SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES,txnId,value.get());
 								context.write(row,dataKv);
 								rowCounter.increment(1);
 						}

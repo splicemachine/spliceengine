@@ -18,6 +18,20 @@ import java.sql.SQLException;
  */
 public class DataDictionaryUtils {
 
+		public static String getTableVersion(String txnId, UUID tableId) throws StandardException{
+				try {
+						SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
+						impl.marshallTransaction(txnId);
+						LanguageConnectionContext lcc = impl.getLcc();
+
+						DataDictionary dd = lcc.getDataDictionary();
+						TableDescriptor td = dd.getTableDescriptor(tableId);
+						return td.getVersion();
+				} catch (SQLException e) {
+						throw Exceptions.parseException(e);
+				}
+		}
+
     // Get 0-based columnOrdering from a table with primary key
     public static int[] getColumnOrdering(String txnId, UUID tableId) {
 
@@ -68,7 +82,7 @@ public class DataDictionaryUtils {
     }
 
     public static int[] getFormatIds(String txnId, UUID tableId) throws SQLException, StandardException{
-        int[] formatIds = null;
+        int[] formatIds;
 
         SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
         impl.marshallTransaction(txnId);
@@ -99,4 +113,5 @@ public class DataDictionaryUtils {
         }
         return columnInfo;
     }
+
 }

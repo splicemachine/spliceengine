@@ -10,6 +10,5 @@ import org.apache.hadoop.hbase.regionserver.OperationStatus;
  */
 public interface BatchConstraintChecker extends ConstraintChecker {
 		public WriteResult asWriteResult(OperationStatus status);
-
 		public boolean matches(OperationStatus status);
 }

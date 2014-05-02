@@ -315,7 +315,9 @@ class SparseBitIndex implements BitIndex {
         return new SparseBitIndex(bitSet,scalarFields,floatFields,doubleFields);
     }
 
-    public static void main(String... args) throws Exception{
+		@Override public int getPredicatePosition(int encodedPos) { return encodedPos; }
+
+		public static void main(String... args) throws Exception{
         BitSet test = new BitSet();
         test.set(0);
         test.set(1);

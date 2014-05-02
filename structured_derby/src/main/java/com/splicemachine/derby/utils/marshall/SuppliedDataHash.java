@@ -32,4 +32,9 @@ public class SuppliedDataHash implements DataHash<ExecRow>{
 				//override to provide custom behavior
 				return NoOpKeyHashDecoder.INSTANCE;
 		}
+
+		@Override
+		public void close() throws IOException {
+
+		}
 }

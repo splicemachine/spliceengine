@@ -1,18 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations.distinctscalar;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractStandardIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
-import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.StandardIterator;
-import com.splicemachine.derby.utils.marshall.KeyMarshall;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.encoding.MultiFieldEncoder;
-
-import com.splicemachine.utils.SpliceUtilities;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
@@ -24,17 +19,17 @@ import java.io.IOException;
  */
 public class DistinctScalarAggregateIterator extends AbstractStandardIterator {
     private final DistinctAggregateBuffer buffer;
-    private MultiFieldEncoder keyEncoder;
-    private KeyMarshall keyHasher;
+//    private MultiFieldEncoder keyEncoder;
+    private KeyEncoder keyHasher;
     private boolean completed;
-    private int[] keyColumns;
+//    private int[] keyColumns;
 		private int rowsRead;
 
-		public DistinctScalarAggregateIterator(DistinctAggregateBuffer buffer,StandardIterator<ExecRow> source, int[] keyColumns) {
+		public DistinctScalarAggregateIterator(DistinctAggregateBuffer buffer,
+																					 StandardIterator<ExecRow> source, KeyEncoder keyHasher) {
     	super(source);
         this.buffer = buffer;
-        this.keyHasher = KeyType.BARE;
-        this.keyColumns = keyColumns;
+        this.keyHasher = keyHasher;
     }
 
     public GroupedRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
@@ -66,11 +61,16 @@ public class DistinctScalarAggregateIterator extends AbstractStandardIterator {
 		}
 
     private byte[] getGroupingKey(ExecRow row) throws StandardException {
-        if(keyEncoder==null){
-            keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),row.nColumns());
-        }
-        keyEncoder.reset();
-        ((KeyMarshall)keyHasher).encodeKey(row.getRowArray(), keyColumns, null, null, keyEncoder);
-        return keyEncoder.build();
+//        if(keyEncoder==null){
+//            keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),row.nColumns());
+//        }
+//        keyEncoder.reset();
+				try {
+						return keyHasher.getKey(row);
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+//        ((KeyMarshall)keyHasher).encodeKey(row.getRowArray(), keyColumns, null, null, keyEncoder);
+//        return keyEncoder.build();
     }
 }

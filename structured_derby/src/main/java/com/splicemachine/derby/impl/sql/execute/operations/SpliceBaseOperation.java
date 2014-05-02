@@ -14,6 +14,8 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.SerializerMap;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
@@ -301,22 +303,23 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 			 * In this case, we encode with either the current row location or a
 			 * random UUID (if the current row location is null).
 			 */
-				DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
-						@Override
-						public byte[] get() throws StandardException {
-								if(currentRowLocation!=null)
-										return currentRowLocation.getBytes();
-								return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-						}
-				});
+//				DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+//						@Override
+//						public byte[] get() throws StandardException {
+//								if(currentRowLocation!=null)
+//										return currentRowLocation.getBytes();
+//								return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+//						}
+//				});
 
-				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
+				return new KeyEncoder(NoOpPrefix.INSTANCE,NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
 		}
 
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				ExecRow defnRow = getExecRowDefinition();
-				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null);
+				SerializerMap serializerMap = VersionedSerializers.latestVersion(false);
+				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null,serializerMap.getSerializers(defnRow));
 		}
 
 		public RecordingCallBuffer<KVPair> transformWriteBuffer(RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException {

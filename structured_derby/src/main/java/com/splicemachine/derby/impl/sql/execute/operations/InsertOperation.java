@@ -12,6 +12,8 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -85,7 +87,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		}
 
 		@Override
-		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext){
+		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				HashPrefix prefix;
 				DataHash dataHash;
 				KeyPostfix postfix = NoOpPostfix.INSTANCE;
@@ -98,7 +100,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 								keyColumns[i] = pkCols[i] -1;
 						}
 						prefix = NoOpPrefix.INSTANCE;
-						dataHash = BareKeyHash.encoder(keyColumns,null, spliceRuntimeContext.getKryoPool());
+						ExecRow row = getExecRowDefinition();
+						DescriptorSerializer[] serializers = VersionedSerializers.forVersion(writeInfo.getTableVersion(),true).getSerializers(row);
+						dataHash = BareKeyHash.encoder(keyColumns,null, spliceRuntimeContext.getKryoPool(),serializers);
 				}
 
 				return new KeyEncoder(prefix,dataHash,postfix);
@@ -120,7 +124,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 				//get all columns that are being set
 				ExecRow defnRow = getExecRowDefinition();
 				int[] columns = getEncodingColumns(defnRow.nColumns());
-				return new EntryDataHash(columns,null);
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(writeInfo.getTableVersion(),true).getSerializers(defnRow);
+				return new EntryDataHash(columns,null,serializers);
 		}
 
 		@Override

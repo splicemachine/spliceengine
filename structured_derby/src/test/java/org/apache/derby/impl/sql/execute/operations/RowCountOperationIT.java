@@ -46,7 +46,7 @@ public class RowCountOperationIT extends SpliceUnitTest {
 						s.setInt(1, i);
 						s.executeUpdate();
 					}
-                    spliceClassWatcher.splitTable(TABLE_NAME,CLASS_NAME,size/3);
+						spliceClassWatcher.splitTable(TABLE_NAME,CLASS_NAME,size/3);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}

@@ -193,6 +193,7 @@ public abstract class SpliceAbstractResultSet implements ResultSet {
     }
 
     @Override
+		@Deprecated
     public InputStream getUnicodeStream(String columnLabel) throws SQLException {
         throw new UnsupportedOperationException(); 
     }

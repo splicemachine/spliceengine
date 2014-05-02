@@ -4,19 +4,21 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SerializationUtils;
 
+import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.Qualifier;
@@ -62,8 +64,10 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     private SpliceMethod<ExecIndexRow> stopKeyGetter;
     private SpliceConglomerate conglomerate;
     private int colRefItem;
+		private String tableVersion;
+		private int[] keyDecodingMap;
 
-    @SuppressWarnings("UnusedDeclaration")
+		@SuppressWarnings("UnusedDeclaration")
     @Deprecated
     public DerbyScanInformation() { }
 
@@ -88,9 +92,14 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     }
 
     @Override
-    public void initialize(SpliceOperationContext opContext) {
+    public void initialize(SpliceOperationContext opContext) throws StandardException {
         this.gsps = opContext.getPreparedStatement();
         this.activation = opContext.getActivation();
+
+				DataDictionary dataDictionary = activation.getLanguageConnectionContext().getDataDictionary();
+				UUID tableID = dataDictionary.getConglomerateDescriptor(conglomId).getTableID();
+				TableDescriptor td = dataDictionary.getTableDescriptor(tableID);
+				this.tableVersion = td.getVersion();
     }
 
     @Override
@@ -111,7 +120,9 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
         return conglomerate;
     }
 
-    @Override
+		@Override public String getTableVersion() throws StandardException { return tableVersion; }
+
+		@Override
     public FormatableBitSet getAccessedColumns() throws StandardException {
         if(accessedCols==null){
             if(colRefItem==-1) {
@@ -129,28 +140,39 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     @Override
     public FormatableBitSet getAccessedPkColumns() throws StandardException {
         if(accessedPkCols == null) {
-            int[] columnOrdering = getColumnOrdering();
-            if (columnOrdering == null)
-                return null;
-            FormatableBitSet cols = getAccessedColumns();
-            if (cols == null) {
-                int size = getConglomerate().getFormat_ids().length;
-                cols = new FormatableBitSet(size);
-                for (int i = 0; i < size; ++i) {
-                    cols.set(i);
-                }
-            }
-            accessedPkCols = new FormatableBitSet(cols);
-            accessedPkCols.clear();
-            for (int col:columnOrdering) {
-                if(cols.isSet(col))
-                    accessedPkCols.set(col);
-            }
+						int[] keyColumnEncodingOrder = getColumnOrdering();
+						if(keyColumnEncodingOrder==null) return null; //no keys to decode
+
+						FormatableBitSet accessedColumns = getAccessedColumns();
+						FormatableBitSet accessedKeyCols = new FormatableBitSet(keyColumnEncodingOrder.length);
+						if(accessedColumns==null){
+								/*
+								 * We need to access every column in the key
+								 */
+								for(int i=0;i<keyColumnEncodingOrder.length;i++){
+										accessedKeyCols.set(i);
+								}
+						}else{
+								/*
+								 * accessedColumns is the list of columns IN THE ENTIRE row
+								 * which are being accessed. So if the row looks like (a,b,c,d) and
+								 * I want (a,c) then accessColumns = {0,2}.
+								 *
+								 * I need to turn that into the columns which are present in the key,
+						 		 * with reference to their position IN THE KEY(not in the entire row).
+						 		 */
+								for(int i=0;i<keyColumnEncodingOrder.length;i++){
+										int keyColumn = keyColumnEncodingOrder[i];
+										if(accessedColumns.get(keyColumn))
+												accessedKeyCols.set(i);
+								}
+						}
+						accessedPkCols = accessedKeyCols;
         }
         return accessedPkCols;
     }
 
-    @Override
+		@Override
     public FormatableBitSet getAccessedNonPkColumns() throws StandardException {
         if (accessedNonPkCols == null) {
             FormatableBitSet cols = getAccessedColumns();
@@ -211,11 +233,11 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
 
     @Override
     public Scan getScan(String txnId) throws StandardException {
-        return getScan(txnId, null);
+        return getScan(txnId, null,null);
     }
 
     @Override
-    public Scan getScan(String txnId, ExecRow startKeyOverride) throws StandardException {
+    public Scan getScan(String txnId, ExecRow startKeyOverride,int[] keyDecodingMap) throws StandardException {
         boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
         ExecIndexRow startPosition = getStartPosition();
         ExecIndexRow stopPosition = sameStartStop ? startPosition : getStopPosition();
@@ -249,7 +271,11 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
                 conglomerate.getAscDescInfo(),
                 getAccessedNonPkColumns(),
                 txnId,sameStartStop,
-                conglomerate.getFormat_ids(),conglomerate.getColumnOrdering(), activation.getDataValueFactory());
+                conglomerate.getFormat_ids(),
+								keyDecodingMap,
+								getColumnOrdering(),
+								activation.getDataValueFactory(),
+								tableVersion);
     }
 
     @Override
@@ -428,17 +454,6 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     @Override
     public int[] getColumnOrdering() throws StandardException{
         return getConglomerate().getColumnOrdering();
-    }
-
-    @Override
-    public DataValueDescriptor[] getKeyColumnDVDs() throws StandardException{
-        int[] columnOrdering = getColumnOrdering();
-        DataValueDescriptor[] kdvds = new DataValueDescriptor[columnOrdering.length];
-        int[] format_ids = getConglomerate().getFormat_ids();
-        for (int i = 0; i < kdvds.length; ++i) {
-            kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[i]);
-        }
-        return kdvds;
     }
 
 }

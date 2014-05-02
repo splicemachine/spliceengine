@@ -4,7 +4,6 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -26,7 +25,7 @@ public class EntryAccumulatorTest {
 				accumulator.add(0, encodedTwo,0,encodedTwo.length);
 
         byte[] bytes = accumulator.finish();
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(bytes, KryoPool.defaultPool());
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(bytes);
         Assert.assertEquals(2,decoder.decodeNextInt());
         Assert.assertEquals(1,decoder.decodeNextInt());
     }
@@ -44,7 +43,7 @@ public class EntryAccumulatorTest {
 				accumulator.add(0, encodedTwo,0,encodedTwo.length);
 
         byte[] bytes = accumulator.finish();
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(bytes,KryoPool.defaultPool());
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(bytes);
         Assert.assertEquals(2,decoder.decodeNextInt());
         Assert.assertEquals(1,decoder.decodeNextInt());
     }

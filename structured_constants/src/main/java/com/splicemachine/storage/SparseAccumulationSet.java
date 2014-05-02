@@ -54,6 +54,11 @@ public class SparseAccumulationSet extends EntryAccumulationSet {
 		@Override public void complete() {  }
 
 		@Override
+		public boolean isInteresting(int position) {
+				return allFields.get(position);
+		}
+
+		@Override
 		public void reset() {
 				super.reset();
 				remainingFields = (BitSet)allFields.clone();

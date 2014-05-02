@@ -1,33 +1,24 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.EntryPredicateUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.data.hbase.HRowAccumulator;
-import com.splicemachine.si.impl.FilterState;
-import com.splicemachine.si.impl.FilterStatePacked;
-import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.stats.Counter;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.stats.TimeView;
-import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -36,18 +27,19 @@ import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
 
 public class TableScanOperation extends ScanOperation {
 		private static final long serialVersionUID = 3l;
@@ -66,13 +58,10 @@ public class TableScanOperation extends ScanOperation {
 		static { nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN); }
 
 		private int[] baseColumnMap;
-		private int[] keyColumns;
 
-		private List<KeyValue> keyValues;
-		private FilterStatePacked siFilter;
 		private Scan scan;
 
-		private Counter filterCount;
+		private SITableScanner tableScanner;
 
 		public TableScanOperation() { super(); }
 
@@ -170,30 +159,6 @@ public class TableScanOperation extends ScanOperation {
 				return provider;
 		}
 
-		protected Scan getNonSIScan(SpliceRuntimeContext spliceRuntimeContext) {
-				/*
-				 * Intended to get a scan which does NOT set up SI underneath us (since
-				 * we are doing it ourselves).
-				 */
-				Scan scan = buildScan(spliceRuntimeContext);
-				deSiify(scan);
-				return scan;
-		}
-
-		protected void deSiify(Scan scan) {
-				/*
-				 * Remove SI-specific behaviors from the scan, so that we can handle it ourselves correctly.
-				 */
-				//exclude this from SI treatment, since we're doing it internally
-				scan.setAttribute(SIConstants.SI_NEEDED,null);
-				scan.setMaxVersions();
-				Map<byte[], NavigableSet<byte[]>> familyMap = scan.getFamilyMap();
-				if(familyMap!=null){
-						NavigableSet<byte[]> bytes = familyMap.get(SpliceConstants.DEFAULT_FAMILY_BYTES);
-						if(bytes!=null)
-								bytes.clear(); //make sure we get all columns
-				}
-		}
 
 		@Override
 		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
@@ -203,61 +168,68 @@ public class TableScanOperation extends ScanOperation {
 		@Override
 		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 
-            columnOrdering = scanInformation.getColumnOrdering();
-            if(columnOrdering != null && columnOrdering.length > 0) {
-								getKeyColumns();
-            }
-		    /*
-			 * Table Scans only use a key encoder when encoding to SpliceOperationRegionScanner,
-			 * in which case, the KeyEncoder should be either the row location of the last emitted
-		     * row, or a random field (if no row location is specified).
-			 */
-            DataHash hash = new KeyDataHash(new StandardSupplier<byte[]>() {
-                @Override
-                public byte[] get() throws StandardException {
-                    if(currentRowLocation!=null)
-                        return currentRowLocation.getBytes();
-                    return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-                }
-            }, keyColumns, scanInformation.getKeyColumnDVDs(), descColumns);
-
-            return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
-		}
-
-		protected int[] getKeyColumns() throws StandardException {
-				if(keyColumns==null){
-						columnOrdering = scanInformation.getColumnOrdering();
-						keyColumns = new int[columnOrdering.length];
-						for (int i = 0; i < keyColumns.length; ++i) {
-								keyColumns[i] = -1;
+				final Snowflake.Generator generator = SpliceDriver.driver().getUUIDGenerator().newGenerator(128);
+				DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+						@Override
+						public byte[] get() throws StandardException {
+								return generator.nextBytes();
 						}
-						for (int i = 0; i < keyColumns.length; ++i) {
-                            if(columnOrdering[i] < baseColumnMap.length) {
-                                keyColumns[i] = baseColumnMap[columnOrdering[i]];
-                            }
-						}
-				}
-				return keyColumns;
-		}
+				});
+//				columnOrdering = scanInformation.getColumnOrdering();
+//
+//				if(columnOrdering != null && columnOrdering.length > 0) {
+//
+//						hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+//								@Override
+//								public byte[] get() throws StandardException {
+////										if(currentRowLocation!=null)
+////												return currentRowLocation.getBytes();
+//										return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+//								}
+//						}){
+//								@Override
+//								public KeyHashDecoder getDecoder() {
+//										try {
+//												SerializerMap serializerMap = VersionedSerializers.forVersion(scanInformation.getTableVersion(), true);
+//												DescriptorSerializer[] serializers = serializerMap.getSerializers(currentRow);
+//												TypeProvider  typeProvider = VersionedSerializers.typesForVersion(scanInformation.getTableVersion());
+//												final int[] allKeyCols = scanInformation.getColumnOrdering();
+//												FormatableBitSet accessedKeys = scanInformation.getAccessedPkColumns();
+//												int[] keyColumnTypes = scanInformation.getConglomerate().getFormat_ids();
+//												return SkippingKeyDecoder.decoder(
+//																												typeProvider,
+//																												serializers,
+//																												allKeyCols,
+//																												keyColumnTypes,
+//																												scanInformation.getConglomerate().getAscDescInfo(),
+//																getAccessedPksToTemplateRowMap(),
+//																accessedKeys);
+//										} catch (StandardException e) {
+//												throw new RuntimeException(e);
+//										}
+//								}
+//						};
+//				}else{
+//						hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+//								@Override
+//								public byte[] get() throws StandardException {
+//										if(currentRowLocation!=null)
+//												return currentRowLocation.getBytes();
+//										return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+//								}
+//						});
+//				}
 
-		private int[] getDecodingColumns(int n) {
-				int[] columns = new int[baseColumnMap.length];
-				System.arraycopy(baseColumnMap, 0, columns, 0, columns.length);
-				// Skip primary key columns to save space
-				for(int pkCol:columnOrdering) {
-						if (pkCol < baseColumnMap.length)
-								columns[pkCol] = -1;
-				}
-
-				return columns;
+				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
 		}
 
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
                 columnOrdering = scanInformation.getColumnOrdering();
 				ExecRow defnRow = getExecRowDefinition();
-				int [] cols = getDecodingColumns(defnRow.nColumns());
-				return BareKeyHash.encoder(cols,null);
+//				int [] cols = getDecodingColumns(defnRow.nColumns());
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(defnRow);
+				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null,serializers);
 		}
 
 		@Override
@@ -280,84 +252,50 @@ public class TableScanOperation extends ScanOperation {
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {
 				if(regionScanner!=null){
-						TimeView readTimer = regionScanner.getReadTime();
-//						long bytesRead = regionScanner.getBytesOutput();
 						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsVisited());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,regionScanner.getBytesVisited());
+						TimeView readTimer = regionScanner.getReadTime();
 						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTimer.getCpuTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTimer.getUserTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,readTimer.getWallClockTime());
-						long filtered = regionScanner.getRowsFiltered();
-						if(filterCount !=null)
-								filtered+= filterCount.getTotal();
-						stats.addMetric(OperationMetric.FILTERED_ROWS,filtered);
+				}
+				if(tableScanner!=null){
+						stats.addMetric(OperationMetric.FILTERED_ROWS,tableScanner.getRowsFiltered());
+						stats.addMetric(OperationMetric.OUTPUT_ROWS,tableScanner.getRowsVisited());
 				}
 		}
 
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException {
-				if(timer==null){
-						timer = spliceRuntimeContext.newTimer();
-						filterCount = spliceRuntimeContext.newCounter();
+				if(tableScanner==null){
+						tableScanner = new TableScannerBuilder()
+										.scanner(regionScanner)
+										.transactionID(transactionID)
+										.metricFactory(spliceRuntimeContext)
+										.scan(scan)
+										.template(currentRow)
+										.tableVersion(scanInformation.getTableVersion())
+										.indexName(indexName)
+										.keyColumnEncodingOrder(scanInformation.getColumnOrdering())
+										.keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
+										.keyColumnTypes(getKeyFormatIds())
+										.accessedKeyColumns(scanInformation.getAccessedPkColumns())
+										.keyDecodingMap(getKeyDecodingMap())
+										.rowDecodingMap(baseColumnMap).build();
 				}
 
-				timer.startTiming();
-
-				int[] columnOrder = getColumnOrdering();
-				KeyMarshaller marshaller = getKeyMarshaller();
-				MultiFieldDecoder keyDecoder = getKeyDecoder();
-				if(keyValues==null)
-						keyValues = Lists.newArrayListWithExpectedSize(2);
-
-				FilterStatePacked filter = getSIFilter();
-				boolean hasRow;
-				do{
-						keyValues.clear();
-						hasRow = regionScanner.next(keyValues);
-
-						if (keyValues.size()<=0) {
-								if (LOG.isTraceEnabled())
-										SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",tableName);
-								currentRow = null;
-								currentRowLocation = null;
-						} else {
-								//currentRow.resetRowArray();
-								DataValueDescriptor[] fields = currentRow.getRowArray();
-								if (fields.length != 0) {
-										// Apply predicate to the row key first
-										if (!filterRowKey(spliceRuntimeContext, keyValues.get(0), columnOrder, keyDecoder)||!filterRow(filter)){
-												filterCount.increment();
-												continue;
-										}
-
-										// Decode key data if primary key is accessed
-										if (scanInformation.getAccessedPkColumns() != null &&
-														scanInformation.getAccessedPkColumns().getNumBitsSet() > 0) {
-												marshaller.decode(keyValues.get(0), fields, baseColumnMap, keyDecoder, columnOrder, getColumnDVDs());
-										}
-								}else if(!filterRow(filter)){
-										//still need to filter rows to deal with transactional issue
-										filterCount.increment();
-										continue;
-								}
-								setRowLocation(keyValues.get(0));
-								break;
-						}
-				}while(hasRow);
-				if(!hasRow){
-						clearCurrentRow();
-				}else{
+				currentRow = tableScanner.next(spliceRuntimeContext);
+				if(currentRow!=null){
 						setCurrentRow(currentRow);
+						setCurrentRowLocation(tableScanner.getCurrentRowLocation());
+				}else{
+						clearCurrentRow();
+						currentRowLocation = null;
 				}
 
-				//measure time
-				if(currentRow==null){
-						timer.tick(0);
-						stopExecutionTime = System.currentTimeMillis();
-				}else
-						timer.tick(1);
 				return currentRow;
 		}
+
 
 		protected void setRowLocation(KeyValue sampleKv) throws StandardException {
 				if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
@@ -371,68 +309,6 @@ public class TableScanOperation extends ScanOperation {
 						slice.set(sampleKv.getBuffer(), sampleKv.getRowOffset(), sampleKv.getRowLength());
 						currentRowLocation.setValue(slice);
 				}
-		}
-
-		protected boolean filterRow(FilterStatePacked filter) throws IOException {
-				filter.nextRow();
-				Iterator<KeyValue> kvIter = keyValues.iterator();
-				while(kvIter.hasNext()){
-						KeyValue kv = kvIter.next();
-						Filter.ReturnCode returnCode = filter.filterKeyValue(kv);
-						switch(returnCode){
-								case NEXT_COL:
-								case NEXT_ROW:
-								case SEEK_NEXT_USING_HINT:
-										return false; //failed the predicate
-								case SKIP:
-										kvIter.remove();
-								default:
-										//these are okay--they mean the encoding is good
-						}
-				}
-				return filter.getAccumulator().result() != null && keyValues.size()>0;
-		}
-
-		@SuppressWarnings("unchecked")
-		private FilterStatePacked getSIFilter() throws IOException, StandardException {
-				if(siFilter==null){
-						boolean isCountStar = scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null;
-						EntryPredicateFilter epf = decodePredicateFilter();
-						TransactionId txnId= new TransactionId(this.transactionID);
-						IFilterState iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, txnId);
-						ExecRowAccumulator rowAccumulator = ExecRowAccumulator.newAccumulator(epf,false,currentRow, baseColumnMap);
-
-						HRowAccumulator accumulator = new HRowAccumulator(epf, getRowDecoder(), rowAccumulator, isCountStar);
-						siFilter = new FilterStatePacked((FilterState)iFilterState, accumulator){
-//								@Override protected Filter.ReturnCode skipRow() { return Filter.ReturnCode.NEXT_COL; }
-
-								@Override
-								protected Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
-										if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
-												if (!accumulator.accumulate(dataKeyValue)) {
-														return Filter.ReturnCode.NEXT_ROW;
-												}
-												return Filter.ReturnCode.INCLUDE;
-										}else return Filter.ReturnCode.INCLUDE;
-								}
-						};
-				}
-				return siFilter;
-		}
-
-		private EntryPredicateFilter decodePredicateFilter() throws IOException {
-				return EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
-		}
-
-
-		protected boolean filterRowKey(SpliceRuntimeContext spliceRuntimeContext,
-																	 KeyValue keyValue,
-																	 int[] columnOrder,
-																	 MultiFieldDecoder keyDecoder) throws StandardException, IOException {
-				return columnOrder != null &&
-								getPredicateFilter(spliceRuntimeContext) != null &&
-								EntryPredicateUtils.qualify(predicateFilter, keyValue.getBuffer(), keyValue.getRowOffset(), keyValue.getRowLength(),
-												getColumnDVDs(), columnOrder, keyDecoder);
 		}
 
 		@Override
@@ -489,92 +365,18 @@ public class TableScanOperation extends ScanOperation {
 
 
 
-        @Override
-        public int[] getAccessedNonPkColumns() throws StandardException{
-            FormatableBitSet accessedNonPkColumns = scanInformation.getAccessedNonPkColumns();
-            int num = accessedNonPkColumns.getNumBitsSet();
-            int[] cols = new int[baseColumnMap.length];
-            for (int i = 0; i < baseColumnMap.length; ++i) {
-                cols[i] = -1;
-            }
-            if (num > 0) {
-                int pos = 0;
-                for (int i = accessedNonPkColumns.anySetBit(); i != -1; i = accessedNonPkColumns.anySetBit(i)) {
-                    cols[pos++] = baseColumnMap[i];
-                }
-            }
-            return cols;
-        }
-
-    private class KeyDataHash extends SuppliedDataHash {
-
-        private int[] keyColumns;
-        private DataValueDescriptor[] kdvds;
-        private BitSet descColumns;
-        public KeyDataHash(StandardSupplier<byte[]> supplier, int[] keyColumns, DataValueDescriptor[] kdvds,
-                           BitSet descColumns) {
-            super(supplier);
-            this.keyColumns = keyColumns;
-            this.kdvds = kdvds;
-            this.descColumns = descColumns;
-        }
-
-        @Override
-        public KeyHashDecoder getDecoder() {
-            return new SuppliedKeyHashDecoder(keyColumns, kdvds, descColumns);
-        }
-
-    }
-    private class SuppliedKeyHashDecoder implements KeyHashDecoder {
-
-        private int[] keyColumns;
-        private DataValueDescriptor[] kdvds;
-        MultiFieldDecoder decoder;
-        BitSet descColumns;
-
-        public SuppliedKeyHashDecoder(int[] keyColumns, DataValueDescriptor[] kdvds, BitSet descColumns) {
-            this.keyColumns = keyColumns;
-            this.kdvds = kdvds;
-            this.descColumns = descColumns;
-        }
-
-        @Override
-        public void set(byte[] bytes, int hashOffset, int length){
-            if (decoder == null)
-                decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
-            decoder.set(bytes, hashOffset, length);
-        }
-
-        @Override
-        public void decode(ExecRow destination) throws StandardException {
-             unpack(decoder, destination);
-        }
-
-        private void unpack(MultiFieldDecoder decoder, ExecRow destination) throws StandardException {
-            if (keyColumns == null) return;
-            DataValueDescriptor[] fields = destination.getRowArray();
-            for (int i = 0; i < keyColumns.length; ++i) {
-                if (keyColumns[i] == -1) {
-                    // skip the key columns that are not in the result
-                    if(kdvds[i] != null && i!=keyColumns.length-1)
-                        DerbyBytesUtil.skip(decoder, kdvds[i]);
-                }
-                else {
-                    DataValueDescriptor field = fields[keyColumns[i]];
-                    decodeNext(decoder, field, isDescColumn(keyColumns[i]));
-                }
-            }
-        }
-        void decodeNext(MultiFieldDecoder decoder, DataValueDescriptor field, boolean desc) throws StandardException {
-            if(DerbyBytesUtil.isNextFieldNull(decoder, field)){
-                field.setToNull();
-                DerbyBytesUtil.skip(decoder, field);
-            }else
-                DerbyBytesUtil.decodeInto(decoder,field, desc);
-        }
-
-        private boolean isDescColumn(int i) {
-            return (descColumns != null && descColumns.get(i));
-        }
-    }
+		@Override
+		public int[] getAccessedNonPkColumns() throws StandardException{
+				FormatableBitSet accessedNonPkColumns = scanInformation.getAccessedNonPkColumns();
+				int num = accessedNonPkColumns.getNumBitsSet();
+				int[] cols = null;
+				if (num > 0) {
+						cols = new int[num];
+						int pos = 0;
+						for (int i = accessedNonPkColumns.anySetBit(); i != -1; i = accessedNonPkColumns.anySetBit(i)) {
+								cols[pos++] = baseColumnMap[i];
+						}
+				}
+				return cols;
+		}
 }

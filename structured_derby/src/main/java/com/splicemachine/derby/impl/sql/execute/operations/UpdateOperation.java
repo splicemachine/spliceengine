@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -17,9 +18,13 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.writer.*;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.writer.ForwardRecordingCallBuffer;
+import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.stats.Counter;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.TimeView;
@@ -44,8 +49,8 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
-import com.splicemachine.hbase.KVPair;
 
 /**
  * @author jessiezhang
@@ -126,6 +131,8 @@ public class UpdateOperation extends DMLWriteOperation{
 										return ((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
 								}
 
+								@Override public void close() throws IOException {  }
+
 								@Override
 								public KeyHashDecoder getDecoder() {
 										return NoOpKeyHashDecoder.INSTANCE;
@@ -134,7 +141,7 @@ public class UpdateOperation extends DMLWriteOperation{
 				}else{
 						//TODO -sf- we need a sort order here for descending columns, don't we?
 						//hash = BareKeyHash.encoder(getFinalPkColumns(getColumnPositionMap(heapList)),null);
-                    hash = new PkDataHash(getFinalPkColumns(getColumnPositionMap(heapList)), kdvds);
+                    hash = new PkDataHash(getFinalPkColumns(getColumnPositionMap(heapList)), kdvds,writeInfo.getTableVersion());
 				}
 				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
 		}
@@ -172,14 +179,15 @@ public class UpdateOperation extends DMLWriteOperation{
 				final int[] colPositionMap = getColumnPositionMap(heapList);
 
 				//if we haven't modified any of our primary keys, then we can just change it directly
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(writeInfo.getTableVersion(),true).getSerializers(getExecRowDefinition());
 				if(!modifiedPrimaryKeys){
-						return new NonPkRowHash(colPositionMap,null,heapList);
+						return new NonPkRowHash(colPositionMap,null, serializers, heapList);
 				}
 
 				int[] finalPkColumns = getFinalPkColumns(colPositionMap);
 
 				resultSupplier = new ResultSupplier(new BitSet(),spliceRuntimeContext);
-				return new PkRowHash(finalPkColumns,null,heapList,colPositionMap,resultSupplier);
+				return new PkRowHash(finalPkColumns,null,heapList,colPositionMap,resultSupplier,serializers);
 		}
 
 		private int[] getFinalPkColumns(int[] colPositionMap) {
@@ -295,7 +303,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
 								getTimer.startTiming();
 								Get remoteGet = SpliceUtils.createGet(getTransactionID(),location);
-								remoteGet.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
+								remoteGet.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES);
 								remoteGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,filterBytes);
 
 								Result r = htable.get(remoteGet);
@@ -303,7 +311,7 @@ public class UpdateOperation extends DMLWriteOperation{
 								KeyValue[] rawKvs = r.raw();
 								for(KeyValue kv:rawKvs){
 										getBytes.add(kv.getLength());
-										if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY)){
+										if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES)){
 												result = kv;
 												break;
 										}
@@ -334,8 +342,9 @@ public class UpdateOperation extends DMLWriteOperation{
 												 boolean[] keySortOrder,
 												 FormatableBitSet finalHeapList,
 												 int[] colPositionMap,
-												 ResultSupplier supplier) {
-						super(keyColumns, keySortOrder);
+												 ResultSupplier supplier,
+												 DescriptorSerializer[] serializers) {
+						super(keyColumns, keySortOrder,serializers);
 						this.finalHeapList = finalHeapList;
 						this.colPositionMap = colPositionMap;
 						this.supplier = supplier;
@@ -368,11 +377,13 @@ public class UpdateOperation extends DMLWriteOperation{
 						for(int pos=index.nextSetBit(0);pos>=0;pos=index.nextSetBit(pos+1)){
 								if(finalHeapList.isSet(pos+1)){
 										DataValueDescriptor dvd = currentRow.getRowArray()[colPositionMap[pos+1]];
-										if(dvd==null||dvd.isNull()){
-												updateEncoder.encodeEmpty();
-										}else{
-												DerbyBytesUtil.encodeInto(updateEncoder, dvd,false);
-										}
+										DescriptorSerializer serializer = serializers[colPositionMap[pos+1]];
+										serializer.encode(updateEncoder,dvd,false);
+//										if(dvd==null||dvd.isNull()){
+//												updateEncoder.encodeEmpty();
+//										}else{
+//												DerbyBytesUtil.encodeInto(updateEncoder, dvd,false);
+//										}
 										resultDecoder.seekForward(getFieldDecoder, pos);
 								}else{
 										//use the index to get the correct offsets
@@ -400,8 +411,9 @@ public class UpdateOperation extends DMLWriteOperation{
 
 				public NonPkRowHash(int[] keyColumns,
 														boolean[] keySortOrder,
+														DescriptorSerializer[] serializers,
 														FormatableBitSet finalHeapList) {
-						super(keyColumns, keySortOrder);
+						super(keyColumns, keySortOrder,serializers);
 						this.finalHeapList = finalHeapList;
 				}
 
@@ -412,11 +424,13 @@ public class UpdateOperation extends DMLWriteOperation{
 						for(int i=finalHeapList.anySetBit();i>=0;i=finalHeapList.anySetBit(i)){
 								int position = keyColumns[i];
 								DataValueDescriptor dvd = dvds[position];
-								//we know that derby never spits out a null field here--we hope.
-								if(dvd.isNull())
-										DerbyBytesUtil.encodeTypedEmpty(encoder,dvd,false,true);
-								else
-										DerbyBytesUtil.encodeInto(encoder, dvd, false);
+								DescriptorSerializer serializer = serializers[position];
+								serializer.encode(encoder,dvd,false);
+//								//we know that derby never spits out a null field here--we hope.
+//								if(dvd.isNull())
+//										DerbyBytesUtil.encodeTypedEmpty(encoder,dvd,false,true);
+//								else
+//										DerbyBytesUtil.encodeInto(encoder, dvd, false);
 						}
 				}
 
@@ -429,7 +443,7 @@ public class UpdateOperation extends DMLWriteOperation{
 						for(int i=finalHeapList.anySetBit();i>=0;i=finalHeapList.anySetBit(i)){
 								notNullFields.set(i - 1);
 								DataValueDescriptor dvd = currentRow.getRowArray()[keyColumns[i]];
-								if(DerbyBytesUtil.isScalarType(dvd)){
+								if(DerbyBytesUtil.isScalarType(dvd, null)){
 										scalarFields.set(i-1);
 								}else if(DerbyBytesUtil.isFloatType(dvd)){
 										floatFields.set(i-1);
@@ -452,16 +466,19 @@ public class UpdateOperation extends DMLWriteOperation{
 		}
 
         private class PkDataHash implements DataHash<ExecRow> {
-            private ExecRow currentRow;
+						private final String tableVersion;
+						private ExecRow currentRow;
             private byte[] rowKey;
             private int[] keyColumns;
             private MultiFieldEncoder encoder;
             private MultiFieldDecoder decoder;
             private DataValueDescriptor[] kdvds;
+						private DescriptorSerializer[] serializers;
 
-            public PkDataHash(int[] keyColumns, DataValueDescriptor[] kdvds) {
+            public PkDataHash(int[] keyColumns, DataValueDescriptor[] kdvds,String tableVersion) {
                 this.keyColumns = keyColumns;
                 this.kdvds = kdvds;
+								this.tableVersion = tableVersion;
             }
 
             @Override
@@ -473,9 +490,9 @@ public class UpdateOperation extends DMLWriteOperation{
             public byte[] encode() throws StandardException, IOException {
                 rowKey = ((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
                 if (encoder == null)
-                    encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),keyColumns.length);
+                    encoder = MultiFieldEncoder.create(keyColumns.length);
                 if (decoder == null)
-                    decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+                    decoder = MultiFieldDecoder.create();
                 pack();
                 return encoder.build();
             }
@@ -483,15 +500,19 @@ public class UpdateOperation extends DMLWriteOperation{
             private void pack() throws StandardException {
                 encoder.reset();
                 decoder.set(rowKey);
+								if(serializers==null)
+										serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(currentRow);
                 int i = 0;
                 for (int col:keyColumns) {
                     if (col > 0) {
                         DataValueDescriptor dvd = currentRow.getRowArray()[col];
-                        if(dvd==null||dvd.isNull()){
-                            encoder.encodeEmpty();
-                        }else{
-                            DerbyBytesUtil.encodeInto(encoder, dvd,false);
-                        }
+												DescriptorSerializer serializer = serializers[col];
+												serializer.encode(encoder,dvd,false);
+//                        if(dvd==null||dvd.isNull()){
+//                            encoder.encodeEmpty();
+//                        }else{
+//                            DerbyBytesUtil.encodeInto(encoder, dvd,false);
+//                        }
                         DerbyBytesUtil.skip(decoder,kdvds[i++]);
                     } else {
                         int offset = decoder.offset();
@@ -500,9 +521,18 @@ public class UpdateOperation extends DMLWriteOperation{
                         encoder.setRawBytes(decoder.array(),offset,limit);
                     }
                 }
-
             }
-            @Override
+
+						@Override
+						public void close() throws IOException {
+								if(serializers!=null){
+										for(DescriptorSerializer serializer:serializers){
+												Closeables.closeQuietly(serializer);
+										}
+								}
+						}
+
+						@Override
             public KeyHashDecoder getDecoder() {
                 return NoOpKeyHashDecoder.INSTANCE;
             }
