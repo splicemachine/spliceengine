@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -17,6 +18,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.utils.CloseableIterator;
@@ -24,7 +26,7 @@ import com.splicemachine.utils.CloseableIterator;
 /**
  * Wrapper that makes an HBase region comply with a standard interface that abstracts across regions and tables.
  */
-public class HbRegion implements IHTable {
+public class HbRegion implements IHTable, RollForwardable {
 //    static final Logger LOG = Logger.getLogger(HbRegion.class);
     static final Result EMPTY_RESULT = Result.create(Collections.<Cell>emptyList());
 
@@ -118,6 +120,15 @@ public class HbRegion implements IHTable {
         } catch (IOException e) {
             throw new RuntimeException("Unexpected IOException acquiring lock", e);
         }
+    }
+
+    @Override
+    public boolean checkRegionForRow(byte[] row) {
+        HRegionInfo info = region.getRegionInfo();
+        return ((info.getStartKey().length == 0) ||
+                (Bytes.compareTo(info.getStartKey(), row) <= 0)) &&
+            ((info.getEndKey().length == 0) ||
+                (Bytes.compareTo(info.getEndKey(), row) > 0));
     }
 
     private boolean rowExists(byte[] checkBloomFamily, byte[] rowKey) throws IOException {
