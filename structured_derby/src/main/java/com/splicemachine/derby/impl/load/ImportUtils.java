@@ -7,6 +7,9 @@ import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.SerializerMap;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.UUIDGenerator;
@@ -50,9 +53,10 @@ public class ImportUtils {
 		public static PairEncoder newEntryEncoder(ExecRow row,ImportContext ctx, UUIDGenerator randomGenerator,KryoPool kryoPool){
 				int[] pkCols = ctx.getPrimaryKeys();
 
+				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(ctx.getTableVersion(), true).getSerializers(row);
 				KeyEncoder encoder;
 				if(pkCols!=null&& pkCols.length>0){
-						encoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(pkCols,null),NoOpPostfix.INSTANCE);
+						encoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(pkCols,null, serializers),NoOpPostfix.INSTANCE);
 				}else
 						encoder = new KeyEncoder(new SaltedPrefix(randomGenerator), NoOpDataHash.INSTANCE, NoOpPostfix.INSTANCE);
 
@@ -62,7 +66,7 @@ public class ImportUtils {
 								cols[col] = -1;
 						}
 				}
-				DataHash rowHash = new EntryDataHash(cols,null);
+				DataHash rowHash = new EntryDataHash(cols,null,serializers);
 
 				return new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
 		}
@@ -178,7 +182,7 @@ public class ImportUtils {
 				String colDefault = rs.getString(COLUMNDEFAULT_POSIITON);
 				String isAutoIncrement = rs.getString(ISAUTOINCREMENT_POSIITON);
 				boolean hasIncrementPrefix = colDefault!=null && colDefault.startsWith(AUTOINCREMENT_PREFIX);
-				if (isAutoIncrement.compareTo("YES") != 0 || !hasIncrementPrefix) {
+				if (!"YES".equals(isAutoIncrement) || !hasIncrementPrefix) {
 						colBuilder.columnDefault(colDefault);
 				}else if (hasIncrementPrefix){
 						//colDefault looks like "AUTOINCREMENT: start x increment y

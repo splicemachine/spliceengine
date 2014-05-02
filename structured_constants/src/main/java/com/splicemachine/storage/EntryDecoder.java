@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;
 import com.splicemachine.storage.index.LazyBitIndex;
+import com.splicemachine.utils.Provider;
 import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
@@ -15,7 +16,7 @@ import com.splicemachine.utils.kryo.KryoPool;
  * @author Scott Fines
  * Created on: 7/5/13
  */
-public class EntryDecoder {
+public class EntryDecoder implements FieldSkipper,Provider<MultiFieldDecoder>{
     private LazyBitIndex bitIndex;
     private byte[] data;
     private int dataOffset;
@@ -142,13 +143,13 @@ public class EntryDecoder {
     public MultiFieldDecoder getEntryDecoder() throws IOException{
         decompressIfNeeded();
         if(decoder==null){
-            decoder = MultiFieldDecoder.wrap(data,offset+dataOffset,length-dataOffset,kryoPool);
+            decoder = MultiFieldDecoder.wrap(data,offset+dataOffset,length-dataOffset);
         }
         decoder.seek(offset+dataOffset);
         return decoder;
     }
 
-    public void seekForward(MultiFieldDecoder decoder,int position) {
+    public boolean seekForward(MultiFieldDecoder decoder,int position) {
     /*
      * Certain fields may contain zeros--in particular, scalar, float, and double types. We need
      * to skip past those zeros without treating them as delimiters. Since we have that information
@@ -156,20 +157,24 @@ public class EntryDecoder {
      * However, in some cases it's more efficient to skip the count directly, since we may know the
      * byte size already.
      */
-    	bitIndex.decodeUntil(position);
-        if(bitIndex.isScalarType(position,true)){
-            if(decoder.nextIsNull()){
-                decoder.skip();
-            }else
-                decoder.skipLong(); //don't need the value, just need to seek past it
-        }else if(bitIndex.isFloatType(position,true)){
-            //floats are always 4 bytes, so skip the after delimiter
-            decoder.skipFloat();
-        }else if(bitIndex.isDoubleType(position,true)){
-            decoder.skipDouble();
-        }else
-            decoder.skip();
-    }
+				boolean isNull;
+				bitIndex.decodeUntil(position);
+				if(bitIndex.isScalarType(position,true)){
+						isNull = decoder.nextIsNull();
+						decoder.skipLong(); //don't need the value, just need to seek past it
+				}else if(bitIndex.isFloatType(position,true)){
+						isNull = decoder.nextIsNullFloat();
+						//floats are always 4 bytes, so skip the after delimiter
+						decoder.skipFloat();
+				}else if(bitIndex.isDoubleType(position,true)){
+						isNull = decoder.nextIsNullDouble();
+						decoder.skipDouble();
+				}else{
+						isNull = decoder.nextIsNull();
+						decoder.skip();
+				}
+				return isNull;
+		}
 
     public ByteBuffer nextAsBuffer(MultiFieldDecoder decoder,int position) {
         int offset = decoder.offset();
@@ -208,5 +213,19 @@ public class EntryDecoder {
 				if(length<=0) return;
 
 				rowSlice.set(mutationDecoder.array(),offset,length);
+		}
+
+		@Override
+		public void skipField(MultiFieldDecoder decoder, int position) {
+			seekForward(decoder,position);
+		}
+
+		@Override
+		public MultiFieldDecoder get() {
+				try {
+						return getEntryDecoder();
+				} catch (IOException e) {
+						throw new RuntimeException(e);
+				}
 		}
 }

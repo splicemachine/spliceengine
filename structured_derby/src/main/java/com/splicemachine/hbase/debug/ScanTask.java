@@ -5,7 +5,6 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
@@ -113,7 +112,7 @@ public class ScanTask extends DebugTask{
     private static final String outputPattern = "%-20s\t%8d\t%s%n";
     private void writeRow(Writer writer,List<KeyValue> keyValues) throws IOException {
         for(KeyValue kv:keyValues){
-            if(!kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY))
+            if(!kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES))
                 continue;
             String row = BytesUtil.toHex(kv.getRow());
             long txnId = kv.getTimestamp();
@@ -177,7 +176,7 @@ public class ScanTask extends DebugTask{
 
         @Override
         public ReturnCode filterKeyValue(KeyValue ignored) {
-            if(!ignored.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY))
+            if(!ignored.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES))
                 return ReturnCode.INCLUDE;
 
             try {

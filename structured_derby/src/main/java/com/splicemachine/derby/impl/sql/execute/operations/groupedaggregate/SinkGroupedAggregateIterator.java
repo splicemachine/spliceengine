@@ -2,16 +2,13 @@ package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractStandardIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.StandardIterator;
-import com.splicemachine.derby.utils.marshall.KeyMarshall;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.encoding.MultiFieldEncoder;
-
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -38,21 +35,45 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
 																				StandardIterator<ExecRow> source,
 																				boolean rollup,
 																				int[] groupColumns,
-																				boolean[] groupSortOrder,
-																				int[] nonGroupedUniqueColumns) {
+																				KeyEncoder groupKeyEncoder,
+																				KeyEncoder allKeyEncoder){
+//																				boolean[] groupSortOrder,
+//																				int[] nonGroupedUniqueColumns) {
 				super(source,rollup,groupColumns);
 
+//				int[] allKeyColumns = new int[groupColumns.length + nonGroupedUniqueColumns.length];
+//				System.arraycopy(groupColumns,0, allKeyColumns,0,groupColumns.length);
+//				System.arraycopy(nonGroupedUniqueColumns,0, allKeyColumns,groupColumns.length,nonGroupedUniqueColumns.length);
+//
+//				boolean[] allSortOrders = new boolean[groupColumns.length + nonGroupedUniqueColumns.length];
+//				System.arraycopy(groupSortOrder, 0, allSortOrders, 0, groupSortOrder.length);
+//				Arrays.fill(allSortOrders,groupSortOrder.length, allSortOrders.length,true);
+
+				int maxEvictedSize = isRollup? groupColumns.length: 1;
+				evictedRows = Lists.newArrayListWithCapacity(maxEvictedSize);
+				this.buffer = new DoubleBuffer(nonDistinctBuffer,distinctBuffer,groupKeyEncoder,allKeyEncoder,evictedRows);
+		}
+
+		public static SinkGroupedAggregateIterator newInstance(GroupedAggregateBuffer nonDistinctBuffer,
+																													 GroupedAggregateBuffer distinctBuffer,
+																													 StandardIterator<ExecRow>source,
+																													 boolean rollup,
+																													 int[] groupColumns,
+																													 boolean[] groupSortOrder,
+																													 int[] nonGroupedUniqueColumns,
+																													 DescriptorSerializer[] serializers){
 				int[] allKeyColumns = new int[groupColumns.length + nonGroupedUniqueColumns.length];
 				System.arraycopy(groupColumns,0, allKeyColumns,0,groupColumns.length);
 				System.arraycopy(nonGroupedUniqueColumns,0, allKeyColumns,groupColumns.length,nonGroupedUniqueColumns.length);
 
 				boolean[] allSortOrders = new boolean[groupColumns.length + nonGroupedUniqueColumns.length];
-				System.arraycopy(groupSortOrder,0, allSortOrders,0,groupSortOrder.length);
+				System.arraycopy(groupSortOrder, 0, allSortOrders, 0, groupSortOrder.length);
 				Arrays.fill(allSortOrders,groupSortOrder.length, allSortOrders.length,true);
 
-				int maxEvictedSize = isRollup? groupColumns.length: 1;
-				evictedRows = Lists.newArrayListWithCapacity(maxEvictedSize);
-				this.buffer = new DoubleBuffer(nonDistinctBuffer,distinctBuffer,groupColumns,groupSortOrder, allKeyColumns, allSortOrders,evictedRows);
+				KeyEncoder groupKeyEncoder = KeyEncoder.bare(groupColumns, groupSortOrder, serializers);
+				KeyEncoder allKeyEncoder = KeyEncoder.bare(allKeyColumns,allSortOrders,serializers);
+
+				return new SinkGroupedAggregateIterator(nonDistinctBuffer,distinctBuffer,source,rollup,groupColumns,groupKeyEncoder,allKeyEncoder);
 		}
 
 		@Override public void open() throws StandardException, IOException { source.open(); }
@@ -171,16 +192,18 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
 
 				private DoubleBuffer(GroupedAggregateBuffer nonDistinctBuffer,
 														 GroupedAggregateBuffer distinctBuffer,
-														 int[] groupKeys,
-														 boolean[] sortOrder,
-														 int[] allKeyColumns,
-														 boolean[] allSortOrders,
+														 KeyEncoder groupKeyEncoder,
+														 KeyEncoder allKeyEncoder,
+//														 int[] groupKeys,
+//														 boolean[] sortOrder,
+//														 int[] allKeyColumns,
+//														 boolean[] allSortOrders,
 														 List<GroupedRow> evictedRows) {
 						boolean dontAggregateDistinct = !distinctBuffer.hasAggregates() &&nonDistinctBuffer.hasAggregates();
 						boolean dontAggregateNonDistinct = !nonDistinctBuffer.hasAggregates() && distinctBuffer.hasAggregates();
 
-						this.nonDistinctBuffer = new SingleBuffer(nonDistinctBuffer,groupKeys,sortOrder,dontAggregateNonDistinct);
-						this.distinctBuffer = new SingleBuffer(distinctBuffer,allKeyColumns,allSortOrders,dontAggregateDistinct);
+						this.nonDistinctBuffer = new SingleBuffer(nonDistinctBuffer,groupKeyEncoder,dontAggregateNonDistinct);
+						this.distinctBuffer = new SingleBuffer(distinctBuffer,allKeyEncoder,dontAggregateDistinct);
 						this.evictedRows = evictedRows;
 				}
 
@@ -239,20 +262,21 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
 
 		private static class SingleBuffer implements Buffer{
 				private final GroupedAggregateBuffer aggregateBuffer;
-				private final int[] groupKeys;
-				private final boolean[] sortOrder;
+				private final KeyEncoder keyEncoder;
+//				private final int[] groupKeys;
+//				private final boolean[] sortOrder;
 
-				private MultiFieldEncoder encoder;
+//				private MultiFieldEncoder encoder;
 				private final boolean ignoreNonAggregates;
 
 				private SingleBuffer(GroupedAggregateBuffer aggregateBuffer,
-														 int[] groupKeys,
-														 boolean[] sortOrder,
+														 KeyEncoder keyEncoder,
+//														 int[] groupKeys,
+//														 boolean[] sortOrder,
 														 boolean ignoreNonAggregates) {
 						this.aggregateBuffer = aggregateBuffer;
-						this.groupKeys = groupKeys;
-						this.sortOrder = sortOrder;
 						this.ignoreNonAggregates = ignoreNonAggregates;
+						this.keyEncoder = keyEncoder;
 				}
 
 				@Override
@@ -278,13 +302,19 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
 				}
 
 				private byte[] groupingKey(ExecRow nextRow) throws StandardException {
-						if(encoder==null)
-								encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupKeys.length);
 
-						encoder.reset();
-						//noinspection RedundantCast
-						((KeyMarshall)KeyType.BARE).encodeKey(nextRow.getRowArray(), groupKeys, sortOrder, null, encoder);
-						return encoder.build();
+						try {
+								return keyEncoder.getKey(nextRow);
+						} catch (IOException e) {
+								throw Exceptions.parseException(e);
+						}
+//						if(encoder==null)
+//								encoder = MultiFieldEncoder.create(SpliceKryoRegistry.getInstance(),groupKeys.length);
+//
+//						encoder.reset();
+//						//noinspection RedundantCast
+//						((KeyMarshall)KeyType.BARE).encodeKey(nextRow.getRowArray(), groupKeys, sortOrder, null, encoder);
+//						return encoder.build();
 				}
 		}
 }

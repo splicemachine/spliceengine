@@ -1,8 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
-import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.BooleanDataValue;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -14,6 +12,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
+import java.util.Date;
 
 /**
  * Created with IntelliJ IDEA.
@@ -31,25 +30,25 @@ public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor im
     // Only for Kry to construct a LazyTimestampDataValueDescriptor instance
     public LazyTimestampDataValueDescriptor() {}
 
-    public LazyTimestampDataValueDescriptor(DateTimeDataValue sdv, DVDSerializer dvdSerializer){
-        init(sdv, dvdSerializer);
+    public LazyTimestampDataValueDescriptor(DateTimeDataValue sdv){
+        init(sdv);
     }
 
     /**
      * Initializes the Lazy String DVD, needs to call super to make sure the dvd on
      * the parent is set properly.
      *
-     * @param dtdv
-     * @param dvdSerializer
-     */
-    protected void init(DateTimeDataValue dtdv, DVDSerializer dvdSerializer){
-        super.init(dtdv, dvdSerializer);
+		 * @param dtdv
+		 *
+		 */
+    protected void init(DateTimeDataValue dtdv){
+        super.init(dtdv);
         this.dtdv = dtdv;
     }
 
     @Override
     public DataValueDescriptor getNewNull() {
-        return new LazyTimestampDataValueDescriptor((DateTimeDataValue) dtdv.getNewNull(), dvdSerializer);
+        return new LazyTimestampDataValueDescriptor((DateTimeDataValue) dtdv.getNewNull());
     }
 
     protected void forceDeserialization()  {
@@ -104,14 +103,14 @@ public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor im
     public DataValueDescriptor cloneValue(boolean forceMaterialization) {
         forceDeserialization();
         DateTimeDataValue v = (DateTimeDataValue) dtdv.cloneValue(forceMaterialization);
-        return new LazyTimestampDataValueDescriptor(v, dvdSerializer);
+        return new LazyTimestampDataValueDescriptor(v);
     }
 
     @Override
     public DataValueDescriptor cloneHolder() {
         forceDeserialization();
         DateTimeDataValue v = (DateTimeDataValue) dtdv.cloneHolder();
-        return new LazyTimestampDataValueDescriptor(v, dvdSerializer);
+        return new LazyTimestampDataValueDescriptor(v);
     }
 
     @Override
@@ -139,10 +138,9 @@ public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor im
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 
         super.readExternal(in);
-        DVDSerializer extSerializer = LazyDataValueFactory.getDVDSerializer(typeFormatId);
 
         dtdv = (DateTimeDataValue)dvd;
-        init(dtdv, extSerializer);
+        init(dtdv);
     }
 
     @Override

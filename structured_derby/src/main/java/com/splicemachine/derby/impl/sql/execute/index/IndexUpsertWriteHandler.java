@@ -1,31 +1,30 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import java.io.IOException;
-import java.util.List;
-
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.storage.*;
+import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.hbase.batch.WriteContext;
-import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.storage.index.BitIndex;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -34,7 +33,7 @@ import com.splicemachine.storage.index.BitIndex;
 public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     protected CallBuffer<KVPair> indexBuffer;
-    protected IndexTransformer transformer;
+    protected IndexTransformer2 transformer;
     private EntryDecoder newPutDecoder;
     private EntryDecoder oldDataDecoder;
     private final int expectedWrites;
@@ -73,9 +72,22 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         }
         pkIndexColumns = (BitSet)pkColumns.clone();
         pkIndexColumns.and(indexedColumns);
-        this.transformer = new IndexTransformer(indexedColumns,
-                translatedIndexColumns,nonUniqueIndexColumn,descColumns,mainColToIndexPosMap,
-                unique,uniqueWithDuplicateNulls, KryoPool.defaultPool(), columnOrdering, formatIds);
+
+				boolean[] destKeySortOrder = new boolean[formatIds.length];
+				Arrays.fill(destKeySortOrder,true);
+				for(int i=descColumns.nextSetBit(0);i>=0;i=descColumns.nextSetBit(i+1)){
+						destKeySortOrder[i] = false;
+				}
+				int[] keyDecodingMap = new int[(int)indexedColumns.length()];
+				Arrays.fill(keyDecodingMap,-1);
+				for(int i=indexedColumns.nextSetBit(0);i>=0;i = indexedColumns.nextSetBit(i+1)){
+						keyDecodingMap[i] = mainColToIndexPos[i];
+				}
+				this.transformer = new IndexTransformer2(unique,uniqueWithDuplicateNulls,null,
+								columnOrdering,formatIds,null,keyDecodingMap,destKeySortOrder);
+//        this.transformer = new IndexTransformer(indexedColumns,
+//                translatedIndexColumns,nonUniqueIndexColumn,descColumns,mainColToIndexPosMap,
+//                unique,uniqueWithDuplicateNulls, KryoPool.defaultPool(), columnOrdering, formatIds);
     }
 
     @Override
@@ -127,7 +139,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     private MultiFieldDecoder createKeyDecoder() {
         if (keyDecoder == null)
-            keyDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+            keyDecoder = MultiFieldDecoder.create();
         return keyDecoder;
     }
 
@@ -217,10 +229,10 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             }
 
             ByteEntryAccumulator newKeyAccumulator = transformer.getKeyAccumulator();
-            ByteEntryAccumulator newRowAccumulator = transformer.getRowAccumulator();
+//            ByteEntryAccumulator newRowAccumulator = transformer.getRowAccumulator();
 
             newKeyAccumulator.reset();
-            newRowAccumulator.reset();
+//            newRowAccumulator.reset();
 
             if(newPutDecoder==null)
                 newPutDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
@@ -236,7 +248,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 if(oldDataDecoder==null)
                     oldDataDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
 
-                oldDataDecoder.set(r.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
+                oldDataDecoder.set(r.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES));
                 BitIndex oldIndex = oldDataDecoder.getCurrentIndex();
                 oldDecoder = oldDataDecoder.getEntryDecoder();
                 oldKeyAccumulator = new ByteEntryAccumulator(null,transformer.isUnique()?translatedIndexColumns:nonUniqueIndexColumn);
@@ -326,9 +338,13 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             byte[] newIndexRowKey = transformer.getIndexRowKey(encodedRow, !transformer.isUnique());
 
             //if(!transformer.isUnique()) {
-                newRowAccumulator.add((int)translatedIndexColumns.length(),encodedRow,0,encodedRow.length);
+						EntryEncoder rowEncoder = transformer.getRowEncoder();
+						MultiFieldEncoder entryEncoder = rowEncoder.getEntryEncoder();
+						entryEncoder.reset();
+						entryEncoder.setRawBytes(encodedRow);
+//                newRowAccumulator.add((int)translatedIndexColumns.length(),encodedRow,0,encodedRow.length);
             //}
-            byte[] indexValue = newRowAccumulator.finish();
+            byte[] indexValue = rowEncoder.encode();
             KVPair newPut = new KVPair(newIndexRowKey,indexValue);
             if(keepState)
                 indexToMainMutationMap.put(mutation, newPut);
@@ -350,7 +366,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     private void occupy(EntryAccumulator accumulator, DataValueDescriptor dvd, int position) {
         int mappedPosition = mainColToIndexPosMap[position];
-        if(DerbyBytesUtil.isScalarType(dvd))
+        if(DerbyBytesUtil.isScalarType(dvd, null))
             accumulator.markOccupiedScalar(mappedPosition);
         else if(DerbyBytesUtil.isDoubleType(dvd))
             accumulator.markOccupiedDouble(mappedPosition);

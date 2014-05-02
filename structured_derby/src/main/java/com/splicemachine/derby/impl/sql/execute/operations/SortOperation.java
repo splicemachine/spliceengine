@@ -21,6 +21,8 @@ import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.utils.IntArrays;
@@ -164,7 +166,9 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
 						buffer = !distinct?null : new DistinctSortAggregateBuffer(SpliceConstants.ringBufferSize,
 										null, supplier, spliceRuntimeContext);
-						aggregator = new SinkSortIterator(buffer,new SourceIterator(source),keyColumns,descColumns);
+						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(execRowDefinition);
+						KeyEncoder encoder = KeyEncoder.bare(keyColumns,descColumns,serializers);
+						aggregator = new SinkSortIterator(buffer,new SourceIterator(source),encoder);
 						timer = spliceRuntimeContext.newTimer();
 				}
 				timer.startTiming();
@@ -269,7 +273,9 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 				if(top!=this) {
 						SpliceUtils.setInstructions(reduceScan,getActivation(),top,spliceRuntimeContext);
 						KeyDecoder kd = new KeyDecoder(NoOpKeyHashDecoder.INSTANCE,0);
-						decoder = new PairDecoder(kd,BareKeyHash.decoder(IntArrays.count(top.getExecRowDefinition().nColumns()),null),top.getExecRowDefinition());
+						ExecRow topExecRowDefinition = top.getExecRowDefinition();
+						DescriptorSerializer[] topSerializers = VersionedSerializers.latestVersion(false).getSerializers(topExecRowDefinition);
+						decoder = new PairDecoder(kd,BareKeyHash.decoder(IntArrays.count(topExecRowDefinition.nColumns()),null,topSerializers), topExecRowDefinition);
 				}else{
 						decoder = getTempDecoder();
 				}
@@ -301,15 +307,16 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 				DataHash hash;
 				KeyPostfix postfix;
 				if(distinct){
-					hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
-							@Override
-							public byte[] get() throws StandardException {
-									return groupingKey;
-							}
-					});
+						hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+								@Override
+								public byte[] get() throws StandardException {
+										return groupingKey;
+								}
+						});
 						postfix = NoOpPostfix.INSTANCE;
 				}else{
-						hash = BareKeyHash.encoder(keyColumns,descColumns);
+						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(getExecRowDefinition());
+						hash = BareKeyHash.encoder(keyColumns,descColumns,serializers);
 						postfix = new UniquePostfix(spliceRuntimeContext.getCurrentTaskId());
 				}
 
@@ -321,15 +328,18 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 		 * @throws StandardException
 		 */
 		protected PairDecoder getTempDecoder() throws StandardException {
-				KeyDecoder actualKeyDecoder = new KeyDecoder(BareKeyHash.decoder(keyColumns, descColumns),9);
 				ExecRow templateRow = getExecRowDefinition();
-				KeyHashDecoder actualRowDecoder =  BareKeyHash.decoder(IntArrays.complement(keyColumns, templateRow.nColumns()),null);
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(templateRow);
+				KeyDecoder actualKeyDecoder = new KeyDecoder(BareKeyHash.decoder(keyColumns, descColumns,serializers),9);
+				KeyHashDecoder actualRowDecoder =  BareKeyHash.decoder(IntArrays.complement(keyColumns, templateRow.nColumns()),null,serializers);
 				return new PairDecoder(actualKeyDecoder,actualRowDecoder,templateRow);
 		}
 
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				return BareKeyHash.encoder(IntArrays.complement(keyColumns,getExecRowDefinition().nColumns()),null);
+				ExecRow defn = getExecRowDefinition();
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(defn);
+				return BareKeyHash.encoder(IntArrays.complement(keyColumns, defn.nColumns()),null,serializers);
 		}
 
 		@Override

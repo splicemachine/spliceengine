@@ -2,14 +2,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.EntryPredicateUtils;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.sort.SinkSortIterator;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
@@ -19,26 +18,24 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.stats.TimeView;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.hash.HashFunctions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -46,7 +43,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -62,6 +58,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     private Scan reduceScan;
 		private byte[] groupingKey;
 		private List<KeyValue> keyValues;
+		private Scan scan;
 
 		@SuppressWarnings("UnusedDeclaration")
 		public DistinctScanOperation() { }
@@ -144,6 +141,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         for(int index=0;index<fihArray.length;index++){
             keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(scanInformation.getAccessedColumns(),fihArray[index].getInt());
         }
+				this.scan = context.getScan();
 				startExecutionTime = System.currentTimeMillis();
     }
 
@@ -160,16 +158,43 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     @Override
     public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				if(sinkIterator==null){
+						final ExecRow template = getExecRowDefinition();
 						StandardSupplier<ExecRow> supplier = new StandardSupplier<ExecRow>() {
 								@Override
 								public ExecRow get() throws StandardException {
-										return getExecRowDefinition();
+										return template;
 								}
 						};
 
 						buffer =  new DistinctSortAggregateBuffer(SpliceConstants.ringBufferSize,null,supplier,spliceRuntimeContext);
-						ScannerIterator source = new ScannerIterator(regionScanner, getExecRowDefinition(), operationInformation.getBaseColumnMap(), scanInformation, descColumns);
-						sinkIterator = new SinkSortIterator(buffer, source,keyColumns,null);
+						FormatableBitSet cols = scanInformation.getAccessedColumns();
+						int[] colMap;
+						if(cols!=null){
+								colMap = new int[cols.getLength()];
+								Arrays.fill(colMap,-1);
+								for(int i=cols.anySetBit(),pos=0;i>=0;i=cols.anySetBit(i),pos++){
+										colMap[i] = pos;
+								}
+						}else
+							colMap = keyColumns;
+						StandardIterator<ExecRow> source = new TableScannerBuilder()
+										.scanner(regionScanner)
+										.template(template)
+										.metricFactory(spliceRuntimeContext)
+										.scan(scan)
+										.rowDecodingMap(colMap)
+										.transactionID(transactionID)
+										.keyColumnEncodingOrder(scanInformation.getColumnOrdering())
+										.keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
+										.keyColumnTypes(getKeyFormatIds())
+										.accessedKeyColumns(scanInformation.getAccessedPkColumns())
+										.keyDecodingMap(getKeyDecodingMap())
+										.tableVersion(scanInformation.getTableVersion())
+										.indexName(indexName)
+										.build();
+						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(template);
+						KeyEncoder encoder = KeyEncoder.bare(keyColumns,null,serializers);
+						sinkIterator = new SinkSortIterator(buffer, source,encoder);
 						timer = spliceRuntimeContext.newTimer();
 				}
 
@@ -210,7 +235,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 				}
 
         if(rowDecoder==null){
-						rowDecoder = getTempDecoder();
+						rowDecoder = getTempDecoder(spliceRuntimeContext);
 				}
 				ExecRow decodedRow = rowDecoder.decode(KeyValueUtils.matchDataColumn(keyValues));
 				setCurrentRow(decodedRow);
@@ -276,7 +301,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 						if(top != this)
 								SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
 						else{
-								decoder = getTempDecoder();
+								decoder = getTempDecoder(spliceRuntimeContext);
 						}
 						return new DistributedClientScanProvider("distinctScanReduce", SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
 				} catch (IOException e) {
@@ -288,10 +313,12 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 		 * @return the decoder to use when reading data out of TEMP
 		 * @throws StandardException
 		 */
-		protected PairDecoder getTempDecoder() throws StandardException {
-				PairDecoder decoder;KeyDecoder actualKeyDecoder = new KeyDecoder(BareKeyHash.decoder(keyColumns, null),9);
+		protected PairDecoder getTempDecoder(SpliceRuntimeContext ctx) throws StandardException {
 				ExecRow templateRow = getExecRowDefinition();
-				KeyHashDecoder actualRowDecoder =  BareKeyHash.decoder(IntArrays.complement(keyColumns, templateRow.nColumns()),null);
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(templateRow);
+				PairDecoder decoder;
+				KeyDecoder actualKeyDecoder = new KeyDecoder(BareKeyHash.decoder(keyColumns, null, serializers),9);
+				KeyHashDecoder actualRowDecoder =  BareKeyHash.decoder(IntArrays.complement(keyColumns, templateRow.nColumns()),null,serializers);
 				decoder = new PairDecoder(actualKeyDecoder,actualRowDecoder,templateRow);
 				return decoder;
 		}
@@ -314,7 +341,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
     @Override
     protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
-        Scan scan = buildScan(runtimeContext);
+        Scan scan = getNonSIScan(runtimeContext);
         
         RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(scanInformation.getConglomerateId())),scan,null,runtimeContext);
 
@@ -345,7 +372,9 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				return BareKeyHash.encoder(IntArrays.complement(keyColumns,getExecRowDefinition().nColumns()),null);
+				ExecRow execRowDefinition = getExecRowDefinition();
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(execRowDefinition);
+				return BareKeyHash.encoder(IntArrays.complement(keyColumns, execRowDefinition.nColumns()),null,serializers);
 		}
 
 		@Override
@@ -353,105 +382,4 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         return "Distinct"+super.prettyPrint(indentLevel);
     }
 
-    private class ScannerIterator implements StandardIterator<ExecRow>{
-        private final RegionScanner regionScanner;
-        private final ExecRow template;
-        private final int[] columnMap;
-        private ScanInformation scanInformation;
-        private DataValueDescriptor[] kdvds;
-        private EntryPredicateFilter predicateFilter;
-        private boolean cachedPredicateFilter = false;
-        private BitSet descColumns;
-        private KeyMarshaller keyMarshaller;
-
-        private EntryDecoder rowDecoder;
-        private MultiFieldDecoder keyDecoder;
-        private List<KeyValue> values = Lists.newArrayListWithExpectedSize(2);
-
-        private ScannerIterator(RegionScanner regionScanner, ExecRow template,
-                                int[] columnMap, ScanInformation scanInformation, BitSet descColumns) {
-            this.regionScanner = regionScanner;
-            this.template = template;
-            this.columnMap = columnMap;
-            this.scanInformation = scanInformation;
-            this.descColumns = descColumns;
-        }
-
-        @Override public void open() throws StandardException, IOException {  }
-
-        @Override
-        public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-
-            getRowDecoder();
-            getKeyDecoder();
-            do {
-                values.clear();
-                regionScanner.nextRaw(values,null);
-                if(values.size()<=0) return null;
-
-                template.resetRowArray();
-                KeyValue kv = KeyValueUtils.matchKeyValue(values,SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
-                if (getColumnOrdering() != null && getPredicateFilter(spliceRuntimeContext) != null) {
-                    boolean passed = EntryPredicateUtils.qualify(predicateFilter, kv.getBuffer(), kv.getRowOffset(), kv.getRowLength(), getColumnDVDs(),
-                            getColumnOrdering(),getKeyDecoder());
-                    if (!passed)
-                        continue;
-                }
-                RowMarshaller.sparsePacked().decode(kv,template.getRowArray(),columnMap,rowDecoder);
-                if (scanInformation.getAccessedPkColumns() != null && scanInformation.getAccessedPkColumns().getNumBitsSet() > 0) {
-                    getKeyMarshaller().decode(kv, template.getRowArray(), columnMap, keyDecoder, columnOrdering, kdvds);
-                }
-                break;
-            } while (values.size() > 0);
-            return template;
-        }
-        @Override public void close() throws StandardException, IOException {  }
-
-        private DataValueDescriptor[] getColumnDVDs() throws StandardException{
-            if (kdvds == null) {
-                int[] columnOrdering = getColumnOrdering();
-                int[] format_ids = scanInformation.getConglomerate().getFormat_ids();
-                kdvds = new DataValueDescriptor[columnOrdering.length];
-                for (int i = 0; i < columnOrdering.length; ++i) {
-                    kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
-                }
-            }
-            return kdvds;
-        }
-
-        private int[] getColumnOrdering() throws StandardException{
-            if (columnOrdering == null) {
-                columnOrdering = scanInformation.getColumnOrdering();
-            }
-            return columnOrdering;
-        }
-
-        private EntryPredicateFilter getPredicateFilter(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException{
-            if (!cachedPredicateFilter) {
-                Scan scan = getScan(spliceRuntimeContext);
-                predicateFilter = EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
-                cachedPredicateFilter = true;
-            }
-            return predicateFilter;
-        }
-
-        private KeyMarshaller getKeyMarshaller () {
-            if (keyMarshaller == null)
-                keyMarshaller = new KeyMarshaller(descColumns);
-
-            return keyMarshaller;
-        }
-
-        private MultiFieldDecoder getKeyDecoder() {
-            if (keyDecoder == null)
-                keyDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
-            return keyDecoder;
-        }
-
-        private EntryDecoder getRowDecoder() {
-            if(rowDecoder==null)
-                rowDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
-            return rowDecoder;
-        }
-    }
 }

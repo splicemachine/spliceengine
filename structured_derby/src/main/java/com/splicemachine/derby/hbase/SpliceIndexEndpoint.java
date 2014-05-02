@@ -1,6 +1,5 @@
 package com.splicemachine.derby.hbase;
 
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
@@ -15,13 +14,11 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.coprocessors.RollForwardQueueMap;
-import com.splicemachine.si.impl.NoOpRollForwardQueue;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
-import org.apache.derby.impl.tools.ij.ijMultipleResultSetResult;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -39,10 +36,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
-
 import javax.management.*;
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;

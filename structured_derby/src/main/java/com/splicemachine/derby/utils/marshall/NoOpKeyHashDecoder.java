@@ -3,6 +3,8 @@ package com.splicemachine.derby.utils.marshall;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  * Date: 11/18/13
@@ -13,4 +15,6 @@ public class NoOpKeyHashDecoder implements KeyHashDecoder {
 		private NoOpKeyHashDecoder() { }
 		@Override public void set(byte[] bytes, int hashOffset, int length) { }
 		@Override public void decode(ExecRow destination) throws StandardException { }
+
+		@Override public void close() throws IOException {  }
 }

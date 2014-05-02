@@ -2,15 +2,20 @@ package com.splicemachine.derby.utils.test;
 
 import com.carrotsearch.hppc.BitSet;
 import com.google.common.base.Charsets;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
+import com.splicemachine.derby.impl.sql.execute.serial.TimestampDVDSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.AbstractTimeDescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.TimestampV2DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.sql.execute.ValueRow;
+import org.codehaus.jackson.map.deser.TimestampDeserializer;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
@@ -259,7 +264,7 @@ public enum TestingDataType {
         @Override public void encode(Object o, MultiFieldEncoder encoder) { encoder.encodeNext((String)o); }
         @Override
         public DataValueDescriptor getDataValueDescriptor() {
-            return new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
+            return new LazyStringDataValueDescriptor(new SQLVarchar());
         }
 
         @Override
@@ -336,17 +341,14 @@ public enum TestingDataType {
     },
     DATE(Types.DATE){
         @Override public void encode(Object o, MultiFieldEncoder encoder) { encoder.encodeNext((Long)o); }
-        @Override
-        public DataValueDescriptor getDataValueDescriptor() {
-            return new SQLDate();
-        }
+        @Override public DataValueDescriptor getDataValueDescriptor() { return new SQLDate(); }
 
         @Override
         public void decodeNext(DataValueDescriptor dvd, MultiFieldDecoder decoder) throws StandardException {
             if(decoder.nextIsNull())
                 dvd.setToNull();
             else
-                dvd.setValue(new java.sql.Timestamp(decoder.decodeNextLong()));
+						  dvd.setValue(new java.sql.Date(decoder.decodeNextLong()));
         }
 
         @Override
@@ -411,7 +413,9 @@ public enum TestingDataType {
 
     },
     TIMESTAMP(Types.TIMESTAMP){
-        @Override public void encode(Object o, MultiFieldEncoder encoder) { encoder.encodeNext((Long)o); }
+        @Override public void encode(Object o, MultiFieldEncoder encoder) {
+						encoder.encodeNext((Long)o);
+				}
         @Override public boolean isScalarType() { return true; }
         @Override
         public DataValueDescriptor getDataValueDescriptor() {
@@ -422,8 +426,10 @@ public enum TestingDataType {
         public void decodeNext(DataValueDescriptor dvd, MultiFieldDecoder decoder) throws StandardException {
             if(decoder.nextIsNull())
                 dvd.setToNull();
-            else
-                dvd.setValue(new java.sql.Timestamp(decoder.decodeNextLong()));
+            else{
+								Timestamp timestamp = TimestampV2DescriptorSerializer.parseTimestamp(decoder.decodeNextLong());
+								dvd.setValue(timestamp);
+						}
         }
 
         @Override

@@ -32,8 +32,12 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
     KeyValue keyValue;
     KeyValueType type;
     private final TransactionSource transactionSource;
-    FilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
-                RollForwardQueue rollForwardQueue,ImmutableTransaction myTransaction) {
+
+    public FilterState(SDataLib dataLib,
+											 DataStore dataStore,
+											 TransactionStore transactionStore,
+                RollForwardQueue rollForwardQueue,
+								ImmutableTransaction myTransaction) {
         this.transactionSource = new TransactionSource() {
             @Override
             public Transaction getTransaction(long timestamp) throws IOException {

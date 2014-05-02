@@ -4,6 +4,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
@@ -21,7 +22,7 @@ import java.io.IOException;
  */
 interface DMLWriteInfo extends Externalizable {
 
-    void initialize(SpliceOperationContext opCtx);
+    void initialize(SpliceOperationContext opCtx) throws StandardException;
 
     ConstantAction getConstantAction();
 
@@ -34,4 +35,6 @@ interface DMLWriteInfo extends Externalizable {
 		SpliceObserverInstructions buildInstructions(SpliceOperation operation);
 
 		ResultDescription getResultDescription();
+
+		String getTableVersion();
 }

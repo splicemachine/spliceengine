@@ -74,6 +74,8 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 		this.slice = (ByteSlice) theValue;
 	}
 
+
+
 	public DataValueDescriptor cloneValue(boolean forceMaterialization) {
 		return new HBaseRowLocation(this);
 	}
@@ -181,11 +183,12 @@ public class HBaseRowLocation extends DataType implements RowLocation {
     }
     
 	protected void setFrom(DataValueDescriptor theValue)  {
-        if (SanityManager.DEBUG)
-            SanityManager.ASSERT(theValue instanceof HBaseRowLocation,
-                    "Should only be set from another HeapRowLocation");
-        HBaseRowLocation that = (HBaseRowLocation) theValue;
-        this.slice = that.slice;
+			if (SanityManager.DEBUG)
+					SanityManager.ASSERT(theValue instanceof HBaseRowLocation,
+									"Should only be set from another HeapRowLocation");
+			HBaseRowLocation that = (HBaseRowLocation) theValue;
+			ByteSlice otherSlice = that.slice;
+			this.slice.set(otherSlice.array(),otherSlice.offset(),otherSlice.length());
 	}
 	/*
 	**		Methods of Object
@@ -222,8 +225,12 @@ public class HBaseRowLocation extends DataType implements RowLocation {
     public String toString() {
         return("(row key "+this.slice+")");
     }
-    
+
     public Format getFormat() {
     	return Format.ROW_LOCATION;
     }
+
+		public ByteSlice getSlice() {
+				return slice;
+		}
 }

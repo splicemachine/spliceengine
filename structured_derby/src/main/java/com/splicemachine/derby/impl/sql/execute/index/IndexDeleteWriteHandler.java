@@ -1,25 +1,24 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import java.io.IOException;
-import java.util.List;
-
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.Predicate;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.hbase.batch.WriteContext;
-import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -28,7 +27,7 @@ import com.splicemachine.storage.Predicate;
 public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
     private final List<KVPair> deletes = Lists.newArrayListWithExpectedSize(0);
-    private final IndexTransformer transformer;
+    private final IndexTransformer2 transformer;
     private CallBuffer<KVPair> indexBuffer;
     private final int expectedWrites;
 
@@ -45,22 +44,42 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
     }
 
     public IndexDeleteWriteHandler(BitSet indexedColumns,
-                                   int[] mainColToIndexPosMap,
+                                   int[] keyEncodingMap,
                                    byte[] indexConglomBytes,
                                    BitSet descColumns,
                                    boolean keepState,
                                    boolean unique,
                                    boolean uniqueWithDuplicateNulls,
                                    int expectedWrites,
-                                   int[] columnOrdering,
-                                   int[] formatIds){
-        super(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState);
+                                   int[] keyColumnEncodingOrder,
+                                   int[] mainTableTypes){
+        super(indexedColumns,keyEncodingMap,indexConglomBytes,descColumns,keepState);
         BitSet nonUniqueIndexColumn = (BitSet)translatedIndexColumns.clone();
         nonUniqueIndexColumn.set(translatedIndexColumns.length());
         this.expectedWrites = expectedWrites;
-        this.transformer = new IndexTransformer(indexedColumns,
-                translatedIndexColumns,nonUniqueIndexColumn,descColumns,mainColToIndexPosMap,unique,
-                uniqueWithDuplicateNulls, SpliceDriver.getKryoPool(),columnOrdering,formatIds);
+				boolean[] destAscDescColumns = new boolean[keyEncodingMap.length];
+				Arrays.fill(destAscDescColumns, true);
+				for(int key:keyEncodingMap){
+						if(descColumns.get(key))
+								destAscDescColumns[key] = false;
+				}
+				int[] keyDecodingMap = new int[(int)indexedColumns.length()];
+				Arrays.fill(keyDecodingMap,-1);
+				for(int i=indexedColumns.nextSetBit(0);i>=0; i= indexedColumns.nextSetBit(i+1)){
+						keyDecodingMap[i] = keyEncodingMap[i];
+				}
+				this.transformer = new IndexTransformer2(
+								unique,
+								uniqueWithDuplicateNulls,
+								null, //TODO -sf- make this table version match
+								keyColumnEncodingOrder,
+								mainTableTypes,
+								null,
+								keyDecodingMap,
+								destAscDescColumns);
+//        this.transformer = new IndexTransformer(indexedColumns,
+//                translatedIndexColumns,nonUniqueIndexColumn,descColumns,keyEncodingMap,unique,
+//                uniqueWithDuplicateNulls, SpliceDriver.getKryoPool(),keyColumnEncodingOrder,mainTableTypes);
     }
 
     @Override
@@ -108,7 +127,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
             KeyValue resultValue = null;
             for(KeyValue value:result.raw()){
-                if(value.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY)){
+                if(value.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES)){
                     resultValue = value;
                     break;
                 }

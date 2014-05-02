@@ -88,7 +88,7 @@ public class HBaseController  extends SpliceController {
             htable.put(put);
 			return true;
 		} catch (Exception e) {
-			throw StandardException.newException("Error during replace " + e);
+			throw StandardException.newException("Error during replace ",e);
 		} finally{
             try {
                 htable.close();

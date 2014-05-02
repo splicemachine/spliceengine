@@ -58,6 +58,7 @@ ROOT_DIR="$( pwd )"
 
 SPLICE_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -Ev '(^\[|INFO|Download)' | tr -d [[:space:]])
 TARBALL="${ROOT_DIR}"/target/splice_machine-${SPLICE_VERSION}-${PROFILE}_simple.tar.gz
+
 if [[ ! -e ${TARBALL} ]]; then
     # Maven assembly is required for server dependencies and executable start/stop scripts.
     # It's not present. Attempt to build assembly (only if it's not already built).

@@ -56,7 +56,7 @@ public class ImportTaskTest {
             @Override
             public ExecRow apply(@Nullable KVPair input) {
                 assert input != null; //unneeded, but it makes idea happy
-                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue(), mock(KryoPool.class));
+                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue());
                 decoder.skip();
                 ExecRow row = template.getNewNullRow();
                 if (decoder.nextIsNull()) {
@@ -99,7 +99,7 @@ public class ImportTaskTest {
             @Override
             public ExecRow apply(@Nullable KVPair input) {
                 assert input != null; //unneeded, but it makes idea happy
-                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue(), mock(KryoPool.class));
+                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue());
                 decoder.skip();
                 ExecRow row = template.getNewNullRow();
                 if (decoder.nextIsNull()) {
@@ -142,7 +142,7 @@ public class ImportTaskTest {
             @Override
             public ExecRow apply(@Nullable KVPair input) {
                 assert input != null; //unneeded, but it makes idea happy
-                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue(), mock(KryoPool.class));
+                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue());
                 decoder.skip();
                 ExecRow row = template.getNewNullRow();
                 if (decoder.nextIsNull()) {
@@ -185,7 +185,7 @@ public class ImportTaskTest {
             @Override
             public ExecRow apply(@Nullable KVPair input) {
                 assert input != null; //unneeded, but it makes idea happy
-                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue(), mock(KryoPool.class));
+                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue());
                 decoder.skip();
                 ExecRow row = template.getNewNullRow();
                 if (decoder.nextIsNull()) {
@@ -228,7 +228,7 @@ public class ImportTaskTest {
             @Override
             public ExecRow apply(@Nullable KVPair input) {
                 assert input != null; //unneeded, but it makes idea happy
-                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue(), mock(KryoPool.class));
+                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue());
                 decoder.skip();
                 ExecRow row = template.getNewNullRow();
                 if (decoder.nextIsNull()) {
@@ -271,7 +271,7 @@ public class ImportTaskTest {
             @Override
             public ExecRow apply(@Nullable KVPair input) {
                 assert input != null; //unneeded, but it makes idea happy
-                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue(), mock(KryoPool.class));
+                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue());
                 decoder.skip();
                 ExecRow row = template.getNewNullRow();
                 if (decoder.nextIsNull()) {
@@ -314,7 +314,7 @@ public class ImportTaskTest {
             @Override
             public ExecRow apply(@Nullable KVPair input) {
                 assert input != null; //unneeded, but it makes idea happy
-                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue(), mock(KryoPool.class));
+                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue());
                 decoder.skip();
                 ExecRow row = template.getNewNullRow();
                 if (decoder.nextIsNull()) {
@@ -357,7 +357,7 @@ public class ImportTaskTest {
             @Override
             public ExecRow apply(@Nullable KVPair input) {
                 assert input != null; //unneeded, but it makes idea happy
-                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue(), mock(KryoPool.class));
+                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue());
                 decoder.skip();
                 ExecRow row = template.getNewNullRow();
                 if (decoder.nextIsNullDouble()) {
@@ -400,7 +400,7 @@ public class ImportTaskTest {
             @Override
             public ExecRow apply(@Nullable KVPair input) {
                 assert input != null; //unneeded, but it makes idea happy
-                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue(), mock(KryoPool.class));
+                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue());
                 decoder.skip();
                 ExecRow row = template.getNewNullRow();
                 if (decoder.nextIsNullFloat()) {
@@ -443,7 +443,7 @@ public class ImportTaskTest {
             @Override
             public ExecRow apply(@Nullable KVPair input) {
                 assert input != null; //unneeded, but it makes idea happy
-                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue(), mock(KryoPool.class));
+                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(input.getValue());
                 decoder.skip();
                 ExecRow row = template.getNewNullRow();
                 if (decoder.nextIsNull()) {

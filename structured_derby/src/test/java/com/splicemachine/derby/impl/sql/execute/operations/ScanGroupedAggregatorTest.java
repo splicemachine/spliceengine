@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
@@ -10,6 +9,12 @@ import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.Scan
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
+import com.splicemachine.derby.utils.marshall.NoOpPostfix;
+import com.splicemachine.derby.utils.marshall.NoOpPrefix;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 
@@ -75,8 +80,10 @@ public class ScanGroupedAggregatorTest {
 
         int[] groupColumns = new int[]{0,1};
         boolean[] groupSortOrder = new boolean[]{true,true};
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(template);
+				KeyEncoder encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(groupColumns,groupSortOrder,serializers), NoOpPostfix.INSTANCE);
         ScanGroupedAggregateIterator aggregator = new ScanGroupedAggregateIterator(buffer,
-                source,groupColumns,groupSortOrder,true);
+                source,encoder,groupColumns,true);
 
         List<GroupedRow> results = Lists.newArrayListWithExpectedSize(21);
         GroupedRow row = aggregator.next(null);
@@ -97,7 +104,7 @@ public class ScanGroupedAggregatorTest {
             GroupedRow groupedRow = results.get(i);
             ExecRow dataRow = groupedRow.getRow();
             byte[] groupKey = groupedRow.getGroupingKey();
-            MultiFieldDecoder decoder = MultiFieldDecoder.wrap(groupKey, SpliceDriver.getKryoPool());
+            MultiFieldDecoder decoder = MultiFieldDecoder.wrap(groupKey);
             boolean allNull=true;
             for(int colPos=0;colPos<groupColumns.length;colPos++){
                 if(decoder.nextIsNull()){
@@ -153,8 +160,10 @@ public class ScanGroupedAggregatorTest {
 
         int[] groupColumns = new int[]{0};
         boolean[] groupSortOrder = new boolean[]{true};
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(template);
+				KeyEncoder encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(groupColumns,groupSortOrder,serializers), NoOpPostfix.INSTANCE);
         ScanGroupedAggregateIterator aggregator = new ScanGroupedAggregateIterator(buffer,
-                source,groupColumns,groupSortOrder,false);
+                source,encoder,groupColumns,false);
 
         List<GroupedRow> results = Lists.newArrayListWithExpectedSize(10);
         GroupedRow row = aggregator.next(null);

@@ -1,7 +1,8 @@
 package com.splicemachine.derby.utils.marshall;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
@@ -19,23 +20,32 @@ import java.io.IOException;
 public class EntryDataDecoder extends BareKeyHash implements KeyHashDecoder{
 		private EntryDecoder entryDecoder;
 
-		protected EntryDataDecoder(int[] keyColumns,
-															 boolean[] keySortOrder) {
-				this(keyColumns, keySortOrder,SpliceDriver.getKryoPool());
+		public EntryDataDecoder(int[] keyColumns,
+															 boolean[] keySortOrder,
+															 DescriptorSerializer[] serializers) {
+				this(keyColumns, keySortOrder, SpliceKryoRegistry.getInstance(),serializers);
 		}
 
 		protected EntryDataDecoder(int[] keyColumns,
 															 boolean[] keySortOrder,
-															 KryoPool kryoPool) {
-				super(keyColumns, keySortOrder,true,kryoPool);
+															 KryoPool kryoPool,
+															 DescriptorSerializer[] serializers) {
+				super(keyColumns, keySortOrder,true,kryoPool,serializers);
 		}
 
 		@Override
 		public void set(byte[] bytes, int hashOffset, int length) {
 				if(entryDecoder==null)
-						entryDecoder =new EntryDecoder(SpliceDriver.getKryoPool());
+						entryDecoder =new EntryDecoder(SpliceKryoRegistry.getInstance());
 
 				entryDecoder.set(bytes,hashOffset,length);
+		}
+
+		@Override
+		public void close() throws IOException {
+				super.close();
+				if(entryDecoder!=null)
+						entryDecoder.close();
 		}
 
 		@Override
@@ -51,13 +61,15 @@ public class EntryDataDecoder extends BareKeyHash implements KeyHashDecoder{
 				if(keyColumns!=null){
 						for(int i=index.nextSetBit(0);i>=0 && i<keyColumns.length;i=index.nextSetBit(i+1)){
 								int pos = keyColumns[i];
+								if(pos<0) continue;
 								DataValueDescriptor dvd = fields[pos];
 								if(dvd==null){
 										entryDecoder.seekForward(decoder, i);
 										continue;
 								}
+								DescriptorSerializer serializer = serializers[pos];
 								boolean sortOrder = keySortOrder != null && !keySortOrder[i];
-								decodeNext(decoder,dvd,sortOrder);
+								serializer.decode(decoder,dvd,sortOrder);
 						}
 				}else{
 						for(int i=index.nextSetBit(0);i>=0 && i<fields.length;i=index.nextSetBit(i+1)){
@@ -67,8 +79,13 @@ public class EntryDataDecoder extends BareKeyHash implements KeyHashDecoder{
 										continue;
 								}
 								boolean sortOrder = keySortOrder != null && !keySortOrder[i];
-								decodeNext(decoder,dvd,sortOrder);
+								DescriptorSerializer serializer = serializers[i];
+								serializer.decode(decoder,dvd,sortOrder);
 						}
 				}
+		}
+
+		public EntryDecoder getFieldDecoder(){
+			return entryDecoder;
 		}
 }

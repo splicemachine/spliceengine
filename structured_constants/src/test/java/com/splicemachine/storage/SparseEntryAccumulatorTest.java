@@ -61,7 +61,7 @@ public class SparseEntryAccumulatorTest {
         EntryAccumulator accumulator = new ByteEntryAccumulator(null, true, fields);
 
         Object[] correctData = new Object[dataTypes.length];
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(kryoPool,1);
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(1);
         for(int i=0;i<dataTypes.length;i++){
             //skip the field that goes missing
             if(i==missingField)
@@ -104,7 +104,7 @@ public class SparseEntryAccumulatorTest {
             }
         }
 
-        MultiFieldDecoder decoder =  MultiFieldDecoder.wrap(bytes,offset+1,bytes.length-offset-1,kryoPool);
+        MultiFieldDecoder decoder =  MultiFieldDecoder.wrap(bytes,offset+1,bytes.length-offset-1);
         //make sure they all decode correctly
         for(int i=0;i<dataTypes.length;i++){
             if(i==missingField)continue;
@@ -124,7 +124,7 @@ public class SparseEntryAccumulatorTest {
         EntryAccumulator accumulator = new ByteEntryAccumulator(null, true, fields);
 
         Object[] correctData = new Object[dataTypes.length];
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(kryoPool,1);
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(1);
         for(int i=0;i<dataTypes.length;i++){
             encoder.reset();
             TestType type = dataTypes[i];
@@ -159,7 +159,7 @@ public class SparseEntryAccumulatorTest {
             }
         }
 
-        MultiFieldDecoder decoder =  MultiFieldDecoder.wrap(bytes,offset+1,bytes.length-offset-1,kryoPool);
+        MultiFieldDecoder decoder =  MultiFieldDecoder.wrap(bytes,offset+1,bytes.length-offset-1);
         //make sure they all decode correctly
         for(int i=0;i<dataTypes.length;i++){
             Object correct = correctData[i];

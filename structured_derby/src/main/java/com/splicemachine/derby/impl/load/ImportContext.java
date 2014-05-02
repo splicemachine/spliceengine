@@ -61,6 +61,7 @@ public class ImportContext implements Externalizable{
 		 */
 		private long maxBadRecords;
 		private Path badLogDirectory;
+		private String tableVersion;
 
 		public ImportContext(){}
 
@@ -78,7 +79,8 @@ public class ImportContext implements Externalizable{
 													boolean recordStats,
 													String xplainSchema,
 													long maxBadRecords,
-													Path badLogDirectory){
+													Path badLogDirectory,
+													String tableVersion){
 				this.transactionId = transactionId;
 				this.filePath = filePath;
 				this.columnDelimiter = columnDelimiter!= null?columnDelimiter:DEFAULT_COLUMN_DELIMITTER;
@@ -94,6 +96,7 @@ public class ImportContext implements Externalizable{
 				this.xplainSchema = xplainSchema;
 				this.maxBadRecords = maxBadRecords;
 				this.badLogDirectory = badLogDirectory;
+				this.tableVersion = tableVersion;
 		}
 
 		public void setFilePath(Path filePath) {
@@ -158,6 +161,10 @@ public class ImportContext implements Externalizable{
 				out.writeBoolean(badLogDirectory!=null);
 				if(badLogDirectory!=null)
 						out.writeUTF(badLogDirectory.toString());
+
+				out.writeBoolean(tableVersion!=null);
+				if(tableVersion!=null)
+						out.writeUTF(tableVersion);
 		}
 
 		@Override
@@ -188,6 +195,8 @@ public class ImportContext implements Externalizable{
 				maxBadRecords = in.readLong();
 				if(in.readBoolean())
 						badLogDirectory = new Path(in.readUTF());
+				if(in.readBoolean())
+						tableVersion = in.readUTF();
 		}
 
 		@Override
@@ -232,12 +241,14 @@ public class ImportContext implements Externalizable{
 				return new ImportContext(transactionId,filePath,tableId,columnDelimiter,stripString,
 								columnInformation,timestampFormat,
 								dateFormat,timeFormat,byteOffset,bytesToRead,
-								recordStats,xplainSchema,maxBadRecords,badLogDirectory);
+								recordStats,xplainSchema,maxBadRecords,badLogDirectory,tableVersion);
 		}
 
 		public long getMaxBadRecords() { return maxBadRecords; }
 
 		public Path getBadLogDirectory() { return badLogDirectory; }
+
+		public String getTableVersion() { return tableVersion; }
 
 		public static class Builder{
 				private Path filePath;
@@ -259,6 +270,7 @@ public class ImportContext implements Externalizable{
 
 				private long maxBadRecords = 0l;
 				private Path badLogDirectory = null;
+				private String tableVersion;
 
 				public Builder maxBadRecords(long maxBadRecords){
 						this.maxBadRecords = maxBadRecords;
@@ -352,6 +364,11 @@ public class ImportContext implements Externalizable{
 						return this;
 				}
 
+				public Builder tableVersion(String tableVersion){
+						this.tableVersion = tableVersion;
+						return this;
+				}
+
 				public ImportContext build() throws StandardException {
 						Preconditions.checkNotNull(filePath,"No File specified!");
 						Preconditions.checkNotNull(tableId,"No destination table specified!");
@@ -377,7 +394,11 @@ public class ImportContext implements Externalizable{
 										columnDelimiter,stripString,
 										context,
 										timestampFormat,dateFormat,timeFormat, byteOffset, bytesToRead,
-										recordStats,xplainSchema,maxBadRecords,badLogDirectory);
+										recordStats,xplainSchema,maxBadRecords,badLogDirectory,tableVersion);
+				}
+
+				public long getDestinationConglomerate() {
+						return this.tableId;
 				}
 		}
 }

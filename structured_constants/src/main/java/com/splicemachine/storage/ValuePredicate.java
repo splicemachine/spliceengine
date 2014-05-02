@@ -15,14 +15,21 @@ public class ValuePredicate implements Predicate {
     private CompareFilter.CompareOp compareOp;
     private int column;
     protected byte[] compareValue;
+		/*If set, the comparison value needs to be reversed*/
+		private boolean desc;
 
     private boolean removeNullEntries;
 
-		public ValuePredicate(CompareFilter.CompareOp compareOp, int column, byte[] compareValue,boolean removeNullEntries) {
+		public ValuePredicate(CompareFilter.CompareOp compareOp,
+													int column,
+													byte[] compareValue,
+													boolean removeNullEntries,
+													boolean desc) {
         this.compareOp = compareOp;
         this.column = column;
         this.compareValue = compareValue;
         this.removeNullEntries = removeNullEntries;
+				this.desc = desc;
     }
 
     @Override
@@ -70,7 +77,10 @@ public class ValuePredicate implements Predicate {
     }
 
 		protected int doComparison(byte[] data, int offset, int length) {
-				return Bytes.compareTo(compareValue, 0, compareValue.length, data, offset, length);
+				int baseCompare = Bytes.compareTo(compareValue, 0, compareValue.length, data, offset, length);
+				if(desc)
+						baseCompare*=-1; //swap the order for descending columns
+				return baseCompare;
 		}
 
 		@Override
@@ -98,20 +108,22 @@ public class ValuePredicate implements Predicate {
          * 1-byte type header (PredicateType.VALUE)
          * 4-bytes column
          * 1-byte removeNullEntries
+         * 1-byte sortOrder
          * 4-byte compareOrdinal
          * 4-byte compareValueLength
          * n-bytes the comparison value
          *
          * which results in an array of n+10 bytes
          */
-				byte[] data = new byte[compareValue.length + 14];
+				byte[] data = new byte[compareValue.length + 15];
 				data[0] = getType().byteValue();
 				BytesUtil.intToBytes(column, data, 1);
 
 				data[5] = removeNullEntries ? (byte) 0x01 : 0x00;
-				BytesUtil.intToBytes(compareOp.ordinal(), data, 6);
-				BytesUtil.intToBytes(compareValue.length, data, 10);
-				System.arraycopy(compareValue, 0, data, 14, compareValue.length);
+				data[6] = desc? (byte)0x01: 0x00;
+				BytesUtil.intToBytes(compareOp.ordinal(), data, 7);
+				BytesUtil.intToBytes(compareValue.length, data, 11);
+				System.arraycopy(compareValue, 0, data, 15, compareValue.length);
 
 				return data;
 		}
@@ -120,20 +132,33 @@ public class ValuePredicate implements Predicate {
 				//first byte is the type.
 				PredicateType pType = PredicateType.valueOf(data[offset]);
 				offset++;
+				int length =1;
         //first bytes are the Column
         int column = BytesUtil.bytesToInt(data, offset);
-        boolean removeNullEntries = data[offset+4] ==0x01;
-        CompareFilter.CompareOp compareOp = getCompareOp(BytesUtil.bytesToInt(data, offset + 5));
+				offset+=4;
+				length+=4;
+        boolean removeNullEntries = data[offset] ==0x01;
+				offset++;
+				length++;
+				boolean desc = data[offset] == 0x01;
+				offset++;
+				length++;
+        CompareFilter.CompareOp compareOp = getCompareOp(BytesUtil.bytesToInt(data, offset));
+				offset+=4;
+				length+=4;
 
-        int compareValueSize = BytesUtil.bytesToInt(data, offset + 9);
+        int compareValueSize = BytesUtil.bytesToInt(data, offset);
+				offset+=4;
+				length+=4;
         byte[] compareValue = new byte[compareValueSize];
-        System.arraycopy(data,offset+13,compareValue,0,compareValue.length);
+        System.arraycopy(data,offset,compareValue,0,compareValue.length);
+				length+=compareValue.length;
 				ValuePredicate pred;
 				if(pType==PredicateType.CHAR_VALUE) {
-						pred = new CharValuePredicate(compareOp, column, compareValue, removeNullEntries);
+						pred = new CharValuePredicate(compareOp, column, compareValue, removeNullEntries,desc);
 				}else
-						pred = new ValuePredicate(compareOp, column, compareValue, removeNullEntries);
-				return Pair.newPair(pred,compareValue.length+14);
+						pred = new ValuePredicate(compareOp, column, compareValue, removeNullEntries,desc);
+				return Pair.newPair(pred,length);
     }
 
     private static CompareFilter.CompareOp getCompareOp(int compareOrdinal) {

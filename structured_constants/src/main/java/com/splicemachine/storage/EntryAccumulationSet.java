@@ -67,4 +67,6 @@ abstract class EntryAccumulationSet {
 		public abstract boolean isInteresting(BitIndex potentialIndex);
 
 		public abstract void complete();
+
+		public abstract boolean isInteresting(int position);
 }

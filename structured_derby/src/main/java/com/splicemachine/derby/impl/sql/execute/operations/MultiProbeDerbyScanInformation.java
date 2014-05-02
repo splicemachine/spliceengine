@@ -45,21 +45,14 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
     @Deprecated
     public MultiProbeDerbyScanInformation() { }
 
-    @Override
-    public Scan getScan(String txnId) throws StandardException {
-        return getScan(txnId, null);
-    }
-
-    
-    
-    @Override
-	protected ExecIndexRow getStopPosition() throws StandardException {
-    	ExecIndexRow stopPosition = sameStartStopPosition?super.getStartPosition():super.getStopPosition();
-        if (stopPosition != null) {
-            stopPosition.getRowArray()[0] = probeValue;
-        }
-    	return stopPosition;
-	}
+		@Override
+		protected ExecIndexRow getStopPosition() throws StandardException {
+				ExecIndexRow stopPosition = sameStartStopPosition?super.getStartPosition():super.getStopPosition();
+				if (stopPosition != null) {
+						stopPosition.getRowArray()[0] = probeValue;
+				}
+				return stopPosition;
+		}
 
 	@Override
 	protected ExecIndexRow getStartPosition() throws StandardException {

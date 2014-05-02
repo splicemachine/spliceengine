@@ -53,7 +53,7 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
                             ps.setInt(2, Integer.MAX_VALUE - 1);
                             stats.add(Integer.MAX_VALUE - 1);
                             ps.executeUpdate();
-                            spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, size / 3);
+//                            spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, size / 3);
 
                             ps = spliceClassWatcher.prepareStatement("insert into " + nullTableWatcher.toString() + " values (?,?)");
                             for (int i = 0; i < size; i++) {
@@ -65,6 +65,7 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
                                 ps.executeUpdate();
                             }
                         } catch (Exception e) {
+														e.printStackTrace();
                             throw new RuntimeException(e);
                         } finally {
                             spliceClassWatcher.closeAll();

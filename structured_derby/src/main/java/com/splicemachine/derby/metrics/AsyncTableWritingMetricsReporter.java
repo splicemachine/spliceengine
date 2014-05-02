@@ -82,7 +82,7 @@ public class AsyncTableWritingMetricsReporter implements RuntimeMetricsReporter{
 						try{
 							//build a put for the stats object
 								MultiFieldEncoder fieldEncoder = entryEncoder.getEntryEncoder();
-								MultiFieldEncoder rowEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),3);
+								MultiFieldEncoder rowEncoder = MultiFieldEncoder.create(3);
 								while(!Thread.currentThread().isInterrupted()){
 										try {
 												OperationRuntimeStats next = statsQueue.poll(flushTimeWindow, TimeUnit.SECONDS);

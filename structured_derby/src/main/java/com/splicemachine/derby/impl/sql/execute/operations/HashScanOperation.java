@@ -2,11 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -15,8 +11,6 @@ import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -33,6 +27,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -229,9 +224,9 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 								SpliceLogUtils.trace(LOG, "nextRow retrieved hbase values %s", keyValues);
 
 								DataValueDescriptor[] rowArray = currentRow.getRowArray();
-								for(KeyValue kv:keyValues){
-										RowMarshaller.sparsePacked().decode(kv, rowArray, baseColumnMap, (MultiFieldDecoder)null);
-								}
+//								for(KeyValue kv:keyValues){
+//										RowMarshaller.sparsePacked().decode(kv, rowArray, baseColumnMap, (MultiFieldDecoder)null);
+//								}
 								SpliceLogUtils.trace(LOG, "nextRow retrieved derby row %s", currentRow);
 								this.setCurrentRow(currentRow);
 								currentRowLocation = new HBaseRowLocation(keyValues.get(0).getRow());
@@ -249,10 +244,6 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 				RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext, true);
 				return new SpliceNoPutResultSet(activation,this,provider);
-		}
-
-		public int[] getKeyColumns() {
-				return this.keyColumns;
 		}
 
 		public Qualifier[][] getNextQualifier() {

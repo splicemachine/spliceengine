@@ -1,9 +1,7 @@
 package com.splicemachine.encoding;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Output;
 import com.google.common.base.Preconditions;
-import com.splicemachine.utils.kryo.KryoPool;
+
 import java.math.BigDecimal;
 
 /**
@@ -18,17 +16,13 @@ public class MultiFieldEncoder {
     private int initialPos;
     private int initalSize;
 
-    private final KryoPool kryoPool;
-    private Kryo kryo;
-
-    private MultiFieldEncoder(KryoPool kryoPool,int numFields){
+		private MultiFieldEncoder(int numFields){
         fields = new byte[numFields][];
         this.numFields = numFields;
         this.initialPos=0;
         this.initalSize=0;
-        this.kryoPool = kryoPool;
 
-        //initialize ourselves
+				//initialize ourselves
         reset();
     }
 
@@ -36,13 +30,11 @@ public class MultiFieldEncoder {
 //        return new MultiFieldEncoder(KryoPool.defaultPool(),numFields);
 //    }
 
-    public static MultiFieldEncoder create(KryoPool kryoPool,int numFields){
-        return new MultiFieldEncoder(kryoPool,numFields);
+    public static MultiFieldEncoder create(int numFields){
+        return new MultiFieldEncoder(numFields);
     }
 
     public void close(){
-        if(kryo!=null)
-            kryoPool.returnInstance(kryo);
     }
 
 
@@ -215,16 +207,7 @@ public class MultiFieldEncoder {
         return this;
     }
 
-    public MultiFieldEncoder encodeNextObject(Object o){
-        if(kryo==null)
-            kryo = kryoPool.get();
-        Output output = new Output(new byte[20],-1);
-        kryo.writeClassAndObject(output,o);
-        encodeNextUnsorted(output.toBytes());
-        return this;
-    }
-
-    public byte[] build(){
+		public byte[] build(){
         //if you haven't tried to encode anything, return empty array
         if(currentPos==0) return new byte[0];
 

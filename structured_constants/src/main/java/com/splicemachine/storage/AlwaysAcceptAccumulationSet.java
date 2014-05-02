@@ -30,4 +30,6 @@ public class AlwaysAcceptAccumulationSet extends EntryAccumulationSet {
 		@Override public boolean isInteresting(BitIndex potentialIndex) { return true; }
 
 		public void complete(){ this.completed = true; }
+
+		@Override public boolean isInteresting(int position) { return occupiedFields.get(position); }
 }

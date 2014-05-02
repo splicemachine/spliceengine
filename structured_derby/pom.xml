@@ -13,6 +13,11 @@
 	</parent>
 	<dependencies>
 		<dependency>
+			<groupId>org.roaringbitmap</groupId>
+			<artifactId>RoaringBitmap</artifactId>
+			<version>0.1.3</version>
+		</dependency>
+		<dependency>
 			<groupId>org.apache.derby</groupId>
 			<artifactId>derby</artifactId>
 			<version>${derby.version}</version>
@@ -51,7 +56,7 @@
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_si</artifactId>
 			<version>0.5rc10-SNAPSHOT</version>
-			<classifier>${envClassifier}</classifier>
+			<classifier>${envClassifier}${obfuscate.si}</classifier>
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
@@ -243,7 +248,7 @@
 												<exec executable="${run.command}" dir="${basedir}" spawn="false">
 													<arg value="${basedir}/../${splice.start.script}"/>
 													<arg value="-c"/>
-													<arg value="-p ${envClassifier}"/>
+													<arg value="-p ${envClassifier}${obfuscate.si}"/>
 													<arg value="-b ${build.tag}"/>
 												</exec>
 											</then>
@@ -251,7 +256,7 @@
 												<!-- chaos monkey overridden: -DfailTasksRandomly=false -->
 												<exec executable="${run.command}" dir="${basedir}" spawn="false">
 													<arg value="${basedir}/../${splice.start.script}"/>
-													<arg value="-p ${envClassifier}"/>
+													<arg value="-p ${envClassifier}${obfuscate.si}"/>
 													<arg value="-b ${build.tag}"/>
 												</exec>
 											</else>
@@ -329,16 +334,12 @@
 								<argument>-Xdebug</argument>
 								<argument>-Djava.awt.headless=true</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
-								<argument>
-									-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties
-								</argument>
+								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties</argument>
 								<argument>-Xmx2g</argument>
 								<argument>-Xms1g</argument>
 								<argument>-enableassertions</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
-								<argument>
-									-Dderby.debug.true=DumpClassFile,DumpParseTree,DumpBindTree,DumpOptimizedTree,ByteCodeGenInstr
-								</argument>
+								<argument>-Dderby.debug.true=DumpClassFile,DumpParseTree,DumpBindTree,DumpOptimizedTree,ByteCodeGenInstr</argument>
 								<argument>-Dderby.language.logQueryPlan=true</argument>
 								<argument>-Dderby.language.logStatementText=true</argument>
 								<argument>-Dderby.language.useStatistics=true</argument>
@@ -381,9 +382,7 @@
 								<argument>-Xdebug</argument>
 								<argument>-Djava.awt.headless=true</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
-								<argument>
-									-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties
-								</argument>
+								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties</argument>
 								<argument>-Xmx2g</argument>
 								<argument>-Xms1g</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
@@ -452,9 +451,7 @@
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Djava.awt.headless=true</argument>
-								<argument>
-									-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties
-								</argument>
+								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Dzookeeper.sasl.client=false</argument>
 								<argument>-Xmx2g</argument>
@@ -503,9 +500,7 @@
 								<argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
 								<argument>-Dcom.sun.management.jmxremote.port=10102</argument>
 								<argument>-Djava.awt.headless=true</argument>
-								<argument>
-									-Dlog4j.configuration=file:${basedir}/src/main/resources/hbase-log4j.properties
-								</argument>
+								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/hbase-log4j.properties</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Xmx3g</argument>
 								<argument>-Xms1g</argument>
@@ -551,9 +546,7 @@
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Djava.awt.headless=true</argument>
-								<argument>
-									-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties
-								</argument>
+								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Xmx2g</argument>
 								<argument>-Xms1g</argument>

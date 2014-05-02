@@ -22,7 +22,6 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.job.JobFuture;
@@ -258,7 +257,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 								@Override
 								public Result getResult() throws StandardException, IOException {
 										Result result = scanProvider.getResult();
-										if(result == null || !result.containsColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY))
+										if(result == null || !result.containsColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES))
 												return null;
 										return result;
 								}

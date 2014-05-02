@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job.AlterTable;
 
 
+import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
@@ -100,13 +101,14 @@ public class LoadConglomerateTask extends ZkTask {
             MetricFactory metricFactory = xplainSchema!=null? Metrics.basicMetricFactory(): Metrics.noOpMetricFactory();
             writeTimer = metricFactory.newTimer();
 
-            List<KeyValue> result = null;
+            List<KeyValue> result;
 
             do {
+								SpliceBaseOperation.checkInterrupt(numRecordsRead, SpliceConstants.interruptLoopCheck);
                 result = scanner.next();
-                if (result == null) break;
+                if (result == null) continue;
+
                 KeyValue kv = KeyValueUtils.matchDataColumn(result);
-                SpliceBaseOperation.checkInterrupt(numRecordsRead, SpliceConstants.interruptLoopCheck);
                 newPair = transformer.transform(kv);
                 loader.add(newPair);
                 numRecordsRead++;
@@ -115,7 +117,8 @@ public class LoadConglomerateTask extends ZkTask {
         }catch (Exception e) {
             throw new ExecutionException("Error loading conglomerate " + fromConglomId, e);
         } finally {
-            writeTimer.startTiming();
+						Closeables.closeQuietly(transformer);
+						writeTimer.startTiming();
             loader.close();
             writeTimer.stopTiming();
             if(xplainSchema!=null){

@@ -21,6 +21,8 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.job.JobResults;
@@ -214,8 +216,11 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				}){
 						@Override
 						public KeyHashDecoder getDecoder() {
+								DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(sortTemplateRow);
 								return BareKeyHash.decoder(groupedAggregateContext.getGroupingKeys(),
-												groupedAggregateContext.getGroupingKeyOrder());
+												groupedAggregateContext.getGroupingKeyOrder(),
+												serializers
+												);
 						}
 				};
 
@@ -227,6 +232,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 								else
 										return uniquePostfix.getPostfixLength(hashBytes);
 						}
+
+						@Override public void close() throws IOException {  }
 
 						@Override
 						public void encodeInto(byte[] keyBytes, int postfixPosition, byte[] hashBytes) {
@@ -266,7 +273,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						 * the excess grouping keys
 						 */
 						if(decoder==null)
-								decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+								decoder = MultiFieldDecoder.create();
 
 						decoder.set(hashBytes);
 						int offset = decoder.offset();
@@ -284,8 +291,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				 * Only encode the fields which aren't grouped into the row.
 				 */
 				ExecRow defn = getExecRowDefinition();
-				int[] nonGroupedFields = IntArrays.complement(groupedAggregateContext.getGroupingKeys(),defn.nColumns());
-				return BareKeyHash.encoder(nonGroupedFields,null);
+				int[] nonGroupedFields = IntArrays.complementMap(groupedAggregateContext.getGroupingKeys(),defn.nColumns());
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(defn);
+				return BareKeyHash.encoder(nonGroupedFields,null,serializers);
 		}
 
 		@Override
@@ -305,8 +313,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 										aggregateContext.getDistinctAggregators(),false,emptyRowSupplier,groupedAggregateContext,false,spliceRuntimeContext, false);
 						GroupedAggregateBuffer nonDistinctBuffer = new GroupedAggregateBuffer(SpliceConstants.ringBufferSize,
 										aggregateContext.getNonDistinctAggregators(),false,emptyRowSupplier,groupedAggregateContext,false,spliceRuntimeContext, false);
-						aggregator = new SinkGroupedAggregateIterator(nonDistinctBuffer,distinctBuffer,sourceIterator,isRollup,
-										groupingKeys,groupingKeyOrder,nonGroupedUniqueColumns);
+						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(sourceExecIndexRow);
+						aggregator = SinkGroupedAggregateIterator.newInstance(nonDistinctBuffer,distinctBuffer,sourceIterator,isRollup,
+										groupingKeys,groupingKeyOrder,nonGroupedUniqueColumns,serializers);
 						aggregator.open();
 						timer = spliceRuntimeContext.newTimer();
 				}
@@ -349,7 +358,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
 						scanner = getResultScanner(groupingKeys,spliceRuntimeContext,getHashPrefix().getPrefixLength());
 						StandardIterator<ExecRow> sourceIterator = new ScanIterator(scanner,OperationUtils.getPairDecoder(this,spliceRuntimeContext));
-						aggregator = new ScanGroupedAggregateIterator(buffer,sourceIterator,groupingKeys,groupingKeyOrder,false);
+						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(sourceExecIndexRow);
+						KeyEncoder encoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(groupingKeys,groupingKeyOrder,serializers),NoOpPostfix.INSTANCE);
+						aggregator = new ScanGroupedAggregateIterator(buffer,sourceIterator,encoder,groupingKeys,false);
 						aggregator.open();
 						timer = spliceRuntimeContext.newTimer();
 				}
@@ -424,12 +435,12 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				ScanBoundary boundary = new BaseHashAwareScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES){
 						@Override
 						public byte[] getStartKey(Result result) {
-								MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
+								MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow());
 								fieldDecoder.seek(prefixOffset+1); //skip the prefix value
 
 								byte[] slice = DerbyBytesUtil.slice(fieldDecoder, groupColumns, cols);
 								fieldDecoder.reset();
-								MultiFieldEncoder encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),2);
+								MultiFieldEncoder encoder = MultiFieldEncoder.create(2);
 								encoder.setRawBytes(fieldDecoder.slice(prefixOffset+1));
 								encoder.setRawBytes(slice);
 								return encoder.build();

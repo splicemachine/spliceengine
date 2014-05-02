@@ -1,27 +1,27 @@
 package com.splicemachine.derby.impl.load;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.sql.Types;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-
-import org.apache.derby.iapi.error.ExceptionSeverity;
-
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
-import com.splicemachine.utils.file.DefaultFileInfo;
-import com.splicemachine.utils.file.FileInfo;
-
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.management.OperationInfo;
+import com.splicemachine.derby.management.StatementInfo;
+import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.*;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobStats;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.ExceptionSeverity;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
@@ -30,13 +30,7 @@ import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.iapi.types.SQLInteger;
-import org.apache.derby.iapi.types.SQLLongint;
-import org.apache.derby.iapi.types.SQLVarchar;
+import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
@@ -48,30 +42,17 @@ import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.job.JobInfo;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.management.OperationInfo;
-import com.splicemachine.derby.management.StatementInfo;
-import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.ErrorState;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.IteratorNoPutResultSet;
-import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.job.JobFuture;
-import com.splicemachine.job.JobStats;
-import com.splicemachine.utils.SpliceLogUtils;
-
-import org.apache.derby.tools.JDBCDisplayUtil.*;
+import java.io.IOException;
+import java.sql.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Imports a delimiter-separated file located in HDFS in a parallel way.
@@ -180,6 +161,7 @@ public class HdfsImport {
 						new GenericColumnDescriptor("numRowsImported",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
 						new GenericColumnDescriptor("numBadRecords",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
 		};
+
 		public static void IMPORT_DATA(String schemaName, String tableName,
 																				 String insertColumnList,
 																				 String fileName,
@@ -196,22 +178,32 @@ public class HdfsImport {
 				try {
 						LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
 						final String user = lcc.getSessionUserId();
-						final String transactionId = SpliceObserverInstructions.getTransactionId(lcc);
+						Activation activation = lcc.getLastActivation();
+						final String transactionId = activation.getTransactionController().getActiveStateTxIdString();
+//						final String transactionId = SpliceObserverInstructions.getTransactionId(lcc);
 						try {
 								if(schemaName==null)
 										schemaName = "APP";
 								if(tableName==null)
 										throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException("NULL"));
+
+								/*
+								 * Create a child transaction to perform the import under
+								 */
+
+								EmbedConnection embedConnection = (EmbedConnection)conn;
 								ExecRow resultRow = importData(transactionId, user, conn, schemaName.toUpperCase(), tableName.toUpperCase(),
 												insertColumnList, fileName, columnDelimiter,
 												characterDelimiter, timestampFormat, dateFormat, timeFormat, lcc, maxBadRecords, badRecordDirectory);
-								EmbedConnection embedConnection = (EmbedConnection)conn;
-								Activation activation = embedConnection.getLanguageConnection().getLastActivation();
 								IteratorNoPutResultSet rs = new IteratorNoPutResultSet(Arrays.asList(resultRow),IMPORT_RESULT_COLUMNS,activation);
 								if((SpliceConstants.sequentialImportFileSizeThreshold<filesize&&fileName.contains(".gz"))){
-									String temp = "To load a large single file of data faster, it is best to break up the file into multiple files, put those files in a single directory, then import that directory.  See http://doc.splicemachine.com for more information.";  
-									SQLWarning	sqlw = new SQLWarning(temp, "01010", ExceptionSeverity.WARNING_SEVERITY);
-									activation.addWarning( sqlw );
+										//TODO -sf- This isn't internationalizable, need to put this into messages.xml
+										String temp = "To load a large single file of data faster, " +
+														"it is best to break up the file into multiple files, " +
+														"put those files in a single directory, then import that directory.  " +
+														"See http://doc.splicemachine.com for more information.";
+										SQLWarning	sqlw = new SQLWarning(temp, "01010", ExceptionSeverity.WARNING_SEVERITY);
+										activation.addWarning( sqlw );
 								}
 								rs.open();
 								results[0] = new EmbedResultSet40(embedConnection,rs,false,null,true);
@@ -227,7 +219,6 @@ public class HdfsImport {
 								throw se;
 						}
 
-						conn.commit();
 				} finally {
 						try {
 								if (conn != null) {
@@ -266,7 +257,6 @@ public class HdfsImport {
 										.timestampFormat(timestampFormat)
 										.dateFormat(dateFormat)
 										.timeFormat(timeFormat)
-										.transactionId(transactionId)
 										.maxBadRecords(maxBadRecords)
 										.badLogDirectory(badRecordDirectory==null?null: new Path(badRecordDirectory))
 						;
@@ -283,6 +273,19 @@ public class HdfsImport {
 						throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ID_PARSE_ERROR,ae.getMessage()));
 				}
 
+				/*
+				 * Create a child transaction to actually perform the import under
+				 */
+				byte[] conglomBytes = Bytes.toBytes(Long.toString(builder.getDestinationConglomerate()));
+				TransactionId parentTxnId = new TransactionId(transactionId);
+				TransactionId childTransaction;
+				try {
+						childTransaction = HTransactorFactory.getTransactionManager().beginChildTransaction(parentTxnId, conglomBytes);
+						builder = builder.transactionId(childTransaction.getTransactionIdString());
+				} catch (IOException e) {
+						throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+				}
+
 				HdfsImport importer;
 				StatementInfo statementInfo = new StatementInfo(String.format("import(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
 								schemaName,tableName,insertColumnList,inputFileName,delimiter,charDelimiter,timestampFormat,dateFormat,timeFormat),
@@ -293,24 +296,56 @@ public class HdfsImport {
 				statementInfo.setOperationInfo(Arrays.asList(opInfo));
 
 				SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
+				boolean rollback = false;
 				try {
 						importer = new HdfsImport(builder.build(),statementInfo.getStatementUuid(),opInfo.getOperationUuid());
 						SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
 						runtimeContext.setStatementInfo(statementInfo);
 						return importer.executeShuffle(runtimeContext);
 				} catch(AssertionError ae){
+						rollback =true;
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(ae));
 				} catch(StandardException e) {
+						rollback = true;
 						throw PublicAPI.wrapStandardException(e);
 				}catch(CancellationException ce){
+						rollback = true;
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(ce));
 				}finally{
+						//put this stuff first to avoid a memory leak
 						String xplainSchema = lcc.getXplainSchema();
 						boolean explain = xplainSchema !=null &&
 										lcc.getRunTimeStatisticsMode();
 						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema: null);
+						if(rollback){
+								try {
+										TransactionUtils.rollback(HTransactorFactory.getTransactionManager(),childTransaction,0,5);
+								} catch (AttemptsExhaustedException e) {
+										/*
+										 * We were unable to rollback the transaction, which is bad.
+										 *
+										 * Unfortunately, we only tried to roll back because the import
+										 * failed in some way anyway, which means that we don't want to make
+										 * our failure to roll back the transaction the error that gets returned,
+										 * so we can't throw directly, we'll just have to log and continue
+										 * on
+										 */
+										LOG.error("Unable to roll back child transaction, but don't want to swamp actual error causing rollback",e);
+								}
+						}else{
+								try {
+										TransactionUtils.commit(HTransactorFactory.getTransactionManager(), childTransaction, 0, 5);
+								} catch (AttemptsExhaustedException e) {
+										/*
+										 * We were unable to commit the transaction properly,
+										 * so we have to give up and blow back on the client
+										 */
+										LOG.error("Unable to commit import transaction after 5 attempts",e);
+										//noinspection ThrowFromFinallyBlock
+										throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+								}
+						}
 				}
-
 		}
 
 
@@ -533,6 +568,7 @@ public class HdfsImport {
 						if(td==null)
 								throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException(tableName));
 						long conglomerateId = td.getHeapConglomerateId();
+						builder.tableVersion(td.getVersion());
 						builder.destinationTable(conglomerateId);
 						RowLocation[] rowLocations = dataDictionary.computeAutoincRowLocations(tc, td);
 						byte[][] rowLocBytes;
