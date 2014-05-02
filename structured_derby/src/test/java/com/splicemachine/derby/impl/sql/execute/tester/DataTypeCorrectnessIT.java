@@ -2,9 +2,16 @@ package com.splicemachine.derby.impl.sql.execute.tester;
 
 import static org.junit.Assert.*;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.sql.Connection;
+//import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
+import org.apache.derby.tools.ij;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -17,6 +24,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import com.google.common.io.Closeables;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -51,8 +59,10 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
 	protected static String TABLE_17 = "Q";
 	protected static String TABLE_18 = "R";
 	protected static String TABLE_24 = "U";
+	protected static String TABLE_25 = "V";
 	
 	String[] tables = new String[]  {TABLE_1,TABLE_2,TABLE_3,TABLE_4,TABLE_5,TABLE_6,TABLE_7,TABLE_8,TABLE_9,TABLE_10,TABLE_11,TABLE_12,TABLE_13,TABLE_14,TABLE_15,TABLE_16,TABLE_17,TABLE_18};
+	String[] btables = new String[]  {TABLE_24,TABLE_25};
 
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_1,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint primary key, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
@@ -74,11 +84,11 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher17 = new SpliceTableWatcher(TABLE_17,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100), PRIMARY KEY (boolean1,smallint1,integer1, bigint1,decimal1,real1,double1,float1,char1))");
 	protected static SpliceTableWatcher spliceTableWatcher18 = new SpliceTableWatcher(TABLE_18,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100), PRIMARY KEY (boolean1,smallint1,integer1, bigint1,decimal1,real1,double1,float1,char1,varchar1))");
 
-	
+//	protected static SpliceIndexWatcher splceIndexWatcher1 = new SpliceIndexWatcher("");
 	
 //	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_2,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar ,date1 date,date2 date,time1 time,time2 time,timestamp1 timestamp,timestamp2 timestamp)");
-	protected static SpliceTableWatcher spliceTableWatcher24 = new SpliceTableWatcher(TABLE_24,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(24) for bit data,charforbitdata2 char(24) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data,date1 date,date2 date,time1 time,time2 time,timestamp1 timestamp,timestamp2 timestamp)");
-//	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_11,spliceSchemaWatcher.schemaName," (charforbitdata1 char(24) for bit data, charforbitdata2 char(24) for bit data, charforbitdata3 char(24) for bit data, varcharforbitdata1 varchar(1024) for bit data, varcharforbitdata2 varchar(1024) for bit data, varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data)");
+	protected static SpliceTableWatcher spliceTableWatcher24 = new SpliceTableWatcher(TABLE_24,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp)");
+	protected static SpliceTableWatcher spliceTableWatcher25 = new SpliceTableWatcher(TABLE_25,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp)");
 
 
 
@@ -108,10 +118,12 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
         .around(spliceTableWatcher17)
         .around(spliceTableWatcher18)
         .around(spliceTableWatcher24)
+        .around(spliceTableWatcher25)
 		.around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
 					try {
+						if(true){
 						PreparedStatement ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('"+CLASS_NAME+"','"+TABLE_1+"',null,null,'"+getResource("testdata.csv")+"',',','\"',null,null,null)");
 						ps.execute();
 						ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('"+CLASS_NAME+"','"+TABLE_2+"',null,null,'"+getResource("testdata.csv")+"',',','\"',null,null,null)");
@@ -148,6 +160,43 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 						ps.execute();
 						ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('"+CLASS_NAME+"','"+TABLE_18+"',null,null,'"+getResource("testdata.csv")+"',',','\"',null,null,null)");
 						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE1 ON "+CLASS_NAME+"."+TABLE_1+" (smallint3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE2 ON "+CLASS_NAME+"."+TABLE_2+" (boolean3,smallint3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE3 ON "+CLASS_NAME+"."+TABLE_3+" (boolean3,smallint3,integer3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE4 ON "+CLASS_NAME+"."+TABLE_4+" (boolean3,smallint3,integer3,bigint3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE5 ON "+CLASS_NAME+"."+TABLE_5+" (boolean3,smallint3,integer3,bigint3,decimal3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE6 ON "+CLASS_NAME+"."+TABLE_6+" (boolean3,smallint3,integer3,bigint3,decimal3,real3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE7 ON "+CLASS_NAME+"."+TABLE_7+" (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE8 ON "+CLASS_NAME+"."+TABLE_8+" (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE9 ON "+CLASS_NAME+"."+TABLE_9+" (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE10 ON "+CLASS_NAME+"."+TABLE_10+" (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE11 ON "+CLASS_NAME+"."+TABLE_11+" (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE12 ON "+CLASS_NAME+"."+TABLE_12+" (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE13 ON "+CLASS_NAME+"."+TABLE_13+" (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE14 ON "+CLASS_NAME+"."+TABLE_14+" (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE15 ON "+CLASS_NAME+"."+TABLE_15+" (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE16 ON "+CLASS_NAME+"."+TABLE_16+" (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE17 ON "+CLASS_NAME+"."+TABLE_17+" (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE18 ON "+CLASS_NAME+"."+TABLE_18+" (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
+						ps.execute();
+						}
 					} catch (Exception e) {
 							e.printStackTrace();
 							throw new RuntimeException(e);
@@ -162,7 +211,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-		//System.out.println("Here 1");
+//		System.out.println("Here 1");
 	}
 
 	@AfterClass
@@ -174,23 +223,60 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	public void setUp() throws Exception {
 		//System.out.println("Here 3");
 		if(!done){
-		try{
-			String i1="insert into "+CLASS_NAME+"."+TABLE_24+"(lvarchar1,lvarchar2,charforbitdata1,charforbitdata2,varcharforbitdata1,varcharforbitdata2,longvarcharforbitdata1,longvarcharforbitdata2,date1,date2,time1,time2,timestamp1,timestamp2) values ('aaaaaaaaaaaaaaaaaaaaaaaaaa','aaaaaaaaaaaaaaaaaaaaaaaaaa',X'ABCDEF',X'ABCDEF',X'1234abcdef',X'1234abcdef',X'1234abcdef',X'1234abcdef','2014-05-01','2014-05-01','05:05:05','05:05:05','2014-05-01 00:00:00','2014-05-01 00:00:00')";
-			//System.out.println(i1); 
-			String i2="insert into "+CLASS_NAME+"."+TABLE_24+"(lvarchar1,lvarchar2,charforbitdata1,charforbitdata2,varcharforbitdata1,varcharforbitdata2,longvarcharforbitdata1,longvarcharforbitdata2,date1,date2,time1,time2,timestamp1,timestamp2) values ('bbbbbbbbbbbbbbbbbbbbbbbbbb','bbbbbbbbbbbbbbbbbbbbbbbbbb',X'BCDEFA',X'BCDEFA',X'234abcdef1',X'234abcdef1',X'1234abcdef',X'1234abcdef','2014-05-01','2014-05-01','05:05:05','05:05:05','2014-05-01 00:00:00','2014-05-01 00:00:00')";
-			//System.out.println(i2); 
-			String i3="insert into "+CLASS_NAME+"."+TABLE_24+"(lvarchar1,lvarchar2,charforbitdata1,charforbitdata2,varcharforbitdata1,varcharforbitdata2,longvarcharforbitdata1,longvarcharforbitdata2,date1,date2,time1,time2,timestamp1,timestamp2) values ('cccccccccccccccccccccccccc','cccccccccccccccccccccccccc',X'CDEFAB',X'CDEFAB',X'34abcdef12',X'34abcdef12',X'1234abcdef',X'1234abcdef','2014-05-01','2014-05-01','05:05:05','05:05:05','2014-05-01 00:00:00','2014-05-01 00:00:00')";
-			//System.out.println(i3); 
-			int retval = methodWatcher.executeUpdate(i1);
-			//System.out.println("return value 1 = "+retval);
-			retval = methodWatcher.executeUpdate(i2);
-			//System.out.println("return value 2 = "+retval);
-			retval = methodWatcher.executeUpdate(i3);
-			//System.out.println("return value 3 = "+retval);
-		}catch(Exception e){
-			System.out.println(e.getMessage());
-		}
-		done=true;
+			try{
+				for(int i=0;i<btables.length;i++){
+					String i1="insert into "+CLASS_NAME+"."+btables[i]+"(lvarchar1,lvarchar2,lvarchar3"
+																	+ ",charforbitdata1,charforbitdata2,charforbitdata3"
+																	+ ",varcharforbitdata1,varcharforbitdata2,varcharforbitdata3"
+																	+ ",longvarcharforbitdata1,longvarcharforbitdata2,longvarcharforbitdata3"
+																	+ ",date1,date2,date3"
+																	+ ",time1,time2,time3"
+																	+ ",timestamp1,timestamp2,timestamp3) "
+																	+ "values ('aaaaaaaaaaaaaaaaaaaaaaaaaa','aaaaaaaaaaaaaaaaaaaaaaaaaa','aaaaaaaaaaaaaaaaaaaaaaaaaa'"
+																	+ ",X'ABCDEF',X'ABCDEF',X'ABCDEF'"
+																	+ ",X'1234abcdef',X'1234abcdef',X'1234abcdef'"
+																	+ ",X'1234abcdef',X'1234abcdef',X'1234abcdef'"
+																	+ ",'2014-05-01','2014-05-01','2014-05-01'"
+																	+ ",'05:05:05','05:05:05','05:05:05'"
+																	+ ",'2014-05-01 00:00:00','2014-05-02 00:00:00','2014-05-03 00:00:00')";
+					//System.out.println(i1); 
+					String i2="insert into "+CLASS_NAME+"."+btables[i]+"(lvarchar1,lvarchar2,lvarchar3"
+																	+ ",charforbitdata1,charforbitdata2,charforbitdata3"
+																	+ ",varcharforbitdata1,varcharforbitdata2,varcharforbitdata3"
+																	+ ",longvarcharforbitdata1,longvarcharforbitdata2,longvarcharforbitdata3"
+																	+ ",date1,date2,date3"
+																	+ ",time1,time2,time3"
+																	+ ",timestamp1,timestamp2,timestamp3) "
+																	+ "values ('bbbbbbbbbbbbbbbbbbbbbbbbbb','bbbbbbbbbbbbbbbbbbbbbbbbbb','bbbbbbbbbbbbbbbbbbbbbbbbbb'"
+																	+ ",X'BCDEFA',X'BCDEFA',X'BCDEFA'"
+																	+ ",X'234abcdef1',X'234abcdef1',X'234abcdef1'"
+																	+ ",X'234abcdef1',X'234abcdef1',X'234abcdef1'"
+																	+ ",'2014-05-02','2014-05-02','2014-05-02'"
+																	+ ",'06:06:06','06:06:06','06:06:06'"
+																	+ ",'2014-05-01 00:00:00','2014-05-02 00:00:00','2014-05-03 00:00:00')";
+					//System.out.println(i2); 
+					String i3="insert into "+CLASS_NAME+"."+btables[i]+"(lvarchar1,lvarchar2,lvarchar3"
+																	+ ",charforbitdata1,charforbitdata2,charforbitdata3"
+																	+ ",varcharforbitdata1,varcharforbitdata2,varcharforbitdata3"
+																	+ ",longvarcharforbitdata1,longvarcharforbitdata2,longvarcharforbitdata3"
+																	+ ",date1,date2,date3"
+																	+ ",time1,time2,time3"
+																	+ ",timestamp1,timestamp2,timestamp3) "
+																	+ "values ('cccccccccccccccccccccccccc','cccccccccccccccccccccccccc','cccccccccccccccccccccccccc'"
+																	+ ",X'CDEFAB',X'CDEFAB',X'CDEFAB'"
+																	+ ",X'34abcdef12',X'34abcdef12',X'34abcdef12'"
+																	+ ",X'34abcdef12',X'34abcdef12',X'34abcdef12'"
+																	+ ",'2014-05-03','2014-05-03','2014-05-03'"
+																	+ ",'07:07:07','07:07:07','07:07:07'"
+																	+ ",'2014-05-01 00:00:00','2014-05-02 00:00:00','2014-05-03 00:00:00')";
+					int retval = methodWatcher.executeUpdate(i1);
+					retval = methodWatcher.executeUpdate(i2);
+					retval = methodWatcher.executeUpdate(i3);
+				}
+			}catch(Exception e){
+				System.out.println(e.getMessage());
+			}
+			done=true;
 		}
 	}
 
@@ -201,64 +287,75 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 
 	
 	@Test
-//	@Ignore
+	@Ignore
 	public void testField1x() throws Exception{
-		
-		//charforbitdata1,charforbitdata2
 		try {
+			for(int i=0;i<btables.length;i++){
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where time1 = '06:06:06'","06:06:06","time1"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where time1 between '05:05:05' and '07:07:07'","05:05:05","06:06:06","07:07:07","time1"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time1 = '06:06:06' or time1 = '07:07:07' ",2,"retval"));
+
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where time2 = '06:06:06'","06:06:06","time2"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where time2 between '05:05:05' and '07:07:07'","05:05:05","06:06:06","07:07:07","time2"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time2 = '06:06:06' or time2 = '07:07:07' ",2,"retval"));
+				
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where time3 = '06:06:06'","06:06:06","time3"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where time3 between '05:05:05' and '07:07:07'","05:05:05","06:06:06","07:07:07","time3"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time3 = '06:06:06' or time3 = '07:07:07' ",2,"retval"));
+				}
+
+//			+ ",'05:05:05','05:05:05','05:05:05'"
+//			+ ",'06:06:06','06:06:06','06:06:06'"
+//			+ ",'07:07:07','07:07:07','07:07:07'"
+
 			String returnval;
-			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where charforbitdata1 = X'bcdefa202020202020202020202020202020202020202020'");
+			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where time1 = '06:06:06'");
 			if(rs.next()){
-				returnval = rs.getString("charforbitdata1");
-				System.out.println("charforbitdata = "+returnval);
-				Assert.assertTrue(returnval.equals("bcdefa202020202020202020202020202020202020202020"));
+				returnval = rs.getString("time1");
+				System.out.println("time1 = "+returnval);
+				Assert.assertTrue(returnval.equals("06:06:06"));
 			}
 			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar1 as varchar(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
+			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where time1 between '05:05:05' and '07:07:07'");
 			while(rs.next()){
-				returnval = rs.getString("lvarchar1");
-				System.out.println("lvarchar1 = "+returnval);
-				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa")||returnval.equals("bbbbbbbbbbbbbbbbbbbbbbbbbb")||returnval.equals("cccccccccccccccccccccccccc"));
+				returnval = rs.getString("time1");
+				System.out.println("time11 = "+returnval);
+				Assert.assertTrue(returnval.equals("05:05:05")||returnval.equals("06:06:06")||returnval.equals("07:07:07"));
 			}
 			rs.close();
-// Group by for LONG VARCHAR are not supported.			
-//			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_24+" group by lvarchar1 having CAST(lvarchar1 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
-//				int retval = rs.getInt("retval");
+			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_24+" where time1 = '06:06:06' or time1 = '07:07:07' ");
+			if(rs.next()){
+				int retval = rs.getInt("retval");
+				System.out.println("retval = "+retval);
+				Assert.assertEquals(2,retval);
+			}
+			rs.close();
+			
+			
+			
+//			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
 //			if(rs.next()){
-//				System.out.println("retval = "+retval);
-//				Assert.assertEquals(1,retval);
+//				returnval = rs.getString("lvarchar2");
+//				System.out.println("smallint1 = "+returnval);
+//				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa"));
 //			}
 //			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar1 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar1 as varchar(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ");
-			if(rs.next()){
-				int retval = rs.getInt("retval");
-				System.out.println("retval = "+retval);
-				Assert.assertEquals(2,retval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
-			if(rs.next()){
-				returnval = rs.getString("lvarchar2");
-				System.out.println("smallint1 = "+returnval);
-				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa"));
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
-			while(rs.next()){
-				returnval = rs.getString("lvarchar2");
-				System.out.println("lvarchar1 = "+returnval);
-				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa")||returnval.equals("bbbbbbbbbbbbbbbbbbbbbbbbbb")||returnval.equals("cccccccccccccccccccccccccc"));
-			}
-			rs.close();
+//			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
+//			while(rs.next()){
+//				returnval = rs.getString("lvarchar2");
+//				System.out.println("lvarchar1 = "+returnval);
+//				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa")||returnval.equals("bbbbbbbbbbbbbbbbbbbbbbbbbb")||returnval.equals("cccccccccccccccccccccccccc"));
+//			}
+//			rs.close();
 //Group by not supported.
 //			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_2+" group by lvarchar2 having CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or  CAST(lvarchar2 AS VARCHAR(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb'");
-			if(rs.next()){
-				int retval = rs.getInt("retval");
-				System.out.println("retval = "+retval);
-				Assert.assertEquals(2,retval);
-			}
-			rs.close();
+//			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or  CAST(lvarchar2 AS VARCHAR(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb'");
+//			if(rs.next()){
+//				int retval = rs.getInt("retval");
+//				System.out.println("retval = "+retval);
+//				Assert.assertEquals(2,retval);
+//			}
+//			rs.close();
 			Assert.assertTrue(true);;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -373,6 +470,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	
 	
 	@Test
+//	@Ignore
 	public void testBoolean() throws Exception{
 		try {
 			for(int i=0;i<tables.length;i++){
@@ -391,6 +489,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 
 	
 	@Test
+//	@Ignore
 	public void testSmallInt() throws Exception{
 		try {
 			for(int i=0;i<tables.length;i++){
@@ -411,6 +510,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	}
 	
 	@Test
+//	@Ignore
 	public void testInteger() throws Exception{
 		try {
 			for(int i=0;i<tables.length;i++){
@@ -432,6 +532,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	 
 	
 	@Test
+//	@Ignore
 	public void testBigInt() throws Exception{
 		try {
 			for(int i=0;i<tables.length;i++){
@@ -453,6 +554,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	 
 	
 	@Test
+//	@Ignore
 	public void testDecimal() throws Exception{
 		try {
 			for(int i=0;i<tables.length;i++){
@@ -474,6 +576,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	 
 	
 	@Test
+//	@Ignore
 	public void testReal() throws Exception{
 		try {
 			for(int i=0;i<tables.length;i++){
@@ -495,6 +598,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	 
 	
 	@Test
+//	@Ignore
 	public void testDouble() throws Exception{
 		try {
 			for(int i=0;i<tables.length;i++){
@@ -516,6 +620,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 
 	
 	@Test
+//	@Ignore
 	public void testFloat() throws Exception{
 		try {
 			for(int i=0;i<tables.length;i++){
@@ -537,6 +642,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 
 	
 	@Test
+//	@Ignore
 	public void testChar() throws Exception{
 		try {
 			for(int i=0;i<tables.length;i++){
@@ -558,6 +664,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	}
  
 	@Test
+//	@Ignore
 	public void testVarChar() throws Exception{
 		try {
 			for(int i=0;i<tables.length;i++){
@@ -579,62 +686,40 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 
 	@Test
 //	@Ignore
-	public void testField10() throws Exception{
+	public void testFieldLongVarChars() throws Exception{
 		try {
-			String returnval;
-			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar1 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
-			if(rs.next()){
-				returnval = rs.getString("lvarchar1");
-				System.out.println("lvarchar1 = "+returnval);
-				Assert.assertTrue("aaaaaaaaaaaaaaaaaaaaaaaaaa".equals(returnval));
+			for(int i=0;i<btables.length;i++){
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar1 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'","aaaaaaaaaaaaaaaaaaaaaaaaaa","lvarchar1"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar1 as varchar(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'","aaaaaaaaaaaaaaaaaaaaaaaaaa","bbbbbbbbbbbbbbbbbbbbbbbbbb","cccccccccccccccccccccccccc","lvarchar1"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar1 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar1 as varchar(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'","aaaaaaaaaaaaaaaaaaaaaaaaaa","lvarchar2"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar2 as varchar(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'","aaaaaaaaaaaaaaaaaaaaaaaaaa","bbbbbbbbbbbbbbbbbbbbbbbbbb","cccccccccccccccccccccccccc","lvarchar2"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar2 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar2 as varchar(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar3 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'","aaaaaaaaaaaaaaaaaaaaaaaaaa","lvarchar3"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar3 as varchar(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'","aaaaaaaaaaaaaaaaaaaaaaaaaa","bbbbbbbbbbbbbbbbbbbbbbbbbb","cccccccccccccccccccccccccc","lvarchar3"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar3 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar3 as varchar(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",2,"retval"));
 			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar1 as varchar(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
-			while(rs.next()){
-				returnval = rs.getString("lvarchar1");
-				System.out.println("lvarchar1 = "+returnval);
-				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa")||returnval.equals("bbbbbbbbbbbbbbbbbbbbbbbbbb")||returnval.equals("cccccccccccccccccccccccccc"));
-			}
-			rs.close();
-// Group by for LONG VARCHAR are not supported.			
-//			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_2+" group by lvarchar1 having CAST(lvarchar1 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
-//			if(rs.next()){
-//				int retval = rs.getInt("retval");
-//				System.out.println("retval = "+retval);
-//				Assert.assertEquals(1,retval);
-//			}
-//			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar1 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar1 as varchar(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ");
-			if(rs.next()){
-				int retval = rs.getInt("retval");
-				System.out.println("retval = "+retval);
-				Assert.assertEquals(2,retval);
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
-			if(rs.next()){
-				returnval = rs.getString("lvarchar2");
-				System.out.println("smallint1 = "+returnval);
-				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa"));
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
-			while(rs.next()){
-				returnval = rs.getString("lvarchar2");
-				System.out.println("lvarchar1 = "+returnval);
-				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa")||returnval.equals("bbbbbbbbbbbbbbbbbbbbbbbbbb")||returnval.equals("cccccccccccccccccccccccccc"));
-			}
-			rs.close();
-//Group by not supported.
-//			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_2+" group by lvarchar2 having CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or  CAST(lvarchar2 AS VARCHAR(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb'");
-			if(rs.next()){
-				int retval = rs.getInt("retval");
-				System.out.println("retval = "+retval);
-				Assert.assertEquals(2,retval);
-			}
-			rs.close();
-			Assert.assertTrue(true);;
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Test
+////	@Ignore
+	public void testFieldCharForBITData() throws Exception{
+		try {
+			for(int i=0;i<btables.length;i++){
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where charforbitdata1 = X'bcdefa2020202020'","bcdefa2020202020","charforbitdata1"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where charforbitdata1 between X'abcdef2020202020' and X'cdefab2020202020'","abcdef2020202020","bcdefa2020202020","cdefab2020202020","charforbitdata1"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata1 = X'bcdefa2020202020' or charforbitdata1 = X'cdefab2020202020' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where charforbitdata2 = X'bcdefa2020202020'","bcdefa2020202020","charforbitdata2"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where charforbitdata2 between X'abcdef2020202020' and X'cdefab2020202020'","abcdef2020202020","bcdefa2020202020","cdefab2020202020","charforbitdata2"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata2 = X'bcdefa2020202020' or charforbitdata2 = X'cdefab2020202020' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where charforbitdata3 = X'bcdefa2020202020'","bcdefa2020202020","charforbitdata3"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where charforbitdata3 between X'abcdef2020202020' and X'cdefab2020202020'","abcdef2020202020","bcdefa2020202020","cdefab2020202020","charforbitdata3"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata3 = X'bcdefa2020202020' or charforbitdata3 = X'cdefab2020202020' ",2,"retval"));
+				}
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
@@ -642,11 +727,101 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	}
 
 	
+	@Test
+//	@Ignore
+	public void testFieldVarcharForBITData() throws Exception{
+		try {
+			for(int i=0;i<btables.length;i++){
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata1 = X'234abcdef1'","234abcdef1","varcharforbitdata1"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata1 between X'1234abcdef' and X'cdefab2020202020'","1234abcdef","234abcdef1","34abcdef12","varcharforbitdata1"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata1 = X'234abcdef1' or varcharforbitdata1 = X'34abcdef12' ",2,"retval"));
+
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata2 = X'234abcdef1'","234abcdef1","varcharforbitdata2"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata2 between X'1234abcdef' and X'34abcdef12'","1234abcdef","234abcdef1","34abcdef12","varcharforbitdata2"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata2 = X'234abcdef1' or varcharforbitdata2 = X'34abcdef12' ",2,"retval"));
+				
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata3 = X'234abcdef1'","234abcdef1","varcharforbitdata3"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata3 between X'1234abcdef' and X'34abcdef12'","1234abcdef","234abcdef1","34abcdef12","varcharforbitdata3"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata3 = X'234abcdef1' or varcharforbitdata3 = X'34abcdef12' ",2,"retval"));
+				}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
+	}
+	
+	@Test
+//	@Ignore
+	public void testFieldLongvarcharForBITData() throws Exception{
+		try {
+			for(int i=0;i<btables.length;i++){
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) = X'234abcdef1'","234abcdef1","longvarcharforbitdata1"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) between X'1234abcdef' and X'34abcdef12'","1234abcdef","234abcdef1","34abcdef12","longvarcharforbitdata1"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) = X'234abcdef1' or CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) = X'34abcdef12' ",2,"retval"));
+
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) = X'234abcdef1'","234abcdef1","longvarcharforbitdata2"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) between X'1234abcdef' and X'34abcdef12'","1234abcdef","234abcdef1","34abcdef12","longvarcharforbitdata2"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) = X'234abcdef1' or CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) = X'34abcdef12' ",2,"retval"));
+				
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) = X'234abcdef1'","234abcdef1","longvarcharforbitdata3"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) between X'1234abcdef' and X'34abcdef12'","1234abcdef","234abcdef1","34abcdef12","longvarcharforbitdata3"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) = X'234abcdef1' or CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) = X'34abcdef12' ",2,"retval"));
+				}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Test
+//	@Ignore
+	public void testFieldDate() throws Exception{
+		try {
+			for(int i=0;i<btables.length;i++){
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where date1 = '2014-05-02'","2014-05-02","date1"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where date1 between '2014-05-01' and '2014-05-03'","2014-05-01","2014-05-02","2014-05-03","date1"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date1 = '2014-05-02' or date1 = '2014-05-03' ",2,"retval"));
+
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where date2 = '2014-05-02'","2014-05-02","date2"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where date2 between '2014-05-01' and '2014-05-03'","2014-05-01","2014-05-02","2014-05-03","date2"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date2 = '2014-05-02' or date2 = '2014-05-03' ",2,"retval"));
+				
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where date3 = '2014-05-02'","2014-05-02","date3"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where date3 between '2014-05-01' and '2014-05-03'","2014-05-01","2014-05-02","2014-05-03","date3"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date3 = '2014-05-02' or date3 = '2014-05-03' ",2,"retval"));
+				}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
+	}
+	
+	@Test
+//	@Ignore
+	public void testFieldTime() throws Exception{
+		try {
+			for(int i=0;i<btables.length;i++){
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where time1 = '06:06:06'","06:06:06","time1"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where time1 between '05:05:05' and '07:07:07'","05:05:05","06:06:06","07:07:07","time1"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time1 = '06:06:06' or time1 = '07:07:07' ",2,"retval"));
+
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where time2 = '06:06:06'","06:06:06","time2"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where time2 between '05:05:05' and '07:07:07'","05:05:05","06:06:06","07:07:07","time2"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time2 = '06:06:06' or time2 = '07:07:07' ",2,"retval"));
+				
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where time3 = '06:06:06'","06:06:06","time3"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where time3 between '05:05:05' and '07:07:07'","05:05:05","06:06:06","07:07:07","time3"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time3 = '06:06:06' or time3 = '07:07:07' ",2,"retval"));
+				}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
+	}
+
 	
 	public static String getResource(String name) {
 			return getResourceDirectory()+"/datatypedata/"+name;
 //			return "/Users/leightj/Documents/workspace/data/testdata/"+name;
 	}
-
-	
 }
