@@ -176,7 +176,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				boolean hasRow;
 				do{
 						keyValues.clear();
-						template.resetRowArray();
+//						template.resetRowArray();
 						hasRow = regionScanner.next(keyValues);
 						if(keyValues.size()<=0){
 								timer.stopTiming();
