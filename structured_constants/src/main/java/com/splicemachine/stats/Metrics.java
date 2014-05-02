@@ -22,7 +22,8 @@ public class Metrics {
 
 		static {
 				threadMXBean = ManagementFactory.getThreadMXBean();
-				supportsCPUTime = threadMXBean.isCurrentThreadCpuTimeSupported();
+				//supportsCPUTime = threadMXBean.isCurrentThreadCpuTimeSupported();
+				supportsCPUTime = false;
 		}
 
 		private static final MetricFactory NOOP_FACTORY = new MetricFactory() {
