@@ -43,25 +43,42 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
 	protected static String TABLE_9 = "I";
 	protected static String TABLE_10 = "J";
 	protected static String TABLE_11 = "K";
+	protected static String TABLE_12 = "L";
+	protected static String TABLE_13 = "M";
+	protected static String TABLE_14 = "N";
+	protected static String TABLE_15 = "O";
+	protected static String TABLE_16 = "P";
+	protected static String TABLE_17 = "Q";
+	protected static String TABLE_18 = "R";
+	protected static String TABLE_24 = "U";
 	
-	String[] tables = new String[]  {TABLE_1,TABLE_2,TABLE_3,TABLE_4,TABLE_5,TABLE_6,TABLE_7,TABLE_8,TABLE_9};
+	String[] tables = new String[]  {TABLE_1,TABLE_2,TABLE_3,TABLE_4,TABLE_5,TABLE_6,TABLE_7,TABLE_8,TABLE_9,TABLE_10,TABLE_11,TABLE_12,TABLE_13,TABLE_14,TABLE_15,TABLE_16,TABLE_17,TABLE_18};
 
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_1,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint primary key, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
-	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_2,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer  primary key,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
-	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_3,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint primary key,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
-	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_4,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal primary key,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
-	protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_5,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real primary key, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
-	protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_6,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double primary key,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
-	protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_7,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float primary key,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
-	protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_8,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10) primary key,char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
-	protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher(TABLE_9,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100)  primary key,varchar2 varchar(100),varchar3 varchar(100))");
+	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_2,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer  primary key,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
+	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_3,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint primary key,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
+	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_4,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal primary key,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
+	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_5,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real primary key, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
+	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_6,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double primary key,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
+	protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_7,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float primary key,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
+	protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_8,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10) primary key,char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
+	protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_9,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100)  primary key,varchar2 varchar(100),varchar3 varchar(100))");
+	protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_10,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100), PRIMARY KEY (boolean1,smallint1))");
+	protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher(TABLE_11,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100), PRIMARY KEY (boolean1,smallint1,integer1))");
+	protected static SpliceTableWatcher spliceTableWatcher12 = new SpliceTableWatcher(TABLE_12,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100), PRIMARY KEY (boolean1,smallint1,integer1, bigint1))");
+	protected static SpliceTableWatcher spliceTableWatcher13 = new SpliceTableWatcher(TABLE_13,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100), PRIMARY KEY (boolean1,smallint1,integer1, bigint1,decimal1))");
+	protected static SpliceTableWatcher spliceTableWatcher14 = new SpliceTableWatcher(TABLE_14,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100), PRIMARY KEY (boolean1,smallint1,integer1, bigint1,decimal1,real1))");
+	protected static SpliceTableWatcher spliceTableWatcher15 = new SpliceTableWatcher(TABLE_15,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100), PRIMARY KEY (boolean1,smallint1,integer1, bigint1,decimal1,real1,double1))");
+	protected static SpliceTableWatcher spliceTableWatcher16 = new SpliceTableWatcher(TABLE_16,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100), PRIMARY KEY (boolean1,smallint1,integer1, bigint1,decimal1,real1,double1,float1))");
+	protected static SpliceTableWatcher spliceTableWatcher17 = new SpliceTableWatcher(TABLE_17,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100), PRIMARY KEY (boolean1,smallint1,integer1, bigint1,decimal1,real1,double1,float1,char1))");
+	protected static SpliceTableWatcher spliceTableWatcher18 = new SpliceTableWatcher(TABLE_18,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100), PRIMARY KEY (boolean1,smallint1,integer1, bigint1,decimal1,real1,double1,float1,char1,varchar1))");
 
+	
+	
 //	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_2,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar ,date1 date,date2 date,time1 time,time2 time,timestamp1 timestamp,timestamp2 timestamp)");
-	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_10,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(24) for bit data,charforbitdata2 char(24) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data,date1 date,date2 date,time1 time,time2 time,timestamp1 timestamp,timestamp2 timestamp)");
-	
-	
-	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_11,spliceSchemaWatcher.schemaName," (charforbitdata1 char(24) for bit data, charforbitdata2 char(24) for bit data, charforbitdata3 char(24) for bit data, varcharforbitdata1 varchar(1024) for bit data, varcharforbitdata2 varchar(1024) for bit data, varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data)");
+	protected static SpliceTableWatcher spliceTableWatcher24 = new SpliceTableWatcher(TABLE_24,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(24) for bit data,charforbitdata2 char(24) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data,date1 date,date2 date,time1 time,time2 time,timestamp1 timestamp,timestamp2 timestamp)");
+//	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_11,spliceSchemaWatcher.schemaName," (charforbitdata1 char(24) for bit data, charforbitdata2 char(24) for bit data, charforbitdata3 char(24) for bit data, varcharforbitdata1 varchar(1024) for bit data, varcharforbitdata2 varchar(1024) for bit data, varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data)");
 
 
 
@@ -83,7 +100,14 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
         .around(spliceTableWatcher9)
         .around(spliceTableWatcher10)
         .around(spliceTableWatcher11)
-//        .around(spliceTableWatcher12)
+        .around(spliceTableWatcher12)
+        .around(spliceTableWatcher13)
+        .around(spliceTableWatcher14)
+        .around(spliceTableWatcher15)
+        .around(spliceTableWatcher16)
+        .around(spliceTableWatcher17)
+        .around(spliceTableWatcher18)
+        .around(spliceTableWatcher24)
 		.around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
@@ -105,6 +129,24 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 						ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('"+CLASS_NAME+"','"+TABLE_8+"',null,null,'"+getResource("testdata.csv")+"',',','\"',null,null,null)");
 						ps.execute();
 						ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('"+CLASS_NAME+"','"+TABLE_9+"',null,null,'"+getResource("testdata.csv")+"',',','\"',null,null,null)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('"+CLASS_NAME+"','"+TABLE_10+"',null,null,'"+getResource("testdata.csv")+"',',','\"',null,null,null)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('"+CLASS_NAME+"','"+TABLE_11+"',null,null,'"+getResource("testdata.csv")+"',',','\"',null,null,null)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('"+CLASS_NAME+"','"+TABLE_12+"',null,null,'"+getResource("testdata.csv")+"',',','\"',null,null,null)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('"+CLASS_NAME+"','"+TABLE_13+"',null,null,'"+getResource("testdata.csv")+"',',','\"',null,null,null)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('"+CLASS_NAME+"','"+TABLE_14+"',null,null,'"+getResource("testdata.csv")+"',',','\"',null,null,null)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('"+CLASS_NAME+"','"+TABLE_15+"',null,null,'"+getResource("testdata.csv")+"',',','\"',null,null,null)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('"+CLASS_NAME+"','"+TABLE_16+"',null,null,'"+getResource("testdata.csv")+"',',','\"',null,null,null)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('"+CLASS_NAME+"','"+TABLE_17+"',null,null,'"+getResource("testdata.csv")+"',',','\"',null,null,null)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('"+CLASS_NAME+"','"+TABLE_18+"',null,null,'"+getResource("testdata.csv")+"',',','\"',null,null,null)");
 						ps.execute();
 					} catch (Exception e) {
 							e.printStackTrace();
@@ -133,11 +175,11 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		//System.out.println("Here 3");
 		if(!done){
 		try{
-			String i1="insert into "+CLASS_NAME+"."+TABLE_10+"(lvarchar1,lvarchar2,charforbitdata1,charforbitdata2,varcharforbitdata1,varcharforbitdata2,longvarcharforbitdata1,longvarcharforbitdata2,date1,date2,time1,time2,timestamp1,timestamp2) values ('aaaaaaaaaaaaaaaaaaaaaaaaaa','aaaaaaaaaaaaaaaaaaaaaaaaaa',X'ABCDEF',X'ABCDEF',X'1234abcdef',X'1234abcdef',X'1234abcdef',X'1234abcdef','2014-05-01','2014-05-01','05:05:05','05:05:05','2014-05-01 00:00:00','2014-05-01 00:00:00')";
+			String i1="insert into "+CLASS_NAME+"."+TABLE_24+"(lvarchar1,lvarchar2,charforbitdata1,charforbitdata2,varcharforbitdata1,varcharforbitdata2,longvarcharforbitdata1,longvarcharforbitdata2,date1,date2,time1,time2,timestamp1,timestamp2) values ('aaaaaaaaaaaaaaaaaaaaaaaaaa','aaaaaaaaaaaaaaaaaaaaaaaaaa',X'ABCDEF',X'ABCDEF',X'1234abcdef',X'1234abcdef',X'1234abcdef',X'1234abcdef','2014-05-01','2014-05-01','05:05:05','05:05:05','2014-05-01 00:00:00','2014-05-01 00:00:00')";
 			//System.out.println(i1); 
-			String i2="insert into "+CLASS_NAME+"."+TABLE_10+"(lvarchar1,lvarchar2,charforbitdata1,charforbitdata2,varcharforbitdata1,varcharforbitdata2,longvarcharforbitdata1,longvarcharforbitdata2,date1,date2,time1,time2,timestamp1,timestamp2) values ('bbbbbbbbbbbbbbbbbbbbbbbbbb','bbbbbbbbbbbbbbbbbbbbbbbbbb',X'BCDEFA',X'BCDEFA',X'234abcdef1',X'234abcdef1',X'1234abcdef',X'1234abcdef','2014-05-01','2014-05-01','05:05:05','05:05:05','2014-05-01 00:00:00','2014-05-01 00:00:00')";
+			String i2="insert into "+CLASS_NAME+"."+TABLE_24+"(lvarchar1,lvarchar2,charforbitdata1,charforbitdata2,varcharforbitdata1,varcharforbitdata2,longvarcharforbitdata1,longvarcharforbitdata2,date1,date2,time1,time2,timestamp1,timestamp2) values ('bbbbbbbbbbbbbbbbbbbbbbbbbb','bbbbbbbbbbbbbbbbbbbbbbbbbb',X'BCDEFA',X'BCDEFA',X'234abcdef1',X'234abcdef1',X'1234abcdef',X'1234abcdef','2014-05-01','2014-05-01','05:05:05','05:05:05','2014-05-01 00:00:00','2014-05-01 00:00:00')";
 			//System.out.println(i2); 
-			String i3="insert into "+CLASS_NAME+"."+TABLE_10+"(lvarchar1,lvarchar2,charforbitdata1,charforbitdata2,varcharforbitdata1,varcharforbitdata2,longvarcharforbitdata1,longvarcharforbitdata2,date1,date2,time1,time2,timestamp1,timestamp2) values ('cccccccccccccccccccccccccc','cccccccccccccccccccccccccc',X'CDEFAB',X'CDEFAB',X'34abcdef12',X'34abcdef12',X'1234abcdef',X'1234abcdef','2014-05-01','2014-05-01','05:05:05','05:05:05','2014-05-01 00:00:00','2014-05-01 00:00:00')";
+			String i3="insert into "+CLASS_NAME+"."+TABLE_24+"(lvarchar1,lvarchar2,charforbitdata1,charforbitdata2,varcharforbitdata1,varcharforbitdata2,longvarcharforbitdata1,longvarcharforbitdata2,date1,date2,time1,time2,timestamp1,timestamp2) values ('cccccccccccccccccccccccccc','cccccccccccccccccccccccccc',X'CDEFAB',X'CDEFAB',X'34abcdef12',X'34abcdef12',X'1234abcdef',X'1234abcdef','2014-05-01','2014-05-01','05:05:05','05:05:05','2014-05-01 00:00:00','2014-05-01 00:00:00')";
 			//System.out.println(i3); 
 			int retval = methodWatcher.executeUpdate(i1);
 			//System.out.println("return value 1 = "+retval);
@@ -165,14 +207,14 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		//charforbitdata1,charforbitdata2
 		try {
 			String returnval;
-			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_10+" where charforbitdata1 = X'bcdefa202020202020202020202020202020202020202020'");
+			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where charforbitdata1 = X'bcdefa202020202020202020202020202020202020202020'");
 			if(rs.next()){
 				returnval = rs.getString("charforbitdata1");
 				System.out.println("charforbitdata = "+returnval);
 				Assert.assertTrue(returnval.equals("bcdefa202020202020202020202020202020202020202020"));
 			}
 			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_10+" where CAST(lvarchar1 as varchar(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
+			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar1 as varchar(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
 			while(rs.next()){
 				returnval = rs.getString("lvarchar1");
 				System.out.println("lvarchar1 = "+returnval);
@@ -180,28 +222,28 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 			}
 			rs.close();
 // Group by for LONG VARCHAR are not supported.			
-//			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_10+" group by lvarchar1 having CAST(lvarchar1 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
+//			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_24+" group by lvarchar1 having CAST(lvarchar1 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
 //				int retval = rs.getInt("retval");
 //			if(rs.next()){
 //				System.out.println("retval = "+retval);
 //				Assert.assertEquals(1,retval);
 //			}
 //			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_10+" where CAST(lvarchar1 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar1 as varchar(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ");
+			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar1 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar1 as varchar(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ");
 			if(rs.next()){
 				int retval = rs.getInt("retval");
 				System.out.println("retval = "+retval);
 				Assert.assertEquals(2,retval);
 			}
 			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_10+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
+			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
 			if(rs.next()){
 				returnval = rs.getString("lvarchar2");
 				System.out.println("smallint1 = "+returnval);
 				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa"));
 			}
 			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_10+" where CAST(lvarchar2 AS VARCHAR(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
+			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
 			while(rs.next()){
 				returnval = rs.getString("lvarchar2");
 				System.out.println("lvarchar1 = "+returnval);
@@ -210,7 +252,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 			rs.close();
 //Group by not supported.
 //			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_2+" group by lvarchar2 having CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_10+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or  CAST(lvarchar2 AS VARCHAR(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb'");
+			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or  CAST(lvarchar2 AS VARCHAR(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb'");
 			if(rs.next()){
 				int retval = rs.getInt("retval");
 				System.out.println("retval = "+retval);
@@ -540,14 +582,14 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	public void testField10() throws Exception{
 		try {
 			String returnval;
-			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_10+" where CAST(lvarchar1 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
+			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar1 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
 			if(rs.next()){
 				returnval = rs.getString("lvarchar1");
 				System.out.println("lvarchar1 = "+returnval);
 				Assert.assertTrue("aaaaaaaaaaaaaaaaaaaaaaaaaa".equals(returnval));
 			}
 			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_10+" where CAST(lvarchar1 as varchar(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
+			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar1 as varchar(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
 			while(rs.next()){
 				returnval = rs.getString("lvarchar1");
 				System.out.println("lvarchar1 = "+returnval);
@@ -562,21 +604,21 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 //				Assert.assertEquals(1,retval);
 //			}
 //			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_10+" where CAST(lvarchar1 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar1 as varchar(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ");
+			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar1 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar1 as varchar(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ");
 			if(rs.next()){
 				int retval = rs.getInt("retval");
 				System.out.println("retval = "+retval);
 				Assert.assertEquals(2,retval);
 			}
 			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_10+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
+			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
 			if(rs.next()){
 				returnval = rs.getString("lvarchar2");
 				System.out.println("smallint1 = "+returnval);
 				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa"));
 			}
 			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_10+" where CAST(lvarchar2 AS VARCHAR(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
+			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
 			while(rs.next()){
 				returnval = rs.getString("lvarchar2");
 				System.out.println("lvarchar1 = "+returnval);
@@ -585,7 +627,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 			rs.close();
 //Group by not supported.
 //			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_2+" group by lvarchar2 having CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_10+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or  CAST(lvarchar2 AS VARCHAR(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb'");
+			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or  CAST(lvarchar2 AS VARCHAR(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb'");
 			if(rs.next()){
 				int retval = rs.getInt("retval");
 				System.out.println("retval = "+retval);
