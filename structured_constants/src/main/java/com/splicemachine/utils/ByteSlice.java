@@ -155,6 +155,18 @@ public class ByteSlice implements Externalizable {
 				return ArrayUtil.equals(buffer, offset, that.buffer, that.offset, length);
 		}
 
+		public boolean equals(byte[] data, int offset, int length) {
+				if(this.length<=0)
+						return length<=0;
+				return ArrayUtil.equals(buffer,this.offset,data,offset,length);
+		}
+
+		public boolean equals(ByteSlice currentData, int equalsLength) {
+				if(this.length<=0)
+						return currentData.length<=0;
+				return ArrayUtil.equals(this.buffer,this.offset,currentData.buffer,currentData.offset,equalsLength);
+		}
+
 		@Override
 		public int hashCode() {
 				int result = buffer != null ? Arrays.hashCode(buffer) : 0;
@@ -183,4 +195,22 @@ public class ByteSlice implements Externalizable {
 					buffer[i]^=0xff;
 				}
 		}
+
+		public int find(byte toFind, int startOffset){
+				if(startOffset<0 || startOffset>=length) return -1;
+				int finalOffset = offset+length;
+				int size =0;
+				for(int i=offset+startOffset;i<finalOffset;i++){
+						if(buffer[i]==toFind)
+								return size;
+						else
+								size++;
+				}
+				return -1;
+		}
+
+		public void set(ByteSlice newData) {
+				set(newData.buffer,newData.offset,newData.length);
+		}
+
 }

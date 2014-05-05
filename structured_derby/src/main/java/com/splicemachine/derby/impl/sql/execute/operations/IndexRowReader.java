@@ -265,7 +265,7 @@ class IndexRowReader {
         Result nextFetchedData = next.getSecond();
 
         if(entryDecoder==null)
-            entryDecoder = new EntryDecoder(runtimeContext.getKryoPool());
+            entryDecoder = new EntryDecoder();
 
         for(KeyValue kv:nextFetchedData.raw()){
 						byte[] buffer = kv.getBuffer();

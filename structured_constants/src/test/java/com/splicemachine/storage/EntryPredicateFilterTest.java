@@ -42,7 +42,7 @@ public class EntryPredicateFilterTest {
 
         EntryAccumulator accumulator = epf.newAccumulator();
 
-        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
+        EntryDecoder decoder = new EntryDecoder();
         decoder.set(bytes);
 
         boolean match = epf.match(decoder, accumulator);
@@ -91,7 +91,7 @@ public class EntryPredicateFilterTest {
         retCols.set(0,2);
         EntryPredicateFilter epf = new EntryPredicateFilter(retCols,ObjectArrayList.from(finalPred));
 
-        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
+        EntryDecoder decoder = new EntryDecoder();
         decoder.set(bytes);
 
         EntryAccumulator accumulator = new ByteEntryAccumulator(epf,retCols);
@@ -131,7 +131,7 @@ public class EntryPredicateFilterTest {
         encoder.getEntryEncoder().encodeNext(testType1).encodeNext(testType2);
         byte[] data = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
+        EntryDecoder decoder = new EntryDecoder();
         decoder.set(data);
 
         EntryAccumulator accumulator = predicateFilter.newAccumulator();
@@ -167,7 +167,7 @@ public class EntryPredicateFilterTest {
         encoder.getEntryEncoder().encodeNext(testType1).encodeNext(testType2);
         byte[] data = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
+        EntryDecoder decoder = new EntryDecoder();
         decoder.set(data);
 
         EntryAccumulator accumulator = predicateFilter.newAccumulator();
@@ -197,7 +197,7 @@ public class EntryPredicateFilterTest {
         encoder.getEntryEncoder().encodeNext(testType1).encodeNext(testType2);
         byte[] data = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
+        EntryDecoder decoder = new EntryDecoder();
         decoder.set(data);
 
         EntryAccumulator accumulator = predicateFilter.newAccumulator();
@@ -254,7 +254,7 @@ public class EntryPredicateFilterTest {
         encoder.getEntryEncoder().encodeNext(testType1).encodeNext(testType2);
         byte[] data = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
+        EntryDecoder decoder = new EntryDecoder();
         decoder.set(data);
 
         EntryAccumulator accumulator = predicateFilter.newAccumulator();
@@ -314,7 +314,7 @@ public class EntryPredicateFilterTest {
         encoder.getEntryEncoder().encodeNext(testType1).encodeNext(testType2);
         byte[] data = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
+        EntryDecoder decoder = new EntryDecoder();
         decoder.set(data);
 
         EntryAccumulator accumulator = predicateFilter.newAccumulator();

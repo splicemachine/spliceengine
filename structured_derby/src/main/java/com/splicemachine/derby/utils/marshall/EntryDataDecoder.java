@@ -36,7 +36,7 @@ public class EntryDataDecoder extends BareKeyHash implements KeyHashDecoder{
 		@Override
 		public void set(byte[] bytes, int hashOffset, int length) {
 				if(entryDecoder==null)
-						entryDecoder =new EntryDecoder(SpliceKryoRegistry.getInstance());
+						entryDecoder =new EntryDecoder();
 
 				entryDecoder.set(bytes,hashOffset,length);
 		}

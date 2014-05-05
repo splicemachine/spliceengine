@@ -201,7 +201,7 @@ public class IndexTransformer {
         getKeyAccumulator();
 
         if (mainPutDecoder == null)
-            mainPutDecoder = new EntryDecoder(kryoPool);
+            mainPutDecoder = new EntryDecoder();
 
         mainPutDecoder.set(mutation.getValue());
 

@@ -52,8 +52,9 @@ public class BitIndexing {
      * @return an Uncompressed, Densely arranged BitIndex with bits set at the same location as 1s in the underlying
      * buffer ({@code bytes}).
      */
-    public static LazyBitIndex uncompressedBitMap(byte[] bytes, int indexOffset, int indexSize){
-        return new UncompressedLazyBitIndex(bytes,indexOffset,indexSize);
+    public static BitIndex uncompressedBitMap(byte[] bytes, int indexOffset, int indexSize){
+				return UncompressedBitIndex.wrap(bytes,indexOffset,indexSize);
+//        return new UncompressedLazyBitIndex(bytes,indexOffset,indexSize);
     }
 
     /**
@@ -104,8 +105,9 @@ public class BitIndexing {
      * @param indexSize the total size of the index
      * @return a Sparsely-encoded BitIndex.
      */
-    public static LazyBitIndex sparseBitMap(byte[] bytes, int indexOffset, int indexSize){
-        return new SparseLazyBitIndex(bytes,indexOffset,indexSize);
+    public static BitIndex sparseBitMap(byte[] bytes, int indexOffset, int indexSize){
+				return SparseBitIndex.wrap(bytes,indexOffset,indexSize);
+//        return new SparseLazyBitIndex(bytes,indexOffset,indexSize);
     }
 
     /**
@@ -158,8 +160,9 @@ public class BitIndexing {
      * @param indexSize the size of the index within the buffer
      * @return a Dense, Compressed BitIndex representation of the given buffer.
      */
-    public static LazyBitIndex compressedBitMap(byte[] bytes, int indexOffset, int indexSize){
-        return new LazyCompressedBitIndex(bytes,indexOffset,indexSize);
+    public static BitIndex compressedBitMap(byte[] bytes, int indexOffset, int indexSize){
+				return DenseCompressedBitIndex.wrap(bytes,indexOffset,indexSize);
+//        return new LazyCompressedBitIndex(bytes,indexOffset,indexSize);
     }
 
     public static BitIndex getBestIndex(BitSet setCols,BitSet scalarFields,BitSet floatFields, BitSet doubleFields) {

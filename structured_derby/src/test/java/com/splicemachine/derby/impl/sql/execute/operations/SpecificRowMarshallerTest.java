@@ -52,7 +52,7 @@ public class SpecificRowMarshallerTest {
         byte[] value = accumulator.finish();
         final KeyValue kv = new KeyValue(snowflake.nextUUIDBytes(),SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES,value);
 
-        EntryDecoder entryDecoder = new EntryDecoder(kryoPool);
+        EntryDecoder entryDecoder = new EntryDecoder();
 				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(testRow);
 				EntryDataDecoder decoder = new EntryDataDecoder(new int[]{0,0,1},null,serializers);
 				decoder.set(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());

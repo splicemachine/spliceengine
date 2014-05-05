@@ -3,7 +3,6 @@ package com.splicemachine.hbase.debug;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
@@ -26,7 +25,7 @@ import java.util.concurrent.ExecutionException;
  *         Created on: 9/24/13
  */
 public class ColumnDumpTask extends DebugTask{
-    private EntryDecoder decoder = new EntryDecoder(SpliceDriver.getKryoPool());
+    private EntryDecoder decoder = new EntryDecoder();
 
     private int columnNumber;
 
