@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -269,7 +268,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		}
 
 		protected EntryDecoder getRowEntryDecoder() {
-				return new EntryDecoder(SpliceKryoRegistry.getInstance());
+				return new EntryDecoder();
 		}
 
 		private EntryPredicateFilter decodePredicateFilter() throws IOException {

@@ -54,7 +54,7 @@ public class ConglomerateUtils extends SpliceConstants {
 			Result result = table.get(get);
 			byte[] data = result.getValue(DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES);
 
-            EntryDecoder entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
+            EntryDecoder entryDecoder = new EntryDecoder();
             try{
                 if(data!=null) {
                     entryDecoder.set(data);

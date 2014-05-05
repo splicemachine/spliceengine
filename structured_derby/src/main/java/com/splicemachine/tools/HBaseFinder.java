@@ -3,7 +3,6 @@ package com.splicemachine.tools;
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.encoding.debug.DataType;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.storage.*;
@@ -84,7 +83,7 @@ public class HBaseFinder {
         try{
             scanner = table.getScanner(scan);
             Result result;
-            EntryDecoder entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
+            EntryDecoder entryDecoder = new EntryDecoder();
             EntryAccumulator accumulator = edf.newAccumulator();
             int numResults=0;
             do{

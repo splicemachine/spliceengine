@@ -30,7 +30,7 @@ public class EntryEncoderDecoderTest {
         entryEncoder.encodeNext(2);
         byte[] encode = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
+        EntryDecoder decoder = new EntryDecoder();
         decoder.set(encode);
 
         Assert.assertEquals(1, Encoding.decodeInt(decoder.getData(0)));
@@ -55,7 +55,7 @@ public class EntryEncoderDecoderTest {
         entryEncoder.encodeNext(2);
         byte[] encode = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
+        EntryDecoder decoder = new EntryDecoder();
         decoder.set(encode);
 
         Assert.assertEquals(1, Encoding.decodeInt(decoder.getData(0)));
@@ -81,7 +81,7 @@ public class EntryEncoderDecoderTest {
         entryEncoder.encodeNext(2);
         byte[] encode = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
+        EntryDecoder decoder = new EntryDecoder();
         decoder.set(encode);
 
         Assert.assertEquals(0,decoder.getData(0).length);
@@ -107,7 +107,7 @@ public class EntryEncoderDecoderTest {
         entryEncoder.setRawBytes(null);
         byte[] encode = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
+        EntryDecoder decoder = new EntryDecoder();
         decoder.set(encode);
 
         Assert.assertEquals(1, Encoding.decodeInt(decoder.getData(0)));

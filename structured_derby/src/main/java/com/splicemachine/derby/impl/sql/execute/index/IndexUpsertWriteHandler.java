@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.sql.execute.index;
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -183,7 +182,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             return mutation; //not an update, nothing to do here
 
         if(newPutDecoder==null)
-            newPutDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
+            newPutDecoder = new EntryDecoder();
 
         newPutDecoder.set(mutation.getValue());
 
@@ -235,7 +234,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 //            newRowAccumulator.reset();
 
             if(newPutDecoder==null)
-                newPutDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
+                newPutDecoder = new EntryDecoder();
 
             newPutDecoder.set(mutation.getValue());
 
@@ -246,7 +245,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 newDecoder = newPutDecoder.getEntryDecoder();
 
                 if(oldDataDecoder==null)
-                    oldDataDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
+                    oldDataDecoder = new EntryDecoder();
 
                 oldDataDecoder.set(r.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES));
                 BitIndex oldIndex = oldDataDecoder.getCurrentIndex();

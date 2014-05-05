@@ -149,7 +149,7 @@ public class RSUtils {
     }
 
     public static boolean isSinkingJoin(AccessPath ap){
-        return isHashableJoin(ap) && !(ap.getJoinStrategy() instanceof MergeJoinStrategy);
+        return isMSJ(ap);
     }
 
     public static Predicate<ResultColumn> pointsTo(ResultSetNode rsn)
