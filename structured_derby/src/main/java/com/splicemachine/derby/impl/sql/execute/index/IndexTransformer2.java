@@ -245,7 +245,7 @@ public class IndexTransformer2 {
 
 		public EntryDecoder getRowDecoder() {
 				if(rowDecoder==null)
-						rowDecoder = new EntryDecoder(SpliceKryoRegistry.getInstance());
+						rowDecoder = new EntryDecoder();
 				return rowDecoder;
 		}
 

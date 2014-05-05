@@ -8,7 +8,6 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
@@ -91,7 +90,7 @@ public class SITransactionReadController<
 		public IFilterState newFilterStatePacked(String tableName, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter, TransactionId transactionId, boolean countStar) throws IOException {
 				return new FilterStatePacked(
 								(FilterState) newFilterState(rollForwardQueue, transactionId),
-								new HRowAccumulator(predicateFilter, new EntryDecoder(KryoPool.defaultPool()), countStar ));
+								new HRowAccumulator(predicateFilter, new EntryDecoder(), countStar ));
 		}
 
 		@Override

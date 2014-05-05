@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
@@ -31,7 +30,7 @@ public class ScanTask extends DebugTask{
     private EntryPredicateFilter predicateFilter;
     private HRegion region;
 
-    private EntryDecoder decoder = new EntryDecoder(SpliceDriver.getKryoPool());
+    private EntryDecoder decoder = new EntryDecoder();
 
     public ScanTask() {
     }
@@ -160,7 +159,7 @@ public class ScanTask extends DebugTask{
         public HBaseEntryPredicateFilter(EntryPredicateFilter epf) {
             this.epf = epf;
             this.accumulator = epf.newAccumulator();
-            this.decoder = new EntryDecoder(SpliceDriver.getKryoPool());
+            this.decoder = new EntryDecoder();
         }
 
         @Override

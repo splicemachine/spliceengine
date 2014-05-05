@@ -31,7 +31,7 @@ public class EntryEncoderTest {
 
         byte[] encode = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
+        EntryDecoder decoder = new EntryDecoder();
         decoder.set(encode);
 
         Assert.assertTrue(decoder.isSet(1));
@@ -66,7 +66,7 @@ public class EntryEncoderTest {
 
         byte[] encode = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
+        EntryDecoder decoder = new EntryDecoder();
         decoder.set(encode);
 
         Assert.assertTrue(decoder.isSet(1));
@@ -103,7 +103,7 @@ public class EntryEncoderTest {
 
         byte[] encode = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
+        EntryDecoder decoder = new EntryDecoder();
         decoder.set(encode);
 
         Assert.assertTrue(decoder.isSet(0));

@@ -56,7 +56,7 @@ public class IndexTransformerTest {
 				/*row data validation*/
 				byte[] indexData = indexPair.getValue();
 
-				EntryDecoder entryDecoder = new EntryDecoder(KryoPool.defaultPool());
+				EntryDecoder entryDecoder = new EntryDecoder();
 				entryDecoder.set(indexData);
 
 				//make sure index is correct. Row should not contain data
@@ -110,7 +110,7 @@ public class IndexTransformerTest {
 				/*row data validation*/
 				byte[] indexData = indexPair.getValue();
 
-				EntryDecoder entryDecoder = new EntryDecoder(KryoPool.defaultPool());
+				EntryDecoder entryDecoder = new EntryDecoder();
 				entryDecoder.set(indexData);
 
 				//make sure index is correct. The row should not contain any data

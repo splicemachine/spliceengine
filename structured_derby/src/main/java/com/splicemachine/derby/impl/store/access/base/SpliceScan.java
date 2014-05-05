@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.store.access.base;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.impl.sql.execute.LazyScan;
 import com.splicemachine.derby.impl.sql.execute.ParallelScan;
@@ -30,7 +29,6 @@ import org.apache.derby.iapi.store.access.ScanInfo;
 import org.apache.derby.iapi.store.access.conglomerate.ScanManager;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
@@ -362,7 +360,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 						while ((currentResult = scanner.next()) != null) {
 								SpliceLogUtils.trace(LOG,"fetch set iterator %s",currentResult);
 								if(entryDecoder==null)
-										entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
+										entryDecoder = new EntryDecoder();
 
 								fetchedRow = RowUtil.newTemplate(
 												spliceConglomerate.getTransaction().getDataValueFactory(),
