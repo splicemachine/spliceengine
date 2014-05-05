@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.base.Strings;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -102,7 +101,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 
 		protected EntryDecoder getRowDecoder() {
 				if(rowDecoder==null)
-						rowDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
+						rowDecoder = new EntryDecoder();
 				return rowDecoder;
 		}
 

@@ -1,6 +1,7 @@
 package com.splicemachine.encoding;
 
 import com.google.common.base.Preconditions;
+import com.splicemachine.utils.ByteSlice;
 
 import java.math.BigDecimal;
 
@@ -28,6 +29,10 @@ public class MultiFieldDecoder {
     public static MultiFieldDecoder wrap(byte[] row) {
         return wrap(row,0,row.length);
     }
+
+		public static MultiFieldDecoder wrap(ByteSlice slice){
+				return wrap(slice.array(),slice.offset(),slice.length());
+		}
 
     public static MultiFieldDecoder wrap(byte[] row, int offset, int length) {
         MultiFieldDecoder next = new MultiFieldDecoder();
