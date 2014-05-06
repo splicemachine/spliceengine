@@ -1,3 +1,4 @@
+
 AUTOCOMMIT OFF;
 
 -- MODULE  DML155  
@@ -21,7 +22,8 @@ AUTOCOMMIT OFF;
    CREATE TABLE T850 (
 --O     T850KEY INT NOT NULL UNIQUE,
      T850KEY INT NOT NULL constraint t850_unique UNIQUE,
-     T850C   CHAR (11),
+--O     T850C   CHAR (11),
+     T850C   VARCHAR (11),
      T850VC  VARCHAR (10),
      T850LVC VARCHAR (20));
 -- PASS:0850 If table created successfully?
@@ -40,8 +42,8 @@ AUTOCOMMIT OFF;
      0, '          ', '', '                    ');
 -- PASS:0850 If 1 row inserted successfully?
 
---O   SELECT COUNT(*) 
-   SELECT * 
+  SELECT COUNT(*) 
+--C   SELECT * 
      FROM T850 WHERE T850C = T850VC;
 -- PASS:0850 If COUNT = 3?
 
@@ -78,28 +80,28 @@ AUTOCOMMIT OFF;
      FROM T850 WHERE T850VC = '12345          ';
 -- PASS:0850 If COUNT = 1?
 
---O   SELECT COUNT(*) 
-   SELECT * 
+   SELECT COUNT(*) 
+--C   SELECT * 
      FROM T850 WHERE T850VC = '12345  ';
 -- PASS:0850 If COUNT = 1?
 
---O   SELECT COUNT(*)
-   SELECT * 
+  SELECT COUNT(*)
+--C   SELECT * 
      FROM T850 WHERE T850LVC = '12345          ';
 -- PASS:0850 If COUNT = 1?
 
---O   SELECT COUNT(*) 
-   SELECT * 
+   SELECT COUNT(*) 
+--C   SELECT * 
      FROM T850 WHERE T850LVC = '12345  ';
 -- PASS:0850 If COUNT = 1?
 
---O   SELECT COUNT(*) 
-   SELECT * 
+  SELECT COUNT(*) 
+--   SELECT * 
      FROM T850 WHERE T850C = '12345          ';
 -- PASS:0850 If COUNT = 1?
 
---O   SELECT COUNT(*) 
-   SELECT * 
+   SELECT COUNT(*) 
+--   SELECT * 
      FROM T850 WHERE T850C = '12345  ';
 -- PASS:0850 If COUNT = 1?
 

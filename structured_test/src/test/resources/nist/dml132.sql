@@ -24,14 +24,18 @@ AUTOCOMMIT OFF;
    INSERT INTO HU.P15 VALUES (-999999999999999);
 -- PASS:0515 If 1 row is inserted?
 
+-- splicetest: ignore-output start
    SELECT NUMTEST - 999999999999990,
   NUMTEST / 9999999
   FROM HU.P15 WHERE NUMTEST > 0;
+-- splicetest: ignore-output stop
 -- PASS:0515 If 1 row selected and values are 9 and 100000010 +- 1?
 
+-- splicetest: ignore-output start
    SELECT NUMTEST + 999999999999990,
   NUMTEST / 9999999
   FROM HU.P15 WHERE NUMTEST < 0;
+-- splicetest: ignore-output stop
 -- PASS:0515 If 1 row selected and values are -9 and -100000010 +- 1?
 
    DELETE FROM HU.P15;
@@ -114,16 +118,17 @@ AUTOCOMMIT OFF;
 -- next query restated with a cursor which we get only 1 row from; this is a sufficient demonstation
 -- of 15 table references.
 
-get cursor x as
+--Oget cursor x as
 --O  SELECT COUNT(*) FROM
-  'SELECT * FROM
+ prepare x from 'SELECT * FROM
   HU.WORKS T01, HU.PROJ T02, HU.STAFF T03,
   USIG T04, U_SIG T05, BASE_VS1 T06, VS1 T07,
   VS2 T08, HU.VSTAFF3 T09, BASE_WCOV T10
   WHERE T08.C1 = 1 AND T03.EMPNUM > ''E1'' ';
 
-next x;
-close x;
+execute x;
+--Onext x;
+--Oclose x;
 
 -- PASS:0525 If count = 46080?
 

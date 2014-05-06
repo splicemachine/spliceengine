@@ -127,7 +127,8 @@ AUTOCOMMIT OFF;
 -- NOTE:0497 use TEd to enlarge the above values for T_REAL to the
 -- NOTE:0497 maximum allowed by your implementation.
 -- NOTE:0497 If that is not enough, add more INSERTs.
- 
+
+--splicetest: expecterror 
    SELECT SUM(T_REAL) FROM FOUR_TYPES;
 -- PASS:0497 If ERROR, data exception/numeric value out of range?
 -- PASS:0497 OR 0 rows selected OR SQLSTATE = 22003 OR SQLCODE < 0?

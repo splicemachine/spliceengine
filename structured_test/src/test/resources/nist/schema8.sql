@@ -462,12 +462,12 @@ CREATE TABLE STAFF4 (EMPNUM    VARCHAR(3) NOT NULL,
             CITY     VARCHAR(15),
 --            MGR  VARCHAR(3),
             MGR  VARCHAR(3) UNIQUE,
---);
+);
 
 --            UNIQUE (PNUM),
-              CONSTRAINT fk_mgr
-            FOREIGN KEY (MGR)
-            REFERENCES STAFF_M(EMPNUM));
+--              CONSTRAINT fk_mgr
+--            FOREIGN KEY (MGR)
+--            REFERENCES STAFF_M(EMPNUM));
 
 -- Removed alter table due to bug 537, made changes to the table above to handle-- foreign key constraint
 --        ALTER TABLE STAFF_M ADD FOREIGN KEY (PRI_WK)

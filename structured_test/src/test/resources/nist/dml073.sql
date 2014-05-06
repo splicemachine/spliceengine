@@ -93,11 +93,11 @@ SELECT SUM(HOURS), MAX(HOURS)
      INSERT INTO STAFF VALUES ('E7', 'Tony', 18, NULL);
      INSERT INTO STAFF1 SELECT * FROM STAFF;
 
-
+-- splicetest: ignore-order start
      SELECT MAX(STAFF1.GRADE), SUM(STAFF1.GRADE)
            FROM STAFF1, STAFF
            GROUP BY STAFF1.CITY, STAFF.CITY;
-
+-- splicetest: ignore-order stop
 -- PASS:0417 If 16 rows are selected in any order?
 -- PASS:0417 Including the following four rows? 
 -- PASS:0417 MAX(STAFF1.GRADE) = 18 and SUM(STAFF1.GRADE) = 35?

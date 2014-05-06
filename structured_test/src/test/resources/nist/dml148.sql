@@ -69,7 +69,8 @@ AUTOCOMMIT OFF;
 
    CREATE TABLE SEVEN_TYPES (
        T_INT     INTEGER,
-       T_CHAR    CHAR(10),
+--O       T_CHAR    CHAR(10),
+       T_CHAR    VARCHAR(10),
        T_SMALL   SMALLINT,
        T_DECIMAL DECIMAL(10,2),
        T_REAL    REAL,
@@ -88,10 +89,13 @@ AUTOCOMMIT OFF;
 
 --
 -- NOTE:0844 BETWEEN predicate
+-- splicetest: ignore-order start
    SELECT EMPNAME, CITY, T_DECIMAL
      FROM HU.STAFF LEFT OUTER JOIN SEVEN_TYPES 
         ON -GRADE / 11 BETWEEN T_REAL AND T_DECIMAL
      ORDER BY EMPNAME;
+-- splicetest: ignore-order stop
+   SELECT EMPNAME, CITY, T_DECIMAL
 -- PASS:0844 If 6 rows selected with ordered rows and column values ?
 -- PASS:0844    Alice  Deale  NULL  ?
 -- PASS:0844    Betty  Vienna    0  ?
@@ -103,8 +107,7 @@ AUTOCOMMIT OFF;
 -- NOTE:0844 comparable CHAR types
 -- NOTE:0844 IN predicate, with literals and variable value
    SELECT T_INT, T_CHAR, EMPNAME, EMPNUM, GRADE 
---O     FROM SEVEN_TYPES RIGHT JOIN HU.STAFF
-    FROM SEVEN_TYPES right outer JOIN HU.STAFF
+     FROM SEVEN_TYPES RIGHT JOIN HU.STAFF
        ON GRADE IN (10, 11, 13) AND EMPNUM = T_CHAR
    ORDER BY EMPNAME, T_INT;
 -- PASS:0844 If 5 rows selected with ordered rows and column values ?
@@ -121,8 +124,8 @@ AUTOCOMMIT OFF;
       AND HU.STAFF.CITY <> 'Vienna'
       AND EMPNAME <> 'Don'
      WHERE BUDGET > 15000 OR BUDGET IS NULL
---O   ORDER BY HU.STAFF.CITY, EMPNAME, BUDGET;
-   ORDER BY 1,2,4;
+   ORDER BY HU.STAFF.CITY, EMPNAME, BUDGET;
+--C   ORDER BY 1,2,4;
 -- PASS:0844 If 6 rows selected with ordered rows and column values ?
 -- PASS:0844    Akron   Ed     NULL NULL   ?
 -- PASS:0844    Deale   Alice  SDP  20000  ?

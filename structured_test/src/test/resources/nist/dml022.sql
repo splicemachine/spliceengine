@@ -14,11 +14,13 @@
 -- date_time print
                                 
 -- TEST:0096 Subquery with MAX in < comparison predicate!
+-- splicetest: ignore-order start
      SELECT EMPNUM                                                         
           FROM STAFF                                                           
           WHERE GRADE <                                                        
              (SELECT MAX(GRADE)                                                
               FROM STAFF);
+-- splicetest: ignore-order stop
 -- PASS:0096 If 3 rows selected with EMPNUMs:'E1', 'E2', 'E4'?
 
 -- END TEST >>> 0096 <<< END TEST
@@ -36,6 +38,7 @@
 -- *******************************************************************
 
 -- TEST:0098 IN predicate with simple subquery!
+-- splicetest: ignore-order start
      SELECT EMPNAME                                                     
           FROM STAFF                                                         
           WHERE EMPNUM IN                                                   
@@ -43,6 +46,7 @@
               FROM WORKS                                                   
               WHERE PNUM = 'P2')
      ORDER BY EMPNAME;
+-- splicetest: ignore-order stop
 -- PASS:0098 If 4 rows selected and first EMPNAME = 'Alice'?
 
 -- END TEST >>> 0098 <<< END TEST
@@ -93,12 +97,14 @@
 -- ****************************************************************
 
 -- TEST:0101 Quantified predicate <= ALL with AVG in GROUP BY!
+-- splicetest: ignore-order start
      SELECT EMPNUM,PNUM                                                 
           FROM   WORKS                                                       
           WHERE  HOURS <= ALL                                                 
                (SELECT AVG(HOURS)                                            
                 FROM   WORKS                                                 
                 GROUP BY PNUM);
+-- splicetest: ignore-order stop
 -- PASS:0101 If 2 rows selected and each EMPNUM = 'E1'?
 
 -- END TEST >>> 0101 <<< END TEST

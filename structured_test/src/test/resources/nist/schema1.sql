@@ -76,7 +76,7 @@
 -- Bug 379     	      EMPNAME  CHAR(20),
        		      EMPNAME  VARCHAR(20),
                 GRADE DECIMAL(4),
-                CITY   CHAR(15));
+                CITY   VARCHAR(15));
 
   CREATE TABLE STAFF4 (EMPNUM    VARCHAR(3) NOT NULL,
 -- Bug 379     	      EMPNAME  CHAR(20),
@@ -161,7 +161,7 @@
 
 
   CREATE TABLE UPUNIQ (NUMKEY  DECIMAL(3) NOT NULL,
-                           COL2    CHAR(2));
+                           COL2    VARCHAR(2));
 
 
   CREATE TABLE TEXT80  (TEXXT CHAR(80));
@@ -422,4 +422,4 @@
 
    CREATE VIEW VSTAFF3 AS SELECT * FROM STAFF3;
 
--- disconnect;
+disconnect;
