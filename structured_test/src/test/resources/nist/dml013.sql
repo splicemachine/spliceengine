@@ -22,8 +22,9 @@ AUTOCOMMIT OFF;
             VALUES('E5','P5',NULL);
 -- PASS:0039 If 1 row inserted?
 
---Bug 340     SELECT COUNT(DISTINCT HOURS)
---          FROM WORKS;
+--Bug JIRA DB-926 - Getting count 3 instead of 4
+--    SELECT COUNT(DISTINCT HOURS)
+--         FROM WORKS;
 -- PASS:0039 If count = 4?
 
 -- restore
@@ -93,9 +94,10 @@ AUTOCOMMIT OFF;
 -- ***************************************************************
 
 -- TEST:0170 SUM DISTINCT function with WHERE clause!
---Bug 340     SELECT SUM(DISTINCT HOURS)
---Bug          FROM WORKS
---Bug          WHERE PNUM = 'P2';
+--Bug 340     
+     SELECT SUM(DISTINCT HOURS)
+          FROM WORKS
+          WHERE PNUM = 'P2';
 -- PASS:0170 If SUM(DISTINCT HOURS) = 100?
 
 -- END TEST >>> 0170 <<< END TEST

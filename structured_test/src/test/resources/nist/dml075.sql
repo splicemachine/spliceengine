@@ -17,8 +17,8 @@ AUTOCOMMIT OFF;
 
 -- TEST:0431 Redundant rows in IN subquery!
 
---O   SELECT COUNT (*) FROM STAFF
-   SELECT * FROM STAFF
+   SELECT COUNT (*) FROM STAFF
+--C   SELECT * FROM STAFF
        WHERE EMPNUM IN
             (SELECT EMPNUM FROM WORKS);
 -- PASS:0431 If count = 4?
@@ -26,8 +26,8 @@ AUTOCOMMIT OFF;
    INSERT INTO STAFF1
        SELECT * FROM STAFF;
 
---O   SELECT COUNT (*) FROM STAFF1
-   SELECT * FROM STAFF1
+   SELECT COUNT (*) FROM STAFF1
+--C   SELECT * FROM STAFF1
        WHERE EMPNUM IN
             (SELECT EMPNUM FROM WORKS);
 -- PASS:0431 If count = 4?
@@ -44,48 +44,48 @@ AUTOCOMMIT OFF;
 UPDATE PROJ SET CITY = NULL 
   WHERE PNUM = 'P3';
 
---OSELECT COUNT(*)
-SELECT *
+SELECT COUNT(*)
+--CSELECT *
   FROM STAFF
   WHERE CITY = ALL (SELECT CITY
                    FROM PROJ
                    WHERE PNAME = 'SDP');
 -- PASS:0432 If count = 0?
 
---OSELECT COUNT(*)
-SELECT *
+SELECT COUNT(*)
+--CSELECT *
   FROM STAFF
   WHERE CITY <> ALL (SELECT CITY 
                     FROM PROJ
                     WHERE PNAME = 'SDP');
 -- PASS:0432 If count = 0?
 
---OSELECT COUNT(*)
-SELECT *
+SELECT COUNT(*)
+--CSELECT *
   FROM STAFF
   WHERE CITY = ANY (SELECT CITY    
                    FROM PROJ
                    WHERE PNAME = 'SDP');
 -- PASS:0432 If count = 2?
 
---OSELECT COUNT(*)
-SELECT *
+SELECT COUNT(*)
+--CSELECT *
   FROM STAFF
   WHERE CITY <> ANY (SELECT CITY
                      FROM PROJ
                      WHERE PNAME = 'SDP');
 -- PASS:0432 If count = 3?
 
---OSELECT COUNT(*)
-SELECT *
+SELECT COUNT(*)
+--CSELECT *
   FROM STAFF
   WHERE CITY = SOME (SELECT CITY
                      FROM PROJ
                      WHERE PNAME = 'SDP');
 -- PASS:0432 If count = 2?
 
---OSELECT COUNT(*)
-SELECT *
+SELECT COUNT(*)
+--CSELECT *
   FROM STAFF
   WHERE CITY <> SOME (SELECT CITY
                       FROM PROJ
@@ -99,39 +99,39 @@ SELECT *
 
 -- TEST:0433 Empty subquery in ALL, SOME, ANY!
 
---O   SELECT COUNT(*) FROM PROJ
-   SELECT * FROM PROJ
+   SELECT COUNT(*) FROM PROJ
+--   SELECT * FROM PROJ
         WHERE PNUM = ALL (SELECT PNUM
                           FROM WORKS WHERE EMPNUM = 'E8');
 -- PASS:0433 If count = 6?
 
---O   SELECT COUNT(*) FROM PROJ
-   SELECT * FROM PROJ
+   SELECT COUNT(*) FROM PROJ
+--C   SELECT * FROM PROJ
         WHERE PNUM <> ALL (SELECT PNUM
                           FROM WORKS WHERE EMPNUM = 'E8');
 
 -- PASS:0433 If count = 6?
 
---O   SELECT COUNT(*) FROM PROJ
-   SELECT * FROM PROJ
+   SELECT COUNT(*) FROM PROJ
+--C   SELECT * FROM PROJ
         WHERE PNUM = ANY (SELECT PNUM
                           FROM WORKS WHERE EMPNUM = 'E8');
 -- PASS:0433 If count = 0?
 
---O   SELECT COUNT(*) FROM PROJ
-   SELECT * FROM PROJ
+   SELECT COUNT(*) FROM PROJ
+--C   SELECT * FROM PROJ
         WHERE PNUM <> ANY (SELECT PNUM
                           FROM WORKS WHERE EMPNUM = 'E8');
 -- PASS:0433 If count = 0?
 
---O   SELECT COUNT(*) FROM PROJ
-   SELECT * FROM PROJ
+   SELECT COUNT(*) FROM PROJ
+--C   SELECT * FROM PROJ
         WHERE PNUM = SOME (SELECT PNUM
                           FROM WORKS WHERE EMPNUM = 'E8');
 -- PASS:0433 If count = 0?
 
---O   SELECT COUNT(*) FROM PROJ
-   SELECT * FROM PROJ
+   SELECT COUNT(*) FROM PROJ
+--C   SELECT * FROM PROJ
         WHERE PNUM <> SOME (SELECT PNUM
                           FROM WORKS WHERE EMPNUM = 'E8');
 -- PASS:0433 If count = 0?
@@ -160,22 +160,27 @@ SELECT *
 -- *************************************************************
 
 -- TEST:0442 DISTINCT with GROUP BY, HAVING!
-
+-- splicetest: ignore-order start
    SELECT PTYPE, CITY FROM PROJ
           GROUP BY PTYPE, CITY
           HAVING AVG(BUDGET) > 21000;
+-- splicetest: ignore-order stop
 -- PASS:0442 If 3 rows selected with PTYPE/CITY values(in any order):?
 -- PASS:0442 Code/Vienna, Design/Deale, Test/Tampa?
 
+-- splicetest: ignore-order start
    SELECT DISTINCT PTYPE, CITY FROM PROJ
           GROUP BY PTYPE, CITY
           HAVING AVG(BUDGET) > 21000;
+-- splicetest: ignore-order stop
 -- PASS:0442 If 3 rows selected with PTYPE/CITY values(in any order):?
 -- PASS:0442 Code/Vienna, Design/Deale, Test/Tampa?
 
+-- splicetest: ignore-order start
    SELECT DISTINCT SUM(BUDGET) FROM PROJ
           GROUP BY PTYPE, CITY
           HAVING AVG(BUDGET) > 21000;
+-- splicetest: ignore-order stop
 -- PASS:0442 If 2 rows selected (in any order):?
 -- PASS:0442 with SUM(BUDGET) values 30000 and 80000?
 

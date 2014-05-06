@@ -22,20 +22,25 @@ AUTOCOMMIT OFF;
   ENTERED  TIMESTAMP,
   START    DATE,
 --0  APPT     INTERVAL DAY,
+--0  APPT     DATE,
   HOUR_IN  TIME,
   HOUR_OUT TIME
 --0  , LUNCH    INTERVAL HOUR TO MINUTE);
-	);
+--0  , LUNCH  TIME );
 -- PASS:0617 If table is created?
-
+);
    COMMIT WORK;
 
    CREATE VIEW SUBQ1 AS
   SELECT MIN (HOUR_IN) AS TOO_EARLY,
   MAX (ALL START) AS LATEST
---0  , AVG (LUNCH) AS AVGLUNCH,
---0  AVG (DISTINCT LUNCH) AS D_AVGLUNCH,
+-- AR Uncomment the following
+--  , AVG (LUNCH) AS AVGLUNCH,
+--0  , AVG (TIME(LUNCH)) AS AVGLUNCH,
+--  AVG (DISTINCT LUNCH) AS D_AVGLUNCH,
+--  AVG (DISTINCT TIME(LUNCH)) AS D_AVGLUNCH,
 --0  SUM (APPT) AS SUMAPPT
+--  SUM (DAY(APPT)) AS SUMAPPT
   FROM TEMPS;
 -- PASS:0617 If view is created?
 
@@ -44,10 +49,12 @@ AUTOCOMMIT OFF;
    INSERT INTO TEMPS VALUES (
   TIMESTAMP( '1993-11-10 12:25:14'),
   DATE( '1993-11-12'),
+--  cast('0000-00-04' as date),
 --0  INTERVAL '4' DAY,
   TIME( '08:30:00'),
   TIME( '16:30:00')
 --0  , INTERVAL '1:00' HOUR TO MINUTE);
+--  , cast('1:00:00' as time)
   );
 -- PASS:0617 If 1 row is inserted?
 
@@ -55,9 +62,11 @@ AUTOCOMMIT OFF;
   TIMESTAMP( '1993-11-10 13:15:14'),
   DATE( '1993-11-15'),
 --0  INTERVAL '5' DAY,
+--  cast ('5' as timestamp), 
   TIME( '08:30:00'),
   TIME( '17:30:00')
---0  ,INTERVAL '0:30' HOUR TO MINUTE);
+--0  ,INTERVAL '0:30' HOUR TO MINUTE)
+-- , cast('0:30' as time)
   );
 -- PASS:0617 If 1 row is inserted?
 
@@ -65,9 +74,11 @@ AUTOCOMMIT OFF;
   TIMESTAMP( '1993-11-17 09:56:48'),
   DATE( '1994-11-18'),
 --0  INTERVAL '3' DAY,
+--  cast('3'as timestamp),
   TIME( '09:00:00'),
   TIME( '17:00:00')
---0  ,INTERVAL '1:00' HOUR TO MINUTE);
+--0  ,INTERVAL '1:00' HOUR TO MINUTE)
+-- ,cast('1:00' as time)
   );
 -- PASS:0617 If 1 row is inserted?
 

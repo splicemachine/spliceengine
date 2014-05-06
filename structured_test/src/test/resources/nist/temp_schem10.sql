@@ -40,7 +40,8 @@ AUTOCOMMIT OFF;
 
    CREATE TABLE FOUR_TYPES
       (T_INT     INTEGER,
-       T_CHAR    CHAR(10),
+--       T_CHAR    CHAR(10),
+       T_CHAR    VARCHAR(10),
        T_DECIMAL DECIMAL(10,2),
        T_REAL    REAL);
 

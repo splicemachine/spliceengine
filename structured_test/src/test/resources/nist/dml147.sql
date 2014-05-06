@@ -114,9 +114,12 @@ AUTOCOMMIT OFF;
 -- setup
    CREATE TABLE STAFF66 (
      SALARY   INTEGER,
-     EMPNAME CHAR(20),
+--O     EMPNAME CHAR(20),
+     EMPNAME VARCHAR(20),
      GRADE   DECIMAL,
-     EMPNUM  CHAR(3));
+     EMPNUM  VARCHAR(3));
+--O     EMPNUM  CHAR(3));
+
 
    COMMIT WORK;
 
@@ -133,12 +136,12 @@ AUTOCOMMIT OFF;
 -- PASS:0842 If 2 rows updated ?
 
 -- FULL OUTER JOIN of tables with unique data in the joined column
---O   SELECT EMPNUM, CITY, SALARY
---O      FROM HU.STAFF3 LEFT JOIN STAFF66 USING (EMPNUM)
---O   UNION
---O   SELECT EMPNUM, CITY, SALARY
---O      FROM HU.STAFF3 RIGHT JOIN STAFF66 USING (EMPNUM)
---O      ORDER BY EMPNUM;
+   SELECT EMPNUM, CITY, SALARY
+      FROM HU.STAFF3 LEFT JOIN STAFF66 USING (EMPNUM)
+   UNION
+   SELECT EMPNUM, CITY, SALARY
+      FROM HU.STAFF3 RIGHT JOIN STAFF66 USING (EMPNUM)
+      ORDER BY EMPNUM;
 -- PASS:0842 If 6 rows selected with ordered rows and column values ?
 -- PASS:0842    E1   Deale   NULL   ?
 -- PASS:0842    E2   Vienna  NULL   ?
@@ -151,10 +154,10 @@ AUTOCOMMIT OFF;
 -- table STAFF66 has 3 rows, only 1 matching on all columns
 -- this is a 3-column join:
    SELECT * FROM
---O      STAFF66 NATURAL INNER JOIN HU.STAFF3;
-      STAFF66 a, HU.staff3 b where a.empnum = b.empnum
-	and a.grade = b.grade
-	and a.empname = b.empname;
+      STAFF66 NATURAL INNER JOIN HU.STAFF3;
+--C      STAFF66 a, HU.staff3 b where a.empnum = b.empnum
+--C	and a.grade = b.grade
+--C	and a.empname = b.empname;
 -- PASS:0842 If 1 row selected?
 -- PASS:0842 If column values are in the exact order: ?
 -- PASS:0842 EMPNAME=Carmen,GRADE=13,EMPNUM=E3,SALARY=13000,CITY=Vienna?
@@ -162,10 +165,10 @@ AUTOCOMMIT OFF;
 
 -- table STAFF66 has 3 rows, only 1 matching on all columns
 -- this is a 3-column join, preserving HU.STAFF3:
---O   SELECT EMPNUM, EMPNAME, SALARY FROM
---O      HU.STAFF3 NATURAL LEFT OUTER JOIN STAFF66
---O      WHERE EMPNUM > 'E1'
---O      ORDER BY EMPNUM ASC;
+   SELECT EMPNUM, EMPNAME, SALARY FROM
+      HU.STAFF3 NATURAL LEFT OUTER JOIN STAFF66
+      WHERE EMPNUM > 'E1'
+      ORDER BY EMPNUM ASC;
 -- PASS:0842 If 4 rows selected with ordered rows and column values ?
 -- PASS:0842    E2   Betty    NULL  ?
 -- PASS:0842    E3   Carmen   13000 ?
@@ -175,10 +178,10 @@ AUTOCOMMIT OFF;
 
 -- table HU.STAFF has 5 rows, only 3 matching on all columns
 -- this is a 3-column join, preserving HU.STAFF:
---O   SELECT EMPNUM, EMPNAME, SALARY FROM
---O      STAFF66 NATURAL RIGHT OUTER JOIN HU.STAFF
---O      WHERE EMPNUM > 'E1'
---O      ORDER BY EMPNUM DESC;
+   SELECT EMPNUM, EMPNAME, SALARY FROM
+      STAFF66 NATURAL RIGHT OUTER JOIN HU.STAFF
+      WHERE EMPNUM > 'E1'
+      ORDER BY EMPNUM DESC;
 -- PASS:0842 If 4 rows selected with ordered rows and column values ?
 -- PASS:0842    E5  Ed      13000  ?
 -- PASS:0842    E4  Don     12000  ?
@@ -190,10 +193,10 @@ AUTOCOMMIT OFF;
 -- ordinal position is determined by order in T1, not USING list
 -- REF:  7.5 SR 6 d
 -- this is a 3-column join, preserving HU.STAFF:
---O   SELECT * FROM
---O      STAFF66 RIGHT JOIN HU.STAFF USING ( GRADE, EMPNUM, EMPNAME)
---O      WHERE EMPNUM > 'E1'
---O      ORDER BY EMPNUM;
+   SELECT * FROM
+      STAFF66 RIGHT JOIN HU.STAFF USING ( GRADE, EMPNUM, EMPNAME)
+      WHERE EMPNUM > 'E1'
+      ORDER BY EMPNUM;
 -- PASS:0842 If 4 rows selected with ordered rows and column values ?
 -- PASS:0842    Betty    10   E2   NULL    Vienna ?
 -- PASS:0842    Carmen   13   E3   13000   Vienna ?
@@ -203,10 +206,10 @@ AUTOCOMMIT OFF;
 
 -- table STAFF66 has 3 rows, with 2 matching on named columns
 -- this is a 2-column join, preserving HU.STAFF3:
---O   SELECT * FROM
---O      HU.STAFF3 LEFT JOIN STAFF66 USING (GRADE, EMPNUM)
---O      WHERE EMPNUM > 'E1'
---O      ORDER BY EMPNUM ASC;
+   SELECT * FROM
+     HU.STAFF3 LEFT JOIN STAFF66 USING (GRADE, EMPNUM)
+      WHERE EMPNUM > 'E1'
+      ORDER BY EMPNUM ASC;
 -- PASS:0842 If 4 rows selected with ordered rows and column values ?
 -- PASS:0842    E2  10  Betty   Vienna    NULL    NULL   ?
 -- PASS:0842    E3  13  Carmen  Vienna    13000   Carmen ?
@@ -218,17 +221,17 @@ AUTOCOMMIT OFF;
 --O   SELECT staff3.EMPNUM, staff3.GRADE, HU.STAFF3.EMPNAME, CITY,
    SELECT HU.staff3.EMPNUM, HU.staff3.GRADE, HU.STAFF3.EMPNAME, CITY,
      SALARY, STAFF66.EMPNAME FROM
---O      HU.STAFF3 LEFT JOIN STAFF66 USING (GRADE, EMPNUM)
---O      WHERE EMPNUM = 'E3';
-      HU.STAFF3, STAFF66 where HU.staff3.GRADE = staff66.grade and  HU.staff3.EMPNUM = staff66.empnum
-      and HU.staff3.EMPNUM = 'E3';
+      HU.STAFF3 LEFT JOIN STAFF66 USING (GRADE, EMPNUM)
+      WHERE EMPNUM = 'E3';
+--C      HU.STAFF3, STAFF66 where HU.staff3.GRADE = staff66.grade and  HU.staff3.EMPNUM = staff66.empnum
+--C      and HU.staff3.EMPNUM = 'E3';
 -- PASS:0842 If 1 row selected with ordered column values?
 -- PASS:0842    E3  13  Carmen  Vienna  13000  Carmen    ?
 
 -- REF: 7.5 GR 1 d ii
 -- this is a cartesian product
---O   SELECT COUNT (*) FROM STAFF66 NATURAL RIGHT JOIN HU.PROJ;
-   SELECT count (*) FROM STAFF66 , HU.PROJ;
+   SELECT COUNT (*) FROM STAFF66 NATURAL RIGHT JOIN HU.PROJ;
+--C   SELECT count (*) FROM STAFF66 , HU.PROJ;
 -- PASS:0842 If count = 18?
 
 
