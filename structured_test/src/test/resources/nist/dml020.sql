@@ -40,7 +40,9 @@
 
 -- TEST:0082 Join 3 tables!
      SELECT DISTINCT STAFF.CITY, PROJ.CITY                                
-          FROM STAFF, WORKS, PROJ                                            
+--          FROM STAFF, WORKS, PROJ                                            
+-- AR Changing the order
+          FROM PROJ,WORKS, STAFF                                            
           WHERE STAFF.EMPNUM = WORKS.EMPNUM                                 
           AND WORKS.PNUM = PROJ.PNUM
 		ORDER BY STAFF.CITY, PROJ.CITY;

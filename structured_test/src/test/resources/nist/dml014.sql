@@ -213,18 +213,18 @@ AUTOCOMMIT OFF;
 
 -- END TEST >>> 0055 <<< END TEST
 -- ***************************************************************
-
+-- DB-517
 -- TEST:0056 NOT EXISTS predicate!
-     SELECT STAFF.EMPNAME
-          FROM STAFF
-          WHERE NOT EXISTS
-                 (SELECT *
-                       FROM PROJ
-                       WHERE NOT EXISTS
-                             (SELECT *
-                                   FROM WORKS
-                                   WHERE STAFF.EMPNUM = WORKS.EMPNUM
-                                   AND WORKS.PNUM=PROJ.PNUM));
+--     SELECT STAFF.EMPNAME
+--          FROM STAFF
+--          WHERE NOT EXISTS
+--                 (SELECT *
+--                       FROM PROJ
+--                       WHERE NOT EXISTS
+--                             (SELECT *
+--                                   FROM WORKS
+--                                   WHERE STAFF.EMPNUM = WORKS.EMPNUM
+--                                   AND WORKS.PNUM=PROJ.PNUM));
 -- PASS:0056 If EMPNAME = 'Alice'?
 
 -- END TEST >>> 0056 <<< END TEST

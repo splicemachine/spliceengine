@@ -63,7 +63,7 @@ AUTOCOMMIT OFF;
                     HAVING SUM(PROJ.BUDGET) > 25000)
 -- Derby change to standardize order for diff
 -- Bug 840 prevents from running order by
---	order by works.pnum
+	order by works.pnum
 ;
 --splicetest: ignore-order stop
 -- PASS:0072 If 3 rows are selected: WORKS.PNUMs are 'P2', 'P3', 'P6'?
