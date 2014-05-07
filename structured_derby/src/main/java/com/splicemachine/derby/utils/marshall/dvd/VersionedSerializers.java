@@ -1,5 +1,7 @@
 package com.splicemachine.derby.utils.marshall.dvd;
 
+import org.apache.hadoop.hbase.thrift.generated.Hbase;
+
 /**
  * @author Scott Fines
  * Date: 4/3/14
@@ -11,8 +13,14 @@ public class VersionedSerializers {
 		public static TypeProvider typesForVersion(String version){
 				if("2.0".equals(version))
 						return V2SerializerMap.instance(true);
-				else
+				else if("1.0".equals(version))
 						return V1SerializerMap.instance(true);
+				else
+						return latestTypes();
+		}
+
+		private static TypeProvider latestTypes() {
+				return V2SerializerMap.instance(true);
 		}
 
 		public static SerializerMap forVersion(String version,boolean sparse){
@@ -22,9 +30,11 @@ public class VersionedSerializers {
 
 				if("2.0".equals(version))
 						return V2SerializerMap.instance(sparse);
+				else if("1.0".equals(version))
+						return V1SerializerMap.instance(sparse);
 
-				//when in doubt, assume it's encoded using V1.
-				return V1SerializerMap.instance(sparse);
+				//when in doubt, assume it's the latest version
+				return latestVersion(sparse);
 		}
 
 		/**
