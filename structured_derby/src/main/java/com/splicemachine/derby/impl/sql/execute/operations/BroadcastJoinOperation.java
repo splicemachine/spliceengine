@@ -15,9 +15,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.StandardIterator;
-import com.splicemachine.derby.utils.StandardIterators;
-import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -45,6 +43,7 @@ import java.io.ObjectOutput;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public class BroadcastJoinOperation extends JoinOperation {
@@ -57,7 +56,7 @@ public class BroadcastJoinOperation extends JoinOperation {
     protected static List<NodeType> nodeTypes;
     protected List<ExecRow> rights;
     private Joiner joiner;
-    protected Map<ByteBuffer, List<ExecRow>> rightSideMap;
+    protected volatile Map<ByteBuffer, List<ExecRow>> rightSideMap;
     protected static final Cache<Integer, Map<ByteBuffer, List<ExecRow>>> broadcastJoinCache;
 
 
@@ -142,21 +141,42 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     private Joiner initJoiner(final SpliceRuntimeContext ctx)
-            throws StandardException {
-        rightSideMap = retrieveRightSideCache(ctx);
-        StandardIterator<ExecRow> leftRows = StandardIterators.wrap(new Callable<ExecRow>() {
+            throws StandardException, IOException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        new Thread(new Runnable() {
             @Override
-            public ExecRow call() throws Exception {
-                ExecRow row = leftResultSet.nextRow(ctx);
-                if (row != null) {
-                    leftCounter.add(1);
+            public void run() {
+                try {
+                    rightSideMap = retrieveRightSideCache(ctx);
+                } catch (StandardException e) {
+                    throw new RuntimeException(e);
                 }
-                return row;
+                latch.countDown();
             }
-        });
-				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(leftRow);
-				final KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(leftHashKeys, null,serializers), NoOpPostfix.INSTANCE);
-        Function<ExecRow,List<ExecRow>> lookup = new Function<ExecRow, List<ExecRow>>() {
+        }).start();
+        //rightSideMap = retrieveRightSideCache(ctx);
+        StandardPushBackIterator<ExecRow> leftRows =
+            new StandardPushBackIterator<ExecRow>(StandardIterators.wrap(new Callable<ExecRow>() {
+                @Override
+                public ExecRow call() throws Exception {
+                    ExecRow row = leftResultSet.nextRow(ctx);
+                    if (row != null) {
+                        leftCounter.add(1);
+                    }
+                    return row;
+                }
+            }));
+        // fetch first row & push back
+        leftRows.open();
+        leftRows.pushBack(leftRows.next(ctx));
+        try {
+            latch.await();
+        } catch (InterruptedException ie){
+            Thread.currentThread().interrupt();
+        }
+        DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(leftRow);
+        final KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(leftHashKeys, null, serializers), NoOpPostfix.INSTANCE);
+        Function<ExecRow, List<ExecRow>> lookup = new Function<ExecRow, List<ExecRow>>() {
             @Override
             public List<ExecRow> apply(ExecRow leftRow) {
                 try {
@@ -283,10 +303,10 @@ public class BroadcastJoinOperation extends JoinOperation {
             activation.getLanguageConnectionContext().setXplainSchema(xplainSchema);
         }
         resultSet.openCore();
-				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(rightRow);
+        DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(rightRow);
         KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE,
                                                   BareKeyHash
-                                                      .encoder(rightHashKeys, null,serializers),
+                                                      .encoder(rightHashKeys, null, serializers),
                                                   NoOpPostfix.INSTANCE);
 
         while ((rightRow = resultSet.getNextRowCore()) != null) {
