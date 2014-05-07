@@ -1,7 +1,5 @@
 package com.splicemachine.derby.utils.marshall.dvd;
 
-import org.apache.hadoop.hbase.thrift.generated.Hbase;
-
 /**
  * @author Scott Fines
  * Date: 4/3/14
