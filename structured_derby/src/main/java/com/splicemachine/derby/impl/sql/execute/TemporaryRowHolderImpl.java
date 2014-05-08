@@ -14,7 +14,10 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLRef;
 import org.apache.derby.iapi.types.SQLLongint;
+import org.apache.derby.impl.sql.execute.ValueRow;
+
 import java.util.Properties;
+
 import com.splicemachine.derby.impl.sql.execute.operations.TemporaryRowHolderOperation;
 
 /**
