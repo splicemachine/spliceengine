@@ -334,6 +334,10 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				private final int[] keyColumnTypes;
 				private final TypeProvider typeProvider;
 				private int position = 0;
+				
+				private final boolean[] sF;
+				private final boolean[] fF;
+				private final boolean[] dF;
 
 				private KeyIndex(int[] allPkColumns,
 												 int[] keyColumnTypes,
@@ -341,6 +345,15 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 						this.allPkColumns = allPkColumns;
 						this.keyColumnTypes = keyColumnTypes;
 						this.typeProvider = typeProvider;
+						sF = new boolean[keyColumnTypes.length];
+						fF = new boolean[keyColumnTypes.length];
+						dF = new boolean[keyColumnTypes.length];
+						
+						for(int i=0;i<sF.length;i++){
+							sF[i] = typeProvider.isScalar(keyColumnTypes[i]);
+							fF[i] = typeProvider.isFloat(keyColumnTypes[i]);
+							dF[i] = typeProvider.isDouble(keyColumnTypes[i]);							
+						}
 				}
 
 				@Override public int nextSetBit(int currentPosition) {
@@ -352,18 +365,15 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				}
 
 				@Override public boolean isScalarType(int currentPosition) {
-						assert position>0 : "Cannot call isType() without first calling nextSetBit";
-						return typeProvider.isScalar(keyColumnTypes[currentPosition]);
+					return sF[currentPosition]; 
 				}
 
 				@Override public boolean isDoubleType(int currentPosition) {
-						assert position>0 : "Cannot call isType() without first calling nextSetBit";
-						return typeProvider.isDouble(keyColumnTypes[currentPosition]);
+					return dF[currentPosition]; 
 				}
 
 				@Override public boolean isFloatType(int currentPosition) {
-						assert position>0 : "Cannot call isType() without first calling nextSetBit";
-						return typeProvider.isFloat(keyColumnTypes[currentPosition]);
+					return fF[currentPosition]; 
 				}
 
 				@Override
