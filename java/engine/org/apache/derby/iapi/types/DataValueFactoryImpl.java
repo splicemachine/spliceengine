@@ -1223,6 +1223,10 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             private Format(int storedFormatId) {
                 this.storedFormatId = storedFormatId;
             }
+            
+            public int getStoredFormatId() {
+            	return this.storedFormatId;
+            }
 
             public static Format formatFor(DataValueDescriptor dvd){
                 int typeFormatId = dvd.getTypeFormatId();
