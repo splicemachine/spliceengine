@@ -87,17 +87,11 @@ public class ValueRow implements ExecRow, Externalizable, Comparable<ExecRow> {
 	 */
 	// position is 1-based
 	public DataValueDescriptor	getColumn (int position) {
-		if (position <= column.length)
-			return column[position-1];
-		else
-			return (DataValueDescriptor)null;
+		return column[position-1];
 	}
 
 	// position is 1-based.
 	public void setColumn(int position, DataValueDescriptor col) {
- 
-		if (position > column.length)
-			realloc(position); // enough for this column
 		column[position-1] = col;
 	}
 
