@@ -5,6 +5,7 @@ package com.splicemachine.derby.impl.sql.execute;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.impl.sql.execute.ValueRow;
 
 
 /**
@@ -60,7 +61,7 @@ public class IndexRow extends ValueRow implements ExecIndexRow
 		}
 	}
 
-	ExecRow cloneMe() {
+	public ExecRow cloneMe() {
 		return new IndexRow(nColumns());
 	}
 }

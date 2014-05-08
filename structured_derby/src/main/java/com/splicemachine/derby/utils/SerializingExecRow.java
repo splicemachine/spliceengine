@@ -1,6 +1,5 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.catalog.TypeDescriptor;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.ArrayUtil;
@@ -10,6 +9,7 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.iapi.types.StringDataValue;
+import org.apache.derby.impl.sql.execute.ValueRow;
 
 import java.io.*;
 import java.util.HashMap;
