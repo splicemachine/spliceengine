@@ -28,7 +28,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
 
     final StandardIterator<ExecRow> leftRS;
     final StandardPushBackIterator<ExecRow> rightRS;
-    final Comparator<ExecRow> comparator;
+    //final Comparator<ExecRow> comparator;
     final int[] joinKeys;
     List<ExecRow> currentRights = new LinkedList<ExecRow>();
 
@@ -59,6 +59,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
             joinKeys[i * 2] = leftKeys[i] + 1;
             joinKeys[i * 2 + 1] = rightKeys[i] + 1;
         }
+        /*
         comparator = new Comparator<ExecRow>() {
             @Override
             public int compare(ExecRow left, ExecRow right) {
@@ -78,6 +79,19 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
                 }
             }
         };
+        */
+    }
+
+    private int compare(ExecRow left, ExecRow right) throws StandardException {
+        for (int i = 0, s = joinKeys.length; i < s; i = i + 2) {
+            int result = left.getColumn(joinKeys[i])
+                             .compare(right.getColumn(joinKeys[i + 1]));
+            if (result != 0) {
+                return result;
+            }
+        }
+        return 0;
+
     }
 
     Iterator<ExecRow> rightsForLeft(ExecRow left)
@@ -85,7 +99,8 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
         // Check to see if we've already collected the right rows
         // that match this left
         if (currentRights.size() > 0
-                && comparator.compare(left, currentRights.get(0)) == 0){
+                //&& comparator.compare(left, currentRights.get(0)) == 0){
+                && compare(left, currentRights.get(0)) == 0){
             return currentRights.iterator();
         }
         // If not, look for the ones that do
@@ -93,7 +108,8 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
         ExecRow right;
         while ((right = rightRS.next(null)) != null){
             rightRowsSeen++;
-            int comparison = comparator.compare(left, right);
+            //int comparison = comparator.compare(left, right);
+            int comparison = compare(left, right);
             // if matches left, add to buffer
             if (comparison == 0) {
                 currentRights.add(right.getClone());
