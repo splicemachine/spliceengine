@@ -502,7 +502,7 @@ public class SpliceConstants {
 		 *
 		 * We make it a power of two to make it easier to write buffers which are powers of 2.
 		 */
-		public static final int DEFAULT_CACHE_SIZE = (1<<16);
+		public static final int DEFAULT_CACHE_SIZE = (1<<10);
 
 
 		/*
