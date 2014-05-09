@@ -1,13 +1,25 @@
 #!/bin/bash
 
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+source ${ROOT_DIR}/bin/functions.sh
 
 # shut down both zookeeper and splice/hbase
-${ROOT_DIR}/bin/_stopServer.sh "${ROOT_DIR}" "${ROOT_DIR}"
+_stopServer "${ROOT_DIR}" "${ROOT_DIR}"
 
 # Check for stragglers
 SIG=15
-S=`ps -ef | grep SpliceSinglePlatform | grep -v grep  | awk '{print $2}'`
-[[ -n ${S} ]] && echo "Found SpliceSinglePlatform straggler. Killing." && for pid in ${S}; do kill -${SIG} `echo ${pid}`; done
-Z=`ps -ef | grep ZooKeeperServerMain | grep -v grep  | awk '{print $2}'`
-[[ -n ${Z} ]] && echo "Found ZooKeeperServerMain straggler. Killing." && for pid in ${Z}; do kill -${SIG} `echo ${pid}`; done
+S=$(ps -ef | awk '/SpliceSinglePlatform/ && !/awk/ {print $2}')
+if [[ -n ${S} ]]; then
+    echo "Found SpliceSinglePlatform straggler. Killing."
+    for pid in ${S}; do
+        kill -${SIG} ${pid}
+    done
+fi
+
+Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
+if [[ -n ${Z} ]]; then
+    echo "Found ZooKeeperServerMain straggler. Killing."
+    for pid in ${Z}; do
+        kill -${SIG} ${pid}
+    done
+fi

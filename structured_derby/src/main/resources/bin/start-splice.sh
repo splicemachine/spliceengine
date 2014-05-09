@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# Start with debug logging by passing this script the "-debug" argument
-
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+source ${ROOT_DIR}/bin/functions.sh
+
+# Start with debug logging by passing this script the "-debug" argument
 
 LOGFILE="${ROOT_DIR}"/splice.log
 DEBUG=false
@@ -12,14 +13,14 @@ usage() {
     if [[ -n "${1}" ]]; then
         echo "Error: ${1}"
     fi
-    echo "Usage: $0 [-d] [-h]"
+    echo "Usage: ${0} [-d] [-h]"
     echo "Where: "
     echo "  -d => Start the server with debug logging enabled"
     echo "  -h => print this message"
 }
 
 while getopts "dh" flag ; do
-    case $flag in
+    case ${flag} in
         h* | \?)
             usage
             exit 0 # This is not an error, User asked help. Don't do "exit 1"
@@ -36,8 +37,8 @@ while getopts "dh" flag ; do
 done
 
 # server still running? - must stop first
-S=`ps -ef | grep SpliceSinglePlatform | grep -v grep  | awk '{print $2}'`
-Z=`ps -ef | grep ZooKeeperServerMain | grep -v grep  | awk '{print $2}'`
+S=$(ps -ef | awk '/SpliceSinglePlatform/ && !/awk/ {print $2}')
+Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
 if [[ -e "${ROOT_DIR}"/splice_pid || -e "${ROOT_DIR}"/zoo_pid || -n ${S} || -n ${Z} ]]; then
     echo "Splice is currently running and must be shut down. Run stop-splice.sh"
     exit 1;
@@ -52,7 +53,7 @@ if [[ ${NOJAVA} -ne 0 ]]; then
     exit 1
 fi
 if [[ -z $(type -p java) ]]; then
-    if [[ -z "$JAVA_HOME" ]] || [[ ! -x "$JAVA_HOME/bin/java" ]];  then
+    if [[ -z "${JAVA_HOME}" ]] || [[ ! -x "${JAVA_HOME}/bin/java" ]];  then
         echo "Must have Java installed. Please run this script again after installing Java."
         exit 1
     fi
@@ -76,8 +77,7 @@ if [[ "${DEBUG}" = true ]]; then
 fi
 
 # Config for Cygwin, if necessary
-CYGWIN=`uname -s`
-if [[ ${CYGWIN} == CYGWIN* ]]; then
+if [[ ${UNAME} == CYGWIN* ]]; then
     # cygwin likes to write in 3 places for /tmp
     # we'll symlink them
     if [[ -e "/tmp" && ! -L "/tmp" ]]; then
@@ -95,16 +95,16 @@ if [[ ${CYGWIN} == CYGWIN* ]]; then
     fi
 
     # cygwin paths look a little different
-    CP=`cygpath --path --windows "${ROOT_DIR}/lib/*"`
-    ZOO_DIR=`cygpath --path --windows "${ROOT_DIR}/db/zookeeper"`
+	CP=$(cygpath --path --windows "${ROOT_DIR}/lib/*")
+	ZOO_DIR=$(cygpath --path --windows "${ROOT_DIR}/db/zookeeper")
     HBASE_ROOT_DIR_URI="CYGWIN"
-    LOG4J_PATH="file:///`cygpath --path --windows ${ROOT_DIR}/lib/info-log4j.properties`"
-    if [[ -n "$DEBUG" && "$DEBUG" -eq "-debug" ]]; then
-        LOG4J_PATH="file:///`cygpath --path --windows ${ROOT_DIR}/lib/hbase-log4j.properties`"
+	LOG4J_PATH="file:///$(cygpath --path --windows ${ROOT_DIR}/lib/info-log4j.properties)"
+    if [[ -n "${DEBUG}" && "${DEBUG}" -eq "-debug" ]]; then
+		LOG4J_PATH="file:///$(cygpath --path --windows ${ROOT_DIR}/lib/hbase-log4j.properties)"
     fi
 fi
 
 # Start server with retry logic
 ZOO_WAIT_TIME=60
 SPLICE_MAIN_CLASS="com.splicemachine.single.SpliceSinglePlatform"
-"${ROOT_DIR}"/bin/_retrySplice.sh "${ROOT_DIR}" "${LOGFILE}" "${LOGFILE}" "${LOG4J_PATH}" "${ZOO_DIR}" ${ZOO_WAIT_TIME} "${HBASE_ROOT_DIR_URI}" "${CP}" ${SPLICE_MAIN_CLASS} "FALSE"
+_retrySplice "${ROOT_DIR}" "${LOGFILE}" "${LOGFILE}" "${LOG4J_PATH}" "${ZOO_DIR}" ${ZOO_WAIT_TIME} "${HBASE_ROOT_DIR_URI}" "${CP}" ${SPLICE_MAIN_CLASS} "FALSE"

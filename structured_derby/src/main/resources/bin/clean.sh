@@ -1,20 +1,20 @@
 #!/bin/bash
 
+ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+source ${ROOT_DIR}/bin/functions.sh
+
 # Clean the Splice Machine database
 
-ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
-
-CYGWIN=`uname -s`
-if [[ ${CYGWIN} == CYGWIN* ]]; then
-    PID=$(ps ax | grep -v grep | grep 'java' | awk '{print $1}')
+if [[ ${UNAME} == CYGWIN* ]]; then
+	PID=$(ps -ef | awk '/java/ && !/awk/ {print $2}')
     if [[ -n ${PID} ]]; then
         echo "Splice still running and must be shut down. Run stop-splice.sh"
         exit 1;
     fi
 else
     # server still running - must stop first
-    SPID=$(ps ax | grep -v grep | grep 'SpliceSinglePlatform' | awk '{print $1}')
-    ZPID=$(ps ax | grep -v grep | grep 'ZooKeeperServerMain' | awk '{print $1}')
+	SPID=$(ps -ef | awk '/SpliceSinglePlatform/ && !/awk/ {print $2}')
+	ZPID=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
     if [[ -n ${SPID} || -n ${ZPID} ]]; then
         echo "Splice still running and must be shut down. Run stop-splice.sh"
         exit 1;
@@ -23,10 +23,10 @@ fi
 
 /bin/rm -rf "${ROOT_DIR}"/db
 
-if [[ ${CYGWIN} == CYGWIN* ]]; then
+if [[ ${UNAME} == CYGWIN* ]]; then
     # Clean up for Cygwin
-    /bin/rm -rf /cygdrive/c/tmp/hbase-"${USER}"
-    /bin/rm -rf /cygdrive/c/tmp/hsperfdata_*
-    /bin/rm -rf /cygdrive/c/tmp/*_master_*
-    /bin/rm -rf /cygdrive/c/tmp/*_regionserver_*
+	filelist=( hbase-"${USER}" hsperfdata_\* \*_master_\* \*_regionserver_\* )
+	for file in ${filelist[@]}; do
+		/bin/rm -rf /cygdrive/c/tmp/${file}
+	done
 fi

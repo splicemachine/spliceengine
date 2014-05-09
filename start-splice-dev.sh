@@ -56,6 +56,8 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd )"
 pushd "${SCRIPT_DIR}/structured_derby" &>/dev/null
 ROOT_DIR="$( pwd )"
 
+source ${ROOT_DIR}/target/classes/bin/functions.sh
+
 SPLICE_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -Ev '(^\[|INFO|Download)' | tr -d [[:space:]])
 TARBALL="${ROOT_DIR}"/target/splice_machine-${SPLICE_VERSION}-${PROFILE}_simple.tar.gz
 
@@ -85,8 +87,8 @@ LOG4J_PATH="file:${ROOT_DIR}/target/classes/hbase-log4j.properties"
 
 # Check if server running. Shut down if so.
 # Doing this automatically so that running in batch mode, like ITs, works without problems.
-S=`jps | grep SpliceTestPlatform | grep -v grep  | awk '{print $1}'`
-Z=`jps | grep ZooKeeperServerMain | grep -v grep  | awk '{print $1}'`
+S=$(jps | awk '/SpliceSinglePlatform/ && !/awk/ {print $1}')
+Z=$(jps | awk '/ZooKeeperServerMain/ && !/awk/ {print $1}')
 if [[ -n ${S} || -n ${Z} ]]; then
     echo "Splice server is running. Shutting down."
     "${SCRIPT_DIR}"/stop-splice.sh
@@ -100,7 +102,7 @@ ZOO_WAIT_TIME=45
 SPLICE_MAIN_CLASS="com.splicemachine.test.SpliceTestPlatform"
 # Start server with retry logic
 #echo "${ROOT_DIR}/target/classes" "${SPLICELOG}" "${ZOOLOG}" "${LOG4J_PATH}" "${ZOO_DIR}" "${ZOO_WAIT_TIME}" "${HBASE_ROOT_DIR_URI}" "${CLASSPATH}" "${SPLICE_MAIN_CLASS}" "${CHAOS}"
-"${ROOT_DIR}"/target/splicemachine/bin/_retrySplice.sh "${ROOT_DIR}/target/splicemachine" "${SPLICELOG}" "${ZOOLOG}" "${LOG4J_PATH}" "${ZOO_DIR}" "${ZOO_WAIT_TIME}" "${HBASE_ROOT_DIR_URI}" "${CLASSPATH}" "${SPLICE_MAIN_CLASS}" "${CHAOS}"
+_retrySplice "${ROOT_DIR}/target/splicemachine" "${SPLICELOG}" "${ZOOLOG}" "${LOG4J_PATH}" "${ZOO_DIR}" "${ZOO_WAIT_TIME}" "${HBASE_ROOT_DIR_URI}" "${CLASSPATH}" "${SPLICE_MAIN_CLASS}" "${CHAOS}"
 
 popd &>/dev/null
 
