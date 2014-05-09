@@ -39,24 +39,29 @@ public class JoinUtils {
 		 * (By convention, left Row is to left of right Row.)
 		 */
 		try {
-			for (colInCtr = 1, colOutCtr = 1; colInCtr <= leftNumCols;colInCtr++, colOutCtr++) {
-//				SpliceLogUtils.trace(LOG,"colInCtr=%d,colOutCtr=%d",colInCtr,colOutCtr);
-				DataValueDescriptor src_col = leftRow.getColumn(colInCtr);
-				// Clone the value if it is represented by a stream (DERBY-3650).
-				if (src_col != null && src_col.hasStream()) {
-					src_col = src_col.cloneValue(false);
-				}
-				mergedRow.setColumn(colOutCtr, src_col);
-			}
-//			SpliceLogUtils.trace(LOG,"colOutCtr=%d",colOutCtr);
-			for (colInCtr = 1; colInCtr <= rightNumCols;colInCtr++, colOutCtr++) {
-				DataValueDescriptor src_col = rightRow.getColumn(colInCtr);
-				// Clone the value if it is represented by a stream (DERBY-3650).
-				if (src_col != null && src_col.hasStream()) {
-					src_col = src_col.cloneValue(false);
-				}
-				mergedRow.setColumn(colOutCtr, src_col);
-			}
+				DataValueDescriptor[] leftRowArray = leftRow.getRowArray();
+				DataValueDescriptor[] rightRowArray = rightRow.getRowArray();
+				DataValueDescriptor[] mergedRowArray = mergedRow.getRowArray();
+				System.arraycopy(leftRowArray,0,mergedRowArray,0,leftRowArray.length);
+				System.arraycopy(rightRowArray,0,mergedRowArray,leftRowArray.length,rightRowArray.length);
+//				for (colInCtr = 1, colOutCtr = 1; colInCtr <= leftNumCols;colInCtr++, colOutCtr++) {
+////				SpliceLogUtils.trace(LOG,"colInCtr=%d,colOutCtr=%d",colInCtr,colOutCtr);
+//				DataValueDescriptor src_col = leftRow.getColumn(colInCtr);
+//				// Clone the value if it is represented by a stream (DERBY-3650).
+//				if (src_col != null && src_col.hasStream()) {
+//					src_col = src_col.cloneValue(false);
+//				}
+//				mergedRow.setColumn(colOutCtr, src_col);
+//			}
+////			SpliceLogUtils.trace(LOG,"colOutCtr=%d",colOutCtr);
+//			for (colInCtr = 1; colInCtr <= rightNumCols;colInCtr++, colOutCtr++) {
+//				DataValueDescriptor src_col = rightRow.getColumn(colInCtr);
+//				// Clone the value if it is represented by a stream (DERBY-3650).
+//				if (src_col != null && src_col.hasStream()) {
+//					src_col = src_col.cloneValue(false);
+//				}
+//				mergedRow.setColumn(colOutCtr, src_col);
+//			}
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Error merging rows", e);
 		}
@@ -68,28 +73,27 @@ public class JoinUtils {
         if (mergedRow == null) {
             return null;
         }
-		int colInCtr;
-		int colOutCtr;
-		if (wasRightOuterJoin) {
-			ExecRow tmp;
-			tmp = leftRow;
-			leftRow = rightRow;
-			rightRow = tmp;
-            int tmpNCols = leftNumCols;
-			leftNumCols = rightNumCols;
-			rightNumCols = tmpNCols;
-		} 
-
-		try {
-			for (colInCtr = 1, colOutCtr = 1; colInCtr <= leftNumCols;colInCtr++, colOutCtr++) {
-				mergedRow.setColumn(colOutCtr, leftRow.getColumn(colInCtr));
+			DataValueDescriptor[] leftRowArray = leftRow.getRowArray();
+			DataValueDescriptor[] rightRowArray = rightRow.getRowArray();
+			@SuppressWarnings("MismatchedReadAndWriteOfArray") DataValueDescriptor[] mergedRowArray = mergedRow.getRowArray();
+			if(wasRightOuterJoin){
+					System.arraycopy(rightRowArray,0,mergedRowArray,0,rightRowArray.length);
+					System.arraycopy(leftRowArray,0,mergedRowArray,rightRowArray.length,leftRowArray.length);
+			}else{
+					System.arraycopy(leftRowArray,0,mergedRowArray,0,leftRowArray.length);
+					System.arraycopy(rightRowArray,0,mergedRowArray,leftRowArray.length,rightRowArray.length);
 			}
-			for (colInCtr = 1; colInCtr <= rightNumCols;colInCtr++, colOutCtr++) {
-				mergedRow.setColumn(colOutCtr, rightRow.getColumn(colInCtr));
-			}
-		} catch (Exception e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Error merging rows", e);
-		}
+//		int colInCtr;
+//		int colOutCtr;
+//		if (wasRightOuterJoin) {
+//			ExecRow tmp;
+//			tmp = leftRow;
+//			leftRow = rightRow;
+//			rightRow = tmp;
+//            int tmpNCols = leftNumCols;
+//			leftNumCols = rightNumCols;
+//			rightNumCols = tmpNCols;
+//		}
 		return mergedRow;
 	}
 
