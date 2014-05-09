@@ -50,14 +50,14 @@ public class GroupedAggregateBufferedAggregator extends AbstractBufferedAggregat
 				for(SpliceGenericAggregator aggregator:aggregates) {
 						if (!aggregator.isInitialized(currentRow))
 								initializeAggregate(aggregator,currentRow);
-//						if (!aggregator.isInitialized(newRow))
-//								initializeAggregate(aggregator,newRow);
-//						else{
+						if (!aggregator.isInitialized(newRow))
+								initializeAggregate(aggregator,newRow);
+						else{
 								if (shouldMerge)
 										aggregator.merge(newRow,currentRow);
 								else
 										aggregator.accumulate(newRow,currentRow);
-//						}
+						}
 				}
 		}
 
