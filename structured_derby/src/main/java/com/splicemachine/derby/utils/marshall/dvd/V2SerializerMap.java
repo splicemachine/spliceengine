@@ -26,7 +26,7 @@ public class V2SerializerMap extends V1SerializerMap {
 				factories[0]  = NullDescriptorSerializer.nullFactory(BooleanDescriptorSerializer.INSTANCE_FACTORY,sparse);
 				factories[1]  = NullDescriptorSerializer.nullFactory(LazyDescriptorSerializer.singletonFactory(ScalarDescriptorSerializer.INSTANCE_FACTORY, tableVersion),sparse);
 				factories[2]  = NullDescriptorSerializer.floatChecker(RealDescriptorSerializer.INSTANCE_FACTORY,sparse);
-				factories[3]  = NullDescriptorSerializer.doubleChecker(LazyDescriptorSerializer.singletonFactory(DoubleDescriptorSerializer.INSTANCE_FACTORY, tableVersion),sparse);
+				factories[3]  = NullDescriptorSerializer.doubleChecker(DoubleDescriptorSerializer.INSTANCE_FACTORY,sparse);
 				factories[4]  = NullDescriptorSerializer.nullFactory(LazyDescriptorSerializer.singletonFactory(StringDescriptorSerializer.INSTANCE_FACTORY, tableVersion),sparse);
 				factories[5]  = NullDescriptorSerializer.nullFactory(KryoDescriptorSerializer.newFactory(SpliceKryoRegistry.getInstance()),sparse);
 				factories[6]  = NullDescriptorSerializer.nullFactory(DateDescriptorSerializer.INSTANCE_FACTORY,sparse);
