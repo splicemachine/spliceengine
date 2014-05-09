@@ -38,28 +38,28 @@ public class GroupedAggregateBufferedAggregator extends AbstractBufferedAggregat
     public void initialize(ExecRow row) throws StandardException{
         this.currentRow = row.getClone();
     }
-    
-    private void initializeAggregate(SpliceGenericAggregator aggregator, ExecRow currentRow) throws StandardException {
-        if (!filterDistincts(currentRow,aggregator,true)) {
-        	aggregator.initialize(currentRow);
-            aggregator.accumulate(currentRow,currentRow);
-         }
-    }
+
+		private void initializeAggregate(SpliceGenericAggregator aggregator, ExecRow currentRow) throws StandardException {
+				if (!filterDistincts(currentRow,aggregator,true)) {
+						aggregator.initialize(currentRow);
+						aggregator.accumulate(currentRow,currentRow);
+				}
+		}
 
     public void merge(ExecRow newRow) throws StandardException{
-        for(SpliceGenericAggregator aggregator:aggregates) {
-        	if (!aggregator.isInitialized(currentRow))
-        		initializeAggregate(aggregator,currentRow);
-    		if (!aggregator.isInitialized(newRow))
-    			initializeAggregate(aggregator,newRow);    		
-            if(aggregator.isInitialized(newRow)) {
-            	if (shouldMerge)
-            		aggregator.merge(newRow,currentRow);
-            	else
-            		aggregator.accumulate(newRow,currentRow);
-            }
-        }
-    }
+				for(SpliceGenericAggregator aggregator:aggregates) {
+						if (!aggregator.isInitialized(currentRow))
+								initializeAggregate(aggregator,currentRow);
+//						if (!aggregator.isInitialized(newRow))
+//								initializeAggregate(aggregator,newRow);
+//						else{
+								if (shouldMerge)
+										aggregator.merge(newRow,currentRow);
+								else
+										aggregator.accumulate(newRow,currentRow);
+//						}
+				}
+		}
 
 
     public boolean filterDistincts(ExecRow newRow,
