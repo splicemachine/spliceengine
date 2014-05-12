@@ -3,41 +3,38 @@ package com.splicemachine.storage;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;
-import com.splicemachine.storage.index.LazyBitIndex;
+
 import com.splicemachine.utils.Provider;
-import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
 import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.kryo.KryoPool;
 
 /**
  * @author Scott Fines
  * Created on: 7/5/13
  */
 public class EntryDecoder implements FieldSkipper,Provider<MultiFieldDecoder>{
-    private LazyBitIndex bitIndex;
-    private byte[] data;
+    private BitIndex bitIndex;
     private int dataOffset;
     private MultiFieldDecoder decoder;
-    private final KryoPool kryoPool;
-    private int offset;
-    private int length;
-    private LazyBitIndex lastBitIndex;
 
-    public EntryDecoder(KryoPool kryoPool) {
-        this.kryoPool = kryoPool;
-    }
+		private ByteSlice lastIndexData;
+		private ByteSlice currentData;
+
+    public EntryDecoder() { }
 
     public void set(byte[] bytes){
         set(bytes,0,bytes.length);
     }
 
     public void set(byte[] bytes, int offset,int length){
-        this.data = bytes;
-        this.length = length;
-        this.offset = offset;
+				if(currentData ==null){
+						currentData = new ByteSlice();
+						lastIndexData = new ByteSlice();
+				}
+
+				currentData.set(bytes, offset, length);
 
         rebuildBitIndex();
         if(decoder!=null)
@@ -45,23 +42,32 @@ public class EntryDecoder implements FieldSkipper,Provider<MultiFieldDecoder>{
     }
 
     private void rebuildBitIndex() {
-        //find separator byte
-        dataOffset = 0;
-	        // Short Circuit the bit index if I look like the last one.        
-	        if (lastBitIndex != null && data != null && lastBitIndex.getEncodedBitMap() != null && length > lastBitIndex.getEncodedBitMapLength()) {
-	        	if (Bytes.equals(data, offset, lastBitIndex.getEncodedBitMapLength(), lastBitIndex.getEncodedBitMap(), lastBitIndex.getEncodedBitMapOffset(), lastBitIndex.getEncodedBitMapLength()) &&
-	        			data[offset+lastBitIndex.getEncodedBitMapLength()] == 0x00) {
-	        		dataOffset = lastBitIndex.getEncodedBitMapLength()+1;
-	        		bitIndex = lastBitIndex;
-	        		return;
-	        	}
-	        }
-        for(int i=offset;i<offset+length;i++){
-            if(data[i]==0x00){
-                dataOffset = i-offset;
-                break;
-            }
-        }
+	        // Short Circuit the bit index if I look like the last one.
+//	        if (lastBitIndex != null && data != null && lastBitIndex.getEncodedBitMap() != null && length > lastBitIndex.getEncodedBitMapLength()) {
+//	        	if (Bytes.equals(data, offset, lastBitIndex.getEncodedBitMapLength(), lastBitIndex.getEncodedBitMap(), lastBitIndex.getEncodedBitMapOffset(), lastBitIndex.getEncodedBitMapLength()) &&
+//	        			data[offset+lastBitIndex.getEncodedBitMapLength()] == 0x00) {
+//	        		dataOffset = lastBitIndex.getEncodedBitMapLength()+1;
+//	        		bitIndex = lastBitIndex;
+//	        		return;
+//	        	}
+//	        }
+
+				//find separator byte
+				dataOffset = currentData.find((byte)0x00,0);
+//        for(int i=offset;i<offset+length;i++){
+//            if(data[i]==0x00){
+//                dataOffset = i-offset;
+//                break;
+//            }
+//        }
+
+				if(lastIndexData.equals(currentData,dataOffset)){
+						dataOffset++;
+						return;
+				}
+
+				int offset = currentData.offset();
+				byte[] data = currentData.array();
         //build a new bitIndex from the data
         byte headerByte = data[offset];
         if((headerByte & 0x80) !=0){
@@ -74,7 +80,7 @@ public class EntryDecoder implements FieldSkipper,Provider<MultiFieldDecoder>{
             //sparse index
             bitIndex = BitIndexing.sparseBitMap(data, offset, dataOffset);
         }
-        lastBitIndex = bitIndex;
+				lastIndexData.set(data,offset,dataOffset);
         dataOffset++;
     }
 
@@ -107,6 +113,8 @@ public class EntryDecoder implements FieldSkipper,Provider<MultiFieldDecoder>{
         int fieldsToSkip =bitIndex.cardinality(position);
         int fieldSkipped=0;
         int start;
+				int length = currentData.length();
+				byte[] data = currentData.array();
         for(start = dataOffset;start<length&&fieldSkipped<fieldsToSkip;start++){
             if(data[start]==0x00){
                 fieldSkipped++;
@@ -123,9 +131,9 @@ public class EntryDecoder implements FieldSkipper,Provider<MultiFieldDecoder>{
 
         if(stop>length)
             stop = length;
-        int length = stop-start;
-        byte[] retData = new byte[length];
-        System.arraycopy(data,start,retData,0,length);
+        int finalLength = stop-start;
+        byte[] retData = new byte[finalLength];
+        System.arraycopy(data,start,retData,0,finalLength);
         return retData;
     }
 
@@ -143,9 +151,9 @@ public class EntryDecoder implements FieldSkipper,Provider<MultiFieldDecoder>{
     public MultiFieldDecoder getEntryDecoder() throws IOException{
         decompressIfNeeded();
         if(decoder==null){
-            decoder = MultiFieldDecoder.wrap(data,offset+dataOffset,length-dataOffset);
+            decoder = MultiFieldDecoder.wrap(currentData);
         }
-        decoder.seek(offset+dataOffset);
+        decoder.seek(currentData.offset()+dataOffset);
         return decoder;
     }
 
@@ -158,15 +166,14 @@ public class EntryDecoder implements FieldSkipper,Provider<MultiFieldDecoder>{
      * byte size already.
      */
 				boolean isNull;
-				bitIndex.decodeUntil(position);
-				if(bitIndex.isScalarType(position,true)){
+				if(bitIndex.isScalarType(position)){
 						isNull = decoder.nextIsNull();
 						decoder.skipLong(); //don't need the value, just need to seek past it
-				}else if(bitIndex.isFloatType(position,true)){
+				}else if(bitIndex.isFloatType(position)){
 						isNull = decoder.nextIsNullFloat();
 						//floats are always 4 bytes, so skip the after delimiter
 						decoder.skipFloat();
-				}else if(bitIndex.isDoubleType(position,true)){
+				}else if(bitIndex.isDoubleType(position)){
 						isNull = decoder.nextIsNullDouble();
 						decoder.skipDouble();
 				}else{
@@ -203,7 +210,7 @@ public class EntryDecoder implements FieldSkipper,Provider<MultiFieldDecoder>{
     }
 
 		public long length() {
-				return length;
+				return currentData.length();
 		}
 
 		public void nextField(MultiFieldDecoder mutationDecoder, int indexPosition, ByteSlice rowSlice) {

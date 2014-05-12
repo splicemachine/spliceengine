@@ -360,7 +360,7 @@ public class UpdateOperation extends DMLWriteOperation{
 						supplier.setLocation(location.getBytes());
 
 						if(resultDecoder==null)
-								resultDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
+								resultDecoder = new EntryDecoder();
 
 						supplier.setResult(resultDecoder);
 

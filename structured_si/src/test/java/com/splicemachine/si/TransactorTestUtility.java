@@ -322,7 +322,7 @@ public class TransactorTestUtility {
 								} catch (IOException e) {
 										throw new RuntimeException(e);
 								}
-								EntryDecoder decoder = new EntryDecoder(kryoPool);
+								EntryDecoder decoder = new EntryDecoder();
 								filterState = new FilterStatePacked((FilterState) filterState, new HRowAccumulator(EntryPredicateFilter.emptyPredicate(),decoder, false));
 								result = transactorSetup.readController.filterResult(filterState, rawTuple);
 								
@@ -346,7 +346,7 @@ public class TransactorTestUtility {
 
 		private static String resultToStringDirect(TestTransactionSetup transactorSetup, String name, SDataLib dataLib, Result result) {
 				byte[] packedColumns = result.getValue(transactorSetup.family, SIConstants.PACKED_COLUMN_BYTES); // HERE JL
-				EntryDecoder decoder = new EntryDecoder(kryoPool);
+				EntryDecoder decoder = new EntryDecoder();
 				decoder.set(packedColumns);
 				MultiFieldDecoder mfd = null;
 				try {
@@ -371,7 +371,7 @@ public class TransactorTestUtility {
 			final StringBuilder s = new StringBuilder();
 			byte[] packedColumns = result.getValue(transactorSetup.family, SIConstants.PACKED_COLUMN_BYTES);
 			long timestamp = result.getColumnLatestCell(transactorSetup.family, SIConstants.PACKED_COLUMN_BYTES).getTimestamp();
-			EntryDecoder decoder = new EntryDecoder(kryoPool);
+			EntryDecoder decoder = new EntryDecoder();
 			decoder.set(packedColumns);
 			MultiFieldDecoder mfd = null;
 			try {

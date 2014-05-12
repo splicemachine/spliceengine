@@ -94,10 +94,10 @@ public class SITransactionReadController<
 		public IFilterState newFilterStatePacked(String tableName, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter, TransactionId transactionId, boolean countStar) throws IOException {
 				return new FilterStatePacked(
 								(FilterState) newFilterState(rollForwardQueue, transactionId),
-								new HRowAccumulator(predicateFilter, new EntryDecoder(KryoPool.defaultPool()), countStar ));
+								new HRowAccumulator(predicateFilter, new EntryDecoder(), countStar ));
 		}
 
-    @Override
+		@Override
 		@SuppressWarnings("unchecked")
 		public Filter.ReturnCode filterKeyValue(IFilterState filterState, Cell keyValue) throws IOException {
 				return filterState.filterCell(keyValue);

@@ -16,7 +16,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.CellUtils;
@@ -28,7 +27,7 @@ import com.splicemachine.storage.index.BitIndex;
  *         Created on: 9/24/13
  */
 public class ColumnDumpTask extends DebugTask{
-    private EntryDecoder decoder = new EntryDecoder(SpliceDriver.getKryoPool());
+    private EntryDecoder decoder = new EntryDecoder();
 
     private int columnNumber;
 

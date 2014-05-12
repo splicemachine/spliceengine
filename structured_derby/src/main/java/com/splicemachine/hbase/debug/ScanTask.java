@@ -8,17 +8,6 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.hbase.CellUtils;
-import com.splicemachine.storage.EntryAccumulator;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -27,15 +16,27 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.storage.EntryAccumulator;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.SpliceZooKeeperManager;
+
 /**
  * @author Scott Fines
- *         Created on: 9/16/13
+ * Created on: 9/16/13
  */
 public class ScanTask extends DebugTask {
     private static final String outputPattern = "%-20s\t%8d\t%s%n";
     private EntryPredicateFilter predicateFilter;
     private HRegion region;
-    private EntryDecoder decoder = new EntryDecoder(SpliceDriver.getKryoPool());
+
+    private EntryDecoder decoder = new EntryDecoder();
 
     public ScanTask() {
     }
@@ -95,8 +96,8 @@ public class ScanTask extends DebugTask {
                 do {
                     keyValues.clear();
                     shouldContinue = scanner.nextRaw(keyValues);
-                    if (keyValues.size() > 0) {
-                        writeRow(writer, keyValues);
+                    if(keyValues.size()>0){
+                        writeRow(writer,keyValues);
                     }
                 } while (shouldContinue);
                 //make sure everyone knows we succeeded
@@ -126,10 +127,10 @@ public class ScanTask extends DebugTask {
             StringBuilder valueStr = new StringBuilder();
             BitIndex encodedIndex = decoder.getCurrentIndex();
             MultiFieldDecoder fieldDecoder = decoder.getEntryDecoder();
-            boolean isFirst = true;
-            for (int pos = encodedIndex.nextSetBit(0);
-                 pos >= 0; pos = encodedIndex.nextSetBit(pos + 1)) {
-                if (!isFirst)
+            boolean isFirst=true;
+            for(int pos=encodedIndex.nextSetBit(0);
+                pos >=0;pos=encodedIndex.nextSetBit(pos+1)){
+                if(!isFirst)
                     valueStr = valueStr.append(",");
                 else
                     isFirst = false;
@@ -139,7 +140,7 @@ public class ScanTask extends DebugTask {
             valueStr.append("\n");
             String data = valueStr.toString();
 
-            String line = String.format(outputPattern, row, txnId, data);
+            String line = String.format(outputPattern,row,txnId,data);
             writer.write(line);
         }
     }
@@ -167,7 +168,7 @@ public class ScanTask extends DebugTask {
         public HBaseEntryPredicateFilter(EntryPredicateFilter epf) {
             this.epf = epf;
             this.accumulator = epf.newAccumulator();
-            this.decoder = new EntryDecoder(SpliceDriver.getKryoPool());
+            this.decoder = new EntryDecoder();
         }
 
         @Override

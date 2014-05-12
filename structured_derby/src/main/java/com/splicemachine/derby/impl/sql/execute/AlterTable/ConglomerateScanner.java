@@ -26,7 +26,6 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.stats.MetricFactory;
@@ -114,7 +113,7 @@ public class ConglomerateScanner {
         }
 
         if(entryDecoder==null) {
-            entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
+            entryDecoder = new EntryDecoder();
         }
 
         List<Cell> nextRow = Lists.newArrayListWithExpectedSize(16);
