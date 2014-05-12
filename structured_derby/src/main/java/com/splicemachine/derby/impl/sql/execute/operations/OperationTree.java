@@ -72,7 +72,7 @@ public class OperationTree {
                                 transactionResource.marshallTransaction(info.getTxnId());
                                 long begin = System.currentTimeMillis();
                                 opToShuffle.executeShuffle(runtimeContext);
-                                System.out.println(String.format("Running operation %s taking %d seconds",opToShuffle,System.currentTimeMillis()-begin));
+                                LOG.error(String.format("Running operation %s taking %d seconds",opToShuffle,System.currentTimeMillis()-begin));
                             } finally {
                                 resetContext(transactionResource, prepared);
                             }
