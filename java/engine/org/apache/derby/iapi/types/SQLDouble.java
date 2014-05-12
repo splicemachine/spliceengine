@@ -286,7 +286,7 @@ public final class SQLDouble extends NumberDataType
 	{
 		try 
 		{
-			return new SQLDouble(value, isnull);
+			return new SQLDouble(value, isnull, true); // Do not test me again on cloning : JL
 		} catch (StandardException se) 
 		{
 			if (SanityManager.DEBUG)
@@ -379,7 +379,16 @@ public final class SQLDouble extends NumberDataType
 		value = NumberDataType.normalizeDOUBLE(val); // maybe only do if !startsnull
 		isnull = startsnull;
 	}
+	/**
+	 * Method to create double with normalization, normalize ignored
+	 */
+	private SQLDouble(double val, boolean startsnull, boolean normalize) throws StandardException
+	{
+		value = val; // maybe only do if !startsnull
+		isnull = startsnull;
+	}
 
+	
 	/**
 		@exception StandardException throws NumberFormatException
 			when the String format is not recognized.
