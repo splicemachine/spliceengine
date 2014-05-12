@@ -1,5 +1,7 @@
 package com.splicemachine.derby.utils;
 
+import org.apache.commons.lang.WordUtils;
+
 /**
  * Implementation of standard Splice String functions,
  * in particular those represented as system procedures
@@ -37,4 +39,15 @@ public class SpliceStringFunctions {
         // Return position starting from 1 or 0 if not found
         return index + 1;
     }
+
+    /**
+     * Implements logic for the SQL function INITCAP.
+     * 
+     * @param source the String to be capitalized
+     * 
+     * @return the capitalized String
+     */
+	public static String INITCAP(String source) {
+		return WordUtils.capitalizeFully(source);
+	}
 }
