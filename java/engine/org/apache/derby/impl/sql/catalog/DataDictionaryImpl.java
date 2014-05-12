@@ -183,6 +183,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	protected SchemaDescriptor sysIBMSchemaDesc;
 	protected SchemaDescriptor declaredGlobalTemporaryTablesSchemaDesc;
 	protected SchemaDescriptor systemUtilSchemaDesc;
+	protected SchemaDescriptor sysFunSchemaDesc;
 	/** Dictionary version of the on-disk database */
 	protected DD_Version  dictionaryVersion;
 	/** Dictionary version of the currently running engine */
@@ -590,17 +591,24 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 //create metadata sps statement required for network server
                 createSystemSps(bootingTC);
 
-                //create stored procedures
+				// As part of Splice Derby fork, we abstracted out the
+				// create_SYSIBM_procedures and create_SYSCS_procedures
+				// methods into a generalized SystemProcedureGenerator.
+				//
+				// create procedures for network server metadata
+				// create_SYSIBM_procedures(bootingTC, newlyCreatedRoutines );
+				//
+				// create the SYSCS_UTIL system procedures
+				// create_SYSCS_procedures(bootingTC, newlyCreatedRoutines );
+                
+                // create stored procedures
                 SystemProcedureGenerator procedureGenerator = getSystemProcedures();
                 procedureGenerator.createProcedures(bootingTC,newlyCreatedRoutines);
 
                 // create system aggregates
                 SystemAggregateGenerator aggregateGenerator = getSystemAggregateGenerator();
                 aggregateGenerator.createAggregates(bootingTC);
-				//create procedures for network server metadata
-//				create_SYSIBM_procedures(bootingTC, newlyCreatedRoutines );
-                // create the SYSCS_UTIL system procedures)
-//                create_SYSCS_procedures(bootingTC, newlyCreatedRoutines );
+                
                 // now grant execute permission on some of these routines
                 grantPublicAccessToSystemRoutines( newlyCreatedRoutines, bootingTC, authorizationDatabaseOwner );
 				// log the current dictionary version
@@ -1279,6 +1287,9 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 		systemUtilSchemaDesc  = 
             newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,
                 SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID);
+		sysFunSchemaDesc  = 
+            newSystemSchemaDesc(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,
+				SchemaDescriptor.SYSFUN_SCHEMA_UUID);
     }
 
     // returns null if database is at rev level 10.5 or earlier
@@ -1430,6 +1441,23 @@ public class DataDictionaryImpl extends BaseDataDictionary {
     {
         return sysIBMSchemaDesc;
     }
+
+	/**
+	 * Get the descriptor for the SYSFUN schema. Schema descriptors include 
+     * authorization ids and schema ids.
+     *
+	 * SQL92 allows a schema to specify a default character set - we will
+	 * not support this.
+	 *
+	 * @return	The descriptor for the schema.
+	 *
+	 * @exception StandardException		Thrown on failure
+	 */
+	public SchemaDescriptor	getSysFunSchemaDescriptor()
+		throws StandardException
+	{
+		return sysFunSchemaDesc;
+	}
 
 	/**
 	 * Get the descriptor for the declared global temporary table schema which 
