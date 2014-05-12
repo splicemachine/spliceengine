@@ -1,18 +1,26 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
+import org.apache.derby.catalog.AliasInfo;
+import org.apache.derby.catalog.TypeDescriptor;
 import org.apache.derby.catalog.UUID;
+import org.apache.derby.catalog.types.RoutineAliasInfo;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.JDBC30Translation;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ScanQualifier;
 import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.Orderable;
 import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.derby.impl.sql.catalog.*;
 import org.apache.log4j.Logger;
+
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -175,5 +183,28 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 						tc);
 		
 		return desc;
+	}
+
+    /**
+     * Overridden so that sql functions implemented as system procedures
+     * will be found if in the SYSFUN schema. Otherwise, the default
+     * behavior would be to ignore these and only consider functions 
+     * implicitly defined in {@link BaseDataDictionary#SYSFUN_FUNCTIONS},
+     * which are not actually in the system catalog.
+     */
+    public java.util.List getRoutineList(String schemaID, String routineName, char nameSpace)
+		throws StandardException {
+
+		List list = super.getRoutineList(schemaID, routineName, nameSpace);
+		if (list.isEmpty()) {
+			if (schemaID.equals(SchemaDescriptor.SYSFUN_SCHEMA_UUID) &&
+				nameSpace == AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR) {
+				AliasDescriptor ad = getAliasDescriptor(schemaID, routineName, nameSpace);
+		        return ad == null ?
+					Collections.EMPTY_LIST :
+					Collections.singletonList(ad);
+			}
+		}
+		return list;
 	}
 }
