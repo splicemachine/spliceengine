@@ -175,7 +175,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				boolean hasRow;
 				do{
 						keyValues.clear();
-//						template.resetRowArray();
+						template.resetRowArray(); //necessary to deal with null entries--maybe make the underlying call faster?
 						hasRow = regionScanner.next(keyValues);
 						if(keyValues.size()<=0){
 								timer.stopTiming();

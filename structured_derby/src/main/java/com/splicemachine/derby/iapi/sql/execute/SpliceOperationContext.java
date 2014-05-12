@@ -4,6 +4,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.hbase.ReadAheadRegionScanner;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
@@ -66,7 +67,8 @@ public class SpliceOperationContext {
                                   SpliceRuntimeContext spliceRuntimeContext){
         this.activation = activation;
         this.preparedStatement = preparedStatement;
-        this.scanner = new BufferedRegionScanner(region,scanner, scan,scan.getCaching(),spliceRuntimeContext);
+//        this.scanner = new BufferedRegionScanner(region, scanner, scan, scan.getCaching(),spliceRuntimeContext);
+				this.scanner = new ReadAheadRegionScanner(region, scan.getCaching(), scanner,spliceRuntimeContext);
         this.region=region;
         this.scan = scan;
         this.lcc = lcc;
@@ -111,7 +113,9 @@ public class SpliceOperationContext {
             int caching = scan.getCaching();
             if(caching<0)
                 caching=SpliceConstants.DEFAULT_CACHE_SIZE;
-            scanner = new BufferedRegionScanner(region,baseScanner,scan, SpliceConstants.DEFAULT_CACHE_SIZE,spliceRuntimeContext);
+
+//						scanner = new BufferedRegionScanner(region, baseScanner, scan, caching, spliceRuntimeContext);
+            scanner = new ReadAheadRegionScanner(region, caching, baseScanner,spliceRuntimeContext);
         }
         return scanner;
     }

@@ -256,6 +256,11 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 						return epf.getRowsOutput()+epf.getRowsFiltered();
 		}
 
+		@Override
+		public void start() {
+			//no-op
+		}
+
 		private EntryPredicateFilter getEntryPredicateFilter() {
 				HasPredicateFilter hpf = getSIFilter();
 				if(hpf==null) return null;
