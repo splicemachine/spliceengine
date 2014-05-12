@@ -165,8 +165,8 @@ public class BroadcastJoinOperation extends JoinOperation {
                     }
                     return row;
                 }
-            }));
-        // fetch first row & push back
+            }, leftResultSet));
+        // fetch LHS rows while waiting
         leftRows.open();
         ExecRow firstLeft = leftRows.next(ctx);
         leftRows.pushBack(firstLeft == null ? null : firstLeft.getClone());
