@@ -450,7 +450,7 @@ public class SpliceConstants {
 		 * setting down if memory pressure is high during aggregations.
 		 */
 		@Parameter private static final String RING_BUFFER_SIZE = "splice.ring.bufferSize";
-		@DefaultValue(RING_BUFFER_SIZE) public static final int DEFAULT_RING_BUFFER_SIZE=10000;
+		@DefaultValue(RING_BUFFER_SIZE) public static final int DEFAULT_RING_BUFFER_SIZE=1<<14; //~ 16K
 		public static int ringBufferSize;
 
 		/**

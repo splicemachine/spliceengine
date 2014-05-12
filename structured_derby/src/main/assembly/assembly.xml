@@ -30,6 +30,7 @@
 				<include>com.carrotsearch:hppc</include>
 				<include>org.apache.lucene:lucene-core</include>
 				<include>de.javakaffee:kryo-serializers</include>
+                <include>com.lmax:disruptor</include>
 			</includes>
 		</dependencySet>
 	</dependencySets>

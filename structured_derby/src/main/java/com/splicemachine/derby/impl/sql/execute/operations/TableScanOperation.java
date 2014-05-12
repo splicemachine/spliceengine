@@ -140,6 +140,10 @@ public class TableScanOperation extends ScanOperation {
 				this.slice = ByteSlice.empty();
 				this.startExecutionTime = System.currentTimeMillis();
 				this.scan = context.getScan();
+
+				//start reading rows
+				if(regionScanner!=null)
+						regionScanner.start();
 		}
 
 
@@ -175,50 +179,6 @@ public class TableScanOperation extends ScanOperation {
 								return generator.nextBytes();
 						}
 				});
-//				columnOrdering = scanInformation.getColumnOrdering();
-//
-//				if(columnOrdering != null && columnOrdering.length > 0) {
-//
-//						hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
-//								@Override
-//								public byte[] get() throws StandardException {
-////										if(currentRowLocation!=null)
-////												return currentRowLocation.getBytes();
-//										return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-//								}
-//						}){
-//								@Override
-//								public KeyHashDecoder getDecoder() {
-//										try {
-//												SerializerMap serializerMap = VersionedSerializers.forVersion(scanInformation.getTableVersion(), true);
-//												DescriptorSerializer[] serializers = serializerMap.getSerializers(currentRow);
-//												TypeProvider  typeProvider = VersionedSerializers.typesForVersion(scanInformation.getTableVersion());
-//												final int[] allKeyCols = scanInformation.getColumnOrdering();
-//												FormatableBitSet accessedKeys = scanInformation.getAccessedPkColumns();
-//												int[] keyColumnTypes = scanInformation.getConglomerate().getFormat_ids();
-//												return SkippingKeyDecoder.decoder(
-//																												typeProvider,
-//																												serializers,
-//																												allKeyCols,
-//																												keyColumnTypes,
-//																												scanInformation.getConglomerate().getAscDescInfo(),
-//																getAccessedPksToTemplateRowMap(),
-//																accessedKeys);
-//										} catch (StandardException e) {
-//												throw new RuntimeException(e);
-//										}
-//								}
-//						};
-//				}else{
-//						hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
-//								@Override
-//								public byte[] get() throws StandardException {
-//										if(currentRowLocation!=null)
-//												return currentRowLocation.getBytes();
-//										return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-//								}
-//						});
-//				}
 
 				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
 		}
@@ -227,7 +187,6 @@ public class TableScanOperation extends ScanOperation {
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
                 columnOrdering = scanInformation.getColumnOrdering();
 				ExecRow defnRow = getExecRowDefinition();
-//				int [] cols = getDecodingColumns(defnRow.nColumns());
 				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(defnRow);
 				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null,serializers);
 		}
@@ -282,6 +241,7 @@ public class TableScanOperation extends ScanOperation {
 										.accessedKeyColumns(scanInformation.getAccessedPkColumns())
 										.keyDecodingMap(getKeyDecodingMap())
 										.rowDecodingMap(baseColumnMap).build();
+
 				}
 
 				currentRow = tableScanner.next(spliceRuntimeContext);
