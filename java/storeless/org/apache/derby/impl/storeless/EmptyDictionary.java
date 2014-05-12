@@ -183,6 +183,12 @@ public class EmptyDictionary implements DataDictionary, ModuleSupportable {
 		return null;
 	}
 
+	public SchemaDescriptor getSysFunSchemaDescriptor()
+			throws StandardException {
+		// Auto-generated method stub
+		return null;
+	}
+
 	public SchemaDescriptor getDeclaredGlobalTemporaryTablesSchemaDescriptor()
 			throws StandardException {
 		// Auto-generated method stub

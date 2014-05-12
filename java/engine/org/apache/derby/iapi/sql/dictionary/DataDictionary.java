@@ -437,8 +437,33 @@ public interface DataDictionary
 	public SchemaDescriptor	getSysIBMSchemaDescriptor( )
 						throws StandardException;
 
+	/**
+	 * Get the descriptor for the SYSCS_UTIL schema. Schema descriptors include 
+     * authorization ids and schema ids.
+     *
+	 * SQL92 allows a schema to specify a default character set - we will
+	 * not support this.
+	 *
+	 * @return	The descriptor for the schema.
+	 *
+	 * @exception StandardException		Thrown on failure
+	 */
     public SchemaDescriptor getSystemUtilSchemaDescriptor() throws StandardException;
 
+	/**
+	 * Get the descriptor for the SYSFUN schema. Schema descriptors include 
+     * authorization ids and schema ids.
+     *
+	 * SQL92 allows a schema to specify a default character set - we will
+	 * not support this.
+	 *
+	 * @return	The descriptor for the schema.
+	 *
+	 * @exception StandardException		Thrown on failure
+	 */
+	// Added as part of Splice fork of Derby
+	public SchemaDescriptor	getSysFunSchemaDescriptor() throws StandardException;
+	
 	/**
 	 * Get the descriptor for the declared global temporary table schema which is always named "SESSION".
 	 *
