@@ -4,15 +4,22 @@ import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.impl.storage.TempSplit;
 import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.utils.SpliceStringFunctions;
+
+import java.sql.Types;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 import com.splicemachine.derby.utils.TransactionAdmin;
+
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.RoutineAliasInfo;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.Limits;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import org.apache.derby.impl.sql.catalog.Procedure;
 
@@ -387,9 +394,31 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         					.build();
         			procedures.add(vacuum);
         		}
+
         	}
 
-        	// Initialization was successful.  Mark the class as initialized.
+			// Add SYSFUN schema functions, for functions that are Splice standard
+			// but not ANSI standard. Much more convenient than adding them
+			// to the sql grammer, and meets same requirement in most cases.
+            UUID sysFunUUID = dictionary.getSysFunSchemaDescriptor().getUUID();
+            @SuppressWarnings("unchecked")
+			List<Procedure> sysFunProcs = (List<Procedure>)sysProcedures.get(sysFunUUID);
+            if (sysFunProcs == null || sysFunProcs.size() == 0) {
+    	        sysFunProcs = Arrays.asList(new Procedure[]{
+					Procedure.newBuilder().name("INSTR")
+    		        	.numOutputParams(0)
+    		        	.numResultSets(0)
+    		            .sqlControl(RoutineAliasInfo.NO_SQL)
+    		            .returnType(DataTypeDescriptor.getCatalogType(Types.INTEGER))
+    		            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+    		            .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
+    		            .varchar("SUBSTR", Limits.DB2_VARCHAR_MAXWIDTH)
+    		            .build()
+    		    });
+    	        sysProcedures.put(sysFunUUID, sysFunProcs);
+            }
+    		
+            // Initialization was successful.  Mark the class as initialized.
         	initialized = true;
         } // end of synchronized block
 
