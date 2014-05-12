@@ -1,17 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.tester;
 
-import static org.junit.Assert.*;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.sql.Connection;
 //import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
-import org.apache.derby.tools.ij;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -24,7 +16,6 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import com.google.common.io.Closeables;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -32,8 +23,6 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 import org.junit.Assert;
-
-
 
 
 public class DataTypeCorrectnessIT extends SpliceUnitTest {
@@ -58,11 +47,28 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
 	protected static String TABLE_16 = "P";
 	protected static String TABLE_17 = "Q";
 	protected static String TABLE_18 = "R";
-	protected static String TABLE_24 = "U";
-	protected static String TABLE_25 = "V";
+	protected static String TABLE_30 = "AA";
+	protected static String TABLE_31 = "BB";
+	protected static String TABLE_32 = "CC";
+	protected static String TABLE_33 = "DD";
+	protected static String TABLE_34 = "EE";
+	protected static String TABLE_35 = "FF";
+	protected static String TABLE_36 = "GG";
+	protected static String TABLE_37 = "HH";
+	protected static String TABLE_38 = "II";
+	protected static String TABLE_39 = "JJ";
+	protected static String TABLE_40 = "KK";
+	protected static String TABLE_41 = "LL";
+	protected static String TABLE_42 = "MM";
+	protected static String TABLE_43 = "NN";
+	protected static String TABLE_44 = "OO";
+	protected static String TABLE_45 = "PP";
+	protected static String TABLE_46 = "QQ";
+	protected static String TABLE_47 = "RR";
+	protected static String TABLE_48 = "SS";
 	
 	String[] tables = new String[]  {TABLE_1,TABLE_2,TABLE_3,TABLE_4,TABLE_5,TABLE_6,TABLE_7,TABLE_8,TABLE_9,TABLE_10,TABLE_11,TABLE_12,TABLE_13,TABLE_14,TABLE_15,TABLE_16,TABLE_17,TABLE_18};
-	String[] btables = new String[]  {TABLE_24,TABLE_25};
+	String[] btables = new String[]  {TABLE_30,TABLE_31,TABLE_32,TABLE_33,TABLE_34,TABLE_35,TABLE_36,TABLE_37,TABLE_38,TABLE_39,TABLE_40,TABLE_41};
 
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_1,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint primary key, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100))");
@@ -84,11 +90,18 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher17 = new SpliceTableWatcher(TABLE_17,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100), PRIMARY KEY (boolean1,smallint1,integer1, bigint1,decimal1,real1,double1,float1,char1))");
 	protected static SpliceTableWatcher spliceTableWatcher18 = new SpliceTableWatcher(TABLE_18,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100), PRIMARY KEY (boolean1,smallint1,integer1, bigint1,decimal1,real1,double1,float1,char1,varchar1))");
 
-//	protected static SpliceIndexWatcher splceIndexWatcher1 = new SpliceIndexWatcher("");
-	
-//	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_2,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar ,date1 date,date2 date,time1 time,time2 time,timestamp1 timestamp,timestamp2 timestamp)");
-	protected static SpliceTableWatcher spliceTableWatcher24 = new SpliceTableWatcher(TABLE_24,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp)");
-	protected static SpliceTableWatcher spliceTableWatcher25 = new SpliceTableWatcher(TABLE_25,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp)");
+	protected static SpliceTableWatcher spliceTableWatcher30 = new SpliceTableWatcher(TABLE_30,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar, lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp)");
+	protected static SpliceTableWatcher spliceTableWatcher31 = new SpliceTableWatcher(TABLE_31,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar, lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp)");
+	protected static SpliceTableWatcher spliceTableWatcher32 = new SpliceTableWatcher(TABLE_32,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data  primary key,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp)");
+	protected static SpliceTableWatcher spliceTableWatcher33 = new SpliceTableWatcher(TABLE_33 ,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data  primary key,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp)");
+	protected static SpliceTableWatcher spliceTableWatcher34 = new SpliceTableWatcher(TABLE_34,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp)");
+	protected static SpliceTableWatcher spliceTableWatcher35 = new SpliceTableWatcher(TABLE_35,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp, PRIMARY KEY (charforbitdata1))");
+	protected static SpliceTableWatcher spliceTableWatcher36 = new SpliceTableWatcher(TABLE_36,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp, PRIMARY KEY (charforbitdata1,varcharforbitdata1))");
+	protected static SpliceTableWatcher spliceTableWatcher37 = new SpliceTableWatcher(TABLE_37,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp, PRIMARY KEY (charforbitdata1,varcharforbitdata1,date1))");
+	protected static SpliceTableWatcher spliceTableWatcher38 = new SpliceTableWatcher(TABLE_38,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp, PRIMARY KEY (charforbitdata1,varcharforbitdata1,date1,time1))");
+	protected static SpliceTableWatcher spliceTableWatcher39 = new SpliceTableWatcher(TABLE_39,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp)");
+	protected static SpliceTableWatcher spliceTableWatcher40 = new SpliceTableWatcher(TABLE_40,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp, PRIMARY KEY (varcharforbitdata1,date1,time1,timestamp1))");
+	protected static SpliceTableWatcher spliceTableWatcher41 = new SpliceTableWatcher(TABLE_41,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp, PRIMARY KEY ( charforbitdata1,varcharforbitdata1,date1,time1,timestamp1))");
 
 
 
@@ -117,8 +130,18 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
         .around(spliceTableWatcher16)
         .around(spliceTableWatcher17)
         .around(spliceTableWatcher18)
-        .around(spliceTableWatcher24)
-        .around(spliceTableWatcher25)
+        .around(spliceTableWatcher30)
+        .around(spliceTableWatcher31)
+        .around(spliceTableWatcher32)
+        .around(spliceTableWatcher33)
+        .around(spliceTableWatcher34)
+        .around(spliceTableWatcher35)
+        .around(spliceTableWatcher36)
+        .around(spliceTableWatcher37)
+        .around(spliceTableWatcher38)
+        .around(spliceTableWatcher39)
+        .around(spliceTableWatcher40)
+        .around(spliceTableWatcher41)
 		.around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
@@ -196,6 +219,22 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 						ps.execute();
 						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE18 ON "+CLASS_NAME+"."+TABLE_18+" (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
 						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE30 ON "+CLASS_NAME+"."+TABLE_30+" (charforbitdata3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE31 ON "+CLASS_NAME+"."+TABLE_31+" (varcharforbitdata3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE35 ON "+CLASS_NAME+"."+TABLE_35+" (charforbitdata3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE36 ON "+CLASS_NAME+"."+TABLE_36+" (charforbitdata3,varcharforbitdata3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE37 ON "+CLASS_NAME+"."+TABLE_37+" (charforbitdata3,varcharforbitdata3,date3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE38 ON "+CLASS_NAME+"."+TABLE_38+" (charforbitdata3,varcharforbitdata3,date3,time3)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE39 ON "+CLASS_NAME+"."+TABLE_39+" (charforbitdata3,varcharforbitdata3,date3,time3,timestamp2)");
+						ps.execute();
+						ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE41 ON "+CLASS_NAME+"."+TABLE_41+" (varcharforbitdata3,date3,time3,timestamp2)");
+						ps.execute();
 						}
 					} catch (Exception e) {
 							e.printStackTrace();
@@ -211,17 +250,69 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-//		System.out.println("Here 1");
+		System.out.println("Here 1");
 	}
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
-		//System.out.println("Here 2");
+		try{
+			PreparedStatement ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE1");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE2");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE3");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE4");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE5");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE6");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE7");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE8");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE9");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE10");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE11");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE12");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE13");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE14");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE15");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE16");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE17");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE18");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE30");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE31");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE35");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE36");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE37");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE39");
+			ps.execute();
+			ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE41");
+			ps.execute();
+		}catch(Exception e){
+			e.getMessage();
+		}
 	}
 
 	@Before
 	public void setUp() throws Exception {
-		//System.out.println("Here 3");
 		if(!done){
 			try{
 				for(int i=0;i<btables.length;i++){
@@ -238,7 +329,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 																	+ ",X'1234abcdef',X'1234abcdef',X'1234abcdef'"
 																	+ ",'2014-05-01','2014-05-01','2014-05-01'"
 																	+ ",'05:05:05','05:05:05','05:05:05'"
-																	+ ",'2014-05-01 00:00:00','2014-05-02 00:00:00','2014-05-03 00:00:00')";
+																	+ ",'2014-05-01 00:00:00','2014-05-01 00:00:00','2014-05-01 00:00:00')";
 					//System.out.println(i1); 
 					String i2="insert into "+CLASS_NAME+"."+btables[i]+"(lvarchar1,lvarchar2,lvarchar3"
 																	+ ",charforbitdata1,charforbitdata2,charforbitdata3"
@@ -253,7 +344,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 																	+ ",X'234abcdef1',X'234abcdef1',X'234abcdef1'"
 																	+ ",'2014-05-02','2014-05-02','2014-05-02'"
 																	+ ",'06:06:06','06:06:06','06:06:06'"
-																	+ ",'2014-05-01 00:00:00','2014-05-02 00:00:00','2014-05-03 00:00:00')";
+																	+ ",'2014-05-02 00:00:00','2014-05-02 00:00:00','2014-05-02 00:00:00')";
 					//System.out.println(i2); 
 					String i3="insert into "+CLASS_NAME+"."+btables[i]+"(lvarchar1,lvarchar2,lvarchar3"
 																	+ ",charforbitdata1,charforbitdata2,charforbitdata3"
@@ -268,10 +359,10 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 																	+ ",X'34abcdef12',X'34abcdef12',X'34abcdef12'"
 																	+ ",'2014-05-03','2014-05-03','2014-05-03'"
 																	+ ",'07:07:07','07:07:07','07:07:07'"
-																	+ ",'2014-05-01 00:00:00','2014-05-02 00:00:00','2014-05-03 00:00:00')";
-					int retval = methodWatcher.executeUpdate(i1);
-					retval = methodWatcher.executeUpdate(i2);
-					retval = methodWatcher.executeUpdate(i3);
+																	+ ",'2014-05-03 00:00:00','2014-05-03 00:00:00','2014-05-03 00:00:00')";
+					methodWatcher.executeUpdate(i1);
+					methodWatcher.executeUpdate(i2);
+					methodWatcher.executeUpdate(i3);
 				}
 			}catch(Exception e){
 				System.out.println(e.getMessage());
@@ -282,87 +373,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 
 	@After
 	public void tearDown() throws Exception {
-		//System.out.println("Here 4");
-	}
-
-	
-	@Test
-	@Ignore
-	public void testField1x() throws Exception{
-		try {
-			for(int i=0;i<btables.length;i++){
-				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where time1 = '06:06:06'","06:06:06","time1"));
-				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where time1 between '05:05:05' and '07:07:07'","05:05:05","06:06:06","07:07:07","time1"));
-				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time1 = '06:06:06' or time1 = '07:07:07' ",2,"retval"));
-
-				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where time2 = '06:06:06'","06:06:06","time2"));
-				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where time2 between '05:05:05' and '07:07:07'","05:05:05","06:06:06","07:07:07","time2"));
-				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time2 = '06:06:06' or time2 = '07:07:07' ",2,"retval"));
-				
-				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where time3 = '06:06:06'","06:06:06","time3"));
-				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where time3 between '05:05:05' and '07:07:07'","05:05:05","06:06:06","07:07:07","time3"));
-				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time3 = '06:06:06' or time3 = '07:07:07' ",2,"retval"));
-				}
-
-//			+ ",'05:05:05','05:05:05','05:05:05'"
-//			+ ",'06:06:06','06:06:06','06:06:06'"
-//			+ ",'07:07:07','07:07:07','07:07:07'"
-
-			String returnval;
-			ResultSet rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where time1 = '06:06:06'");
-			if(rs.next()){
-				returnval = rs.getString("time1");
-				System.out.println("time1 = "+returnval);
-				Assert.assertTrue(returnval.equals("06:06:06"));
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where time1 between '05:05:05' and '07:07:07'");
-			while(rs.next()){
-				returnval = rs.getString("time1");
-				System.out.println("time11 = "+returnval);
-				Assert.assertTrue(returnval.equals("05:05:05")||returnval.equals("06:06:06")||returnval.equals("07:07:07"));
-			}
-			rs.close();
-			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_24+" where time1 = '06:06:06' or time1 = '07:07:07' ");
-			if(rs.next()){
-				int retval = rs.getInt("retval");
-				System.out.println("retval = "+retval);
-				Assert.assertEquals(2,retval);
-			}
-			rs.close();
-			
-			
-			
-//			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
-//			if(rs.next()){
-//				returnval = rs.getString("lvarchar2");
-//				System.out.println("smallint1 = "+returnval);
-//				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa"));
-//			}
-//			rs.close();
-//			rs = methodWatcher.executeQuery("select * from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'");
-//			while(rs.next()){
-//				returnval = rs.getString("lvarchar2");
-//				System.out.println("lvarchar1 = "+returnval);
-//				Assert.assertTrue(returnval.equals("aaaaaaaaaaaaaaaaaaaaaaaaaa")||returnval.equals("bbbbbbbbbbbbbbbbbbbbbbbbbb")||returnval.equals("cccccccccccccccccccccccccc"));
-//			}
-//			rs.close();
-//Group by not supported.
-//			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_2+" group by lvarchar2 having CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'");
-//			rs = methodWatcher.executeQuery("select count(*) as retval from "+CLASS_NAME+"."+TABLE_24+" where CAST(lvarchar2 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or  CAST(lvarchar2 AS VARCHAR(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb'");
-//			if(rs.next()){
-//				int retval = rs.getInt("retval");
-//				System.out.println("retval = "+retval);
-//				Assert.assertEquals(2,retval);
-//			}
-//			rs.close();
-			Assert.assertTrue(true);;
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new RuntimeException(e);
 		}
-	}
-
 	
 	private boolean runandtestqueryri(String query,int lookfor,String field) throws Exception{
 		int returnval;
@@ -502,6 +513,57 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 			 	Assert.assertTrue(runandtestqueryri("select * from "+CLASS_NAME+"."+tables[i]+" where smallint3 = 1",1,"smallint3"));
 			 	Assert.assertTrue(runandtestqueryR3("select * from "+CLASS_NAME+"."+tables[i]+" where smallint3 between 1 and 3",1,2,3,"smallint3"));
 			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by smallint3 having smallint3 = 2",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 < 1",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 < 2",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 < 3",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 < 4",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 < 1",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 < 2",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 < 3",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 < 4",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 < 1",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 < 2",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 < 3",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 < 4",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 <= 1",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 <= 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 <= 3",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 <= 4",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 <= 1",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 <= 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 <= 3",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 <= 4",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 <= 1",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 <= 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 <= 3",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 <= 4",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 > 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 > 1",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 > 2",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 > 3",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 > 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 > 1",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 > 2",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 > 3",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 > 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 > 1",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 > 2",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 > 3",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 >= 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 >= 1",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 >= 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 >= 3",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint1 >= 4",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 >= 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 >= 1",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 >= 2",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 >= 3",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint2 >= 4",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 >= 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 >= 1",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 >= 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 >= 3",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where smallint3 >= 4",0,"retval"));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -523,6 +585,57 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 			 	Assert.assertTrue(runandtestqueryri("select * from "+CLASS_NAME+"."+tables[i]+" where integer3 = 1",1,"integer3"));
 			 	Assert.assertTrue(runandtestqueryR3("select * from "+CLASS_NAME+"."+tables[i]+" where integer3 between 1 and 3",1,2,3,"integer3"));
 			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by integer3 having integer3 = 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 < 1",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 < 2",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 < 3",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 < 4",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 < 1",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 < 2",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 < 3",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 < 4",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 < 1",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 < 2",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 < 3",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 < 4",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 <= 1",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 <= 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 <= 3",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 <= 4",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 <= 1",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 <= 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 <= 3",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 <= 4",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 <= 1",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 <= 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 <= 3",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 <= 4",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 > 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 > 1",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 > 2",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 > 3",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 > 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 > 1",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 > 2",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 > 3",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 > 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 > 1",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 > 2",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 > 3",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 >= 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 >= 1",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 >= 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 >= 3",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer1 >= 4",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 >= 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 >= 1",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 >= 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 >= 3",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer2 >= 4",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 >= 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 >= 1",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 >= 2",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 >= 3",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where integer3 >= 4",0,"retval"));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -545,6 +658,57 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 			 	Assert.assertTrue(runandtestqueryri("select * from "+CLASS_NAME+"."+tables[i]+" where bigint3 = 1",1,"bigint3"));
 			 	Assert.assertTrue(runandtestqueryR3("select * from "+CLASS_NAME+"."+tables[i]+" where bigint3 between 1 and 3",1,2,3,"bigint3"));
 			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by bigint3 having bigint3 = 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 < 1",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 < 2",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 < 3",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 < 4",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 < 1",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 < 2",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 < 3",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 < 4",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 < 1",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 < 2",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 < 3",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 < 4",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 <= 1",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 <= 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 <= 3",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 <= 4",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 <= 1",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 <= 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 <= 3",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 <= 4",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 <= 1",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 <= 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 <= 3",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 <= 4",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 > 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 > 1",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 > 2",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 > 3",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 > 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 > 1",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 > 2",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 > 3",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 > 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 > 1",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 > 2",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 > 3",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 >= 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 >= 1",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 >= 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 >= 3",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint1 >= 4",0,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 >= 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 >= 1",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 >= 2",2,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 >= 3",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint2 >= 4",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 >= 0",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 >= 1",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 >= 2",3,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 >= 3",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" where bigint3 >= 4",0,"retval"));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -567,6 +731,18 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 				Assert.assertTrue(runandtestqueryrd("select * from "+CLASS_NAME+"."+tables[i]+" where decimal3 = 1.0",1.0,"decimal3"));
 				Assert.assertTrue(runandtestqueryR3D("select * from "+CLASS_NAME+"."+tables[i]+" where decimal3 between 1 and 3",1.0,2.0,3.0,"decimal3"));
 			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by decimal3 having decimal3 = 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by decimal1 having decimal1 < 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by decimal2 having decimal2 < 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by decimal3 having decimal3 < 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by decimal1 having decimal1 <= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by decimal2 having decimal2 <= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by decimal3 having decimal3 <= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by decimal1 having decimal1 > 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by decimal2 having decimal2 > 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by decimal3 having decimal3 > 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by decimal1 having decimal1 >= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by decimal2 having decimal2 >= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by decimal3 having decimal3 >= 2.0",1,"retval"));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -589,6 +765,18 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 				Assert.assertTrue(runandtestqueryrd("select * from "+CLASS_NAME+"."+tables[i]+" where real3 = 1",1.0,"real3"));
 				Assert.assertTrue(runandtestqueryR3D("select * from "+CLASS_NAME+"."+tables[i]+" where real3 between 1.5 and 2.5",1.5,2.0,2.5,"real3"));
 			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by real3 having real3 = 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by real1 having real1 < 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by real2 having real2 < 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by real3 having real3 < 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by real1 having real1 <= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by real2 having real2 <= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by real3 having real3 <= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by real1 having real1 > 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by real2 having real2 > 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by real3 having real3 > 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by real1 having real1 >= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by real2 having real2 >= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by real3 having real3 >= 2.0",1,"retval"));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -611,6 +799,18 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 				Assert.assertTrue(runandtestqueryrd("select * from "+CLASS_NAME+"."+tables[i]+" where double3 = 1",1.0,"double3"));
 				Assert.assertTrue(runandtestqueryR3D("select * from "+CLASS_NAME+"."+tables[i]+" where double3 between 1.5 and 2.5",1.5,2.0,2.5,"double3"));
 			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by double3 having double3 = 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by double1 having double1 < 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by double2 having double2 < 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by double3 having double3 < 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by double1 having double1 <= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by double2 having double2 <= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by double3 having double3 <= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by double1 having double1 > 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by double2 having double2 > 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by double3 having double3 > 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by double1 having double1 >= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by double2 having double2 >= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by double3 having double3 >= 2.0",1,"retval"));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -633,6 +833,18 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 				Assert.assertTrue(runandtestqueryrd("select * from "+CLASS_NAME+"."+tables[i]+" where float3 = 1",1.0,"float3"));
 				Assert.assertTrue(runandtestqueryR3D("select * from "+CLASS_NAME+"."+tables[i]+" where float3 between 1.5 and 2.5",1.5,2.0,2.5,"float3"));
 			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by float3 having float3 = 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by float1 having float1 < 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by float2 having float2 < 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by float3 having float3 < 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by float1 having float1 <= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by float2 having float2 <= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by float3 having float3 <= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by float1 having float1 > 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by float2 having float2 > 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by float3 having float3 > 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by float1 having float1 >= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by float2 having float2 >= 2.0",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by float3 having float3 >= 2.0",1,"retval"));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -655,6 +867,18 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+tables[i]+" where char3 = 'a'","a","char3"));
 				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+tables[i]+" where char3 between 'a' and 'c'","a","b","c","char3"));
 			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by char3 having char3 = 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by char1 having char1 < 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by char2 having char2 < 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by char3 having char3 < 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by char1 having char1 <= 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by char2 having char2 <= 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by char3 having char3 <= 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by char1 having char1 > 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by char2 having char2 > 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by char3 having char3 > 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by char1 having char1 >= 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by char2 having char2 >= 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by char3 having char3 >= 'b'",1,"retval"));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -677,6 +901,18 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+tables[i]+" where varchar3 = 'a'","a","varchar3"));
 				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+tables[i]+" where varchar3 between 'a' and 'c'","a","b","c","varchar3"));
 			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by varchar3 having varchar3 = 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by varchar1 having varchar1 < 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by varchar2 having varchar2 < 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by varchar3 having varchar3 < 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by varchar1 having varchar1 <= 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by varchar2 having varchar2 <= 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by varchar3 having varchar3 <= 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by varchar1 having varchar1 > 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by varchar2 having varchar2 > 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by varchar3 having varchar3 > 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by varchar1 having varchar1 >= 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by varchar2 having varchar2 >= 'b'",1,"retval"));
+			 	Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+tables[i]+" group by varchar3 having varchar3 >= 'b'",1,"retval"));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -698,6 +934,30 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar3 AS VARCHAR(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa'","aaaaaaaaaaaaaaaaaaaaaaaaaa","lvarchar3"));
 				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar3 as varchar(128)) between 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and 'cccccccccccccccccccccccccc'","aaaaaaaaaaaaaaaaaaaaaaaaaa","bbbbbbbbbbbbbbbbbbbbbbbbbb","cccccccccccccccccccccccccc","lvarchar3"));
 				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar3 as varchar(128)) = 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar3 as varchar(128)) = 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar1 as varchar(128)) < 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar1 as varchar(128)) < 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar2 as varchar(128)) < 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar2 as varchar(128)) < 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar3 as varchar(128)) < 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar3 as varchar(128)) < 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar1 as varchar(128)) <= 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar1 as varchar(128)) <= 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar2 as varchar(128)) <= 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar2 as varchar(128)) <= 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar3 as varchar(128)) <= 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar3 as varchar(128)) <= 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar1 as varchar(128)) > 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar1 as varchar(128)) > 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar2 as varchar(128)) > 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar2 as varchar(128)) > 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar3 as varchar(128)) > 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar3 as varchar(128)) > 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar1 as varchar(128)) >= 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar1 as varchar(128)) >= 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar2 as varchar(128)) >= 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar2 as varchar(128)) >= 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar3 as varchar(128)) >= 'aaaaaaaaaaaaaaaaaaaaaaaaaa' or CAST(lvarchar3 as varchar(128)) >= 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar1 as varchar(128)) < 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and CAST(lvarchar1 as varchar(128)) < 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",0,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar2 as varchar(128)) < 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and CAST(lvarchar2 as varchar(128)) < 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",0,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar3 as varchar(128)) < 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and CAST(lvarchar3 as varchar(128)) < 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",0,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar1 as varchar(128)) <= 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and CAST(lvarchar1 as varchar(128)) <= 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar2 as varchar(128)) <= 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and CAST(lvarchar2 as varchar(128)) <= 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar3 as varchar(128)) <= 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and CAST(lvarchar3 as varchar(128)) <= 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar1 as varchar(128)) > 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and CAST(lvarchar1 as varchar(128)) > 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar2 as varchar(128)) > 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and CAST(lvarchar2 as varchar(128)) > 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar3 as varchar(128)) > 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and CAST(lvarchar3 as varchar(128)) > 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar1 as varchar(128)) >= 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and CAST(lvarchar1 as varchar(128)) >= 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar2 as varchar(128)) >= 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and CAST(lvarchar2 as varchar(128)) >= 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(lvarchar3 as varchar(128)) >= 'aaaaaaaaaaaaaaaaaaaaaaaaaa' and CAST(lvarchar3 as varchar(128)) >= 'bbbbbbbbbbbbbbbbbbbbbbbbbb' ",2,"retval"));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -706,7 +966,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	}
 
 	@Test
-////	@Ignore
+//	@Ignore
 	public void testFieldCharForBITData() throws Exception{
 		try {
 			for(int i=0;i<btables.length;i++){
@@ -719,7 +979,26 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where charforbitdata3 = X'bcdefa2020202020'","bcdefa2020202020","charforbitdata3"));
 				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where charforbitdata3 between X'abcdef2020202020' and X'cdefab2020202020'","abcdef2020202020","bcdefa2020202020","cdefab2020202020","charforbitdata3"));
 				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata3 = X'bcdefa2020202020' or charforbitdata3 = X'cdefab2020202020' ",2,"retval"));
-				}
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata1 > X'abcdef2020202020' or charforbitdata1 < X'cdefab2020202020' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata1 > X'abcdef2020202020' or charforbitdata1 <= X'cdefab2020202020' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata1 >= X'abcdef2020202020' or charforbitdata1 <= X'cdefab2020202020' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata1 > X'abcdef2020202020' and charforbitdata1 < X'cdefab2020202020' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata1 > X'abcdef2020202020' and charforbitdata1 <= X'cdefab2020202020' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata1 >= X'abcdef2020202020' and charforbitdata1 <= X'cdefab2020202020' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata2 > X'abcdef2020202020' or charforbitdata3 < X'cdefab2020202020' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata2 > X'abcdef2020202020' or charforbitdata3 <= X'cdefab2020202020' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata2 >= X'abcdef2020202020' or charforbitdata3 <= X'cdefab2020202020' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata2 > X'abcdef2020202020' and charforbitdata3 < X'cdefab2020202020' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata2 > X'abcdef2020202020' and charforbitdata3 <= X'cdefab2020202020' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata2 >= X'abcdef2020202020' and charforbitdata3 <= X'cdefab2020202020' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata3 > X'abcdef2020202020' or charforbitdata3 < X'cdefab2020202020' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata3 > X'abcdef2020202020' or charforbitdata3 <= X'cdefab2020202020' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata3 >= X'abcdef2020202020' or charforbitdata3 <= X'cdefab2020202020' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata3 > X'abcdef2020202020' and charforbitdata3 < X'cdefab2020202020' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata3 > X'abcdef2020202020' and charforbitdata3 <= X'cdefab2020202020' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where charforbitdata3 >= X'abcdef2020202020' and charforbitdata3 <= X'cdefab2020202020' ",3,"retval"));
+
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
@@ -735,15 +1014,31 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata1 = X'234abcdef1'","234abcdef1","varcharforbitdata1"));
 				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata1 between X'1234abcdef' and X'cdefab2020202020'","1234abcdef","234abcdef1","34abcdef12","varcharforbitdata1"));
 				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata1 = X'234abcdef1' or varcharforbitdata1 = X'34abcdef12' ",2,"retval"));
-
 				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata2 = X'234abcdef1'","234abcdef1","varcharforbitdata2"));
 				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata2 between X'1234abcdef' and X'34abcdef12'","1234abcdef","234abcdef1","34abcdef12","varcharforbitdata2"));
 				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata2 = X'234abcdef1' or varcharforbitdata2 = X'34abcdef12' ",2,"retval"));
-				
 				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata3 = X'234abcdef1'","234abcdef1","varcharforbitdata3"));
 				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata3 between X'1234abcdef' and X'34abcdef12'","1234abcdef","234abcdef1","34abcdef12","varcharforbitdata3"));
 				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata3 = X'234abcdef1' or varcharforbitdata3 = X'34abcdef12' ",2,"retval"));
-				}
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata1 > X'1234abcdef' or varcharforbitdata1 < X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata1 > X'1234abcdef' or varcharforbitdata1 <= X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata1 >= X'1234abcdef' or varcharforbitdata1 <= X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata2 > X'1234abcdef' or varcharforbitdata2 < X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata2 > X'1234abcdef' or varcharforbitdata2 <= X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata2 >= X'1234abcdef' or varcharforbitdata2 <= X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata3 > X'1234abcdef' or varcharforbitdata3 < X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata3 > X'1234abcdef' or varcharforbitdata3 <= X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata3 >= X'1234abcdef' or varcharforbitdata3 <= X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata1 > X'1234abcdef' and varcharforbitdata1 < X'34abcdef12' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata1 > X'1234abcdef' and varcharforbitdata1 <= X'34abcdef12' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata1 >= X'1234abcdef' and varcharforbitdata1 <= X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata2 > X'1234abcdef' and varcharforbitdata2 < X'34abcdef12' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata2 > X'1234abcdef' and varcharforbitdata2 <= X'34abcdef12' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata2 >= X'1234abcdef' and varcharforbitdata2 <= X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata3 > X'1234abcdef' and varcharforbitdata3 < X'34abcdef12' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata3 > X'1234abcdef' and varcharforbitdata3 <= X'34abcdef12' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where varcharforbitdata3 >= X'1234abcdef' and varcharforbitdata3 <= X'34abcdef12' ",3,"retval"));
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
@@ -758,15 +1053,31 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) = X'234abcdef1'","234abcdef1","longvarcharforbitdata1"));
 				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) between X'1234abcdef' and X'34abcdef12'","1234abcdef","234abcdef1","34abcdef12","longvarcharforbitdata1"));
 				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) = X'234abcdef1' or CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) = X'34abcdef12' ",2,"retval"));
-
 				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) = X'234abcdef1'","234abcdef1","longvarcharforbitdata2"));
 				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) between X'1234abcdef' and X'34abcdef12'","1234abcdef","234abcdef1","34abcdef12","longvarcharforbitdata2"));
 				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) = X'234abcdef1' or CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) = X'34abcdef12' ",2,"retval"));
-				
 				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) = X'234abcdef1'","234abcdef1","longvarcharforbitdata3"));
 				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) between X'1234abcdef' and X'34abcdef12'","1234abcdef","234abcdef1","34abcdef12","longvarcharforbitdata3"));
 				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) = X'234abcdef1' or CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) = X'34abcdef12' ",2,"retval"));
-				}
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) > X'1234abcdef' or CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) < X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) > X'1234abcdef' or CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) <= X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) >= X'1234abcdef' or CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) <= X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) > X'1234abcdef' or CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) < X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) > X'1234abcdef' or CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) <= X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) >= X'1234abcdef' or CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) <= X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) > X'1234abcdef' or CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) < X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) > X'1234abcdef' or CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) <= X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) >= X'1234abcdef' or CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) <= X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) > X'1234abcdef' and CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) < X'34abcdef12' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) > X'1234abcdef' and CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) <= X'34abcdef12' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) >= X'1234abcdef' and CAST(longvarcharforbitdata1 AS  varchar(1024) for bit data) <= X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) > X'1234abcdef' and CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) < X'34abcdef12' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) > X'1234abcdef' and CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) <= X'34abcdef12' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) >= X'1234abcdef' and CAST(longvarcharforbitdata2 AS  varchar(1024) for bit data) <= X'34abcdef12' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) > X'1234abcdef' and CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) < X'34abcdef12' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) > X'1234abcdef' and CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) <= X'34abcdef12' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) >= X'1234abcdef' and CAST(longvarcharforbitdata3 AS  varchar(1024) for bit data) <= X'34abcdef12' ",3,"retval"));
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
@@ -781,15 +1092,31 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where date1 = '2014-05-02'","2014-05-02","date1"));
 				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where date1 between '2014-05-01' and '2014-05-03'","2014-05-01","2014-05-02","2014-05-03","date1"));
 				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date1 = '2014-05-02' or date1 = '2014-05-03' ",2,"retval"));
-
 				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where date2 = '2014-05-02'","2014-05-02","date2"));
 				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where date2 between '2014-05-01' and '2014-05-03'","2014-05-01","2014-05-02","2014-05-03","date2"));
 				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date2 = '2014-05-02' or date2 = '2014-05-03' ",2,"retval"));
-				
 				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where date3 = '2014-05-02'","2014-05-02","date3"));
 				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where date3 between '2014-05-01' and '2014-05-03'","2014-05-01","2014-05-02","2014-05-03","date3"));
 				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date3 = '2014-05-02' or date3 = '2014-05-03' ",2,"retval"));
-				}
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date1 > '2014-05-01' or date1 < '2014-05-03' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date1 > '2014-05-01' or date1 <= '2014-05-03' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date1 >= '2014-05-01' or date1 <= '2014-05-03' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date2 > '2014-05-01' or date2 < '2014-05-03' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date2 > '2014-05-01' or date2 <= '2014-05-03' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date2 >= '2014-05-01' or date2 <= '2014-05-03' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date3 > '2014-05-01' or date3 < '2014-05-03' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date3 > '2014-05-01' or date3 <= '2014-05-03' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date3 >= '2014-05-01' or date3 <= '2014-05-03' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date1 > '2014-05-01' and date1 < '2014-05-03' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date1 > '2014-05-01' and date1 <= '2014-05-03' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date1 >= '2014-05-01' and date1 <= '2014-05-03' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date2 > '2014-05-01' and date2 < '2014-05-03' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date2 > '2014-05-01' and date2 <= '2014-05-03' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date2 >= '2014-05-01' and date2 <= '2014-05-03' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date3 > '2014-05-01' and date3 < '2014-05-03' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date3 > '2014-05-01' and date3 <= '2014-05-03' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where date3 >= '2014-05-01' and date3 <= '2014-05-03' ",3,"retval"));
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
@@ -804,24 +1131,77 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where time1 = '06:06:06'","06:06:06","time1"));
 				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where time1 between '05:05:05' and '07:07:07'","05:05:05","06:06:06","07:07:07","time1"));
 				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time1 = '06:06:06' or time1 = '07:07:07' ",2,"retval"));
-
 				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where time2 = '06:06:06'","06:06:06","time2"));
 				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where time2 between '05:05:05' and '07:07:07'","05:05:05","06:06:06","07:07:07","time2"));
 				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time2 = '06:06:06' or time2 = '07:07:07' ",2,"retval"));
-				
 				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where time3 = '06:06:06'","06:06:06","time3"));
 				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where time3 between '05:05:05' and '07:07:07'","05:05:05","06:06:06","07:07:07","time3"));
 				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time3 = '06:06:06' or time3 = '07:07:07' ",2,"retval"));
-				}
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time1 > '05:05:05' or time1 < '07:07:07' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time1 > '05:05:05' or time1 <= '07:07:07' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time1 >= '05:05:05' or time1 <= '07:07:07' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time2 > '05:05:05' or time2 < '07:07:07' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time2 > '05:05:05' or time2 <= '07:07:07' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time2 >= '05:05:05' or time2 <= '07:07:07' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time3 > '05:05:05' or time3 < '07:07:07' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time3 > '05:05:05' or time3 <= '07:07:07' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time3 >= '05:05:05' or time3 <= '07:07:07' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time1 > '05:05:05' and time1 < '07:07:07' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time1 > '05:05:05' and time1 <= '07:07:07' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time1 >= '05:05:05' and time1 <= '07:07:07' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time2 > '05:05:05' and time2 < '07:07:07' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time2 > '05:05:05' and time2 <= '07:07:07' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time2 >= '05:05:05' and time2 <= '07:07:07' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time3 > '05:05:05' and time3 < '07:07:07' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time3 > '05:05:05' and time3 <= '07:07:07' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where time3 >= '05:05:05' and time3 <= '07:07:07' ",3,"retval"));
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
 	}
 
-	
+	@Test
+//	@Ignore
+	public void testFieldTimestamp() throws Exception{
+		try {
+			for(int i=0;i<btables.length;i++){
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where timestamp1 = '2014-05-02 00:00:00'","2014-05-02 00:00:00.0","timestamp1"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where timestamp1 between '2014-05-01 00:00:00' and '2014-05-01 00:00:00'","2014-05-01 00:00:00.0","2014-05-02 00:00:00.0","2014-05-03 00:00:00.0","timestamp1"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp1 = '2014-05-02 00:00:00' or timestamp1 = '2014-05-01 00:00:00' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where timestamp2 = '2014-05-02 00:00:00'","2014-05-02 00:00:00.0","timestamp2"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where timestamp2 between '2014-05-01 00:00:00' and '2014-05-03 00:00:00'","2014-05-01 00:00:00.0","2014-05-02 00:00:00.0","2014-05-03 00:00:00.0","timestamp2"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp2 = '2014-05-02 00:00:00' or timestamp2 = '2014-05-03 00:00:00' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryrs("select * from "+CLASS_NAME+"."+btables[i]+" where timestamp3 = '2014-05-02 00:00:00'","2014-05-02 00:00:00.0","timestamp3"));
+				Assert.assertTrue(runandtestqueryR3S("select * from "+CLASS_NAME+"."+btables[i]+" where timestamp3 between '2014-05-01 00:00:00' and '2014-05-03 00:00:00'","2014-05-01 00:00:00.0","2014-05-02 00:00:00.0","2014-05-03 00:00:00.0","timestamp3"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp3 = '2014-05-02 00:00:00' or timestamp3 = '2014-05-03 00:00:00' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp1 > '2014-05-01 00:00:00' or timestamp1 < '2014-05-03 00:00:00' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp1 >= '2014-05-01 00:00:00' or timestamp1 <= '2014-05-03 00:00:00' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp1 > '2014-05-01 00:00:00' or timestamp1 <= '2014-05-03 00:00:00' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp2 > '2014-05-01 00:00:00' or timestamp2 < '2014-05-03 00:00:00' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp2 >= '2014-05-01 00:00:00' or timestamp2 <= '2014-05-03 00:00:00' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp2 > '2014-05-01 00:00:00' or timestamp2 <= '2014-05-03 00:00:00' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp3 > '2014-05-01 00:00:00' or timestamp3 < '2014-05-03 00:00:00' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp3 >= '2014-05-01 00:00:00' or timestamp3 <= '2014-05-03 00:00:00' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp3 > '2014-05-01 00:00:00' or timestamp3 <= '2014-05-03 00:00:00' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp1 > '2014-05-01 00:00:00' and timestamp1 < '2014-05-03 00:00:00' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp1 >= '2014-05-01 00:00:00' and timestamp1 <= '2014-05-03 00:00:00' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp1 > '2014-05-01 00:00:00' and timestamp1 <= '2014-05-03 00:00:00' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp2 > '2014-05-01 00:00:00' and timestamp2 < '2014-05-03 00:00:00' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp2 >= '2014-05-01 00:00:00' and timestamp2 <= '2014-05-03 00:00:00' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp2 > '2014-05-01 00:00:00' and timestamp2 <= '2014-05-03 00:00:00' ",2,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp3 > '2014-05-01 00:00:00' and timestamp3 < '2014-05-03 00:00:00' ",1,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp3 >= '2014-05-01 00:00:00' and timestamp3 <= '2014-05-03 00:00:00' ",3,"retval"));
+				Assert.assertTrue(runandtestqueryri("select count(*) as retval from "+CLASS_NAME+"."+btables[i]+" where timestamp3 > '2014-05-01 00:00:00' and timestamp3 <= '2014-05-03 00:00:00' ",2,"retval"));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
+	}
+
 	public static String getResource(String name) {
 			return getResourceDirectory()+"/datatypedata/"+name;
-//			return "/Users/leightj/Documents/workspace/data/testdata/"+name;
 	}
 }
