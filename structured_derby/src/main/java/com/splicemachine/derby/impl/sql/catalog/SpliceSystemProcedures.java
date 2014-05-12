@@ -399,7 +399,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
 
 			// Add SYSFUN schema functions, for functions that are Splice standard
 			// but not ANSI standard. Much more convenient than adding them
-			// to the sql grammer, and meets same requirement in most cases.
+			// to the SQL grammar, and meets same requirement in most cases.
             UUID sysFunUUID = dictionary.getSysFunSchemaDescriptor().getUUID();
             @SuppressWarnings("unchecked")
 			List<Procedure> sysFunProcs = (List<Procedure>)sysProcedures.get(sysFunUUID);
@@ -413,8 +413,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
     		            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
     		            .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
     		            .varchar("SUBSTR", Limits.DB2_VARCHAR_MAXWIDTH)
+    		            .build(),
+					Procedure.newBuilder().name("INITCAP")
+    		        	.numOutputParams(0)
+    		        	.numResultSets(0)
+    		            .sqlControl(RoutineAliasInfo.NO_SQL)
+    		            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
+    		            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+    		            .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
     		            .build()
-    		    });
+	   		    });
     	        sysProcedures.put(sysFunUUID, sysFunProcs);
             }
     		

@@ -34,10 +34,15 @@ public class SpliceStringFunctionsIT {
     private static final SpliceTableWatcher tableWatcherB = new SpliceTableWatcher(
     	"B", schemaWatcher.schemaName, "(a int, b varchar(30), c varchar(30), d int)");
 
+    // Table for INITCAP testing.
+    private static final SpliceTableWatcher tableWatcherC = new SpliceTableWatcher(
+    	"C", schemaWatcher.schemaName, "(a varchar(30), b varchar(30))");
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
             .around(tableWatcherB)
+            .around(tableWatcherC)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -104,6 +109,12 @@ public class SpliceStringFunctionsIT {
                         ps.setInt   (4, 0);
                         ps.execute();
 
+                        ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherC + " (a, b) values (?, ?)");
+                        ps.setObject(1, "freDdy kruGeR");
+                        ps.setString(2, "Freddy Kruger");
+                        ps.execute();
+
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -130,5 +141,19 @@ public class SpliceStringFunctionsIT {
             count++;
 	    }
 	    Assert.assertEquals("Incorrect row count", 9, count);
+    }
+
+    @Test
+    public void testInitcapFunction() throws Exception {
+	    String sCell1 = null;
+	    String sCell2 = null;
+	    ResultSet rs;
+	    
+	    rs = methodWatcher.executeQuery("SELECT INITCAP(a), b from " + tableWatcherC);
+	    while (rs.next()) {
+    		sCell1 = rs.getString(1);
+            sCell2 = rs.getString(2);
+            Assert.assertEquals("Wrong result value", sCell1, sCell2);
+	    }
     }
 }
