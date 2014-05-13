@@ -9,6 +9,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.hbase.ReadAheadRegionScanner;
 import com.splicemachine.si.coprocessors.SIFilter;
 import com.splicemachine.stats.Counter;
 import com.splicemachine.stats.MetricFactory;
@@ -313,10 +314,9 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
         localScan = boundary.buildScan(transactionId,localStart,localFinish);
         localScan.setFilter(scan.getFilter());
 				localScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-        localScanner = new BufferedRegionScanner(region,
-								region.getScanner(localScan),
-								localScan,
-								SpliceConstants.DEFAULT_CACHE_SIZE, metricFactory );
+        localScanner = new ReadAheadRegionScanner(region,
+								SpliceConstants.DEFAULT_CACHE_SIZE,
+								region.getScanner(localScan), metricFactory );
 				if(remoteStart!=null){
             Scan lookBehindScan = boundary.buildScan(transactionId,remoteStart,regionFinish);
             lookBehindScan.setFilter(scan.getFilter());
