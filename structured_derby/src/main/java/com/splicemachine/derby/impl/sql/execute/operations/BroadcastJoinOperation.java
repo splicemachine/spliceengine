@@ -144,17 +144,6 @@ public class BroadcastJoinOperation extends JoinOperation {
 		private Joiner initJoiner(final SpliceRuntimeContext ctx)
             throws StandardException, IOException {
 //				submitRightHandSideLookup(ctx);
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                try {
-//                    rightSideMap = retrieveRightSideCache(ctx);
-//                } catch (StandardException e) {
-//                    throw new RuntimeException(e);
-//                }
-//                latch.countDown();
-//            }
-//        }).start();
         //rightSideMap = retrieveRightSideCache(ctx);
         StandardPushBackIterator<ExecRow> leftRows =
             new StandardPushBackIterator<ExecRow>(StandardIterators.wrap(new Callable<ExecRow>() {
