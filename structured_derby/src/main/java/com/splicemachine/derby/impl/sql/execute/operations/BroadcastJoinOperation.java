@@ -7,6 +7,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Iterators;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -42,9 +43,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class BroadcastJoinOperation extends JoinOperation {
     private static final long serialVersionUID = 2l;
@@ -77,8 +76,9 @@ public class BroadcastJoinOperation extends JoinOperation {
 
     private Counter rightCounter;
     private Counter leftCounter;
+		private Future<Void> rhsFuture;
 
-    public BroadcastJoinOperation() {
+		public BroadcastJoinOperation() {
         super();
     }
 
@@ -123,7 +123,6 @@ public class BroadcastJoinOperation extends JoinOperation {
         if (joiner == null) {
             // do inits on first call
             timer = spliceRuntimeContext.newTimer();
-            rightCounter = spliceRuntimeContext.newCounter();
             leftCounter = spliceRuntimeContext.newCounter();
             joiner = initJoiner(spliceRuntimeContext);
             joiner.open();
@@ -140,20 +139,22 @@ public class BroadcastJoinOperation extends JoinOperation {
         return next;
     }
 
-    private Joiner initJoiner(final SpliceRuntimeContext ctx)
+		private static final ExecutorService rhsLookupService = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setDaemon(true).setNameFormat("broadcast-lookup-%d").build());
+
+		private Joiner initJoiner(final SpliceRuntimeContext ctx)
             throws StandardException, IOException {
-        final CountDownLatch latch = new CountDownLatch(1);
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    rightSideMap = retrieveRightSideCache(ctx);
-                } catch (StandardException e) {
-                    throw new RuntimeException(e);
-                }
-                latch.countDown();
-            }
-        }).start();
+//				submitRightHandSideLookup(ctx);
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    rightSideMap = retrieveRightSideCache(ctx);
+//                } catch (StandardException e) {
+//                    throw new RuntimeException(e);
+//                }
+//                latch.countDown();
+//            }
+//        }).start();
         //rightSideMap = retrieveRightSideCache(ctx);
         StandardPushBackIterator<ExecRow> leftRows =
             new StandardPushBackIterator<ExecRow>(StandardIterators.wrap(new Callable<ExecRow>() {
@@ -171,11 +172,13 @@ public class BroadcastJoinOperation extends JoinOperation {
         ExecRow firstLeft = leftRows.next(ctx);
         leftRows.pushBack(firstLeft == null ? null : firstLeft.getClone());
         try {
-            latch.await();
+						rhsFuture.get();
         } catch (InterruptedException ie){
             Thread.currentThread().interrupt();
-        }
-        DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(leftRow);
+        } catch (ExecutionException e) {
+						throw Exceptions.parseException(e);
+				}
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(leftRow);
         final KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(leftHashKeys, null, serializers), NoOpPostfix.INSTANCE);
         Function<ExecRow, List<ExecRow>> lookup = new Function<ExecRow, List<ExecRow>>() {
             @Override
@@ -199,7 +202,20 @@ public class BroadcastJoinOperation extends JoinOperation {
                              oneRowRightSide, notExistsRightSide, emptyRowSupplier);
     }
 
-    @Override
+		private void submitRightHandSideLookup(final SpliceRuntimeContext ctx) {
+				if(rhsFuture!=null) return;
+
+				rhsFuture = rhsLookupService.submit(new Callable<Void>(){
+
+						@Override
+						public Void call() throws Exception {
+								rightSideMap = retrieveRightSideCache(ctx);
+								return null;
+						}
+				});
+		}
+
+		@Override
     public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
         return leftResultSet.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
     }
@@ -218,6 +234,16 @@ public class BroadcastJoinOperation extends JoinOperation {
         mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
         rightResultSet.init(context);
         startExecutionTime = System.currentTimeMillis();
+
+				if(regionScanner!=null){
+					/*
+					 *	We are on a region where we are being processed, so
+					 *we can go ahead and start fetching the right hand side ahead of time.
+					 */
+						SpliceRuntimeContext runtimeContext = context.getRuntimeContext();
+						rightCounter = runtimeContext.newCounter();
+						submitRightHandSideLookup(runtimeContext);
+				}
     }
 
     @Override
