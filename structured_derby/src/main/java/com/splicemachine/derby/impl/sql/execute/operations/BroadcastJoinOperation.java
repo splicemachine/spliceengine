@@ -327,6 +327,7 @@ public class BroadcastJoinOperation extends JoinOperation {
             logSize(rightResultSet, cache);
         }
         return Collections.unmodifiableMap(cache);
+        resultSet.close();
     }
 
     private static void logSize(SpliceOperation op, Map inMemoryMap){
