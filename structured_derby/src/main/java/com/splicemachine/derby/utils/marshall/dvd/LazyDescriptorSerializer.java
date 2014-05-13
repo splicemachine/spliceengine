@@ -65,7 +65,7 @@ public class LazyDescriptorSerializer implements DescriptorSerializer {
 						int offset = fieldDecoder.offset();
 						DerbyBytesUtil.skipField(fieldDecoder, destDvd);
 						int length = fieldDecoder.offset()-offset-1;
-						ldvd.initForDeserialization(tableVersion,fieldDecoder.array(),offset,length,desc);
+						ldvd.initForDeserialization(tableVersion,delegate,fieldDecoder.array(),offset,length,desc);
 				}else
 						delegate.decode(fieldDecoder,destDvd,desc);
 		}
@@ -74,7 +74,7 @@ public class LazyDescriptorSerializer implements DescriptorSerializer {
 		public void decodeDirect(DataValueDescriptor destDvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
 				if(destDvd.isLazy()){
 						LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor)destDvd;
-						ldvd.initForDeserialization(tableVersion, data, offset, length, desc);
+						ldvd.initForDeserialization(tableVersion,delegate, data, offset, length, desc);
 				}else
 						delegate.decodeDirect(destDvd,data,offset,length,desc);
 		}

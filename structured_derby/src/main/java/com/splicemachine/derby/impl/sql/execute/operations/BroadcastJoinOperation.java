@@ -220,9 +220,6 @@ public class BroadcastJoinOperation extends JoinOperation {
         super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
-        mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
-        rightResultSet.init(context);
-        startExecutionTime = System.currentTimeMillis();
 
 				if(regionScanner!=null){
 					/*
@@ -233,6 +230,7 @@ public class BroadcastJoinOperation extends JoinOperation {
 						rightCounter = runtimeContext.newCounter();
 						submitRightHandSideLookup(runtimeContext);
 				}
+				startExecutionTime = System.currentTimeMillis();
     }
 
     @Override
