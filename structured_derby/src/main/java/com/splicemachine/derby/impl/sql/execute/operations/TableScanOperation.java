@@ -16,6 +16,7 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.stats.TimeView;
+import com.splicemachine.tools.splice;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Snowflake;
@@ -239,7 +240,8 @@ public class TableScanOperation extends ScanOperation {
 										.accessedKeyColumns(scanInformation.getAccessedPkColumns())
 										.keyDecodingMap(getKeyDecodingMap())
 										.rowDecodingMap(baseColumnMap).build();
-
+						timer = spliceRuntimeContext.newTimer();
+						timer.startTiming();
 				}
 
 				currentRow = tableScanner.next(spliceRuntimeContext);
@@ -247,6 +249,7 @@ public class TableScanOperation extends ScanOperation {
 						setCurrentRow(currentRow);
 						setCurrentRowLocation(tableScanner.getCurrentRowLocation());
 				}else{
+						timer.stopTiming();
 						clearCurrentRow();
 						stopExecutionTime = System.currentTimeMillis();
 						currentRowLocation = null;
