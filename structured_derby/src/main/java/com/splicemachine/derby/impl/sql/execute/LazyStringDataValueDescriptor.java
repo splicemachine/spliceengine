@@ -83,7 +83,7 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
             }
 						this.isNull = result == null;
 						if(!isNull){
-								initForDeserialization(tableVersion,result,0,result.length,descendingOrder); //TODO -sf- is descendingOrder always right?
+								initForDeserialization(tableVersion,serializer,result,0,result.length,descendingOrder); //TODO -sf- is descendingOrder always right?
 						}
         } else {
             dvd.normalize(dtd, source);
@@ -202,7 +202,7 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
     public DataValueDescriptor cloneValue(boolean forceMaterialization) {
     	if (this.isSerialized()) {
     		LazyStringDataValueDescriptor lsdv = new LazyStringDataValueDescriptor((StringDataValue) sdv.cloneHolder());
-    		lsdv.initForDeserialization(tableVersion,bytes.array(), bytes.offset(), bytes.length(), descendingOrder);
+    		lsdv.initForDeserialization(tableVersion,serializer,bytes.array(), bytes.offset(), bytes.length(), descendingOrder);
     		return lsdv;
     	}
     	forceDeserialization();
