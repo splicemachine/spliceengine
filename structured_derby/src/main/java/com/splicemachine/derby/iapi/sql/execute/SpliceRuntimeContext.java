@@ -137,6 +137,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
         }
         out.writeByte(hashBucket);
         out.writeBoolean(firstStepInMultistep);
+				out.writeBoolean(recordTraceMetrics);
     }
 
     @Override
@@ -148,6 +149,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
         }
         hashBucket = in.readByte();
         firstStepInMultistep = in.readBoolean();
+				this.recordTraceMetrics = in.readBoolean();
     }
 
 
