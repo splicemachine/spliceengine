@@ -5,6 +5,7 @@ import java.sql.SQLWarning;
 import java.sql.Timestamp;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.stats.IOStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
@@ -425,5 +426,9 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 		}
 		public void setRegionName(String regionName){
 				this.regionName = regionName;
+		}
+
+		public IOStats getStats() {
+				return rowProvider.getIOStats();
 		}
 }

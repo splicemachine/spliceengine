@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.utils.IOStandardIterator;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardPushBackIterator;
 import org.apache.derby.iapi.error.StandardException;
@@ -46,7 +47,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
      * @param rightKeys     Join Key(s) on which right side is sorted
      */
     public MergeJoinRows(StandardIterator<ExecRow> leftRS,
-                         StandardIterator<ExecRow> rightRS,
+                         IOStandardIterator<ExecRow> rightRS,
                          int[] leftKeys, int[] rightKeys) {
         this.leftRS = leftRS;
         this.rightRS = new StandardPushBackIterator<ExecRow>(rightRS);
@@ -136,16 +137,16 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
     }
 
     @Override
-    public int getLeftRowsSeen() {
+    public long getLeftRowsSeen() {
         return leftRowsSeen;
     }
 
     @Override
-    public int getRightRowsSeen() {
+    public long getRightRowsSeen() {
         return rightRowsSeen;
     }
 
-    @Override
+		@Override
     public void open() throws StandardException, IOException {
         leftRS.open();
         rightRS.open();

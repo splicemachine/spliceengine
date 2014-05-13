@@ -423,7 +423,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             }
         };
         return new Joiner(joinRows, mergedRow, mergeRestriction, outer, wasRightOuterJoin, leftNumCols, rightNumCols,
-                             oneRowRightSide, notExistsRightSide, emptyRowSupplier);
+                             oneRowRightSide, notExistsRightSide, emptyRowSupplier,spliceRuntimeContext);
     }
 
     private ResultMergeScanner getMergeScanner(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {

@@ -61,7 +61,7 @@ public class MergeJoinRowsTest {
         IJoinRowsIterator<ExecRow> pairs =
                 new MergeJoinRows(
                         StandardIterators.wrap(Lists.transform(leftRowStrings, toRow)),
-                        StandardIterators.wrap(Lists.transform(rightRowStrings, toRow)),
+                        StandardIterators.noIO(Lists.transform(rightRowStrings, toRow)),
                         new int[]{1},
                         new int[]{1});
         Pair<ExecRow,Iterator<ExecRow>> p;
@@ -75,7 +75,7 @@ public class MergeJoinRowsTest {
         IJoinRowsIterator<ExecRow> pairs =
                 new MergeJoinRows(
                         StandardIterators.wrap(Lists.transform(leftRowStrings, toRow)),
-                        StandardIterators.wrap(Lists.transform(rightRowStrings, toRow)),
+                        StandardIterators.noIO(Lists.transform(rightRowStrings, toRow)),
                         new int[]{1},
                         new int[]{1});
         int pos = 0;

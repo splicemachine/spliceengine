@@ -28,9 +28,10 @@ public class Joiner {
     private final boolean oneRowRightSide;
     private final boolean antiJoin;
     private final StandardSupplier<ExecRow> emptyRowSupplier;
+		private final Counter filteredRows;
 
 
-    public Joiner(IJoinRowsIterator<ExecRow> joinRowsSource,
+		public Joiner(IJoinRowsIterator<ExecRow> joinRowsSource,
                   ExecRow mergedRowTemplate,
                   boolean isOuterJoin,
                   boolean wasRightOuterJoin,
@@ -38,10 +39,10 @@ public class Joiner {
                   int rightNumCols,
                   boolean oneRowRightSide,
                   boolean antiJoin,
-                  StandardSupplier<ExecRow> emptyRowSupplier) {
+                  StandardSupplier<ExecRow> emptyRowSupplier,MetricFactory metricFactory) {
         this(joinRowsSource, mergedRowTemplate, Restriction.noOpRestriction, isOuterJoin,
                 wasRightOuterJoin, leftNumCols, rightNumCols, oneRowRightSide, antiJoin,
-                emptyRowSupplier);
+                emptyRowSupplier,metricFactory);
     }
 
     public Joiner(IJoinRowsIterator<ExecRow> joinRowsSource,
@@ -53,7 +54,8 @@ public class Joiner {
 									int rightNumCols,
 									boolean oneRowRightSide,
 									boolean antiJoin,
-									StandardSupplier<ExecRow> emptyRowSupplier) {
+									StandardSupplier<ExecRow> emptyRowSupplier,
+									MetricFactory metricFactory) {
         this.isOuterJoin = isOuterJoin;
         this.wasRightOuterJoin = wasRightOuterJoin;
         this.leftNumCols = leftNumCols;
@@ -66,6 +68,7 @@ public class Joiner {
         if (emptyRowSupplier == null)
             emptyRowSupplier = StandardSuppliers.emptySupplier();
         this.emptyRowSupplier = emptyRowSupplier;
+				this.filteredRows = metricFactory.newCounter();
     }
 
     private ExecRow getMergedRow(ExecRow left, ExecRow right) {
@@ -88,6 +91,7 @@ public class Joiner {
             while (rightSideRowIterator.hasNext()) {
                 ExecRow candidate = getMergedRow(currentLeftRow, rightSideRowIterator.next());
                 if (!mergeRestriction.apply(candidate)) {
+										filteredRows.increment();
                     // if doesn't match restriction, discard row
                     continue;
                 }
@@ -142,12 +146,16 @@ public class Joiner {
         joinRowsSource.close();
     }
 
-    public int getLeftRowsSeen() {
+    public long getLeftRowsSeen() {
         return joinRowsSource.getLeftRowsSeen();
     }
 
-    public int getRightRowsSeen() {
+    public long getRightRowsSeen() {
         return joinRowsSource.getRightRowsSeen();
     }
+
+		public long getRowsFiltered(){
+				return filteredRows.getTotal();
+		}
 
 }

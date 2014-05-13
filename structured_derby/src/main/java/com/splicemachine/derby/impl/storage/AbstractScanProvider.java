@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.storage;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.stats.IOStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -56,7 +57,7 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 		return 0;
 	}
 
-	@Override
+		@Override
     public boolean hasNext() throws StandardException,IOException {
         if(populated)return true;
         called++;

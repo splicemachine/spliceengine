@@ -172,7 +172,13 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		@Override
 		public Timer newTimer(){
 				if(!recordTraceMetrics) return Metrics.noOpTimer();
-				return Metrics.samplingTimer(SpliceConstants.sampleTimingSize);
+				return Metrics.newTimer();
+		}
+
+		@Override
+		public Timer newWallTimer() {
+				if(!recordTraceMetrics) return Metrics.noOpTimer();
+				return Metrics.newWallTimer();
 		}
 
 		@Override

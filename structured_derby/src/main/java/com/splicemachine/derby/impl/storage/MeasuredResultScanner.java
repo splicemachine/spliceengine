@@ -29,7 +29,7 @@ public class MeasuredResultScanner extends ReopenableScanner implements SpliceRe
 				this.htable = htable;
                 this.scan = scan;
                 this.delegate = delegate;
-				this.remoteTimer = metricFactory.newTimer();
+				this.remoteTimer = metricFactory.newWallTimer();
 				this.remoteBytesCounter = metricFactory.newCounter();
 		}
 

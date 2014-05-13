@@ -15,6 +15,8 @@ import com.splicemachine.job.JobResults;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.stats.IOStats;
+import com.splicemachine.stats.Metrics;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -283,6 +285,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
 				//no-op
 				@Override public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {  }
+
+				@Override
+				public IOStats getIOStats() {
+						return Metrics.noOpIOStats();
+				}
 
 				@Override
 				public void open()  {

@@ -210,17 +210,15 @@ public class TableScanOperation extends ScanOperation {
 
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {
-				if(regionScanner!=null){
-						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsVisited());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,regionScanner.getBytesVisited());
-						TimeView readTimer = regionScanner.getReadTime();
-						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTimer.getCpuTime());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTimer.getUserTime());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,readTimer.getWallClockTime());
-				}
 				if(tableScanner!=null){
 						stats.addMetric(OperationMetric.FILTERED_ROWS,tableScanner.getRowsFiltered());
-						stats.addMetric(OperationMetric.OUTPUT_ROWS,tableScanner.getRowsVisited());
+						stats.addMetric(OperationMetric.OUTPUT_ROWS,tableScanner.getRowsVisited()-tableScanner.getRowsFiltered());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,tableScanner.getRowsVisited());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,tableScanner.getBytesVisited());
+						TimeView time = tableScanner.getTime();
+						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME, time.getWallClockTime());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME, time.getCpuTime());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME, time.getUserTime());
 				}
 		}
 
@@ -250,6 +248,7 @@ public class TableScanOperation extends ScanOperation {
 						setCurrentRowLocation(tableScanner.getCurrentRowLocation());
 				}else{
 						clearCurrentRow();
+						stopExecutionTime = System.currentTimeMillis();
 						currentRowLocation = null;
 				}
 

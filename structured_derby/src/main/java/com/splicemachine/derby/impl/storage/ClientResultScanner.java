@@ -50,7 +50,7 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
             keyDistributor = new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(bucketingStrategy));
 				}else
             keyDistributor = null;
-				this.remoteReadTimer = metricFactory.newTimer();
+				this.remoteReadTimer = metricFactory.newWallTimer();
 				this.remoteBytesRead = metricFactory.newCounter();
     }
 

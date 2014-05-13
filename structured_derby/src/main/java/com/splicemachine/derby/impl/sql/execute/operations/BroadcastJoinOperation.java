@@ -188,7 +188,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         return new Joiner(new BroadCastJoinRows(leftRows, lookup),
                              getExecRowDefinition(), getRestriction(), isOuterJoin,
                              wasRightOuterJoin, leftNumCols, rightNumCols,
-                             oneRowRightSide, notExistsRightSide, emptyRowSupplier);
+                             oneRowRightSide, notExistsRightSide, emptyRowSupplier,ctx);
     }
 
 		private void submitRightHandSideLookup(final SpliceRuntimeContext ctx) {
