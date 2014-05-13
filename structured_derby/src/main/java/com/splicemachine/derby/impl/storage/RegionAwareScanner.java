@@ -317,6 +317,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
         localScanner = new ReadAheadRegionScanner(region,
 								SpliceConstants.DEFAULT_CACHE_SIZE,
 								region.getScanner(localScan), metricFactory );
+				localScanner.start();
 				if(remoteStart!=null){
             Scan lookBehindScan = boundary.buildScan(transactionId,remoteStart,regionFinish);
             lookBehindScan.setFilter(scan.getFilter());
