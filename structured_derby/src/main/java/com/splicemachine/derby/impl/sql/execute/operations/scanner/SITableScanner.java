@@ -168,7 +168,6 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 
 		@Override
 		public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				timer.startTiming();
 
 				SIFilter filter = getSIFilter();
 				if(keyValues==null)
@@ -179,7 +178,6 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 						template.resetRowArray(); //necessary to deal with null entries--maybe make the underlying call faster?
 						hasRow = regionScanner.next(keyValues);
 						if(keyValues.size()<=0){
-								timer.stopTiming();
 								currentRowLocation = null;
 								return null;
 						}else{
@@ -195,12 +193,10 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 										continue;
 								}
 								setRowLocation(keyValues.get(0));
-								timer.tick(1);
 								return template;
 						}
 				}while(hasRow);
 
-				timer.stopTiming();
 				currentRowLocation = null;
 				return null;
 		}
