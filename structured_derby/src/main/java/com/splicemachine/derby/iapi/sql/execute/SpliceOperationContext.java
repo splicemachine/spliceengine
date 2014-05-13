@@ -100,7 +100,9 @@ public class SpliceOperationContext {
         return getScanner(cacheBlocks);
     }
 
-    public MeasuredRegionScanner getScanner(boolean enableBlockCache) throws IOException{
+		public SpliceRuntimeContext getRuntimeContext() { return spliceRuntimeContext; }
+
+		public MeasuredRegionScanner getScanner(boolean enableBlockCache) throws IOException{
         if(scanner==null){
             if(region==null)return null;
 
