@@ -340,7 +340,6 @@ public class BroadcastJoinOperation extends JoinOperation {
         if (LOG.isDebugEnabled()){
             logSize(rightResultSet, cache);
         }
-        resultSet.close();
         return Collections.unmodifiableMap(cache);
     }
 
