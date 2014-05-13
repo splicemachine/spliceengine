@@ -168,7 +168,8 @@ public class BroadcastJoinOperation extends JoinOperation {
             }));
         // fetch first row & push back
         leftRows.open();
-        leftRows.pushBack(leftRows.next(ctx));
+        ExecRow firstLeft = leftRows.next(ctx);
+        leftRows.pushBack(firstLeft == null ? null : firstLeft.getClone());
         try {
             latch.await();
         } catch (InterruptedException ie){
@@ -326,8 +327,8 @@ public class BroadcastJoinOperation extends JoinOperation {
         if (LOG.isDebugEnabled()){
             logSize(rightResultSet, cache);
         }
-        return Collections.unmodifiableMap(cache);
         resultSet.close();
+        return Collections.unmodifiableMap(cache);
     }
 
     private static void logSize(SpliceOperation op, Map inMemoryMap){
