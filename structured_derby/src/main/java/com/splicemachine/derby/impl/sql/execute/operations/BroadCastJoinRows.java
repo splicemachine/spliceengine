@@ -51,12 +51,12 @@ public class BroadCastJoinRows implements IJoinRowsIterator<ExecRow> {
     }
 
     @Override
-    public int getLeftRowsSeen() {
+    public long getLeftRowsSeen() {
         return leftRowsSeen;
     }
 
     @Override
-    public int getRightRowsSeen() {
+    public long getRightRowsSeen() {
         return rightRowsSeen;
     }
 

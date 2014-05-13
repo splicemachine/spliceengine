@@ -7,6 +7,7 @@ import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
+import com.splicemachine.stats.IOStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -49,7 +50,7 @@ public abstract class MultiScanRowProvider implements RowProvider {
         return RowProviders.completeAllJobs(jobs, true);
     }
 
-    private void cancelAll(Collection<Pair<JobFuture, JobInfo>> jobs) {
+		private void cancelAll(Collection<Pair<JobFuture, JobInfo>> jobs) {
         //cancel all remaining tasks
         for (Pair<JobFuture, JobInfo> jobToCancel : jobs) {
             try {

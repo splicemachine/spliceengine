@@ -10,6 +10,7 @@ import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
@@ -48,7 +49,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		private final Timer timer;
 		private final Counter filterCounter;
 
-		private RegionScanner regionScanner;
+		private MeasuredRegionScanner regionScanner;
 		private final Scan scan;
 		private final ExecRow template;
 		private final String tableVersion;
@@ -75,7 +76,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		private final SIFilterFactory filterFactory;
 
 
-		SITableScanner(RegionScanner scanner,
+		SITableScanner(MeasuredRegionScanner scanner,
 													ExecRow template,
 													MetricFactory metricFactory,
 													Scan scan,
@@ -103,7 +104,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 							tableVersion,null);
 		}
 
-		SITableScanner(RegionScanner scanner,
+		SITableScanner(MeasuredRegionScanner scanner,
 													final ExecRow template,
 													MetricFactory metricFactory,
 													Scan scan,
@@ -220,7 +221,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		}
 
 		public TimeView getTime(){
-				return timer.getTime();
+				return regionScanner.getReadTime();
 		}
 
 		public long getRowsFiltered(){
@@ -228,10 +229,10 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		}
 
 		public long getRowsVisited() {
-				return timer.getNumEvents();
+				return regionScanner.getRowsVisited();
 		}
 
-		public void setRegionScanner(RegionScanner scanner){
+		public void setRegionScanner(MeasuredRegionScanner scanner){
 				this.regionScanner = scanner;
 		}
 
@@ -327,6 +328,10 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				primaryKeyIndex.reset();
 
 				return predicateFilter.match(primaryKeyIndex, keyDecoderProvider, keyAccumulator);
+		}
+
+		public long getBytesVisited() {
+				return regionScanner.getBytesVisited();
 		}
 
 		private class KeyIndex implements Indexed{

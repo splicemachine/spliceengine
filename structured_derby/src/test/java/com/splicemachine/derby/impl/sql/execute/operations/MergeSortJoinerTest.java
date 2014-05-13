@@ -399,9 +399,9 @@ public class MergeSortJoinerTest {
                 public ExecRow get() throws StandardException {
                     return emptyRightRow;
                 }
-            });
+            },Metrics.noOpMetricFactory());
         }else
-            joiner = new Joiner(joinRows, mergedRowTemplate,outer,false,2,2,false, false,null);
+            joiner = new Joiner(joinRows, mergedRowTemplate,outer,false,2,2,false, false,null,Metrics.noOpMetricFactory());
 
         List<ExecRow> joinedAnswers = populateFromJoiner(correctResults, joiner);
         assertReturnedRowsCorrect(correctResults, joinedAnswers);

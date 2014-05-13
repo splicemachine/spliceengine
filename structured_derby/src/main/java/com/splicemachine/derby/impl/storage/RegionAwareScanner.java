@@ -96,7 +96,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
             this.regionStart = scan.getStopRow();
         }
         this.transactionId = transactionId;
-				this.remoteReadTimer = metricFactory.newTimer();
+				this.remoteReadTimer = metricFactory.newWallTimer();
 				this.remoteBytesRead = metricFactory.newCounter();
     }
 
@@ -455,14 +455,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
         }else return filter;
     }
 
-    public Scan toScan() {
-        //this is naive--we should probably pay attention to look-behinds and look-aheads here
-        Scan retScan = boundary.buildScan(transactionId,scan.getStartRow(),scan.getStopRow());
-        retScan.setFilter(scan.getFilter());
-        return retScan;
-    }
-
-    public byte[] getTableName() {
+		public byte[] getTableName() {
         return region.getTableDesc().getName();
     }
 

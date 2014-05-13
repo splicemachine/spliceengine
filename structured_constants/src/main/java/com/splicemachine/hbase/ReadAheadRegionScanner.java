@@ -223,7 +223,7 @@ public class ReadAheadRegionScanner implements MeasuredRegionScanner{
 
 				@Override
 				public IOStats call() throws Exception {
-						Timer timer = metricFactory.newTimer();
+						Timer timer = metricFactory.newWallTimer();
 						Counter bytesCounter = metricFactory.newCounter();
 						int rowCount = 0;
 

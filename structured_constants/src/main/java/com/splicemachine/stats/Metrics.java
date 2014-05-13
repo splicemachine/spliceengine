@@ -22,13 +22,15 @@ public class Metrics {
 
 		static {
 				threadMXBean = ManagementFactory.getThreadMXBean();
-				//supportsCPUTime = threadMXBean.isCurrentThreadCpuTimeSupported();
-				supportsCPUTime = false;
+				supportsCPUTime = threadMXBean.isCurrentThreadCpuTimeSupported();
+//				supportsCPUTime = false;
 		}
 
 		private static final MetricFactory NOOP_FACTORY = new MetricFactory() {
 				@Override public Counter newCounter() { return NOOP_COUNTER; }
 				@Override public Timer newTimer() { return NOOP_TIMER; }
+				@Override public Timer newWallTimer() { return NOOP_TIMER; }
+
 				@Override public Gauge newMaxGauge() { return NOOP_GAUGE; }
 				@Override public Gauge newMinGauge() { return NOOP_GAUGE; }
 				@Override public boolean isActive() { return false; }
@@ -64,8 +66,6 @@ public class Metrics {
 
 		private static final Timer NOOP_TIMER = new Timer() {
 				@Override public void startTiming() { }
-
-				@Override public void startTiming(boolean force) {  }
 
 				@Override public void stopTiming() { }
 				@Override public void tick(long numEvents) { }
@@ -154,6 +154,10 @@ public class Metrics {
 		@ThreadSafe
 		public static Gauge noOpGauge() { return NOOP_GAUGE; }
 
+		public static MultiTimeView multiTimeView() {
+				return new SimpleMultiTimeView(Folders.sumFolder(),Folders.sumFolder(),Folders.sumFolder(),Folders.minLongFolder(),Folders.maxLongFolder());
+		}
+
 		/*private helper classes*/
 		private static class BasicCounter implements Counter {
 				private long count;
@@ -201,13 +205,27 @@ public class Metrics {
 				@Override public Gauge newMinGauge() { return minGauge(); }
 				@Override public boolean isActive() { return true; }
 
+				@Override public Timer newWallTimer() { return Metrics.newWallTimer(); }
 		}
 		private static class CreatingMetricFactory implements MetricFactory {
 				@Override public Counter newCounter() { return basicCounter(); }
 				@Override public Timer newTimer() { return Metrics.newTimer(); }
+
+				@Override public Timer newWallTimer() { return Metrics.newWallTimer(); }
+
 				@Override public Gauge newMaxGauge() { return maxGauge(); }
 				@Override public Gauge newMinGauge() { return minGauge(); }
 				@Override public boolean isActive() { return true; }
+		}
+
+		public static Timer newWallTimer() {
+				return new SimpleTimer(new NanoTimeMeasure()) {
+						@Override public long getWallClockTime() { return timeMeasure.getElapsedTime(); }
+						@Override public long getCpuTime() { return 0; }
+						@Override public long getUserTime() { return 0; }
+						@Override public long getStopWallTimestamp() { return timeMeasure.getStopTimestamp(); }
+						@Override public long getStartWallTimestamp() { return timeMeasure.getStartTimestamp(); }
+				};
 		}
 
 		public static void main(String...args) throws Exception{

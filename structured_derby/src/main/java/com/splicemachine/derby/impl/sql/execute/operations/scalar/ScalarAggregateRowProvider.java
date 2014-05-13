@@ -8,6 +8,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGener
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
+import com.splicemachine.stats.IOStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -89,6 +90,11 @@ public class ScalarAggregateRowProvider implements RowProvider {
 		@Override
 		public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
 			delegate.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
+		}
+
+		@Override
+		public IOStats getIOStats() {
+				return delegate.getIOStats();
 		}
 
 		@Override
