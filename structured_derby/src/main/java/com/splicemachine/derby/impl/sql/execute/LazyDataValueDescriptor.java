@@ -85,8 +85,10 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 				deserialized = false;
 				updateNullFlag();
 				this.descendingOrder = desc;
-				this.tableVersion = tableVersion;
-				this.serializer = VersionedSerializers.forVersion(tableVersion,true).getEagerSerializer(dvd.getTypeFormatId());
+				if(!tableVersion.equals(this.tableVersion)){
+						this.tableVersion = tableVersion;
+						this.serializer = VersionedSerializers.forVersion(tableVersion,true).getEagerSerializer(dvd.getTypeFormatId());
+				}
 		}
 
 		public boolean isSerialized(){
