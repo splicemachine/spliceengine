@@ -1,0 +1,25 @@
+\documentclass[10pt]{amsart}
+
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{listings}
+\usepackage[lined,boxed,commentsnumbered]{algorithm2e}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{exmp}{Example}[section]
+
+\begin{document}
+\title{SpliceMachine Storage Format}
+\author{Scott Fines}
+
+\begin{abstract}
+This document describes the on-disk and network storage format for SpliceMachine, including how data is written and subsequently read from transactional tables.
+\end{abstract}
+
+\maketitle
+
+\input{Encoding}
+\end{document}

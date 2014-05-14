@@ -207,6 +207,7 @@ public class RowParser {
 												calendar = new GregorianCalendar();
 										column.setValue(timestampParser.parse(elem),calendar);
 								} catch (ParseException e) {
+										e.printStackTrace();
 										throw ErrorState.LANG_DATE_SYNTAX_EXCEPTION.newException();
 								}
 								break;

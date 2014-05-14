@@ -27,3 +27,8 @@ redeployDerby.sh
 .DS*
 **/*_BAD*
 **/*._BAD*
+**/*.aux
+**/*.bcf
+**/*.bbl
+**/*.blg
+**/*.run.xml

@@ -1,0 +1,147 @@
+Statistics are commonly used in most database products, and has been since the early days of System R. Primarily, these statistics have been oriented towards query planning and optimization, although some databases allow the use of statistics in the field of approximate query answering\footnote{This is significantly more rare, and usually involves additional work beyond just looking at pre-collected statistics information}.
+
+\subsection{Oracle}
+Oracle is a single-node database(with available replication styles), so it's focus is on a "global" view of the data under management. In this sense, there is only one level of granularity on statistics--that of a table.  Additionally, because of its single-node emphasis, Oracle places its primary area of focus on reducing disk I/O operations and cost; this focus is reflected in the statistics which it collects.
+
+Oracle collects statistics using a periodic update algorithm. In essence, statistics are collected in a single explicit operation\footnote{as opposed to maintaining statistics dynamically}. Inside this operation, a random sample of rows are taken, and this sample is used to build all logical statistics for the table.  
+
+This periodic update can be triggered in two separate ways: Manually, or automatically. When automatic collection is enabled, Oracle will attempt to schedule a background collection operation during periods of known low activity. This is sufficient for common use cases where there \emph{is} a regular period of downtime, and only moderate changes to data occur in between updates. 
+
+However, if the contents of a table change very quickly, or there is no period during which resources can be devoted to statistics collection, Automatic collection poses a performance and stability bottleneck. To address this situation, Oracle allows automatic collection to be disabled. When automatic mode is disabled, it is the responsibility of the Administrator to ensure that statistics are properly collected.
+
+Oracle collects statistics in four distinct groups\cite{Oracle}:
+\begin{enumerate}
+				\item Table
+								\begin{enumerate}
+												\item	Row Count
+												\item Number of Blocks
+												\item Average Row Length (in bytes)
+								\end{enumerate}
+				\item Column
+								\begin{enumerate}
+												\item Average Column Length (in bytes)
+												\item Cardinality
+												\item Number of null values
+												\item Equi-depth Histogram
+								\end{enumerate}
+				\item Index
+								\begin{enumerate}
+												\item Number of Leaf Blocks
+												\item Levels
+												\item Clustering Factor
+								\end{enumerate}
+				\item Physical
+								\begin{enumerate}
+												\item I/O performance and utilization
+												\item CPU performance and utilization
+								\end{enumerate}
+\end{enumerate}
+Statistics on the number of blocks and leaf-blocks are present because of Oracle's internal B-Tree structure--because SpliceMachine does not use B-Trees, those metrics are not significant for SpliceMachine.
+
+\subsubsection{Partitioned Tables}
+Oracle supports \emph{partitioned tables}, which are similar in effect to SpliceMachine's regions (although not distributed). To support these within their statistical engine, Oracle may optionally collect statistics for each individual partition in addition to collecting for the table as a whole\cite{Oracle}. 
+
+This model is similar to that of SpliceMachine, except for one key difference. In Oracle, statistics are gathered separately for the global and the partitioned view--there is no sense of unity between the statistics of the partition and the statistics of the entire table. This requires the query optimizer to choose whether to use the partition statistics or the global statistics, based on the query.
+
+SpliceMachine, by contrast, is able to construct a global statistical view out of the partitioned views, allowing the optimizer (and anything else that wishes to use it) to seemlessly convert itself from considering data at the partition(region) level and considering data at the global level.
+
+\subsubsection{Oracle RAC}
+Oracle RAC is Oracle's distributed version of their Oracle product, and so it has some relevance to SpliceMachine. 
+
+Oracle RAC is a shared-everything environment\cite{OracleRAC}--all data is stored on shared storage. Because of this, any node in the Oracle RAC environment is allowed access to all data, and thus can compute statistics exactly as if that node operated in a single-node environment. Since SpliceMachine is a shared-nothing environment, the lessons available in Oracle RAC have limited applicability to the current design.
+
+\subsection{PostgreSQL}
+PostgreSQL has a very similar architecture to that of Oracle, and thus it adopts many of the same strategies for statistics collection and usage. In particular, PostgreSQL makes use to statistics only for query optimization, and operates in a single-node environment where B-Trees are the underlying storage structure. This leads PostgreSQL to collect and use the following statistics\cite{PGCollector,PGStats,PGClass}:
+\begin{enumerate}
+				\item Table
+								\begin{enumerate}
+												\item Row Count
+												\item Page Count
+								\end{enumerate}
+				\item Column
+								\begin{enumerate}
+												\item Null Fraction
+												\item Average Column Width
+												\item Cardinality
+												\item Most Frequent Values
+												\item Frequencies of Most Frequent Values
+												\item Equi-Depth Histogram
+								\end{enumerate}
+				\item Physical Statistics
+								\begin{enumerate}
+												\item I/O latency
+												\item CPU utilization
+								\end{enumerate}
+\end{enumerate}
+as well as a number of monitoring statistics (lock hold time, CPU usage time and so on).
+
+As with Oracle, Postgres supports both automatic and manual collection modes. When automatic collection is enabled, large operations (such as bulk imports, index creation, and vacuum processes) will automatically trigger a statistics update; additionally, a periodic statistics collection process is engaged regularly to keep statistics as up-to-date as possible. As part of this process, a random sample of queries will collect runtime statistics information, in order to keep physical statistics up to date. 
+
+Also similar to Oracle, PostgreSQL allows automatic collection mode to be disabled for performance and resource management purposes.
+
+\subsubsection{Master-Master replication}
+PostgreSQL allows a master-master replication solution, which performs replication between two active master nodes\cite{PGReplication}. This solution does not perform sharding, merely replication, so all data that is present on a single master node is also present on all other nodes in the cluster. 
+
+While this is technically shared-nothing, the lack of sharding makes this architecture more in line with a shared-everything structure; thus, there are few applicable lessons to be drawn directly from PostgreSQL's native replication solutions.
+
+\subsection{SQL Server}
+Microsoft's SQL Server product is very similar in feature-set to Oracle and PostgreSQL. This similarity in features and architecture makes SQL Server's statistics collection very similar as well. In particular, PostgreSQL and Oracle's selection of both manual and automatic collection modes is chosen in SQLServer as well.
+
+The statistics collected by SQLServer are\cite{SQLServerStats}:
+
+\begin{enumerate}
+	\item Table
+					\begin{enumerate}
+									\item Row Count
+									\item Page Count
+					\end{enumerate}
+	\item Column
+					\begin{enumerate}
+									\item Average Width (in bytes)
+									\item histogram containing:
+													\begin{enumerate}
+																	\item Max Value in Range
+																	\item Rows in Range
+																	\item Rows equal to Max Value in Range
+																	\item Average number of rows per unique value in range
+																	\item Cardinality of range
+													\end{enumerate}
+					\end{enumerate}
+\end{enumerate}
+
+\subsection{EMC Greenplum}
+EMC Greenplum makes use of a distributed, shared-nothing architecture that is similar in many ways to that chosen by SpliceMachine.
+
+Unfortunately, very little information is available regarding the statistics collector in particular; one must assemble a rough estimation based on other facts.
+
+Greenplum is based off of PostgreSQL, so it is reasonable to assume that the statistics which are collected are similar to that of PostgreSQL. Additionally, it makes extensive use of the Scatter-gather operation to generate intermediate results\cite{GreenplumAdmin}. It's likely then that Greenplum uses its scatter-gather techniques to generate a sample of data\footnote{The author would like to emphasize his total lack of knowledge regarding Greenplum--corrections and addendums would be welcome}, which it uses to compute a single global view of the distribution of data.
+
+One thing that is noteworthy is that all planning in Greenplum occurs on the master, and is performed globally\cite{GreenplumAdmin}. It is therefore unlikely that statistics are used at the segment level for additional optimization. This eliminates the need for segment isolation that SpliceMachine desires.
+
+\subsection{Vertica}
+Vertica is a unique shared-nothing architecture in that it emphasizes a columnar storage format instead of the row-based storage of Oracle et. al. This has some consequences on its statistics engine.
+
+Vertica collects the following statistics\cite{Vertica}:
+
+\begin{enumerate}
+				\item Table
+								\begin{enumerate}
+												\item	Row Count
+								\end{enumerate}
+				\item Column
+								\begin{enumerate}
+												\item	Cardinality
+												\item Min and Max values
+												\item Equi-Depth Histogram
+												\item Disk Space occupied
+								\end{enumerate}
+\end{enumerate}
+
+Because of its columnar structure, Vertica does not have need of a significant number of table statistics.
+
+Only global statistics are created, and computing these statistics involves all nodes in the cluster. In order to compute statistics, a random sample of entries is computed, which is either $2^{17}$ rows or $1GB$ of space, whichever is smaller. Statistics are then computed from this sample directly\cite{Vertica}.
+
+It is not directly explained why $2^{17}$ rows are chosen, or $1GB$ of space, but it is reasonable to assume that this limit is applied so that a single machine may compute global statistics.
+
+Vertica uses statistics only for query planning and optimization; physical optimizations and load balancing do not involve statistical information.
+
