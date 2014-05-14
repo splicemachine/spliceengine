@@ -52,12 +52,11 @@ public class GroupedAggregateBufferedAggregator extends AbstractBufferedAggregat
 								initializeAggregate(aggregator,currentRow);
 						if (!aggregator.isInitialized(newRow))
 								initializeAggregate(aggregator,newRow);
-						else{
-								if (shouldMerge)
-										aggregator.merge(newRow,currentRow);
-								else
-										aggregator.accumulate(newRow,currentRow);
-						}
+
+						if (shouldMerge)
+								aggregator.merge(newRow,currentRow);
+						else
+								aggregator.accumulate(newRow,currentRow);
 				}
 		}
 
