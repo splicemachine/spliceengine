@@ -526,6 +526,17 @@ public class SpliceConstants {
 		@DefaultValue(DEBUG_DUMP_CLASS_FILE) public static final boolean DEFAULT_DUMP_CLASS_FILE=false;
 		public static boolean dumpClassFile;
 
+		/**
+		 * For debugging statements issued in derby.  This is on by default, but will hurt you in the case of an OLTP
+		 * workload.
+		 * 
+		 * 
+		 */
+		@Parameter private static final String DEBUG_LOG_STATEMENT_CONTEXT = "splice.debug.logStatementContext";
+		@DefaultValue(DEBUG_DUMP_CLASS_FILE) public static final boolean DEFAULT_LOG_STATEMENT_CONTEXT=false;
+		public static boolean logStatementContext;
+
+
 		//internal debugging tools
 		public static final String DEBUG_FAIL_TASKS_RANDOMLY = "splice.debug.failTasksRandomly";
 		public static final boolean DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY=false;
@@ -805,6 +816,7 @@ public class SpliceConstants {
 				rmiPort = config.getInt(RMI_PORT, DEFAULT_RMI_PORT);
 				rmiRemoteObjectPort = config.getInt(RMI_REMOTE_OBJECT_PORT, DEFAULT_RMI_REMOTE_OBJECT_PORT);
 				dumpClassFile = config.getBoolean(DEBUG_DUMP_CLASS_FILE, DEFAULT_DUMP_CLASS_FILE);
+				logStatementContext = config.getBoolean(DEBUG_LOG_STATEMENT_CONTEXT, DEFAULT_LOG_STATEMENT_CONTEXT);
 				startupLockWaitPeriod = config.getInt(STARTUP_LOCK_WAIT_PERIOD, DEFAULT_STARTUP_LOCK_PERIOD);
 				ringBufferSize = config.getInt(RING_BUFFER_SIZE, DEFAULT_RING_BUFFER_SIZE);
 				indexBatchSize = config.getInt(INDEX_BATCH_SIZE,DEFAULT_INDEX_BATCH_SIZE);
