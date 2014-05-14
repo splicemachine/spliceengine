@@ -817,6 +817,41 @@ class ij {
 	}
 
     /**
+       Return a resultset of primary keys from database metadata
+     */
+    public ijResult showPrimaryKeys(String schema, String table) throws SQLException {
+        ResultSet rs = null;
+        try {
+            haveConnection();
+
+            DatabaseMetaData dbmd = theConnection.getMetaData();
+            rs = dbmd.getPrimaryKeys(null,schema,table);
+
+            int[] displayColumns = new int[] {
+                rs.findColumn("TABLE_NAME"),
+                rs.findColumn("COLUMN_NAME"),
+                rs.findColumn("KEY_SEQ"),
+                rs.findColumn("PK_NAME"),
+            };
+            int[] columnWidths = new int[] {
+                30,
+                30,
+                10,
+                30
+            };
+
+            return new ijResultSetResult(rs, displayColumns, columnWidths);
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+
+    /**
        Return a resultset of functions from database metadata.
 
        JDBC4.0 has a method in DatabaseMetaData called getFunctions().
@@ -1227,6 +1262,7 @@ TOKEN [IGNORE_CASE] :
 |	<PERIOD: ".">
 |	<PREPARE: "prepare">
 |	<PREVIOUS: "previous">
+|   <PRIMARYKEYS: "primarykeys">
 |	<PROCEDURE: "procedure">
 |	<PROCEDURES: "procedures">
 |	<PROPERTIES: "properties">
@@ -2039,6 +2075,23 @@ throws SQLException
 			schema = util.getSelectedSchema(theConnection);
 		return showIndexes(schema,tblname);
 	}
+|   <PRIMARYKEYS>
+        [ (<IN> schema=caIdentifier()) |
+          (<FROM> tblname=caIdentifier() [ <PERIOD> str=caIdentifier() ] ) ]
+    {
+        if(str != null) {
+            // if absolute table reference given
+            schema = tblname;
+            tblname = str;
+        }
+
+        // If user specifies a table name, then assume schema is
+        // current schema. Note that getSelectedSchema may return
+        // null for some DBMSes.
+        if(schema == null && tblname != null)
+            schema = util.getSelectedSchema(theConnection);
+        return showPrimaryKeys(schema,tblname);
+    }
 |	<PROCEDURES>
 		[ <IN> schema=caIdentifier() ]
 	{
