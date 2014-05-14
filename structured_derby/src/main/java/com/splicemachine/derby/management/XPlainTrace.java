@@ -42,6 +42,7 @@ public class XPlainTrace {
 
 
     public XPlainTrace(String sName, long sId, int mode, String format) throws SQLException {
+
         this.schemaName = sName;
         this.statementId = sId;
         xPlainTreeNodeMap = new HashMap<Long, XPlainTreeNode>(10);
@@ -187,6 +188,7 @@ public class XPlainTrace {
         }
     }
 
+
     private void populateMetrics() throws SQLException, IllegalAccessException{
         ResultSet rs = getTaskHistory();
         while (rs.next()) {
@@ -205,6 +207,7 @@ public class XPlainTrace {
                 }
                 node.setAttributes(rs);
             }
+
         }
 
         rs.close();
