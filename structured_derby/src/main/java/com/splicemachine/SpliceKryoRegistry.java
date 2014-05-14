@@ -9,6 +9,7 @@ import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.DefaultArraySerializers;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
+import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
@@ -601,7 +602,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(KVPair.class,EXTERNALIZABLE_SERIALIZER,143);
         instance.register(SpliceStddevPop.class,144);
         instance.register(SpliceStddevSamp.class,145);
-        instance.register(Properties.class,EXTERNALIZABLE_SERIALIZER,146);
+        instance.register(Properties.class, new MapSerializer(), 146);
 
         instance.register(com.splicemachine.derby.impl.sql.execute.ValueRow.class,EXTERNALIZABLE_SERIALIZER,147);
         instance.register(com.splicemachine.derby.impl.sql.execute.IndexRow.class,EXTERNALIZABLE_SERIALIZER,148);
