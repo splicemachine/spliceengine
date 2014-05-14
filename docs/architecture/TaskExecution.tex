@@ -1,0 +1,27 @@
+\documentclass[10pt]{amsart}
+\usepackage[top=1.5in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
+
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{exmp}{Example}[section]
+
+\begin{document}
+\title{Distributed Task Execution in SpliceMachine}
+\author{Scott Fines}
+
+\begin{abstract}
+The primary performance mechanism in SpliceMachine is it's capability for the execution of SQL operations in a massively parallel manner. This document serves as a reference for how parallel execution is implemented in a Transactional Store.
+\end{abstract}
+
+\maketitle
+
+\input{ParallelExecution}
+
+\end{document}

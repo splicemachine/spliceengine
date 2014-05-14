@@ -1,0 +1,303 @@
+\section{Jobs and Tasks}
+A \emph{Task} $T$ is a fundamental unit of work, which is expected to be executed sequentially within a single process\footnote{in Java, threads are used instead of processes, but the difference only matters to Operating System designers}. Thus, a Task can be considered as an indivisible element which cannot be further parallelized. \emph{Jobs}, by contrast, are units of work which \emph{are} amenable to further parallelization. 
+
+The \emph{Job Scheduler} is a coordination mechanism between jobs and tasks. It is responsible for
+\begin{enumerate}
+\item Breaking a job into multiple parallel tasks
+\item Submitting each task to the appropriate task execution service
+\item Monitoring the progress of each task, and ensuring that appropriate action is taken for each major event.
+\end{enumerate}
+
+While the \emph{Task Scheduler} is a mechanism for ensuring that tasks are executed as efficiently as possible without overwhelming the physical resources available.
+
+\section{Task Scheduling}
+Task Scheduling is actually a very well understood concept in computer science--essentially all multi-user systems must at some point handle the problem of scheduling resource execution\footnote{Linux, for example, is famous for having very comprehensive work scheduling algorithms}.
+
+The primary goal of the Task Scheduler is to ensure that Tasks are completed as quickly as possible, given resource and concurrency constraints that are imposed by the physical world in which the system lives (i.e. the hardware and configuration of Splice Machine).
+
+The simplest possible Task Scheduler is as follows: Keep a queue of tasks, and a pool of \emph{workers}. As new tasks are submitted, the first available worker is assigned to that task. Once a worker begins executing a task is it unable to execute any other tasks. This worker will not stop executing that task until completed, at which point it will be assigned another task to execut. Once a fixed number of tasks has been exhausted, any newly submitted tasks will be queued until a worker finishes all previously submitted tasks.
+
+This scheduler has the notable advantage that it is easy to understand and even easier to configure (the only configurable element is the number of workers). Unfortunately, it also suffers from a number of practical problems. 
+
+The first problem is that this scheduler allows a job to hog resources, in that a single job may be able to keep all workers occupied for a very long time before any other jobs are allowed to execute. Consider the following example:
+
+\begin{exmp}[Resource Hogging]
+Suppose that a Task Scheduler has 10 workers. Then consider the following sequence:
+
+\begin{enumerate}
+\item Alice submits 11 tasks for execution
+\item The Scheduler assigns 10 workers to the first 10 tasks for execution; Alice's remaining task must wait for an available worker
+\item Bob submits 2 tasks for execution. 
+\item Because there are no available workers, Bob must wait for an available worker to execute any tasks
+\item One task completes
+\item The now free worker is assigned Alice's last task. Bob continues to wait
+\item Another task completes
+\item The now free worker is assigned Bob's first task. His remaining task must wait
+\item Another task completes
+\item The now free worker is assigned Bob's final task.
+\end{enumerate}
+
+In this situation, Bob must wait for resources to become available, because Alice has occupied all available resources without regard to other users. In the worst case (when Bob's tasks execute faster than Alice's), this leads to Bob's tasks to be executed sequentially instead of parallel.
+\end{exmp}
+
+Because of this problem, some jobs may have to wait longer than they should have to, because they are waiting for resources. In particularly pathological cases, a job may have to wait for hundreds of tasks to complete before it is able to execute a single task!
+
+
+\subsection{Fair Execution}
+One attempt to resolve this issue is \emph{Fair Execution}. At its most basic, Fair Execution is just a rule which attempts to ensure that all jobs are executing roughly the same number of tasks at a time. This can be easily seen in a slight modification of the previous example
+
+\begin{exmp}[Fair execution]
+Suppose that a Task Scheduler has 10 workers. Then consider the following sequence:
+
+\begin{enumerate}
+\item Alice submits 15 tasks for execution
+\item The Scheduler assigns 10 workers to the first 10 tasks for execution; Alice's remaining 5 tasks are queued.
+\item Bob submits 2 tasks for execution. 
+\item Because there are no available workers, Bob's 2 tasks are queued.
+\item One task completes
+\item Because Alice has 9 tasks running, and Bob has 0, a worker is assigned to one of Bob's tasks. His remaining task, and Alice's 5 remaining tasks, remain queued.
+\item Another of Alice's tasks completes.
+\item Because Alice has 8 tasks running, and Bob has 1, the worker is assigned to Bob's second task. Alice's 5 tasks remain queued. 
+\item One of Alice's tasks complete. Because Bob has no more tasks to submit, the new worker is assigned to one of Alice's remaining tasks
+\end{enumerate}
+\end{exmp}
+
+Fair execution doesn't prevent a single job from occupying all resources, but it does ensure that all jobs are given close to the same volume of resources \emph{once those resources are available}. Thus, there may still be a period of initial latency for jobs while they wait for resources to be available.
+
+\subsection{Capacity Scheduling}
+A simple correction to improve Fair Execution's initial latency problem is to just ensure that no one job can occupy all resources; this is \emph{Capacity Scheduling}. In Capacity Scheduling, any given job is given a maximum number of workers--only so many tasks from the same job can be executing simultaneously.
+
+Consider the following example:
+
+\begin{exmp}[Capacity Scheduled Execution]
+Suppose that a Task Scheduler has 10 workers,and any given job may only execute 5 tasks at the same time
+
+\begin{enumerate}
+\item Alice submits 15 tasks for execution
+\item The Scheduler assigns 5 workers to the Alice's first 5 tasks; Alice's remaining 10 tasks are queued.
+\item Bob submits 2 tasks for execution. Because there are still 5 available workers, both tasks begin execution.
+\item One task completes. Because Alice has 10 remaining, and only 4 executing, she is assigned a single task (even though there are 4 available workers)
+\end{enumerate}
+\end{exmp}
+
+This means that both Alice and Bob are forced to play nicely with one another--neither one can prevent the other from proceeding. 
+
+Unfortunately, Capacity Scheduling is not terribly effective at utilizing system resources. Suppose that Alice was the only person attempting work--she would only be able to execute 5 tasks at a time, even though the system is capable of executing more.
+
+\subsection{Task Prioritization}
+Both Fair Execution and Capacity Scheduling don't make use of any information about the Jobs themselves, they just follow blind rules. By introducing additional information to the problem, we may be able to design a scheduler which improves the resource utilization of Capacity Scheduling, but prevents the resource hogging possible in Fair Execution.
+
+In particular, we consider the \emph{priority} of a Job. In loose terms, the priority of a job(or a task) is a numeric measure of how important this task is \emph{relative to other tasks}. By convention\footnote{Because of the English language's unfortunate idiosyncracies}, a \emph{higher} priority has a \emph{lower} number; a task with priority 1 is more important than a task with priority 5,for example.
+
+The rule is that higher priority jobs are both allowed to use more workers than lower priority tasks \emph{and} are assigned those workers sooner. This naturally will mean that lower priority jobs will take longer--they will have fewer resources, and have to wait longer for those resources to be provided for them--but that's okay, since these tasks aren't as important to complete.
+
+This doesn't eliminate the possibility of resource hogging that was present with Fair Scheduling. Consider
+
+\begin{exmp}[Priority Inversion]
+Suppose there is a Task Scheduler with 10 available workers. Further suppose that Alice wishes to execute 15 tasks with priority 2, and Bob wishes to execute 2 tasks with priority 1.
+
+\begin{enumerate}
+\item Alice submits 15 tasks for execution
+\item The Scheduler assigns 10 workers to the first 10 tasks for execution; Alice's remaining 5 tasks must wait for an available worker
+\item Bob submits 2 tasks for execution. 
+\item Because there are no available workers, Bob must wait for an available worker to execute any tasks
+\item One task completes
+\item Because Bob has a priority of 1 and Alice has a priority of 2, the available worker is assigned to Bob.
+\end{enumerate}
+Notice how Bob must still wait for Alice's work to complete, even though he has a higher priority.
+\end{exmp}
+
+This is generally referred to as \emph{Priority Inversion}, because a lower-priority task was effectively given a higher priority than it was supposed to have. The beauty is that Prioritization allows us the freedom to design other systems which can remove this inversion.
+
+Some Task Schedulers\footnote{most notably the Linux Scheduler} resolve priority inversion by using \emph{preemption}. A Premptive scheduler is allowed to pause a task, then re-use that task's resources for a higher priority task, before returning those resources to the original task. This prevents priority inversions because there are always workers available to execute a high priority task--in the worst case, the scheduler just takes resources away from lower-priority tasks. Unfortunately, the Java Virtual Machine does not support preemptive multitasking; the JVM implements \emph{cooperative multitasking} instead. With cooperative multitasking, both the worker \emph{and} the scheduler must cooperate to release resources. In a nutshell: we can ask a process to pause itself and relinquish resources, but if it doesn't wish to do so, there's nothing we can do to force it. As a result, Preemption isn't a viable strategy for SpliceMachine.
+
+An alternative to preemption is \emph{tiering}. The idea here is to construct multiple independent Schedulers, each responsible for executing a subset of the entire priority range. For example, if tasks can take a priority from 0 to 100, then one might construct four tiers: $[0,25),[25,50),[50,75),[75,100)$, and have a scheduler for each tier. In this case, the scheduler for $[0,25)$ is responsible for executing tasks with a priority between 0 and 25, the scheduler for $[25,50)$ executes tasks with a priority between 25 and 50, and so on.
+
+More precisely, we define a \emph{Tier} $t$ as two entities: a range of priorities and a Task Scheduler. When a task is submitted, its priority is measured, and then the Scheduler which owns that priority number will actually assign workers from its independent worker pool. 
+
+\begin{exmp}[Tiered Execution]
+Suppose that there is a Tiered Task Scheduler consisting of two tiers $t_1 = {[0-5),5}$ and $t_2 = {[5,10),5}$. Further suppose that Alice wishes to execute 15 tasks with priority 5, while Bob wishes to execute 2 tasks with priority 3. The following sequence then occurs:
+
+\begin{enumerate}
+\item Because Alice's tasks have priority 5, they are queued on $t_2$.
+\item $t_2$ assigns 5 workers to execute 5 of Alice's tasks, while the remaining 10 must wait
+\item Bob submits his 2 tasks. Because they have priority 3, they are queued on $t_1$
+\item $t_1$ has 5 available threads, so it assigns 2 to Bob's tasks, immediately beginning execution
+\end{enumerate}
+Priority inversions are thus prevented, because resources are available for Bob
+\end{exmp}
+
+Tiering in this manner means that tasks which belong to different tiers do not interfere with one another, but it doesn't prevent jobs which belong to the same tier from blocking each other. Thus, there is still the possibility of priority inversions, but those inversions are considered less significant because one job is being blocked by another job which is very close to the same priority.
+
+A more significant problem with tiering than Priority inversion is that it displays poor resource utilization that is similar to that of Capacity Scheduling:
+
+\begin{exmp}[Tiered Execution With Poor Throughput]
+Suppose that there is a Tiered Task Scheduler consisting of two tiers $t_1 = \{[0,5),5\}$ and $t_2 = \{[5,10),5\}$. Further suppose that Alice wishes to execute 15 tasks with priority 3, while Bob wishes to execute 2 tasks with priority 5. The following sequence then occurs:
+
+\begin{enumerate}
+\item Because Alice's tasks have priority 3, they are queued on $t_1$.
+\item $t_1$ assigns 5 workers to execute 5 of Alice's tasks, while the remaining 10 must wait
+\item Bob submits his 2 tasks. Because they have priority 5, they are queued on $t_2$
+\item $t_2$ has 5 available threads, so it assigns 2 to Bob's tasks, immediately beginning execution
+\end{enumerate}
+Alice is forced to wait, even though $t_2$ has three workers available.
+\end{exmp}
+
+We can mitigate this by carefully tuning the relative sizes of our tiers for our specific workload (i.e. making $t_1$ have more workers and $t_2$ have less), but this is prone to issues whenever a workload changes\footnote{not to mention it's a royal pain to configure properly}. A better approach would be to dynamically steal resources from lower priority tiers whenever higher priority tiers need more.
+
+To help with this, we introduce the concepts of \emph{shrugging} and \emph{stealing}. \emph{Shrugging} addresses the situation where a task is submitted to a higher-priority tier, but that tier has no available resources to execute the task immediately. When this occurs, a Shrugging Scheduler is allowed to search through lower priority tiers for an available worker. If a lower-priority tier has available workers, a worker is taken from that tier and assigned work of a higher priority.
+
+\begin{exmp}[Shrugging High Priority Tasks]
+Suppose that there is a Tiered Task Scheduler consisting of two tiers $t_1 = \{[0,5),5\}$ and $t_2 = \{[5,10),5\}$. Further suppose that Alice wishes to execute 15 tasks with priority 3. The following sequence then occurs:
+
+\begin{enumerate}
+\item Alice attempts to submit her 15 tasks.
+\item Because Alice's tasks have priority 3, they are queued on $t_1$.
+\item $t_1$ assigns 5 workers to execute 5 of Alice's tasks, leaving 10 more to be assigned
+\item Because $t_1$ has a higher priority than $t_2$,and $t_2$ has 5 available workers, $t_1$ assigns 5 of Alice's tasks to $t_2$, which begin executing
+\item Alice's remaining 5 tasks are queued on $t_1$
+\end{enumerate}
+
+\end{exmp}
+
+This allows Alice (who has a high priority) to make use of not only workers assigned to her priority tier, but also any \emph{free} workers which are managed by a lower priority tier.
+
+The inverse of this is \emph{stealing}. Stealing attempts to address the situation when a worker on a low-priority tier becomes available, but high-priority tasks are queued. When this occurs, the lower-priority tier may \emph{steal} a higher-priority task which is waiting to be executed, as in this example:
+
+\begin{exmp}[Stealing High Priority Tasks]
+Suppose that there is a Tiered Task Scheduler consisting of two tiers $t_1 = \{[0,5),5\}$ and $t_2 = \{[5,10),5\}$. Further suppose that Alice wishes to execute 15 tasks with priority 3, and Bob wishes to execute 5 tasks with priority 5. The following sequence then occurs:
+
+\begin{enumerate}
+\item Bob submits his 5 tasks to $t_2$, which immediately begin execution
+\item Alice attempts to submit her 15 tasks.
+\item Because Alice's tasks have priority 3, they are queued on $t_1$.
+\item $t_1$ assigns 5 workers to execute 5 of Alice's tasks, leaving 10 more to be assigned
+\item because $t_2$ is busy with Bob's tasks, none of Alice's tasks can be shrugged, so 10 of Alice's tasks are queued on $t_1$.
+\item a worker on $t_2$ completes a task and becomes available
+\item because there is work queued on $t_1$, and $t_1$ has a higher priority than $t_2$, the available worker for $t_2$ will steal a task from $t_1$ and begin execution
+\end{enumerate}
+Thus, as Bob's tasks complete, more and more of Alice's tasks may be executed.
+\end{exmp}
+
+With both Shrugging and Stealing, though, there is an important rule to remember: Tasks can never move \emph{up}, they can only move \emph{down}. That is, it is possible to shrug from a high-priority tier to a low-priority tier, but a lower-priority tier is never allowed to shrug tasks on to a higher-priority tier. Similarly, it is possible for a lower-priority tier to steal work from a higher-priority tier for execution, but the reverse is \emph{not} true. 
+
+In this way, priority inversions between two tiers are prevented, and higher-priority tasks are allowed to have more resources than lower-priority tasks.
+
+Finally, within a single tier, we use simple priority queuing to ensure that the highest priority tasks are executed first (as workers become available).
+
+\section{Task Scheduling in SpliceMachine}
+SpliceMachine implements a Tiered Scheduler with both shrugging and stealing.
+
+\subsection{Configuring the Task Scheduler}
+The biggest downside to a Tiered Scheduler is configuration--how does one determine how many workers belong in each tier? What priorities should belong in which tier?
+
+SpliceMachine allows a custom configuration to be provided by implementing the TieredTaskSchedulerSetup interface. This interface allows one to partition the priority range and to assign worker counts individually on each range.
+
+The default implementation uses a "binary normalized" distribution. This operates on several assumptions:
+
+\begin{enumerate}
+\item Tasks will take priorities between 0 (highest priority) and 100 (lowest)
+\item Most Tasks are either DML read or DML write operations
+\item Most Tasks will have a probability between 25 and 75.
+\item We should leave some room at the top for critical tasks
+\end{enumerate}
+
+Thus, the default configuration separates the Scheduler into 4 distinct tiers:
+
+\begin{enumerate}
+\item System: Priorities $[0,25)$. Used for "system"-level tasks
+\item DML: The tier for reading or writing data. Manages priorities $[25,50)$
+\item DDL: The tier for modifying the metadata layer (index creation, etc.). Manages Priorities $[50,75)$
+\item Maintenance: The tier for keeping the system running smoothly (statistics, vacuuming, etc.). Manages priorities $[75,100)$
+\end{enumerate}
+
+Then, we take a (configurable) maximum number of tasks $N_t$, and adopt the following pattern:
+
+\begin{algorithm}
+\begin{algorithmic}
+	\State $N_r = N_t$\;
+	\State DML tier = $N_r/2$ tasks\;
+	\State $N_r = N_r/2$
+	\State System tier = $N_r/2+1$
+	\State $N_r = N_r/2$
+	\State DDL tier = $N_r/2 +1$
+	\State $N_r = N_r/2$
+	\State Maintenance tier = $N_r$
+\end{algorithmic}
+\caption{Binary Normalized Task Distribution}
+\end{algorithm}
+
+So, for example, if we want to allow 32 workers, the DML tier will get 16, the System tier will get 8, then DDL tier will get 4, and the Maintenance tier will get 4 workers.
+
+This is obviously a very simplistic strategy, but it works relatively well in the absence of statistical prioritization. 
+
+\section{Deadlocks}
+In SpliceMachine, it is possible for a Task $T$ to in turn submit a \emph{subtask} $S(T)$. In most cases, this subtask must complete before the original Task itself can complete\footnote{This typically happens with subqueries in SQL}. In most cases, this isn't a big deal--the subtask is scheduled just like the original task. The problem arises when we have more tasks than resources.
+
+\begin{exmp}[Deadlock due to resource exhaustion]
+Let $T$ be a Task Scheduler with a total of 10 available workers, and suppose Alice wishes to submit 10 tasks, each with their own subtask that must complete. Then the following sequence occurs
+
+\begin{enumerate}
+\item Alice submits 10 tasks to the Scheduler.
+\item The Scheduler assigns 10 workers to begin executing the tasks
+\item each task submits a subtask to the scheduler
+\end{enumerate}
+Because the scheduler has no available resources, each subtask must wait for a worker to become available. At the same time, each task must wait for its subtask to complete. Therefore, not task can complete, and no worker can become available to execute a subtask. As a result, the scheduler has encountered a classic \emph{A-B} deadlock.
+\end{exmp}
+
+This type of deadlock can only occur when tasks depend on subtasks, but the subtasks cannot complete because of the tasks themselves. To prevent this, SpliceMachine introduces the concept of \emph{subtask overflow}. If a subtask is submitted, but there are no resources available in the scheduler to execute it, the subtask is enqueued on a special \emph{overflow scheduler}. This overflow scheduler is a scheduler which has an unlimited number of available workers, but it only allows 1 subtask per job to be executed at a time. This is enough to allow progress on the query, but strictly limits the amount of overflow resources that the server may take (which in turn prevents resource exhaustion from overwhelming the server). 
+
+\section{Task State Management}
+Because of the asynchronous execution of tasks, there must be a way of tracking the progress of completed tasks (otherwise, the job may wait for forever for tasks that have stopped working). To support this, we have task \emph{status} elements, which combine to form a task lifecycle.
+
+In SpliceMachine, a task begins its life in the PENDING state. This state indicates that a task has not yet been executed, and a task will remain in that state as long as it is queued for execution by the Task Scheduler.
+
+Once a worker becomes available and begins working on a task, it is moved to the EXECUTING state. From here, a task can either finish successfully or not. If it finishes successfully, then the task is moved into the COMPLETED state, otherwise it is moved to the FAILED state.
+
+Finally, a job may be cancelled by administrative action. When a job is cancelled, it will cancel all of its tasks, which moves the Task into the CANCELLED state. 
+
+Once a task has moved into either COMPLETED, CANCELLED, or FAILED, it is considered to be in a \emph{terminal state}, and there are no changes to its status. For example, once a task has moved to the FAILED state, it cannot be moved to the COMPLETED state.
+
+\section{Distribution}
+So far, we've discussed how SpliceMachine schedules individual tasks within a single cluster node, but we've made no mention of the fact that SpliceMachine is a distributed database, with many distinct nodes; each of these nodes may contain part of the data necessary to answer a query.
+
+Distribution of Tasks in SpliceMachine is tightly connected to the regions in which data exists. In particular, Jobs are split into tasks based on which HBase regions are involved in the operation. 
+
+Let $J$ be a job which touches all data between start row key $K_s$ and end row key $K_e$. Then suppose that there are 4 regions which overlap with $[K_s,K_e)$; these regions have bounds $[s_i,e_i)$, where $s_0 \leq K_s$, $s_n \geq K_e$. Then SpliceMachine will construct one task for each region. 
+
+Once this splitting has occurred, Splice will use the HBase coprocessor framework to submit the task to each region's task scheduler, which will oeprate locally. This means that Tasks \emph{always} execute in the same JVM where the region is located.
+
+In general, the HBase coprocessor call will return before the Task has completed. Because of this, we will need to devise a mechanism for communicating changes in Task state to the Job scheduler (which is typically on a separate node in the cluster). To do this, we use ZooKeeper. ZooKeeper has several features that make it ideal for this kind of message-passing: first, it's atomic, so writes to ZooKeeper have a known order; secondly, ZooKeeper implements a mechanism called \emph{watches}, where a process can register itself to be notified whenever something changes.
+
+We make heavy use of ZooKeeper watches for task monitoring. When a task is first submitted to the Task Scheduler, it creates a node in ZooKeeper(usually called a \emph{znode}). This node contains information about the status of the Task--in particular, its current state and (if the task has failed) any errors that were thrown. When the task moves from one state to another, it updates its znode; ZooKeeper will automatically notify the Job Scheduler of the change in status, and the Job Scheduler can react accordingly.
+
+\section{Task Failure}
+There are two broad reasons why a task might fail during processing:
+
+\begin{enumerate}
+\item Query errors. Examples include divide-by-zero issues, casting errors, and other SQL-like errors
+\item Environmental Errors. Examples include network timeouts, disks failing, and other issues that are related to the environment
+\end{enumerate}
+
+Query errors are errors that should immediately be propagated back to the end user. A task which fails with these types of errors should fail the entire job, because the job itself is invalid.
+
+On the other hand, Environmental errors reflect physical errors which are often transient--we do not want to fail a query just because a single machine failed, for example. these errors then are essentially re-tryable.
+
+In the event of a task failing in a manner which can be retried, the Job Scheduler will attempt to resubmit that task to the owning regions of that task\footnote{it is possible that the task failed because of a Region splitting, in which case there are now two regions which handle that task}. 
+
+However, the Job Scheduler will only retry for a fixed(but configurable) number of attempts. If the task cannot be completed successfully after this number of attempts, then the entire Job is failed with an environmental error. This prevents retry loops from proceeding until infinity.
+
+\subsection{Tasks and Transactions}
+Except for maintenance and debugging actions, all Tasks operate within a transaction which is a child of the parent. If the operation is read-only (e.g. it doesn't write data), then the child transaction is an Independent Read-Only transaction, otherwise, it will write data within a dependent writable transaction. When a task completes successfully, it's child transaction is committed\footnote{In the case of Independent read-only transactions, the commit does nothing}. 
+
+When a task fails or is cancelled, its child transaction is rolled back. Then, if the task is to be retried, new child transactions are created.
+
+To avoid creating transactions long before processing actually begins, a task will avoid creating a child transaction until \emph{after} it has moved to the EXECUTING state, but \emph{before} the task itself begins doing physical work.
+
+\subsection{Task behavior when a Region Splits or Moves}
+HBase is allowed to split a region(take a single region offline and create two new regions out of the old one), or move the region (move the physical owner of that region to another server for better load balancing). In this situation, we have a situation. Tasks are required to be data-local--they must operate inside the same JVM as the region to which they belong. However, the region that that task is operating inside is offline, so data requests are not allowed. Thus, we must somehow deal with this situation, and ensure that the task is redirected to the proper location in the cluster.
+
+If a task has already started executing, there is nothing we can really do. If we cancel it, then the entire job will be cancelled (we can only cancel jobs, not individual tasks), and we have no capability for preemption since our threading model is cooperative. However, if we do nothing then either the task will complete successfully, or it will fail with an environmental issue. If the task completes successfully, then we have nothing to worry about; if the task fails environmentally, the Job Scheduler will automatically re-submit the task to the correct new locations. Therefore, if a task is executing when a region goes offline, it is allowed to continue, and the Job Scheduler deals with any error as it would any other failure.
+
+A task which is in the PENDING state is a different matter. We don't want to wait for a potentially long time for this task to begin executing when we know that it will probably just fail environmentally--we want a way to remove the task from the Task Scheduler and simultaneously inform the Job Scheduler to re-submit this task. We do this by introducing an additional task state: INVALID. When a region closes, it moves any tasks which are in the PENDING state to the INVALID state, which informs the Job Scheduler that the task must be resubmitted. 
+

@@ -121,7 +121,7 @@ The Repeatable Reads isolation level imposes a significantly higher restriction 
 \end{exmp}
 This eliminates the ordering issue present in Read Committed and Read Uncommitted levels, and is the highest level of read isolation.
 
-In v0.5, SpliceMachine only supports Read Committed iosolation level, but has been designed with Read Uncommitted and Repeatable Reads in mind for future implementations.
+In v0.5, SpliceMachine only supports Repeatable Reads iosolation level, but has been designed with Read Uncommitted and Read Committed in mind for future implementations.
 
 \subsection{Write Conflicts}
 In the normal case of writes, we see the following example

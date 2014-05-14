@@ -1,0 +1,29 @@
+\documentclass[10pt]{amsbook}
+
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{exmp}{Example}[section]
+
+\begin{document}
+\title{SpliceMachine Architecture}
+\author{Scott Fines}
+
+\begin{abstract}
+This document serves as a reference guide for understanding how SpliceMachine stores data in transactional tables, including both physical and logical structures, and transactional rules.
+\end{abstract}
+
+\chapter{Transactions}
+\include{Transactions}
+\chapter{Encoding}
+\include{Encoding}
+\include{Operations}
+\include{PhysicalArchitecture}
+
+\end{document}

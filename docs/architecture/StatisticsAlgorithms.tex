@@ -1,0 +1,224 @@
+\section{Preliminaries}
+In order to understand the algorithms stated, it is helpful to first agree on terminology, and some essential definitions.
+
+\subsection{Hashing and Uniform Hash functions}
+Hashing plays a critical role in several algorithms which we will discuss, so it's helpful to rehash\footnote{pun intended} some introductory computer science information for reference.
+
+A $p$-bit hash function is simply a function $h$ which takes as input an element from the data set, and emits a $p$-bit scalar value. Thus, a 32-bit hash function emits 32-bit integers, while a 64-bit hash function emits 64-bit scalars.
+
+By extension, a \emph{uniform hash function} is a $p$-bit hash function $h$ which ensures that the bits which are output are uniformly distributed; that is, that the resulting $p$-bit scalar is uniformly distributed across all possible $p$-bit scalars.
+
+\subsection{Linear functions}
+A large focus of Statistics research in SpliceMachine orients around how to make multiple independent systems generate statistics which are capable of being merged together--that is, that two individual regions can generate a stastitics estimate which can be combined together in such a way that no\footnote{or very little} additional error is introduced.
+
+Mathematically, this is equivalent to saying that a function is \emph{linear}. More precisely
+
+\begin{defn}
+				Suppose $R$ is a data set, and suppose that $\psi(R)$ is a function. $\psi$ is considered \emph{linear} if 
+				\begin{displaymath}
+								\psi(R_1 \cup R_2) = \psi(R_1) + \psi(R_2)
+				\end{displaymath}
+				for any two independent data sets $R_1$ and $R_2$.
+\end{defn}
+
+In other words, two independent regions will be able to collect statistics independently if and only if the statistics function is linear. 
+
+\section{Cardinality}
+\label{sec:HyperLogLog}
+\emph{Cardinality} is the measure of the number of unique elements in a a data set. For example, if the data set consists of $\lbrace 1,1,4,-2,3,6,6,7,8,10\rbrace$, then the unique elements are $\lbrace 1,4,-2,3,6,7,8,10\rbrace$, and the cardinality is 8. 
+
+There are a number of different algorithms for estimating the cardinality of a data set, but one of the most effective method is \emph{HyperLogLog}\cite{Flajolet07hyperloglog:the}. 
+
+Assume that there is a $k$-bit uniform hash function $h$\footnote{In practice, $k = 64$ in pretty much all cases}. Then we know that, for any $x$ in the data set, each bit of $h(x)$ is equally likely to be 1 or 0. Thus, the probability that the bit at position $p$ is 1 is $\approx 2^{-p}$. Thus, over the entire data set, $\approx n/2^p$ entries will be hashed such that the bit at position $p$ is set(where $n$ is the number of distinct entries in the set). As a result, we can say that $n \approx 2^p$.
+
+In a perfect world, this would be all that is necessary. Unfortunately, that approximation has an unbounded error\footnote{technically, it has \emph{infinite expectation}, which means that the sequence doesn't converge.} so we won't be able to make use of just a single estimate. 
+
+However, if we hash entries into multiple buckets, and perform the above estimate for each bucket, and then average the resulting buckets, we can correct for the error growth problem and have a very good estimate for our cardinality.
+
+Thus, HyperLogLog accepts a parameter $b$, which is an integer assesment of the amount of error to accept. The higher the value of $b$, the more accurate the estimations become for higher cardinalities. Then we create $2^b$ independent counters. As a new entity comes in, it is hashed into a single $k$-bit scalar. The first $b$ bits of that scalar is the id for the counter to use, and we define $\rho$ to be the index of the first set bit in the remaining $k-b$ bits. The counter value holds the minimum of its current contents and $\rho$. Then, to compute the cardinality estimate, we take a specific average over all the counters.
+
+\begin{algorithm}[ht]
+				\KwData{ let $M$ be a dataset,$h$ be a $k$-bit uniform hash function,$b$ be an error control parameter, and $\alpha$ an empirically determined constant depending on $b$}
+				\KwResult{$C = $ the estimated cardinality of $M$}
+				\Begin{
+					\For{$v \in M$}{
+							set $x = h(v)$ \;
+							set $j = 1+ <x_1x_2...x_b>_2$ the first $b$ bits of $x$ \;
+							set $w = <x_{b+1}x_{b+2}...>_2$ the remaining $k-b$ bits of $x$\;
+							set $\rho =$ the position of the leftmost 1-bit in $w$ \;
+							set $c[j] = max(c[j],\rho)$ \;
+						}
+						\Return{
+										$\alpha2^{2b}(\sum_{j=1}^{2^b}{2^{-c[j]}})^{-1}$
+						}
+		}
+				\caption{HyperLogLog Algorithm}
+\end{algorithm}
+
+We can note that the maximum value of any single counter is $k-b$; for a 64-bit hash function, and $b\geq 4$, this means a maximum value of 60 for any single counter. Hence, we can use a single byte to represent each counter.
+
+This algorithm is very accurate for large cardinalities. In fact, it can be proven that the error is probabilistically bounded by $\sigma = 1.04/\sqrt{2^b}$; the error will be less than $\sigma$ 65\% of the time, $2\sigma$ 95\% of the time, and $3\sigma$ 99\% of the time. This will have errors well below 1\% for cardinalities beyond $10^{19}$\cite{Flajolet07hyperloglog:the}.
+
+Unfortunately, it has a tendency to overestimate very low cardinalities, sometimes very significantly. To deal with this, the initial algorithm specifies a threshold below which $m \log{m/V}$(where $m$ is the number of entries, and $V$ is the number of empty counters) is a more accurate approximation. Heule et al\cite{HyperLogLogGoogle} took this a step further, and engineered a memory-compact implementation which uses empirical interpolation to reduce the error in small cardinalities. 
+
+\section{Frequent Elements}
+\label{sec:SpaceSaver}
+With this, we seek to estimate the $k$ elements which occur most frequently in a data set\footnote{This problem is also referred to as the \emph{Heavy Hitters} or \emph{Icebergs}}. There are several algorithms which provide reasonable error rates.
+
+One simple implementation is just random sampling; however, this provides relatively poor accuracy rates, and also has considerable space requirements. A superior approach is to the use the \emph{Space Saving} algorithm\cite{SpaceSaver}, which estimates the $k$ most frequent elements and their frequencies with a fixed storage cost.
+
+The essence of the algorithm is to maintain a sorted list of triplets, of the form $(item,count,\epsilon)$. $count$ is an estimate of the frequency of $item$, and $\epsilon$ is a measure of how much $count$ could have been \emph{overestimated}. When a new item is visited, it is first compared against the list of currently stored elements. If it matches one of those, that counter is incremented. Otherwise, the item with the \emph{lowest} count is evicted, and the new elements is placed in its location. When the new element is placed, its $count$ is set to the previous elements $count+1$ and $\epsilon$ is set to the previous entry's $count$.
+
+When the stream is finished, the data structure will hold the top $k$ most frequent elements, along with a frequency estimate which is guaranteed to be overestimated by no more than $\epsilon$.
+
+\begin{algorithm}
+				\KwData{let $M$ be a data set, and $m$ be a maximum number of triplets to store}
+				\Begin{
+								\For{$e \in M$}{
+												\eIf{$e$ is monitored}{
+																incrementCounter($e$) 
+												}{
+																set $e_{min} =$ the element with the least hits $min$ \;
+																replace $e_{min}$ with $e$ \;
+																incrementCounter($e$) \;
+																set $\epsilon = min$
+													}
+								}
+				}
+				\caption{\emph{SpaceSaving} algorithm}
+\end{algorithm}
+
+The sort-order invariant is not required, but it makes the algorithm more efficient by reducing the number of comparisons that must be made. In fact, the \emph{SpaceSaving} algorithm as designed includes a special-purpose sorted data structure that allows for amortized constant-time replacement, which makes it considerably more efficient.
+
+The error in \emph{SpaceSaving} comes from the possibility of missing elements. At any point in time, only the entry with the least number of hits is in danger of being evicted--thus, if $m$ separate entries are held, then at the end of the updating process, the last entry may be incorrect. Thus, it behooves one to collect a larger number of frequent elements than one needs to reduce this error.
+
+Additionally, in very uniform data sets, there is a higher possibility for error. In general, one may detect this possibility by noting that the \emph{guaranteed count} $count-\epsilon$ is very small relative to the number of rows in the data set. In those cases, there is no such things as a "most frequent element"\footnote{Okay, unless the dataset is \emph{perfectly} uniform, there's always a most-frequent element. It's just that we don't care about them unless they are a \emph{lot} more frequent than everything else}, so using these estimates is not worthwhile anyway.
+
+\section{Histograms}
+\label{sec:Histograms}
+High-quality histogram algorithms are an extremely complex area, and still a subject of active research in the academic literature. 
+
+The main motivation behind a histogram is the need to approximate functions, in particular the distribution of data.
+
+\begin{defn}
+				Consider a data set $M$ which has a domain $D$. The \emph{distribution function}(sometimes also called the \emph{distribution}) $p$ is the function such that, for any $x \in M$, $p(x)$ is the number of times $x$ is found in $M$.
+\end{defn}
+
+On its own, the distribution is not the most effective tool. However, we can extend the definition slightly to be a more useful function:
+
+\begin{defn}
+				Consider a data set $M$ which has a domain $D$. For any $x \in M$, define $P(x) = \lbrace y \in M | y \leq x \rbrace$. The \emph{cumulative distribution function}(or \emph{cumulative distribution}) of $M$ is the function $c$ such that, for any $x \in M$, $c(x) = \left\| P(x) \right\|$ is the number of elements $y \in M$ such that $y \leq x$. 
+\end{defn}
+
+Note, for the more mathematically inclined, that it is always possible to construct $c(x)$ given $p(x)$--simply define $c(x) = \int_{min}^x p(x) dx$, where $min$ is the minimum possible value in $D$.
+
+The cumulative function is particularly powerful in query optimizations, as it allows us to estimate the output size of qualified queries. However, constructing $p(x)$ or $c(x)$ exactly are $O(n)$ algorithms--we must essentially scan all elements and count them\footnote{Technically, if the column is a primary key, then we don't need to scan all data elements,but that is a very special case, which isn't very interesting}. Further, keeping a distribution for all elements precisely may require excessively large volume of resources (since all unique elements must be kept). 
+
+However, if we were willing to sacrifice perfect accuracy in exchange for space, we can construct an approximation to either the distribution or the cumulative distribution which allows us to estimate output sizes without requiring data access.  The question now becomes: what type of approximate function should we construct?
+
+The simplest solution is to approximate the distribution function $p(x)$ with a piecewise-constant function $H(x)$. To construct such a function, we first select $B+1$ distinct values $s_i$($i = 0,...,B$) from the domain $D$, called the \emph{boundary points}. Then we construct $B$ \emph{buckets} $b_i$, where each bucket is responsible for a range of values, and has a constant value--e.g. $b_i = ([s_i,s_{i+1}),c_i)$, where $c_i$ is a counter. Then, as each element in the data set is visited, the appropriate bucket's counter is incremented. $H(x)$ is the piecewise-constant function that is $c_i$ on the interval $[s_i,s_{i+1})$, which we call the \emph{histogram} of $M$.
+
+It is a straightforward manner to approximate the number of elements which match $x$ using $H(x)$--merely find the bucket $b_i$ such that $s_i \leq x < s_{i+1}$, and $c_i$ is the estimate. Of course, there is some error in this estimate--in the worst case, $x$ is not present in the data set at all, in which case we are off by $c_i$; there are ways of reducing this error\footnote{such as using the cardinality as well as the count}, but the error cannot be totally removed.
+
+$H(x)$ can also be used to approximate the cumulative distribution. First, define the function $S(i) = \sum_{j=0}^{i-1} c_i$ to be the sum of all buckets whose boundary is strictly less than $s_i$. Given $x$, find the bucket $b_i$ such that $s_i \leq x < s_{i+1}$. Then, compute $S(i)$. This sum approximates $c(s_i)$, so we need to also include the contribution of ranges between $s_i$ and $x$. To do this, we note that $S(i+1) = S(i) + c_i$; thus, we have two points on our graph: $(s_i,S(i))$ and $(s_{i+1},S(i) +c_i)$. Two points is enough for a straight line, so we compute the linear function $f(y) = ay + b$ which passes through those two points, and then compute $f(x)$. $f(x)$ is then a reasonable approximation of the contribution of elements between $s_i$ and $x$, so we know that $c(x) = S(i) + f(x)$.
+
+								This technique is called \emph{linear interpolation}, and it also introduces some error into the estimate. The worst case occurs when no elements between $s_i$ and $s_{i+1}$ are present except for $s_i$. In this case, $f(x)$ will always overestimate by $f(x) - c_i$, which will grow linearly as $x$ goes from $s_i$ to $s_{i+1}$. This means that the error is bounded by the error in interpolating a single bucket, which can be controlled by appropriate choices for the boundary points.
+
+								This raises a difficult question: how should we choose the boundary points $s_i$ so that our interpolation error is minimized? In fact, there are three major methods for doing so\footnote{although there are several additional minor approaches}:
+
+\begin{enumerate}
+				\item Equi-width
+				\item Equi-depth
+				\item V-Optimal
+\end{enumerate}
+
+\subsection{Equi-Width Histograms}
+\label{sec:EquiWidth}
+Equi-width histograms use the most obvious approach to choosing boundary points: simply divide the domain $D$ into $B$ equal intervals--choose $s_i$ such that $s_{i+1}-s_i$ is the same for all $i$.
+
+\begin{exmp}[Choosing Equi-width boundary points]
+				\label{exmp:EquiWidthBoundary}
+				Suppose $D = [0,100)$ is the domain of possible values, and we wish to compute an Equi-width Histogram with $B = 10$ buckets. Then, we need 11 boundary points $s_i$ which cover the entirety of $D$, but maintain the constraint that $s_{i+1}-s_i$ are equal. Choose $s_i = 10i$. Then we have the boundary points $\lbrace 0,10,20,30,40,50,60,70,80,90,100 \rbrace$. This creates intervals $\lbrace ([0,10),[10,20),[20,30),[30,40),[40,50),[50,60),[60,70),[70,80),[80,90),[90,100)$ which satisfies the Equi-width constraint.
+\end{exmp}
+
+Equi-width histograms are extraordinarily simple to construct, as they require knowledge only of the domain of possible values, and the number of buckets that one wishes to construct. They are also linear, as long as the same boundary points are chosen by all subhistogram constructions (merging two Equi-depth histograms is simply adding the counters in each bucket).
+
+However, Equi-width histograms have very poor error characteristics\cite{PiatetskyTuple}. In particular, they suffer badly when data is not uniformly distributed.
+
+\begin{exmp}[Equi-width histogram with poor resolution of low cardinalities]
+				\label{exmp:EquiWidthResolution}
+				Suppose $D = [0,100)$ is the domain of possible values for data set $M$, and we compute $H(x)$ as in Example-\ref{exmp:EquiWidthBoundary}.
+								Now suppose that $M_1 = {1,1,1,1,1,1,1,1,2,2,2,2,4,4,8}$. Then $b_0 = ([0,10),15)$, and $c_i = 0$ for $i \neq 0$. However, $H(4) = 15$, and the approximation of $c(4) = 6$. 
+												Now, suppose that $M_2 = {1,1,1,1,2,2,2,2,4,4,8,8,8,8,8}$. Then $H(4) = 15$ and $c(4) = 6$ is the same as in the case of $M_1$, but the distribution is qualitatively different in both cases.
+\end{exmp}
+
+The problem in the above example is that the domain of possible data values is very large, but the domain of \emph{actual} values is very low. Unfortunately, there is no way to adjust Equi-width histograms based on the realities of data. Sure, we could correct the above example by using a different number of buckets (say, 100), but that would require a priori knowledge of the distribution which we do not possess.
+
+We also cannot dynamically adjust our boundaries to allow for better resolution, because we must leave boundaries fixed for all data sets if we hope to make use of the linearity of Equi-width histograms.
+
+As if that were not enough,As if that were not enough,  Equi-width histograms allow a high \emph{variance} between items within the same bucket--that is, it's possible that a single element in the bucket could have many, many more elements than the others within the bucket, which means that the linear interpolation would have higher error than it could otherwise have.
+
+\subsection{Equi-Depth Histograms}
+\label{sec:EquiDepth}
+When considering Example-\ref{exmp:EquiWidthResolution}, we notice that the vast majority of the buckets are empty, while one bucket has all the data. This is both erroneous, and wasteful--we are using resources for a bunch of empty buckets, while simultaneously losing needed resolution. This leads us to believe that if we could somehow adjust this strategy so that we never have empty buckets, we could have a better histogram. Equi-depth histograms attempt to do just that.
+
+In point of fact, Equi-depth histograms impose no restrictions of the domain of data, but rather on the \emph{depth} of each bucket. Given a data set $M$, we choose $B+1$ boundary points $s_i$ such that $c_i$ is (approximately) the same for all buckets.
+
+\begin{exmp}[Constructing an EquiDepth Histogram]
+				\label{exmp:EquiDepthHistogram}
+Suppose that $M =\lbrace 1,1,1,1,1,1,1,1,2,2,2,2,4,4,8\rbrace$ is the data set of interest, and we wish to construct up to 5 buckets. We must choose boundaries such that $c_i$ remains as close to one another as possible. We start by defining a single bucket $([1,9),15)$. Since we want up to 5 buckets, we divide the bucket space in 2 to form 2 buckets: $b_0 = ([1,4),12)$ and $b_1 = ([4,9),3)$. Since $c_0 > c_1$, we subdivide $b_0$ again, to form $b_0 = ([1,2),12),b_1 = ([2,4),4),b_2=([4,9),3)$. Since we cannot subdivide $b_0$ any further, we are done. As close as possible (given this distribution), we have equal depths on our buckets (note that $c_1 \approx c_2$).
+\end{exmp}
+
+The algorithm used in Example-\ref{exmp:EquiDepthHistogram} is not the most efficient, as it requires multiple passes through the data to recompute frequencies for each bucket. However, there are a number of algorithms which have been devised that can compute \emph{approximate} Equi-depth histograms in a single pass; most notably, the algorithms described in \cite{MousaviEquiDepthDataStreams} and \cite{GibbonsFastIncremental}.
+
+Equi-depth histograms eliminate the resolution error that is present in Equi-width histograms, by ensuring that the heights of each individual buckets are bounded, and also because \emph{possible} values are ignored--only values which are actually present are considered\footnote{In practice, we can make an Equi-depth histogram cover the entire domain by placing zeros outside the observed entries}.
+
+Most database products use Equi-depth histograms(see Appendix-\ref{sec:OtherDBs}), because their construction is relatively easy, and the accuracy is fairly acceptable for query optimizer techniques. However, Equi-depth histograms are \emph{not} linear--we cannot merge two Equi-depth histograms together without violating the Equi-depth constraint
+
+\begin{exmp}[Merging two Equi-depth Histograms introduces error]
+				Consider two Histograms $H_1(x) = \lbrace ([0,10),10),([10,30),9),([30,60),11) \rbrace$ and $H_2(x) = \lbrace ([0,20),20),([20,25),19) \rbrace$. In order to merge $H_1(x)$ and $H_2(x)$, we must convert $H_2$ to fit the same bounds as $H_1$. To do this, we use linear interpolation to obtain $H_2(x) = \lbrace ([0,10),10),([10,20),10),([20,25),19) \rbrace$ and $H_1(x) = \lbrace ([0,10),10),([10,20),9/2),([20,25),9/4),([25,30),9/4),([30,60),11) \rbrace$. Combining these generates $H_m(x) = \lbrace ([0,10),20),([10,20),29/2),([20,25),85/4),([30,60),11) \rbrace$. This merged histogram does not satisfy the Equi-depth constraint.
+\end{exmp}
+
+As a result, we can only construct an Equi-depth histogram if we don't wish to keep region-level histograms; since that is an important feature, SpliceMachine will need to look further than simple Equi-depth histograms.
+
+\subsection{V-Optimal Histograms}
+\label{sec:VOptimal}
+Even if Equi-depth histograms were linear, they are subject to unusual errors within a single bucket. In particular, if there is one value within the bucket which has the majority of the recorded instances in the data set, it introduces a more significant error when estimating other values. This is because the \emph{variance} between any two elements in the same bucket is not controlled.
+
+\emph{V-Optimal} histograms attempt to correct this error by choosing boundaries that minimize the variance between items within the same bucket. This means that linear interpolation is essentially guaranteed to have small error, since only values which are present will be accounted for. It can be shown that, even in the worst case, V-Optimal histograms are still very accurate for selectivity estimation\cite{JagadishOptimalHistograms}.
+
+Unfortunately, computing a V-Optimal histogram precisely is a complex problem, requiring $O(n^2B)$ operations\cite{JagadishOptimalHistograms}. On the other hand, computing an \emph{approximate} V-Optimal histogram can be performed in $O(n)$ steps\cite{GuhaApproximation,GuhaREHIST}. 
+
+None of these algorithms, however, can make V-Optimal histogram functions linear. Therefore, even though they are superior in error and estimation properties to Equi-depth histograms, they are equally useless for SpliceMachine.
+
+\subsection{Wavelet Histograms}
+\label{sec:Wavelets}
+We are stuck between a rock and a hard place. On the one hand, We know that Equi-depth and V-Optimal histograms provide the best accuracy for our purposes. On the other hand, we are confined to using an Equi-width histogram because it is the only linear option. We must choose to either sacrifice the quality of our estimations so that we can easily merge together different regions, or we must sacrifice our desire to maintain independent regions so that we can maintain quality histograms. Neither option is very appealing.
+
+Thankfully, if we reconsider our approach to the problem, we can devise an alternative that can be very accurate, but is also linear, and therefore useful.
+
+First, we know that what we \emph{truly} want is not a histogram. Instead, we only desire a function $w(x)$ that is an accurate approximation of $p(x)$ \emph{or} $c(x)$, since we should be able to easily convert between $c(x)$ and $p(x)$. Histogramming is a process of making $w$ a piecewise-constant function, but that isn't the only type of function available to us.
+
+\emph{Wavelets} provide us with a technique for generating an approximation function $w$ which is \emph{not} piecewise-constant, but is nonetheless an accurate approximation of $c(x)$.
+
+Wavelets as a mathematical subject are beyond the reach of this document--for a detailed analysis, see \cite{HernandezWavelets}. At the very roughest level, however, wavelet transforms treats data analogously to a radio \emph{signal}. In any signal, there are frequencies which contain information, and frequencies which are present as noise. A Wavelet transform seeks to remove the frequencies which do not significantly contribute to the signal, leaving behind only those frequencies which are very important\footnote{In a way, wavelets act as a form of lossy compression of the data stream}.
+
+By definition and choice, Wavelet functions are linear, so any approximation that we make using wavelets can satisfy our desire for merging. The real question then is twofold: 
+
+\begin{enumerate}
+				\item How is a wavelet approximation function $\psi(x)$ constructed?
+				\item How accurate are wavelet approximations
+\end{enumerate}
+
+In \cite{MatiasWaveletHistogram},Matias et al show that the accuracy of any wavelet transform is equivalent in quality to that of a V-Optimal histogram(and are in fact experimentally shown to be superior). However, the algorithm used requires $O(n)$ space, and $O(n)$ time to update, which is excessive for our purposes.
+
+Gilbert et al, in \cite{GilbertSurfing} and \cite{GilbertWaveletHistograms}, describe a data structure known as an \emph{Array Sketch} that uses $O(\log^2{n})$ space to store, and has constant-time update performance\footnote{Readers who are able to interpret those articles should be rewarded as excellent mathematicians in their own right}. However, constructing a wavelet histogram from an Array Sketch is a very expensive operation\cite{CormodeGroupedCountSketch}.
+
+\subsubsection{GroupedCount Sketch}
+\label{sec:GroupedCountSketch}
+In more recent efforts, Cormode et al have managed to construct an algorithm for computing a wavelet histogram that is inexpensive to maintain and \emph{also} inexpensive to reconstruct\cite{CormodeGroupedCountSketch}.
+
+This algorithm essentially maintains $\log{n}$ separate \emph{GroupedCountSketch}(\emph{GCS}) data structures. The \emph{GCS} is a three-dimensional array with parameters $t,b$ and $c$, which determine the level of accuracy. As elements are visited, a selection of \emph{GCS} structures are updated, each in an $O(1)$ update operation (using uniform hash functions); the entire process requires $O(\log{n})$ to update. Then, when the wavelet is desired, a threshold is chosen, and only elements from the \emph{GCS} which exceed this threshold are chosen, thus selecting the most significant wavelet coefficients to use. 
+
+The GroupedCountSketch uses relatively little memory to compute, and is also linear and highly accurate. Thus, it is the Histogramming choice for SpliceMachine. In particular, it directly estimates the cumulative distribution $c(x)$.
+

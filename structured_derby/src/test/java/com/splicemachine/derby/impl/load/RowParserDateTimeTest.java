@@ -52,6 +52,8 @@ public class RowParserDateTimeTest {
 						"yyyy/MM/dd HH:mm:ss.SSSZ",
 						"dd/MM/yyyy HH:mm:ss.SSSZ",
 						"yyyy-MM-dd HH:mm:ss.SSSZ",
+						"yyyy-MM-dd HH:mm:ss.SSSZ",
+						"yyyy-MM-dd HH:mm:ss.SSZ"
 		};
 		private static final TimeZone[] goofyTimeZones = new TimeZone[]{
 						TimeZone.getTimeZone("America/Caracas"), // off by 30 minutes

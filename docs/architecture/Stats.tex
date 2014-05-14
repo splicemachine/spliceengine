@@ -1,0 +1,47 @@
+\documentclass[10pt]{amsart}
+\usepackage[top=1.5in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
+\usepackage[backend=biber]{biblatex}
+
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage[]{algorithm2e}
+\RestyleAlgo{boxed}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{appendix}
+\usepackage{courier}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{exmp}{Example}[section]
+\newtheorem{defn}{Definition}[section]
+
+\bibliography{Stats}
+
+\begin{document}
+\title{Statistics in SpliceMachine}
+\author{Scott Fines}
+
+\begin{abstract}
+				Statistics are a core part of improving the performance of any database of reasonable size. They are used during query optimization to choose the best execution plans, during the execution of plans to manage physical resources, and by resource managers to choose optimal distributions across multiple nodes. This document serves as a design construction for how Statistics should be implemented in SpliceMachine.
+\end{abstract}
+
+\maketitle
+
+\input{Statistics}
+\clearpage
+\begin{subappendices}
+				\section*{Appendix: Statistics in Other Database Products}
+				\label{sec:OtherDBs}
+				\input{StatisticsInOtherDbs}
+				\clearpage
+				\section*{Appendix: Algorithms for Statistics}
+				\label{sec:Algorithms}
+				\input{StatisticsAlgorithms}
+\end{subappendices}
+
+\clearpage
+\printbibliography
+
+\end{document}

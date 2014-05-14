@@ -1,0 +1,34 @@
+\documentclass[10pt]{amsart}
+%\usepackage[top=1.5in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
+
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{fancybox}
+\usepackage{tikz}
+\usepackage{float}
+\usepackage{tablefootnote}
+
+\floatstyle{boxed}
+\restylefloat{figure}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{exmp}{Example}[section]
+
+\begin{document}
+\title{Parallel and Sequential Operations in SpliceMachine}
+\author{Scott Fines}
+
+\begin{abstract}
+This document outlines the various SQL operations that SpliceMachine supports, as well as how those operations are split into parallel and sequential stages
+\end{abstract}
+
+\maketitle
+
+\input{Operations}
+
+\end{document}

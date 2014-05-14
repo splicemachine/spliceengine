@@ -1,0 +1,214 @@
+[TODO] This chapter discusses the structure of how data is encoded inside of a Transactional Table, and how that encoded data is read and parsed.
+
+\section{HBase structure}
+It is necessary to first discuss the storage structure of HBase, in order to understand why some decisions (such as packed encodings) were made.
+
+\subsection{HBase Data Model}
+In most traditional data stores (such as Oracle, PostgreSQL, etc.), data is modelled as a tuple of \emph{columns} $(c_1,c_2,c_3,...c_N)$(where $c_i$ represents an individual column). This tuple is referred to as a \emph{row}. A collection of rows is referred to as a \emph{table}, and a collection of tables is called a \emph{schema}. This nicely lines up with our intuition about data, and is particularly helpful when writing a SQL interface, but it does have its drawbacks. The biggest drawback is that it's inflexible: the only way to store data in a table is by fitting it to the table's model. 
+
+To deal with this drawback, the original designers of HBase\footnote{Actually, it's the original designers of Google BigTable that came up with this, but we want to avoid clouding the issue overmuch here} designed a \emph{column-oriented} storage model. In HBase, data is stored as a sparse mapping from a \emph{row key} to one or more \emph{columns}. HBase columns are actually a mapping from a \emph{column key} to one or more \emph{timestamps}, with each timestamp referring to a specific data point. In a json-ish notation, this looks like
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[frame=single,language=java,captionpos=b,caption=HBase data model]
+{rowKey: <row key>,
+	columns: [
+		{columnKey: <column key 1>,
+			values: [
+				{timestamp: <timestamp1>,
+					data:	<data>
+				}
+				{timestamp: <timestamp2>,
+					data:	<data>
+				}
+			]	
+		},		
+		{columnKey: <column key 2>,
+			values: [
+				{timestamp: <timestamp>,
+					data:	<data>
+				}
+			]	
+		}		
+	]
+},
+...
+\end{lstlisting}
+\end{minipage}
+
+This format means that arbitrary information can be stored in three places: the row key, the column key, and the data itself\footnote{the timestamp is just that: a timestamp}; the result is an extremely flexible storage model.
+
+Once this is modeled, HBase maintains rows in lexicographically-sorted order \emph{on the row keys}. This makes it efficient to scan this data if the binary sort order corresponds to something meaningful about the row key itself.
+
+\subsection{HBase write pipeline}
+HBase supports durable writes using a Log-Structured-Merge-(or LSM-)Tree. In an LSM tree, data is first written to memory. Then, when a certain memory threshold is exceeded, the entirety of its contents are flushed to form a single file in a sorted format. This allows highly efficient writes since writes go directly to memory, but incurs a penalty on reading, since data that is of interest may be contained in any of the files currently on disk.
+
+To help prevent this issue, HBase introduces a \emph{compaction} process. A Compaction process is a process where multiple files are read and merged into a single(much larger) file. This reduces the number of files that must be accessed (and therefore the number of seeks that must be performed), which improves read performance significantly. 
+
+This LSM-tree makes for efficient access most of the time, but because the first write is to memory, writes are not inherently durable. To make writes durable to machine failure, HBase uses a standard Write-Ahead Log(or WAL, for short). Each row that is written is first written to the WAL, then written to memory. When a WAL file exceeds a certain size, it is closed and a new WAL file created to avoid creating WAL files that are too long (this helps during the startup process).
+
+Thus, HBase has two separate disk formats: the WAL (which is relatively unimportant for our purposes), and a sorted file holding large amounts of data(called the HFile).  
+
+\subsection{HFile format}
+[TODO]
+
+\section{Data Types}
+
+We must find a way to encode the following data types:
+\begin{enumerate}
+	\item Boolean
+	\item Tinyint
+	\item Smallint
+	\item Integer
+	\item Longint
+	\item Real
+	\item Double
+	\item Decimal
+	\item Char
+	\item Varchar
+	\item Binary
+	\item Date
+	\item Time
+	\item Timestamp
+\end{enumerate}
+
+And our encoding must satisfy the following criteria:
+
+\begin{enumerate}
+\item compact
+\item sortable
+\item efficient
+\end{enumerate}
+
+It's typically a bit difficult to find off-the-shelf implementatinos which satisfy all three criteria. Protocol Buffers, for example, is compact and efficient, but isn't sortable; Orderly, on the other hand is sortable and compact, but isn't very efficient. In the end, we devised a custom encoding scheme based roughly on the Orderly library.
+
+\subsection{Boolean}
+Boolean data types are encoded using the simple rule of
+
+\begin{algorithm}
+\SetKwInOut{Input}{input}
+\SetKwInOut{Output}{output}
+\Input{$x$ a boolean, $descendingOrder$ a boolean}
+\eIf{$x = true$}{
+	\eIf{$descendingOrder = true$}{
+		\Output{0x01}
+	}{
+		\Output{0x02}
+	}
+}{
+	\eIf{$descendingOrder = true$}{
+		\Output{0x02}
+	}{
+		\Output{0x01}
+	}
+}
+\caption{Boolean Encoding}
+\end{algorithm}
+
+\subsection{Scalar Types}
+The fundamental strategy for Scalar Types is to realize that the default format for longs and ints in Java is BigEndian, and lexicographic ordering of BigEndian encoded numbers is the same as it's natural ordering. Thus, we want to use BigEndian format to encode. However, we also want to make values as small as possible. 
+
+For this, we notice that numbers $x < 2^8$ can fit within a single byte, $x<2^16$ can fit in 2 bytes, and so forth. Thus, if we could devise a way to determine how long we should decode for, we could potentially use smaller encodings without sacrificing sort order. 
+
+Thus, the essential strategy is to first store the sign of the number in a single bit, then store the number of bytes that are used to encode the value, and then finally we store the value itself, using only as many bytes as are needed to contain all the 1-bits in the number.
+
+All scalar types are encoded the same way--this includes
+
+\begin{enumerate}
+\item Tinyint
+\item Smallint
+\item Integer
+\item Longint
+\end{enumerate}
+
+Note that it is possible for some bytes in this encoding to be $0x00$, which introduces an ambiguity with our reserved field separator. To avoid this issue, in order to skip over a scalar, first the header byte must be read to determine how many bytes to skip.
+
+\subsection{Date and Time}
+Dates and Times are encoded as the Linux epoch time (milliseconds since Jan 1,1970 UTC). As this is a long, they are encoded using the scalar encoding patterns.
+
+\subsection{Timestamps}
+
+\subsubsection{V1 Encoding}
+In encoding version 1.0, Timestamps are encoded as the linux epoch time, which gives only milliseconds precision.
+
+\subsubsection{V2 Encoding}
+In encoding version 2.0, Timestamps are encoded with microseconds precision, using the following transformation:
+\begin{displaymath}
+b = m*1e6 + n/1e3;
+\end{displaymath}
+where $b$ is the encoded timestamp, $m$ is the linux epoch time, and $n$ is the nanoseconds. 
+
+This is decoded using the following algorithm
+
+\begin{algorithm}
+\SetKwInOut{Output}{output}
+	$\mu = b \mod 1e3$\;
+	\If{$b < 0$}{
+		$\mu = 1e6 + \mu$\;
+		$b = b - \mu$;
+	}
+
+	$m = b/1e6$\;
+	\Output{($m$,$\mu*1e3$)}
+\caption{Decoding a Timestamp with Microseconds precision}
+\end{algorithm}
+
+\subsection{Real}
+Reals are encoded using floats, which are fixed-length 4-byte encodings under the transformation
+
+\begin{algorithm}
+\SetKwInOut{Input}{input}
+\SetKwInOut{Output}{output}
+\Input{$x$ a float}
+let $j$ be the integer representation of $x$\;
+set $b = j \oplus ((j>>31) | -2^{32}+1)$
+\Output{BigEndian encoding of $b$}
+\caption{Encoding of Real data types}
+\end{algorithm}
+This output ensures that the natural order of reals is the same as the lexicographic order, and requires 4 bytes\footnote{recall that $\oplus$ is the XOR operator}.
+
+Unfortunately, this output can generate numbers that start with 0x00, which is a reserved field in our encoding structure. As a result, there is no distinction between $NULL$ and a float which starts with 0x00. However, the sequence 0x00 0x00 <other bytes> will never be executed, so $NULL$ reals are encoded as $[0x00,0x00]$.
+
+\subsection{Doubles}
+Doubles are encoded as an 8-byte long under the transformation
+
+\begin{algorithm}
+\SetKwInOut{Input}{input}
+\SetKwInOut{Output}{output}
+\Input{$x$ a double}
+let $j$ be the long representation of $x$\;
+set $b = j \oplus ((j>>63) | -2^{64}+1)$
+\Output{BigEndian encoding of $b$}
+\caption{Encoding of Double data types}
+\end{algorithm}
+This output ensures that the natural order of doubles is the same as the lexicographic order, and requires 8 bytes.
+
+Unfortunately, this output can generate numbers that start with 0x00, which is a reserved field in our encoding structure. As a result, there is no distinction between $NULL$ and a double which starts with 0x00. However, the sequence 0x00 0x00 <other bytes> will never be executed, so $NULL$ doubles are encoded as $[0x00,0x00]$.
+
+\subsection{Decimal}
+      BigDecimals are represented by a signed, arbitrary-precision integer (called the \emph{unscaled value\emph}) and a 32-bit base-2 encoded \emph{scale}. Thus, any big decimal can be represented as $(-1)^{s}\mu*10^{-d}$, where $s$ is either -1,0, or 1 depending on whether the decimal is negative, zero, or positive(this is referred to as the \emph{signum}),$\mu$ is the unscaled value, and $d$ is the scale.  Hence, there are three distinct elements which must be stored: $s,\mu$, and $d$.
+     
+To sort negatives before positives, we must first store the signum, which requires a minimum of 2 bits. Because 0x00 is reserved for combinatoric separators, we use the following mapping:
+     
+\begin{enumerate}
+      \item -1 = 0x01
+      \item 0  = 0x02
+      \item 1  = 0x03
+\end{enumerate}
+     
+      After the signum, we store the \emph{adjusted scale}. Essentially, we are converting all the numbers to be stored into the same base,
+      and recording a new scale. Mathematically, a BigDecimal looks like {$(-1)^{s}2^m*10^{-d}$, where $\mu = 2^m$ is the base-2 formatted unscaled value.
+      Converting everything into base-10, the unscaled value becomes $b10^{-p+1}$, where $b$ is a scalar and $p$ is the number of decimal digits in the unscaled value. Thus, combining the exponents nets the base-10-formatted BigDecimal as $(-1)^sb10^{-(p+d-1)}$. Hence the adjusted scale is $p+d-1$.
+     
+      The adjusted scale requires up to 33 bits of storage if we can use the same format as we use for serializing longs. So, we serialize the adjusted scale using that same format but shifted over by two bits to allow room for the signum.
+     
+      Finally, we must serialize the base-10-formatted unscaled value itself. Since that value is arbitrarily long, we use Binary Encoded Decimals to serialize the character digits of the base-10 formatted scalar $b$.  In Binary Encoded Decimals, each decimal character 0-9 is transformed to a 4-bit int between 1-10 (e.g. add 1), and then stored 2 characters to a byte. This means that, if there are $N$ decimal digits in the unscaled value, there will be $\ceil{N/2}$ bytes used to store them.  Thus, the total storage required is 2 bits for the signum, between 6 and 33-bits for the adjusted scale, and $\ceil{N/2}$ bytes for the unscaledValue, making the total space at least 1 byte.
+
+\subsection{Strings}
+String data types (Varchar and Char) are encoded using a modified UTF-8 scheme. 
+
+We choose UTF-8 because it is efficient for ASCII, and lexicographic sort of UTF-8 encoded values matches lexicographic byte order. However, UTF-8 allows \\u0000 as 0x00, which violates our desire to reserve 0x00. To avoid this situation, we simply add 2 to every byte in the UTF-8 encoded value.
+
+\subsection{Unsorted Binary types}
+On occasion, it is necessary to encode unsorted binary types (BLOB, etc.). In this case we need not worry about sortable encodings, but we DO need to avoid 0x00. To avoid 0x00 bytes,we use a "7-bit byte" encoding, where the first bit in every byte is set to 1, and the remaining bits are shifted over. This adds 1 byte of overhead for every 8 bytes of data, but ensures that no byte is ever 0x00 (since the first bit is always 1).
+
+
