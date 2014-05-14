@@ -2080,7 +2080,7 @@ throws SQLException
           (<FROM> tblname=caIdentifier() [ <PERIOD> str=caIdentifier() ] ) ]
     {
         if(str != null) {
-            // if absolute table reference given
+            // if absolute table reference given then use it
             schema = tblname;
             tblname = str;
         }
