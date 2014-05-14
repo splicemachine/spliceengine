@@ -359,7 +359,6 @@ public class BroadcastJoinOperation extends JoinOperation {
 						if (LOG.isDebugEnabled()){
 								logSize(rightResultSet, cache);
 						}
-						resultSet.close();
 						BroadcastJoinOperation.this.rightHandTimer = resultSet.getStats();
 						return Collections.unmodifiableMap(cache);
 				}
