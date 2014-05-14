@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -7,6 +9,7 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SerializationUtils;
 
@@ -32,6 +35,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -65,8 +70,10 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     private SpliceConglomerate conglomerate;
     private int colRefItem;
 		private String tableVersion;
-		private int[] keyDecodingMap;
 
+		private static final Cache<Long,String> tableVersionCache = CacheBuilder.newBuilder()
+						.maximumSize(4096)
+						.build();
 		@SuppressWarnings("UnusedDeclaration")
     @Deprecated
     public DerbyScanInformation() { }
@@ -96,10 +103,21 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
         this.gsps = opContext.getPreparedStatement();
         this.activation = opContext.getActivation();
 
-				DataDictionary dataDictionary = activation.getLanguageConnectionContext().getDataDictionary();
-				UUID tableID = dataDictionary.getConglomerateDescriptor(conglomId).getTableID();
-				TableDescriptor td = dataDictionary.getTableDescriptor(tableID);
-				this.tableVersion = td.getVersion();
+				if(tableVersion==null){
+						try {
+								this.tableVersion = tableVersionCache.get(conglomId,new Callable<String>() {
+										@Override
+										public String call() throws Exception {
+												DataDictionary dataDictionary = activation.getLanguageConnectionContext().getDataDictionary();
+												UUID tableID = dataDictionary.getConglomerateDescriptor(conglomId).getTableID();
+												TableDescriptor td = dataDictionary.getTableDescriptor(tableID);
+												return td.getVersion();
+										}
+								});
+						} catch (ExecutionException e) {
+								throw Exceptions.parseException(e);
+						}
+				}
     }
 
     @Override
@@ -215,6 +233,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
         SerializationUtils.writeNullableString(scanQualifiersField, out);
         SerializationUtils.writeNullableString(startKeyGetterMethodName, out);
         SerializationUtils.writeNullableString(stopKeyGetterMethodName, out);
+				out.writeUTF(tableVersion);
     }
 
     @Override
@@ -229,6 +248,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
         scanQualifiersField = SerializationUtils.readNullableString(in);
         startKeyGetterMethodName = SerializationUtils.readNullableString(in);
         stopKeyGetterMethodName = SerializationUtils.readNullableString(in);
+				this.tableVersion = in.readUTF();
     }
 
     @Override
