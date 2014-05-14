@@ -9,7 +9,7 @@ import java.sql.Types;
  * @author Scott Fines
  * Date: 1/21/14
  */
-public class XPLAINOperationHistoryDescriptor extends XPLAINTaskDescriptor{
+public class XPLAINOperationHistoryDescriptor extends XPLAINBaseTableDescriptor{
 		private static final String TABLE_NAME = "SYSXPLAIN_OPERATIONHISTORY";
 		private static final String STATEMENTID_NAME = "STATEMENTID";
 		private static final String OPERATIONID_NAME = "OPERATIONID";

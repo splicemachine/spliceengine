@@ -1,5 +1,22 @@
 package com.splicemachine.derby.utils;
 
+import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
+import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
+import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
+import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
+import com.splicemachine.derby.management.StatementInfo;
+import com.splicemachine.derby.management.StatementManagement;
+import com.splicemachine.derby.management.XPlainTrace;
+import com.splicemachine.hbase.ThreadPoolStatus;
+import com.splicemachine.hbase.jmx.JMXUtils;
+import com.splicemachine.job.JobSchedulerManagement;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.utils.logging.Logging;
+import java.io.IOException;
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
@@ -1397,5 +1414,10 @@ public class SpliceAdmin {
         public V getThird() {
             return third;
         }
+    }
+
+    public static void XPLAIN_TRACE(String schemaName, long statementId, int mode, final ResultSet[] resultSet) throws Exception{
+        XPlainTrace xPlainTrace = new XPlainTrace(schemaName, statementId, mode);
+        resultSet[0] = xPlainTrace.populateTraceTable();
     }
 }

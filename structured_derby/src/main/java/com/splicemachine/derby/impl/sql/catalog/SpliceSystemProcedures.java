@@ -422,12 +422,24 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getAllSystemProperties);
 
-                    Procedure vacuum = Procedure.newBuilder().name("VACUUM")
+        			Procedure vacuum = Procedure.newBuilder().name("VACUUM")
+        					.numOutputParams(0)
+        					.numResultSets(0)
+        					.ownerClass(SpliceAdmin.class.getCanonicalName())
+        					.build();
+        			procedures.add(vacuum);
+
+                    Procedure xplainTrace = Procedure.newBuilder().name("XPLAIN_TRACE")
+                            .varchar("schemaName", 128)
+                            .bigint("statementID")
+                            .integer("mode")
                             .numOutputParams(0)
-                            .numResultSets(0)
+                            .numResultSets(1)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
-                    procedures.add(vacuum);
+
+                    procedures.add(xplainTrace);
+
                 }
 
             }

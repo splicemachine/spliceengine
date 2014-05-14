@@ -31,7 +31,7 @@ public class SpliceXplainUtils {
 						lcc.setXplainSchema(null);
 						return;
 				}
-
+                schemaName = schemaName.toUpperCase();
 				boolean statsSave = lcc.getRunTimeStatisticsMode();
 				lcc.setRunTimeStatisticsMode(false);
 				createXplainSchema(schemaName);
@@ -75,7 +75,7 @@ public class SpliceXplainUtils {
 		}
 
 		// Create the XPLAIN table if it doesn't already exist
-		private static void createXplainTable(String schemaName, XPLAINTaskDescriptor t) throws SQLException {
+		private static void createXplainTable(String schemaName, XPLAINTableDescriptor t) throws SQLException {
 				String ddl = t.getTableDDL(schemaName);
 				Connection conn = getDefaultConn();
 				if (!hasTable(conn, schemaName, t.getTableName())) {
