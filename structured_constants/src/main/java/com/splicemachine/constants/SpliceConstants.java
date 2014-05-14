@@ -216,10 +216,8 @@ public class SpliceConstants {
 		public static int maxImportProcessingThreads;
 
 		/**
-		 * The number of threads which will be used to process rows from import files. Increasing this
-		 * number will result in a higher number of concurrent table writes, but setting it too high
-		 * will result in outpacing the system's ability to read a block of data from disk.
-		 * Defaults to 3
+		 * This the number of rows to read before doing an interrupt loop check.  If you kill a statement, it will interrupt
+		 * the thread and be caught after 0 to limit n rows set with this parameter.
 		 */
 		@Parameter private static final String INTERRUPT_LOOP_CHECK = "splice.interrupt.loop.check";
 		@DefaultValue(INTERRUPT_LOOP_CHECK) private static final int DEFAULT_INTERRUPT_LOOP_CHECK = 1000;
