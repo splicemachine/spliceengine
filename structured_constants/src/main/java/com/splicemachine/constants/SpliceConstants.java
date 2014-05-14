@@ -37,6 +37,10 @@ public class SpliceConstants {
 		@DefaultValue(IMPORT_LOG_QUEUE_WAIT_TIME) private static final long DEFAULT_IMPORT_LOG_QUEUE_WAIT_TIME = TimeUnit.MINUTES.toMillis(1); //1 minute
 		public static long importLogQueueWaitTimeMs;
 
+		@Parameter public static final String USE_READ_AHEAD_SCANNER = "splice.scan.useReadAhead";
+		@DefaultValue(USE_READ_AHEAD_SCANNER) private static final boolean DEFAULT_USE_READ_AHEAD_SCANNER = false;
+		public static boolean useReadAheadScanner;
+
 		@Retention(RetentionPolicy.SOURCE)
 		protected @interface Parameter{
 
@@ -858,6 +862,7 @@ public class SpliceConstants {
 				}
 
 				importLogQueueWaitTimeMs = config.getLong(IMPORT_LOG_QUEUE_WAIT_TIME,DEFAULT_IMPORT_LOG_QUEUE_WAIT_TIME);
+				useReadAheadScanner = config.getBoolean(USE_READ_AHEAD_SCANNER,DEFAULT_USE_READ_AHEAD_SCANNER);
 		}
 
 		public static void reloadConfiguration(Configuration configuration) {

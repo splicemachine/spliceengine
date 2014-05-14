@@ -241,11 +241,12 @@ public class TableScanOperation extends ScanOperation {
 										.keyDecodingMap(getKeyDecodingMap())
 										.rowDecodingMap(baseColumnMap).build();
 						timer = spliceRuntimeContext.newTimer();
-						timer.startTiming();
 				}
 
+				timer.startTiming();
 				currentRow = tableScanner.next(spliceRuntimeContext);
 				if(currentRow!=null){
+						timer.tick(1);
 						setCurrentRow(currentRow);
 						setCurrentRowLocation(tableScanner.getCurrentRowLocation());
 				}else{

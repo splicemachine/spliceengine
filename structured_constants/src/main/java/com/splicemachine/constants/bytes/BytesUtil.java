@@ -100,41 +100,7 @@ public class BytesUtil {
         return s;
     }
 
-    public static byte[] concatenate(byte headerByte,byte[] ... bytes){
-        int length = 2;
-        for(byte[] bytes1:bytes){
-            length+=bytes1.length;
-        }
-
-        byte[] concatenatedBytes = new byte[length+bytes.length-1];
-        concatenatedBytes[0] = headerByte;
-        concatenatedBytes[1] = 0x00;
-        copyInto(bytes,concatenatedBytes,2);
-        return concatenatedBytes;
-    }
-
-    public static byte[] concatenate(byte[] ... bytes){
-        int length = 0;
-        for(byte[] bytes1:bytes){
-            length+=bytes1.length;
-        }
-
-        byte[] concatenatedBytes = new byte[length+bytes.length-1];
-        copyInto(bytes,concatenatedBytes);
-        return concatenatedBytes;
-    }
-
-    public static byte[] concatenate(byte[][] bytes,int size){
-        byte[] concatedBytes;
-        if(bytes.length>1)
-            concatedBytes = new byte[size+bytes.length-1];
-        else
-            concatedBytes = new byte[size];
-        copyInto(bytes, concatedBytes);
-        return concatedBytes;
-    }
-
-    private static void copyInto(byte[][] bytes, byte[] concatedBytes,int initialPos){
+		private static void copyInto(byte[][] bytes, byte[] concatedBytes,int initialPos){
         int offset = initialPos;
         boolean isStart=true;
         for(byte[] nextBytes:bytes){
@@ -150,11 +116,19 @@ public class BytesUtil {
         }
     }
 
-    private static void copyInto(byte[][] bytes, byte[] concatedBytes) {
-        copyInto(bytes,concatedBytes,0);
-    }
+		/**
+		 * Reverses {@link Bytes.toBytes(boolean)}
+		 * @param b array
+		 * @return True or false.
+		 */
+		public static boolean toBoolean(final byte [] b,int offset) {
+				if (b.length != 1) {
+						throw new IllegalArgumentException("Array has wrong size: " + b.length);
+				}
+				return b[offset] != (byte) 0;
+		}
 
-    /**
+		/**
      * Lexicographical byte[] comparator that places empty byte[] values before non-empty values.
      */
     public static Comparator<byte[]> startComparator = new Comparator<byte[]>() {

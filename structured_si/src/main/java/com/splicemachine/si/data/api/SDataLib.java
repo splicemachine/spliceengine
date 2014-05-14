@@ -22,6 +22,8 @@ public interface SDataLib<
 		byte[] encode(Object value);
     <T> T decode(byte[] value, Class<T> type);
 
+		<T> T decode(byte[] value, int offset,int length, Class<T> type);
+
 		List<KeyValue> listResult(Result result);
 
 		Put newPut(byte[] key);

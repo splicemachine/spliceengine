@@ -314,9 +314,15 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
         localScan = boundary.buildScan(transactionId,localStart,localFinish);
         localScan.setFilter(scan.getFilter());
 				localScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-        localScanner = new ReadAheadRegionScanner(region,
-								SpliceConstants.DEFAULT_CACHE_SIZE,
-								region.getScanner(localScan), metricFactory );
+				if(SpliceConstants.useReadAheadScanner)
+						localScanner = new ReadAheadRegionScanner(region,
+										SpliceConstants.DEFAULT_CACHE_SIZE,
+										region.getScanner(localScan), metricFactory );
+				else
+						localScanner = new BufferedRegionScanner(region,
+										region.getScanner(localScan), localScan,
+										SpliceConstants.DEFAULT_CACHE_SIZE, metricFactory );
+
 				localScanner.start();
 				if(remoteStart!=null){
             Scan lookBehindScan = boundary.buildScan(transactionId,remoteStart,regionFinish);

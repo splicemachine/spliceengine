@@ -61,6 +61,6 @@ public class SparseAccumulationSet extends EntryAccumulationSet {
 		@Override
 		public void reset() {
 				super.reset();
-				remainingFields = (BitSet)allFields.clone();
+				remainingFields.union(allFields);
 		}
 }

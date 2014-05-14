@@ -6,6 +6,7 @@ import com.splicemachine.si.data.api.SDataLib;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.*;
@@ -152,7 +153,9 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
             transaction = transactionStore.makeStubFailedTransaction(keyValue.getTimestamp());
             transactionCache.put(keyValue.getTimestamp(), transaction);
         } else {
-            transaction = transactionStore.makeStubCommittedTransaction(keyValue.getTimestamp(), (Long) dataLib.decode(keyValue.getValue(), Long.class));
+						long ts = Bytes.toLong(keyValue.getBuffer(), keyValue.getValueOffset(), keyValue.getValueLength());
+//						Long ts = dataLib.decode(keyValue.getBuffer(), keyValue.getValueOffset(), keyValue.getValueLength(), Long.class);
+						transaction = transactionStore.makeStubCommittedTransaction(keyValue.getTimestamp(),ts);
             transactionCache.put(keyValue.getTimestamp(), transaction);
         }
         return transaction;

@@ -10,19 +10,30 @@ import com.splicemachine.storage.index.BitIndex;
 public class AlwaysAcceptAccumulationSet extends EntryAccumulationSet {
 		private boolean completed = false;
 
+		private BitSet remainingFields;
 
 		@Override
 		public BitSet remainingFields() {
+				if(remainingFields==null){
 				/*
          * We always want an entry, because we want to ensure that we run until the entire row is
          * populated, which means running until the end of all versions.
          */
-				BitSet bitSet = new BitSet();
-				bitSet.set(0,1024);
-				for(int i=occupiedFields.nextSetBit(0);i>=0;i=occupiedFields.nextSetBit(i+1))
-						bitSet.clear(i);
+						remainingFields = new BitSet();
+						remainingFields.set(0,1024);
+				}
 
-				return bitSet;
+				remainingFields.andNot(occupiedFields);
+				return remainingFields;
+//				for(int i=occupiedFields.nextSetBit(0);i>=0;i=occupiedFields.nextSetBit(i+1))
+//						bitSet.clear(i);
+		}
+
+		@Override
+		public void reset() {
+				if(remainingFields!=null)
+						remainingFields.union(occupiedFields); //set back the occupied fields
+				super.reset();
 		}
 
 		@Override public boolean isFinished() { return completed; }
