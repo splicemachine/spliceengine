@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
@@ -15,6 +16,8 @@ import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+import com.splicemachine.utils.ZkUtils;
+import net.sf.ehcache.util.NamedThreadFactory;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -23,14 +26,12 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.AsyncCallback;
+import org.apache.zookeeper.Op;
 import org.apache.zookeeper.ZooKeeper;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.NavigableSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 
 /**
@@ -193,28 +194,51 @@ class JobControl implements JobFuture {
         return maxCost;
     }
 
+		private static final ExecutorService cleanupService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).setNameFormat("job-cleanup-service").setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+				@Override
+				public void uncaughtException(Thread t, Throwable e) {
+						LOG.error("Detected error during job cleanup",e);
+				}
+		}).build());
+		private static final BlockingQueue<List<Op>> deleteQueue = new LinkedBlockingQueue<List<Op>>();
+		static{
+				cleanupService.submit(new Callable<Void>() {
+						@Override
+						public Void call() throws Exception {
+								ZooKeeper zooKeeper = ZkUtils.getZkManager().getRecoverableZooKeeper().getZooKeeper();
+								while(!Thread.currentThread().isInterrupted()){
+										List<Op> take = deleteQueue.take();
+										zooKeeper.multi(take);
+								}
+								return null;
+						}
+				});
+		}
     @Override
     public void cleanup() throws ExecutionException {
         SpliceLogUtils.trace(LOG, "cleaning up job %s", job.getJobId());
         try {
-            ZooKeeper zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
-            zooKeeper.delete(jobPath, -1, new AsyncCallback.VoidCallback() {
-                @Override
-                public void processResult(int i, String s, Object o) {
-                    LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
-                }
-            }, this);
+						final List<Op> deletes = Lists.newArrayListWithExpectedSize(tasksToWatch.size() + 1);
+						deletes.add(Op.delete(jobPath,-1));
+//            zooKeeper.delete(jobPath, -1, new AsyncCallback.VoidCallback() {
+//                @Override
+//                public void processResult(int i, String s, Object o) {
+//                    LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
+//                }
+//            }, this);
             for (RegionTaskControl task : tasksToWatch) {
-                zooKeeper.delete(task.getTaskNode(), -1, new AsyncCallback.VoidCallback() {
-                    @Override
-                    public void processResult(int i, String s, Object o) {
-                        LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
-                    }
-                }, this);
+								deletes.add(Op.delete(task.getTaskNode(), -1));
+
+//                zooKeeper.delete(task.getTaskNode(), -1, new AsyncCallback.VoidCallback() {
+//                    @Override
+//                    public void processResult(int i, String s, Object o) {
+//                        LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
+//                    }
+//                }, this);
             }
-        } catch (ZooKeeperConnectionException e) {
-            throw new ExecutionException(e);
-        } finally {
+						deleteQueue.add(deletes);
+
+				} finally {
             try {
                 for (Closeable c : closables) {
                     c.close();
