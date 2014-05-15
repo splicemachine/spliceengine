@@ -5,7 +5,6 @@ package com.splicemachine.derby.management;
  */
 
 import com.google.gson.annotations.Expose;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import java.sql.ResultSet;
@@ -84,7 +83,6 @@ public class XPlainTreeNode {
     @Expose private long writeThreadUserTime;
 
     @Expose private Deque<XPlainTreeNode> children;
-
 
     private Field[] fields;
     private HashMap<String, Field> fieldMap;
@@ -267,5 +265,4 @@ public class XPlainTreeNode {
             node.aggregateTree(otherChild);
         }
     }
-
 }

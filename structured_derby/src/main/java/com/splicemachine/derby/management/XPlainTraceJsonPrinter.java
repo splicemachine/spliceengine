@@ -1,6 +1,6 @@
 package com.splicemachine.derby.management;
 
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
+import org.apache.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.IteratorNoPutResultSet;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
