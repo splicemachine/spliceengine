@@ -1932,6 +1932,13 @@ public class SQLChar
 
                 // Data size and transfer size need to be in bytes per
                 // DataTruncation javadoc.
+                /* As of now Splice has no choice but to comment out this 'warning' logic.
+                 * The getActivation().getResultSet() code below throws NPE
+                 * because the activation is null (DB-1288), but it's non trivial
+                 * to change this, and Splice doesn't propagate warnings upward anyway.
+                 * Therefore, skip this for now so the truncation can at least proceed
+                 * without throwing exception. We can return to the more general
+                 * warning propagation problem later.
                 String source = getString();
                 int transferSize = getUTF8Length(source, 0, desiredWidth);
                 int dataSize = transferSize +
@@ -1950,6 +1957,7 @@ public class SQLChar
                     ContextService.getContext(ContextId.LANG_STATEMENT);
                 statementContext.getActivation().
                         getResultSet().addWarning(warning);
+                */
             }
 
             /*
