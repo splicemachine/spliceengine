@@ -25,6 +25,8 @@ public class XPlainTraceLegend {
 
 
     private void populateLegendMap() {
+        legendMap.put("HOST", new LegendEntry("HOST", "H", false));
+        legendMap.put("REGION", new LegendEntry("REGION", "R", false));
         legendMap.put("TOTALWALLTIME", new LegendEntry("TOTALWALLTIME", "TWT", false));
         legendMap.put("TOTALUSERTIME", new LegendEntry("TOTALUSERTIME", "TUT", false));
         legendMap.put("TOTALCPUTIME",  new LegendEntry("TOTALCPUTIME", "TCT", false));

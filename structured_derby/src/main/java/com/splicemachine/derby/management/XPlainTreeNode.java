@@ -4,15 +4,14 @@ package com.splicemachine.derby.management;
  * Created by jyuan on 5/9/14.
  */
 
+import com.google.gson.annotations.Expose;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Deque;
 import java.lang.reflect.Field;
 import java.util.LinkedList;
 import java.util.HashMap;
-import java.util.ArrayList;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 
 public class XPlainTreeNode {
 
@@ -23,60 +22,62 @@ public class XPlainTreeNode {
     private boolean isRightChildOp;
     private int sequenceId;
     private int rightChild;
-    private String host;
-    private String region;
     private long statementId;
-    private long totalWallTime;
-    private long totalUserTime;
-    private long totalCPUTime;
 
-    private long localScanRows;
-    private long localScanBytes;
-    private long localScanWallTime;
-    private long localScanCPUTime;
-    private long localScanUserTime;
+    @Expose private String host;
+    @Expose private String region;
 
-    private long remoteScanRows;
-    private long remoteScanBytes;
-    private long remoteScanWallTime;
-    private long remoteScanCPUTime;
-    private long remoteScanUserTime;
+    @Expose private long totalWallTime;
+    @Expose private long totalUserTime;
+    @Expose private long totalCPUTime;
 
-    private long remoteGetRows;
-    private long remoteGetBytes;
-    private long remoteGetWallTime;
-    private long remoteGetCPUTime;
-    private long remoteGetUserTime;
+    @Expose private long localScanRows;
+    @Expose private long localScanBytes;
+    @Expose private long localScanWallTime;
+    @Expose private long localScanCPUTime;
+    @Expose private long localScanUserTime;
 
-    private long writeRows;
-    private long writeBytes;
+    @Expose private long remoteScanRows;
+    @Expose private long remoteScanBytes;
+    @Expose private long remoteScanWallTime;
+    @Expose private long remoteScanCPUTime;
+    @Expose private long remoteScanUserTime;
 
-    private long processingWallTime;
-    private long processingCPUTime;
-    private long processingUserTime;
+    @Expose private long remoteGetRows;
+    @Expose private long remoteGetBytes;
+    @Expose private long remoteGetWallTime;
+    @Expose private long remoteGetCPUTime;
+    @Expose private long remoteGetUserTime;
 
-    private long filteredRows;
-    private long inputRows;
-    private long outputRows;
+    @Expose private long writeRows;
+    @Expose private long writeBytes;
 
-    private long writeSleepWallTime;
-    private long writeSleepCPUTime;
-    private long writeSleepUserTime;
+    @Expose private long processingWallTime;
+    @Expose private long processingCPUTime;
+    @Expose private long processingUserTime;
 
-    private long rejectedWriteAttempts;
-    private long retriedWriteAttempts;
-    private long failedWriteAttempts;
-    private long partialWriteFailures;
+    @Expose private long filteredRows;
+    @Expose private long inputRows;
+    @Expose private long outputRows;
 
-    private long writeNetworkWallTime;
-    private long writeNetworkCPUTime;
-    private long writeNetworkUserTime;
+    @Expose private long writeSleepWallTime;
+    @Expose private long writeSleepCPUTime;
+    @Expose private long writeSleepUserTime;
 
-    private long writeThreadWallTime;
-    private long writeThreadCPUTime;
-    private long writeThreadUserTime;
+    @Expose private long rejectedWriteAttempts;
+    @Expose private long retriedWriteAttempts;
+    @Expose private long failedWriteAttempts;
+    @Expose private long partialWriteFailures;
 
-    private Deque<XPlainTreeNode> children;
+    @Expose private long writeNetworkWallTime;
+    @Expose private long writeNetworkCPUTime;
+    @Expose private long writeNetworkUserTime;
+
+    @Expose private long writeThreadWallTime;
+    @Expose private long writeThreadCPUTime;
+    @Expose private long writeThreadUserTime;
+
+    @Expose private Deque<XPlainTreeNode> children;
 
     private Field[] fields;
     private HashMap<String, Field> fieldMap;
@@ -169,34 +170,10 @@ public class XPlainTreeNode {
         this.statementId = statementId;
     }
 
-    public void writeToTraceTable(int level, String schemaName, ArrayList<String> columnNames, Connection connection)
-            throws IllegalAccessException, SQLException {
-        StringBuilder insert = new StringBuilder("insert into ").append(schemaName).append(".SYSXPLAIN_TRACE (level");
-        StringBuilder values = new StringBuilder(" values (").append(level);
-
-        for (String columnName:columnNames) {
-
-            Field field = fieldMap.get(columnName.toUpperCase());
-            if (field != null) {
-                insert.append(",");
-                values.append(",");
-                insert.append(columnName);
-                if (isStringField(columnName.toUpperCase())) {
-                    values.append("'").append((String)field.get(this)).append("'");
-                } else {
-                    values.append(field.getLong(this));
-                }
-            }
-        }
-        insert.append(")");
-        values.append(")");
-
-        String execSQL = insert.toString() + " " + values.toString();
-        PreparedStatement stmt = connection.prepareStatement(execSQL);
-        stmt.execute();
-    }
-
     public void setRightChild(int r) {this.rightChild = r;}
 
     public void setSequenceId(int s) {this.sequenceId = s;}
+
+    public int getSequenceId() {return sequenceId;}
+
 }

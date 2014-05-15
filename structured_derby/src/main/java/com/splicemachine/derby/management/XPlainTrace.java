@@ -1,6 +1,8 @@
 package com.splicemachine.derby.management;
 
 import com.splicemachine.derby.impl.sql.catalog.SpliceXplainUtils;
+import com.splicemachine.derby.utils.Exceptions;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.ResultSet;
@@ -9,7 +11,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.ArrayList;
-import java.sql.DatabaseMetaData;
 
 /**
  * Created by jyuan on 5/8/14.
@@ -17,39 +18,56 @@ import java.sql.DatabaseMetaData;
 
 public class XPlainTrace {
 
-    private String schemaName;
-    private long statementId;
     private static final String operationTableName = "SYSXPLAIN_OPERATIONHISTORY";
     private static final String taskTableName = "SYSXPLAIN_TASKHISTORY";
+
+    /* SYSCS_UTIL.XPLAIN_TRACE() parameters */
+    private String schemaName;
+    private long statementId;
+    private int mode;
+    private String format;
+
+    /* root node of execution plan */
     private XPlainTreeNode topOperation;
+
+    /* operations are hashed into the map to construct a tree */
     private HashMap<Long, XPlainTreeNode> xPlainTreeNodeMap;
+
+    /* column names of SYSXPLAIN_TRACE table */
     private ArrayList<String> columnNames;
+
     private Connection connection;
     private int sequenceId;
     private XPlainTracePrinter printer;
-    private int mode;
 
-    public XPlainTrace(String sName, long sId, int mode) throws SQLException {
+
+    public XPlainTrace(String sName, long sId, int mode, String format) throws SQLException {
         this.schemaName = sName;
         this.statementId = sId;
         xPlainTreeNodeMap = new HashMap<Long, XPlainTreeNode>(10);
         sequenceId = 0;
         connection = SpliceXplainUtils.getDefaultConn();
         this.mode = mode;
+        this.format = format;
     }
 
     public ResultSet populateTraceTable() throws Exception {
 
         try {
-            populateTreeNodeMap();
+            if (!populateTreeNodeMap()) return null;
             constructOperationTree();
             populateMetrics();
             populateSequenceId(topOperation);
-            getTraceTableColumnNames();
-            writeToTraceTable();
-            printer = new XPlainTraceTreePrinter(mode, schemaName, connection, columnNames);
+            if (format.toUpperCase().compareTo("TREE") == 0) {
+                printer = new XPlainTraceTreePrinter(mode, connection, topOperation);
+            }
+            else if (format.toUpperCase().compareTo("JSON") == 0) {
+                printer = new XPlainTraceJsonPrinter(connection, topOperation);
+            }
+            else {
+                throw new Exception("Wrong value \"" + format + "\" for parameter \"format\"");
+            }
             return printer.print();
-
         } catch (Exception e) {
             connection.rollback();
             throw e;
@@ -58,6 +76,9 @@ public class XPlainTrace {
         }
     }
 
+    /*
+     * Pre-order traverse the execution plan tree, assign a sequence id to each node
+     */
     private void populateSequenceId(XPlainTreeNode operation) {
         operation.setSequenceId(sequenceId);
         if(operation.isRightChildOp()) {
@@ -70,33 +91,6 @@ public class XPlainTrace {
         }
     }
 
-    private void getTraceTableColumnNames() throws SQLException{
-        columnNames = new ArrayList<String>();
-        DatabaseMetaData md = connection.getMetaData();
-        ResultSet rs = md.getColumns(null, schemaName, "SYSXPLAIN_TRACE", "%");
-        while (rs.next()) {
-            String name = rs.getString(4);
-            columnNames.add(name);
-        }
-    }
-
-    private void writeToTraceTable() throws IllegalAccessException, SQLException {
-        // clear SYSXPLAIN_TRACE table first
-        Statement s = connection.createStatement();
-        s.executeUpdate("delete from " + schemaName + ".SYSXPLAIN_TRACE");
-        writeToTraceTable(topOperation, 0);
-
-    }
-
-    private void writeToTraceTable(XPlainTreeNode operation, int level)
-            throws IllegalAccessException, SQLException{
-        // write into SYSXPLAIN_TRACE table for the current node
-        operation.writeToTraceTable(level, schemaName, columnNames, connection);
-        for (XPlainTreeNode child:operation.getChildren()){
-            writeToTraceTable(child, level+1);
-        }
-    }
-
     private void populateMetrics() throws SQLException, IllegalAccessException{
         ResultSet rs = getTaskHistory();
         while (rs.next()) {
@@ -104,13 +98,12 @@ public class XPlainTrace {
             Long operationId = rs.getLong(index);
             XPlainTreeNode node = xPlainTreeNodeMap.get(operationId);
 
-            //TODO: enable this later
-            /*if (node.isTableScanOperation()) {
+            if (node.isTableScanOperation()) {
                 XPlainTreeNode child = new XPlainTreeNode(statementId);
                 child.setOperationType("RegionScan");
                 node.addLastChild(child);
                 node = child;
-            }*/
+            }
             node.setAttributes(rs);
         }
 
@@ -132,6 +125,9 @@ public class XPlainTrace {
         return rs;
     }
 
+    /*
+     * Construct an operation tree
+     */
     private void constructOperationTree() {
         Set<Map.Entry<Long, XPlainTreeNode>> nodeSet = xPlainTreeNodeMap.entrySet();
         for (Map.Entry<Long, XPlainTreeNode> entry : nodeSet) {
@@ -150,10 +146,15 @@ public class XPlainTrace {
         }
     }
 
-    private void populateTreeNodeMap() throws SQLException {
-        Connection conn = SpliceXplainUtils.getDefaultConn();
+    /*
+     * Read SYSXPLAIN_OPERATIONHISTORY table, create a tree node for each row,
+     * hash tree node for operation tree construction
+     */
+    private boolean populateTreeNodeMap() throws SQLException {
         ResultSet rs = getOperationHistory();
+        int count = 0;
         while (rs.next()) {
+            count++;
             XPlainTreeNode node = new XPlainTreeNode(statementId);
             Long operationId = rs.getLong(1);
             node.setParentOperationId(rs.getLong(2));
@@ -162,7 +163,7 @@ public class XPlainTrace {
             xPlainTreeNodeMap.put(operationId, node);
         }
         rs.close();
-        conn.close();
+        return count != 0;
     }
 
     private ResultSet getOperationHistory() throws SQLException{
