@@ -21,7 +21,9 @@
 
 package org.apache.derby.impl.sql.execute;
 
+import org.apache.derby.iapi.services.loader.ClassFactory;
 import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.NumberDataValue;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecAggregator;
@@ -52,7 +54,12 @@ public final class AvgAggregator extends SumAggregator
 	private long count;
 	private int scale;
 
-	protected void accumulate(DataValueDescriptor addend) 
+		@Override
+		public ExecAggregator setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType) {
+				return this;
+		}
+
+		protected void accumulate(DataValueDescriptor addend)
 		throws StandardException
 	{
 
