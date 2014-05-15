@@ -21,17 +21,11 @@
 
 package org.apache.derby.impl.sql.execute;
 
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.types.NumberDataValue;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecAggregator;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-
 import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.apache.derby.iapi.types.SQLInteger;
-import org.apache.derby.iapi.types.SQLLongint;
-import org.apache.derby.iapi.types.SQLTinyint;
-import org.apache.derby.iapi.types.SQLSmallint;
+import org.apache.derby.iapi.services.loader.ClassFactory;
+import org.apache.derby.iapi.sql.execute.ExecAggregator;
+import org.apache.derby.iapi.types.*;
 
 /**
  * Aggregator for SUM().  Defers most of its work
@@ -41,7 +35,20 @@ import org.apache.derby.iapi.types.SQLSmallint;
 public  class SumAggregator 
 	extends OrderableAggregator
 {
-	/**
+		@Override
+		public ExecAggregator setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType) {
+				int typeFormatId = returnDataType.getTypeId().getTypeFormatId();
+				switch(typeFormatId){
+						case StoredFormatIds.LONGINT_TYPE_ID:
+								return new LongBufferedSumAggregator(64); //todo -sf- make this configurable?
+						case StoredFormatIds.DOUBLE_TYPE_ID:
+								return new DoubleBufferedSumAggregator(64);
+						default: //default to Derby's typical behavior
+								return super.setup(cf, aggregateName, returnDataType);
+				}
+		}
+
+		/**
 	 * Accumulate
  	 *
 	 * @param addend	value to be added in

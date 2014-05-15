@@ -82,13 +82,15 @@ public final class UserDefinedAggregator  implements ExecAggregator
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-	public void setup( ClassFactory classFactory, String aggregateName, DataTypeDescriptor resultType )
-	{
-        try {
-            setup( classFactory.loadApplicationClass( aggregateName ), resultType );
-        }
-        catch (ClassNotFoundException cnfe) { logAggregatorInstantiationError( aggregateName, cnfe ); }
-	}
+		public ExecAggregator setup( ClassFactory classFactory, String aggregateName, DataTypeDescriptor resultType )
+		{
+				try {
+						setup( classFactory.loadApplicationClass( aggregateName ), resultType );
+				}
+				catch (ClassNotFoundException cnfe) { logAggregatorInstantiationError( aggregateName, cnfe ); }
+				return this;
+		}
+
     /** Initialization logic shared by setup() and newAggregator() */
     private void    setup( Class udaClass, DataTypeDescriptor resultType )
     {

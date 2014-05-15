@@ -37,7 +37,7 @@ import java.io.IOException;
 abstract class SystemAggregator implements ExecAggregator
 {
 
-    private boolean eliminatedNulls;
+    protected boolean eliminatedNulls;
 
 
 	public boolean didEliminateNulls() {

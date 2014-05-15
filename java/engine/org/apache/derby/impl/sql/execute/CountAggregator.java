@@ -45,9 +45,10 @@ public final class CountAggregator
 
 	/**
 	 */
-	public void setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType )
+	public ExecAggregator setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType )
 	{
-		isCountStar = aggregateName.equals("COUNT(*)");
+			isCountStar = aggregateName.equals("COUNT(*)");
+			return this;
 	}
 
 	/**

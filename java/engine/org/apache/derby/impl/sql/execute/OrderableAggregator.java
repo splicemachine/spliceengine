@@ -42,8 +42,9 @@ abstract class OrderableAggregator extends SystemAggregator
 
 	/**
 	 */
-	public void setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType )
+	public ExecAggregator setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType )
 	{
+			return this;
 	}
 
 	/**
