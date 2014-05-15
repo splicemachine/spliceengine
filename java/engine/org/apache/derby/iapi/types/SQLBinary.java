@@ -1318,6 +1318,10 @@ abstract class SQLBinary
         if (warn) {
             // SQL:2003, part 2, 6.12 <cast specification>,
             // general rule 12 says we should warn about truncation.
+        	
+            /* As of now Splice has no choice but to comment out this 'warning' logic.
+             * See comments in SQLChar.java#setWidth for explanation.
+
             DataTruncation warning = new DataTruncation(
                     -1,    // column index is unknown
                     false, // parameter
@@ -1328,6 +1332,7 @@ abstract class SQLBinary
                 ContextService.getContext(ContextId.LANG_STATEMENT);
             statementContext.getActivation().
                     getResultSet().addWarning(warning);
+            */
         }
 
         // Truncate to the desired width.
