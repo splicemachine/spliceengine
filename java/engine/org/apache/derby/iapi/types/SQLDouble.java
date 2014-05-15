@@ -85,6 +85,8 @@ public final class SQLDouble extends NumberDataType
 	 * (mostly implemented in DataType)
 	 */
 
+	
+
 
     // JDBC is lax in what it permits and what it
 	// returns, so we are similarly lax
@@ -371,7 +373,7 @@ public final class SQLDouble extends NumberDataType
 	/**
 	 * Method to create double with normalization, normalize ignored
 	 */
-	private SQLDouble(double val, boolean startsnull, boolean normalize)
+	public SQLDouble(double val, boolean startsnull, boolean normalize)
 	{
 		value = val; // maybe only do if !startsnull
 		isnull = startsnull;
@@ -417,7 +419,8 @@ public final class SQLDouble extends NumberDataType
 	 */
 	public void setValue(float theValue) throws StandardException
 	{
-		value = NumberDataType.normalizeDOUBLE(theValue);
+		//value = NumberDataType.normalizeDOUBLE(theValue);
+		value = theValue;
 		isnull = false;
 	}
 
