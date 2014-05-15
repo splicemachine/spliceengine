@@ -25,19 +25,21 @@ import com.google.gson.GsonBuilder;
 /**
  * Created by jyuan on 5/15/14.
  */
-public class XPlainTraceJsonPrinter implements XPlainTracePrinter{
+public class XPlainTraceJsonPrinter extends XPlainTraceBasePrinter{
 
     private XPlainTreeNode topOperation;
     private Connection connection;
     private ArrayList<ExecRow> rows;
     private ExecRow dataTemplate;
+    private int mode;
 
-    public XPlainTraceJsonPrinter (Connection connection, XPlainTreeNode topOperation) {
+    public XPlainTraceJsonPrinter (int mode, Connection connection, XPlainTreeNode topOperation) {
         this.connection = connection;
         this.topOperation = topOperation;
         this.dataTemplate = new ValueRow(1);
         this.dataTemplate.setRowArray(new DataValueDescriptor[]{new SQLClob()});
         this.rows = new ArrayList<ExecRow>(1);
+        this.mode = mode;
     }
 
     public ResultSet print() throws SQLException, StandardException, IllegalAccessException {

@@ -25,7 +25,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.lang.reflect.Field;
 
-public class XPlainTraceTreePrinter implements XPlainTracePrinter {
+public class XPlainTraceTreePrinter extends XPlainTraceBasePrinter{
 
     private Connection connection;
     private ExecRow dataTemplate;
@@ -53,7 +53,7 @@ public class XPlainTraceTreePrinter implements XPlainTracePrinter {
 
         printOperationTree(topOperation, 0);
 
-        if (mode == 1) {
+        //if (mode == 1) {
             dataTemplate.resetRowArray();
             StringBuilder sb = new StringBuilder();
             for (int i= 0; i < 80; ++i) {
@@ -63,7 +63,7 @@ public class XPlainTraceTreePrinter implements XPlainTracePrinter {
             dvds[0].setValue(sb.toString());
             rows.add(dataTemplate.getClone());
             legend.print(rows, dataTemplate);
-        }
+        //}
 
         ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[1];
         columnInfo[0] = new GenericColumnDescriptor("PLAN", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
@@ -120,12 +120,12 @@ public class XPlainTraceTreePrinter implements XPlainTracePrinter {
         }
         sb.append(operation.getOperationType());
 
-        if (mode == 1) {
+        //if (mode == 1) {
             StringBuilder metrics = getMetrics(operation);
             if (metrics.toString().length() > 2) {
                 sb.append(metrics);
             }
-        }
+        //}
         DataValueDescriptor[] dvds = dataTemplate.getRowArray();
         dvds[0].setValue(sb.toString());
         rows.add(dataTemplate.getClone());
@@ -149,6 +149,9 @@ public class XPlainTraceTreePrinter implements XPlainTracePrinter {
         for (Field field:fields) {
             field.setAccessible(true);
             String columnName = field.getName().toUpperCase();
+            if (!shouldDisplay(mode, columnName)) {
+                continue;
+            }
             String val;
             if (isMetricColumn(columnName)) {
                 if (isStringMetric(columnName)) {
