@@ -3,6 +3,7 @@ package com.splicemachine.derby.management;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.impl.sql.catalog.SpliceXplainUtils;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.ResultSet;
@@ -13,6 +14,7 @@ import java.util.Set;
 import java.util.Deque;
 import java.util.List;
 import java.util.NavigableMap;
+import java.util.ArrayList;
 
 /**
  * Created by jyuan on 5/8/14.
@@ -42,7 +44,6 @@ public class XPlainTrace {
 
 
     public XPlainTrace(String sName, long sId, int mode, String format) throws SQLException {
-
         this.schemaName = sName;
         this.statementId = sId;
         xPlainTreeNodeMap = new HashMap<Long, XPlainTreeNode>(10);
@@ -56,7 +57,6 @@ public class XPlainTrace {
 
         try {
             if (!populateTreeNodeMap()) return null;
-
             constructOperationTree();
 
             populateMetrics();
@@ -66,8 +66,7 @@ public class XPlainTrace {
             aggregateSubqueries();
 
             populateSequenceId(topOperation);
-
-            if (format.toUpperCase().compareTo("TREE") == 0) {
+           if (format.toUpperCase().compareTo("TREE") == 0) {
                 printer = new XPlainTraceTreePrinter(mode, connection, topOperation);
             }
             else if (format.toUpperCase().compareTo("JSON") == 0) {
@@ -187,7 +186,6 @@ public class XPlainTrace {
             populateSequenceId(child);
         }
     }
-
 
     private void populateMetrics() throws SQLException, IllegalAccessException{
         ResultSet rs = getTaskHistory();
