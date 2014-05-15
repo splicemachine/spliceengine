@@ -1416,8 +1416,18 @@ public class SpliceAdmin {
         }
     }
 
-    public static void XPLAIN_TRACE(String schemaName, long statementId, int mode, final ResultSet[] resultSet) throws Exception{
-        XPlainTrace xPlainTrace = new XPlainTrace(schemaName, statementId, mode);
+    /*
+     * Implementation for SYSCS_UTIL.XPLAIN_TRACE system procedure
+     *
+     * @param    schemaName  : name of the schema xplain trace turned on for
+     * @param    statementId : unique identifier for the sql statement
+     * @param    mode        : 0 - operation tree only
+     *                         1 - execution plan with metrics
+     * @return   an execution plan in a result set
+     *
+     */
+    public static void XPLAIN_TRACE(String schemaName, long statementId, int mode, String format, final ResultSet[] resultSet) throws Exception{
+        XPlainTrace xPlainTrace = new XPlainTrace(schemaName, statementId, mode, format);
         resultSet[0] = xPlainTrace.populateTraceTable();
     }
 }

@@ -10,5 +10,5 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public interface XPlainTracePrinter {
-    ResultSet print() throws SQLException, StandardException;
+    ResultSet print() throws SQLException, StandardException, IllegalAccessException;
 }

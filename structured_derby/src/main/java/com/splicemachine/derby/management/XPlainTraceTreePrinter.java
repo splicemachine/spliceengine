@@ -11,9 +11,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLVarchar;
+import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
@@ -25,10 +23,10 @@ import java.util.SortedMap;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeMap;
+import java.lang.reflect.Field;
 
 public class XPlainTraceTreePrinter implements XPlainTracePrinter {
 
-    private String schemaName;
     private Connection connection;
     private ExecRow dataTemplate;
     private ArrayList<ExecRow> rows;
@@ -36,28 +34,24 @@ public class XPlainTraceTreePrinter implements XPlainTracePrinter {
     private static final String trunk = "|  ";
     private static final String space = "   ";
     private SortedMap<Integer, Integer> trunks;
-    private ArrayList<String> columnNames;
     private int mode;
     private XPlainTraceLegend legend;
+    private XPlainTreeNode topOperation;
 
-    public XPlainTraceTreePrinter (int mode, String schemaName, Connection connection, ArrayList<String> columnNames) {
+    public XPlainTraceTreePrinter (int mode, Connection connection, XPlainTreeNode topOperation) {
         this.mode = mode;
-        this.schemaName = schemaName;
         this.connection = connection;
         this.dataTemplate = new ValueRow(1);
-        this.dataTemplate.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
+        this.dataTemplate.setRowArray(new DataValueDescriptor[]{new SQLClob()});
         this.rows = new ArrayList<ExecRow>(20);
         this.trunks = new TreeMap<Integer, Integer>();
-        this.columnNames = columnNames;
+        this.topOperation = topOperation;
         this.legend = new XPlainTraceLegend();
     }
 
-    public ResultSet print() throws SQLException, StandardException{
-        ResultSet rs = getXPlainTrace(connection);
-        while (rs.next()) {
-            getNextRow(rs);
-        }
-        rs.close();
+    public ResultSet print() throws SQLException, StandardException, IllegalAccessException{
+
+        printOperationTree(topOperation, 0);
 
         if (mode == 1) {
             dataTemplate.resetRowArray();
@@ -87,15 +81,11 @@ public class XPlainTraceTreePrinter implements XPlainTracePrinter {
         return ers;
     }
 
-    private void getNextRow(ResultSet rs) throws SQLException, StandardException{
+    private void printOperationTree(XPlainTreeNode operation, int level)
+            throws StandardException, SQLException, IllegalAccessException{
         dataTemplate.resetRowArray();
         StringBuilder sb = new StringBuilder();
-        int index = rs.findColumn("LEVEL");
-        int level = rs.getInt(index);
-
-        index = rs.findColumn("SEQUENCEID");
-        int sequenceId = rs.getInt(index);
-
+        int sequenceId = operation.getSequenceId();
         Set<Integer> levels = trunks.keySet();
         Iterator<Integer> l = levels.iterator();
         int nextLevel = l.hasNext() ? l.next() : -1;
@@ -128,11 +118,10 @@ public class XPlainTraceTreePrinter implements XPlainTracePrinter {
                 }
             }
         }
-        index = rs.findColumn("OPERATIONTYPE");
-        String operationType = rs.getString(index);
-        sb.append(operationType);
+        sb.append(operation.getOperationType());
+
         if (mode == 1) {
-            StringBuilder metrics = getMetrics(rs);
+            StringBuilder metrics = getMetrics(operation);
             if (metrics.toString().length() > 2) {
                 sb.append(metrics);
             }
@@ -141,52 +130,78 @@ public class XPlainTraceTreePrinter implements XPlainTracePrinter {
         dvds[0].setValue(sb.toString());
         rows.add(dataTemplate.getClone());
 
-        index = rs.findColumn("RIGHTCHILD");
-        int rightChild = rs.getInt(index);
-        if (rightChild > 0) {
-            trunks.put(new Integer(level+1), new Integer(rightChild));
+        if (operation.getChildren().size() == 2) {
+            int rightChild = operation.getChildren().getLast().getSequenceId();
+            trunks.put(new Integer(level+1), rightChild);
+        }
+
+        for (XPlainTreeNode child:operation.getChildren()) {
+            printOperationTree(child, level+1);
         }
     }
 
-    private StringBuilder getMetrics(ResultSet rs) throws SQLException{
+
+
+    private StringBuilder getMetrics(XPlainTreeNode operation) throws SQLException, IllegalAccessException {
         StringBuilder sb = new StringBuilder("[");
         boolean first = true;
-        for (String columnName:columnNames) {
+        Field[] fields = operation.getClass().getDeclaredFields();
+        for (Field field:fields) {
+            field.setAccessible(true);
+            String columnName = field.getName().toUpperCase();
+            String val;
             if (isMetricColumn(columnName)) {
-                int index = rs.findColumn(columnName);
-                long val = rs.getLong(index);
-                if(columnName.endsWith("TIME")) {
-                    val = val / 1000000;
+                if (isStringMetric(columnName)) {
+                    val = (String)field.get(operation);
+                    if (val != null) {
+                        if (first) {
+                            first = false;
+                        } else {
+                            sb.append(",");
+                        }
+                        legend.use(columnName);
+                        sb.append(legend.getShortName(columnName)).append("=").append(val);
+                    }
+
                 }
-                if (val > 0) {
-                    if (first) {
-                        first = false;
+                else {
+                    long l = field.getLong(operation);
+                    if (columnName.endsWith("TIME")) {
+                        l = l / 1000000;
                     }
-                    else {
-                        sb.append(",");
+                    if (l > 0) {
+                        if (first) {
+                            first = false;
+                        } else {
+                            sb.append(",");
+                        }
+                        legend.use(columnName);
+                        sb.append(legend.getShortName(columnName)).append("=").append(l);
                     }
-                    legend.use(columnName);
-                    sb.append(legend.getShortName(columnName)).append("=").append(val);
                 }
             }
         }
         sb.append("]");
         return sb;
     }
-    private ResultSet getXPlainTrace(Connection connection) throws SQLException{
-        String query = "select * from " + schemaName + ".SYSXPLAIN_TRACE order by sequenceId";
-        Statement s = connection.createStatement();
-        ResultSet rs = s.executeQuery(query.toString());
-        return rs;
-    }
 
     private boolean isMetricColumn(String columnName) {
-        return (columnName.toUpperCase().compareTo("SEQUENCEID") != 0 &&
+        return (columnName.toUpperCase().compareTo("TABLESCAN") != 0 &&
                 columnName.toUpperCase().compareTo("STATEMENTID") != 0 &&
-                columnName.toUpperCase().compareTo("LEVEL") != 0 &&
+                columnName.toUpperCase().compareTo("ISRIGHTCHILDOP") != 0 &&
+                columnName.toUpperCase().compareTo("SEQUENCEID") != 0 &&
+                columnName.toUpperCase().compareTo("PARENTOPERATIONID") != 0 &&
                 columnName.toUpperCase().compareTo("RIGHTCHILD") != 0 &&
-                columnName.toUpperCase().compareTo("OPERATIONTYPE") != 0 &&
-                columnName.toUpperCase().compareTo("HOST") != 0 &&
-                columnName.toUpperCase().compareTo("REGION") != 0);
+                columnName.toUpperCase().compareTo("CHILDREN") != 0 &&
+                columnName.toUpperCase().compareTo("FIELDS") != 0 &&
+                columnName.toUpperCase().compareTo("FIELDMAP") != 0 &&
+                columnName.toUpperCase().compareTo("OPERATIONTYPE") != 0);
+    }
+
+    private boolean isStringMetric(String columnName) {
+
+        return (columnName.toUpperCase().compareTo("HOST") == 0 ||
+                columnName.toUpperCase().compareTo("REGION") == 0);
+
     }
 }
