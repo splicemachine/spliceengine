@@ -62,7 +62,7 @@ public class XPlainTrace {
                 printer = new XPlainTraceTreePrinter(mode, connection, topOperation);
             }
             else if (format.toUpperCase().compareTo("JSON") == 0) {
-                printer = new XPlainTraceJsonPrinter(connection, topOperation);
+                printer = new XPlainTraceJsonPrinter(mode, connection, topOperation);
             }
             else {
                 throw new Exception("Wrong value \"" + format + "\" for parameter \"format\"");
@@ -97,12 +97,14 @@ public class XPlainTrace {
             int index = rs.findColumn("OPERATIONID");
             Long operationId = rs.getLong(index);
             XPlainTreeNode node = xPlainTreeNodeMap.get(operationId);
-
-            if (node.isTableScanOperation()) {
-                XPlainTreeNode child = new XPlainTreeNode(statementId);
-                child.setOperationType("RegionScan");
-                node.addLastChild(child);
-                node = child;
+            // For detailed view of the execution plan, show metrics for each region
+            if (mode == 1) {
+                if (node.isTableScanOperation()) {
+                    XPlainTreeNode child = new XPlainTreeNode(statementId);
+                    child.setOperationType("RegionScan");
+                    node.addLastChild(child);
+                    node = child;
+                }
             }
             node.setAttributes(rs);
         }
