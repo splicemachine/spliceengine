@@ -37,6 +37,10 @@ public class GroupedAggregateBufferedAggregator extends AbstractBufferedAggregat
     
     public void initialize(ExecRow row) throws StandardException{
         this.currentRow = row.getClone();
+				for(SpliceGenericAggregator aggregator:aggregates){
+						if (!aggregator.isInitialized(currentRow))
+								initializeAggregate(aggregator,currentRow);
+				}
     }
 
 		private void initializeAggregate(SpliceGenericAggregator aggregator, ExecRow currentRow) throws StandardException {
@@ -48,14 +52,11 @@ public class GroupedAggregateBufferedAggregator extends AbstractBufferedAggregat
 
     public void merge(ExecRow newRow) throws StandardException{
 				for(SpliceGenericAggregator aggregator:aggregates) {
-						if (!aggregator.isInitialized(currentRow))
-								initializeAggregate(aggregator,currentRow);
-						if (!aggregator.isInitialized(newRow))
-								initializeAggregate(aggregator,newRow);
-
-						if (shouldMerge)
+						if (shouldMerge){
+//								if (!aggregator.isInitialized(newRow))
+//										initializeAggregate(aggregator,newRow);
 								aggregator.merge(newRow,currentRow);
-						else
+						}else
 								aggregator.accumulate(newRow,currentRow);
 				}
 		}
@@ -97,13 +98,13 @@ public class GroupedAggregateBufferedAggregator extends AbstractBufferedAggregat
             currentRow = emptyRowSupplier.get();
 
         boolean eliminatedNulls = false;
-        if (shouldFinish) {
-        for(SpliceGenericAggregator aggregate:aggregates){
-        	if (!aggregate.isInitialized(currentRow))
-        		initializeAggregate(aggregate,currentRow);
-            if(aggregate.finish(currentRow))
-                eliminatedNulls=true;
-        }
+				if (shouldFinish) {
+						for(SpliceGenericAggregator aggregate:aggregates){
+//								if (!aggregate.isInitialized(currentRow))
+//										initializeAggregate(aggregate,currentRow);
+								if(aggregate.finish(currentRow))
+										eliminatedNulls=true;
+						}
         }
 //        if(eliminatedNulls)
 //            warningCollector.addWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION);

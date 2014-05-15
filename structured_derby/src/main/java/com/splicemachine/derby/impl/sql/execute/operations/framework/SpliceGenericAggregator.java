@@ -151,12 +151,12 @@ public class SpliceGenericAggregator {
 				Class aggClass = cf.loadApplicationClass(aggInfo.getAggregatorClassName());
 				Object agg = aggClass.newInstance();
 				aggInstance = (ExecAggregator)agg;
-				cachedAggregator = aggInstance;
-				aggInstance.setup(
+				aggInstance= aggInstance.setup(
                         cf,
                         aggInfo.getAggregateName(),
                         aggInfo.getResultDescription().getColumnInfo()[ 0 ].getType()
                 );
+					cachedAggregator = aggInstance;
 			}catch(Exception e){
 				throw StandardException.unexpectedUserException(e);
 			}
