@@ -233,8 +233,8 @@
 				</property>
 			</activation>
 			<properties>
-				<zookeeper.version>3.4.5-cdh4.3.0</zookeeper.version>
-				<hbase.version>0.94.6-cdh4.3.0</hbase.version>
+				<zookeeper.version>3.4.5-cdh4.3.0.splice</zookeeper.version>
+				<hbase.version>0.94.6-cdh4.3.0.splice</hbase.version>
 				<hadoop.version>2.0.0-cdh4.3.0</hadoop.version>
 				<envClassifier>cloudera-cdh4.3.0</envClassifier>
 				<obfuscationClassifier></obfuscationClassifier>
@@ -244,7 +244,6 @@
 					<groupId>org.apache.hbase</groupId>
 					<artifactId>hbase</artifactId>
 					<version>${hbase.version}</version>
-					<classifier>splice</classifier>
 					<exclusions>
 						<exclusion>
 							<artifactId>jsp-api-2.1</artifactId>
@@ -383,8 +382,8 @@
 				</property>
 			</activation>
 			<properties>
-				<zookeeper.version>3.4.5-cdh4.5.0</zookeeper.version>
-				<hbase.version>0.94.6-cdh4.5.0</hbase.version>
+				<zookeeper.version>3.4.5-cdh4.5.0.1.splice</zookeeper.version>
+				<hbase.version>0.94.6-cdh4.5.0.splice</hbase.version>
 				<hadoop.version>2.0.0-cdh4.5.0</hadoop.version>
 				<envClassifier>cloudera-cdh4.5.0</envClassifier>
 			</properties>
@@ -393,7 +392,6 @@
 					<groupId>org.apache.hbase</groupId>
 					<artifactId>hbase</artifactId>
 					<version>${hbase.version}</version>
-					<classifier>splice</classifier>
 					<exclusions>
 						<exclusion>
 							<artifactId>jsp-api-2.1</artifactId>
