@@ -60,9 +60,7 @@ public class InsertOperationIT extends SpliceUnitTest {
 		@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 		@Test
-		@Ignore
 		public void testDataTruncationWarningIsEmitted() throws Exception {
-			    if (true) return; // We don't currently support this warning so don't assert
 				PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ spliceTableWatcher13+" values cast(? as char(1))");
 				ps.setString(1,"12");
 				int updated = ps.executeUpdate();
