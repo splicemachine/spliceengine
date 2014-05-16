@@ -141,6 +141,13 @@ public class BroadcastJoinOperation extends JoinOperation {
 						throws StandardException, IOException {
 //				submitRightHandSideLookup(ctx);
 				//rightSideMap = retrieveRightSideCache(ctx);
+				/*
+				 * When the Broadcast join is above an operation like GroupedAggregate, it may end up being
+				 * executed on the control node, instead of region locally. In that case, we won't have submitted
+				 * the right-side lookup yet, so we'll need to do that.
+				 */
+				if(rhsFuture==null)
+						submitRightHandSideLookup(ctx);
 				StandardPushBackIterator<ExecRow> leftRows =
 								new StandardPushBackIterator<ExecRow>(StandardIterators.wrap(new Callable<ExecRow>() {
 										@Override
