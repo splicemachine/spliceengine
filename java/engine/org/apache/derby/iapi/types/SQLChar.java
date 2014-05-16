@@ -22,21 +22,16 @@
 package org.apache.derby.iapi.types;
 
 import org.apache.derby.iapi.services.context.ContextService;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.services.io.Storable;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.io.StreamStorable;
 import org.apache.derby.iapi.services.io.FormatIdInputStream;
 import org.apache.derby.iapi.services.io.FormatIdOutputStream;
-
 import org.apache.derby.iapi.reference.ContextId;
 import org.apache.derby.iapi.reference.SQLState;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.jdbc.CharacterStreamDescriptor;
-
 import org.apache.derby.iapi.services.cache.ClassSize;
 import org.apache.derby.iapi.services.io.ArrayInputStream;
 import org.apache.derby.iapi.services.io.CounterOutputStream;
@@ -44,8 +39,8 @@ import org.apache.derby.iapi.services.io.InputStreamUtil;
 import org.apache.derby.iapi.util.StringUtil;
 import org.apache.derby.iapi.util.UTF8Util;
 import org.apache.derby.iapi.services.i18n.LocaleFinder;
+import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.StatementContext;
-
 import org.apache.derby.iapi.db.DatabaseContext;
 
 import java.io.InputStream;
@@ -68,6 +63,7 @@ import java.text.CollationKey;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Calendar;
+
 import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 
@@ -1932,13 +1928,6 @@ public class SQLChar
 
                 // Data size and transfer size need to be in bytes per
                 // DataTruncation javadoc.
-                /* As of now Splice has no choice but to comment out this 'warning' logic.
-                 * The getActivation().getResultSet() code below throws NPE
-                 * because the activation is null (DB-1288), but it's non trivial
-                 * to change this, and Splice doesn't propagate warnings upward anyway.
-                 * Therefore, skip this for now so the truncation can at least proceed
-                 * without throwing exception. We can return to the more general
-                 * warning propagation problem later.
                 String source = getString();
                 int transferSize = getUTF8Length(source, 0, desiredWidth);
                 int dataSize = transferSize +
@@ -1955,9 +1944,15 @@ public class SQLChar
 
                 StatementContext statementContext = (StatementContext)
                     ContextService.getContext(ContextId.LANG_STATEMENT);
-                statementContext.getActivation().
-                        getResultSet().addWarning(warning);
-                */
+                // In some cases, the activation will be null on the context,
+                // which resulted in NPE when trying to add warning (DB-1288).
+                // When this happens, we have no choice but to skip the warning.
+                // We can address this later when we more deeply look into
+                // error and warning propagation.
+                Activation activation = statementContext.getActivation();
+                if (activation != null) {
+	                activation.getResultSet().addWarning(warning);
+                }
             }
 
             /*
