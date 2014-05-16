@@ -20,8 +20,7 @@ public class GroupedAggregateBufferedAggregator extends AbstractBufferedAggregat
     private final boolean eliminateDuplicates;
     private final boolean shouldMerge;
     private IntObjectMap<HashSet<DataValueDescriptor>> uniqueValues;
-    protected boolean isInitialized;
-    private final boolean shouldFinish;
+		private final boolean shouldFinish;
 
     protected GroupedAggregateBufferedAggregator(SpliceGenericAggregator[] aggregates,
                                  boolean eliminateDuplicates,
@@ -38,25 +37,30 @@ public class GroupedAggregateBufferedAggregator extends AbstractBufferedAggregat
     public void initialize(ExecRow row) throws StandardException{
         this.currentRow = row.getClone();
 				for(SpliceGenericAggregator aggregator:aggregates){
-						if (!aggregator.isInitialized(currentRow))
-								initializeAggregate(aggregator,currentRow);
+						initializeAggregate(aggregator,currentRow);
 				}
     }
 
 		private void initializeAggregate(SpliceGenericAggregator aggregator, ExecRow currentRow) throws StandardException {
 				if (!filterDistincts(currentRow,aggregator,true)) {
-						aggregator.initialize(currentRow);
-						aggregator.accumulate(currentRow,currentRow);
+						if(aggregator.initialize(currentRow))
+								aggregator.accumulate(currentRow,currentRow);
 				}
 		}
 
     public void merge(ExecRow newRow) throws StandardException{
+				/*
+				 * In previous incarnations, we needed to initialize aggregates for every row that came in to play. This
+				 * was because Derby assumed that every row had an Aggregator object in the proper location.
+				 *
+				 * In order to remove this, we allow aggregators to add null entries (or, more appropriately, ignore null
+				 * entries), which allows us to avoid initialization of every row.
+				 */
 				for(SpliceGenericAggregator aggregator:aggregates) {
 						if (shouldMerge){
-//								if (!aggregator.isInitialized(newRow))
-//										initializeAggregate(aggregator,newRow);
-								aggregator.merge(newRow,currentRow);
-						}else
+								if(!filterDistincts(newRow,aggregator,true))
+										aggregator.merge(newRow,currentRow);
+						}else if(!filterDistincts(newRow,aggregator,true))
 								aggregator.accumulate(newRow,currentRow);
 				}
 		}
@@ -76,14 +80,14 @@ public class GroupedAggregateBufferedAggregator extends AbstractBufferedAggregat
                 uniqueValues.put(inputColNum,uniqueVals);
             }
 
-            DataValueDescriptor uniqueValue = aggregator.getInputColumnValue(newRow).cloneValue(false);
+            DataValueDescriptor uniqueValue = aggregator.getInputColumnValue(newRow);
             if(uniqueVals.contains(uniqueValue)){
             	if(LOG.isTraceEnabled())
                     LOG.trace("Aggregator "+ aggregator+" is removing entry "+ newRow);
                 return true;
             }
             if(addEntry) {
-                uniqueVals.add(uniqueValue);
+                uniqueVals.add(uniqueValue.cloneValue(false));
             }
         }
         return false;
