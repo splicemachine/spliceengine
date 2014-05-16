@@ -1,0 +1,215 @@
+\section{Recovery, Flashback, and Replication Problem Statement}
+Transactional and Analytical databases are required to provide a backup and
+recovery mechanism.  Before jumping into a review of approaches, it is
+important to split Recovery and Replication into clear demarcated product
+features.
+
+
+\subsection{Point in Time Full Backup (Cold)}
+A Cold, Point in Time Full Backup will take a full snapshot of the current state
+of the database while the database is either unavailable for writes or
+physically shutdown.  This approach is difficult for large-scale
+distributed RDBMS's for the following reasons
+
+\begin{enumerate}
+	\item Most relational databases for transactional and analytical workloads are
+	increasingly fully utilized during the entire day and require 3 to 5 9's
+	uptime.
+	\item Cycling a distributed database is a time consuming process
+	as the node size increases.
+	\item As data sizes increases over time, each backup will consume more
+	resources (Disk, CPU).
+	\item A user or application that corrupts or inadvertantly writes/deletes data
+	after a backup occurs.
+\end{enumerate}
+
+\subsection{Point in Time Full Backup (Hot)}
+A Hot, Point in Time Full Backup will take a full snapshot of the current state
+of the database while the database is available to reads and writes.  This
+approach removes the first two challenges from the cold backup but still
+requires significant resources to perform the backup and does not allow for a
+smaller data loss horizon.  Clearly, if no backups have ever been run on the
+system, a full backup will always be required.
+
+\subsection{Point in Time Incremental Backup (Cold)}
+This approach will reduce the amount of resources used to perform the backup but
+still effects database availability. 
+
+\subsection{Point in Time Incremental Backup (Hot)}
+Point in Time Incremental Backups allow smaller, less resource intensive backups
+to be combined to provide an accurate view of the database.
+
+\subsection{Flashback}
+
+Oracle has branded the ability to immediately recover to a point in time as a
+\emph{FlashBack}.  Please see \url{http://www.oracle.com/technetwork/database/features/availability/flashback-overview-082751.html} 
+
+\subsubsection{Database Flashback}
+
+
+\subsubsection{Table Flashback}
+
+\subsubsection{Drop Flashback}
+
+\subsubsection{Transaction Flashback}
+
+\subsubsection{Transaction Query Flashback}
+
+\subsubsection{Query Flashback}
+
+\subsubsection{Query Versions Flashback}
+
+\subsubsection{Query Versions Flashback}
+
+\subsubsection{Audit Trail Flashback}
+
+\subsection{WAL Replication In Process Asynchronous }
+
+\subsection{WAL Replication Enqueued Asynchronous }
+
+\subsection{WAL Replication Synchronous }
+
+\subsection{HBase Snapshots}
+
+HBase Snapshots allow for a table to be captured in point of time.
+
+\url{http://blog.cloudera.com/blog/2013/03/introduction-to-apache-hbase-snapshots/}
+
+\url{http://blog.cloudera.com/blog/2013/06/introduction-to-apache-hbase-snapshots-part-2-deeper-dive/}
+
+\subsection{HBase Snapshots}
+
+\section{Splice Machine Backup and Recovery Design}
+
+\subsection{HBase Store File Governance and Timestamp Capture}
+
+Splice Machine backups and recovery require HFile governance, a functional
+snapshot schema, and snapshot isolation timestamp mapping to actual timestamps. 
+For isolation timestamp mapping, it is proposed that a new table exist for meta
+
+
+
+
+
+
+\subsection{Point in Time Full Backup (Hot)}
+
+To perform a full backup,
+
+backup database full 'filesystem';
+
+Capture Backup Timestamp
+Write Backup Record with Timestamp and Full Flag
+Submit CreateFullBackupJob 
+Each Region will have a 
+for each Table which will split onto each region to
+perform CreateFullBackupTask 
+	Flush Region and block thread for complete;
+	Start Region Operation; // Locks region from splitting
+	Verify that region begin and end are in the region, if not fail and resubmit
+	Perform a parallel copy of HFiles from hdfs to destination utilizing distcp,
+	ftp, or scp.
+	Stop Region Operation
+if all tasks finish, commit backup record with timestamp
+
+\subsection{Point in Time Incremental Backup (Hot)}
+	
+backup database incremental;
+
+Capture Backup Timestamp
+Write Backup Record with Timestamp and Incremental Flag
+Submit CreateIncrementalBackupJob 
+Each Region will have a 
+for each Table which will split onto each region to
+perform CreateFullBackupTask 
+	Flush Region and block thread for complete;
+	Start Region Operation; // Locks region from splitting
+	Verify that region begin and end are in the region, if not fail and resubmit
+	Perform a parallel copy of HFiles from hdfs to destination utilizing distcp,
+	ftp, or scp.
+	Stop Region Operation
+if all tasks finish, commit backup record with timestamp
+
+
+
+
+\subsection{Flashback}
+
+
+\subsubsection{Database Flashback}
+Database level flashback
+
+
+
+\subsubsection{Table Flashback}
+
+\subsubsection{Drop Flashback}
+
+\subsubsection{Transaction Flashback}
+
+\subsubsection{Transaction Query Flashback}
+
+\subsubsection{Query Flashback}
+
+\subsubsection{Query Versions Flashback}
+
+\subsubsection{Query Versions Flashback}
+
+\subsubsection{Audit Trail Flashback}
+
+
+
+\ovalbox{
+\begin{tikzpicture}[level/.style={sibling distance=60mm/#1}]
+\node [circle,draw] (z){$HFile_{now}$}
+  child {node [circle,draw] (a) {$\frac{n}{2}$}
+    child {node [circle,draw] (b) {$\frac{n}{2^2}$}
+      child {node {$\vdots$}
+        child {node [circle,draw] (d) {$\frac{n}{2^k}$}}
+        child {node [circle,draw] (e) {$\frac{n}{2^k}$}}
+      } 
+      child {node {$\vdots$}}
+    }
+    child {node [circle,draw] (g) {$\frac{n}{2^2}$}
+      child {node {$\vdots$}}
+      child {node {$\vdots$}}
+    }
+  }
+  child {node [circle,draw] (j) {$\frac{n}{2}$}
+    child {node [circle,draw] (k) {$\frac{n}{2^2}$}
+      child {node {$\vdots$}}
+      child {node {$\vdots$}}
+    }
+  child {node [circle,draw] (l) {$\frac{n}{2^2}$}
+    child {node {$\vdots$}}
+    child {node (c){$\vdots$}
+      child {node [circle,draw] (o) {$\frac{n}{2^k}$}}
+      child {node [circle,draw] (p) {$\frac{n}{2^k}$}
+        child [grow=right] {node (q) {$=$} edge from parent[draw=none]
+          child [grow=right] {node (q) {$O_{k = \lg n}(n)$} edge from parent[draw=none]
+            child [grow=up] {node (r) {$\vdots$} edge from parent[draw=none]
+              child [grow=up] {node (s) {$O_2(n)$} edge from parent[draw=none]
+                child [grow=up] {node (t) {$O_1(n)$} edge from parent[draw=none]
+                  child [grow=up] {node (u) {$O_0(n)$} edge from parent[draw=none]}
+                }
+              }
+            }
+            child [grow=down] {node (v) {$O(n \cdot \lg n)$}edge from parent[draw=none]}
+          }
+        }
+      }
+    }
+  }
+};
+\end{tikzpicture}}
+
+
+\section{Splice Machine Flashback Design}
+
+
+
+\section{Splice Machine Replication Design}
+
+
+
+%End Transaction Chapter
