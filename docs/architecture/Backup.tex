@@ -33,7 +33,7 @@ system, a full backup will always be required.
 
 \subsection{Point in Time Incremental Backup (Cold)}
 This approach will reduce the amount of resources used to perform the backup but
-still effects database availability. 
+still effects database availability.  
 
 \subsection{Point in Time Incremental Backup (Hot)}
 Point in Time Incremental Backups allow smaller, less resource intensive backups
@@ -42,7 +42,11 @@ to be combined to provide an accurate view of the database.
 \subsection{Flashback}
 
 Oracle has branded the ability to immediately recover to a point in time as a
-\emph{FlashBack}.  Please see \url{http://www.oracle.com/technetwork/database/features/availability/flashback-overview-082751.html} 
+\emph{FlashBack}.  Please see
+\url{http://www.oracle.com/technetwork/database/features/availability/flashback-overview-082751.html}.
+
+This feature clearly uses SnapshotIsolation to achieve the capability of quickly
+reverting databases and viewing changes made the database.
 
 \subsubsection{Database Flashback}
 
@@ -82,7 +86,9 @@ HBase Snapshots allow for a table to be captured in point of time.
 \section{Splice Machine Backup and Recovery Design}
 
 Backups should look, feel, and perform similar to other existing Splice Machine
-Operations.
+Operations.  It is critical that snapshots are incorporated into our exisiting
+resource management framework to allow the database to back itself up gradually
+while still being highly available and performant.
 
 \subsection{HBase HFile Governance, Backup Schema and Timestamp Capture}
 
@@ -92,11 +98,6 @@ snapshot schema, and snapshot isolation timestamp mapping.
 There is a need for backups to record their activity to understand when they
 were issued and what their effective timestamp is based on the submission.
  
-For isolation timestamp mapping, it is proposed that a new table exist for meta
-
-
-\section{Backup Table}
-
 \begin{center}
 \begin{tabular}{|l|c|p{5cm}|}
 				\hline
@@ -119,7 +120,9 @@ For isolation timestamp mapping, it is proposed that a new table exist for meta
 \end{tabular}
 \end{center}
 
-\section{Flashback Table}
+
+For isolation timestamp mapping, it is proposed that a new table exist for meta
+
 
 \begin{center}
 \begin{tabular}{|l|c|p{5cm}|}
@@ -135,54 +138,82 @@ For isolation timestamp mapping, it is proposed that a new table exist for meta
 \end{tabular}
 \end{center}
 
+The governance of HFiles during compaction (putting multiple files together to
+become a single file to reduce I/O needs) will need be strictly monitored. 
+Whenever a compaction uses a file where its maximum timestamp is greater then
+the timestamp of the last full or incremental backup, it will need to be 
+$T_{max} > T_{lastBackup}$ then
+
 
 \subsection{Point in Time Full Backup (Hot)}
 
 To perform a full backup,
 
 \begin{lstlisting}[frame=single,captionpos=b,language=SQL,caption=Procedure to
-Perform a Full Backup] backup database full 'Filesystem';
+Perform a Full Backup] 
+backup database full Filesystem;
 \end{lstlisting}
 
-Capture Backup Timestamp
-Write Backup Record with Timestamp and Full Flag
-Submit CreateFullBackupJob 
-Each Region will have a 
-for each Table which will split onto each region to
-perform CreateFullBackupTask 
-	Flush Region and block thread for complete;
-	Start Region Operation; // Locks region from splitting
-	Verify that region begin and end are in the region, if not fail and resubmit
-	Perform a parallel copy of HFiles from hdfs to destination utilizing distcp,
-	ftp, or scp.
-	Stop Region Operation
-if all tasks finish, commit backup record with timestamp
+\begin{enumerate}
+	\item Capture backup timestamp $T_{backup}$ and verify no active backups
+	running.
+	\item Write Backup Record to Splice Backup Table with current system timestamp
+	and flag set to full backup.
+	\item Submit CreateFullBackupJob 
+	\begin{enumerate}
+	\item Scan all regions for all tables in Splice Machine
+	\item Submit CreateFullBackupTask to each region in the backup resource queue
+	\begin{enumerate}
+	\item Perform synchonous region flush 
+	\item Perform a Start Region Operation (Read Lock)
+	\item Validate Begin and End Keys for task are correct for each region, if not
+	fail the task for resubmission to new split regions
+	\item Capture the set of Data Files for each Region
+	\item Copy those files to the external filesystem supplied (HDFS, scp, etc.)
+	\item Finish Region Operation
+	\item Complete Task
+	\end{enumerate}
+	\item On Failure, retry.
+	\item After all complete, finish the job
+	\end{enumerate}
+	\item Mark the backup as complete
+\end{enumerate}
+
 
 \subsection{Point in Time Incremental Backup (Hot)}
 	
 \begin{lstlisting}[frame=single,captionpos=b,language=SQL,caption=Procedure to
-Perform a Full Backup] backup database incremental 'Filesystem';
+Perform an Incremental Backup] 
+backup database incremental Filesystem;
 \end{lstlisting}
 
-Capture Backup Timestamp
-Write Backup Record with Timestamp and Incremental Flag
-Submit CreateIncrementalBackupJob 
-Each Region will have a 
-for each Table which will split onto each region to
-perform CreateFullBackupTask 
-	Flush Region and block thread for complete;
-	Start Region Operation; // Locks region from splitting
-	Verify that region begin and end are in the region, if not fail and resubmit
-	Perform a parallel copy of HFiles from hdfs to destination utilizing distcp,
-	ftp, or scp.
-	Stop Region Operation
-if all tasks finish, commit backup record with timestamp
-
-
-
+\begin{enumerate}
+	\item Capture backup timestamp $T_{backup}$ and verify no active backups
+	running.
+	\item Write Backup Record to Splice Backup Table with current system timestamp
+	and flag set to full backup.
+	\item Submit CreateFullBackupJob 
+	\begin{enumerate}
+	\item Scan all regions for all tables in Splice Machine
+	\item Submit CreateFullBackupTask to each region in the backup resource queue
+	\begin{enumerate}
+	\item Perform synchonous region flush 
+	\item Perform a Start Region Operation (Read Lock)
+	\item Validate Begin and End Keys for task are correct for each region, if not
+	fail the task for resubmission to new split regions
+	\item Capture the set of Data Files for each Region
+	\item Copy those files to the external filesystem supplied (HDFS, scp, etc.)
+	\item Finish Region Operation (Release Read Lock)
+	\item Complete Task
+	\end{enumerate}
+	\item On Failure, retry.
+	\item After all complete, finish the job
+	\end{enumerate}
+	\item Mark the backup as complete
+\end{enumerate}
 
 \subsection{Flashback}
-
+Splice Machine's flashback capabilty
 
 \subsubsection{Database Flashback}
 Database level flashback
@@ -204,7 +235,6 @@ Database level flashback
 \subsubsection{Query Versions Flashback}
 
 \subsubsection{Audit Trail Flashback}
-
 
 
 \ovalbox{
