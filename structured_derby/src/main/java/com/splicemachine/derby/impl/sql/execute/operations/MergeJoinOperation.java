@@ -151,7 +151,7 @@ public class MergeJoinOperation extends JoinOperation {
         setCurrentRow(next);
         if (next == null) {
             timer.tick(joiner.getLeftRowsSeen());
-						joiner.close();
+            joiner.close();
             stopExecutionTime = System.currentTimeMillis();
         }
         return next;
