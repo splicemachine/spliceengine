@@ -8,6 +8,7 @@ import com.splicemachine.stats.Timer;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.HasPredicateFilter;
 import com.splicemachine.utils.ConcurrentRingBuffer;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
@@ -17,6 +18,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -51,6 +53,9 @@ import java.util.List;
  * Created on: 7/25/13
  */
 public class BufferedRegionScanner implements MeasuredRegionScanner{
+
+    private static final Logger LOG = Logger.getLogger(BufferedRegionScanner.class);
+
 		private final HRegion region;
 		private final RegionScanner delegate;
 		private final Filter scanFilters;
