@@ -107,15 +107,17 @@ public class SpliceGenericAggregator {
 		ExecAggregator uaOut = (ExecAggregator)(((UserDataValue)aggregatedOut).getObject());
 		uaOut.merge(uaIn);
 	}
-	
-	public void initialize(ExecRow row) throws StandardException{
-		UserDataValue aggColumn = (UserDataValue)row.getColumn(aggregatorColumnId);
-		
-		ExecAggregator ua = (ExecAggregator)aggColumn.getObject();
-		if(ua == null){
-			ua = getAggregatorInstance();
-			aggColumn.setValue(ua);
-		}
+
+		public boolean initialize(ExecRow row) throws StandardException{
+				UserDataValue aggColumn = (UserDataValue)row.getColumn(aggregatorColumnId);
+
+				ExecAggregator ua = (ExecAggregator)aggColumn.getObject();
+				if(ua == null){
+						ua = getAggregatorInstance();
+						aggColumn.setValue(ua);
+						return true;
+				}
+				return false;
 	}
 
     public boolean isInitialized(ExecRow row) throws StandardException{
