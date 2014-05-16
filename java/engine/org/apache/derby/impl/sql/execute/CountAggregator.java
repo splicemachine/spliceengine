@@ -59,6 +59,8 @@ public final class CountAggregator
 	public void merge(ExecAggregator addend)
 		throws StandardException
 	{
+			if(addend==null)
+					return; //assume null is the same thing as zero
 		if (SanityManager.DEBUG)
 		{
 			SanityManager.ASSERT(addend instanceof CountAggregator,

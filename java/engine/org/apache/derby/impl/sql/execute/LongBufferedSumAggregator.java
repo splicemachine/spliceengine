@@ -41,6 +41,7 @@ public class LongBufferedSumAggregator extends SumAggregator {
 
 		@Override
 		public void merge(ExecAggregator addend) throws StandardException {
+				if(addend==null) return; //treat null entries as zero
 				//In Splice, we should never see a different type of an ExecAggregator
 				long otherSum = ((LongBufferedSumAggregator)addend).sum;
 				buffer[position] = otherSum;

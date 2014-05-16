@@ -95,7 +95,7 @@ public  class SumAggregator
 		}
 	}
 
-	public void add(DataValueDescriptor addend) throws StandardException{
+		public void add(DataValueDescriptor addend) throws StandardException{
 		accumulate(addend);
 	}
 

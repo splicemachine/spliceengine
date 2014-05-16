@@ -134,6 +134,7 @@ public final class AvgAggregator extends SumAggregator
 	public void merge(ExecAggregator addend)
 		throws StandardException
 	{
+			if(addend==null) return; //treat null entries as zero
 		AvgAggregator otherAvg = (AvgAggregator) addend;
 
 		// if I haven't been used take the other.
