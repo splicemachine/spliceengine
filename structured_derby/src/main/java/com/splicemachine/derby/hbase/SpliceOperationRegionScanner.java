@@ -123,7 +123,6 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		public boolean next(final List<KeyValue> results) throws IOException {
 				SpliceLogUtils.trace(LOG, "next ");
 				if(finished)return false;
-				impl.prepareContextManager();
 				try {
 						ExecRow nextRow;
 						long start = 0l;
@@ -221,11 +220,10 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 						return !results.isEmpty();
 				}catch(Exception e){
 						ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
+						cleanupBatch(); // if we throw an exception the postScanner() hook won't be called, so cleanup here
 						SpliceLogUtils.logAndThrow(LOG,"Unable to get next row",Exceptions.getIOException(e));
 						return false; //won't happen since logAndThrow will throw an exception
-				}finally{
-						impl.resetContextManager();
-				}
+                }
 		}
 
 
@@ -335,4 +333,11 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 				return next(keyValues);
 		}
 
+		public void setupBatch() {
+			impl.prepareContextManager();
+		}
+
+		public void cleanupBatch() {
+			impl.resetContextManager();
+		}
 }
