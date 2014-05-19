@@ -47,8 +47,8 @@ ZOOLOG="${ROOT_DIR}"/zoo.log
 DERBYLOG="${ROOT_DIR}"/derby.log
 
 # Check if server running. If not, no need to proceed.
-S=$(jps | awk '/SpliceTestPlatform/ && !/awk/ {print $1}')
-Z=$(jps | awk '/ZooKeeperServerMain/ && !/awk/ {print $1}')
+S=$(ps -ef | awk '/SpliceTestPlatform/ && !/awk/ {print $2}')
+Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
 if [[ -z ${S} && -z ${Z} ]]; then
     echo "Splice server is not running."
     exit 0
@@ -65,9 +65,9 @@ fi
 
 # Check for stragglers
 SIG=15
-S=$(jps | awk '/SpliceTestPlatform/ && !/awk/ {print $1}')
+S=$(ps -ef | awk '/SpliceTestPlatform/ && !/awk/ {print $2}')
 [[ -n ${S} ]] && echo "Found SpliceTestPlatform straggler. Killing." && for pid in ${S}; do kill -${SIG} `echo ${pid}`; done
-Z=$(jps | awk '/ZooKeeperServerMain/ && !/awk/ {print $1}')
+Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
 [[ -n ${Z} ]] && echo "Found ZooKeeperServerMain straggler. Killing." && for pid in ${Z}; do kill -${SIG} `echo ${pid}`; done
 
 if [ ! -d "logs" ]; then
