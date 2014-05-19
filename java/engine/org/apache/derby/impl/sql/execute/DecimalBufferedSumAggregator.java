@@ -77,7 +77,7 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 						sum(position);
 						position=0;
 				}
-				value.setValue(sum);
+				value.setBigDecimal(sum);
 				return value;
 		}
 
