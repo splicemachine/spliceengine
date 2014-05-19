@@ -364,4 +364,14 @@ public class SpliceAdminIT {
         DbUtils.closeQuietly(rs);
     }
 
+    @Test
+    public void testGetLoggers() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_LOGGERS()");
+        ResultSet rs = cs.executeQuery();
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_LOGGERS()", rs);
+        System.out.println(fr.toString());
+        Assert.assertTrue(fr.size()>=80);
+        DbUtils.closeQuietly(rs);
+    }
+
 }
