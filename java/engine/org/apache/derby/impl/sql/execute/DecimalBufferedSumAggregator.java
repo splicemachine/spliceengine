@@ -3,8 +3,7 @@ package org.apache.derby.impl.sql.execute;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.NumberDataType;
-import org.apache.derby.iapi.types.SQLDouble;
+import org.apache.derby.iapi.types.SQLDecimal;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -13,42 +12,37 @@ import java.math.BigDecimal;
 
 /**
  * @author Scott Fines
- *         Date: 5/15/14
+ *         Date: 5/16/14
  */
-public class DoubleBufferedSumAggregator extends SumAggregator{
-
-		private final double[] buffer;
+public class DecimalBufferedSumAggregator extends SumAggregator {
+		private final BigDecimal[] buffer;
 		private final int length;
 		private int position;
 
-		private double sum = 0d;
+		private BigDecimal sum = BigDecimal.ZERO;
 
-		public DoubleBufferedSumAggregator(int bufferSize) {
+		public DecimalBufferedSumAggregator(int bufferSize) {
 				int s = 1;
 				while(s<bufferSize){
 						s<<=1;
 				}
-				buffer = new double[s];
+				buffer = new BigDecimal[s];
 				this.length = s-1;
 				position = 0;
 		}
 
 		@Override
 		protected void accumulate(DataValueDescriptor addend) throws StandardException {
-				buffer[position] = addend.getDouble();
+				buffer[position] = (BigDecimal)addend.getObject();
 				incrementPosition();
 		}
 
-		public void addDirect(double l) throws StandardException {
-				buffer[position] = l;
-				incrementPosition();
-		}
 
 		@Override
 		public void merge(ExecAggregator addend) throws StandardException {
 				if(addend==null) return; //treat null entries as zero
 				//In Splice, we should never see a different type of an ExecAggregator
-				double otherSum = ((DoubleBufferedSumAggregator)addend).sum;
+				BigDecimal otherSum = ((DecimalBufferedSumAggregator)addend).sum;
 				buffer[position] = otherSum;
 				incrementPosition();
 		}
@@ -65,19 +59,19 @@ public class DoubleBufferedSumAggregator extends SumAggregator{
 						position=0;
 				}
 				out.writeBoolean(eliminatedNulls);
-				out.writeDouble(sum);
+				out.writeObject(sum);
 		}
 
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 				this.eliminatedNulls = in.readBoolean();
-				this.sum = in.readDouble();
+				this.sum = (BigDecimal)in.readObject();
 		}
 
 		@Override
 		public DataValueDescriptor getResult() throws StandardException {
 				if (value == null) {
-						value = new SQLDouble();
+						value = new SQLDecimal();
 				}
 				if(position!=0){
 						sum(position);
@@ -92,29 +86,26 @@ public class DoubleBufferedSumAggregator extends SumAggregator{
 		 * e.g. after GenericAggregator.finish() has been called
 		 * @return the current sum;
 		 */
-		public double getSum(){
+		public BigDecimal getSum(){
 				assert position==0: "There are entries still to be buffered!";
 				return sum;
 		}
 
-		public void init(double sum,boolean eliminatedNulls){
+		public void init(BigDecimal sum,boolean eliminatedNulls){
 				this.sum = sum;
 				this.eliminatedNulls = eliminatedNulls;
 		}
 
 		@Override
 		public ExecAggregator newAggregator() {
-				return new DoubleBufferedSumAggregator(buffer.length);
+				return new DecimalBufferedSumAggregator(buffer.length);
 		}
 
 		private void sum(int bufferLength) throws StandardException {
-				double newSum = sum;
 				for (int i=0;i<bufferLength;i++) {
-						double l = buffer[i];
-						newSum += l;
+						BigDecimal l = buffer[i];
+						sum=sum.add(l);
 				}
-				//normalize the sum to ensure it remains valid
-				sum = NumberDataType.normalizeDOUBLE(newSum);
 		}
 
 		private void incrementPosition() throws StandardException {
@@ -124,12 +115,8 @@ public class DoubleBufferedSumAggregator extends SumAggregator{
 				}
 		}
 
-		public SumAggregator upgrade() throws StandardException {
-				DecimalBufferedSumAggregator agg = new DecimalBufferedSumAggregator(buffer.length);
-				agg.init(BigDecimal.valueOf(sum),eliminatedNulls);
-				for(int i=0;i<position;i++){
-						agg.addDirect(BigDecimal.valueOf(buffer[i]));
-				}
-				return agg;
+		public void addDirect(BigDecimal bigDecimal) throws StandardException {
+				buffer[position] = bigDecimal;
+				incrementPosition();
 		}
 }

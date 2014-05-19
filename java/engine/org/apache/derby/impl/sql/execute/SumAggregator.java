@@ -37,14 +37,34 @@ public  class SumAggregator
 {
 		@Override
 		public ExecAggregator setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType) {
+				ExecAggregator bufferedAggregator = getBufferedAggregator(returnDataType);
+				if(bufferedAggregator==null) bufferedAggregator = this;
+				return bufferedAggregator;
+		}
+
+		public static SumAggregator getBufferedAggregator(DataTypeDescriptor returnDataType) {
 				int typeFormatId = returnDataType.getTypeId().getTypeFormatId();
+				/*
+				 * Note that we always use longs to aggregate any scalar type, so tinyint, smallint, integer,
+				 * and longint all will use a longBufferedAggregator.
+				 *
+				 * This is mostly just for clarity. The Query Optimizer makes everything return a long anyway, so
+				 * nothing ever pops through with an integer (as of v0.6 anyway).
+				 */
 				switch(typeFormatId){
+						case StoredFormatIds.TINYINT_TYPE_ID:
+						case StoredFormatIds.SMALLINT_TYPE_ID:
+						case StoredFormatIds.INT_TYPE_ID:
 						case StoredFormatIds.LONGINT_TYPE_ID:
 								return new LongBufferedSumAggregator(64); //todo -sf- make this configurable?
+						case StoredFormatIds.REAL_TYPE_ID:
+								return new FloatBufferedSumAggregator(64);
 						case StoredFormatIds.DOUBLE_TYPE_ID:
 								return new DoubleBufferedSumAggregator(64);
-						default: //default to Derby's typical behavior
-								return super.setup(cf, aggregateName, returnDataType);
+						case StoredFormatIds.DECIMAL_TYPE_ID:
+								return new DecimalBufferedSumAggregator(64);
+						default: //default to Derby's typical behavior, which has crappy performance, but will work in all cases
+								return null;
 				}
 		}
 
@@ -88,45 +108,45 @@ public  class SumAggregator
 			NumberDataValue	input = (NumberDataValue)addend;
 			NumberDataValue nv = (NumberDataValue) value;
 
-			value = nv.plus(
-						input,						// addend 1
-						nv,		// addend 2
-						nv);	// result
+				value = nv.plus(
+								input,						// addend 1
+								nv,		// addend 2
+								nv);	// result
 		}
 	}
 
 		public void add(DataValueDescriptor addend) throws StandardException{
-		accumulate(addend);
-	}
+				accumulate(addend);
+		}
 
-	/**
- 	 * @return ExecAggregator the new aggregator
-	 */
-	public ExecAggregator newAggregator()
-	{
-		return new SumAggregator();
-	}
+		/**
+		 * @return ExecAggregator the new aggregator
+		 */
+		public ExecAggregator newAggregator()
+		{
+				return new SumAggregator();
+		}
 
-	////////////////////////////////////////////////////////////
-	// 
-	// FORMATABLE INTERFACE
-	// 
-	/////////////////////////////////////////////////////////////
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	int	getTypeFormatId()	{ return StoredFormatIds.AGG_SUM_V01_ID; }
-	
-        public String toString()
-        {
-            try {
-			return "SumAggregator: " + (value!= null ? value.getString() : "NULL");
-            }
-            catch (StandardException e)
-            {
-                return super.toString() + ":" + e.getMessage();
-            }
-        }
+		////////////////////////////////////////////////////////////
+		//
+		// FORMATABLE INTERFACE
+		//
+		/////////////////////////////////////////////////////////////
+		/**
+		 * Get the formatID which corresponds to this class.
+		 *
+		 *	@return	the formatID of this class
+		 */
+		public	int	getTypeFormatId()	{ return StoredFormatIds.AGG_SUM_V01_ID; }
+
+		public String toString()
+		{
+				try {
+						return "SumAggregator: " + (value!= null ? value.getString() : "NULL");
+				}
+				catch (StandardException e)
+				{
+						return super.toString() + ":" + e.getMessage();
+				}
+		}
 }
