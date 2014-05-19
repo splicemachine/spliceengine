@@ -21,33 +21,26 @@
 
 package org.apache.derby.iapi.types;
 
+import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.StatementContext;
-
 import org.apache.derby.iapi.reference.ContextId;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.reference.MessageId;
-
 import org.apache.derby.iapi.services.io.ArrayInputStream;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.services.context.ContextService;
-
 import org.apache.derby.iapi.services.io.DerbyIOException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.io.FormatIdInputStream;
 import org.apache.derby.iapi.services.io.InputStreamUtil;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.services.i18n.MessageService;
-
 import org.apache.derby.iapi.services.cache.ClassSize;
 
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
 import java.io.InputStream;
-
 import java.sql.Blob;
 import java.sql.DataTruncation;
 import java.sql.SQLException;
@@ -1319,9 +1312,6 @@ abstract class SQLBinary
             // SQL:2003, part 2, 6.12 <cast specification>,
             // general rule 12 says we should warn about truncation.
         	
-            /* As of now Splice has no choice but to comment out this 'warning' logic.
-             * See comments in SQLChar.java#setWidth for explanation.
-
             DataTruncation warning = new DataTruncation(
                     -1,    // column index is unknown
                     false, // parameter
@@ -1330,9 +1320,15 @@ abstract class SQLBinary
 
             StatementContext statementContext = (StatementContext)
                 ContextService.getContext(ContextId.LANG_STATEMENT);
-            statementContext.getActivation().
-                    getResultSet().addWarning(warning);
-            */
+            // In some cases, the activation will be null on the context,
+            // which resulted in NPE when trying to add warning (DB-1288).
+            // When this happens, we have no choice but to skip the warning.
+            // We can address this later when we more deeply look into
+            // error and warning propagation.
+            Activation activation = statementContext.getActivation();
+            if (activation != null) {
+                activation.getResultSet().addWarning(warning);
+            }
         }
 
         // Truncate to the desired width.
