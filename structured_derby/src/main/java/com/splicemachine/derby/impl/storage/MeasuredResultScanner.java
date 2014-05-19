@@ -1,16 +1,25 @@
 package com.splicemachine.derby.impl.storage;
 
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.stats.*;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.hadoop.hbase.client.*;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.stats.Counter;
+import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.Metrics;
+import com.splicemachine.stats.StatUtils;
+import com.splicemachine.stats.TimeView;
+import com.splicemachine.stats.Timer;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * @author Scott Fines
@@ -55,6 +64,9 @@ public class MeasuredResultScanner extends ReopenableScanner implements SpliceRe
                     } else
                         remoteTimer.stopTiming();
                 } catch (IOException e) {
+                    // DEBUG: remove
+                    SpliceLogUtils.trace(LOG,">>> Caught ",e.getClass(),": ",getNumRetries(),(getNumRetries() < MAX_RETIRES? " < ":" >= "),
+                        MAX_RETIRES, " Retry? ",Exceptions.isScannerTimeoutException(e)," ScanID: ",scan.getId());
                     if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES) {
                         SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
                         incrementNumRetries();
