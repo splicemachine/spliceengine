@@ -673,5 +673,54 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 						}
 				},159);
 
-    }
+				instance.register(DecimalBufferedSumAggregator.class,new Serializer<DecimalBufferedSumAggregator>() {
+						@Override
+						public void write(Kryo kryo, Output output, DecimalBufferedSumAggregator object) {
+								try {
+										object.writeExternal(new KryoObjectOutput(output, kryo));
+								} catch (IOException e) {
+										throw new RuntimeException(e);
+								}
+						}
+
+						@Override
+						public DecimalBufferedSumAggregator read(Kryo kryo, Input input, Class type) {
+								DecimalBufferedSumAggregator aggregator = new DecimalBufferedSumAggregator(64); //todo -sf- make configurable
+								try {
+										aggregator.readExternal(new KryoObjectInput(input, kryo));
+								} catch (IOException e) {
+										throw new RuntimeException(e);
+								} catch (ClassNotFoundException e) {
+										throw new RuntimeException(e);
+								}
+								return aggregator;
+						}
+				},160);
+
+				instance.register(FloatBufferedSumAggregator.class,new Serializer<FloatBufferedSumAggregator>() {
+						@Override
+						public void write(Kryo kryo, Output output, FloatBufferedSumAggregator object) {
+								try {
+										object.writeExternal(new KryoObjectOutput(output, kryo));
+								} catch (IOException e) {
+										throw new RuntimeException(e);
+								}
+						}
+
+						@Override
+						public FloatBufferedSumAggregator read(Kryo kryo, Input input, Class type) {
+								FloatBufferedSumAggregator aggregator = new FloatBufferedSumAggregator(64); //todo -sf- make configurable
+								try {
+										aggregator.readExternal(new KryoObjectInput(input, kryo));
+								} catch (IOException e) {
+										throw new RuntimeException(e);
+								} catch (ClassNotFoundException e) {
+										throw new RuntimeException(e);
+								}
+								return aggregator;
+						}
+				},161);
+
+
+		}
 }
