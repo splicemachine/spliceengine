@@ -148,7 +148,7 @@ public class MergeSortJoinerTest {
         List<ExecRow> joinedAnswers = Lists.newArrayListWithExpectedSize(correctResults.size());
         ExecRow row;
         do{
-            row = joiner.nextRow();
+            row = joiner.nextRow(null);
             if(row==null) continue;
 
             joinedAnswers.add(row.getClone());

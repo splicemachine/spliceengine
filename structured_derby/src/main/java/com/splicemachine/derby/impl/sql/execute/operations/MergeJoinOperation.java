@@ -138,16 +138,16 @@ public class MergeJoinOperation extends JoinOperation {
     }
 
     @Override
-    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+    public ExecRow nextRow(SpliceRuntimeContext ctx) throws StandardException, IOException {
         if (joiner == null) {
             // Upon first call, init up the joined rows source
-            joiner = initJoiner(spliceRuntimeContext);
+            joiner = initJoiner(ctx);
             joiner.open();
-            timer = spliceRuntimeContext.newTimer();
+            timer = ctx.newTimer();
 						timer.startTiming();
         }
 
-        ExecRow next = joiner.nextRow();
+        ExecRow next = joiner.nextRow(ctx);
         setCurrentRow(next);
         if (next == null) {
             timer.tick(joiner.getLeftRowsSeen());
@@ -168,7 +168,7 @@ public class MergeJoinOperation extends JoinOperation {
             leftPushBack.pushBack(firstLeft);
         }
         rightRows = StandardIterators
-                                                  .ioIterator(rightResultSet.executeScan(spliceRuntimeContext));
+                        .ioIterator(rightResultSet.executeScan(spliceRuntimeContext));
         mergedRowSource = new MergeJoinRows(leftPushBack, rightRows, leftHashKeys, rightHashKeys);
         StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
             @Override

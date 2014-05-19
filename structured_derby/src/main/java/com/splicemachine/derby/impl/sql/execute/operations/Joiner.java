@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.stats.Counter;
 import com.splicemachine.stats.MetricFactory;
@@ -91,7 +92,7 @@ public class Joiner {
             while (rightSideRowIterator.hasNext()) {
                 ExecRow candidate = getMergedRow(currentLeftRow, rightSideRowIterator.next());
                 if (!mergeRestriction.apply(candidate)) {
-										filteredRows.increment();
+                    filteredRows.increment();
                     // if doesn't match restriction, discard row
                     continue;
                 }
@@ -126,12 +127,12 @@ public class Joiner {
 
     }
 
-    public ExecRow nextRow() throws StandardException, IOException {
+    public ExecRow nextRow(SpliceRuntimeContext ctx) throws StandardException, IOException {
         Pair<ExecRow,Iterator<ExecRow>> sourcePair;
 
         ExecRow row = getNextFromBuffer();
         while (row == null
-                   && (sourcePair = joinRowsSource.next(null)) != null) {
+                   && (sourcePair = joinRowsSource.next(ctx)) != null) {
             addLeftAndRights(sourcePair);
             row = getNextFromBuffer();
         }
