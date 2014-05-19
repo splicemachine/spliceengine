@@ -204,6 +204,26 @@ public class StaticMethodCallNode extends MethodCallNode
             // The field methodName is used by resolveRoutine and
             // is set to the name of the routine (procedureName.getTableName()).
 			resolveRoutine(fromList, subqueryList, aggregateVector, sd);
+			
+			// (Splice)	This logic, to implicitly check for routine using SYSFUN schema,
+			// was moved here from a few lines down, so that it has a chance to find
+			// aggregate functions in SYSFUN catalog too, such that it will get
+			// a resolvedAggregate. There was no clean way to avoid this Derby fork,
+			// because there's no clean way to tell the parser to use a Splice override
+			// of StaticMethodCallNode.
+
+			if (ad == null && noSchema && !forCallStatement)
+			{
+				// Resolve to a built-in SYSFUN function but only
+				// if this is a function call and the call
+				// was not qualified. E.g. COS(angle). The
+				// SYSFUN functions are not in SYSALIASES but
+				// an in-memory table, set up in DataDictionaryImpl.
+				sd = getSchemaDescriptor("SYSFUN", true);
+
+				resolveRoutine(fromList, subqueryList, aggregateVector, sd);
+			}
+
 			if ( (ad != null) && (ad.getAliasType() == AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR) )
 			{
 			    resolvedAggregate = (AggregateNode) getNodeFactory().getNode
@@ -225,19 +245,6 @@ public class StaticMethodCallNode extends MethodCallNode
 			    return this;
 			}
 				
-
-			if (ad == null && noSchema && !forCallStatement)
-			{
-				// Resolve to a built-in SYSFUN function but only
-				// if this is a function call and the call
-				// was not qualified. E.g. COS(angle). The
-				// SYSFUN functions are not in SYSALIASES but
-				// an in-memory table, set up in DataDictioanryImpl.
-				sd = getSchemaDescriptor("SYSFUN", true);
-				
-				resolveRoutine(fromList, subqueryList, aggregateVector, sd);
-			}
-	
 			/* Throw exception if no routine found */
 			if (ad == null)
 			{
