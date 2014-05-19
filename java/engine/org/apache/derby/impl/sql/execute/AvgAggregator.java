@@ -260,7 +260,9 @@ public final class AvgAggregator extends OrderableAggregator
 		 */
 		public ExecAggregator newAggregator()
 		{
-				return new AvgAggregator();
+				AvgAggregator avgAggregator = new AvgAggregator();
+				avgAggregator.aggregator = (SumAggregator)this.aggregator.newAggregator();
+				return avgAggregator;
 		}
 
 		/////////////////////////////////////////////////////////////
