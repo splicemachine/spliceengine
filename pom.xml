@@ -234,7 +234,7 @@
 			</activation>
 			<properties>
 				<zookeeper.version>3.4.5-cdh5.0.0</zookeeper.version>
-				<hbase.version>0.96.1.1-cdh5.0.0</hbase.version>
+				<hbase.version>0.96.1.1-cdh5.0.0.splice</hbase.version>
 				<hadoop.version>2.3.0-cdh5.0.0</hadoop.version>
 				<envClassifier>cloudera-cdh5.0.0</envClassifier>
 			</properties>

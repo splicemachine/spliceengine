@@ -50,7 +50,7 @@ while getopts ":chp:b:" flag ; do
     esac
 done
 
-echo "Runing with hbase profile \"${PROFILE}\" and chaos monkey = ${CHAOS} ${BUILD_TAG}"
+echo "Running with hbase profile \"${PROFILE}\" and chaos monkey = ${CHAOS} ${BUILD_TAG}"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd )"
 pushd "${SCRIPT_DIR}/structured_derby" &>/dev/null

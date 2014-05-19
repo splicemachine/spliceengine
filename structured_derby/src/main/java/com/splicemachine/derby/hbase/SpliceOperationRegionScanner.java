@@ -217,10 +217,9 @@ public class SpliceOperationRegionScanner implements RegionScanner {
             return !results.isEmpty();
         } catch (Exception e) {
             ErrorReporter.get().reportError(SpliceOperationRegionScanner.class, e);
+            cleanupBatch(); // if an exception is thrown the .postScannerNext() hook won't be called, cleanup here
             SpliceLogUtils.logAndThrow(LOG, "Unable to get next row", Exceptions.getIOException(e));
             return false; //won't happen since logAndThrow will throw an exception
-        } finally {
-            impl.resetContextManager();
         }
     }
 
@@ -320,4 +319,11 @@ public class SpliceOperationRegionScanner implements RegionScanner {
         return next(results, limit);
     }
 
+    public void setupBatch() {
+        impl.prepareContextManager();
+    }
+
+    public void cleanupBatch() {
+        impl.resetContextManager();
+    }
 }

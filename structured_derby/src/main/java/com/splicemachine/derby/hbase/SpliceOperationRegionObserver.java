@@ -1,7 +1,10 @@
 package com.splicemachine.derby.hbase;
 
 import java.io.IOException;
+import java.util.List;
+
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
@@ -57,6 +60,22 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
             ((SpliceOperationRegionScanner)s).reportMetrics();
         }
         super.postScannerClose(e, s);
+    }
+
+    @Override
+    public boolean preScannerNext(ObserverContext<RegionCoprocessorEnvironment> e, InternalScanner s, List<Result> results, int limit, boolean hasMore) throws IOException {
+        if(s instanceof SpliceOperationRegionScanner){
+            ((SpliceOperationRegionScanner)s).setupBatch();
+        }
+        return super.preScannerNext(e, s, results, limit, hasMore);
+    }
+
+    @Override
+    public boolean postScannerNext(ObserverContext<RegionCoprocessorEnvironment> e, InternalScanner s, List<Result> results, int limit, boolean hasMore) throws IOException {
+        if(s instanceof SpliceOperationRegionScanner){
+            ((SpliceOperationRegionScanner)s).cleanupBatch();
+        }
+        return super.postScannerNext(e, s, results, limit, hasMore);
     }
 }
 
