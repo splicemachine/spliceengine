@@ -168,21 +168,21 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 				isOpen = false;
 		}
 
-    protected ExecRow next(boolean outer, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+    protected ExecRow next(boolean outer, SpliceRuntimeContext ctx) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "next");
         if (joiner == null) {
-            if (!spliceRuntimeContext.isSink())
+            if (!ctx.isSink())
                 init(SpliceOperationContext.newContext(activation));
-            joiner = createMergeJoiner(outer, spliceRuntimeContext);
+            joiner = createMergeJoiner(outer, ctx);
             joiner.open();
             isOpen = true;
-            timer = spliceRuntimeContext.newTimer();
+            timer = ctx.newTimer();
         }
         beginTime = getCurrentTimeMillis();
         boolean shouldClose = true;
 				timer.startTiming();
         try {
-            ExecRow joinedRow = joiner.nextRow();
+            ExecRow joinedRow = joiner.nextRow(ctx);
             if (joinedRow != null) {
                 inputRows++;
                 shouldClose = false;

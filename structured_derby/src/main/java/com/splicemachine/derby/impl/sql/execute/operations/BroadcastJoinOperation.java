@@ -116,17 +116,17 @@ public class BroadcastJoinOperation extends JoinOperation {
 		}
 
 		@Override
-		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+		public ExecRow nextRow(SpliceRuntimeContext ctx) throws StandardException, IOException {
 				if (joiner == null) {
 						// do inits on first call
-						timer = spliceRuntimeContext.newTimer();
-						leftCounter = spliceRuntimeContext.newCounter();
+						timer = ctx.newTimer();
+						leftCounter = ctx.newCounter();
 						timer.startTiming();
-						joiner = initJoiner(spliceRuntimeContext);
+						joiner = initJoiner(ctx);
 						joiner.open();
 				}
 
-				ExecRow next = joiner.nextRow();
+				ExecRow next = joiner.nextRow(ctx);
 				setCurrentRow(next);
 				if (next == null) {
 						timer.tick(leftCounter.getTotal());
