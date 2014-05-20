@@ -7,7 +7,14 @@ ROOT_DIR="$( pwd )"
 
 LOG4J_PROP_PATH="file:${ROOT_DIR}/target/splicemachine/lib/info-log4j.properties"
 export LOG4J_PROP_PATH
-CLASSPATH="${ROOT_DIR}/target/splicemachine/lib/*"
-export CLASSPATH
+# DEV_CP will be overridden in stand-alone script
+DEV_CP="${ROOT_DIR}/target/splicemachine/lib/*"
+export DEV_CP
 
-"${ROOT_DIR}"/target/splicemachine/bin/sqlshell.sh $*
+SQL_SHELL="${ROOT_DIR}"/target/classes/bin/sqlshell.sh
+
+if [[ ! -x ${SQL_SHELL} ]]; then
+    chmod 755 ${SQL_SHELL}
+fi
+
+${SQL_SHELL} $*
