@@ -26,6 +26,8 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
+import com.splicemachine.stats.IOStats;
+import com.splicemachine.stats.Metrics;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -284,6 +286,11 @@ public class RowCountOperation extends SpliceBaseOperation{
 								public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
 									scanProvider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 								}
+
+								@Override
+								public IOStats getIOStats() {
+										return scanProvider.getIOStats();
+								}
 						};
 				}
 
@@ -523,6 +530,11 @@ public class RowCountOperation extends SpliceBaseOperation{
 						metrics.setHostName(SpliceUtils.getHostName());
 						SpliceDriver.driver().getTaskReporter().report(xplainSchema,metrics);
 				}
+
+				@Override
+				public IOStats getIOStats() {
+						return Metrics.noOpIOStats();
+				}
 		}
 
 		private class LimitedRowProvider implements RowProvider {
@@ -578,6 +590,11 @@ public class RowCountOperation extends SpliceBaseOperation{
 				@Override
 				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
 					provider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
+				}
+
+				@Override
+				public IOStats getIOStats() {
+						return provider.getIOStats();
 				}
 		}
 }

@@ -10,6 +10,8 @@ public interface MetricFactory {
 
 		Timer newTimer();
 
+		Timer newWallTimer();
+
 		//TODO -sf- clean this up?
 		Gauge newMaxGauge();
 

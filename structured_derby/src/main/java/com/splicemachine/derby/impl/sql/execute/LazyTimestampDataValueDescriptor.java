@@ -7,6 +7,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DateTimeDataValue;
 import org.apache.derby.iapi.types.NumberDataValue;
 import org.apache.derby.iapi.types.SQLBoolean;
+import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -175,6 +176,11 @@ public class LazyTimestampDataValueDescriptor extends LazyDataValueDescriptor im
     @Override
     public BooleanDataValue greaterOrEquals(DataValueDescriptor left, DataValueDescriptor right) throws StandardException {
         return SQLBoolean.truthValue(left, right, left.compare(right) >= 0);
+    }
+    
+    @Override
+    public Format getFormat() {
+    	return Format.TIMESTAMP;
     }
 	
 }

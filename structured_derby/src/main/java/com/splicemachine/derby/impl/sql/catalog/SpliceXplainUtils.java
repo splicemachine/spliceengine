@@ -42,7 +42,7 @@ public class SpliceXplainUtils {
 				createXplainTable(schemaName,
 								new XPLAINTaskDescriptor());
 
-				createXplainView(schemaName, "SYSXPLAIN_OPERATION_DETAILS", XPLAINTaskDescriptor.getOperationDetailView(schemaName));
+//				createXplainView(schemaName, "SYSXPLAIN_OPERATION_DETAILS", XPLAINTaskDescriptor.getOperationDetailView(schemaName));
 				lcc.setRunTimeStatisticsMode(statsSave);
 				lcc.setXplainSchema(schemaName);
 		}

@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.load;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.CallBufferFactory;
@@ -10,9 +9,11 @@ import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.hbase.writer.Writer;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
+import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
@@ -20,6 +21,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nullable;
+
 import java.sql.Date;
 import java.sql.Types;
 import java.text.SimpleDateFormat;

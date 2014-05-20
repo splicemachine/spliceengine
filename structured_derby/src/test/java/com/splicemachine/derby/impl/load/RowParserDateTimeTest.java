@@ -1,10 +1,11 @@
 package com.splicemachine.derby.impl.load;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
+
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLTimestamp;
+import org.apache.derby.impl.sql.execute.ValueRow;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;

@@ -10,6 +10,7 @@ import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
@@ -48,7 +49,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		private final Timer timer;
 		private final Counter filterCounter;
 
-		private RegionScanner regionScanner;
+		private MeasuredRegionScanner regionScanner;
 		private final Scan scan;
 		private final ExecRow template;
 		private final String tableVersion;
@@ -75,7 +76,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		private final SIFilterFactory filterFactory;
 
 
-		SITableScanner(RegionScanner scanner,
+		SITableScanner(MeasuredRegionScanner scanner,
 													ExecRow template,
 													MetricFactory metricFactory,
 													Scan scan,
@@ -103,7 +104,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 							tableVersion,null);
 		}
 
-		SITableScanner(RegionScanner scanner,
+		SITableScanner(MeasuredRegionScanner scanner,
 													final ExecRow template,
 													MetricFactory metricFactory,
 													Scan scan,
@@ -167,7 +168,6 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 
 		@Override
 		public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				timer.startTiming();
 
 				SIFilter filter = getSIFilter();
 				if(keyValues==null)
@@ -175,10 +175,9 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				boolean hasRow;
 				do{
 						keyValues.clear();
-						template.resetRowArray();
+						template.resetRowArray(); //necessary to deal with null entries--maybe make the underlying call faster?
 						hasRow = regionScanner.next(keyValues);
 						if(keyValues.size()<=0){
-								timer.stopTiming();
 								currentRowLocation = null;
 								return null;
 						}else{
@@ -194,12 +193,10 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 										continue;
 								}
 								setRowLocation(keyValues.get(0));
-								timer.tick(1);
 								return template;
 						}
 				}while(hasRow);
 
-				timer.stopTiming();
 				currentRowLocation = null;
 				return null;
 		}
@@ -220,7 +217,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		}
 
 		public TimeView getTime(){
-				return timer.getTime();
+				return regionScanner.getReadTime();
 		}
 
 		public long getRowsFiltered(){
@@ -228,10 +225,10 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		}
 
 		public long getRowsVisited() {
-				return timer.getNumEvents();
+				return regionScanner.getRowsVisited();
 		}
 
-		public void setRegionScanner(RegionScanner scanner){
+		public void setRegionScanner(MeasuredRegionScanner scanner){
 				this.regionScanner = scanner;
 		}
 
@@ -329,11 +326,19 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				return predicateFilter.match(primaryKeyIndex, keyDecoderProvider, keyAccumulator);
 		}
 
+		public long getBytesVisited() {
+				return regionScanner.getBytesVisited();
+		}
+
 		private class KeyIndex implements Indexed{
 				private final int[] allPkColumns;
 				private final int[] keyColumnTypes;
 				private final TypeProvider typeProvider;
 				private int position = 0;
+				
+				private final boolean[] sF;
+				private final boolean[] fF;
+				private final boolean[] dF;
 
 				private KeyIndex(int[] allPkColumns,
 												 int[] keyColumnTypes,
@@ -341,6 +346,15 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 						this.allPkColumns = allPkColumns;
 						this.keyColumnTypes = keyColumnTypes;
 						this.typeProvider = typeProvider;
+						sF = new boolean[keyColumnTypes.length];
+						fF = new boolean[keyColumnTypes.length];
+						dF = new boolean[keyColumnTypes.length];
+						
+						for(int i=0;i<sF.length;i++){
+							sF[i] = typeProvider.isScalar(keyColumnTypes[i]);
+							fF[i] = typeProvider.isFloat(keyColumnTypes[i]);
+							dF[i] = typeProvider.isDouble(keyColumnTypes[i]);							
+						}
 				}
 
 				@Override public int nextSetBit(int currentPosition) {
@@ -352,18 +366,15 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				}
 
 				@Override public boolean isScalarType(int currentPosition) {
-						assert position>0 : "Cannot call isType() without first calling nextSetBit";
-						return typeProvider.isScalar(keyColumnTypes[currentPosition]);
+					return sF[currentPosition]; 
 				}
 
 				@Override public boolean isDoubleType(int currentPosition) {
-						assert position>0 : "Cannot call isType() without first calling nextSetBit";
-						return typeProvider.isDouble(keyColumnTypes[currentPosition]);
+					return dF[currentPosition]; 
 				}
 
 				@Override public boolean isFloatType(int currentPosition) {
-						assert position>0 : "Cannot call isType() without first calling nextSetBit";
-						return typeProvider.isFloat(keyColumnTypes[currentPosition]);
+					return fF[currentPosition]; 
 				}
 
 				@Override

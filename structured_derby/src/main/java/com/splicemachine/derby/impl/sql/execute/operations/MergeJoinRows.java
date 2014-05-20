@@ -1,10 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.utils.IOStandardIterator;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardPushBackIterator;
-import com.splicemachine.si.impl.PushBackIterator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Pair;
@@ -30,8 +29,8 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
 
     final StandardIterator<ExecRow> leftRS;
     final StandardPushBackIterator<ExecRow> rightRS;
-    final Comparator<ExecRow> comparator;
-    final List<Pair<Integer,Integer>> joinKeys;
+    //final Comparator<ExecRow> comparator;
+    final int[] joinKeys;
     List<ExecRow> currentRights = new LinkedList<ExecRow>();
 
     private int leftRowsSeen;
@@ -48,25 +47,28 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
      * @param rightKeys     Join Key(s) on which right side is sorted
      */
     public MergeJoinRows(StandardIterator<ExecRow> leftRS,
-                         StandardIterator<ExecRow> rightRS,
+                         IOStandardIterator<ExecRow> rightRS,
                          int[] leftKeys, int[] rightKeys) {
         this.leftRS = leftRS;
         this.rightRS = new StandardPushBackIterator<ExecRow>(rightRS);
 
         assert(leftKeys.length == rightKeys.length);
-        joinKeys = Lists.newArrayListWithCapacity(leftKeys.length);
+        joinKeys = new int[leftKeys.length * 2];
         for (int i = 0, s = leftKeys.length; i < s; i++){
-            // add keys for left & right, incremented to work with 1-based ExecRow.getColumn()
-            joinKeys.add(Pair.newPair(leftKeys[i] + 1, rightKeys[i] + 1));
+            // add keys indices for left & right like [L1, R1, L2, R2, ...],
+            // incremented to work with 1-based ExecRow.getColumn()
+            joinKeys[i * 2] = leftKeys[i] + 1;
+            joinKeys[i * 2 + 1] = rightKeys[i] + 1;
         }
+        /*
         comparator = new Comparator<ExecRow>() {
             @Override
             public int compare(ExecRow left, ExecRow right) {
                 try {
 
-                    for (Pair<Integer,Integer> keys: joinKeys){
-                        int result = left.getColumn(keys.getFirst())
-                                        .compare(right.getColumn(keys.getSecond()));
+                    for (int i = 0, s = joinKeys.length; i < s; i = i + 2 ){
+                        int result = left.getColumn(joinKeys[i])
+                                        .compare(right.getColumn(joinKeys[i + 1]));
                         if (result != 0){
                             return result;
                         }
@@ -78,6 +80,19 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
                 }
             }
         };
+        */
+    }
+
+    private int compare(ExecRow left, ExecRow right) throws StandardException {
+        for (int i = 0, s = joinKeys.length; i < s; i = i + 2) {
+            int result = left.getColumn(joinKeys[i])
+                             .compare(right.getColumn(joinKeys[i + 1]));
+            if (result != 0) {
+                return result;
+            }
+        }
+        return 0;
+
     }
 
     Iterator<ExecRow> rightsForLeft(ExecRow left)
@@ -85,7 +100,8 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
         // Check to see if we've already collected the right rows
         // that match this left
         if (currentRights.size() > 0
-                && comparator.compare(left, currentRights.get(0)) == 0){
+                //&& comparator.compare(left, currentRights.get(0)) == 0){
+                && compare(left, currentRights.get(0)) == 0){
             return currentRights.iterator();
         }
         // If not, look for the ones that do
@@ -93,7 +109,8 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
         ExecRow right;
         while ((right = rightRS.next(null)) != null){
             rightRowsSeen++;
-            int comparison = comparator.compare(left, right);
+            //int comparison = comparator.compare(left, right);
+            int comparison = compare(left, right);
             // if matches left, add to buffer
             if (comparison == 0) {
                 currentRights.add(right.getClone());
@@ -120,16 +137,16 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
     }
 
     @Override
-    public int getLeftRowsSeen() {
+    public long getLeftRowsSeen() {
         return leftRowsSeen;
     }
 
     @Override
-    public int getRightRowsSeen() {
+    public long getRightRowsSeen() {
         return rightRowsSeen;
     }
 
-    @Override
+		@Override
     public void open() throws StandardException, IOException {
         leftRS.open();
         rightRS.open();

@@ -32,7 +32,8 @@ public class SpliceDatabase extends BasicDatabase {
 	public void boot(boolean create, Properties startParams) throws StandardException {
 		Configuration.setConfiguration(null);
 		//System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
-        System.setProperty("derby.language.logStatementText", Boolean.toString(true));
+		if (SpliceConstants.logStatementContext)
+			System.setProperty("derby.language.logStatementText", Boolean.toString(true));
         System.setProperty("derby.connection.requireAuthentication","false");
         /*
          * This value is set to ensure that result sets are not materialized into memory, because

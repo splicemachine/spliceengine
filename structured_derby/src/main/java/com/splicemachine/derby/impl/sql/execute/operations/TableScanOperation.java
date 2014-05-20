@@ -16,6 +16,7 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.stats.TimeView;
+import com.splicemachine.tools.splice;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Snowflake;
@@ -140,6 +141,10 @@ public class TableScanOperation extends ScanOperation {
 				this.slice = ByteSlice.empty();
 				this.startExecutionTime = System.currentTimeMillis();
 				this.scan = context.getScan();
+
+				//start reading rows
+				if(regionScanner!=null)
+						regionScanner.start();
 		}
 
 
@@ -227,7 +232,6 @@ public class TableScanOperation extends ScanOperation {
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
                 columnOrdering = scanInformation.getColumnOrdering();
 				ExecRow defnRow = getExecRowDefinition();
-//				int [] cols = getDecodingColumns(defnRow.nColumns());
 				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(defnRow);
 				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null,serializers);
 		}
@@ -251,17 +255,15 @@ public class TableScanOperation extends ScanOperation {
 
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {
-				if(regionScanner!=null){
-						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsVisited());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,regionScanner.getBytesVisited());
-						TimeView readTimer = regionScanner.getReadTime();
-						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTimer.getCpuTime());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTimer.getUserTime());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,readTimer.getWallClockTime());
-				}
 				if(tableScanner!=null){
 						stats.addMetric(OperationMetric.FILTERED_ROWS,tableScanner.getRowsFiltered());
-						stats.addMetric(OperationMetric.OUTPUT_ROWS,tableScanner.getRowsVisited());
+						stats.addMetric(OperationMetric.OUTPUT_ROWS,tableScanner.getRowsVisited()-tableScanner.getRowsFiltered());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,tableScanner.getRowsVisited());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,tableScanner.getBytesVisited());
+						TimeView time = tableScanner.getTime();
+						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME, time.getWallClockTime());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME, time.getCpuTime());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME, time.getUserTime());
 				}
 		}
 
@@ -282,14 +284,19 @@ public class TableScanOperation extends ScanOperation {
 										.accessedKeyColumns(scanInformation.getAccessedPkColumns())
 										.keyDecodingMap(getKeyDecodingMap())
 										.rowDecodingMap(baseColumnMap).build();
+						timer = spliceRuntimeContext.newTimer();
 				}
 
+				timer.startTiming();
 				currentRow = tableScanner.next(spliceRuntimeContext);
 				if(currentRow!=null){
+						timer.tick(1);
 						setCurrentRow(currentRow);
 						setCurrentRowLocation(tableScanner.getCurrentRowLocation());
 				}else{
+						timer.stopTiming();
 						clearCurrentRow();
+						stopExecutionTime = System.currentTimeMillis();
 						currentRowLocation = null;
 				}
 

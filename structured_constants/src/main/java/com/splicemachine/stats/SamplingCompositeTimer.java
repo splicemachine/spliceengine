@@ -70,16 +70,6 @@ class SamplingCompositeTimer implements Timer,TimeView{
 		}
 
 		@Override
-		public void startTiming(boolean force) {
-				if(!force) startTiming();
-				else{
-						numStarts++;
-						nextSamplePosition = sampleSize+1;
-						startMeasurements();
-				}
-		}
-
-		@Override
 		public void stopTiming() {
 				if(nextSamplePosition<0) return; //nothing to do, we aren't timing
 

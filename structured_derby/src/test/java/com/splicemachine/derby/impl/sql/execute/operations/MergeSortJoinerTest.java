@@ -4,21 +4,23 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.JoinSideExecRow;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.stats.Metrics;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLInteger;
+import org.apache.derby.impl.sql.execute.ValueRow;
 import org.junit.Assert;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.util.*;
 
@@ -146,7 +148,7 @@ public class MergeSortJoinerTest {
         List<ExecRow> joinedAnswers = Lists.newArrayListWithExpectedSize(correctResults.size());
         ExecRow row;
         do{
-            row = joiner.nextRow();
+            row = joiner.nextRow(null);
             if(row==null) continue;
 
             joinedAnswers.add(row.getClone());
@@ -397,9 +399,9 @@ public class MergeSortJoinerTest {
                 public ExecRow get() throws StandardException {
                     return emptyRightRow;
                 }
-            });
+            },Metrics.noOpMetricFactory());
         }else
-            joiner = new Joiner(joinRows, mergedRowTemplate,outer,false,2,2,false, false,null);
+            joiner = new Joiner(joinRows, mergedRowTemplate,outer,false,2,2,false, false,null,Metrics.noOpMetricFactory());
 
         List<ExecRow> joinedAnswers = populateFromJoiner(correctResults, joiner);
         assertReturnedRowsCorrect(correctResults, joinedAnswers);

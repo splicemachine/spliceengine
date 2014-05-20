@@ -7,14 +7,17 @@ import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.impl.sql.execute.ValueRow;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.util.*;
 
@@ -462,7 +465,7 @@ public class RowParserTest {
     }
 
     private ExecRow getExecRow() {
-        final ExecRow row = new com.splicemachine.derby.impl.sql.execute.ValueRow(dataTypes.size());
+        final ExecRow row = new ValueRow(dataTypes.size());
         for(int i=0;i<dataTypes.size();i++){
             row.setColumn(i+1,dataTypes.get(i).getDataValueDescriptor());
         }

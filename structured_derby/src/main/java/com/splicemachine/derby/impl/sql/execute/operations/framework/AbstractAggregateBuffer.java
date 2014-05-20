@@ -95,19 +95,6 @@ public abstract class AbstractAggregateBuffer extends AbstractAggregateBufferCon
 								found = key ==null || Arrays.equals(keys[position],groupingKey) || aggregate==null || !aggregate.isInitialized();
 						}
 				}
-//				BufferedAggregator aggregate;
-//				int hashCount=0;
-//				int byteHash = hashes[0].hash(groupingKey,0,groupingKey.length);
-//				byte[] key;
-//				do{
-//						if(hashCount>0)
-//								byteHash+= hashCount*hashes[hashCount].hash(groupingKey,0,groupingKey.length);
-//						position = byteHash & (keys.length-1);
-//						key = keys[position];
-//						aggregate = values[position];
-//						found = key==null||Arrays.equals(keys[position],groupingKey) || aggregate==null || !aggregate.isInitialized();
-//						hashCount++;
-//				} while(!found && hashCount<hashes.length);
 
 				if(!found){
 						misCounter.add(1);
