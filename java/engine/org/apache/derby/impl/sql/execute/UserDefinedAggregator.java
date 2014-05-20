@@ -82,13 +82,15 @@ public final class UserDefinedAggregator  implements ExecAggregator
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-	public void setup( ClassFactory classFactory, String aggregateName, DataTypeDescriptor resultType )
-	{
-        try {
-            setup( classFactory.loadApplicationClass( aggregateName ), resultType );
-        }
-        catch (ClassNotFoundException cnfe) { logAggregatorInstantiationError( aggregateName, cnfe ); }
-	}
+		public ExecAggregator setup( ClassFactory classFactory, String aggregateName, DataTypeDescriptor resultType )
+		{
+				try {
+						setup( classFactory.loadApplicationClass( aggregateName ), resultType );
+				}
+				catch (ClassNotFoundException cnfe) { logAggregatorInstantiationError( aggregateName, cnfe ); }
+				return this;
+		}
+
     /** Initialization logic shared by setup() and newAggregator() */
     private void    setup( Class udaClass, DataTypeDescriptor resultType )
     {
@@ -121,14 +123,15 @@ public final class UserDefinedAggregator  implements ExecAggregator
         _aggregator.accumulate( value );
 	}
 
-    @SuppressWarnings("unchecked")
-	public void merge(ExecAggregator addend)
-		throws StandardException
-	{
-        UserDefinedAggregator  other = (UserDefinedAggregator) addend;
+		@SuppressWarnings("unchecked")
+		public void merge(ExecAggregator addend)
+						throws StandardException
+		{
+				if(addend==null) return; //ignore null entries
+				UserDefinedAggregator  other = (UserDefinedAggregator) addend;
 
-        _aggregator.merge( other._aggregator );
-	}
+				_aggregator.merge( other._aggregator );
+		}
 
 	/**
 	 * Return the result of the aggregation. .

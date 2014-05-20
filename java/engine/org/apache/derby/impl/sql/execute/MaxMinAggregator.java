@@ -21,17 +21,16 @@
 
 package org.apache.derby.impl.sql.execute;
 
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.loader.ClassFactory;
+import org.apache.derby.iapi.sql.execute.ExecAggregator;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * Aggregator for MAX()/MIN().  Defers most of its work
@@ -44,10 +43,12 @@ public final class MaxMinAggregator extends OrderableAggregator {
 	private boolean isMax; // true for max, false for min
 	/**
 	 */
-	public void setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType ) {
-		super.setup( cf, aggregateName, returnType );
-		isMax = aggregateName.equals("MAX");
+	public ExecAggregator setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType ) {
+			super.setup( cf, aggregateName, returnType );
+			isMax = aggregateName.equals("MAX");
+			return this;
 	}
+
 	/**
 	 * Accumulate
  	 *

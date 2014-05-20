@@ -284,18 +284,7 @@ public final class SQLDouble extends NumberDataType
 	/** @see DataValueDescriptor#cloneValue */
 	public DataValueDescriptor cloneValue(boolean forceMaterialization)
 	{
-		try 
-		{
-			return new SQLDouble(value, isnull);
-		} catch (StandardException se) 
-		{
-			if (SanityManager.DEBUG)
-				SanityManager.THROWASSERT(
-					"error on clone, " +
-					" value = " + value +
-					" isnull = " + isnull, se);
-			return null;
-		}
+			return new SQLDouble(value, isnull, true); // Do not test me again on cloning : JL
 	}
 
 	/**
@@ -379,7 +368,16 @@ public final class SQLDouble extends NumberDataType
 		value = NumberDataType.normalizeDOUBLE(val); // maybe only do if !startsnull
 		isnull = startsnull;
 	}
+	/**
+	 * Method to create double with normalization, normalize ignored
+	 */
+	private SQLDouble(double val, boolean startsnull, boolean normalize)
+	{
+		value = val; // maybe only do if !startsnull
+		isnull = startsnull;
+	}
 
+	
 	/**
 		@exception StandardException throws NumberFormatException
 			when the String format is not recognized.

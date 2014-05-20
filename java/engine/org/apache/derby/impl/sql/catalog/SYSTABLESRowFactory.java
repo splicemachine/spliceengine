@@ -61,7 +61,7 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 {
 	private static final String		TABLENAME_STRING = "SYSTABLES";
 
-	protected static final int		SYSTABLES_COLUMN_COUNT = 5;
+	protected static final int		SYSTABLES_COLUMN_COUNT = 6;
 	/* Column #s for systables (1 based) */
 	protected static final int		SYSTABLES_TABLEID = 1;
 	protected static final int		SYSTABLES_TABLENAME = 2;
