@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.microstrategy;
 
 import com.google.common.collect.Sets;
+import com.splicemachine.test.SlowTest;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -36,6 +37,7 @@ public class MicrostrategiesCustomerIT extends SpliceUnitTest {
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 		@Test
+		@Category(SlowTest.class)
 		public void testRepeatedSelectDistincts() throws Exception {
 			for(int i=0;i<100;i++){
 					testSelectDistinctSelectsDistincts();

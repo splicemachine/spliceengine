@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.job.load;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.splicemachine.test.SlowTest;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -11,6 +12,7 @@ import com.splicemachine.hbase.HBaseRegionLoads;
 import org.apache.hadoop.hbase.HServerLoad;
 import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -118,8 +120,8 @@ public class HdfsImportIT extends SpliceUnitTest {
     public void testImportWithPrimaryKeys() throws Exception{
         testImport(spliceSchemaWatcher.schemaName,TABLE_2,getResourceDirectory()+"importTest.in","NAME,TITLE,AGE");
     }
-    
-    
+
+
   @Test
   public void testNewImportDirectory() throws Exception{
 	  // importdir has a subdirectory as well with files in it
@@ -148,7 +150,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
         Assert.assertTrue("no rows imported!",results.size()>0);
     }
-    
+
     // uses new syntax
     // removes rows from table before insertion
     // checks count at the end
@@ -170,9 +172,9 @@ public class HdfsImportIT extends SpliceUnitTest {
             results.add(String.format("name:%s,title:%s,age:%d",name,title,age));
         }
         Assert.assertTrue("Incorrect number of rows imported", results.size() == importCount);
-        
+
     }
-    
+
     @Test
     public void testAlternateDateAndTimeImport() throws Exception {
 		methodWatcher.executeUpdate("delete from "+spliceSchemaWatcher.schemaName + "." + TABLE_12);
@@ -181,7 +183,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         ps.execute();
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",spliceSchemaWatcher.schemaName,TABLE_12));
         List<String> results = Lists.newArrayList();
-        
+
         while(rs.next()){
             Date d = rs.getDate(1);
             Time t = rs.getTime(2);
@@ -190,7 +192,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             results.add(String.format("Date:%s,Time:%s",d,t));
         }
         Assert.assertTrue("Incorrect number of rows imported", results.size() == 2);
-        
+
     }
 
 
@@ -388,7 +390,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             results.add(String.format("%d\t%s\t%d",id,name,stateId));
         }
     }
-    
+
     @Test
     public void testImportTabDelimitedNullSeparator() throws Exception{
         String location = getResourceDirectory()+"lu_cust_city_tab.txt";
@@ -457,7 +459,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             }
         }
     }
-    
+
     @Test
     public void testImportTabWithDefaultColumnValue() throws Exception{
         String location = getResourceDirectory()+"default_column.txt";
@@ -519,6 +521,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	}
 	
 	@Test
+	@Category(SlowTest.class)
 	public void testGZImportWithWarning() throws Exception {
 	    String location = getResourceDirectory()+"t1M.tbl.gz";
 		PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_14,location));
@@ -545,6 +548,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	}
 
 	@Test
+	@Category(SlowTest.class)
 	public void GetReadWriteCountMultipleSingleRecordWrites() throws Exception{
         Connection conn = methodWatcher.createConnection();
 		String tableID=getConglomerateNumber(conn,TABLE_16);
@@ -561,6 +565,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	}
 	
 	@Test
+	@Category(SlowTest.class)
 	public void GetReadWriteCountBulkRecordWrites() throws Exception{
 		Connection conn = methodWatcher.createConnection();
 		String tableID=getConglomerateNumber(conn,TABLE_17);
@@ -574,7 +579,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	}
 
 	private void checkReturnValue(int sleep,String tableID,int countWrite,int countRead,int countTotal) throws Exception{
-        Thread.sleep(sleep);//Wait for things to settle down 
+        Thread.sleep(sleep);//Wait for things to settle down
         HBaseRegionLoads.update();
         long drin =0;
         long drout =0;
