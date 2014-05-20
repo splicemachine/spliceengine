@@ -1,17 +1,19 @@
 package com.splicemachine.derby.impl.sql.execute.tester;
 
+
 //import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
+import com.splicemachine.test.SlowTest;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -25,8 +27,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.junit.Assert;
 
 
-
-
+@Category(SlowTest.class)
 public class DataTypeCorrectnessIT extends SpliceUnitTest {
 	static boolean done=false;
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();

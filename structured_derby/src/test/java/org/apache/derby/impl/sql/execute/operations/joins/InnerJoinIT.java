@@ -1,6 +1,7 @@
 package org.apache.derby.impl.sql.execute.operations.joins;
 
 import com.google.common.collect.Maps;
+import com.splicemachine.test.SlowTest;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.hadoop.hbase.util.Pair;
@@ -9,6 +10,7 @@ import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -149,6 +151,7 @@ public class InnerJoinIT extends SpliceUnitTest {
 		}
 
 		@Test
+		@Category(SlowTest.class)
 		public void testRepeatedScrollableInnerJoin() throws Exception {
 				for(int i=0;i<100;i++){
 						System.out.println(i);

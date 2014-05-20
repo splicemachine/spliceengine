@@ -17,19 +17,17 @@ import java.util.TimeZone;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-
+import com.splicemachine.test.SlowTest;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.hbase.HBaseRegionLoads;
+
+import org.junit.*;
+import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 
 public class HdfsImportIT extends SpliceUnitTest {
 		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -224,7 +222,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 		}
 		Assert.assertEquals("wrong row count imported!", 2, results.size());
 		Assert.assertEquals("first row wrong","i:1,j:Hello", results.get(0));
-		Assert.assertEquals("second row wrong","i:2,j:There", results.get(1));
+		Assert.assertEquals("second row wrong", "i:2,j:There", results.get(1));
 	}
 
     @Test
@@ -528,6 +526,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	}
 	
 	@Test
+	@Category(SlowTest.class)
 	public void testGZImportWithWarning() throws Exception {
 	    String location = getResourceDirectory()+"t1M.tbl.gz";
 		PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_14,location));
@@ -555,6 +554,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 
     @Ignore("DB-1259")
 	@Test
+	@Category(SlowTest.class)
 	public void GetReadWriteCountMultipleSingleRecordWrites() throws Exception{
         Connection conn = methodWatcher.createConnection();
 		String tableID=getConglomerateNumber(conn,TABLE_16);
@@ -572,6 +572,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	
 	@Ignore("DB-1259")
     @Test
+	@Category(SlowTest.class)
 	public void GetReadWriteCountBulkRecordWrites() throws Exception{
 		Connection conn = methodWatcher.createConnection();
 		String tableID=getConglomerateNumber(conn,TABLE_17);

@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Set;
 
+import com.splicemachine.test.SlowTest;
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -14,6 +15,7 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -122,6 +124,7 @@ public class CallStatementOperationIT extends SpliceUnitTest {
 
 	
     @Test
+    @Category(SlowTest.class)
     public void testCallSQLTABLESInAppSchema() throws Exception{
             CallableStatement cs = methodWatcher.prepareCall("call SYSIBM.SQLTABLES(null,'"+CallStatementOperationIT.class.getSimpleName().toUpperCase()+"',null,null,null)",ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY);
             ResultSet rs = cs.executeQuery();
@@ -135,6 +138,7 @@ public class CallStatementOperationIT extends SpliceUnitTest {
     }
 
     @Test
+    @Category(SlowTest.class)
     public void testRepeatedCallSQLTABLESInAppSchema() throws Exception {
        for(int i=0;i<10;i++){
            testCallSQLTABLESInAppSchema();
