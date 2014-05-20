@@ -186,7 +186,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 	}
 
     /**
-     * Overridden so that sql functions implemented as system procedures
+     * Overridden so that SQL functions implemented as system procedures
      * will be found if in the SYSFUN schema. Otherwise, the default
      * behavior would be to ignore these and only consider functions 
      * implicitly defined in {@link BaseDataDictionary#SYSFUN_FUNCTIONS},
@@ -198,7 +198,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 		List list = super.getRoutineList(schemaID, routineName, nameSpace);
 		if (list.isEmpty()) {
 			if (schemaID.equals(SchemaDescriptor.SYSFUN_SCHEMA_UUID) &&
-				nameSpace == AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR) {
+				(nameSpace == AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR ||
+				 nameSpace == AliasInfo.ALIAS_NAME_SPACE_AGGREGATE_AS_CHAR)) {
 				AliasDescriptor ad = getAliasDescriptor(schemaID, routineName, nameSpace);
 		        return ad == null ?
 					Collections.EMPTY_LIST :
