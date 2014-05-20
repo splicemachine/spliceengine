@@ -36,11 +36,6 @@ public class StddevIT extends SpliceUnitTest {
 														}
 														ps.executeBatch();
 												}
-												spliceClassWatcher.executeUpdate(
-																String.format("create derby aggregate StddevIT.stddevpop for double external name \'com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevPop\'"));
-
-												spliceClassWatcher.executeUpdate(
-																String.format("create derby aggregate StddevIT.stddevsamp for double external name \'com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevSamp\'"));
 										} catch (Exception e) {
 												throw new RuntimeException(e);
 										}
@@ -65,7 +60,7 @@ public class StddevIT extends SpliceUnitTest {
     public void test() throws Exception {
 
     	ResultSet rs = methodWatcher.executeQuery(
-                String.format("select SYSCS_UTIL.stddev_pop(i) from %s", this.getTableReference(TABLE_NAME)));
+			String.format("select stddev_pop(i) from %s", this.getTableReference(TABLE_NAME)));
 
         while(rs.next()){
         	Assert.assertEquals((int)rs.getDouble(1), 2);
@@ -73,7 +68,7 @@ public class StddevIT extends SpliceUnitTest {
         rs.close();
 
         rs = methodWatcher.executeQuery(
-								String.format("select SYSCS_UTIL.stddev_samp(i) from %s", this.getTableReference(TABLE_NAME)));
+			String.format("select stddev_samp(i) from %s", this.getTableReference(TABLE_NAME)));
 
         while(rs.next()) {
             Assert.assertEquals((int)rs.getDouble(1), 2);
@@ -81,7 +76,7 @@ public class StddevIT extends SpliceUnitTest {
         rs.close();
 
         rs = methodWatcher.executeQuery(
-                String.format("select SYSCS_UTIL.stddev_pop(d) from %s", this.getTableReference(TABLE_NAME)));
+			String.format("select stddev_pop(d) from %s", this.getTableReference(TABLE_NAME)));
 
         while(rs.next()){
             Assert.assertEquals((int)rs.getDouble(1), 0);
@@ -89,7 +84,7 @@ public class StddevIT extends SpliceUnitTest {
         rs.close();
 
         rs = methodWatcher.executeQuery(
-                String.format("select SYSCS_UTIL.stddev_samp(d) from %s", this.getTableReference(TABLE_NAME)));
+			String.format("select stddev_samp(d) from %s", this.getTableReference(TABLE_NAME)));
 
         while(rs.next()) {
             Assert.assertEquals((int)rs.getDouble(1), 0);
