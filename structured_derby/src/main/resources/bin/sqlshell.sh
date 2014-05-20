@@ -12,8 +12,9 @@ else
     LOG4J_PATH="file:${ROOT_DIR}/lib/info-log4j.properties"
 fi
 
-# set up isolated classpath
-CLASSPATH="${ROOT_DIR}/lib/*"
+# set up isolated classpath.
+# If not in dev env, DEV_CP will be empty
+CLASSPATH="${DEV_CP}:${ROOT_DIR}/lib/*"
 
 if [[ ${UNAME} == CYGWIN* ]]; then
     CLASSPATH=$(cygpath --path --windows "${ROOT_DIR}/lib/*")

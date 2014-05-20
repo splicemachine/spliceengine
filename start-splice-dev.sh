@@ -80,8 +80,8 @@ LOG4J_PATH="file:${ROOT_DIR}/target/classes/hbase-log4j.properties"
 
 # Check if server running. Shut down if so.
 # Doing this automatically so that running in batch mode, like ITs, works without problems.
-S=$(jps | awk '/SpliceTestPlatform/ && !/awk/ {print $1}')
-Z=$(jps | awk '/ZooKeeperServerMain/ && !/awk/ {print $1}')
+S=$(ps -ef | awk '/SpliceTestPlatform/ && !/awk/ {print $2}')
+Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
 if [[ -n ${S} || -n ${Z} ]]; then
     echo "Splice server is running. Shutting down."
     "${SCRIPT_DIR}"/stop-splice.sh
