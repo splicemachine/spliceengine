@@ -71,7 +71,7 @@ public class StddevSplitIT extends SpliceUnitTest {
     public void test() throws Exception {
     	Connection conn = methodWatcher.createConnection();
     	ResultSet rs = conn.createStatement().executeQuery(
-                String.format("select SYSCS_UTIL.stddev_pop(i) from %s", this.getTableReference(TABLE_NAME)));
+                String.format("select stddev_pop(i) from %s", this.getTableReference(TABLE_NAME)));
 
         while(rs.next()){
         	Assert.assertEquals((int)rs.getDouble(1), 2);
@@ -79,7 +79,7 @@ public class StddevSplitIT extends SpliceUnitTest {
         rs.close();
 
         rs = conn.createStatement().executeQuery(
-                String.format("select SYSCS_UTIL.stddev_samp(i) from %s", this.getTableReference(TABLE_NAME)));
+                String.format("select stddev_samp(i) from %s", this.getTableReference(TABLE_NAME)));
 
         while(rs.next()){
             Assert.assertEquals((int)rs.getDouble(1), 2);
