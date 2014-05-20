@@ -72,7 +72,7 @@ public class OperationTree {
                                 transactionResource.marshallTransaction(info.getTxnId());
                                 long begin = System.currentTimeMillis();
                                 opToShuffle.executeShuffle(runtimeContext);
-                                LOG.error(String.format("Running shuffle for operation %s taking %d seconds",
+                                LOG.debug(String.format("Running shuffle for operation %s taking %dms",
                                                            opToShuffle.resultSetNumber(),
                                                            System.currentTimeMillis() - begin));
                             } finally {
@@ -100,7 +100,7 @@ public class OperationTree {
                         op.setStatementId(statementUuid);
                     long begin = System.currentTimeMillis();
                     op.executeShuffle(runtimeContext);
-                    LOG.error(String.format("Running shuffle for operation %s taking %d seconds",
+                    LOG.debug(String.format("Running shuffle for operation %s taking %dms",
                                                op.resultSetNumber(),
                                                System.currentTimeMillis() - begin));
                 }
@@ -115,7 +115,7 @@ public class OperationTree {
         } else {
             nprs = operation.executeScan(runtimeContext);
         }
-        LOG.error(String.format("Running scan for operation %s taking %d seconds",
+        LOG.debug(String.format("Returning scan result set for operation %s (took %dms)",
                                    operation.resultSetNumber(),
                                    System.currentTimeMillis() - begin));
         return nprs;
