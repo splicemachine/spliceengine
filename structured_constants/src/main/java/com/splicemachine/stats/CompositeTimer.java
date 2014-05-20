@@ -29,8 +29,6 @@ class CompositeTimer implements Timer,TimeView{
 				wallClockTime.startTime();
 		}
 
-		@Override public void startTiming(boolean force) { startTiming();		 }
-
 		@Override
 		public void stopTiming() {
 				wallClockTime.stopTime();

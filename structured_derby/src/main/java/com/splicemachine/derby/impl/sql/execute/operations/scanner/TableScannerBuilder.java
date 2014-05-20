@@ -1,10 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
+import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.stats.MetricFactory;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
 /**
  * Companion Builder class for SITableScanner
@@ -12,7 +12,7 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
  * Date: 4/9/14
  */
 public class TableScannerBuilder {
-		private RegionScanner scanner;
+		private MeasuredRegionScanner scanner;
 		private	ExecRow template;
 		private	MetricFactory metricFactory;
 		private	Scan scan;
@@ -28,7 +28,7 @@ public class TableScannerBuilder {
 		private SIFilterFactory filterFactory;
 		private boolean[] keyColumnSortOrder;
 
-		public TableScannerBuilder scanner(RegionScanner scanner) {
+		public TableScannerBuilder scanner(MeasuredRegionScanner scanner) {
 				assert scanner !=null :"Null scanners are not allowed!";
 				this.scanner = scanner;
 				return this;

@@ -5,7 +5,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -16,7 +15,10 @@ import com.splicemachine.job.JobResults;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.stats.IOStats;
+import com.splicemachine.stats.Metrics;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -27,6 +29,7 @@ import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -282,6 +285,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
 				//no-op
 				@Override public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {  }
+
+				@Override
+				public IOStats getIOStats() {
+						return Metrics.noOpIOStats();
+				}
 
 				@Override
 				public void open()  {

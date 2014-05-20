@@ -216,15 +216,16 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				if(alwaysFalse){
 						return null;
 				}
-				if(timer==null)
+				if(timer==null){
 						timer = spliceRuntimeContext.newTimer();
+						timer.startTiming();
+				}
 
 				candidateRow = null;
 				result = null;
 				restrict = false;
 				restrictBoolean = null;
 
-				timer.startTiming();
 				do {
 						candidateRow = source.nextRow(spliceRuntimeContext);
 						if (LOG.isTraceEnabled())
@@ -272,7 +273,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				if(result==null){
 						timer.stopTiming();
 						stopExecutionTime = System.currentTimeMillis();
-				}else timer.tick(1);
+				}
 				return result;
 		}
 

@@ -87,7 +87,7 @@ public class ScanGroupedAggregateIterator extends GroupedAggregateIterator{
 
 		protected GroupedRow buffer(ExecRow nextRow) throws StandardException {
         if(!isRollup){
-            return buffer.add(getGroupingKey(nextRow),nextRow.getClone());
+            return buffer.add(getGroupingKey(nextRow),nextRow);
         }else{
             GroupedRow firstEvicted = null;
             rollupRows(nextRow);

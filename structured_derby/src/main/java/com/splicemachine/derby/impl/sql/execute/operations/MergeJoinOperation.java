@@ -7,10 +7,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.StandardIterator;
-import com.splicemachine.derby.utils.StandardIterators;
-import com.splicemachine.derby.utils.StandardPushBackIterator;
-import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.*;
+import com.splicemachine.stats.IOStats;
+import com.splicemachine.stats.TimeView;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -43,8 +42,9 @@ public class MergeJoinOperation extends JoinOperation {
 
     // for overriding
     protected boolean wasRightOuterJoin = false;
+		private IOStandardIterator<ExecRow> rightRows;
 
-    public MergeJoinOperation() {
+		public MergeJoinOperation() {
         super();
     }
 
@@ -138,22 +138,22 @@ public class MergeJoinOperation extends JoinOperation {
     }
 
     @Override
-    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+    public ExecRow nextRow(SpliceRuntimeContext ctx) throws StandardException, IOException {
         if (joiner == null) {
             // Upon first call, init up the joined rows source
-            joiner = initJoiner(spliceRuntimeContext);
+            joiner = initJoiner(ctx);
             joiner.open();
-            timer = spliceRuntimeContext.newTimer();
+            timer = ctx.newTimer();
+						timer.startTiming();
         }
 
-        timer.startTiming();
-        ExecRow next = joiner.nextRow();
+        ExecRow next = joiner.nextRow(ctx);
         setCurrentRow(next);
         if (next == null) {
-            timer.stopTiming();
+            timer.tick(joiner.getLeftRowsSeen());
+            joiner.close();
             stopExecutionTime = System.currentTimeMillis();
-        } else
-            timer.tick(1);
+        }
         return next;
     }
 
@@ -167,8 +167,8 @@ public class MergeJoinOperation extends JoinOperation {
             spliceRuntimeContext.addScanStartOverride(getKeyRow(firstLeft, leftHashKeys));
             leftPushBack.pushBack(firstLeft);
         }
-        StandardIterator<ExecRow> rightRows = StandardIterators
-                                                  .wrap(rightResultSet.executeScan(spliceRuntimeContext));
+        rightRows = StandardIterators
+                        .ioIterator(rightResultSet.executeScan(spliceRuntimeContext));
         mergedRowSource = new MergeJoinRows(leftPushBack, rightRows, leftHashKeys, rightHashKeys);
         StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
             @Override
@@ -179,16 +179,26 @@ public class MergeJoinOperation extends JoinOperation {
 
         return new Joiner(mergedRowSource, getExecRowDefinition(), getRestriction(),
                              isOuterJoin, wasRightOuterJoin, leftNumCols, rightNumCols,
-                             oneRowRightSide, notExistsRightSide, emptyRowSupplier);
+                             oneRowRightSide, notExistsRightSide, emptyRowSupplier,spliceRuntimeContext);
     }
 
     @Override
     protected void updateStats(OperationRuntimeStats stats) {
-        int leftRowsSeen = joiner.getLeftRowsSeen();
-        int rightRowsSeen = joiner.getRightRowsSeen();
-        stats.addMetric(OperationMetric.INPUT_ROWS, leftRowsSeen + rightRowsSeen);
-        //filtered = left*right -output
-        stats.addMetric(OperationMetric.FILTERED_ROWS, leftRowsSeen * rightRowsSeen - timer.getNumEvents());
+        long leftRowsSeen = joiner.getLeftRowsSeen();
+        stats.addMetric(OperationMetric.INPUT_ROWS, leftRowsSeen);
+				TimeView time = timer.getTime();
+				stats.addMetric(OperationMetric.TOTAL_WALL_TIME,time.getWallClockTime());
+				stats.addMetric(OperationMetric.TOTAL_CPU_TIME,time.getCpuTime());
+				stats.addMetric(OperationMetric.TOTAL_USER_TIME, time.getUserTime());
+        stats.addMetric(OperationMetric.FILTERED_ROWS, joiner.getRowsFiltered());
+
+				IOStats rightSideStats = rightRows.getStats();
+				TimeView remoteView = rightSideStats.getTime();
+				stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,remoteView.getWallClockTime());
+				stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,remoteView.getCpuTime());
+				stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,remoteView.getUserTime());
+				stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,rightSideStats.getRows());
+				stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,rightSideStats.getBytes());
         super.updateStats(stats);
     }
 

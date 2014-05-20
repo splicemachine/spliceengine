@@ -1,12 +1,12 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.impl.TransactionStore;
+
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -17,6 +17,7 @@ import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
+import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;

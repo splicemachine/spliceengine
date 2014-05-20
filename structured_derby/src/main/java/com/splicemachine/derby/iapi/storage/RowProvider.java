@@ -6,6 +6,7 @@ import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
+import com.splicemachine.stats.IOStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
@@ -76,4 +77,6 @@ public interface RowProvider extends RowProviderIterator<ExecRow>  {
 										 long taskId,
 										 String xplainSchema,
 										 String regionName);
+
+		IOStats getIOStats();
 }

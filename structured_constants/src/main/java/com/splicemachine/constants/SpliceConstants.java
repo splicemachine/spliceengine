@@ -37,6 +37,10 @@ public class SpliceConstants {
 		@DefaultValue(IMPORT_LOG_QUEUE_WAIT_TIME) private static final long DEFAULT_IMPORT_LOG_QUEUE_WAIT_TIME = TimeUnit.MINUTES.toMillis(1); //1 minute
 		public static long importLogQueueWaitTimeMs;
 
+		@Parameter public static final String USE_READ_AHEAD_SCANNER = "splice.scan.useReadAhead";
+		@DefaultValue(USE_READ_AHEAD_SCANNER) private static final boolean DEFAULT_USE_READ_AHEAD_SCANNER = false;
+		public static boolean useReadAheadScanner;
+
 		@Retention(RetentionPolicy.SOURCE)
 		protected @interface Parameter{
 
@@ -212,10 +216,8 @@ public class SpliceConstants {
 		public static int maxImportProcessingThreads;
 
 		/**
-		 * The number of threads which will be used to process rows from import files. Increasing this
-		 * number will result in a higher number of concurrent table writes, but setting it too high
-		 * will result in outpacing the system's ability to read a block of data from disk.
-		 * Defaults to 3
+		 * This the number of rows to read before doing an interrupt loop check.  If you kill a statement, it will interrupt
+		 * the thread and be caught after 0 to limit n rows set with this parameter.
 		 */
 		@Parameter private static final String INTERRUPT_LOOP_CHECK = "splice.interrupt.loop.check";
 		@DefaultValue(INTERRUPT_LOOP_CHECK) private static final int DEFAULT_INTERRUPT_LOOP_CHECK = 1000;
@@ -450,7 +452,7 @@ public class SpliceConstants {
 		 * setting down if memory pressure is high during aggregations.
 		 */
 		@Parameter private static final String RING_BUFFER_SIZE = "splice.ring.bufferSize";
-		@DefaultValue(RING_BUFFER_SIZE) public static final int DEFAULT_RING_BUFFER_SIZE=10000;
+		@DefaultValue(RING_BUFFER_SIZE) public static final int DEFAULT_RING_BUFFER_SIZE=1<<14; //~ 16K
 		public static int ringBufferSize;
 
 		/**
@@ -502,7 +504,7 @@ public class SpliceConstants {
 		 *
 		 * We make it a power of two to make it easier to write buffers which are powers of 2.
 		 */
-		public static final int DEFAULT_CACHE_SIZE = 1024;
+		public static final int DEFAULT_CACHE_SIZE = (1<<10);
 
 
 		/*
@@ -525,6 +527,17 @@ public class SpliceConstants {
 		@Parameter private static final String DEBUG_DUMP_CLASS_FILE = "splice.debug.dumpClassFile";
 		@DefaultValue(DEBUG_DUMP_CLASS_FILE) public static final boolean DEFAULT_DUMP_CLASS_FILE=false;
 		public static boolean dumpClassFile;
+
+		/**
+		 * For debugging statements issued in derby.  This is on by default, but will hurt you in the case of an OLTP
+		 * workload.
+		 * 
+		 * 
+		 */
+		@Parameter private static final String DEBUG_LOG_STATEMENT_CONTEXT = "splice.debug.logStatementContext";
+		@DefaultValue(DEBUG_DUMP_CLASS_FILE) public static final boolean DEFAULT_LOG_STATEMENT_CONTEXT=false;
+		public static boolean logStatementContext;
+
 
 		//internal debugging tools
 		public static final String DEBUG_FAIL_TASKS_RANDOMLY = "splice.debug.failTasksRandomly";
@@ -805,6 +818,7 @@ public class SpliceConstants {
 				rmiPort = config.getInt(RMI_PORT, DEFAULT_RMI_PORT);
 				rmiRemoteObjectPort = config.getInt(RMI_REMOTE_OBJECT_PORT, DEFAULT_RMI_REMOTE_OBJECT_PORT);
 				dumpClassFile = config.getBoolean(DEBUG_DUMP_CLASS_FILE, DEFAULT_DUMP_CLASS_FILE);
+				logStatementContext = config.getBoolean(DEBUG_LOG_STATEMENT_CONTEXT, DEFAULT_LOG_STATEMENT_CONTEXT);
 				startupLockWaitPeriod = config.getInt(STARTUP_LOCK_WAIT_PERIOD, DEFAULT_STARTUP_LOCK_PERIOD);
 				ringBufferSize = config.getInt(RING_BUFFER_SIZE, DEFAULT_RING_BUFFER_SIZE);
 				indexBatchSize = config.getInt(INDEX_BATCH_SIZE,DEFAULT_INDEX_BATCH_SIZE);
@@ -846,6 +860,7 @@ public class SpliceConstants {
 				}
 
 				importLogQueueWaitTimeMs = config.getLong(IMPORT_LOG_QUEUE_WAIT_TIME,DEFAULT_IMPORT_LOG_QUEUE_WAIT_TIME);
+				useReadAheadScanner = config.getBoolean(USE_READ_AHEAD_SCANNER,DEFAULT_USE_READ_AHEAD_SCANNER);
 		}
 
 		public static void reloadConfiguration(Configuration configuration) {

@@ -3,7 +3,7 @@ package com.splicemachine.derby.utils.marshall;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.derby.impl.load.ImportTestUtils;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
+import org.apache.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.derby.utils.test.TestingDataType;
