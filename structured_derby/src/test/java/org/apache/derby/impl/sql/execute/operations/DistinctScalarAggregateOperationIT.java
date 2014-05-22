@@ -3,11 +3,13 @@ package org.apache.derby.impl.sql.execute.operations;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
+import com.splicemachine.test.SlowTest;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -72,6 +74,7 @@ public class DistinctScalarAggregateOperationIT extends SpliceUnitTest {
     }
 
     @Test
+    @Category(SlowTest.class)
     public void testDistinctScalarAggregateRepeatedly() throws Exception {
         /*
          * This is a test to attempt to reproduce Bug 480. Under normal circumstances, this test

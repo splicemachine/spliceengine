@@ -5,12 +5,14 @@ import java.io.FileInputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+
+import com.splicemachine.test.SlowTest;
 import org.apache.derby.tools.ij;
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -173,13 +175,12 @@ public class TPCHIT extends SpliceUnitTest {
 		}
 
 		@Test
-//    @Ignore("Bugzilla 829: Not resilient in face of random task failure")
 		public void sql9() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("9.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
 		@Test
-//		@Ignore("Repeated test for bug 829. Only enable if you want to wait around for a while")
+		@Category(SlowTest.class)
 		public void testRepeatedSql9() throws Exception {
 				for(int i=0;i<100;i++){
 						sql9();

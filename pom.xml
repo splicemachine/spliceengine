@@ -3,7 +3,7 @@
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.splicemachine</groupId>
-	<version>0.5rc10-SNAPSHOT</version>
+	<version>0.5.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<artifactId>structured_hbase</artifactId>
 	<name>structured_hbase</name>
@@ -52,6 +52,7 @@
 		<log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
 		<assemble>false</assemble>
 		<envClassifier/>
+		<excluded.categories>com.splicemachine.test.SlowTest</excluded.categories>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -118,17 +119,57 @@
 					</configuration>
 				</plugin>
 				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-surefire-plugin</artifactId>
-					<version>2.16</version>
-				</plugin>
-				<plugin>
 					<groupId>com.github.wvengen</groupId>
 					<artifactId>proguard-maven-plugin</artifactId>
 					<version>2.0.7</version>
 				</plugin>
 			</plugins>
 		</pluginManagement>
+		<plugins>
+			<plugin>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.16</version>
+				<configuration>
+					<argLine>-Xms256M -Xmx1024M</argLine>
+					<redirectTestOutputToFile>true</redirectTestOutputToFile>
+					<includes>
+						<include>**/*Suite.java</include>
+						<include>**/*Test.java</include>
+					</includes>
+					<excludes>
+						<!-- Skip ITs -->
+						<exclude>**/*IT.java</exclude>
+						<exclude>**/si/**/*Test.java</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>integration-tests</id>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+				</executions>
+				<version>2.14.1</version>
+				<configuration>
+					<excludedGroups>${excluded.categories}</excludedGroups>
+					<skipTests>${skip.integration.tests}</skipTests>
+					<argLine>-Xms256M -Xmx1024M</argLine>
+					<redirectTestOutputToFile>true</redirectTestOutputToFile>
+					<includes>
+						<include>**/*IT.java</include>
+					</includes>
+					<excludes>
+						<!-- Skip all unit tests -->
+						<exclude>**/*Test.java</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+		</plugins>
 	</build>
 	<reporting>
 		<plugins>
@@ -323,52 +364,6 @@
 					</releases>
 				</repository>
 			</repositories>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>2.15</version>
-						<configuration>
-							<argLine>-Xms256M -Xmx1024M</argLine>
-							<redirectTestOutputToFile>true</redirectTestOutputToFile>
-							<includes>
-								<include>**/*Suite.java</include>
-								<include>**/*Test.java</include>
-							</includes>
-							<excludes>
-								<!-- Skip ITs -->
-								<exclude>**/*IT.java</exclude>
-								<exclude>**/si/**/*Test.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-					<plugin>
-						<artifactId>maven-failsafe-plugin</artifactId>
-						<executions>
-							<execution>
-								<id>integration-tests</id>
-								<goals>
-									<goal>integration-test</goal>
-									<goal>verify</goal>
-								</goals>
-							</execution>
-						</executions>
-						<version>2.12.2</version>
-						<configuration>
-							<skipTests>${skip.integration.tests}</skipTests>
-							<argLine>-Xms256M -Xmx1024M</argLine>
-							<redirectTestOutputToFile>true</redirectTestOutputToFile>
-							<includes>
-								<include>**/*IT.java</include>
-							</includes>
-							<excludes>
-								<!-- Skip all unit tests -->
-								<exclude>**/*Test.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
 		</profile>
 		<profile>
 			<!-- =========================================================== -->
@@ -471,52 +466,6 @@
 					</releases>
 				</repository>
 			</repositories>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>2.15</version>
-						<configuration>
-							<argLine>-Xms256M -Xmx1024M</argLine>
-							<redirectTestOutputToFile>true</redirectTestOutputToFile>
-							<includes>
-								<include>**/*Suite.java</include>
-								<include>**/*Test.java</include>
-							</includes>
-							<excludes>
-								<!-- Skip ITs -->
-								<exclude>**/*IT.java</exclude>
-								<exclude>**/si/**/*Test.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-					<plugin>
-						<artifactId>maven-failsafe-plugin</artifactId>
-						<executions>
-							<execution>
-								<id>integration-tests</id>
-								<goals>
-									<goal>integration-test</goal>
-									<goal>verify</goal>
-								</goals>
-							</execution>
-						</executions>
-						<version>2.12.2</version>
-						<configuration>
-							<skipTests>${skip.integration.tests}</skipTests>
-							<argLine>-Xms256M -Xmx1024M</argLine>
-							<redirectTestOutputToFile>true</redirectTestOutputToFile>
-							<includes>
-								<include>**/*IT.java</include>
-							</includes>
-							<excludes>
-								<!-- Skip all unit tests -->
-								<exclude>**/*Test.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
 		</profile>
 		<profile>
 			<!-- =========================================================== -->
@@ -595,52 +544,6 @@
 					<layout>default</layout>
 				</repository>
 			</repositories>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>2.15</version>
-						<configuration>
-							<argLine>-Xms256M -Xmx1024M</argLine>
-							<redirectTestOutputToFile>true</redirectTestOutputToFile>
-							<includes>
-								<include>**/*Suite.java</include>
-								<include>**/*Test.java</include>
-							</includes>
-							<excludes>
-								<!-- Skip ITs -->
-								<exclude>**/*IT.java</exclude>
-								<exclude>**/si/**/*Test.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-					<plugin>
-						<artifactId>maven-failsafe-plugin</artifactId>
-						<executions>
-							<execution>
-								<id>integration-tests</id>
-								<goals>
-									<goal>integration-test</goal>
-									<goal>verify</goal>
-								</goals>
-							</execution>
-						</executions>
-						<version>2.12.2</version>
-						<configuration>
-							<skipTests>${skip.integration.tests}</skipTests>
-							<argLine>-Xms256M -Xmx1024M</argLine>
-							<redirectTestOutputToFile>true</redirectTestOutputToFile>
-							<includes>
-								<include>**/*IT.java</include>
-							</includes>
-							<excludes>
-								<!-- Skip all unit tests -->
-								<exclude>**/*Test.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
 		</profile>
 		<profile>
 			<!-- =========================================================== -->
@@ -678,52 +581,6 @@
 					<version>${hadoop.version}</version>
 				</dependency>
 			</dependencies>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>2.15</version>
-						<configuration>
-							<argLine>-Xms256M -Xmx1024M</argLine>
-							<redirectTestOutputToFile>true</redirectTestOutputToFile>
-							<includes>
-								<include>**/*Suite.java</include>
-								<include>**/*Test.java</include>
-							</includes>
-							<excludes>
-								<!-- Skip ITs -->
-								<exclude>**/*IT.java</exclude>
-								<exclude>**/si/**/*Test.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-					<plugin>
-						<artifactId>maven-failsafe-plugin</artifactId>
-						<executions>
-							<execution>
-								<id>integration-tests</id>
-								<goals>
-									<goal>integration-test</goal>
-									<goal>verify</goal>
-								</goals>
-							</execution>
-						</executions>
-						<version>2.12.2</version>
-						<configuration>
-							<skipTests>${skip.integration.tests}</skipTests>
-							<argLine>-Xms256M -Xmx1024M</argLine>
-							<redirectTestOutputToFile>true</redirectTestOutputToFile>
-							<includes>
-								<include>**/*IT.java</include>
-							</includes>
-							<excludes>
-								<!-- Skip all unit tests -->
-								<exclude>**/*Test.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
 		</profile>
 		<profile>
 			<!-- =========================================================== -->
@@ -792,47 +649,8 @@
 			<build>
 				<plugins>
 					<plugin>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>2.15</version>
-						<configuration>
-							<argLine>-Xms256M -Xmx1024M</argLine>
-							<redirectTestOutputToFile>true</redirectTestOutputToFile>
-							<includes>
-								<include>**/*Test.java</include>
-							</includes>
-							<excludes>
-								<!-- Skip ITs -->
-								<exclude>**/*IT.java</exclude>
-								<exclude>**/si/**/*Test.java</exclude>
-								<!-- Skip unit tests that run against HDFS as we don't have MapR HDFS -->
-								<exclude>**/HBaseStoreTest.java</exclude>
-								<exclude>**/SIFilterHBaseTest.java</exclude>
-								<exclude>**/SITransactorHBasePackedTest.java</exclude>
-								<exclude>**/SITransactorHBaseTest.java</exclude>
-								<exclude>**/JtaXAResourceHBaseTest.java</exclude>
-								<exclude>**/TransactionManagerHBaseTest.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-					<plugin>
 						<artifactId>maven-failsafe-plugin</artifactId>
-						<executions>
-							<execution>
-								<id>integration-tests</id>
-								<goals>
-									<goal>integration-test</goal>
-									<goal>verify</goal>
-								</goals>
-							</execution>
-						</executions>
-						<version>2.12.2</version>
 						<configuration>
-							<skipTests>${skip.integration.tests}</skipTests>
-							<argLine>-Xms256M -Xmx1024M</argLine>
-							<redirectTestOutputToFile>true</redirectTestOutputToFile>
-							<includes>
-								<include>**/*IT.java</include>
-							</includes>
 							<excludes>
 								<!-- Skip all unit tests -->
 								<exclude>**/*Test.java</exclude>
