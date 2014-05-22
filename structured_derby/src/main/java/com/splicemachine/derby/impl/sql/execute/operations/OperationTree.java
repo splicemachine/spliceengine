@@ -69,7 +69,8 @@ public class OperationTree {
                             try {
                                 transactionResource.prepareContextManager();
                                 prepared = true;
-                                transactionResource.marshallTransaction(info.getTxnId());
+                                transactionResource.marshallTransaction(
+                                        opToShuffle.getActivation().getTransactionController().getActiveStateTxIdString());
                                 opToShuffle.executeShuffle(runtimeContext);
                             } finally {
                                 resetContext(transactionResource, prepared);
