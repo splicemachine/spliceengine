@@ -45,24 +45,7 @@ class DenseCompressedBitIndex implements BitIndex {
     }
 
     public static BitIndex compress(BitSet bitSet, BitSet scalarFields,BitSet floatFields,BitSet doubleFields){
-        BitSet setCols = (BitSet)bitSet.clone();
-        BitSet sF = null;
-        if(scalarFields!=null){
-            sF = (BitSet)scalarFields.clone();
-            sF.and(setCols);
-        }
-        BitSet fF = null;
-        if(floatFields!=null){
-            fF = (BitSet)floatFields.clone();
-            fF.and(setCols);
-        }
-        BitSet dF = null;
-        if(doubleFields!=null){
-            dF = (BitSet)doubleFields.clone();
-            dF.and(setCols);
-        }
-
-        return new DenseCompressedBitIndex(setCols,sF,fF,dF);
+				return new DenseCompressedBitIndex(bitSet,scalarFields,floatFields,doubleFields);
     }
 
     public int length() {
@@ -103,7 +86,7 @@ class DenseCompressedBitIndex implements BitIndex {
             }
 
             //get our new type
-            if(scalarFields!=null &&scalarFields.get(nextSetBit)){
+            if(scalarFields.get(nextSetBit)){
                 if(numScalars==0){
                     writeTypedData(bitWriter, numScalars, numFloats, numDoubles, numUntyped);
                     numScalars=0;
@@ -112,7 +95,7 @@ class DenseCompressedBitIndex implements BitIndex {
                     numUntyped=0;
                 }
                 numScalars++;
-            }else if(floatFields!=null &&floatFields.get(nextSetBit)){
+            }else if(floatFields.get(nextSetBit)){
                 if(numFloats==0){
                     writeTypedData(bitWriter, numScalars, numFloats, numDoubles, numUntyped);
                     numScalars=0;
@@ -121,7 +104,7 @@ class DenseCompressedBitIndex implements BitIndex {
                     numUntyped=0;
                 }
                 numFloats++;
-            }else if(doubleFields!=null &&doubleFields.get(nextSetBit)){
+            }else if(doubleFields.get(nextSetBit)){
                 if(numDoubles==0){
                     writeTypedData(bitWriter, numScalars, numFloats, numDoubles, numUntyped);
                     numScalars=0;
@@ -284,17 +267,17 @@ class DenseCompressedBitIndex implements BitIndex {
 
     @Override
     public boolean isScalarType(int position) {
-        return scalarFields != null && scalarFields.get(position);
+        return scalarFields.get(position);
     }
 
     @Override
     public boolean isDoubleType(int position) {
-        return doubleFields != null && doubleFields.get(position);
+        return doubleFields.get(position);
     }
 
     @Override
     public boolean isFloatType(int position) {
-        return floatFields != null && floatFields.get(position);
+        return floatFields.get(position);
     }
 
     @Override
@@ -328,13 +311,12 @@ class DenseCompressedBitIndex implements BitIndex {
 
         DenseCompressedBitIndex that = (DenseCompressedBitIndex) o;
 
-        if (!bitSet.equals(that.bitSet)) return false;
-        if (doubleFields != null ? !doubleFields.equals(that.doubleFields) : that.doubleFields != null) return false;
-        if (floatFields != null ? !floatFields.equals(that.floatFields) : that.floatFields != null) return false;
-        if (scalarFields != null ? !scalarFields.equals(that.scalarFields) : that.scalarFields != null) return false;
+				return bitSet.equals(that.bitSet) &&
+								doubleFields.equals(that.doubleFields)&&
+								floatFields.equals(that.floatFields) &&
+								scalarFields.equals(that.scalarFields);
 
-        return true;
-    }
+		}
 
     @Override
     public int hashCode() {
