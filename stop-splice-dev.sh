@@ -47,8 +47,8 @@ ZOOLOG="${ROOT_DIR}"/zoo.log
 DERBYLOG="${ROOT_DIR}"/derby.log
 
 # Check if server running. If not, no need to proceed.
-S=$(jps | awk '/SpliceSinglePlatform/ && !/awk/ {print $1}')
-Z=$(jps | awk '/ZooKeeperServerMain/ && !/awk/ {print $1}')
+S=$(ps -ef | awk '/SpliceTestPlatform/ && !/awk/ {print $2}')
+Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
 if [[ -z ${S} && -z ${Z} ]]; then
     echo "Splice server is not running."
     exit 0
@@ -58,20 +58,18 @@ currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
 
 echo "Shutting down splice at $currentDateTime" >> ${SPLICELOG}
 
-# Check to see if we've built the package scripts. If not, we'll catch stragglers below.
-if [[ -e "${ROOT_DIR}"/target/splicemachine/bin/functions.sh ]]; then
-    _stopServer "${ROOT_DIR}/target/splicemachine" "${ROOT_DIR}/target/splicemachine"
-fi
+source ${ROOT_DIR}/target/classes/bin/functions.sh
+_stopServer "${ROOT_DIR}/target/splicemachine" "${ROOT_DIR}/target/splicemachine"
 
 # Check for stragglers
 SIG=15
-S=$(jps | awk '/SpliceSinglePlatform/ && !/awk/ {print $1}')
-[[ -n ${S} ]] && echo "Found SpliceTestPlatform straggler. Killing." && for pid in ${S}; do kill -${SIG} `echo ${pid}`; done
-Z=$(jps | awk '/ZooKeeperServerMain/ && !/awk/ {print $1}')
-[[ -n ${Z} ]] && echo "Found ZooKeeperServerMain straggler. Killing." && for pid in ${Z}; do kill -${SIG} `echo ${pid}`; done
+S=$(ps -ef | awk '/SpliceTestPlatform/ && !/awk/ {print $2}')
+#[[ -n ${S} ]] && echo "Found SpliceTestPlatform straggler. Killing." && for pid in ${S}; do kill -${SIG} `echo ${pid}`; done
+Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
+#[[ -n ${Z} ]] && echo "Found ZooKeeperServerMain straggler. Killing." && for pid in ${Z}; do kill -${SIG} `echo ${pid}`; done
 
 if [ ! -d "logs" ]; then
-  mkdir logs
+    mkdir logs
 fi
 
 if [[ -z ${BUILD_NUMBER} ]]; then

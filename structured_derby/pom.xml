@@ -9,7 +9,7 @@
 	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>0.5rc10-SNAPSHOT</version>
+		<version>0.5.1-SNAPSHOT</version>
 	</parent>
 	<dependencies>
 		<dependency>
@@ -55,7 +55,7 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_si</artifactId>
-			<version>0.5rc10-SNAPSHOT</version>
+			<version>0.5.1-SNAPSHOT</version>
 			<classifier>${envClassifier}${obfuscate.si}</classifier>
 			<type>jar</type>
 			<scope>compile</scope>
