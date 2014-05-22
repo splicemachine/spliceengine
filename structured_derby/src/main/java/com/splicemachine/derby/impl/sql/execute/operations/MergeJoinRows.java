@@ -31,7 +31,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
     final StandardPushBackIterator<ExecRow> rightRS;
     final int[] joinKeys;
     List<ExecRow> currentRights = new LinkedList<ExecRow>();
-
+    Pair<ExecRow, Iterator<ExecRow>> pair;
     private int leftRowsSeen;
     private int rightRowsSeen;
 
@@ -59,6 +59,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
             joinKeys[i * 2] = leftKeys[i] + 1;
             joinKeys[i * 2 + 1] = rightKeys[i] + 1;
         }
+        pair = new Pair<ExecRow, Iterator<ExecRow>>();
     }
 
     private int compare(ExecRow left, ExecRow right) throws StandardException {
@@ -106,7 +107,9 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
         ExecRow left = leftRS.next(ctx);
         if (left != null){
             leftRowsSeen++;
-            return Pair.newPair(left, rightsForLeft(left));
+            pair.setFirst(left);
+            pair.setSecond(rightsForLeft(left));
+            return pair;
         }
         return null;
     }
@@ -131,5 +134,6 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
     public void close() throws StandardException, IOException {
         leftRS.close();
         rightRS.close();
+        pair = null;
     }
 }
