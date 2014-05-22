@@ -82,7 +82,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		 */
 		private String childTransactionID;
 		protected boolean isTopResultSet = false;
-		protected byte[] uniqueSequenceID;
+		protected volatile byte[] uniqueSequenceID;
 		protected ExecRow currentRow;
 		protected RowLocation currentRowLocation;
 		protected List<SpliceOperation> leftOperationStack;
@@ -222,8 +222,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				if(LOG.isTraceEnabled())
 						LOG.trace("closing operation "+ this);
 				clearCurrentRow();
-				if(regionScanner!=null)
-						regionScanner.close();
 				if(jobResults!=null)
 						jobResults.cleanup();
 		}
