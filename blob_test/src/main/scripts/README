@@ -1,0 +1,9 @@
+A little app to insert BLOBs (tiff files) into splice and validate them by querying for the BLOB, reconstituting it
+as a file, then comparing file contents with original.
+
+Could be easily adapted for other types of BLOBs.
+
+1) Build: $ mvn clean install
+2) Extract: $ tar xvf <proj_loc>/target/blob_tests-0.9-SNAPSHOT.tar.gz
+3) Change directory to bin: $ cd blob_test/bin
+4) Look at help: $ runtiffs.sh -h
