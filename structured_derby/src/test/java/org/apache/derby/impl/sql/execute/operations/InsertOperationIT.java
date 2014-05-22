@@ -1,21 +1,32 @@
 package org.apache.derby.impl.sql.execute.operations;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.sql.Blob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLWarning;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.apache.log4j.Logger;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.sql.*;
-import java.util.*;
 
 public class InsertOperationIT extends SpliceUnitTest {
 		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -252,7 +263,7 @@ public class InsertOperationIT extends SpliceUnitTest {
 				}
 				File file1 = new File(getResourceDirectory()+"order_line_500K.csv");
 				File file2 = new File(getBaseDirectory()+"/target/order_line_500K.csv");
-				Assert.assertTrue("The files contents are not equivalent",FileUtils.contentEquals(file1, file2));
+				Assert.assertTrue("The files contents are not equivalent", org.apache.commons.io.FileUtils.contentEquals(file1, file2));
 }
 
 		@Test
