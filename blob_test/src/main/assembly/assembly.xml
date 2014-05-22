@@ -38,5 +38,14 @@
       <fileMode>0644</fileMode>
       <directoryMode>0755</directoryMode>
     </fileSet>
+    <fileSet>
+      <directory>src/main/resources/tiff</directory>
+      <outputDirectory>blob_test/data</outputDirectory>
+      <includes>
+        <include>*tif</include>
+      </includes>
+      <fileMode>0644</fileMode>
+      <directoryMode>0755</directoryMode>
+    </fileSet>
   </fileSets>
 </assembly>

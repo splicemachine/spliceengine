@@ -47,6 +47,7 @@ public class RunTiffBlobs {
     }
 
     public void validateTiffBlobStream(String schemaName, String tableName, Map<String, File> fileMap) throws Exception {
+        Utils.assertTrue("Nothing to validate - no files given.",fileMap.size() > 0);
         Connection connection = null;
         Statement statement = null;
         ResultSet resultSet = null;

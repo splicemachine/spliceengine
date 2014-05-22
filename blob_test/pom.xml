@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>blob_test</groupId>
-  <artifactId>blob_tests</artifactId>
+  <artifactId>blob_test</artifactId>
   <version>0.9-SNAPSHOT</version>
   <description>Utilities loading querying blobs.</description>
   <packaging>jar</packaging>

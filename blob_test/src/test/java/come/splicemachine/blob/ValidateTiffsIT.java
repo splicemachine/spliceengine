@@ -8,11 +8,13 @@ import org.junit.Test;
 import com.splicemachine.blob.RunTiffBlobs;
 
 /**
+ * Requires a running splice server.
+ *
  * @author Jeff Cunningham
  *         Date: 5/22/14
  */
 public class ValidateTiffsIT {
-    private static final String FILE_DIRECTORY = "/Users/jeff/dev/AWS/RockeFuel/package/customers/abinbev/data";
+    private static final String FILE_DIRECTORY = System.getProperty("user.dir")+ "/blob_test/target/classes/tiff";
 
     @Test
     public void testTifs() throws Exception {
