@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.test.SlowTest;
 import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -10,6 +11,7 @@ import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -248,6 +250,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
     }
 
     @Test
+    @Category(SlowTest.class)
     public void testRepeatedAddDuplicateAndDelete() throws Exception {
         new SpliceIndexWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,INDEX_51,spliceSchemaWatcher.schemaName,"(name)").starting(null);
         for (int i = 0; i < 50; i++) {

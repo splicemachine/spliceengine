@@ -69,7 +69,8 @@ public class OperationTree {
                             try {
                                 transactionResource.prepareContextManager();
                                 prepared = true;
-                                transactionResource.marshallTransaction(info.getTxnId());
+                                transactionResource.marshallTransaction(
+                                        opToShuffle.getActivation().getTransactionController().getActiveStateTxIdString());
                                 long begin = System.currentTimeMillis();
                                 opToShuffle.executeShuffle(runtimeContext);
                                 LOG.debug(String.format("Running shuffle for operation %s taking %dms",

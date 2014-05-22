@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.test.SlowTest;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -17,6 +18,7 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -123,6 +125,7 @@ public class SpliceAdminIT {
     }
 
     @Test
+    @Category(SlowTest.class)
     public void testGetConglomerateIDsAllInSchema() throws Exception {
         String TABLE_NAME = "ZONING1";
         SpliceUnitTest.MyWatcher tableWatcher =
@@ -163,6 +166,7 @@ public class SpliceAdminIT {
     }
 
     @Test
+    @Category(SlowTest.class)
     public void testGetSchemaInfoSplit() throws Exception {
         int size = 100;
         String TABLE_NAME = "SPLIT";
