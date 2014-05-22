@@ -11,6 +11,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.io.File;
+import org.apache.commons.io.FileUtils;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -227,7 +228,6 @@ public class InsertOperationIT extends SpliceUnitTest {
 		}
 
 		@Test
-		@Ignore
 		public void testInsertBlob() throws Exception{
 				InputStream fin = new FileInputStream(getResourceDirectory()+"order_line_500K.csv");
 				PreparedStatement ps = methodWatcher.prepareStatement("insert into"+this.getPaddedTableReference("FILES")+"(name, doc) values (?,?)");
@@ -251,6 +251,9 @@ public class InsertOperationIT extends SpliceUnitTest {
 						is.close();
 						fos.close();
 				}
+				File file1 = new File(getResourceDirectory()+"order_line_500K.csv");
+				File file2 = new File(getBaseDirectory()+"/target/order_line_500K.csv");
+				Assert.assertTrue("The files contents are not equivalent",FileUtils.contentEquals(file1, file2));
 		}
 
 		@Test

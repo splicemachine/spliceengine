@@ -65,7 +65,9 @@ public class ConglomerateLoader {
 
     public void close() throws ExecutionException{
         try {
-            writeBuffer.close();
+            if (initialized) {
+                writeBuffer.close();
+            }
         } catch (Exception e) {
             SpliceLogUtils.error(LOG, e);
             throw new ExecutionException(Throwables.getRootCause(e));

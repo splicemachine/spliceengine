@@ -2,6 +2,7 @@ package com.splicemachine.derby.test.framework;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
 import org.junit.runner.Description;
 
 public class SpliceUnitTest {

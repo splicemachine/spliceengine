@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
+import com.splicemachine.test.SlowTest;
 import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -17,6 +18,7 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -36,6 +38,7 @@ import org.junit.runner.Description;
  * @author Jeff Cunningham
  *         Date: 7/31/13
  */
+@Category(SlowTest.class)
 public class IndexIT extends SpliceUnitTest { 
     private static final Logger LOG = Logger.getLogger(IndexIT.class);
 
