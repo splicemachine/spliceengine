@@ -8,7 +8,7 @@ import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.storage.RegionAwareScanner;
 import com.splicemachine.derby.impl.storage.SpliceResultScanner;
 import com.splicemachine.derby.utils.JoinSideExecRow;
-import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.utils.MeasuredStandardIterator;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -26,7 +26,7 @@ import java.io.IOException;
  * @author Scott Fines
  * Created on: 10/29/13
  */
-public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
+public class ResultMergeScanner implements MeasuredStandardIterator<JoinSideExecRow> {
     private final SpliceResultScanner scanner;
 
     private final PairDecoder leftDecoder;

@@ -19,5 +19,4 @@ public interface IJoinRowsIterator<T> extends StandardIterator<Pair<T,Iterator<T
     long getLeftRowsSeen();
 
     long getRightRowsSeen();
-
 }

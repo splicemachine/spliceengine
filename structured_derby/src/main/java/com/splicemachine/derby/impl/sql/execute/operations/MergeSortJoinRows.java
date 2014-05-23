@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.JoinSideExecRow;
-import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.utils.MeasuredStandardIterator;
 import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.si.impl.PushBackIterator;
 
@@ -12,6 +12,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import com.splicemachine.stats.Metrics;
+import com.splicemachine.stats.TimeView;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Pair;
@@ -45,7 +47,7 @@ public class MergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
     private int rightRowsSeen;
 
 
-    public MergeSortJoinRows(StandardIterator<JoinSideExecRow> source){
+    public MergeSortJoinRows(MeasuredStandardIterator<JoinSideExecRow> source){
         this.source = new StandardPushBackIterator<JoinSideExecRow>(source);
     }
 
@@ -106,5 +108,20 @@ public class MergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
     @Override
     public long getRightRowsSeen() {
         return rightRowsSeen;
+    }
+
+    @Override
+    public TimeView getRemoteReadTime() {
+        return Metrics.noOpTimeView();
+    }
+
+    @Override
+    public long getRemoteBytesRead() {
+        return 0;
+    }
+
+    @Override
+    public long getRemoteRowsRead() {
+        return 0;
     }
 }
