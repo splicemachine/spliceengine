@@ -158,5 +158,4 @@ public class Joiner {
 	public long getRowsFiltered(){
 				return filteredRows.getTotal();
 		}
-
 }

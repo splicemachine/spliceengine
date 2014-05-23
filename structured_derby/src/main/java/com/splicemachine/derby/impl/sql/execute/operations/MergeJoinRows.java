@@ -4,6 +4,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.IOStandardIterator;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardPushBackIterator;
+import com.splicemachine.si.impl.PushBackIterator;
+import com.splicemachine.stats.TimeView;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Pair;
@@ -46,7 +48,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
      * @param rightKeys     Join Key(s) on which right side is sorted
      */
     public MergeJoinRows(StandardIterator<ExecRow> leftRS,
-                         IOStandardIterator<ExecRow> rightRS,
+                         StandardIterator<ExecRow> rightRS,
                          int[] leftKeys, int[] rightKeys) {
         this.leftRS = leftRS;
         this.rightRS = new StandardPushBackIterator<ExecRow>(rightRS);
@@ -135,5 +137,17 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
         leftRS.close();
         rightRS.close();
         pair = null;
+    }
+
+    public TimeView getRemoteReadTime() {
+        return rightRS.getRemoteReadTime();
+    }
+
+    public long getRemoteBytesRead() {
+        return rightRS.getRemoteBytesRead();
+    }
+
+    public long getRemoteRowsRead() {
+        return rightRS.getRemoteRowsRead();
     }
 }
