@@ -32,7 +32,7 @@ public class CacheMap<K,V> implements Map<K,V> {
      * @return new cache object
      */
     public static <K,V> Map<K,V> makeCache(boolean shared, int maxSize) {
-        return new CacheMap<K,V>(new ConcurrentHashMap<K,CacheReference<K,V>>(), maxSize);
+        return new CacheMap<K,V>(new ConcurrentHashMap<K, CacheReference<K, V>>(), maxSize);
     }
 
     private CacheMap(Map<K, CacheReference<K,V>> delegate, int maxSize) {

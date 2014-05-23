@@ -13,6 +13,7 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.data.api.SDataLib;
@@ -99,7 +100,30 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LTuple, LGet, LGet> {
                                                + value);
     }
 
-    @Override
+		public <T> T decode(byte[] value, int offset, int length, Class<T> type) {
+				if (!(value instanceof byte[])) {
+						return (T)value;
+				}
+
+				if(byte[].class.equals(type))
+						return (T)value;
+				if(String.class.equals(type))
+						return (T)Bytes.toString(value,offset,length);
+				else if(Long.class.equals(type))
+						return (T)(Long)Bytes.toLong(value,offset);
+				else if(Integer.class.equals(type)){
+						if(length<4)
+								return (T)new Integer(-1);
+						return (T)(Integer)Bytes.toInt(value,offset);
+				}else if(Boolean.class.equals(type))
+						return (T)(Boolean) BytesUtil.toBoolean(value, offset);
+				else if(Byte.class.equals(type))
+						return (T)(Byte) value[offset];
+				else
+						throw new RuntimeException("types don't match " + value.getClass().getName() + " " + type.getName() + " " + value);
+		}
+
+		@Override
     public void addKeyValueToPut(LTuple put, byte[] family, byte[] qualifier, long timestamp, byte[] value) {
         addKeyValueToTuple(put, family, qualifier, timestamp, value);
     }

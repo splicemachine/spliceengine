@@ -13,6 +13,7 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.BufferedRegionScanner;
+import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -41,7 +42,7 @@ public class LastIndexKeyOperation extends ScanOperation {
     protected static List<NodeType> nodeTypes;
     private boolean returnedRow;
     private Scan contextScan;
-    private RegionScanner tentativeScanner;
+    private MeasuredRegionScanner tentativeScanner;
 
 		private SITableScanner tableScanner;
 
@@ -153,7 +154,7 @@ public class LastIndexKeyOperation extends ScanOperation {
 						ExecRow currentRow = getExecRowDefinition();
 						tentativeScanner = getTentativeScanner(contextScan);
 						if(tableScanner==null){
-								RegionScanner scanner = tentativeScanner!=null? tentativeScanner: regionScanner;
+								MeasuredRegionScanner scanner = tentativeScanner!=null? tentativeScanner: regionScanner;
 								tableScanner = new TableScannerBuilder()
 												.scanner(scanner)
 												.scan(contextScan)

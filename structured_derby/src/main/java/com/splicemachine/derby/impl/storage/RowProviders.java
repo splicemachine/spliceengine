@@ -25,7 +25,10 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.job.*;
+import com.splicemachine.stats.IOStats;
 import com.splicemachine.stats.Metrics;
+import com.splicemachine.stats.MultiStatsView;
+import com.splicemachine.stats.SimpleMultiTimeView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -265,6 +268,8 @@ public class RowProviders {
 				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema, String regionName) {
 					provider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 				}
+
+				@Override public IOStats getIOStats() { return provider.getIOStats(); }
 		}
 
 		public static class SourceRowProvider extends SingleScanRowProvider{
@@ -381,6 +386,11 @@ public class RowProviders {
 								taskReporter.report(xplainSchema,opStat);
 						}
 				}
+
+				@Override
+				public IOStats getIOStats() {
+						return Metrics.noOpIOStats(); //don't record stats, since the operation will do it itself
+				}
 		}
 
 		/*
@@ -482,6 +492,14 @@ public class RowProviders {
 				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
 						firstRowProvider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 						secondRowProvider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
+				}
+
+				@Override
+				public IOStats getIOStats() {
+						MultiStatsView stats = new MultiStatsView(Metrics.multiTimeView());
+						stats.merge(firstRowProvider.getIOStats());
+						stats.merge(secondRowProvider.getIOStats());
+						return stats;
 				}
 		}
 

@@ -20,6 +20,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -264,7 +265,8 @@ public class InsertOperationIT extends SpliceUnitTest {
 				File file1 = new File(getResourceDirectory()+"order_line_500K.csv");
 				File file2 = new File(getBaseDirectory()+"/target/order_line_500K.csv");
 				Assert.assertTrue("The files contents are not equivalent", org.apache.commons.io.FileUtils.contentEquals(file1, file2));
-}
+				Assert.assertTrue("The files contents are not equivalent",FileUtils.contentEquals(file1, file2));
+		}
 
 		@Test
 		public void testInsertIdentitySingleAndFromSelfScan() throws Exception {

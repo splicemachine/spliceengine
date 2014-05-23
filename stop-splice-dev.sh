@@ -69,7 +69,7 @@ Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
 #[[ -n ${Z} ]] && echo "Found ZooKeeperServerMain straggler. Killing." && for pid in ${Z}; do kill -${SIG} `echo ${pid}`; done
 
 if [ ! -d "logs" ]; then
-  mkdir logs
+    mkdir logs
 fi
 
 if [[ -z ${BUILD_NUMBER} ]]; then

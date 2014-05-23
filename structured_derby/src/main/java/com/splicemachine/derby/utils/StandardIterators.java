@@ -1,12 +1,14 @@
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.sql.execute.StandardCloseable;
+import com.splicemachine.stats.IOStats;
+import com.splicemachine.stats.Metrics;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -18,9 +20,14 @@ import java.util.concurrent.Callable;
  */
 public class StandardIterators {
 
-    private StandardIterators(){}
+    private StandardIterators() {
+    }
 
-    public static <T> StandardIterator<T> wrap(Iterable<T> data){
+    public static <T> StandardIterator<T> wrap(Iterable<T> data) {
+        return new IteratorStandardIterator<T>(data.iterator());
+    }
+
+    public static <T> IOStandardIterator<T> noIO(Iterable<T> data) {
         return new IteratorStandardIterator<T>(data.iterator());
     }
 
@@ -28,33 +35,49 @@ public class StandardIterators {
         return new SpliceOpStandardIterator(op);
     }
 
-    public static StandardIterator<ExecRow> wrap(NoPutResultSet NPRS){
+    public static StandardIterator<ExecRow> wrap(NoPutResultSet NPRS) {
         return new ResultSetStandardIterator(NPRS);
     }
 
-    public static <T> StandardIterator<T> wrap(Callable<T> callable){
+    public static <T> StandardIterator<T> wrap(Callable<T> callable) {
         return new CallableStandardIterator<T>(callable);
     }
 
-    public static <T> StandardIterator<T> wrap(Callable<T> callable, StandardCloseable c){
+    public static <T> StandardIterator<T> wrap(Callable<T> callable, StandardCloseable c) {
         return new CallableStandardIterator<T>(callable, c);
     }
 
-    private static class IteratorStandardIterator<T> implements StandardIterator<T>{
+    public static IOStandardIterator<ExecRow> ioIterator(SpliceNoPutResultSet resultSet) {
+        return new SpliceResultSetStandardIterator(resultSet);
+    }
+
+    private static class IteratorStandardIterator<T> implements IOStandardIterator<T> {
         private final Iterator<T> delegate;
 
         private IteratorStandardIterator(Iterator<T> delegate) {
             this.delegate = delegate;
         }
 
-        @Override public void open() throws StandardException, IOException { }//no-op
-        @Override public void close() throws StandardException, IOException { } //no-op
+        @Override
+        public void open() throws StandardException, IOException {
+        }//no-op
 
         @Override
-        public T next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-            if(!delegate.hasNext())
+        public void close() throws StandardException, IOException {
+        } //no-op
+
+        @Override
+        public T next(SpliceRuntimeContext spliceRuntimeContext) throws
+                                                                 StandardException,
+                                                                 IOException {
+            if (!delegate.hasNext())
                 return null;
             return delegate.next();
+        }
+
+        @Override
+        public IOStats getStats() {
+            return Metrics.noOpIOStats();
         }
     }
 
@@ -71,7 +94,8 @@ public class StandardIterators {
         }
 
         @Override
-        public ExecRow next(SpliceRuntimeContext ctx) throws StandardException, IOException {
+        public ExecRow next(SpliceRuntimeContext ctx) throws StandardException,
+                                                             IOException {
             return op.nextRow(ctx);
         }
 
@@ -79,12 +103,12 @@ public class StandardIterators {
         public void close() throws StandardException, IOException {
             op.close();
         }
-
     }
-    private static class ResultSetStandardIterator implements StandardIterator<ExecRow>{
-        private final NoPutResultSet noPut;
 
-        private ResultSetStandardIterator(NoPutResultSet noPut){
+    private static class SpliceResultSetStandardIterator implements IOStandardIterator<ExecRow> {
+        private final SpliceNoPutResultSet noPut;
+
+        private SpliceResultSetStandardIterator(SpliceNoPutResultSet noPut) {
             this.noPut = noPut;
         }
 
@@ -95,7 +119,40 @@ public class StandardIterators {
         }
 
         @Override
-        public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws
+                                                                       StandardException,
+                                                                       IOException {
+            return noPut.getNextRowCore();
+        }
+
+        @Override
+        public void close() throws StandardException, IOException {
+            noPut.close();
+        }
+
+        @Override
+        public IOStats getStats() {
+            return noPut.getStats();
+        }
+    }
+
+    private static class ResultSetStandardIterator implements StandardIterator<ExecRow> {
+        private final NoPutResultSet noPut;
+
+        private ResultSetStandardIterator(NoPutResultSet noPut) {
+            this.noPut = noPut;
+        }
+
+        @Override
+        public void open() throws StandardException, IOException {
+            noPut.open();
+            noPut.openCore();
+        }
+
+        @Override
+        public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws
+                                                                       StandardException,
+                                                                       IOException {
             return noPut.getNextRowCore();
         }
 
@@ -105,39 +162,42 @@ public class StandardIterators {
         }
     }
 
-    public static class CallableStandardIterator<T> implements StandardIterator<T>{
+    public static class CallableStandardIterator<T> implements StandardIterator<T> {
         private final Callable<T> callable;
         private final StandardCloseable c;
 
-        public CallableStandardIterator(Callable<T> callable){
+        public CallableStandardIterator(Callable<T> callable) {
             this.callable = callable;
             this.c = null;
         }
 
-        public CallableStandardIterator(Callable<T> callable, StandardCloseable c){
+        public CallableStandardIterator(Callable<T> callable, StandardCloseable c) {
             this.callable = callable;
             this.c = c;
         }
 
         @Override
-        public void open() {}
+        public void open() {
+        }
 
         @Override
-        public void close() throws StandardException, IOException  {
+        public void close() throws StandardException, IOException {
             if (c != null) {
                 c.close();
             }
         }
 
         @Override
-        public T next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        public T next(SpliceRuntimeContext spliceRuntimeContext) throws
+                                                                 StandardException,
+                                                                 IOException {
             try {
                 return callable.call();
-            } catch (StandardException se){
+            } catch (StandardException se) {
                 throw se;
-            } catch (IOException ioe){
+            } catch (IOException ioe) {
                 throw ioe;
-            } catch (Exception e){
+            } catch (Exception e) {
                 throw Exceptions.parseException(e);
             }
         }

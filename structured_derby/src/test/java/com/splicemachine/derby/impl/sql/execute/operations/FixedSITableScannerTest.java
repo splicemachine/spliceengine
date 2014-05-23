@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
@@ -11,6 +10,7 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.RowAccumulator;
@@ -20,11 +20,13 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Snowflake;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
@@ -257,7 +259,7 @@ public class FixedSITableScannerTest {
 				final KeyValue siKv = new KeyValue(key,SpliceConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,1l, HConstants.EMPTY_BYTE_ARRAY);
 				final boolean[] returned = new boolean[]{false};
 
-				RegionScanner scanner = mock(RegionScanner.class);
+				MeasuredRegionScanner scanner = mock(MeasuredRegionScanner.class);
 				Answer<Boolean> rowReturnAnswer = new Answer<Boolean>() {
 
 						@Override

@@ -43,24 +43,24 @@ public class OperationTree {
 
     }
 
-    public static SpliceNoPutResultSet executeTree(SpliceOperation operation, final SpliceRuntimeContext runtimeContext,boolean useProbe) throws StandardException{
+    public static SpliceNoPutResultSet executeTree(SpliceOperation operation, final SpliceRuntimeContext runtimeContext, boolean useProbe) throws StandardException {
         //first form the level Map
-        NavigableMap<Integer,List<SpliceOperation>> levelMap = split(operation);
+        NavigableMap<Integer, List<SpliceOperation>> levelMap = split(operation);
         if (LOG.isDebugEnabled())
-        	SpliceLogUtils.debug(LOG, "OperationTree levelMap: %s \n\tfor operation %s", levelMap, operation);
+            SpliceLogUtils.debug(LOG, "OperationTree levelMap: %s \n\tfor operation %s", levelMap, operation);
 
         //The levelMap is sorted so that lower level number means higher on the tree, so
         //since we need to execute from bottom up, we go in descending order
-				final StatementInfo info = runtimeContext.getStatementInfo();
-				boolean setStatement = info !=null;
-				long statementUuid = setStatement? info.getStatementUuid():0l;
-        for(Integer level:levelMap.descendingKeySet()){
+        final StatementInfo info = runtimeContext.getStatementInfo();
+        boolean setStatement = info != null;
+        long statementUuid = setStatement ? info.getStatementUuid() : 0l;
+        for (Integer level : levelMap.descendingKeySet()) {
             List<SpliceOperation> levelOps = levelMap.get(level);
-            if(levelOps.size()>1){
+            if (levelOps.size() > 1) {
                 List<Future<Void>> shuffleFutures = Lists.newArrayListWithCapacity(levelOps.size());
-                for(final SpliceOperation opToShuffle:levelOps){
-										if(setStatement)
-												opToShuffle.setStatementId(statementUuid);
+                for (final SpliceOperation opToShuffle : levelOps) {
+                    if (setStatement)
+                        opToShuffle.setStatementId(statementUuid);
                     shuffleFutures.add(levelExecutor.submit(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
@@ -71,7 +71,11 @@ public class OperationTree {
                                 prepared = true;
                                 transactionResource.marshallTransaction(
                                         opToShuffle.getActivation().getTransactionController().getActiveStateTxIdString());
+                                long begin = System.currentTimeMillis();
                                 opToShuffle.executeShuffle(runtimeContext);
+                                LOG.debug(String.format("Running shuffle for operation %s taking %dms",
+                                                           opToShuffle.resultSetNumber(),
+                                                           System.currentTimeMillis() - begin));
                             } finally {
                                 resetContext(transactionResource, prepared);
                             }
@@ -80,7 +84,7 @@ public class OperationTree {
                     }));
                 }
                 //wait for all operations to complete before proceeding to the next level
-                for(Future<Void> future:shuffleFutures){
+                for (Future<Void> future : shuffleFutures) {
                     try {
                         future.get();
                     } catch (InterruptedException e) {
@@ -91,19 +95,31 @@ public class OperationTree {
                         throw Exceptions.parseException(e);
                     }
                 }
-            }else{
-                for(SpliceOperation op:levelOps){
-										if(setStatement)
-												op.setStatementId(statementUuid);
+            } else {
+                for (SpliceOperation op : levelOps) {
+                    if (setStatement)
+                        op.setStatementId(statementUuid);
+                    long begin = System.currentTimeMillis();
                     op.executeShuffle(runtimeContext);
+                    LOG.debug(String.format("Running shuffle for operation %s taking %dms",
+                                               op.resultSetNumber(),
+                                               System.currentTimeMillis() - begin));
                 }
             }
         }
+
         //operation is the highest level, it has the final scan
-				if(useProbe)
-						return operation.executeProbeScan();
-				else
-						return operation.executeScan(runtimeContext);
+        SpliceNoPutResultSet nprs;
+        long begin = System.currentTimeMillis();
+        if (useProbe) {
+            nprs = operation.executeProbeScan();
+        } else {
+            nprs = operation.executeScan(runtimeContext);
+        }
+        LOG.debug(String.format("Returning scan result set for operation %s (took %dms)",
+                                   operation.resultSetNumber(),
+                                   System.currentTimeMillis() - begin));
+        return nprs;
     }
 
     private static void resetContext(SpliceTransactionResourceImpl impl, boolean prepared) {

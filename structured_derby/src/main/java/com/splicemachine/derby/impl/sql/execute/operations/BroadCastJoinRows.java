@@ -23,7 +23,7 @@ public class BroadCastJoinRows implements IJoinRowsIterator<ExecRow> {
 
     private final StandardIterator<ExecRow> leftRows;
     private final Function<ExecRow,List<ExecRow>> rightSideLookup;
-
+    private Pair<ExecRow, Iterator<ExecRow>> pair;
     private int leftRowsSeen;
     private int rightRowsSeen;
 
@@ -31,6 +31,7 @@ public class BroadCastJoinRows implements IJoinRowsIterator<ExecRow> {
                              Function<ExecRow,List<ExecRow>> rightSideLookup) {
         this.leftRows = leftRows;
         this.rightSideLookup = rightSideLookup;
+        this.pair = new Pair<ExecRow, Iterator<ExecRow>>();
     }
 
     @Override
@@ -45,18 +46,20 @@ public class BroadCastJoinRows implements IJoinRowsIterator<ExecRow> {
             }
             // TODO don't count right rows already seen
             rightRowsSeen += rights.size();
-            return Pair.newPair(left, rights.iterator());
+            pair.setFirst(left);
+            pair.setSecond(rights.iterator());
+            return pair;
         }
         return null;
     }
 
     @Override
-    public int getLeftRowsSeen() {
+    public long getLeftRowsSeen() {
         return leftRowsSeen;
     }
 
     @Override
-    public int getRightRowsSeen() {
+    public long getRightRowsSeen() {
         return rightRowsSeen;
     }
 
@@ -68,6 +71,7 @@ public class BroadCastJoinRows implements IJoinRowsIterator<ExecRow> {
     @Override
     public void close() throws StandardException, IOException {
         leftRows.close();
+        pair = null;
     }
 
 }

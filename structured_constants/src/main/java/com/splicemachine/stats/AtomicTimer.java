@@ -72,6 +72,17 @@ public class AtomicTimer implements MetricFactory{
 
 		@Override public boolean isActive() { return true; }
 
+		@Override
+		public Timer newWallTimer() {
+				return new SimpleTimer(new UpdatingWallTimeMeasure()) {
+						@Override public long getWallClockTime() { return timeMeasure.getElapsedTime(); }
+						@Override public long getCpuTime() { return 0l; }
+						@Override public long getUserTime() { return 0; }
+						@Override public long getStopWallTimestamp() { return timeMeasure.getStopTimestamp(); }
+						@Override public long getStartWallTimestamp() { return timeMeasure.getStartTimestamp(); }
+				};
+		}
+
 		public long getTotalEvents(){ return totalEvents.get();}
 		public TimeView getTimeView(){ return view; }
 

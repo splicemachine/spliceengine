@@ -6,7 +6,6 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.serializers.DefaultArraySerializers;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
@@ -37,6 +36,8 @@ import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 
+import com.splicemachine.utils.kryo.KryoObjectInput;
+import com.splicemachine.utils.kryo.KryoObjectOutput;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 
 import org.apache.derby.impl.sql.execute.*;
@@ -57,6 +58,8 @@ import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoPool;
 
+import java.io.Externalizable;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -604,7 +607,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(SpliceStddevSamp.class,145);
         instance.register(Properties.class, new MapSerializer(), 146);
 
-        instance.register(com.splicemachine.derby.impl.sql.execute.ValueRow.class,EXTERNALIZABLE_SERIALIZER,147);
+        //instance.register(com.splicemachine.derby.impl.sql.execute.ValueRow.class,EXTERNALIZABLE_SERIALIZER,147);
         instance.register(com.splicemachine.derby.impl.sql.execute.IndexRow.class,EXTERNALIZABLE_SERIALIZER,148);
         instance.register(org.apache.derby.impl.sql.execute.IndexRow.class,
                 new ValueRowSerializer<org.apache.derby.impl.sql.execute.IndexRow>(){
@@ -652,15 +655,14 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 				instance.register(TentativeIndexDesc.class,new FieldSerializer(instance,TentativeIndexDesc.class),166);
 				instance.register(TentativeDropColumnDesc.class,new FieldSerializer(instance,TentativeDropColumnDesc.class),167);
 				instance.register(com.carrotsearch.hppc.BitSet.class,new Serializer<com.carrotsearch.hppc.BitSet>() {
-						@Override
-						public void write(Kryo kryo, Output output, BitSet object) {
-								output.writeInt(object.wlen);
-								long[] bits = object.bits;
-								for(int i=0;i<object.wlen;i++){
-										output.writeLong(bits[i]);
-								}
-						}
-
+                        @Override
+                        public void write(Kryo kryo, Output output, BitSet object) {
+                            output.writeInt(object.wlen);
+                            long[] bits = object.bits;
+                            for (int i = 0; i < object.wlen; i++) {
+                                output.writeLong(bits[i]);
+                            }
+                        }
 						@Override
 						public BitSet read(Kryo kryo, Input input, Class<BitSet> type) {
 								int wlen = input.readInt();
@@ -671,11 +673,108 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 								return new BitSet(bits,wlen);
 						}
 				},168);
-				instance.register(DDLChange.TentativeType.class,new DefaultSerializers.EnumSerializer(DDLChange.TentativeType.class),169);
-				instance.register(DropColumnTask.class,EXTERNALIZABLE_SERIALIZER,170);
-				instance.register(ColumnInfo.class,EXTERNALIZABLE_SERIALIZER,171);
-				instance.register(ColumnInfo[].class,172);
-				instance.register(LoadConglomerateTask.class,EXTERNALIZABLE_SERIALIZER,173);
-				instance.register(MergeLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER,174);
-    }
+				instance.register(LongBufferedSumAggregator.class,new Serializer<LongBufferedSumAggregator>() {
+                    @Override
+                    public void write(Kryo kryo, Output output, LongBufferedSumAggregator object) {
+                        try {
+                            object.writeExternal(new KryoObjectOutput(output, kryo));
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                    public LongBufferedSumAggregator read(Kryo kryo, Input input, Class type) {
+								LongBufferedSumAggregator aggregator = new LongBufferedSumAggregator(64); //todo -sf- make configurable
+								try {
+										aggregator.readExternal(new KryoObjectInput(input, kryo));
+								} catch (IOException e) {
+										throw new RuntimeException(e);
+								} catch (ClassNotFoundException e) {
+										throw new RuntimeException(e);
+								}
+								return aggregator;
+						}
+				},169);
+
+
+				instance.register(DDLChange.TentativeType.class,new DefaultSerializers.EnumSerializer(DDLChange.TentativeType.class),170);
+				instance.register(DropColumnTask.class,EXTERNALIZABLE_SERIALIZER,171);
+				instance.register(ColumnInfo.class,EXTERNALIZABLE_SERIALIZER,172);
+				instance.register(ColumnInfo[].class,173);
+				instance.register(LoadConglomerateTask.class,EXTERNALIZABLE_SERIALIZER,174);
+				instance.register(MergeLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER,175);
+
+				instance.register(DoubleBufferedSumAggregator.class,new Serializer<DoubleBufferedSumAggregator>() {
+						@Override
+						public void write(Kryo kryo, Output output, DoubleBufferedSumAggregator object) {
+								try {
+										object.writeExternal(new KryoObjectOutput(output, kryo));
+								} catch (IOException e) {
+										throw new RuntimeException(e);
+								}
+						}
+
+						@Override
+						public DoubleBufferedSumAggregator read(Kryo kryo, Input input, Class type) {
+								DoubleBufferedSumAggregator aggregator = new DoubleBufferedSumAggregator(64); //todo -sf- make configurable
+								try {
+										aggregator.readExternal(new KryoObjectInput(input, kryo));
+								} catch (IOException e) {
+										throw new RuntimeException(e);
+								} catch (ClassNotFoundException e) {
+										throw new RuntimeException(e);
+								}
+								return aggregator;
+						}
+				},176);
+
+				instance.register(DecimalBufferedSumAggregator.class,new Serializer<DecimalBufferedSumAggregator>() {
+						@Override
+						public void write(Kryo kryo, Output output, DecimalBufferedSumAggregator object) {
+								try {
+										object.writeExternal(new KryoObjectOutput(output, kryo));
+								} catch (IOException e) {
+										throw new RuntimeException(e);
+								}
+						}
+
+						@Override
+						public DecimalBufferedSumAggregator read(Kryo kryo, Input input, Class type) {
+								DecimalBufferedSumAggregator aggregator = new DecimalBufferedSumAggregator(64); //todo -sf- make configurable
+								try {
+										aggregator.readExternal(new KryoObjectInput(input, kryo));
+								} catch (IOException e) {
+										throw new RuntimeException(e);
+								} catch (ClassNotFoundException e) {
+										throw new RuntimeException(e);
+								}
+								return aggregator;
+						}
+				},177);
+
+				instance.register(FloatBufferedSumAggregator.class,new Serializer<FloatBufferedSumAggregator>() {
+						@Override
+						public void write(Kryo kryo, Output output, FloatBufferedSumAggregator object) {
+								try {
+										object.writeExternal(new KryoObjectOutput(output, kryo));
+								} catch (IOException e) {
+										throw new RuntimeException(e);
+								}
+						}
+
+						@Override
+						public FloatBufferedSumAggregator read(Kryo kryo, Input input, Class type) {
+								FloatBufferedSumAggregator aggregator = new FloatBufferedSumAggregator(64); //todo -sf- make configurable
+								try {
+										aggregator.readExternal(new KryoObjectInput(input, kryo));
+								} catch (IOException e) {
+										throw new RuntimeException(e);
+								} catch (ClassNotFoundException e) {
+										throw new RuntimeException(e);
+								}
+								return aggregator;
+						}
+				},178);
+
+
+		}
 }

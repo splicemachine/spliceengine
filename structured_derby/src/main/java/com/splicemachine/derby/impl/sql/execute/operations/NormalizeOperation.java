@@ -296,10 +296,11 @@ public class NormalizeOperation extends SpliceBaseOperation {
 		private DataValueDescriptor getCachedDesgination(int col) throws StandardException {
 				int index =col-1;
 				if(cachedDestinations[index]==null) {
-                    DataValueDescriptor dvd =  getDesiredType(col).getNull();
-                    int formatId = dvd.getTypeFormatId();
-					cachedDestinations[index] = LazyDataValueFactory.getLazyNull(formatId);
-                }
+						DataValueDescriptor dvd =  getDesiredType(col).getNull();
+//						int formatId = dvd.getTypeFormatId();
+						cachedDestinations[index] = dvd;
+//						cachedDestinations[index] = LazyDataValueFactory.getLazyNull(formatId);
+				}
 				return cachedDestinations[index];
 		}
 

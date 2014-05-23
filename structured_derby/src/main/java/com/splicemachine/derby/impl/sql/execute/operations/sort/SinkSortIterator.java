@@ -51,7 +51,9 @@ public class SinkSortIterator extends AbstractStandardIterator {
 						groupedRow = new GroupedRow();
 
 				if (distinctBuffer == null) {
-						groupedRow.setRow(source.next(spliceRuntimeContext));
+						ExecRow next = source.next(spliceRuntimeContext);
+						if(next!=null) rowsRead++;
+						groupedRow.setRow(next);
 						return groupedRow;
 				}
 				if(completed){

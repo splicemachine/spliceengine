@@ -39,7 +39,7 @@ public class TimestampV2DescriptorSerializer extends TimestampV1DescriptorSerial
 		public static Timestamp parseTimestamp(long time) {
 				int micros = (int)(time % MICROS_TO_SECOND);
 				long millis;
-				if(time<0){
+				if(micros<0){
 						micros = MICROS_TO_SECOND +micros;
 						time -=micros;
 				}

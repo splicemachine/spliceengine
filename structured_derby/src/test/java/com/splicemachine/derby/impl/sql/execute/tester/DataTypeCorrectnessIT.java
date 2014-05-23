@@ -50,7 +50,6 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
 	protected static String TABLE_16 = "P";
 	protected static String TABLE_17 = "Q";
 	protected static String TABLE_18 = "R";
-
 	protected static String TABLE_30 = "AA";
 	protected static String TABLE_31 = "BB";
 	protected static String TABLE_32 = "CC";
@@ -105,7 +104,6 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher41 = new SpliceTableWatcher(TABLE_41,spliceSchemaWatcher.schemaName," ( lvarchar1 long varchar , lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp, PRIMARY KEY ( charforbitdata1,varcharforbitdata1,date1,time1,timestamp1))");
 
 
-	
 	protected static SpliceTableWatcher spliceTableWatcher50 = new SpliceTableWatcher(TABLE_50,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100),lvarchar1 long varchar, lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp)");
 	protected static SpliceTableWatcher spliceTableWatcher51 = new SpliceTableWatcher(TABLE_51,spliceSchemaWatcher.schemaName,"(boolean1 boolean, boolean2 boolean,boolean3 boolean, smallint1 smallint, smallint2 smallint,smallint3 smallint, integer1 integer,integer2 integer,integer3 integer, bigint1 bigint,bigint2 bigint,bigint3 bigint,decimal1 decimal,decimal2 decimal,decimal3 decimal,real1 real, real2 real,real3 real,double1 double,double2 double,double3 double,float1 float,float2 float,float3 float,char1 char(10),char2 char(10),char3 char(10),varchar1 varchar(100),varchar2 varchar(100),varchar3 varchar(100),lvarchar1 long varchar, lvarchar2 long varchar , lvarchar3 long varchar , charforbitdata1 char(8) for bit data,charforbitdata2 char(8) for bit data,charforbitdata3 char(8) for bit data,varcharforbitdata1 varchar(1024) for bit data,varcharforbitdata2 varchar(1024) for bit data,varcharforbitdata3 varchar(1024) for bit data, longvarcharforbitdata1 long varchar for bit data, longvarcharforbitdata2 long varchar for bit data, longvarcharforbitdata3 long varchar for bit data,date1 date,date2 date,date3 date,time1 time,time2 time,time3 time,timestamp1 timestamp,timestamp2 timestamp,timestamp3 timestamp, PRIMARY KEY (boolean1,smallint1,integer1, bigint1,decimal1,real1,double1,float1,char1,varchar1))");
 
@@ -328,7 +326,6 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 
 	@Before
 	public void setUp() throws Exception {
-		//System.out.println("Here 3");
 		if(!done){
 			try{
 				for(int i=0;i<btables.length;i++){
@@ -548,11 +545,6 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		}
 	}
 
-	@After
-	public void tearDown() throws Exception {
-		//System.out.println("Here 4");
-	}
-	
 	private boolean runandtestqueryri(String query,int lookfor,String field, boolean debug) throws Exception{
 		int returnval;
 		if(debug)System.out.println("Q:"+query+" looking:"+lookfor+" fetch:"+field);
@@ -1266,7 +1258,7 @@ public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 	}
 
 	@Test
-////	@Ignore
+//	@Ignore
 	public void testFieldCharForBITData() throws Exception{
 		boolean dodebug=false;
 		try {

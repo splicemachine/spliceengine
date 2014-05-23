@@ -9,6 +9,8 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.stats.BaseIOStats;
+import com.splicemachine.stats.IOStats;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -119,5 +121,10 @@ public class MultiProbeClientScanProvider extends AbstractMultiScanProvider {
 				stats.setHostName(SpliceUtils.getHostName());
 
 				SpliceDriver.driver().getTaskReporter().report(xplainSchema,stats);
+		}
+
+		@Override
+		public IOStats getIOStats() {
+				return new BaseIOStats(scanner.getRemoteReadTime(),scanner.getRemoteBytesRead(),scanner.getRemoteRowsRead());
 		}
 }

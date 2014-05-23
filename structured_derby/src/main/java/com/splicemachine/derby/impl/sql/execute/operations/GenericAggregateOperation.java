@@ -123,34 +123,6 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 				sourceExecIndexRow = aggregateContext.getSourceIndexRow();
 		}
 
-		protected final ExecRow finishAggregation(ExecRow row) throws StandardException {
-				SpliceLogUtils.trace(LOG, "finishAggregation");
-
-		/*
-		** If the row in which we are to place the aggregate
-		** result is null, then we have an empty input set.
-		** So we'll have to create our own row and set it
-		** up.  Note: we needn't initialize in this case,
-		** finish() will take care of it for us.
-		*/
-				if (row == null) {
-						row = this.getActivation().getExecutionFactory().getIndexableRow(rowAllocator.invoke());
-				}
-				setCurrentRow(row);
-				boolean eliminatedNulls = false;
-				for (SpliceGenericAggregator currAggregate : aggregates) {
-						if (currAggregate.finish(row))
-								eliminatedNulls = true;
-				}
-
-        /*
-		if (eliminatedNulls)
-			addWarning(SQLWarningFactory.newSQLWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION));
-	    */
-
-				return row;
-		}
-
 		@Override
 		public SpliceOperation getLeftOperation() {
 				if (LOG.isTraceEnabled())

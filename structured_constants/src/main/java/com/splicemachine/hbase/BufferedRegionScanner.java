@@ -14,6 +14,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.log4j.Logger;
 
 import com.splicemachine.stats.Counter;
 import com.splicemachine.stats.MetricFactory;
@@ -51,6 +52,9 @@ import com.splicemachine.storage.HasPredicateFilter;
  * Created on: 7/25/13
  */
 public class BufferedRegionScanner implements MeasuredRegionScanner{
+
+    private static final Logger LOG = Logger.getLogger(BufferedRegionScanner.class);
+
 		private final HRegion region;
 		private final RegionScanner delegate;
 		private final Filter scanFilters;
@@ -257,6 +261,11 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 						return getRowsOutput();
 				else
 						return epf.getRowsOutput()+epf.getRowsFiltered();
+		}
+
+		@Override
+		public void start() {
+			//no-op
 		}
 
 		private EntryPredicateFilter getEntryPredicateFilter() {

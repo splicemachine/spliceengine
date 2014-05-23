@@ -77,7 +77,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
         isNull = dvd.isNull() && (bytes == null || bytes.length() == 0) ;
     }
 
-		public void initForDeserialization(String tableVersion,byte[] bytes,int offset,int length, boolean desc){
+		public void initForDeserialization(String tableVersion,DescriptorSerializer serializer,byte[] bytes,int offset,int length, boolean desc){
 				if(this.bytes==null)
 						this.bytes = new ByteSlice();
 				this.bytes.set(bytes,offset,length);
@@ -85,8 +85,8 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 				deserialized = false;
 				updateNullFlag();
 				this.descendingOrder = desc;
+				this.serializer = serializer;
 				this.tableVersion = tableVersion;
-				this.serializer = VersionedSerializers.forVersion(tableVersion,true).getEagerSerializer(dvd.getTypeFormatId());
 		}
 
 		public boolean isSerialized(){
@@ -100,8 +100,8 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     protected void forceDeserialization()  {
         if( !isDeserialized() && isSerialized()){
             try{
-								if(serializer==null)
-										serializer = VersionedSerializers.forVersion(tableVersion,true).getEagerSerializer(typeFormatId);
+//								if(serializer==null)
+//										serializer = VersionedSerializers.forVersion(tableVersion,true).getEagerSerializer(typeFormatId);
 								serializer.decodeDirect(dvd, bytes.array(), bytes.offset(), bytes.length(), descendingOrder);
                 deserialized=true;
             }catch(Exception e){

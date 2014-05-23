@@ -28,6 +28,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.hbase.ReadAheadRegionScanner;
 import com.splicemachine.si.coprocessors.SIFilter;
 import com.splicemachine.stats.Counter;
 import com.splicemachine.stats.MetricFactory;
@@ -96,7 +97,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
             this.regionStart = scan.getStopRow();
         }
         this.transactionId = transactionId;
-				this.remoteReadTimer = metricFactory.newTimer();
+				this.remoteReadTimer = metricFactory.newWallTimer();
 				this.remoteBytesRead = metricFactory.newCounter();
     }
 
@@ -312,10 +313,16 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
         localScan = boundary.buildScan(transactionId,localStart,localFinish);
         localScan.setFilter(scan.getFilter());
 				localScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-        localScanner = new BufferedRegionScanner(region,
-								region.getScanner(localScan),
-								localScan,
-								SpliceConstants.DEFAULT_CACHE_SIZE, metricFactory );
+				if(SpliceConstants.useReadAheadScanner)
+						localScanner = new ReadAheadRegionScanner(region,
+										SpliceConstants.DEFAULT_CACHE_SIZE,
+										region.getScanner(localScan), metricFactory );
+				else
+						localScanner = new BufferedRegionScanner(region,
+										region.getScanner(localScan), localScan,
+										SpliceConstants.DEFAULT_CACHE_SIZE, metricFactory );
+
+				localScanner.start();
 				if(remoteStart!=null){
             Scan lookBehindScan = boundary.buildScan(transactionId,remoteStart,regionFinish);
             lookBehindScan.setFilter(scan.getFilter());
@@ -454,15 +461,8 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
         }else return filter;
     }
 
-    public Scan toScan() {
-        //this is naive--we should probably pay attention to look-behinds and look-aheads here
-        Scan retScan = boundary.buildScan(transactionId, scan.getStartRow(), scan.getStopRow());
-        retScan.setFilter(scan.getFilter());
-        return retScan;
-    }
-
     public byte[] getTableName() {
-        return region.getTableDesc().getName();
+       return region.getTableDesc().getName();
     }
 
     @Override

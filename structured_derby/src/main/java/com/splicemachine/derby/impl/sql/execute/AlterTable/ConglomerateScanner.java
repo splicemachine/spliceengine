@@ -28,6 +28,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BufferedRegionScanner;
+import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
@@ -57,7 +58,7 @@ public class ConglomerateScanner {
 
     private ExecRow row;
     private HRegion region;
-    private BufferedRegionScanner brs;
+    private MeasuredRegionScanner brs;
     private EntryDecoder entryDecoder;
 
     public ConglomerateScanner(ColumnInfo[] columnInfo,

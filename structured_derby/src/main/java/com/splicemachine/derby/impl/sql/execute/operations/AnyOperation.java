@@ -14,6 +14,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.stats.IOStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -168,6 +169,11 @@ public class AnyOperation extends SpliceBaseOperation {
 						@Override
 						public SpliceRuntimeContext getSpliceRuntimeContext() {
 								return provider.getSpliceRuntimeContext();
+						}
+
+						@Override
+						public IOStats getIOStats() {
+								return provider.getIOStats();
 						}
 
 				};

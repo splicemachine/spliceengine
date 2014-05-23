@@ -29,6 +29,10 @@ public class Step1DistinctScalarBufferedAggregator extends AbstractBufferedAggre
     public void initialize(ExecRow row) throws StandardException{
         this.currentRow = row.getClone();
         this.isInitialized = false;
+				for(SpliceGenericAggregator aggregator:aggregates){
+						if(aggregator.initialize(currentRow))
+								aggregator.accumulate(currentRow,currentRow);
+				}
     }
     /**
      * Merge Non Distinct Aggregates
@@ -37,12 +41,9 @@ public class Step1DistinctScalarBufferedAggregator extends AbstractBufferedAggre
     public void merge(ExecRow newRow) throws StandardException{
     	for(SpliceGenericAggregator aggregator:aggregates){
     	    if (!aggregator.isDistinct()) { // Some aggregates that are distinct come accross as non-distinct. XXX TODO JLEACH
-    	       	if (!isInitialized) {
-    	       		aggregator.initialize(currentRow);
-    	       		aggregator.accumulate(currentRow,currentRow);
-    	       	}
-    	       	aggregator.initializeAndAccumulateIfNeeded(newRow, newRow);
-    	       	aggregator.merge(newRow,currentRow);
+//    	       	aggregator.initializeAndAccumulateIfNeeded(newRow, newRow);
+							aggregator.accumulate(newRow,currentRow);
+//    	       	aggregator.merge(newRow,currentRow);
     	    }
         }
    		isInitialized = true;

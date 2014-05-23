@@ -6,7 +6,8 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
-import com.splicemachine.derby.hbase.SpliceDriver;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -14,15 +15,16 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.StandardIterators;
+import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.HBaseRegionLoads;
-import com.splicemachine.stats.Counter;
+import com.splicemachine.stats.*;
+import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -41,11 +43,16 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.shared.common.reference.MessageId;
 import org.apache.hadoop.hbase.RegionLoad;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.Versioned;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.concurrent.*;
 
 public class BroadcastJoinOperation extends JoinOperation {
     private static final long serialVersionUID = 2l;
@@ -57,7 +64,7 @@ public class BroadcastJoinOperation extends JoinOperation {
     protected static List<NodeType> nodeTypes;
     protected List<ExecRow> rights;
     private Joiner joiner;
-    protected Map<ByteBuffer, List<ExecRow>> rightSideMap;
+    protected volatile Map<ByteBuffer, List<ExecRow>> rightSideMap;
     protected static final Cache<Integer, Map<ByteBuffer, List<ExecRow>>> broadcastJoinCache;
 
 
@@ -76,8 +83,9 @@ public class BroadcastJoinOperation extends JoinOperation {
                                  }).build();
     }
 
-    private Counter rightCounter;
     private Counter leftCounter;
+    private Future<Map<ByteBuffer, List<ExecRow>>> rhsFuture;
+    private volatile IOStats rightHandTimer = Metrics.noOpIOStats();
 
     public BroadcastJoinOperation() {
         super();
@@ -96,7 +104,8 @@ public class BroadcastJoinOperation extends JoinOperation {
                                   boolean notExistsRightSide,
                                   double optimizerEstimatedRowCount,
                                   double optimizerEstimatedCost,
-                                  String userSuppliedOptimizerOverrides) throws StandardException {
+                                  String userSuppliedOptimizerOverrides) throws
+                                                                         StandardException {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,
                  activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide,
                  optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides);
@@ -106,7 +115,8 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    public void readExternal(ObjectInput in) throws IOException,
+                                                    ClassNotFoundException {
         super.readExternal(in);
         leftHashKeyItem = in.readInt();
         rightHashKeyItem = in.readInt();
@@ -120,49 +130,71 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     @Override
-    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+    public ExecRow nextRow(SpliceRuntimeContext ctx) throws StandardException,
+                                                            IOException {
         if (joiner == null) {
             // do inits on first call
-            timer = spliceRuntimeContext.newTimer();
-            rightCounter = spliceRuntimeContext.newCounter();
-            leftCounter = spliceRuntimeContext.newCounter();
-            joiner = initJoiner(spliceRuntimeContext);
+            timer = ctx.newTimer();
+            leftCounter = ctx.newCounter();
+            timer.startTiming();
+            joiner = initJoiner(ctx);
             joiner.open();
         }
-        timer.startTiming();
-        ExecRow next = joiner.nextRow();
+
+        ExecRow next = joiner.nextRow(ctx);
         setCurrentRow(next);
         if (next == null) {
-            timer.stopTiming();
+            timer.tick(leftCounter.getTotal());
             stopExecutionTime = System.currentTimeMillis();
-        } else {
-            timer.tick(1);
         }
         return next;
     }
 
+    private static final ExecutorService rhsLookupService = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setDaemon(true).setNameFormat("broadcast-lookup-%d").build());
+
     private Joiner initJoiner(final SpliceRuntimeContext ctx)
-            throws StandardException {
-        rightSideMap = retrieveRightSideCache(ctx);
-        StandardIterator<ExecRow> leftRows = StandardIterators.wrap(new Callable<ExecRow>() {
-            @Override
-            public ExecRow call() throws Exception {
-                ExecRow row = leftResultSet.nextRow(ctx);
-                if (row != null) {
-                    leftCounter.add(1);
+        throws StandardException, IOException {
+                /*
+				 * When the Broadcast join is above an operation like GroupedAggregate, it may end up being
+				 * executed on the control node, instead of region locally. In that case, we won't have submitted
+				 * the right-side lookup yet, so we'll need to do that.
+				 */
+        if (rhsFuture == null)
+            submitRightHandSideLookup(ctx);
+        StandardPushBackIterator<ExecRow> leftRows =
+            new StandardPushBackIterator<ExecRow>(StandardIterators.wrap(new Callable<ExecRow>() {
+                @Override
+                public ExecRow call() throws Exception {
+                    ExecRow row = leftResultSet.nextRow(ctx);
+                    if (row != null) {
+                        leftCounter.add(1);
+                    }
+                    return row;
                 }
-                return row;
-            }
-        });
-				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(leftRow);
-				final KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(leftHashKeys, null,serializers), NoOpPostfix.INSTANCE);
-        Function<ExecRow,List<ExecRow>> lookup = new Function<ExecRow, List<ExecRow>>() {
+            }, leftResultSet));
+        // fetch LHS rows while waiting
+        leftRows.open();
+        ExecRow firstLeft = leftRows.next(ctx);
+        leftRows.pushBack(firstLeft == null ? null : firstLeft.getClone());
+        try {
+            this.rightSideMap = rhsFuture.get();
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException e) {
+            throw Exceptions.parseException(e);
+        }
+        DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(leftRow);
+        final KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE,
+                                                        BareKeyHash.encoder(leftHashKeys, null, serializers),
+                                                        NoOpPostfix.INSTANCE);
+        Function<ExecRow, List<ExecRow>> lookup = new Function<ExecRow, List<ExecRow>>() {
             @Override
             public List<ExecRow> apply(ExecRow leftRow) {
                 try {
                     return rightSideMap.get(ByteBuffer.wrap(keyEncoder.getKey(leftRow)));
                 } catch (Exception e) {
-                    throw new RuntimeException(String.format("Unable to lookup %s in" + " Broadcast map", leftRow), e);
+                    throw new RuntimeException(String.format("Unable to lookup %s in" +
+                                                                 " Broadcast map", leftRow), e);
                 }
             }
         };
@@ -175,16 +207,29 @@ public class BroadcastJoinOperation extends JoinOperation {
         return new Joiner(new BroadCastJoinRows(leftRows, lookup),
                              getExecRowDefinition(), getRestriction(), isOuterJoin,
                              wasRightOuterJoin, leftNumCols, rightNumCols,
-                             oneRowRightSide, notExistsRightSide, emptyRowSupplier);
+                             oneRowRightSide, notExistsRightSide, emptyRowSupplier, ctx);
+    }
+
+    private void submitRightHandSideLookup(final SpliceRuntimeContext ctx) {
+        if (rhsFuture != null) return;
+
+        rhsFuture = rhsLookupService.submit(new RightHandLoader(ctx));
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top,
+                                            PairDecoder decoder,
+                                            SpliceRuntimeContext spliceRuntimeContext,
+                                            boolean returnDefaultValue)
+            throws StandardException {
         return leftResultSet.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top,
+                                         PairDecoder decoder,
+                                         SpliceRuntimeContext spliceRuntimeContext)
+            throws StandardException {
         return leftResultSet.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
@@ -194,8 +239,15 @@ public class BroadcastJoinOperation extends JoinOperation {
         super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
-        mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
-        rightResultSet.init(context);
+
+        if (regionScanner != null) {
+					/*
+					 *	We are on a region where we are being processed, so
+					 *we can go ahead and start fetching the right hand side ahead of time.
+					 */
+            SpliceRuntimeContext runtimeContext = context.getRuntimeContext();
+            submitRightHandSideLookup(runtimeContext);
+        }
         startExecutionTime = System.currentTimeMillis();
     }
 
@@ -206,7 +258,8 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     @Override
-    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws
+                                                                                 StandardException {
         final List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
         this.generateLeftOperationStack(opStack);
         SpliceLogUtils.trace(LOG, "operationStack=%s", opStack);
@@ -228,9 +281,18 @@ public class BroadcastJoinOperation extends JoinOperation {
     protected void updateStats(OperationRuntimeStats stats) {
         if (timer == null) return;
         long left = leftCounter.getTotal();
-        long right = rightCounter.getTotal();
-        stats.addMetric(OperationMetric.FILTERED_ROWS, left * right - timer.getNumEvents());
-        stats.addMetric(OperationMetric.INPUT_ROWS, left + right);
+        stats.addMetric(OperationMetric.INPUT_ROWS, left);
+        TimeView time = timer.getTime();
+        stats.addMetric(OperationMetric.TOTAL_WALL_TIME, time.getWallClockTime());
+        stats.addMetric(OperationMetric.TOTAL_CPU_TIME, time.getCpuTime());
+        stats.addMetric(OperationMetric.TOTAL_USER_TIME, time.getUserTime());
+
+        TimeView remoteTime = rightHandTimer.getTime();
+        stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS, rightHandTimer.getRows());
+        stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES, rightHandTimer.getBytes());
+        stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME, remoteTime.getWallClockTime());
+        stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME, remoteTime.getCpuTime());
+        stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME, remoteTime.getUserTime());
     }
 
     @Override
@@ -249,71 +311,88 @@ public class BroadcastJoinOperation extends JoinOperation {
         return leftResultSet;
     }
 
-    private Map<ByteBuffer, List<ExecRow>> retrieveRightSideCache(final SpliceRuntimeContext runtimeContext) throws StandardException {
-        try {
-            // Cache population is what we want here concurrency-wise: only one Callable will be invoked to
-            // populate the cache for a given key; any other concurrent .get(k, callable) calls will block
-            return broadcastJoinCache.get(Bytes.mapKey(uniqueSequenceID), new Callable<Map<ByteBuffer, List<ExecRow>>>() {
+    private class RightHandLoader implements Callable<Map<ByteBuffer, List<ExecRow>>> {
+        private final SpliceRuntimeContext runtimeContext;
+
+        private Counter rightRowCounter;
+        private Timer timer;
+        private long rightBytes = 0l;
+
+        private RightHandLoader(SpliceRuntimeContext runtimeContext) {
+            this.runtimeContext = runtimeContext;
+        }
+
+        @Override
+        public Map<ByteBuffer, List<ExecRow>> call() throws Exception {
+            timer = runtimeContext.newTimer();
+            timer.startTiming();
+
+            Map<ByteBuffer, List<ExecRow>> rightHandSide = broadcastJoinCache.get(Bytes.mapKey(uniqueSequenceID), new Callable<Map<ByteBuffer, List<ExecRow>>>() {
                 @Override
                 public Map<ByteBuffer, List<ExecRow>> call() throws Exception {
-                    SpliceLogUtils.trace(LOG, "Load right-side cache for BroadcastJoin, uniqueSequenceID %s", uniqueSequenceID);
+                    SpliceLogUtils.trace(LOG, "Load right-side cache for BroadcastJoin, uniqueSequenceID %s",
+                                            Bytes.toLong(uniqueSequenceID));
                     return loadRightSide(runtimeContext);
                 }
             });
-        } catch (Exception e) {
-            throw StandardException.newException(MessageId.SPLICE_GENERIC_EXCEPTION, e,
-                                                    "Problem loading right-hand cache for BroadcastJoin, uniqueSequenceID " + uniqueSequenceID);
-        }
-    }
 
-    private Map<ByteBuffer, List<ExecRow>> loadRightSide(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
-        ByteBuffer hashKey;
-        List<ExecRow> rows;
-        Map<ByteBuffer, List<ExecRow>> cache = new HashMap<ByteBuffer, List<ExecRow>>();
-        SpliceNoPutResultSet resultSet = rightResultSet.executeScan(runtimeContext);
-        if (runtimeContext.shouldRecordTraceMetrics()) {
-            byte[] currentTaskId = runtimeContext.getCurrentTaskId();
-            if (currentTaskId != null)
-                resultSet.setTaskId(Bytes.toLong(currentTaskId));
-            else
-                resultSet.setTaskId(SpliceDriver.driver().getUUIDGenerator().nextUUID());
-            resultSet.setRegionName(region.getRegionNameAsString());
-            resultSet.setScrollId(Bytes.toLong(uniqueSequenceID));
-            activation.getLanguageConnectionContext().setStatisticsTiming(true);
-            activation.getLanguageConnectionContext().setXplainSchema(xplainSchema);
-        }
-        resultSet.openCore();
-				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(rightRow);
-        KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE,
-                                                  BareKeyHash
-                                                      .encoder(rightHashKeys, null,serializers),
-                                                  NoOpPostfix.INSTANCE);
-
-        while ((rightRow = resultSet.getNextRowCore()) != null) {
-            rightCounter.add(1l);
-            hashKey = ByteBuffer.wrap(keyEncoder.getKey(rightRow));
-            if ((rows = cache.get(hashKey)) != null) {
-                // Only add additional row for same hash if we need it
-                if (!oneRowRightSide) {
-                    rows.add(rightRow.getClone());
+            if (rightRowCounter == null) {
+                rightRowCounter = runtimeContext.newCounter();
+                if (rightRowCounter.isActive()) {
+                    for (List<ExecRow> rows : rightHandSide.values()) {
+                        rightRowCounter.add(rows.size());
+                    }
                 }
-            } else {
-                rows = new LinkedList<ExecRow>();
-                rows.add(rightRow.getClone());
-                cache.put(hashKey, rows);
+                timer.tick(rightRowCounter.getTotal());
+                BroadcastJoinOperation.this.rightHandTimer =
+                    new BaseIOStats(timer.getTime(), rightBytes, rightRowCounter.getTotal());
             }
+
+            return rightHandSide;
         }
-        if (LOG.isDebugEnabled()){
-            logSize(rightResultSet, cache);
+
+        private Map<ByteBuffer, List<ExecRow>> loadRightSide(SpliceRuntimeContext runtimeContext)
+                throws StandardException, IOException {
+            ByteBuffer hashKey;
+            List<ExecRow> rows;
+            Map<ByteBuffer, List<ExecRow>> cache = new HashMap<ByteBuffer, List<ExecRow>>();
+            rightRowCounter = runtimeContext.newCounter();
+            SpliceNoPutResultSet resultSet = rightResultSet.executeScan(runtimeContext);
+            resultSet.openCore();
+            DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(rightRow);
+            KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE,
+                                                      BareKeyHash.encoder(rightHashKeys, null, serializers),
+                                                      NoOpPostfix.INSTANCE
+            );
+
+            while ((rightRow = resultSet.getNextRowCore()) != null) {
+                rightRowCounter.add(1l);
+                hashKey = ByteBuffer.wrap(keyEncoder.getKey(rightRow));
+                if ((rows = cache.get(hashKey)) != null) {
+                    // Only add additional row for same hash if we need it
+                    if (!oneRowRightSide) {
+                        rows.add(rightRow.getClone());
+                    }
+                } else {
+                    rows = Lists.newArrayListWithExpectedSize(1);
+                    rows.add(rightRow.getClone());
+                    cache.put(hashKey, rows);
+                }
+            }
+            if (LOG.isDebugEnabled()) {
+                logSize(rightResultSet, cache);
+            }
+            BroadcastJoinOperation.this.rightHandTimer = resultSet.getStats();
+            resultSet.close();
+            return Collections.unmodifiableMap(cache);
         }
-        return Collections.unmodifiableMap(cache);
     }
 
-    private static void logSize(SpliceOperation op, Map inMemoryMap){
+    private static void logSize(SpliceOperation op, Map inMemoryMap) {
         int regionSizeMB = -1;
         String tableName = null; // conglom number
         SpliceOperation leaf = op;
-        while (leaf != null){
+        while (leaf != null) {
             if (leaf instanceof ScanOperation) {
                 tableName = Long.toString(((ScanOperation) leaf)
                                               .scanInformation.getConglomerateId());

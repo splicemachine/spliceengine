@@ -17,9 +17,7 @@ import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.stats.Metrics;
-import com.splicemachine.stats.TimeView;
-import com.splicemachine.stats.Timer;
+import com.splicemachine.stats.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.jdbc.ConnectionContext;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -246,6 +244,11 @@ public class CallStatementOperation extends NoRowsOperation {
 
 						stats.setHostName(SpliceUtils.getHostName());
 						SpliceDriver.driver().getTaskReporter().report(xplainSchema,stats);
+				}
+
+				@Override
+				public IOStats getIOStats() {
+						return new BaseIOStats(timer.getTime(),0l,0l);
 				}
 		};
 

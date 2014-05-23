@@ -11,7 +11,8 @@ import java.io.IOException;
  */
 public class StandardPushBackIterator<T> implements StandardIterator<T> {
     private final StandardIterator<T> iterator;
-    private T pushedBack;
+    private final T EMPTY = (T) new Object();
+    private T pushedBack = EMPTY;
 
     public StandardPushBackIterator(StandardIterator<T> iterator){
         this.iterator = iterator;
@@ -19,9 +20,9 @@ public class StandardPushBackIterator<T> implements StandardIterator<T> {
 
     @Override
     public T next(SpliceRuntimeContext ctx) throws StandardException, IOException {
-        if (pushedBack != null) {
+        if (pushedBack != EMPTY) {
             T next = pushedBack;
-            pushedBack = null;
+            pushedBack = EMPTY;
             return next;
         }
         return iterator.next(ctx);
@@ -38,7 +39,7 @@ public class StandardPushBackIterator<T> implements StandardIterator<T> {
     }
 
     public void pushBack(T value){
-        if (pushedBack != null) {
+        if (pushedBack != EMPTY) {
             throw new RuntimeException("Cannot push back multiple values.");
         }
         pushedBack = value;

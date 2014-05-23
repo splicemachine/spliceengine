@@ -7,7 +7,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -25,6 +24,7 @@ import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.sql.Activation;
@@ -38,10 +38,12 @@ import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.Orderable;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.*;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
@@ -80,7 +82,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		 */
 		private String childTransactionID;
 		protected boolean isTopResultSet = false;
-		protected byte[] uniqueSequenceID;
+		protected volatile byte[] uniqueSequenceID;
 		protected ExecRow currentRow;
 		protected RowLocation currentRowLocation;
 		protected List<SpliceOperation> leftOperationStack;
@@ -220,8 +222,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				if(LOG.isTraceEnabled())
 						LOG.trace("closing operation "+ this);
 				clearCurrentRow();
-				if(regionScanner!=null)
-						regionScanner.close();
 				if(jobResults!=null)
 						jobResults.cleanup();
 		}

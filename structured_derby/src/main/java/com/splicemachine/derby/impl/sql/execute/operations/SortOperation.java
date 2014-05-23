@@ -44,6 +44,7 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.job.JobResults;
+import com.splicemachine.stats.TimeView;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.sun.tools.javac.jvm.ClassFile;
@@ -82,6 +83,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 		private PairDecoder rowDecoder;
 		private DistinctSortAggregateBuffer buffer;
 		private byte[] groupingKey;
+		private ArrayList<Cell> keyValues;
 
 
 		/*
@@ -183,8 +185,8 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 						KeyEncoder encoder = KeyEncoder.bare(keyColumns,descColumns,serializers);
 						aggregator = new SinkSortIterator(buffer,new SourceIterator(source),encoder);
 						timer = spliceRuntimeContext.newTimer();
+						timer.startTiming();
 				}
-				timer.startTiming();
 				groupedRow = aggregator.next(spliceRuntimeContext);
 				if (LOG.isTraceEnabled())
 						SpliceLogUtils.trace(LOG,"getNextSinkRow aggregator returns row=%s", groupedRow==null?"null":groupedRow.getRow());
@@ -194,23 +196,26 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 						setCurrentRow(null);
 						return null;
 				}
-				timer.tick(1);
-				setCurrentRow(groupedRow.getRow());
+				ExecRow row = groupedRow.getRow();
+				if(row==null){
+						timer.stopTiming();
+						stopExecutionTime = System.currentTimeMillis();
+				}
+				setCurrentRow(row);
 				groupingKey = groupedRow.getGroupingKey();
-				return groupedRow.getRow();
+				return row;
 		}
 
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				if(timer==null)
+				if(timer==null){
 						timer = spliceRuntimeContext.newTimer();
-
-				timer.startTiming();
+						timer.startTiming();
+				}
 				sortResult = getNextRowFromScan(spliceRuntimeContext);
 				if (LOG.isTraceEnabled())
 						SpliceLogUtils.trace(LOG,"nextRow from scan row=%s", sortResult);
 				if (sortResult != null){
-						timer.tick(1);
 						setCurrentRow(sortResult);
 				}else{
 						timer.stopTiming();
@@ -221,17 +226,30 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {
+				if(aggregator==null) return;
 				if(distinct){
 						stats.addMetric(OperationMetric.FILTERED_ROWS,buffer.getRowsMerged());
 						stats.setBufferFillRatio(buffer.getMaxFillRatio());
 				}
 				stats.addMetric(OperationMetric.INPUT_ROWS, aggregator.getRowsRead());
 
-				super.updateStats(stats);
+				if(regionScanner!=null && keyValues!=null){
+					//we are a scan
+						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsVisited());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,regionScanner.getBytesVisited());
+
+						TimeView scanTime = regionScanner.getReadTime();
+						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,scanTime.getWallClockTime());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,scanTime.getCpuTime());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,scanTime.getUserTime());
+				}
 		}
 
 		private ExecRow getNextRowFromScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				List<Cell> keyValues = new ArrayList<Cell>();
+				if(keyValues==null)
+						keyValues = new ArrayList<Cell>();
+				else
+					keyValues.clear();
 				regionScanner.next(keyValues);
 				if(keyValues.isEmpty()) return null;
 				if(rowDecoder==null)

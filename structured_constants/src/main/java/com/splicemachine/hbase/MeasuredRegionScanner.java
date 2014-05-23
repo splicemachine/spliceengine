@@ -14,6 +14,8 @@ import com.splicemachine.stats.TimeView;
  */
 public interface MeasuredRegionScanner extends RegionScanner {
 
+		void start();
+
 		TimeView getReadTime();
 
 		long getBytesOutput();

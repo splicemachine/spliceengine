@@ -1,0 +1,378 @@
+\section{Recovery, Flashback, and Replication Problem Statement}
+Transactional and Analytical databases are required to provide a backup and
+recovery mechanism.  Before jumping into a review of approaches, it is
+important to split Recovery and Replication into clear demarcated product
+features.
+
+\subsection{Point in Time Full Backup (Cold)}
+A Cold, Point in Time Full Backup will take a full snapshot of the current state
+of the database while the database is either unavailable for writes or
+physically shutdown.  This approach is difficult for large-scale
+distributed RDBMS's for the following reasons
+
+\begin{enumerate}
+	\item Most relational databases for transactional and analytical workloads are
+	increasingly fully utilized during the entire day and require 3 to 5 9's
+	uptime.
+	\item Cycling a distributed database is a time consuming process
+	as the node size increases.
+	\item As data sizes increases over time, each backup will consume more
+	resources (Disk, CPU).
+	\item A user or application that corrupts or inadvertantly writes/deletes data
+	after a backup occurs.
+\end{enumerate}
+
+\subsection{Point in Time Full Backup (Hot)}
+A Hot, Point in Time Full Backup will take a full snapshot of the current state
+of the database while the database is available to reads and writes.  This
+approach removes the first two challenges from the cold backup but still
+requires significant resources to perform the backup and does not allow for a
+smaller data loss horizon.  Clearly, if no backups have ever been run on the
+system, a full backup will always be required.
+
+\subsection{Point in Time Incremental Backup (Cold)}
+This approach will reduce the amount of resources used to perform the backup but
+still effects database availability.  
+
+\subsection{Point in Time Incremental Backup (Hot)}
+Point in Time Incremental Backups allow smaller, less resource intensive backups
+to be combined to provide an accurate view of the database.
+
+\subsection{Flashback}
+
+Oracle has branded the ability to immediately recover to a point in time as a
+\emph{FlashBack}.  Please see
+\url{http://www.oracle.com/technetwork/database/features/availability/flashback-overview-082751.html}.
+
+This feature clearly uses SnapshotIsolation to achieve the capability of quickly
+reverting databases and viewing changes made the database.
+
+\subsubsection{Database Flashback}
+This feature restores the entire database to a point in time without using
+backups but instead using timestamp based logging of data.
+
+\subsubsection{Table Flashback}
+
+This feature restores the table and related objects back to a user specified
+date and time.
+
+\subsubsection{Drop Flashback}
+
+Recovers from a dictionary level drop.
+
+\subsubsection{Transaction Flashback}
+
+Recovers from all edits made during a transaction.
+
+\subsubsection{Transaction Query Flashback}
+
+Query allows a user to visualize all data changed during a supplied transaction.
+
+\subsubsection{Query Flashback}
+
+Allows a user to execute a query against the database based on its snapshot
+looked in the past.
+
+\subsubsection{Query Versions Flashback}
+
+Display all versions of data in a data set.
+
+\subsection{Replication}
+
+\subsubsection{WAL Replication In Process Synchronous, Master-Slave}
+
+Write Ahead Logs shipped synchronously to another live cluster that adds WAL
+entries.
+
+\subsubsection{WAL Replication In Process Asynchronous, Master-Slave}
+
+Write Ahead Logs shipped asynchronously to another live cluster that adds WAL
+entries.
+
+\subsubsection{WAL Replication Enqueued Asynchronous, Master-Slave}
+
+Write Ahead Logs shipped synchronously to another live cluster via a scalable
+queue mechanism that adds WAL entries.
+
+\subsubsection{WAL Replication In Process Synchronous, Master-Master}
+
+Write Ahead Logs shipped synchronously to another live cluster in process that
+adds WAL entries and latest timestamp wins.
+
+\subsubsection{WAL Replication In Process Asynchronous, Master-Master}
+
+Write Ahead Logs shipped asynchronously to another live cluster in process that
+adds WAL entries and latest timestamp wins.
+
+\subsubsection{WAL Replication Enqueued Asynchronous, Master-Master}
+
+Write Ahead Logs shipped asynchronously to another live cluster via a scalable
+queue mechanism that adds WAL entries and latest timestamp wins.
+
+
+\subsection{HBase Snapshots}
+
+HBase Snapshots allow for a table to be captured for a specific point of time
+by forcing a flush to the regions involved and capturing the regions store
+files and keeping an archived copy of those store files when compaction occurs. 
+
+\url{http://blog.cloudera.com/blog/2013/03/introduction-to-apache-hbase-snapshots/}
+
+\url{http://blog.cloudera.com/blog/2013/06/introduction-to-apache-hbase-snapshots-part-2-deeper-dive/}
+
+\section{Splice Machine Backup and Recovery Design}
+
+Backups should look, feel, and perform similar to other existing Splice Machine
+Operations.  It is critical that snapshots are incorporated into our exisiting
+resource management framework to allow the database to back itself up gradually
+while still being highly available and performant.
+
+\subsection{HBase HFile Governance, Recovery Schema and System Time Capture}
+
+Splice Machine backups and recovery require HFile governance, a functional
+snapshot schema, and snapshot isolation timestamp mapping.
+
+\subsubsection{Backup Submission}
+
+There is a need for backups to record their activity to understand when they
+were issued and what their effective timestamp is based on the submission.  This
+information is written to the ${RECOVERY.BACKUP}$ table.  The schema definition
+is listed below.
+ 
+\begin{center}
+\begin{tabular}{|l|c|p{5cm}|}
+				\hline
+				\bf{Column}							&	\bf{Data Type}	&	\bf{Description} \\ \hline
+				Backup Id							&	Long			&	A unique backup identifier generated by \\ \hline 
+				Backup Transaction Id				& 	Long			& 	Corresponding
+				transactional cutpoint generated by the transaction oracle. \\ \hline 
+				Backup Timestamp				   &	Timestamp		&	The system timestamp of
+				the attempted backup.
+				\\
+				\hline 
+				Backup Status						&	Varchar			& 	The status of
+				thebackup(Succeeded,Aborted,Active).
+				\\
+				\hline
+				Filesystem						&	Varchar			& 	The filesystem backed up to.
+				\\
+				\hline
+\end{tabular}
+\end{center}
+
+\subsubsection{Flashback Submission}
+
+Flashbacks will be utilized to capture segments of the
+transaction sequence to ignore.  The flashback information will be written to
+the ${RECOVERY.FLASHBACK}$ table.
+
+\begin{center}
+\begin{tabular}{|l|c|p{5cm}|}
+				\hline
+				\bf{Column}							&	\bf{Data Type}	&	\bf{Description} \\ \hline
+				\hline 
+				Conglomerate Id							&	Long			&	A unique flashback identifier generated by
+				\\
+				\hline 
+				Flashback Id							&	Long			&	A unique flashback identifier generated by \\
+				\hline 
+				Flashback Transactional Begin Cutpoint		& 	Long			& 	Corresponding
+				transactional cutpoint begin timestamp. \\
+				\hline Flashback Transactional End Cutpoint		&	Long			&	Corresponding
+				transactional cutpoint end timestamp.
+				\\
+				\hline 				
+\end{tabular}
+\end{center}
+
+\subsubsection{System Time Capture}
+
+
+A mapping between the monotonically increasing timestamp and the actual system
+time needs to be kept to aid in backups.  A secondary index could have been kept
+on the transactional table, to sort the transactions by date.  That approach was
+rejected due the performance overhead that would occur.  The
+${RECOVERY.SYSTEMTIME}$ table will be written to every minute that the
+HBase Master server is up.
+
+\begin{center}
+\begin{tabular}{|l|c|p{5cm}|}
+				\hline
+				\bf{Column}							&	\bf{Data Type}	&	\bf{Description} \\ \hline
+				System Time							&	Timestamp			&	A Record each minute that the master is
+				available
+				\\
+				\hline 
+				Transaction ID							&	long			&	The transaction id for demarcation for that
+				timestamp
+				\\
+				\hline 
+
+	\end{tabular}
+\end{center}
+
+\subsubsection{HFile Governance Compaction}
+
+The governance of HFiles during compaction (putting multiple files together to
+become a single file to reduce I/O needs) will need be strictly monitored. 
+Whenever a compaction file has a file where a file set meets the following
+criteria
+
+
+\begin{enumerate}
+	\item one file has a maximum timestamp that is
+greater then the timestamp of the last full or incremental backup ($T_{max} >
+T_{lastBackup}$) 
+	\item one file has a maximum timestamp that is
+less or equal to the timestamp of the last full or incremental backup
+($T_{max} <= T_{lastBackup}$)
+	\end{enumerate}
+
+The files that correspond to $T_{max} >
+T_{lastBackup}$ will need to be recorded into the $RECOVERY.FILESET$ table
+outlined below.
+
+\begin{center}
+\begin{tabular}{|l|c|p{5cm}|}
+				\hline
+				\bf{Column}							&	\bf{Data Type}	&	\bf{Description} \\ \hline
+				Last Backup ID							&	long			&	The last backup identifier				
+				\\
+				\hline 
+				Conglomerate ID							&	integer			&	The table conglomerate number				
+				\\
+				\hline 
+				Region Name							&	varchar(1024)			&	The last backup identifier				
+				\\
+				\hline 
+				File Path							&	varchar(1024)			&	The file path to 				
+				\\
+				\hline 
+
+	\end{tabular}
+\end{center}
+
+\subsubsection{HFile Governance Region Splits}
+
+During a region split, each file needs to be transactionally deleted from the
+$RECOVERY.FILESET$ table, archived files physically split, and new
+entries recorded into the $RECOVERY.FILESET$ table.
+
+\subsection{Point in Time Full Backup (Hot)}
+
+To perform a full backup,
+
+\begin{lstlisting}[frame=single,captionpos=b,language=SQL,caption=Procedure to
+Perform a Full Backup] 
+backup database full Filesystem;
+\end{lstlisting}
+
+\begin{enumerate}
+	\item Capture backup timestamp $T_{backup}$ and verify no active backups
+	running.
+	\item Write Backup Record to Splice Backup Table with current system timestamp
+	and flag set to full backup.
+	\item Submit CreateFullBackupJob into the backup scheduling tier
+	\begin{enumerate}
+	\item Obtain region info for all tables in Splice Machine
+	\item Submit CreateFullBackupTask to each region in the backup resource queue
+	\begin{enumerate}
+	\item Perform synchonous region flush 
+	\item Perform a Start Region Operation (Read Lock)
+	\item Validate Begin and End Keys for task are correct for each region, if not
+	fail the task for resubmission to new split regions
+	\item Capture the set of Data Files for each Region
+	\item Copy those files and a meta file capturing the region splits to the
+	external filesystem supplied (HDFS, scp, etc.)
+	\item Generate checksum
+	\item Finish Region Operation
+	\item Complete Task
+	\end{enumerate}
+	\item On Failure, retry.
+	\item After all complete, finish the job
+	\end{enumerate}
+	\item Mark the backup as complete
+\end{enumerate}
+
+
+\subsection{Point in Time Incremental Backup (Hot)}
+
+To perform an incremental backup,
+	
+\begin{lstlisting}[frame=single,captionpos=b,language=SQL,caption=Procedure to
+Perform an Incremental Backup] 
+backup database incremental Filesystem;
+\end{lstlisting}
+
+\begin{enumerate}
+	\item Capture backup timestamp $T_{backup}$, last backup timestamp
+	$T_{lastBackup}$ and verify no active backups running.
+	\item Write Backup Record to Splice Backup Table with current system timestamp
+	and flag set to incremental backup.
+	\item Submit CreateIncrementalBackupJob into the backup scheduling tier
+	\begin{enumerate}
+	\item Obtain region info for all tables in Splice Machine that have writes
+	after the last backup time ($T_{lastRegionWrite}$ > $T_{lastBackup}$)
+	\item Submit CreateIncrementalBackupTask to each region in the backup resource
+	queue
+	\begin{enumerate}
+	\item Perform synchonous region flush 
+	\item Perform a Start Region Operation (Read Lock)
+	\item Validate Begin and End Keys for task are correct for each region, if not
+	fail the task for resubmission to new split regions
+	\item Capture the set of Data Files for each Region that fit the following
+	criteria.
+	\begin{enumerate}
+	\item The Store Files minimum and maximum timestamp both occur after the last
+	backups timestamp ($T_{lastStoreFileWrite}$ > $T_{firstStoreFileWrite}$ >
+	$T_{lastBackup}$)
+	\item Files existing in the $RECOVERY.FILESET$ table.
+	\end{enumerate}
+	\item Copy those files and a meta file capturing the region splits to the
+	external filesystem supplied (HDFS, scp, etc.)
+	\item Generate checksum
+	\item Finish Region Operation
+	\item Complete Task
+	\end{enumerate}
+	\item On Failure, retry.
+	\item After all complete, finish the job
+	\end{enumerate}
+	\item Mark the backup as complete
+\end{enumerate}
+
+\subsection{Splice Machine Flashback Design}
+Splice Machine's flashback capabilty
+
+\subsubsection{Database Flashback}
+
+\begin{lstlisting}[frame=single,captionpos=b,language=SQL,caption=Procedure to
+Perform a Database Flashback] 
+flashback database timestamp;
+\end{lstlisting}
+
+\begin{enumerate}
+	\item Capture the first transaction ID after that timestamp from the
+	${RECOVERY.SYSTEMTIME}$ table.
+	\item Block all future tasks, kill all tasks executing and pending.
+	\item 
+\end{enumerate}
+
+\subsubsection{Table Flashback}
+
+\subsubsection{Drop Flashback}
+
+\subsubsection{Transaction Flashback}
+
+\subsubsection{Transaction Query Flashback}
+
+\subsubsection{Query Flashback}
+
+\subsubsection{Query Versions Flashback}
+
+\subsubsection{Query Versions Flashback}
+
+\subsubsection{Audit Trail Flashback}
+
+\section{Splice Machine Replication Design}
+
+%End Backup Chapter

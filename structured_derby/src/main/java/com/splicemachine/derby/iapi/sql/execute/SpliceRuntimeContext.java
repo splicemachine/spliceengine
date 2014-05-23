@@ -137,6 +137,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
         }
         out.writeByte(hashBucket);
         out.writeBoolean(firstStepInMultistep);
+				out.writeBoolean(recordTraceMetrics);
     }
 
     @Override
@@ -148,6 +149,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
         }
         hashBucket = in.readByte();
         firstStepInMultistep = in.readBoolean();
+				this.recordTraceMetrics = in.readBoolean();
     }
 
 
@@ -172,7 +174,13 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		@Override
 		public Timer newTimer(){
 				if(!recordTraceMetrics) return Metrics.noOpTimer();
-				return Metrics.samplingTimer(SpliceConstants.sampleTimingSize);
+				return Metrics.newTimer();
+		}
+
+		@Override
+		public Timer newWallTimer() {
+				if(!recordTraceMetrics) return Metrics.noOpTimer();
+				return Metrics.newWallTimer();
 		}
 
 		@Override

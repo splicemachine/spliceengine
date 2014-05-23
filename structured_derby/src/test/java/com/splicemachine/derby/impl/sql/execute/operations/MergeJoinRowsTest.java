@@ -2,11 +2,12 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.StandardIterators;
+
 import org.junit.Assert;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.SQLVarchar;
+import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Test;
 
@@ -60,7 +61,7 @@ public class MergeJoinRowsTest {
         IJoinRowsIterator<ExecRow> pairs =
                 new MergeJoinRows(
                         StandardIterators.wrap(Lists.transform(leftRowStrings, toRow)),
-                        StandardIterators.wrap(Lists.transform(rightRowStrings, toRow)),
+                        StandardIterators.noIO(Lists.transform(rightRowStrings, toRow)),
                         new int[]{1},
                         new int[]{1});
         Pair<ExecRow,Iterator<ExecRow>> p;
@@ -74,7 +75,7 @@ public class MergeJoinRowsTest {
         IJoinRowsIterator<ExecRow> pairs =
                 new MergeJoinRows(
                         StandardIterators.wrap(Lists.transform(leftRowStrings, toRow)),
-                        StandardIterators.wrap(Lists.transform(rightRowStrings, toRow)),
+                        StandardIterators.noIO(Lists.transform(rightRowStrings, toRow)),
                         new int[]{1},
                         new int[]{1});
         int pos = 0;

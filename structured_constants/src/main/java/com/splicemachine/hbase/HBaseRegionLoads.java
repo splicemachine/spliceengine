@@ -107,13 +107,12 @@ public class HBaseRegionLoads {
 
     // Fetching
 
-    private static String tableForRegion(byte[] regionName){
-        String name = Bytes.toString(regionName);
-        int comma = name.indexOf(",");
+    private static String tableForRegion(String regionName){
+        int comma = regionName.indexOf(",");
         if (comma > -1) {
-            return name.substring(0,comma);
+            return regionName.substring(0,comma);
         }
-        return name;
+        return regionName;
     }
 
     private static HBaseAdmin getAdmin() {
@@ -152,10 +151,11 @@ public class HBaseRegionLoads {
                 final ServerLoad serverLoad = clusterStatus.getLoad(serverName);
 
                 for (Map.Entry<byte[], RegionLoad> entry : serverLoad.getRegionsLoad().entrySet()) {
-                    String tableName = tableForRegion(entry.getKey());
+                    String regionName = Bytes.toString(entry.getKey());
+                    String tableName = tableForRegion(regionName);
                     Map<String,RegionLoad> loads =
                         Misc.lookupOrDefault(regionLoads, tableName, newMap);
-                    loads.put(Bytes.toString(entry.getKey()), entry.getValue());
+                    loads.put(regionName, entry.getValue());
                 }
             }
         } catch (IOException e) {

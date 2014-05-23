@@ -85,7 +85,34 @@ public class HDataLib implements SDataLib<Mutation, Put, Delete, Get, Scan> {
         throw new RuntimeException("unsupported type conversion: " + type.getName());
     }
 
-	@Override
+		@SuppressWarnings("unchecked")
+		@Override
+		public <T> T decode(byte[] value, int offset, int length,Class<T> type) {
+				if (value == null) {
+						return null;
+				}
+				if (type.equals(Boolean.class)) {
+						return (T)(Boolean)BytesUtil.toBoolean(value,offset);
+				} else if (type.equals(Short.class)) {
+						return (T)(Short)Bytes.toShort(value,offset);
+				} else if (type.equals(Integer.class)) {
+						if(length<4) return (T)new Integer(-1);
+						return (T)(Integer)Bytes.toInt(value,offset);
+				} else if (type.equals(Long.class)) {
+						return (T)(Long)Bytes.toLong(value,offset);
+				} else if (type.equals(Byte.class)) {
+						if (length > 0) {
+								return (T)(Byte)value[offset];
+						} else {
+								return null;
+						}
+				} else if (type.equals(String.class)) {
+						return (T)Bytes.toString(value,offset,length);
+				}
+				throw new RuntimeException("unsupported type conversion: " + type.getName());
+		}
+
+		@Override
     public void addKeyValueToPut(Put put, byte[] family, byte[] qualifier, long timestamp, byte[] value) {
         if (timestamp <0) {
             put.add(family, qualifier, value);

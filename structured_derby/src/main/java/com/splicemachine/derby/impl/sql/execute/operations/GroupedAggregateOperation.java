@@ -144,12 +144,13 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
 						return new DistributedClientScanProvider("groupedAggregateReduce",SpliceConstants.TEMP_TABLE_BYTES,reduceScan,decoder, spliceRuntimeContext);
 				}else{
+						startExecutionTime = System.currentTimeMillis();
 						return RowProviders.openedSourceProvider(top,LOG,spliceRuntimeContext);
 				}
 		}
 
 		private void buildReduceScan() throws StandardException {
-                try {
+				try {
 						reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
@@ -362,9 +363,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						aggregator = new ScanGroupedAggregateIterator(buffer,sourceIterator,encoder,groupingKeys,false);
 						aggregator.open();
 						timer = spliceRuntimeContext.newTimer();
+						timer.startTiming();
 				}
 				boolean shouldClose = true;
-				timer.startTiming();
 				try{
 						GroupedRow row = aggregator.next(spliceRuntimeContext);
 						if(row==null){
@@ -380,11 +381,11 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						ExecRow execRow = row.getRow();
 						setCurrentRow(execRow);
 
-						timer.tick(1);
 						return execRow;
 				}finally{
 						if(shouldClose) {
-							aggregator.close();
+								timer.tick(aggregator.getRowsRead());
+								aggregator.close();
 						}
 				}
 		}
@@ -418,7 +419,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,remoteReadTime.getWallClockTime());
 						stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,remoteReadTime.getCpuTime());
 						stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,remoteReadTime.getUserTime());
-
+				}else{
 						stats.addMetric(OperationMetric.INPUT_ROWS,aggregator.getRowsRead());
 				}
 		}

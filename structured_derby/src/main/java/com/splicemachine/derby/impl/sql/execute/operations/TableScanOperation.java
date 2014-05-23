@@ -14,6 +14,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -26,8 +27,12 @@ import com.splicemachine.derby.utils.marshall.NoOpPostfix;
 import com.splicemachine.derby.utils.marshall.NoOpPrefix;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.SuppliedDataHash;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.stats.TimeView;
+import com.splicemachine.tools.splice;
 import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -141,6 +146,10 @@ public class TableScanOperation extends ScanOperation {
         this.slice = ByteSlice.empty();
         this.startExecutionTime = System.currentTimeMillis();
         this.scan = context.getScan();
+
+        //start reading rows
+        if(regionScanner!=null)
+           regionScanner.start();
     }
 
     @Override
@@ -174,6 +183,7 @@ public class TableScanOperation extends ScanOperation {
                 return generator.nextBytes();
             }
         });
+
 //				columnOrdering = scanInformation.getColumnOrdering();
 //
 //				if(columnOrdering != null && columnOrdering.length > 0) {
@@ -222,85 +232,86 @@ public class TableScanOperation extends ScanOperation {
         return new KeyEncoder(NoOpPrefix.INSTANCE, hash, NoOpPostfix.INSTANCE);
     }
 
-    @Override
-    public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        columnOrdering = scanInformation.getColumnOrdering();
-        ExecRow defnRow = getExecRowDefinition();
-//				int [] cols = getDecodingColumns(defnRow.nColumns());
-        com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer[] serializers = com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers.latestVersion(false).getSerializers(defnRow);
-        return BareKeyHash.encoder(com.splicemachine.utils.IntArrays.count(defnRow.nColumns()), null, serializers);
-    }
 
-    @Override
-    public List<NodeType> getNodeTypes() {
-        return nodeTypes;
-    }
+		@Override
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+                columnOrdering = scanInformation.getColumnOrdering();
+				ExecRow defnRow = getExecRowDefinition();
+				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(defnRow);
+				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null,serializers);
+		}
 
-    @Override
-    public ExecRow getExecRowDefinition() {
-        return currentTemplate;
-    }
+		@Override
+		public List<NodeType> getNodeTypes() {
+				return nodeTypes;
+		}
 
-    @Override
-    public String prettyPrint(int indentLevel) {
-        return "Table" + super.prettyPrint(indentLevel);
-    }
+		@Override
+		public ExecRow getExecRowDefinition() {
+				return currentTemplate;
+		}
 
-    @Override
-    protected int getNumMetrics() {
-        return 5;
-    }
+		@Override
+		public String prettyPrint(int indentLevel) {
+				return "Table"+super.prettyPrint(indentLevel);
+		}
 
-    @Override
-    protected void updateStats(OperationRuntimeStats stats) {
-        if (regionScanner != null) {
-            stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS, regionScanner.getRowsVisited());
-            stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES, regionScanner.getBytesVisited());
-            TimeView readTimer = regionScanner.getReadTime();
-            stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME, readTimer.getCpuTime());
-            stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME, readTimer.getUserTime());
-            stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME, readTimer.getWallClockTime());
-        }
-        if (tableScanner != null) {
-            stats.addMetric(OperationMetric.FILTERED_ROWS, tableScanner.getRowsFiltered());
-            stats.addMetric(OperationMetric.OUTPUT_ROWS, tableScanner.getRowsVisited());
-        }
-    }
+		@Override protected int getNumMetrics() { return 5; }
 
-    @Override
-    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        if (tableScanner == null) {
-            tableScanner = new com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder()
-                    .scanner(regionScanner)
-                    .transactionID(transactionID)
-                    .metricFactory(spliceRuntimeContext)
-                    .scan(scan)
-                    .template(currentRow)
-                    .tableVersion(scanInformation.getTableVersion())
-                    .indexName(indexName)
-                    .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
-                    .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
-                    .keyColumnTypes(getKeyFormatIds())
-                    .accessedKeyColumns(scanInformation.getAccessedPkColumns())
-                    .keyDecodingMap(getKeyDecodingMap())
-                    .rowDecodingMap(baseColumnMap).build();
-        }
+		@Override
+		protected void updateStats(OperationRuntimeStats stats) {
+				if(tableScanner!=null){
+						stats.addMetric(OperationMetric.FILTERED_ROWS,tableScanner.getRowsFiltered());
+						stats.addMetric(OperationMetric.OUTPUT_ROWS,tableScanner.getRowsVisited()-tableScanner.getRowsFiltered());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,tableScanner.getRowsVisited());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,tableScanner.getBytesVisited());
+						TimeView time = tableScanner.getTime();
+						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME, time.getWallClockTime());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME, time.getCpuTime());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME, time.getUserTime());
+				}
+		}
 
-        currentRow = tableScanner.next(spliceRuntimeContext);
-        if (currentRow != null) {
-            setCurrentRow(currentRow);
-            setCurrentRowLocation(tableScanner.getCurrentRowLocation());
-        } else {
-            clearCurrentRow();
-            currentRowLocation = null;
-        }
+		@Override
+		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException {
+				if(tableScanner==null){
+						tableScanner = new TableScannerBuilder()
+										.scanner(regionScanner)
+										.transactionID(transactionID)
+										.metricFactory(spliceRuntimeContext)
+										.scan(scan)
+										.template(currentRow)
+										.tableVersion(scanInformation.getTableVersion())
+										.indexName(indexName)
+										.keyColumnEncodingOrder(scanInformation.getColumnOrdering())
+										.keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
+										.keyColumnTypes(getKeyFormatIds())
+										.accessedKeyColumns(scanInformation.getAccessedPkColumns())
+										.keyDecodingMap(getKeyDecodingMap())
+										.rowDecodingMap(baseColumnMap).build();
+						timer = spliceRuntimeContext.newTimer();
+				}
 
-        return currentRow;
-    }
+				timer.startTiming();
+				currentRow = tableScanner.next(spliceRuntimeContext);
+				if(currentRow!=null){
+						timer.tick(1);
+						setCurrentRow(currentRow);
+						setCurrentRowLocation(tableScanner.getCurrentRowLocation());
+				}else{
+						timer.stopTiming();
+						clearCurrentRow();
+						stopExecutionTime = System.currentTimeMillis();
+						currentRowLocation = null;
+				}
 
-    protected void setRowLocation(org.apache.hadoop.hbase.Cell sampleKv) throws StandardException {
-        if (indexName != null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID) {
-                     /*
+				return currentRow;
+		}
+
+
+		protected void setRowLocation(org.apache.hadoop.hbase.Cell sampleKv) throws StandardException {
+				if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
+                 /*
 						* If indexName !=null, then we are currently scanning an index,
 						* so our RowLocation should point to the main table, and not to the
 						* index (that we're actually scanning)

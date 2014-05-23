@@ -23,15 +23,17 @@ public interface SDataLib<Mutation extends OperationWithAttributes,
 
     <T> T decode(byte[] value, Class<T> type);
 
-    List<Cell> listResult(Result result);
+    <T> T decode(byte[] value, int offset,int length, Class<T> type);
 
-    Put newPut(byte[] key);
+    List<Cell> listResult(Result result);
 
     void addKeyValueToPut(Put put, byte[] family, byte[] qualifier, long timestamp, byte[] value);
 
     Iterable<Cell> listPut(Put put);
 
     byte[] getPutKey(Put put);
+
+    Put newPut(byte[] key);
 
     Put newPut(byte[] key, SRowLock lock);
 

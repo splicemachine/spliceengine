@@ -1,11 +1,12 @@
 package com.splicemachine.derby.impl.load;
 
 import java.sql.Types;
+
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLDate;
+import org.apache.derby.impl.sql.execute.ValueRow;
 import org.junit.Test;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
 
 public class RowParserDateTimeOverflowTest {
 	@Test(expected=Exception.class)

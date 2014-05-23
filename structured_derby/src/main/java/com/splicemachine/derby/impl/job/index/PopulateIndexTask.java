@@ -24,6 +24,8 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.hbase.ReadAheadRegionScanner;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.hbase.writer.WriteStats;
@@ -185,7 +187,8 @@ public class PopulateIndexTask extends ZkTask {
             RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
             if (sourceScanner == null)
                 sourceScanner = region.getScanner(regionScan);
-            BufferedRegionScanner brs = new BufferedRegionScanner(region, sourceScanner, regionScan, SpliceConstants.DEFAULT_CACHE_SIZE, metricFactory);
+            MeasuredRegionScanner brs = SpliceConstants.useReadAheadScanner? new ReadAheadRegionScanner(region, SpliceConstants.DEFAULT_CACHE_SIZE, sourceScanner,metricFactory)
+               : new BufferedRegionScanner(region,sourceScanner,regionScan,SpliceConstants.DEFAULT_CACHE_SIZE,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory);
             RecordingCallBuffer<KVPair> writeBuffer = null;
             try {
                 List<Cell> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
@@ -194,7 +197,6 @@ public class PopulateIndexTask extends ZkTask {
                 java.util.Arrays.fill(ascDescInfo, true);
                 for (int i = descColumns.nextSetBit(0); i >= 0; i = descColumns.nextSetBit(i + 1))
                     ascDescInfo[i] = false;
-
                 int[] keyEncodingMap = new int[format_ids.length];
                 java.util.Arrays.fill(keyEncodingMap, -1);
                 for (int i = indexedColumns.nextSetBit(0); i >= 0; i = indexedColumns.nextSetBit(i + 1)) {
@@ -241,12 +243,11 @@ public class PopulateIndexTask extends ZkTask {
         }
     }
 
-    protected void reportStats(long startTime, BufferedRegionScanner brs, RecordingCallBuffer<KVPair> writeBuffer, TimeView manipulationTime) {
+    protected void reportStats(long startTime, MeasuredRegionScanner brs, RecordingCallBuffer<KVPair> writeBuffer, TimeView manipulationTime) {
         if (xplainSchema != null) {
             //record some stats
             OperationRuntimeStats stats = new OperationRuntimeStats(statementId, operationId, Bytes.toLong(taskId), region.getRegionNameAsString(), 12);
             stats.addMetric(OperationMetric.STOP_TIMESTAMP, System.currentTimeMillis());
-
             WriteStats writeStats = writeBuffer.getWriteStats();
             TimeView readTime = brs.getReadTime();
             stats.addMetric(OperationMetric.START_TIMESTAMP, startTime);

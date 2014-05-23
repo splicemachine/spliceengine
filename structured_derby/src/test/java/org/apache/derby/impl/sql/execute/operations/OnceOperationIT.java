@@ -3,6 +3,7 @@ package org.apache.derby.impl.sql.execute.operations;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -82,7 +83,10 @@ public class OnceOperationIT extends SpliceUnitTest {
 		} catch (SQLException t) {
             t.printStackTrace();
             Assert.assertEquals("Incorrect SQLState returned","08006",t.getSQLState());
-            Assert.assertTrue("Incorrect SQLState buried way down in there",t.getLocalizedMessage().contains("\"severity\":20000,\"sqlState\":\"21000\",\"messageId\":\"21000\""));
+            //String msg = "\"severity\":20000,\"textMessage\":\"Scalar subquery is only allowed to return a single row.\",\"sqlState\":\"21000\",\"messageId\":\"21000\"";
+            String msg = "\"messageId\":\"21000\"";
+            Assert.assertTrue("Incorrect SQLState buried way down in there",
+                                 t.getLocalizedMessage().contains(msg));
             throw t;
 		}
 	}

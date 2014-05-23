@@ -1,0 +1,33 @@
+\documentclass[10pt]{amsart}
+\usepackage[top=1.5in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
+
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{fancybox}
+\usepackage{tikz}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{exmp}{Example}[section]
+
+\begin{document}
+\title{Recovery, Flashback, and Replication in Splice Machine }
+\author{John Leach}
+
+\begin{abstract}
+This document serves as a reference architecture for Recovery and Replication in
+SpliceMachine.  It is \emph{not} a
+code reference for Recover and Replication; this document focuses solely on
+design and architecture.
+\end{abstract}
+
+\maketitle
+
+\input{Backup}
+
+\end{document}
+

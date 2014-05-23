@@ -7,6 +7,8 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
+import com.splicemachine.stats.IOStats;
+import com.splicemachine.stats.Metrics;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -130,6 +132,11 @@ public class MiscOperation extends NoRowsOperation
 				@Override
 				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
 					//TODO -sf- is a no-op correct here?
+				}
+
+				@Override
+				public IOStats getIOStats() {
+						return Metrics.noOpIOStats();
 				}
 		};
 
