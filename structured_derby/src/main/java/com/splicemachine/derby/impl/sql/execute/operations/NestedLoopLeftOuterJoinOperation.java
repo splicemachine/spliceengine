@@ -113,7 +113,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 		private class NestedLoopLeftOuterIterator extends NestedLoopIterator{
 				private boolean seenRow = false;
 
-				NestedLoopLeftOuterIterator(ExecRow leftRow, boolean hash,SpliceRuntimeContext context) throws StandardException {
+				NestedLoopLeftOuterIterator(ExecRow leftRow, boolean hash,SpliceRuntimeContext context) throws StandardException, IOException {
 						super(leftRow, hash, true, rightResultSetUniqueSequenceID, context);
 				}
 

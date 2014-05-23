@@ -28,7 +28,6 @@ import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.metrics.IOStats;
-import com.splicemachine.metrics.Metrics;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
