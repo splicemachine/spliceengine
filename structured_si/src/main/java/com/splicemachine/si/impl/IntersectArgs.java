@@ -13,26 +13,4 @@ public class IntersectArgs {
         this.transaction1 = transaction1;
         this.transaction2 = transaction2;
     }
-
-    @Override
-    public boolean equals(Object o)
-    {
-        if (this == o) return true;
-
-        IntersectArgs that = (IntersectArgs) o;
-
-        if (transaction1.getLongTransactionId() != that.transaction1.getLongTransactionId()) return false;
-        if (transaction2.getLongTransactionId() != that.transaction2.getLongTransactionId()) return false;
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-    	long x = transaction1.getLongTransactionId();
-    	long y = transaction2.getLongTransactionId();
-        int result = (int) (x ^ (x >>> 32));
-        result = 31 * result + (int) (y ^ (y >>> 32));
-        return result;
-    }
-    
 }
