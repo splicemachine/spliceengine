@@ -200,7 +200,7 @@ public class BroadcastJoinOperation extends JoinOperation {
     private void submitRightHandSideLookup(final SpliceRuntimeContext ctx) {
         if (rhsFuture != null) return;
 
-        rhsFuture = rhsLookupService.submit(new RightHandLoader(ctx));
+        rhsFuture = rhsLookupService.submit(new RightHandLoader(ctx, rightRow.getClone()));
     }
 
     @Override
@@ -300,13 +300,15 @@ public class BroadcastJoinOperation extends JoinOperation {
 
     private class RightHandLoader implements Callable<Map<ByteBuffer, List<ExecRow>>> {
         private final SpliceRuntimeContext runtimeContext;
+        private final ExecRow rightTemplate;
 
         private Counter rightRowCounter;
         private Timer timer;
         private long rightBytes = 0l;
 
-        private RightHandLoader(SpliceRuntimeContext runtimeContext) {
+        private RightHandLoader(SpliceRuntimeContext runtimeContext, ExecRow rightTemplate) {
             this.runtimeContext = runtimeContext;
+            this.rightTemplate = rightTemplate;
         }
 
         @Override
@@ -346,23 +348,24 @@ public class BroadcastJoinOperation extends JoinOperation {
             rightRowCounter = runtimeContext.newCounter();
             SpliceNoPutResultSet resultSet = rightResultSet.executeScan(runtimeContext);
             resultSet.openCore();
-            DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(rightRow);
+            DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(rightTemplate);
             KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE,
                                                       BareKeyHash.encoder(rightHashKeys, null, serializers),
                                                       NoOpPostfix.INSTANCE
             );
 
-            while ((rightRow = resultSet.getNextRowCore()) != null) {
+            ExecRow right;
+            while ((right = resultSet.getNextRowCore()) != null) {
                 rightRowCounter.add(1l);
-                hashKey = ByteBuffer.wrap(keyEncoder.getKey(rightRow));
+                hashKey = ByteBuffer.wrap(keyEncoder.getKey(right));
                 if ((rows = cache.get(hashKey)) != null) {
                     // Only add additional row for same hash if we need it
                     if (!oneRowRightSide) {
-                        rows.add(rightRow.getClone());
+                        rows.add(right.getClone());
                     }
                 } else {
                     rows = Lists.newArrayListWithExpectedSize(1);
-                    rows.add(rightRow.getClone());
+                    rows.add(right.getClone());
                     cache.put(hashKey, rows);
                 }
             }
