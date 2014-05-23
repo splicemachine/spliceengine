@@ -9,11 +9,10 @@ import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.SameThreadExecutorService;
 import com.splicemachine.derby.iapi.sql.execute.*;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
@@ -229,6 +228,7 @@ public class BroadcastJoinOperation extends JoinOperation {
 
     @Override
     protected void updateStats(OperationRuntimeStats stats) {
+        // TODO: jyuan -- fix statistics after merging
         if (timer == null) return;
         long left = leftCounter.getTotal();
         stats.addMetric(OperationMetric.INPUT_ROWS, left);
@@ -237,6 +237,15 @@ public class BroadcastJoinOperation extends JoinOperation {
         stats.addMetric(OperationMetric.TOTAL_WALL_TIME, time.getWallClockTime());
         stats.addMetric(OperationMetric.TOTAL_CPU_TIME, time.getCpuTime());
         stats.addMetric(OperationMetric.TOTAL_USER_TIME, time.getUserTime());
+        //long right = rightCounter.getTotal();
+        //stats.addMetric(OperationMetric.FILTERED_ROWS, left * right - timer.getNumEvents());
+        //stats.addMetric(OperationMetric.INPUT_ROWS, left + right);
+        //stats.addMetric(OperationMetric.INPUT_ROWS, left);
+        //stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME, remoteScanWallTime);
+        //stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME, remoteScanCpuTime);
+        //stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME, remoteScanUserTime);
+        //stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS, rowsSeenRight);
+        //stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,bytesReadRight);
 
         TimeView remoteTime = rightHandTimer.getTime();
         stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS, rightHandTimer.getRows());
@@ -282,6 +291,7 @@ public class BroadcastJoinOperation extends JoinOperation {
                     return loadRightSide(runtimeContext);
                 }
             });
+
 
             if (rightRowCounter == null) {
                 rightRowCounter = runtimeContext.newCounter();
@@ -359,7 +369,6 @@ public class BroadcastJoinOperation extends JoinOperation {
                 }
             }
             return Collections.unmodifiableMap(cache);
-
         }
     }
 
