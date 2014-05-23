@@ -123,4 +123,19 @@ public class MultiProbeClientScanProvider extends AbstractMultiScanProvider {
 		public IOStats getIOStats() {
 				return new BaseIOStats(scanner.getRemoteReadTime(),scanner.getRemoteBytesRead(),scanner.getRemoteRowsRead());
 		}
+
+        @Override
+        public TimeView getRemoteReadTime() {
+            return scanner.getRemoteReadTime();
+        }
+
+        @Override
+        public long getRemoteBytesRead() {
+            return scanner.getRemoteBytesRead();
+        }
+
+        @Override
+        public long getRemoteRowsRead() {
+            return scanner.getRemoteRowsRead();
+        }
 }

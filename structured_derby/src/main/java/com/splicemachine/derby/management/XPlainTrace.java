@@ -3,7 +3,6 @@ package com.splicemachine.derby.management;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.impl.sql.catalog.SpliceXplainUtils;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.ResultSet;
@@ -14,7 +13,6 @@ import java.util.Set;
 import java.util.Deque;
 import java.util.List;
 import java.util.NavigableMap;
-import java.util.ArrayList;
 
 /**
  * Created by jyuan on 5/8/14.
@@ -57,6 +55,7 @@ public class XPlainTrace {
 
         try {
             if (!populateTreeNodeMap()) return null;
+
             constructOperationTree();
 
             populateMetrics();
@@ -205,7 +204,6 @@ public class XPlainTrace {
                 }
                 node.setAttributes(rs);
             }
-
         }
 
         rs.close();

@@ -116,5 +116,4 @@ public class ClientScanProvider extends AbstractScanProvider {
 		public IOStats getIOStats() {
 				return new BaseIOStats(scanner.getRemoteReadTime(),scanner.getRemoteBytesRead(),scanner.getRemoteRowsRead());
 		}
-
 }

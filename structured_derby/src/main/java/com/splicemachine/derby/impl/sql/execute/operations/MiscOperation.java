@@ -5,10 +5,10 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.stats.Metrics;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.metrics.IOStats;
-import com.splicemachine.metrics.Metrics;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -138,6 +138,7 @@ public class MiscOperation extends NoRowsOperation
 				public IOStats getIOStats() {
 						return Metrics.noOpIOStats();
 				}
+
 		};
 
 		@Override

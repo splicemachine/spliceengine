@@ -72,6 +72,14 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         this.topOperation = topOperation;
     }
 
+    public void setParentOperationID(byte[] parentOperationID) {
+        this.parentOperationID = Bytes.toLong(parentOperationID);
+    }
+
+    public void setStatementId(long statementId) {
+        this.statementId = statementId;
+    }
+
     public SpliceOperation getTopOperation() {
         return topOperation;
     }
@@ -576,4 +584,5 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 		this.activation = activation;
 		topOperation.setActivation(activation);
 	}
+
 }
