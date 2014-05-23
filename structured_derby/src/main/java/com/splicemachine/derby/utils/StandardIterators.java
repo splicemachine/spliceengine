@@ -9,6 +9,13 @@ import com.splicemachine.metrics.Metrics;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import com.splicemachine.stats.Metrics;
+import com.splicemachine.stats.TimeView;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -23,19 +30,15 @@ public class StandardIterators {
     private StandardIterators() {
     }
 
-    public static <T> StandardIterator<T> wrap(Iterable<T> data) {
+    public static <T> MeasuredStandardIterator<T> wrap(Iterable<T> data){
         return new IteratorStandardIterator<T>(data.iterator());
     }
 
-    public static <T> IOStandardIterator<T> noIO(Iterable<T> data) {
-        return new IteratorStandardIterator<T>(data.iterator());
-    }
-
-    public static StandardIterator<ExecRow> wrap(SpliceOperation op) {
+    public static MeasuredStandardIterator<ExecRow> wrap(SpliceOperation op) {
         return new SpliceOpStandardIterator(op);
     }
 
-    public static StandardIterator<ExecRow> wrap(NoPutResultSet NPRS) {
+    public static MeasuredStandardIterator<ExecRow> wrap(SpliceNoPutResultSet NPRS){
         return new ResultSetStandardIterator(NPRS);
     }
 
@@ -47,11 +50,7 @@ public class StandardIterators {
         return new CallableStandardIterator<T>(callable, c);
     }
 
-    public static IOStandardIterator<ExecRow> ioIterator(SpliceNoPutResultSet resultSet) {
-        return new SpliceResultSetStandardIterator(resultSet);
-    }
-
-    private static class IteratorStandardIterator<T> implements IOStandardIterator<T> {
+    private static class IteratorStandardIterator<T> implements MeasuredStandardIterator<T>{
         private final Iterator<T> delegate;
 
         private IteratorStandardIterator(Iterator<T> delegate) {
@@ -76,12 +75,22 @@ public class StandardIterators {
         }
 
         @Override
-        public IOStats getStats() {
-            return Metrics.noOpIOStats();
+        public TimeView getRemoteReadTime() {
+            return Metrics.noOpTimeView();
+        }
+
+        @Override
+        public long getRemoteBytesRead(){
+            return 0;
+        }
+
+        @Override
+        public long getRemoteRowsRead(){
+            return 0;
         }
     }
 
-    private static class SpliceOpStandardIterator implements StandardIterator<ExecRow> {
+    private static class SpliceOpStandardIterator implements MeasuredStandardIterator<ExecRow> {
         private final SpliceOperation op;
 
         private SpliceOpStandardIterator(SpliceOperation op) {
@@ -103,9 +112,24 @@ public class StandardIterators {
         public void close() throws StandardException, IOException {
             op.close();
         }
+
+        @Override
+        public TimeView getRemoteReadTime() {
+            return Metrics.noOpTimeView();
+        };
+
+        @Override
+        public long getRemoteBytesRead(){
+            return 0;
+        };
+
+        @Override
+        public long getRemoteRowsRead(){
+            return 0;
+        };
     }
 
-    private static class SpliceResultSetStandardIterator implements IOStandardIterator<ExecRow> {
+    private static class SpliceResultSetStandardIterator implements MeasuredStandardIterator<ExecRow> {
         private final SpliceNoPutResultSet noPut;
 
         private SpliceResultSetStandardIterator(SpliceNoPutResultSet noPut) {
@@ -119,6 +143,11 @@ public class StandardIterators {
         }
 
         @Override
+        public void close() throws StandardException{
+            noPut.close();
+        }
+
+        @Override
         public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws
                                                                        StandardException,
                                                                        IOException {
@@ -126,20 +155,25 @@ public class StandardIterators {
         }
 
         @Override
-        public void close() throws StandardException, IOException {
-            noPut.close();
-        }
+        public TimeView getRemoteReadTime() {
+            return Metrics.noOpTimeView();
+        };
 
         @Override
-        public IOStats getStats() {
-            return noPut.getStats();
-        }
+        public long getRemoteBytesRead(){
+            return 0;
+        };
+
+        @Override
+        public long getRemoteRowsRead(){
+            return 0;
+        };
+
     }
+    private static class ResultSetStandardIterator implements MeasuredStandardIterator<ExecRow>{
+        private final SpliceNoPutResultSet noPut;
 
-    private static class ResultSetStandardIterator implements StandardIterator<ExecRow> {
-        private final NoPutResultSet noPut;
-
-        private ResultSetStandardIterator(NoPutResultSet noPut) {
+        private ResultSetStandardIterator(SpliceNoPutResultSet noPut){
             this.noPut = noPut;
         }
 
@@ -159,6 +193,21 @@ public class StandardIterators {
         @Override
         public void close() throws StandardException, IOException {
             noPut.close();
+        }
+
+        @Override
+        public TimeView getRemoteReadTime() {
+            return noPut.getRemoteReadTime();
+        }
+
+        @Override
+        public long getRemoteBytesRead() {
+            return noPut.getRemoteBytesRead();
+        }
+
+        @Override
+        public long getRemoteRowsRead() {
+            return noPut.getRemoteRowsRead();
         }
     }
 

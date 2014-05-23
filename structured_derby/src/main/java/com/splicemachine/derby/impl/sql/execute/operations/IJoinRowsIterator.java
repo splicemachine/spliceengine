@@ -17,6 +17,5 @@ public interface IJoinRowsIterator<T> extends StandardIterator<Pair<T,Iterator<T
 
     // For debugging: return number of rows processed
     long getLeftRowsSeen();
-
     long getRightRowsSeen();
 }

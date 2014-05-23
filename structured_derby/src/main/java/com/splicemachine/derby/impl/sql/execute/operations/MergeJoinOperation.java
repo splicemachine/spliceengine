@@ -8,11 +8,11 @@ import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.*;
-import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.metrics.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -207,6 +207,8 @@ public class MergeJoinOperation extends JoinOperation {
         stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,remoteView.getUserTime());
         stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,rightSideStats.getRows());
         stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,rightSideStats.getBytes());
+
+        super.updateStats(stats);
         super.updateStats(stats);
     }
 
