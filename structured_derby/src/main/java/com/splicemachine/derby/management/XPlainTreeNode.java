@@ -24,6 +24,8 @@ public class XPlainTreeNode {
     private int rightChild;
     private long statementId;
 
+    @Expose private int iterations;
+
     @Expose private String host;
     @Expose private String region;
 
@@ -92,6 +94,8 @@ public class XPlainTreeNode {
             String name = field.getName().toUpperCase();
             fieldMap.put(name, field);
         }
+
+        iterations = 1;
     }
 
     public void setParentOperationId(long parentOperationId) {
@@ -128,10 +132,6 @@ public class XPlainTreeNode {
 
     public Deque<XPlainTreeNode> getChildren() {
         return children;
-    }
-
-    public void setAttribute(String name, Object value) {
-
     }
 
     public void setAttributes(ResultSet rs) throws SQLException, IllegalAccessException{
@@ -176,4 +176,38 @@ public class XPlainTreeNode {
 
     public int getSequenceId() {return sequenceId;}
 
+    public void aggregate(XPlainTreeNode other) throws IllegalAccessException{
+
+        HashMap<String, Field> otherFieldMap = other.getFieldMap();
+
+        for (Field f:fields) {
+            if (canBeAggregated(f)) {
+                String name = f.getName().toUpperCase();
+                Field otherField = otherFieldMap.get(name);
+
+                long sum = f.getLong(this) + otherField.getLong(other);
+                f.set(this, sum);
+            }
+        }
+        iterations++;
+    }
+
+    private boolean canBeAggregated(Field f) {
+
+        String name = f.getName();
+        String type = f.getType().getCanonicalName();
+        if (type.compareToIgnoreCase("long") != 0) return false;
+
+        return (name.compareToIgnoreCase("parentOperationId") != 0 &&
+                name.compareToIgnoreCase("statementId") != 0 &&
+                name.compareToIgnoreCase("operationId") != 0);
+    }
+
+    public HashMap<String, Field> getFieldMap() {
+        return fieldMap;
+    }
+
+    public String getRegion() {
+        return region;
+    }
 }

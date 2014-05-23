@@ -57,7 +57,11 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "nextRow");
-				if (nestedLoopIterator == null) {
+                if (rightResultSetUniqueSequenceID == null) {
+                    rightResultSetUniqueSequenceID = rightResultSet.getUniqueSequenceID();
+                }
+
+                if (nestedLoopIterator == null) {
 						if ( (leftRow = leftResultSet.nextRow(spliceRuntimeContext)) == null) {
 								mergedRow = null;
 								setCurrentRow(mergedRow);

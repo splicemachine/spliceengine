@@ -6,7 +6,6 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationUtils;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.Exceptions;
@@ -53,6 +52,9 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     private SpliceOperation topOperation;
     private SpliceNoPutResultSet delegate;
     private boolean closed = false;
+    private long parentOperationID = -1l;
+    private long statementId;
+
 		private StatementInfo statementInfo;
 		private long scrollUuid;
 
@@ -65,6 +67,14 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
                               SpliceOperation topOperation){
         this.activation = activation;
         this.topOperation = topOperation;
+    }
+
+    public void setParentOperationID(byte[] parentOperationID) {
+        this.parentOperationID = Bytes.toLong(parentOperationID);
+    }
+
+    public void setStatementId(long statementId) {
+        this.statementId = statementId;
     }
 
     public SpliceOperation getTopOperation() {
@@ -86,13 +96,23 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         String sql = opCtx.getPreparedStatement().getSource();
         String user = activation.getLanguageConnectionContext().getCurrentUserId(activation);
         String txnId = activation.getTransactionController().getActiveStateTxIdString();
-        stmtInfo = new StatementInfo(sql, user, txnId,
-                                                 OperationTree.getNumSinks(topOperation),
-                                                 SpliceDriver.driver().getUUIDGenerator());
+        if (stmtInfo == null) {
+            if (parentOperationID == -1) {
+                stmtInfo = new StatementInfo(sql, user, txnId,
+                        OperationTree.getNumSinks(topOperation),
+                        SpliceDriver.driver().getUUIDGenerator());
+            }
+            else {
+                stmtInfo = new StatementInfo(sql, user, txnId,
+                        OperationTree.getNumSinks(topOperation),
+                        statementId);
+            }
+        }
         List<OperationInfo> operationInfo = getOperationInfo(stmtInfo.getStatementUuid());
         stmtInfo.setOperationInfo(operationInfo);
         topOperation.setStatementId(stmtInfo.getStatementUuid());
         SpliceDriver.driver().getStatementManager().addStatementInfo(stmtInfo);
+
         return stmtInfo;
     }
 
@@ -177,7 +197,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 					 * a "Scroll Insensitive" which returns the final output.
 					 */
 						scrollUuid = SpliceDriver.driver().getUUIDGenerator().nextUUID();
-						OperationInfo opInfo = new OperationInfo(scrollUuid,statementId,"ScrollInsensitive",false,-1l);
+						OperationInfo opInfo = new OperationInfo(scrollUuid,statementId,"ScrollInsensitive",false,parentOperationID);
 						info.add(opInfo);
 				}else{
 						scrollUuid = -1l;
@@ -377,7 +397,8 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 						statementInfo.markCompleted();
 						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
 						boolean explain = xplainSchema !=null &&
-										activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
+                                (activation.getLanguageConnectionContext().getRunTimeStatisticsMode() ||
+                                topOperation.shouldRecordStats());
 						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,
 										explain? xplainSchema: null);
 						statementInfo = null; //remove the field in case we call close twice
@@ -535,5 +556,4 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 		this.activation = activation;
 		topOperation.setActivation(activation);
 	}
-
 }

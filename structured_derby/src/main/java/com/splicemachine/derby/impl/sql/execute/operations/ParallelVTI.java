@@ -65,7 +65,7 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 		}
 
 		@Override
-		public OperationRuntimeStats getMetrics(long statementId, long taskId) {
+		public OperationRuntimeStats getMetrics(long statementId, long taskId, boolean isTopOperation) {
 				throw new UnsupportedOperationException("Statistics are not implemented for "+ this.getClass());
 		}
 

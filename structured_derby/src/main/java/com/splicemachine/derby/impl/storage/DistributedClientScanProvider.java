@@ -58,7 +58,7 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
 				try {
 						return scanner.next();
 				} catch (IOException e) {
-						SpliceLogUtils.logAndThrow(LOG,"Unable to getResult",Exceptions.parseException(e));
+						SpliceLogUtils.logAndThrow(LOG, "Unable to getResult", Exceptions.parseException(e));
 						return null;//won't happen
 				}
 		}
@@ -135,5 +135,4 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
 		public SpliceRuntimeContext getSpliceRuntimeContext() {
 				return spliceRuntimeContext;
 		}
-
 }

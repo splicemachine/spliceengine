@@ -216,7 +216,7 @@ public interface SpliceOperation extends StandardCloseable {
      * @return the metrics recorded by this operation. Return {@code null} if no
      * metrics have been collected.
      */
-    OperationRuntimeStats getMetrics(long statementId,long taskId);
+    OperationRuntimeStats getMetrics(long statementId,long taskId, boolean isTopOperation);
 
     /**
      * @return -1l if no statementId has been set on this operation, or the statement

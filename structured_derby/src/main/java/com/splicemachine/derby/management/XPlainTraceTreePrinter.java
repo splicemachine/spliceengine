@@ -169,10 +169,10 @@ public class XPlainTraceTreePrinter extends XPlainTraceBasePrinter{
                 }
                 else {
                     long l = field.getLong(operation);
-                    if (columnName.endsWith("TIME")) {
+                    /*if (columnName.endsWith("TIME")) {
                         l = l / 1000000;
-                    }
-                    if (l > 0) {
+                    }*/
+                    if (field.getName().compareToIgnoreCase("iterations") != 0 && l > 0 ||  l > 1) {
                         if (first) {
                             first = false;
                         } else {

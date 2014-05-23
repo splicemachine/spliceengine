@@ -219,37 +219,51 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {
-				if(scanner!=null){
-						TimeView localTime = scanner.getLocalReadTime();
-						long localRowsRead = scanner.getLocalRowsRead();
-						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS, localRowsRead);
-						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,scanner.getLocalBytesRead());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,localTime.getWallClockTime());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,localTime.getCpuTime());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,localTime.getUserTime());
+            if (scanner != null) {
+                TimeView localTime = scanner.getLocalReadTime();
+                long localRowsRead = scanner.getLocalRowsRead();
+                stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS, localRowsRead);
+                stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES, scanner.getLocalBytesRead());
+                stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME, localTime.getWallClockTime());
+                stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME, localTime.getCpuTime());
+                stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME, localTime.getUserTime());
 
-						TimeView remoteTime = scanner.getRemoteReadTime();
-						long remoteRowsRead = scanner.getRemoteRowsRead();
-						stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS, remoteRowsRead);
-						stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,scanner.getRemoteBytesRead());
-						stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,remoteTime.getWallClockTime());
-						stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,remoteTime.getCpuTime());
-						stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME, remoteTime.getUserTime());
+                TimeView remoteTime = scanner.getRemoteReadTime();
+                long remoteRowsRead = scanner.getRemoteRowsRead();
+                stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS, remoteRowsRead);
+                stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES, scanner.getRemoteBytesRead());
+                stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME, remoteTime.getWallClockTime());
+                stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME, remoteTime.getCpuTime());
+                stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME, remoteTime.getUserTime());
 
 //						stats.addMetric(OperationMetric.INPUT_ROWS,remoteRowsRead+localRowsRead);
-				}else{
+            } else {
 						/*
 						 * When there is no scanner, then we are a sink, which means that
 						 * we are taking whatever rows are given to us and immediately
 						 * writing them to TEMP. Thus, the number of output rows is the
 						 * same as the number of input rows.
 						 */
-						stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
-				}
-				if(joiner!=null){
-						stats.addMetric(OperationMetric.FILTERED_ROWS,joiner.getLeftRowsSeen()*joiner.getRightRowsSeen()-timer.getNumEvents());
-				}
-		}
+
+                //stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
+            }
+            if (joiner != null) {
+                //sequential phase
+                if (regionScanner != null) {
+                    //under parallel operation
+
+                }
+                else
+                {
+                    //under control node
+                }
+                stats.addMetric(OperationMetric.FILTERED_ROWS, joiner.getLeftRowsSeen() * joiner.getRightRowsSeen() - timer.getNumEvents());
+
+            }
+            else {
+                //parallel phase
+            }
+        }
 
 		@Override
 		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
