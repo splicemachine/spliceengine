@@ -221,6 +221,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 				}catch(Exception e){
 						ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
 						cleanupBatch(); // if we throw an exception the postScanner() hook won't be called, so cleanup here
+                    LOG.error(String.format("Original SpliceOperationRegionScanner error, region %s",
+                                               regionScanner.getRegionInfo().getRegionNameAsString()), e);
 						SpliceLogUtils.logAndThrow(LOG,"Unable to get next row",Exceptions.getIOException(e));
 						return false; //won't happen since logAndThrow will throw an exception
                 }
