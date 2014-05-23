@@ -9,6 +9,10 @@ import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.SameThreadExecutorService;
 import com.splicemachine.derby.iapi.sql.execute.*;
+import com.google.common.collect.Iterators;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
@@ -125,6 +129,7 @@ public class BroadcastJoinOperation extends JoinOperation {
             leftCounter = ctx.newCounter();
             timer.startTiming();
             joiner = initJoiner(ctx);
+            joiner.open();
         }
 
         ExecRow next = joiner.nextRow(ctx);
@@ -226,6 +231,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         if (timer == null) return;
         long left = leftCounter.getTotal();
         stats.addMetric(OperationMetric.INPUT_ROWS, left);
+        stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
         TimeView time = timer.getTime();
         stats.addMetric(OperationMetric.TOTAL_WALL_TIME, time.getWallClockTime());
         stats.addMetric(OperationMetric.TOTAL_CPU_TIME, time.getCpuTime());
@@ -330,6 +336,7 @@ public class BroadcastJoinOperation extends JoinOperation {
             BroadcastJoinOperation.this.rightHandTimer = resultSet.getStats();
             resultSet.close();
             return Collections.unmodifiableMap(cache);
+
         }
     }
 

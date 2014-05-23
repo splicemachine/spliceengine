@@ -85,7 +85,7 @@ public class XPlainTrace {
 
             if (node.isTableScanOperation()) {
                 Deque<XPlainTreeNode> children = node.getChildren();
-                if (children.size() < 2 ||
+                if (children.size() == 0 ||
                     children.getFirst().getOperationType().compareToIgnoreCase("ScrollInsensitive") != 0) {
                     // We are only interested in table scan that has more than two ScrollInsensitive operations
                     continue;
