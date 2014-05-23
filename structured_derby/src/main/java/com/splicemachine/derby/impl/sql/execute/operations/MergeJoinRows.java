@@ -8,7 +8,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
+import com.splicemachine.derby.utils.MeasuredStandardIterator;
 import java.io.IOException;
 import java.util.*;
 
@@ -126,7 +126,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
 
 		@Override
     public void open() throws StandardException, IOException {
-        leftRS.open();
+        //leftRS.open();
         rightRS.open();
     }
 
