@@ -42,6 +42,10 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
 		public int rowsSeenLeft;
 		public int rowsSeenRight;
+        public int bytesReadRight;
+        public long remoteScanWallTime;
+        public long remoteScanCpuTime;
+        public long remoteScanUserTime;
 		public long restrictionTime;
 		public int rowsReturned;
 		protected boolean serializeLeftResultSet = true;

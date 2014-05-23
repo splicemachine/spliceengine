@@ -59,7 +59,9 @@ public class StatementManager implements StatementManagement{
                                                statementInfo.getStatementUuid()));
             }
 				if(xplainSchema!=null){
-						statementReporter.report(xplainSchema, statementInfo);
+                        if (statementInfo.getSql().compareTo("null") != 0) {
+                            statementReporter.report(xplainSchema, statementInfo);
+                        }
 						Set<OperationInfo> operationInfo = statementInfo.getOperationInfo();
 						for(OperationInfo info:operationInfo){
 								operationReporter.report(xplainSchema,info);

@@ -1428,6 +1428,6 @@ public class SpliceAdmin {
      */
     public static void XPLAIN_TRACE(String schemaName, long statementId, int mode, String format, final ResultSet[] resultSet) throws Exception{
         XPlainTrace xPlainTrace = new XPlainTrace(schemaName, statementId, mode, format);
-        resultSet[0] = xPlainTrace.populateTraceTable();
+        resultSet[0] = xPlainTrace.getXPlainTraceOutput();
     }
 }

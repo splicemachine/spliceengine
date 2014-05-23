@@ -1,10 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.metrics.OperationMetric;
@@ -594,7 +591,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		}
 
 		@Override
-		public final OperationRuntimeStats getMetrics(long statementId,long taskId) {
+		public final OperationRuntimeStats getMetrics(long statementId,long taskId,boolean isTopOperation) {
 				if(reportedTaskId==taskId) return null;
 				else reportedTaskId = taskId;
 
@@ -609,7 +606,15 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 						stats.addMetric(OperationMetric.TOTAL_WALL_TIME,view.getWallClockTime());
 						stats.addMetric(OperationMetric.TOTAL_CPU_TIME,view.getCpuTime());
 						stats.addMetric(OperationMetric.TOTAL_USER_TIME,view.getUserTime());
-						stats.addMetric(OperationMetric.OUTPUT_ROWS,timer.getNumEvents());
+
+                        if (isTopOperation && this instanceof SinkingOperation) {
+                            // if this is a top operation and sinking operation, bump up the number of input rows
+                            stats.addMetric(OperationMetric.INPUT_ROWS, timer.getNumEvents());
+                        }
+                        else {
+                            // Otherwise, bump up the number of output rows
+                            stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
+                        }
 				}
 
 				return stats;

@@ -64,6 +64,28 @@ public class StatementInfo {
 				this.startTimeMs = System.currentTimeMillis();
 		}
 
+        public StatementInfo(String sql,
+                             String user,
+                             String txnId,
+                             int numSinks,
+                             long statementUuid) {
+            this.numSinks = numSinks;
+            this.user = user;
+            this.sql = sql;
+            this.txnId = txnId;
+
+            if(numSinks>0){
+                runningJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
+                completedJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
+            }else{
+                runningJobIds = completedJobIds = null;
+            }
+            this.operationInfo = Collections.newSetFromMap(new ConcurrentHashMap<OperationInfo, Boolean>());
+
+            this.statementUuid = statementUuid;
+            this.startTimeMs = System.currentTimeMillis();
+        }
+
 		@ConstructorProperties({"sql","user","txnId","numJobs",
 						"statementUuid","runningJobs","completedJobs",
 						"startTimeMs","stopTimeMs","operationInfo"})

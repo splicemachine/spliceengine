@@ -1,8 +1,6 @@
 package com.splicemachine.derby.management;
 
 import com.splicemachine.derby.impl.sql.catalog.SpliceXplainUtils;
-import com.splicemachine.derby.utils.Exceptions;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.ResultSet;
@@ -10,7 +8,7 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.ArrayList;
+import java.util.Deque;
 
 /**
  * Created by jyuan on 5/8/14.
@@ -33,9 +31,6 @@ public class XPlainTrace {
     /* operations are hashed into the map to construct a tree */
     private HashMap<Long, XPlainTreeNode> xPlainTreeNodeMap;
 
-    /* column names of SYSXPLAIN_TRACE table */
-    private ArrayList<String> columnNames;
-
     private Connection connection;
     private int sequenceId;
     private XPlainTracePrinter printer;
@@ -51,13 +46,19 @@ public class XPlainTrace {
         this.format = format;
     }
 
-    public ResultSet populateTraceTable() throws Exception {
+    public ResultSet getXPlainTraceOutput() throws Exception {
 
         try {
             if (!populateTreeNodeMap()) return null;
+
             constructOperationTree();
+
             populateMetrics();
+
+            aggregateTableScan();
+
             populateSequenceId(topOperation);
+
             if (format.toUpperCase().compareTo("TREE") == 0) {
                 printer = new XPlainTraceTreePrinter(mode, connection, topOperation);
             }
@@ -74,6 +75,61 @@ public class XPlainTrace {
         } finally {
             connection.close();
         }
+    }
+
+    private void aggregateTableScan () throws IllegalAccessException{
+
+        Set<Long> keys = xPlainTreeNodeMap.keySet();
+        for (Long key:keys) {
+            XPlainTreeNode node = xPlainTreeNodeMap.get(key);
+
+            if (node.isTableScanOperation()) {
+                Deque<XPlainTreeNode> children = node.getChildren();
+                if (children.size() < 2 ||
+                    children.getFirst().getOperationType().compareToIgnoreCase("ScrollInsensitive") != 0) {
+                    // We are only interested in table scan that has more than two ScrollInsensitive operations
+                    continue;
+                }
+                HashMap<String, XPlainTreeNode> regionScanMap = new HashMap<String, XPlainTreeNode>();
+
+                XPlainTreeNode first = children.removeFirst();
+                for (XPlainTreeNode regionScan:first.getChildren().getFirst().getChildren()) {
+                    regionScanMap.put(regionScan.getRegion(), regionScan);
+                }
+                while (children.size() > 0) {
+                    XPlainTreeNode next = children.removeFirst();
+                    // Aggregate "InsensitiveScroll"
+                    first.aggregate(next);
+
+                    // Aggregate at table scan level
+                    first.getChildren().getFirst().aggregate(next.getChildren().getFirst());
+
+                    // Aggregate region scan level
+                    for (XPlainTreeNode regionScan:next.getChildren().getFirst().getChildren()) {
+                        String region = regionScan.getRegion();
+                        XPlainTreeNode n = regionScanMap.get(region);
+                        if (n != null ) {
+                            n.aggregate(regionScan);
+                        }
+                        else {
+                            n = regionScan;
+                        }
+                        regionScanMap.put(region, n);
+                    }
+                }
+
+                XPlainTreeNode parent = xPlainTreeNodeMap.get(node.getParentOperationId());
+                parent.getChildren().removeLast();
+                parent.getChildren().addLast(first.getChildren().getFirst());
+
+                Set<String> regions = regionScanMap.keySet();
+                first.getChildren().getFirst().getChildren().clear();
+                for(String region:regions) {
+                    first.getChildren().getFirst().addLastChild(regionScanMap.get(region));
+                }
+            }
+        }
+
     }
 
     /*
@@ -97,16 +153,18 @@ public class XPlainTrace {
             int index = rs.findColumn("OPERATIONID");
             Long operationId = rs.getLong(index);
             XPlainTreeNode node = xPlainTreeNodeMap.get(operationId);
-            // For detailed view of the execution plan, show metrics for each region
-            if (mode == 1) {
-                if (node.isTableScanOperation()) {
-                    XPlainTreeNode child = new XPlainTreeNode(statementId);
-                    child.setOperationType("RegionScan");
-                    node.addLastChild(child);
-                    node = child;
+            if (node != null) {
+                // For detailed view of the execution plan, show metrics for each region
+                if (mode == 1) {
+                    if (node.isTableScanOperation()) {
+                        XPlainTreeNode child = new XPlainTreeNode(statementId);
+                        child.setOperationType("RegionScan");
+                        node.addLastChild(child);
+                        node = child;
+                    }
                 }
+                node.setAttributes(rs);
             }
-            node.setAttributes(rs);
         }
 
         rs.close();
@@ -157,8 +215,8 @@ public class XPlainTrace {
         int count = 0;
         while (rs.next()) {
             count++;
-            XPlainTreeNode node = new XPlainTreeNode(statementId);
             Long operationId = rs.getLong(1);
+            XPlainTreeNode node = new XPlainTreeNode(statementId);
             node.setParentOperationId(rs.getLong(2));
             node.setOperationType(rs.getString(3));
             node.setRightChildOp(rs.getBoolean(4));

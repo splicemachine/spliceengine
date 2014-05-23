@@ -7,6 +7,8 @@ import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
+import com.splicemachine.stats.Metrics;
+import com.splicemachine.stats.TimeView;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
@@ -66,6 +68,21 @@ public abstract class SingleScanRowProvider implements RowProvider {
     @Override
     public void close() throws StandardException {
 
+    }
+
+    @Override
+    public TimeView getRemoteReadTime() {
+        return Metrics.noOpTimeView();
+    }
+
+    @Override
+    public long getRemoteBytesRead() {
+        return 0;
+    }
+
+    @Override
+    public long getRemoteRowsRead() {
+        return 0;
     }
 
 }

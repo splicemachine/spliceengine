@@ -12,7 +12,8 @@ public abstract class XPlainTraceBasePrinter implements XPlainTracePrinter {
             String s = columnName.toUpperCase();
             if (s.compareTo("TOTALWALLTIME") == 0 ||
                 s.compareTo("LOCALSCANROWS") == 0 ||
-                s.compareTo("LOCALSCANBYTES") == 0)
+                s.compareTo("LOCALSCANBYTES") == 0 ||
+                    s.compareTo("ITERATIONS") == 0)
                 return true;
             else
                 return false;

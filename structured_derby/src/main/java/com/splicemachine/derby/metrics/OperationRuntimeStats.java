@@ -131,11 +131,9 @@ public class OperationRuntimeStats {
 
 		private static OperationRuntimeStats getTopMetrics(SpliceOperation topOperation, long taskId, long statementId,
 																												 WriteStats writeStats, TimeView writeTimer) {
-				OperationRuntimeStats metrics = topOperation.getMetrics(statementId,taskId);
+				OperationRuntimeStats metrics = topOperation.getMetrics(statementId,taskId, true);
 
 				if(metrics!=null && writeStats.getRowsWritten()>=0){
-						metrics.addMetric(OperationMetric.WRITE_ROWS, writeStats.getRowsWritten());
-						metrics.addMetric(OperationMetric.WRITE_BYTES, writeStats.getBytesWritten());
 						metrics.addMetric(OperationMetric.PROCESSING_CPU_TIME,writeTimer.getCpuTime());
 						metrics.addMetric(OperationMetric.PROCESSING_USER_TIME,writeTimer.getUserTime());
 						metrics.addMetric(OperationMetric.PROCESSING_WALL_TIME,writeTimer.getWallClockTime());
@@ -172,7 +170,7 @@ public class OperationRuntimeStats {
 		private static void populateStats(SpliceRuntimeContext context, SpliceOperation operation,
 																			long statementId, long taskIdLong, List<OperationRuntimeStats> stats) {
 				if(operation==null) return;
-				OperationRuntimeStats metrics = operation.getMetrics(statementId, taskIdLong);
+				OperationRuntimeStats metrics = operation.getMetrics(statementId, taskIdLong, false);
 				if(metrics!=null)
 						stats.add(metrics);
 				if(operation instanceof SinkingOperation)
