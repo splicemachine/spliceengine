@@ -387,6 +387,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         					.build();
         			procedures.add(majorComactionOnTable);
 
+        			/*
+        			 * Procedure to get all the information related to the execution plans of the stored prepared statements (metadata queries).
+        			 */
+        			Procedure getStoredStatementPlanInfo = Procedure.newBuilder().name("SYSCS_GET_STORED_STATEMENT_PLAN_INFO")
+        					.numOutputParams(0)
+        					.numResultSets(1)
+        					.ownerClass(SpliceAdmin.class.getCanonicalName())
+        					.build();
+        			procedures.add(getStoredStatementPlanInfo);
+
         			Procedure vacuum = Procedure.newBuilder().name("VACUUM")
         					.numOutputParams(0)
         					.numResultSets(0)
