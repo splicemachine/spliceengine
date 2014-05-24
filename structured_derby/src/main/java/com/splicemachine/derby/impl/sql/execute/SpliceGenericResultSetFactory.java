@@ -726,6 +726,49 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
     }
 
 	@Override
+	public NoPutResultSet getVTIResultSet(
+			Activation activation,
+			GeneratedMethod row,
+			int resultSetNumber,
+			GeneratedMethod constructor,
+			String javaClassName,
+			org.apache.derby.iapi.store.access.Qualifier[][] pushedQualifiersField,
+			int erdNumber,
+			boolean version2,
+			boolean reuseablePs,
+			int ctcNumber,
+			boolean isTarget,
+			int scanIsolationLevel,
+			double optimizerEstimatedRowCount,
+			double optimizerEstimatedCost,
+			boolean isDerbyStyleTableFunction,
+			int returnTypeNumber,
+			int vtiProjectionNumber,
+			int vtiRestrictionNumber
+			) throws StandardException {
+		return getVTIResultSet(
+				activation,
+				row,
+				resultSetNumber,
+				constructor,
+				javaClassName,
+				(String) null,
+				erdNumber,
+				version2,
+				reuseablePs,
+				ctcNumber,
+				isTarget,
+				scanIsolationLevel,
+				optimizerEstimatedRowCount,
+				optimizerEstimatedCost,
+				isDerbyStyleTableFunction,
+				returnTypeNumber,
+				vtiProjectionNumber,
+				vtiRestrictionNumber
+				);
+	}
+
+	@Override
 	public NoPutResultSet getMultiProbeTableScanResultSet(
 			Activation activation, long conglomId, int scociItem,
 			GeneratedMethod resultRowAllocator, int resultSetNumber,

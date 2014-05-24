@@ -29,6 +29,11 @@ import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
+import org.apache.derby.iapi.sql.conn.ConnectionUtil;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.SPSDescriptor;
+import org.apache.derby.iapi.sql.execute.ExecPreparedStatement;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.jdbc.EmbedConnection;
@@ -903,6 +908,73 @@ public class SpliceAdmin {
         }
         sb.append(") foo (SCHEMANAME, TABLENAME, ISINDEX, HBASEREGIONS_STORESIZE_MEMSTORESIZE_STOREINDEXSIZE)");
         resultSet[0] = executeStatement(sb);
+    }
+
+    /**
+     * Prints all the information related to the execution plans of the stored prepared statements (metadata queries).
+     */
+    public static void SYSCS_GET_STORED_STATEMENT_PLAN_INFO(ResultSet[] rs) throws SQLException
+    {
+    	try {
+    		// Wow...  who knew it was so much work to create a ResultSet?  Ouch!  The following code is annoying.
+
+    		LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+    		DataDictionary dd = lcc.getDataDictionary();
+    		List list = dd.getAllSPSDescriptors();
+    		ArrayList<ExecRow> rows = new ArrayList<ExecRow>(list.size());
+
+    		// Describe the format of the input rows (ExecRow).
+    		//
+    		// Columns of "virtual" row:
+    		//   STMTNAME				VARCHAR
+    		//   TYPE					CHAR
+    		//   VALID					BOOLEAN
+    		//   LASTCOMPILED			TIMESTAMP
+    		//   INITIALLY_COMPILABLE	BOOLEAN
+    		//   CONSTANTSTATE			BLOB --> VARCHAR showing existence of plan
+    		DataValueDescriptor[] dvds = new DataValueDescriptor[] {
+    				new SQLVarchar(),
+    				new SQLChar(),
+    				new SQLBoolean(),
+    				new SQLTimestamp(),
+    				new SQLBoolean(),
+    				new SQLVarchar()
+    		};
+    		int numCols = dvds.length;
+			ExecRow dataTemplate = new ValueRow(numCols);
+			dataTemplate.setRowArray(dvds);
+
+			// Transform the descriptors into the rows.
+    		for (Iterator li = list.iterator(); li.hasNext(); )
+    		{
+    			SPSDescriptor spsd = (SPSDescriptor) li.next();
+    			ExecPreparedStatement ps = spsd.getPreparedStatement(false);
+    			dvds[0].setValue(spsd.getName());
+    			dvds[1].setValue(spsd.getTypeAsString());
+    			dvds[2].setValue(spsd.isValid());
+    			dvds[3].setValue(spsd.getCompileTime());
+    			dvds[4].setValue(spsd.initiallyCompilable());
+    			dvds[5].setValue(spsd.getPreparedStatement(false) == null ? null : "[object]");
+    			rows.add(dataTemplate.getClone());
+    		}
+
+    		// Describe the format of the output rows (ResultSet).
+    		ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[numCols];
+			columnInfo[0] = new GenericColumnDescriptor("STMTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 60));
+			columnInfo[1] = new GenericColumnDescriptor("TYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 4));
+			columnInfo[2] = new GenericColumnDescriptor("VALID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
+			columnInfo[3] = new GenericColumnDescriptor("LASTCOMPILED", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP));
+			columnInfo[4] = new GenericColumnDescriptor("INITIALLY_COMPILABLE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
+			columnInfo[5] = new GenericColumnDescriptor("CONSTANTSTATE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 13));
+			EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+			Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+			IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo, lastActivation);
+			resultsToWrap.openCore();
+			EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap, false, null, true);
+			rs[0] = ers;
+    	} catch (StandardException se) {
+    		throw PublicAPI.wrapStandardException(se);
+    	}
     }
 
     public static void getActiveTasks() throws MasterNotRunningException, ZooKeeperConnectionException {
