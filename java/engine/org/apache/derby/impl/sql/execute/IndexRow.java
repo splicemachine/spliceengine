@@ -100,7 +100,7 @@ public class IndexRow extends ValueRow implements ExecIndexRow
 		}
 	}
 
-	ExecRow cloneMe() {
+	public ExecRow cloneMe() {
 		return new IndexRow(nColumns());
 	}
 }

@@ -21,71 +21,97 @@
 
 package org.apache.derby.impl.sql.execute;
 
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.types.NumberDataValue;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecAggregator;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.TypeId;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
+import org.apache.derby.iapi.services.loader.ClassFactory;
+import org.apache.derby.iapi.sql.execute.ExecAggregator;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.NumberDataValue;
+import org.apache.derby.iapi.types.TypeId;
 
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
-	Aggregator for AVG(). Extends the SumAggregator and
-	implements a count. Result is then sum()/count().
-	To handle overflow we catch the exception for
-	value out of range, then we swap the holder for
-	the current sum to one that can handle a larger
-	range. Eventually a sum may end up in a SQLDecimal
-	which can handle an infinite range. Once this
-	type promotion has happened, it will not revert back
-	to the original type, even if the sum would fit in
-	a lesser type.
+ Aggregator for AVG(). Extends the SumAggregator and
+ implements a count. Result is then sum()/count().
+ To handle overflow we catch the exception for
+ value out of range, then we swap the holder for
+ the current sum to one that can handle a larger
+ range. Eventually a sum may end up in a SQLDecimal
+ which can handle an infinite range. Once this
+ type promotion has happened, it will not revert back
+ to the original type, even if the sum would fit in
+ a lesser type.
 
  */
-public final class AvgAggregator extends SumAggregator
+public final class AvgAggregator extends OrderableAggregator
 {
-	private long count;
-	private int scale;
+		private SumAggregator aggregator;
+		private long count;
+		private int scale;
 
-	protected void accumulate(DataValueDescriptor addend) 
-		throws StandardException
-	{
+		@Override
+		public ExecAggregator setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType) {
+				this.aggregator = SumAggregator.getBufferedAggregator(returnDataType);
+				if(aggregator==null)
+						aggregator = new SumAggregator();
+				switch(returnDataType.getTypeId().getTypeFormatId()){
+						case StoredFormatIds.TINYINT_TYPE_ID:
+						case StoredFormatIds.SMALLINT_TYPE_ID:
+						case StoredFormatIds.INT_TYPE_ID:
+						case StoredFormatIds.LONGINT_TYPE_ID:
+								scale = 0;
+								break;
+						case StoredFormatIds.REAL_TYPE_ID:
+						case StoredFormatIds.SQL_DOUBLE_ID:
+								scale = TypeId.DECIMAL_SCALE;
+								break;
+						default:
+								scale = returnDataType.getScale();
+								if(scale < NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE)
+										scale = NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE;
 
-		if (count == 0) {
-
-			String typeName = addend.getTypeName();
-			if (   typeName.equals(TypeId.TINYINT_NAME)
-				|| typeName.equals(TypeId.SMALLINT_NAME)
-				|| typeName.equals(TypeId.INTEGER_NAME)
-				|| typeName.equals(TypeId.LONGINT_NAME)) {
-				scale = 0;
-			} else if (   typeName.equals(TypeId.REAL_NAME)
-				|| typeName.equals(TypeId.DOUBLE_NAME)) {
-				scale = TypeId.DECIMAL_SCALE;
-			} else {
-				// DECIMAL
-				scale = ((NumberDataValue) addend).getDecimalValueScale();
-				if (scale < NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE)
-					scale = NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE;
-			}
+				}
+				return this;
 		}
 
-		try {
+		protected void accumulate(DataValueDescriptor addend)
+						throws StandardException
+		{
 
-			super.accumulate(addend);
-			count++;
-			return;
+//				if (count == 0) {
+//						String typeName = addend.getTypeName();
+//						if (   typeName.equals(TypeId.TINYINT_NAME)
+//										|| typeName.equals(TypeId.SMALLINT_NAME)
+//										|| typeName.equals(TypeId.INTEGER_NAME)
+//										|| typeName.equals(TypeId.LONGINT_NAME)) {
+//								scale = 0;
+//						} else if (   typeName.equals(TypeId.REAL_NAME)
+//										|| typeName.equals(TypeId.DOUBLE_NAME)) {
+//								scale = TypeId.DECIMAL_SCALE;
+//						} else {
+//								// DECIMAL
+//								scale = ((NumberDataValue) addend).getDecimalValueScale();
+//								if (scale < NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE)
+//										scale = NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE;
+//						}
+//				}
 
-		} catch (StandardException se) {
+				try {
 
-			if (!se.getMessageId().equals(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE))
-				throw se;
-		}
+						aggregator.accumulate(addend);
+						count++;
+						return;
+
+				} catch (StandardException se) {
+
+						if (!se.getMessageId().equals(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE))
+								throw se;
+				}
 
 
 		/*
@@ -99,45 +125,72 @@ public final class AvgAggregator extends SumAggregator
 
 			others -->> DECIMAL
 		*/
+				/*
+				 * -sf- Note: When summing scalar values, we always return a long (as of v0.6 anyway). This means
+				 * that TINYINT,SMALLINT,INTEGER,and BIGINT are all already sharing a type, which means if we overflowed,
+				 * we overflowed a long. As a result, we have the following upgrade schedule:
+				 *
+				 * SCALAR(long) -> DOUBLE
+				 * REAL					->	DOUBLE
+				 * DOUBLE				->	DECIMAL
+				 *
+				 * Note also that we don't need to re-accumulate the passed in addend if we have a BufferedSumAggregator,
+				 * because the value of addend must be present in the buffer before an overflow failure can occur. This
+				 * means that we can just call "upgrade" to move the aggregator to the correct type, but otherwise we don't
+				 * have to do anything
+				 */
+				if(aggregator instanceof LongBufferedSumAggregator){
+						aggregator = ((LongBufferedSumAggregator)aggregator).upgrade();
+				}else if(aggregator instanceof FloatBufferedSumAggregator){
+						aggregator = ((FloatBufferedSumAggregator)aggregator).upgrade();
+				}else if(aggregator instanceof DoubleBufferedSumAggregator){
+						aggregator = ((DoubleBufferedSumAggregator)aggregator).upgrade();
+				}else{
+						//fall back to derby's original version for safety.
 
-		// this code creates data type objects directly, it is anticipating
-		// the time they move into the defined api of the type system. (djd).
-		String typeName = value.getTypeName();
-		
-		DataValueDescriptor newValue;
+						// this code creates data type objects directly, it is anticipating
+						// the time they move into the defined api of the type system. (djd).
+						String typeName = value.getTypeName();
 
-		if (typeName.equals(TypeId.INTEGER_NAME)) {
-			newValue = new org.apache.derby.iapi.types.SQLLongint();
-		} else if (typeName.equals(TypeId.TINYINT_NAME) || 
-				   typeName.equals(TypeId.SMALLINT_NAME)) {
-			newValue = new org.apache.derby.iapi.types.SQLInteger();
-		} else if (typeName.equals(TypeId.REAL_NAME)) {
-			newValue = new org.apache.derby.iapi.types.SQLDouble();
-		} else {
-			TypeId decimalTypeId = TypeId.getBuiltInTypeId(java.sql.Types.DECIMAL);
-			newValue = decimalTypeId.getNull();
+						DataValueDescriptor newValue;
+
+						if (typeName.equals(TypeId.INTEGER_NAME)) {
+								newValue = new org.apache.derby.iapi.types.SQLLongint();
+						} else if (typeName.equals(TypeId.TINYINT_NAME) ||
+										typeName.equals(TypeId.SMALLINT_NAME)) {
+								newValue = new org.apache.derby.iapi.types.SQLInteger();
+						} else if (typeName.equals(TypeId.REAL_NAME)) {
+								newValue = new org.apache.derby.iapi.types.SQLDouble();
+						} else {
+								TypeId decimalTypeId = TypeId.getBuiltInTypeId(java.sql.Types.DECIMAL);
+								newValue = decimalTypeId.getNull();
+						}
+
+						newValue.setValue(value);
+						value = newValue;
+
+						accumulate(addend);
+				}
+
 		}
-		
-		newValue.setValue(value);
-		value = newValue;
-		
-		accumulate(addend);
-	}
 
-	public void merge(ExecAggregator addend)
-		throws StandardException
-	{
-		AvgAggregator otherAvg = (AvgAggregator) addend;
+		public void merge(ExecAggregator addend)
+						throws StandardException
+		{
+				if(addend==null) return; //treat null entries as zero --they do not contribute to the average
+				AvgAggregator otherAvg = (AvgAggregator) addend;
+				this.aggregator.merge(otherAvg.aggregator);
+				this.count+= otherAvg.count;
 
-		// if I haven't been used take the other.
-		if (count == 0) {
-			count = otherAvg.count;
-			value = otherAvg.value;
-			scale = otherAvg.scale;
-			return;
-		}
+				// if I haven't been used take the other.
+//				if (count == 0) {
+//						count = otherAvg.count;
+//						value = otherAvg.value;
+//						scale = otherAvg.scale;
+//						return;
+//				}
 
-		// Don't bother merging if the other is a NULL value aggregate.
+				// Don't bother merging if the other is a NULL value aggregate.
 		/* Note:Beetle:5346 fix change the sort to be High, that makes
 		 * the neccessary for the NULL check because after the change 
 		 * addend could have a  NULL value even on distincts unlike when 
@@ -147,117 +200,121 @@ public final class AvgAggregator extends SumAggregator
 		 * Query that will fail without the following check:
 		 * select avg(a) , count(distinct a) from t1;
 		*/
-		if(otherAvg.value != null)
-		{
-			// subtract one here as the accumulate will add one back in
-			count += (otherAvg.count - 1);
-			accumulate(otherAvg.value);
-		}
-	}
-
-	public void add(DataValueDescriptor addend) throws StandardException{
-		accumulate(addend);
-	}	
-
-	/**
-	 * Return the result of the aggregation.  If the count
-	 * is zero, then we haven't averaged anything yet, so
-	 * we return null.  Otherwise, return the running
-	 * average as a double.
-	 *
-	 * @return null or the average as Double
-	 */
-	public DataValueDescriptor getResult() throws StandardException
-	{
-		if (count == 0)
-		{
-			return null;
+//				if(otherAvg.value != null)
+//				{
+//						// subtract one here as the accumulate will add one back in
+//						count += (otherAvg.count - 1);
+//						accumulate(otherAvg.value);
+//				}
 		}
 
-		NumberDataValue sum = (NumberDataValue) value;
-		NumberDataValue avg = (NumberDataValue) value.getNewNull();
+		public void add(DataValueDescriptor addend) throws StandardException{
+				accumulate(addend);
+		}
 
-		
-		if (count > (long) Integer.MAX_VALUE)
+		/**
+		 * Return the result of the aggregation.  If the count
+		 * is zero, then we haven't averaged anything yet, so
+		 * we return null.  Otherwise, return the running
+		 * average as a double.
+		 *
+		 * @return null or the average as Double
+		 */
+		public DataValueDescriptor getResult() throws StandardException
 		{
-			// TINYINT, SMALLINT, INTEGER implement arithmetic using integers
-			// If the sum is still represented as a TINYINT, SMALLINT or INTEGER
-			// we cannot let their int based arithmetic handle it, since they
-			// will perform a getInt() on the long value which will truncate the long value.
-			// One solution would be to promote the sum to a SQLLongint, but its value
-			// will be less than or equal to Integer.MAX_VALUE, so the average will be 0.
-			String typeName = sum.getTypeName();
+				if (count == 0)
+				{
+						return null;
+				}
 
-			if (typeName.equals(TypeId.INTEGER_NAME) ||
-					typeName.equals(TypeId.TINYINT_NAME) || 
-					   typeName.equals(TypeId.SMALLINT_NAME))
-			{
-				avg.setValue(0);
+				NumberDataValue sum = (NumberDataValue)aggregator.getResult();
+				NumberDataValue avg = (NumberDataValue) sum.getNewNull();
+
+
+				if (count > (long) Integer.MAX_VALUE)
+				{
+						// TINYINT, SMALLINT, INTEGER implement arithmetic using integers
+						// If the sum is still represented as a TINYINT, SMALLINT or INTEGER
+						// we cannot let their int based arithmetic handle it, since they
+						// will perform a getInt() on the long value which will truncate the long value.
+						// One solution would be to promote the sum to a SQLLongint, but its value
+						// will be less than or equal to Integer.MAX_VALUE, so the average will be 0.
+						String typeName = sum.getTypeName();
+
+						if (typeName.equals(TypeId.INTEGER_NAME) ||
+										typeName.equals(TypeId.TINYINT_NAME) ||
+										typeName.equals(TypeId.SMALLINT_NAME))
+						{
+								avg.setValue(0);
+								return avg;
+						}
+				}
+
+				NumberDataValue countv = new org.apache.derby.iapi.types.SQLLongint(count);
+				sum.divide(sum, countv, avg, scale);
+
 				return avg;
-			}
 		}
 
-		NumberDataValue countv = new org.apache.derby.iapi.types.SQLLongint(count);
-		sum.divide(sum, countv, avg, scale);
-				
-		return avg;
-	}
+		/**
+		 */
+		public ExecAggregator newAggregator()
+		{
+				AvgAggregator avgAggregator = new AvgAggregator();
+				avgAggregator.aggregator = (SumAggregator)this.aggregator.newAggregator();
+				return avgAggregator;
+		}
 
-	/**
-	 */
-	public ExecAggregator newAggregator()
-	{
-		return new AvgAggregator();
-	}
+		/////////////////////////////////////////////////////////////
+		//
+		// EXTERNALIZABLE INTERFACE
+		//
+		/////////////////////////////////////////////////////////////
+		/**
+		 *
+		 * @exception IOException on error
+		 */
+		public void writeExternal(ObjectOutput out) throws IOException
+		{
+				out.writeObject(aggregator);
+				out.writeBoolean(eliminatedNulls);
+				out.writeLong(count);
+				out.writeInt(scale);
+		}
 
-	/////////////////////////////////////////////////////////////
-	// 
-	// EXTERNALIZABLE INTERFACE
-	// 
-	/////////////////////////////////////////////////////////////
-	/** 
-	 *
-	 * @exception IOException on error
-	 */
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
-		super.writeExternal(out);
-		out.writeLong(count);
-		out.writeInt(scale);
-	}
+		/**
+		 * @see java.io.Externalizable#readExternal
+		 *
+		 * @exception IOException on error
+		 */
+		public void readExternal(ObjectInput in)
+						throws IOException, ClassNotFoundException
+		{
+				aggregator = (SumAggregator)in.readObject(); //TODO -sf- is this the most efficient? perhaps better to get the sum direct
+				eliminatedNulls = in.readBoolean();
+				count = in.readLong();
+				scale = in.readInt();
+		}
 
-	/** 
-	 * @see java.io.Externalizable#readExternal 
-	 *
-	 * @exception IOException on error
-	 */
-	public void readExternal(ObjectInput in) 
-		throws IOException, ClassNotFoundException
-	{
-		super.readExternal(in);
-		count = in.readLong();
-		scale = in.readInt();
-	}
-
-	/////////////////////////////////////////////////////////////
-	// 
-	// FORMATABLE INTERFACE
-	// 
-	/////////////////////////////////////////////////////////////
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	int	getTypeFormatId()	{ return StoredFormatIds.AGG_AVG_V01_ID; }
-    public String toString()
-    {
-        try {
-        	return "AvgAggregator: { sum=" + (value!= null?value.getString():"NULL") + ", count=" + count + "}";		
-        }
-        catch (StandardException e)
-        {
-            return super.toString() + ":" + e.getMessage();
-        }
-    }
+		/////////////////////////////////////////////////////////////
+		//
+		// FORMATABLE INTERFACE
+		//
+		/////////////////////////////////////////////////////////////
+		/**
+		 * Get the formatID which corresponds to this class.
+		 *
+		 *	@return	the formatID of this class
+		 */
+		public	int	getTypeFormatId()	{ return StoredFormatIds.AGG_AVG_V01_ID; }
+		public String toString()
+		{
+				try {
+						return "AvgAggregator: { sum=" + (value!= null?value.getString():"NULL") + ", count=" + count + "}";
+				}
+				catch (StandardException e)
+				{
+						return super.toString() + ":" + e.getMessage();
+				}
+		}
 }

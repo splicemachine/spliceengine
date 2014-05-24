@@ -21,6 +21,12 @@
 
 package org.apache.derby.impl.sql.execute;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -30,8 +36,7 @@ import org.apache.derby.iapi.types.RowLocation;
 	Basic implementation of ExecRow.
 
  */
-public class ValueRow implements ExecRow
-{
+public class ValueRow implements ExecRow, Externalizable, Comparable<ExecRow> {
 	///////////////////////////////////////////////////////////////////////
 	//
 	//	STATE
@@ -82,19 +87,22 @@ public class ValueRow implements ExecRow
 	 */
 	// position is 1-based
 	public DataValueDescriptor	getColumn (int position) {
-		if (position <= column.length)
-			return column[position-1];
-		else
-			return (DataValueDescriptor)null;
-	}
+        try {
+            return column[position-1];
+        } catch (Exception e) {
+            return (DataValueDescriptor)null;
+        }
+    }
 
 	// position is 1-based.
 	public void setColumn(int position, DataValueDescriptor col) {
- 
-		if (position > column.length)
-			realloc(position); // enough for this column
-		column[position-1] = col;
-	}
+        try {
+            column[position-1] = col;
+        } catch (Exception e) {
+            realloc(position);
+            column[position-1] = col;
+        }
+    }
 
 
 	/*
@@ -151,7 +159,7 @@ public class ValueRow implements ExecRow
 		return rowClone;
 	}
 
-	ExecRow cloneMe() {
+	public ExecRow cloneMe() {
 		return new ValueRow(ncols);
 	}
 
@@ -240,5 +248,43 @@ public class ValueRow implements ExecRow
 
 		System.arraycopy(column, 0, newcol, 0, column.length);
 		column = newcol;
+	}
+	
+	@Override
+	public int compareTo(ExecRow row) {
+		if (row == null)
+			return -1;
+		if (ncols != row.nColumns())
+			return -1;
+		int compare;
+		for (int i = 1; i == ncols; i++ ) {
+			try {
+				compare = getColumn(i).compare(row.getColumn(i));
+				if (compare != 0)
+					return compare;
+			} catch (StandardException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return 0;
+	}
+
+
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		out.writeInt(ncols);
+		for (DataValueDescriptor desc: column) {
+			out.writeObject(desc);
+		}
+	}
+
+	@Override
+	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+		ncols = in.readInt();
+		column = new DataValueDescriptor[ncols];
+		for (int i = 0; i < ncols; i++) {
+			column[i] = (DataValueDescriptor) in.readObject();
+		}
 	}
 }

@@ -45,9 +45,10 @@ public final class CountAggregator
 
 	/**
 	 */
-	public void setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType )
+	public ExecAggregator setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType )
 	{
-		isCountStar = aggregateName.equals("COUNT(*)");
+			isCountStar = aggregateName.equals("COUNT(*)");
+			return this;
 	}
 
 	/**
@@ -58,6 +59,8 @@ public final class CountAggregator
 	public void merge(ExecAggregator addend)
 		throws StandardException
 	{
+			if(addend==null)
+					return; //assume null is the same thing as zero
 		if (SanityManager.DEBUG)
 		{
 			SanityManager.ASSERT(addend instanceof CountAggregator,

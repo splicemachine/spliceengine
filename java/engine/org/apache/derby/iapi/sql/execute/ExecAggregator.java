@@ -57,7 +57,7 @@ public interface ExecAggregator extends Formatable
         @param  returnDataType  The type returned by the getResult() method.
 
 	 */
-	public void setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType );
+	public ExecAggregator setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType );
 
 	/**
 	 * Iteratively accumulates the addend into the aggregator.

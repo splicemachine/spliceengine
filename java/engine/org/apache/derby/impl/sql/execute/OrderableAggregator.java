@@ -42,8 +42,9 @@ abstract class OrderableAggregator extends SystemAggregator
 
 	/**
 	 */
-	public void setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType )
+	public ExecAggregator setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType )
 	{
+			return this;
 	}
 
 	/**
@@ -54,16 +55,28 @@ abstract class OrderableAggregator extends SystemAggregator
 	public void merge(ExecAggregator addend)
 		throws StandardException
 	{
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(addend instanceof OrderableAggregator,
-				"addend is supposed to be the same type of aggregator for the merge operator");
-		}
+			/*
+			 * Derby(pre-splice) requires that both sides of the aggregate field be initialized. This is
+			 * an expensive proposition, because it requires object creation for every aggregate for every row, which
+			 * rapidly adds up.
+			 *
+			 * However, if we avoid initialization on every row (instead doing it once for each DISTINCT row), then
+			 * we must make sure that our individual aggregators properly handle null addends. For OrderableAggregators,
+			 * we can treat null as "not contributing". That is, for sums, null is equivalent to adding 0; for min
+			 * and max computations, null is ignored as not contributory. In either case, we can just return directly.
+			 * This involves a null check for every row, but that is substantially cheaper than an object creation.
+			 */
+			if(addend==null) return;
+			if (SanityManager.DEBUG)
+			{
+					SanityManager.ASSERT(addend instanceof OrderableAggregator,
+									"addend is supposed to be the same type of aggregator for the merge operator");
+			}
 
-		// Don't bother merging if the other has never been used.
-		DataValueDescriptor bv = ((OrderableAggregator)addend).value;
-		if (bv != null)
-			this.accumulate(bv);
+			// Don't bother merging if the other has never been used.
+			DataValueDescriptor bv = ((OrderableAggregator)addend).value;
+			if (bv != null)
+					this.accumulate(bv);
 	}
 
 	public void add(DataValueDescriptor addend) throws StandardException{
