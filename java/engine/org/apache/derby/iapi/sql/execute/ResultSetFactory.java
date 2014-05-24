@@ -701,6 +701,34 @@ public interface ResultSetFactory {
                                           )
 		 throws StandardException;
 
+	/*
+	 * This method was purely added to get some stored prepared statements to pass the validation stage of their compilation.
+	 * The existing method used a String for pushedQualifiersField.  However, nothing was done with the initial value that
+	 * was passed into the constructor.  So this method does the same thing and ignores the pushedQualifiersField which is
+	 * an org.apache.derby.iapi.store.access.Qualifier[][].
+	 */
+	public NoPutResultSet getVTIResultSet(
+			Activation activation,
+			GeneratedMethod row,
+			int resultSetNumber,
+			GeneratedMethod constructor,
+			String javaClassName,
+			org.apache.derby.iapi.store.access.Qualifier[][] pushedQualifiersField,
+			int erdNumber,
+			boolean version2,
+			boolean reuseablePs,
+			int ctcNumber,
+			boolean isTarget,
+			int scanIsolationLevel,
+			double optimizerEstimatedRowCount,
+			double optimizerEstimatedCost,
+			boolean isDerbyStyleTableFunction,
+			int returnTypeNumber,
+			int vtiProjectionNumber,
+			int vtiRestrictionNumber
+			)
+					throws StandardException;
+
 	/**
 		A hash result set forms a result set on a hash table built on a scan
 		of a table.

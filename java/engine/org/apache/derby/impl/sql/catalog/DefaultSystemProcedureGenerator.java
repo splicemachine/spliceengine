@@ -536,6 +536,12 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .catalog("INDEXNAME")
                 .build()
             ,
+            Procedure.newBuilder().name("SYSCS_RECOMPILE_INVALID_STORED_STATEMENTS")
+                .numOutputParams(0).numResultSets(0).modifiesSql()
+                .returnType(null).isDeterministic(false)
+                .ownerClass(SYSTEM_PROCEDURES)
+                .build()
+                ,
             Procedure.newBuilder().name("SYSCS_INVALIDATE_STORED_STATEMENTS")
                 .numOutputParams(0).numResultSets(0).modifiesSql()
                 .returnType(null).isDeterministic(false)
@@ -671,7 +677,6 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                     .ownerClass(SYSTEM_PROCEDURES)
                     .catalog("CATALOGNAME")
                     .catalog("SCHEMANAME")
-                    .catalog("TABLENAME")
                     .catalog("TYPENAMEPATTERN")
                     .catalog("UDTTYPES")
                     .varchar("OPTIONS",4000).build()

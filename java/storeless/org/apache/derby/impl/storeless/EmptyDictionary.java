@@ -500,6 +500,17 @@ public class EmptyDictionary implements DataDictionary, ModuleSupportable {
 
 	}
 
+	public void recompileInvalidSPSPlans() throws StandardException {
+		// Auto-generated method stub
+
+	}
+
+	public void recompileInvalidSPSPlans(LanguageConnectionContext lcc) 
+			throws StandardException{
+		// Auto-generated method stub
+
+	}
+
 	public void invalidateAllSPSPlans() throws StandardException {
 		// Auto-generated method stub
 

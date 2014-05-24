@@ -1180,8 +1180,27 @@ public interface DataDictionary
 	) throws StandardException;
 
 	/**
+	 * Recompile all the invalid stored plans in SYS.SYSSTATEMENTS for
+	 *  the given language connection context.
+	 *
+	 * @param lcc language connection context
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	public void recompileInvalidSPSPlans(LanguageConnectionContext lcc) throws StandardException;
+
+	/**
+	 * Recompile all the invalid stored plans in SYS.SYSSTATEMENTS.
+	 * @exception StandardException		Thrown on error
+	 */
+	public void recompileInvalidSPSPlans() throws StandardException;
+
+	/**
 	 * Invalidate all the stored plans in SYS.SYSSTATEMENTS for
 	 *  the given language connection context.
+	 *
+	 * @param lcc language connection context
+	 *
 	 * @exception StandardException		Thrown on error
 	 */
 	public void invalidateAllSPSPlans(LanguageConnectionContext lcc) throws StandardException;

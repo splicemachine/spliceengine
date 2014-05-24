@@ -76,6 +76,7 @@ import org.apache.derby.impl.sql.compile.ColumnReference;
 import org.apache.derby.impl.sql.compile.TableName;
 import org.apache.derby.impl.sql.depend.BasicDependencyManager;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
+import org.apache.derby.iapi.sql.execute.ExecPreparedStatement;
 import org.apache.derby.iapi.sql.execute.ExecutionContext;
 import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.sql.execute.ScanQualifier;
@@ -4418,6 +4419,32 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 									   columnsToSet, 
 									   tc);
 			}
+		}
+	}
+
+	/**
+	 * @see DataDictionary#recompileInvalidSPSPlans
+	 * @exception StandardException		Thrown on error
+	 */
+	public void recompileInvalidSPSPlans() throws StandardException
+	{
+		LanguageConnectionContext lcc = (LanguageConnectionContext) 
+			ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+		recompileInvalidSPSPlans(lcc);
+	}
+
+	/**
+	 * @see DataDictionary#recompileInvalidSPSPlans
+	 * @exception StandardException		Thrown on error
+	 */
+	public void recompileInvalidSPSPlans(LanguageConnectionContext lcc) throws StandardException
+	{
+		for (java.util.Iterator li = getAllSPSDescriptors().iterator(); li.hasNext(); )
+		{
+			SPSDescriptor spsd = (SPSDescriptor) li.next();
+//			System.out.println(String.format("BEFORE name = %s", spsd.getName()));
+			spsd.getPreparedStatement(true);
+//			System.out.println(String.format("AFTER name = %s", spsd.getName()));
 		}
 	}
 

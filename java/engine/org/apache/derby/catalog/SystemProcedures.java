@@ -1910,6 +1910,23 @@ public class SystemProcedures  {
     }
 
     /**
+     * Recompile all the invalid stored statements so they will not get recompiled when
+     *  executed next time around.
+     */
+    public static void SYSCS_RECOMPILE_INVALID_STORED_STATEMENTS()
+    	       throws SQLException
+    	    {
+    	        try {
+    	        	LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+    	            DataDictionary dd = lcc.getDataDictionary();
+
+    	            dd.recompileInvalidSPSPlans(lcc);
+    	        } catch (StandardException se) {
+    	            throw PublicAPI.wrapStandardException(se);
+    	        }
+    	    }
+
+    /**
      * Invalidate all the stored statements so they will get recompiled when
      *  executed next time around.
      */
