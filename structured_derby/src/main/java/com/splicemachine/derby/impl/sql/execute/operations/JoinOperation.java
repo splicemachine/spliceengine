@@ -46,6 +46,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		protected boolean serializeLeftResultSet = true;
 		protected boolean serializeRightResultSet = true;
         protected ExecRow rightTemplate;
+    protected ExecRow mergedRowTemplate;
     protected String emptyRowFunMethodName;
     protected boolean wasRightOuterJoin = false;
     protected boolean isOuterJoin = false;
@@ -105,6 +106,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 						mergedRow = (ExecRow) in.readObject();
 						leftRow = (ExecRow)in.readObject();
 						rightRow = (ExecRow)in.readObject();
+                        mergedRowTemplate = (ExecRow)in.readObject();
 				}
 				rowsSeenLeft = in.readInt();
 				rowsSeenRight = in.readInt();
@@ -134,6 +136,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 						out.writeObject(mergedRow);
 						out.writeObject(leftRow);
 						out.writeObject(rightRow);
+                        out.writeObject(mergedRowTemplate);
 				}
 				out.writeInt(rowsSeenLeft);
 				out.writeInt(rowsSeenRight);
@@ -287,12 +290,14 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public ExecRow getExecRowDefinition() throws StandardException {
-				if(mergedRow==null)
-						mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols+rightNumCols);
-				JoinUtils.getMergedRow(this.leftResultSet.getExecRowDefinition(), this.rightResultSet.getExecRowDefinition(),false,rightNumCols,leftNumCols,mergedRow);
-				return mergedRow;
-		}
+        public ExecRow getExecRowDefinition() throws StandardException {
+            if (mergedRowTemplate == null) {
+                mergedRowTemplate = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
+                JoinUtils.getMergedRow(leftResultSet.getExecRowDefinition(), rightResultSet.getExecRowDefinition(),
+                                          wasRightOuterJoin, rightNumCols, leftNumCols, mergedRowTemplate);
+            }
+            return mergedRowTemplate;
+        }
 
 		@Override
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
