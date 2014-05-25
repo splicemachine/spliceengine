@@ -261,6 +261,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				currentRow = row;
 		}
 
+        // Debugging utility
+        public void returning(ExecRow r) {
+            LOG.error(String.format("%s %s returning %s", this.getClass().getSimpleName(),
+                                       resultSetNumber, r));
+        }
+
 		public static void writeNullableString(String value, DataOutput out) throws IOException {
 				if (value != null) {
 						out.writeBoolean(true);
