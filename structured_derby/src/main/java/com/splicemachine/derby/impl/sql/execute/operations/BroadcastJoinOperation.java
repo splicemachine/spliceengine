@@ -150,7 +150,11 @@ public class BroadcastJoinOperation extends JoinOperation {
         return next;
     }
 
-    private static final ExecutorService rhsLookupService = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setDaemon(true).setNameFormat("broadcast-lookup-%d").build());
+    private static final ExecutorService rhsLookupService =
+        Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+                                          .setDaemon(true)
+                                          .setNameFormat("broadcast-lookup-%d")
+                                          .build());
 
     private Joiner initJoiner(final SpliceRuntimeContext ctx)
         throws StandardException, IOException {
@@ -241,10 +245,8 @@ public class BroadcastJoinOperation extends JoinOperation {
         rightHashKeys = generateHashKeys(rightHashKeyItem);
 
         if (regionScanner != null) {
-					/*
-					 *	We are on a region where we are being processed, so
-					 *we can go ahead and start fetching the right hand side ahead of time.
-					 */
+            // We are on a region where we are being processed, so
+            // we can go ahead and start fetching the right hand side ahead of time.
             SpliceRuntimeContext runtimeContext = context.getRuntimeContext();
             submitRightHandSideLookup(runtimeContext);
         }
@@ -293,12 +295,6 @@ public class BroadcastJoinOperation extends JoinOperation {
         stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME, remoteTime.getWallClockTime());
         stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME, remoteTime.getCpuTime());
         stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME, remoteTime.getUserTime());
-    }
-
-    @Override
-    public ExecRow getExecRowDefinition() throws StandardException {
-        JoinUtils.getMergedRow(this.leftResultSet.getExecRowDefinition(), this.rightResultSet.getExecRowDefinition(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
-        return mergedRow;
     }
 
     @Override
