@@ -4,6 +4,7 @@ import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.impl.storage.TempSplit;
 import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.utils.SpliceDateFunctions;
 import com.splicemachine.derby.utils.SpliceStringFunctions;
 
 import java.sql.Types;
@@ -415,6 +416,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
 			List<Procedure> sysFunProcs = (List<Procedure>)sysProcedures.get(sysFunUUID);
             if (sysFunProcs == null || sysFunProcs.size() == 0) {
     	        sysFunProcs = Arrays.asList(new Procedure[]{
+    	        	//
+    	        	// String functions
+    	        	//
 					Procedure.newBuilder().name("INSTR")
     		        	.numOutputParams(0)
     		        	.numResultSets(0)
@@ -431,6 +435,18 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
     		            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
     		            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
     		            .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
+    		            .build(),
+    	        	//
+    	        	// Date functions
+    	        	//
+					Procedure.newBuilder().name("ADD_MONTHS")
+    		        	.numOutputParams(0)
+    		        	.numResultSets(0)
+    		            .sqlControl(RoutineAliasInfo.NO_SQL)
+    		            .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+    		            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+    		            .arg("DATE", DataTypeDescriptor.getCatalogType(Types.DATE))
+    		            .integer("NUMOFMONTHS")
     		            .build()
 	   		    });
     	        sysProcedures.put(sysFunUUID, sysFunProcs);
