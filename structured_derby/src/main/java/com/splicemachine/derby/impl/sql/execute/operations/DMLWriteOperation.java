@@ -259,7 +259,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {
 				//inputs rows are the same as output rows by default (although Update may be different)
-				stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
+				//stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
 		}
 
 		private class ModifiedRowProvider extends SingleScanRowProvider{
