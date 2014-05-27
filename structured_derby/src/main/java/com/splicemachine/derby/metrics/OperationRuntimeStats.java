@@ -122,10 +122,19 @@ public class OperationRuntimeStats {
 				if(metrics!=null){
 						stats.add(metrics);
 				}
-				SpliceOperation child = runtimeContext.isLeft(topOperation.resultSetNumber())?
-								topOperation.getLeftOperation(): topOperation.getRightOperation();
-				if(child!=null)
-						populateStats(runtimeContext,child,statementId,taskId,stats);
+
+                SpliceRuntimeContext.Side side = runtimeContext.getPathSide(topOperation.resultSetNumber());
+                if (side == SpliceRuntimeContext.Side.LEFT || side == SpliceRuntimeContext.Side.MERGED) {
+                    SpliceOperation child = topOperation.getLeftOperation();
+                    if(child!=null)
+                        populateStats(runtimeContext,child,statementId,taskId,stats);
+                }
+
+                if (side == SpliceRuntimeContext.Side.RIGHT || side == SpliceRuntimeContext.Side.MERGED) {
+                    SpliceOperation child = topOperation.getRightOperation();
+                    if(child!=null)
+                        populateStats(runtimeContext,child,statementId,taskId,stats);
+                }
 				return stats;
 		}
 
@@ -176,8 +185,17 @@ public class OperationRuntimeStats {
 				if(operation instanceof SinkingOperation)
 						return; //found the first sink, so return
 
-				SpliceOperation child = context.isLeft(operation.resultSetNumber())? operation.getLeftOperation(): operation.getRightOperation();
-				if(child!=null)
-						populateStats(context,child,statementId,taskIdLong,stats);
+                SpliceRuntimeContext.Side side = context.getPathSide(operation.resultSetNumber());
+                if (side == SpliceRuntimeContext.Side.LEFT || side == SpliceRuntimeContext.Side.MERGED) {
+                    SpliceOperation child = operation.getLeftOperation();
+                    if(child!=null)
+                        populateStats(context,child,statementId,taskIdLong,stats);
+                }
+
+                if (side == SpliceRuntimeContext.Side.RIGHT || side == SpliceRuntimeContext.Side.MERGED) {
+                    SpliceOperation child = operation.getRightOperation();
+                    if(child!=null)
+                        populateStats(context,child,statementId,taskIdLong,stats);
+                }
 		}
 }
