@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -41,7 +42,7 @@ public class SpliceDateFunctionsIT {
                         
                         // Each of the following inserted rows represents an individual test,
                         // including expected result (column 'd'), for less test code in the
-                        // testInstr methods.
+                        // test methods
 
                         ps = classWatcher.prepareStatement(
                             "insert into " + tableWatcherA + " (a, b, c) values (?, ?, ?)");
@@ -61,6 +62,7 @@ public class SpliceDateFunctionsIT {
     public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
     @Test
+    @Ignore
     public void testAddMonthsFunction() throws Exception {
 	    ResultSet rs;
 	    rs = methodWatcher.executeQuery("SELECT ADD_MONTHS(a, b), c from " + tableWatcherA);
