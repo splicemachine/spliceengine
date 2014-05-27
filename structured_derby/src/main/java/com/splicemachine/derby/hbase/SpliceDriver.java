@@ -1,8 +1,42 @@
 package com.splicemachine.derby.hbase;
 
+import javax.annotation.Nullable;
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.net.InetAddress;
+import java.sql.Connection;
+import java.util.List;
+import java.util.Properties;
+import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import com.google.common.base.Function;
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.yammer.metrics.core.MetricsRegistry;
+import com.yammer.metrics.reporting.JmxReporter;
+import net.sf.ehcache.Cache;
+import org.apache.derby.drda.NetworkServerControl;
+import org.apache.derby.iapi.db.OptimizerTrace;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.PleaseHoldException;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
@@ -46,42 +80,6 @@ import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.utils.logging.LogManager;
 import com.splicemachine.utils.logging.Logging;
-import com.yammer.metrics.core.MetricsRegistry;
-import com.yammer.metrics.reporting.JmxReporter;
-
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.net.InetAddress;
-import java.sql.Connection;
-import java.util.List;
-import java.util.Properties;
-import java.util.Random;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.annotation.Nullable;
-import javax.management.InstanceAlreadyExistsException;
-import javax.management.MBeanRegistrationException;
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.NotCompliantMBeanException;
-import javax.management.ObjectName;
-
-import net.sf.ehcache.Cache;
-
-import org.apache.derby.drda.NetworkServerControl;
-import org.apache.derby.iapi.db.OptimizerTrace;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.PleaseHoldException;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.log4j.Logger;
 
 /**
  * @author Scott Fines
@@ -384,10 +382,12 @@ public class SpliceDriver extends SIConstants {
             writerPool.registerJMX(mbs);
 
             SpliceIndexEndpoint.registerJMX(mbs);
+
+            new ManifestReader().registerJMX(mbs);
             
             //registry metricsRegistry
             metricsReporter = new JmxReporter(spliceMetricsRegistry);
-            metricsReporter.start();;
+            metricsReporter.start();
 
             //register error reporter
 //            ObjectName errorReporterName = new ObjectName("com.splicemachine.error:type=ErrorReport");
