@@ -58,7 +58,11 @@ public class MultiScanOperationJob implements CoprocessorJob, Externalizable {
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
         Map<SinkTask, Pair<byte[], byte[]>> taskMap = Maps.newHashMap();
         for (Scan scan : scans) {
-            SinkTask task = new SinkTask(getJobId(), scan, instructions.getTransactionId(), readOnly, taskPriority);
+            SinkTask task = new SinkTask(getJobId(), scan, 
+                                          instructions.getTransactionId(), 
+                                          instructions.getSpliceRuntimeContext().getParentTaskId(),
+                                          readOnly, 
+                                          taskPriority);
             taskMap.put(task, Pair.newPair(scan.getStartRow(), scan.getStopRow()));
         }
         return taskMap;

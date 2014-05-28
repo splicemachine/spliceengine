@@ -73,16 +73,13 @@ public class SinkTask extends ZkTask {
     public SinkTask(String jobId,
                     Scan scan,
                     String transactionId,
+                    byte[] parentTaskId,
                     boolean readOnly,
                     int priority) {
-        super(jobId,priority,transactionId,readOnly);
+        super(jobId, priority, transactionId, readOnly);
         this.scan = scan;
-
-				List<byte[]> taskChain = OperationSink.taskChain.get();
-				if(taskChain!=null){
-						parentTaskId = taskChain.get(taskChain.size()-1);
-				}
-		}
+        this.parentTaskId = parentTaskId;
+    }
 
     @Override
     public void prepareTask(RegionCoprocessorEnvironment rce,SpliceZooKeeperManager zooKeeper) throws ExecutionException {
