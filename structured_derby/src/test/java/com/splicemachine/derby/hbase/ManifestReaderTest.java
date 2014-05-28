@@ -53,7 +53,12 @@ public class ManifestReaderTest {
 
     @Test
     public void testSpliceMachineVersion() throws Exception {
-        System.out.println(new TestManifestReader(new FakeManifest()).readManifestOnClasspath());
+        SpliceMachineVersion version = new TestManifestReader(new FakeManifest()).create();
+        System.out.println(version);
+        Assert.assertEquals("2014-05-27 12:52 -0500", version.getBuildTime());
+        Assert.assertEquals("1d073ed3f6", version.getImplementationVersion());
+        Assert.assertEquals("0.5.1-SNAPSHOT", version.getRelease());
+        Assert.assertEquals("http://www.splicemachine.com", version.getURL());
     }
 
     private static void printManifest(Manifest manifest) throws Exception {
@@ -72,8 +77,7 @@ public class ManifestReaderTest {
 
         @Override
         protected Map<String, String> readManifestOnClasspath() {
-            Map<String,String> map = toMap(manifest);
-            return map;
+            return toMap(manifest);
         }
     }
 
