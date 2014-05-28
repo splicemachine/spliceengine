@@ -28,7 +28,7 @@ public class SpliceDateFunctionsIT {
 
     // Table for ADD_MONTHS testing.
     private static final SpliceTableWatcher tableWatcherA = new SpliceTableWatcher(
-    	"A", schemaWatcher.schemaName, "(a date, b int, c date)");
+    	"A", schemaWatcher.schemaName, "(col1 date, col2 int, col3 date)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
@@ -41,16 +41,16 @@ public class SpliceDateFunctionsIT {
                         PreparedStatement ps;
                         
                         // Each of the following inserted rows represents an individual test,
-                        // including expected result (column 'd'), for less test code in the
+                        // including expected result (column 'col3'), for less test code in the
                         // test methods
 
                         ps = classWatcher.prepareStatement(
-                            "insert into " + tableWatcherA + " (a, b, c) values (?, ?, ?)");
-                        ps.setDate(1, java.sql.Date.valueOf("2014-01-15"));
-                        ps.setInt(2, 1);
-                        ps.setDate(3, java.sql.Date.valueOf("2014-02-15"));
+							"insert into " + tableWatcherA + " (col1, col2, col3) values (date('2014-01-15'), 1, date('2014-02-15'))");
+                        ps = classWatcher.prepareStatement(
+							"insert into " + tableWatcherA + " (col1, col2, col3) values (date('2014-01-16'), 0, date('2014-01-16'))");
+                        ps = classWatcher.prepareStatement(
+							"insert into " + tableWatcherA + " (col1, col2, col3) values (date('2014-01-17'), -1, date('2013-12-17'))");
                         ps.execute();
-                        
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -62,12 +62,11 @@ public class SpliceDateFunctionsIT {
     public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
     @Test
-    @Ignore
     public void testAddMonthsFunction() throws Exception {
 	    ResultSet rs;
-	    rs = methodWatcher.executeQuery("SELECT ADD_MONTHS(a, b), c from " + tableWatcherA);
+	    rs = methodWatcher.executeQuery("SELECT ADD_MONTHS(col1, col2), col3 from " + tableWatcherA);
 	    while (rs.next()) {
-            Assert.assertEquals("Wrong result value", rs.getDate(1), rs.getDate(2));
+            Assert.assertEquals("Wrong result value", rs.getDate(2), rs.getDate(1));
 	    }
     }
 }
