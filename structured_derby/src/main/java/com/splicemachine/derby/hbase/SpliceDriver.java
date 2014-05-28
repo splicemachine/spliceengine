@@ -391,6 +391,8 @@ public class SpliceDriver extends SIConstants {
 
             SpliceIndexEndpoint.registerJMX(mbs);
 
+            new ManifestReader().registerJMX(mbs);
+
             //registry metricsRegistry
             metricsReporter = new JmxReporter(spliceMetricsRegistry);
             metricsReporter.start();

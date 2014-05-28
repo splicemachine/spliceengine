@@ -1,6 +1,20 @@
 package com.splicemachine.hbase.jmx;
 
+import javax.management.JMX;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import javax.management.remote.JMXConnector;
+import javax.management.remote.JMXConnectorFactory;
+import javax.management.remote.JMXServiceURL;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import com.google.common.collect.Lists;
+import org.apache.hadoop.hbase.util.Pair;
+
+import com.splicemachine.derby.hbase.ManifestReader.SpliceMachineVersion;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
@@ -8,17 +22,6 @@ import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.hbase.ThreadPoolStatus;
 import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.utils.logging.Logging;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import javax.management.JMX;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
-import javax.management.remote.JMXConnector;
-import javax.management.remote.JMXConnectorFactory;
-import javax.management.remote.JMXServiceURL;
-import org.apache.hadoop.hbase.util.Pair;
 
 public class JMXUtils {
     public static final String LOGGING_MANAGEMENT = "com.splicemachine.utils.logging:type=LogManager";
@@ -29,6 +32,7 @@ public class JMXUtils {
     public static final String REGION_SERVER_STATISTICS = "Hadoop:service=HBase,name=RegionServer,sub=Server";
     public static final String ACTIVE_WRITE_HANDLERS = "com.splicemachine.dery.hbase:type=ActiveWriteHandlers";
     public static final String JOB_SCHEDULER_MANAGEMENT = "com.splicemachine.job:type=JobSchedulerManagement";
+    public static final String SPLICEMACHINE_VERSION = "com.splicemachine.version:type=SpliceMachineVersion";
 
 	public static List<Pair<String,JMXConnector>> getMBeanServerConnections(Collection<String> serverConnections) throws IOException {
 		List<Pair<String,JMXConnector>> mbscArray = new ArrayList<Pair<String,JMXConnector>>(serverConnections.size());
@@ -60,13 +64,21 @@ public class JMXUtils {
 		return monitoredThreadPools;
 	}
 
-	public static List<ActiveWriteHandlersIface> getActiveWriteHandlers(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-		List<ActiveWriteHandlersIface> activeWrites = new ArrayList<ActiveWriteHandlersIface>();
-		for (Pair<String,JMXConnector> mbsc: mbscArray) {
-			activeWrites.add(getNewMBeanProxy(mbsc.getSecond(),ACTIVE_WRITE_HANDLERS,ActiveWriteHandlersIface.class));
-		}
-		return activeWrites;
-	}
+    public static List<ActiveWriteHandlersIface> getActiveWriteHandlers(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
+        List<ActiveWriteHandlersIface> activeWrites = new ArrayList<ActiveWriteHandlersIface>();
+        for (Pair<String,JMXConnector> mbsc: mbscArray) {
+            activeWrites.add(getNewMBeanProxy(mbsc.getSecond(),ACTIVE_WRITE_HANDLERS,ActiveWriteHandlersIface.class));
+        }
+        return activeWrites;
+    }
+
+    public static List<SpliceMachineVersion> getSpliceMachineVersion(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
+        List<SpliceMachineVersion> versions = new ArrayList<SpliceMachineVersion>();
+        for (Pair<String,JMXConnector> mbsc: mbscArray) {
+            versions.add(getNewMBeanProxy(mbsc.getSecond(), SPLICEMACHINE_VERSION, SpliceMachineVersion.class));
+        }
+        return versions;
+    }
 
     public static List<Pair<String,JobSchedulerManagement>> getJobSchedulerManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
         List<Pair<String,JobSchedulerManagement>> jobMonitors = Lists.newArrayListWithCapacity(mbscArray.size());
