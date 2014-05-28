@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationUtils;
 import com.splicemachine.derby.management.OperationInfo;
@@ -126,6 +127,11 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 								String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
 								runtimeContext.setXplainSchema(xplainSchema);
 						}
+
+                  List<byte[]> taskChain = OperationSink.taskChain.get();
+                  if (taskChain != null && taskChain.size() > 0){
+                     runtimeContext.setParentTaskId(taskChain.get(taskChain.size() - 1));
+                  }
 
 						delegate = OperationTree.executeTree(topOperation,runtimeContext,useProbe);
 						delegate.setScrollId(scrollUuid);

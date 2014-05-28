@@ -35,34 +35,34 @@ import java.util.List;
 public class OperationSink {
     private static final Logger LOG = Logger.getLogger(OperationSink.class);
 
-		/**
-		 * A chain of tasks for identifying parent and child tasks. The last byte[] in
-		 * the list is the immediate parent of other tasks.
-		 */
-		public static final ThreadLocal<List<byte[]>> taskChain = new ThreadLocal<List<byte[]>>();
+    /**
+     * A chain of tasks for identifying parent and child tasks. The last byte[] in
+     * the list is the immediate parent of other tasks.
+     */
+    public static final ThreadLocal<List<byte[]>> taskChain = new ThreadLocal<List<byte[]>>();
     private final CallBufferFactory<KVPair> tableWriter;
     private final SinkingOperation operation;
     private final byte[] taskId;
     private final String transactionId;
 
-		private final Timer totalTimer;
-		private final long waitTimeNs;
-		private long statementId;
+    private final Timer totalTimer;
+    private final long waitTimeNs;
+    private long statementId;
 
-		public OperationSink(byte[] taskId,
-												 SinkingOperation operation,
-												 CallBufferFactory<KVPair> tableWriter,
-												 String transactionId,
-												 long statementId,
-												 long waitTimeNs) {
+    public OperationSink(byte[] taskId,
+                         SinkingOperation operation,
+                         CallBufferFactory<KVPair> tableWriter,
+                         String transactionId,
+                         long statementId,
+                         long waitTimeNs) {
         this.tableWriter = tableWriter;
         this.taskId = taskId;
         this.operation = operation;
         this.transactionId = transactionId;
-				//we always record this time information, because it's cheap relative to the per-row timing
-				this.totalTimer = Metrics.newTimer();
-				this.statementId = statementId;
-				this.waitTimeNs = waitTimeNs;
+        //we always record this time information, because it's cheap relative to the per-row timing
+        this.totalTimer = Metrics.newTimer();
+        this.statementId = statementId;
+        this.waitTimeNs = waitTimeNs;
     }
 
     public static OperationSink create(SinkingOperation operation, byte[] taskId, String transactionId,long statementId,long waitTimeNs) throws IOException {

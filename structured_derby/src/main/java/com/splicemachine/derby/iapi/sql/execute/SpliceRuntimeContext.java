@@ -25,6 +25,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		private boolean isSink;
 		private Row scanStartOverride;
 		private byte[] currentTaskId;
+      private byte[] parentTaskId;
 		/*Only non-null on the node where the JDBC connection is held*/
 		private transient StatementInfo statementInfo;
 		private boolean firstStepInMultistep;
@@ -231,6 +232,14 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		public void setCurrentTaskId(byte[] currentTaskId) {
 				this.currentTaskId = currentTaskId;
 		}
+
+      public byte[] getParentTaskId() { 
+         return parentTaskId; 
+      }
+
+      public void setParentTaskId(byte[] id) { 
+         parentTaskId = id; 
+      }
 
 		public void setHashBucket(byte hashBucket) {
 				this.hashBucket = hashBucket;
