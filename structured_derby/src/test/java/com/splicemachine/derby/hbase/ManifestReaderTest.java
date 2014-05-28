@@ -53,7 +53,7 @@ public class ManifestReaderTest {
 
     @Test
     public void testSpliceMachineVersion() throws Exception {
-        SpliceMachineVersion version = new TestManifestReader(new FakeManifest()).create();
+        ManifestReader.SpliceMachineVersion version = new TestManifestReader(new FakeManifest()).create();
         System.out.println(version);
         Assert.assertEquals("2014-05-27 12:52 -0500", version.getBuildTime());
         Assert.assertEquals("1d073ed3f6", version.getImplementationVersion());

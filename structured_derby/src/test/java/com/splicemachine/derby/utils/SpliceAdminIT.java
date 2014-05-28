@@ -1,17 +1,12 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.test.SlowTest;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.homeless.TestUtils;
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.commons.dbutils.DbUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -22,6 +17,13 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
+
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SlowTest;
 
 /**
  * @author Jeff Cunningham
@@ -121,7 +123,7 @@ public class SpliceAdminIT {
             }
         }
         Assert.assertTrue("Expected: " + expectedConglomIDs + " got: " + actualConglomIDs,
-                expectedConglomIDs.containsAll(actualConglomIDs));
+                          expectedConglomIDs.containsAll(actualConglomIDs));
     }
 
     @Test
@@ -146,7 +148,7 @@ public class SpliceAdminIT {
             expectedConglomIDs.add((Long) m.get("CONGLOMERATENUMBER"));
         }
         Assert.assertTrue("Expected: " + expectedConglomIDs + " got: " + actualConglomIDs,
-                expectedConglomIDs.containsAll(actualConglomIDs));
+                          expectedConglomIDs.containsAll(actualConglomIDs));
     }
 
     @Test
@@ -196,11 +198,11 @@ public class SpliceAdminIT {
     }
 
     @Test
-    @Ignore("Ignoring until we can address admin methods")
-    public void testGetActiveTaskStaus() throws Exception {
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_TASK_STATUS()");
+    @Ignore("Ignoring until we can address SpliceAdmin method's case when there are no jobs")
+    public void testGetActiveJobIDs() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_ACTIVE_JOB_IDS()");
         ResultSet rs = cs.executeQuery();
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_TASK_STATUS()", rs);
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_ACTIVE_JOB_IDS()", rs);
         System.out.println(fr.toString());
         DbUtils.closeQuietly(rs);
     }
@@ -211,7 +213,7 @@ public class SpliceAdminIT {
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_ACTIVE_SERVERS()", rs);
         System.out.println(fr.toString());
-        Assert.assertTrue(fr.size()>=1);
+        Assert.assertTrue(fr.size() >= 1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -221,7 +223,7 @@ public class SpliceAdminIT {
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_WRITE_PIPELINE_INFO()", rs);
         System.out.println(fr.toString());
-        Assert.assertTrue(fr.size()>=1);
+        Assert.assertTrue(fr.size() >= 1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -341,7 +343,7 @@ public class SpliceAdminIT {
         while (rs.next()) {
             origMax = rs.getInt(2);
         }
-        Assert.assertNotEquals(-1,origMax);
+        Assert.assertNotEquals(-1, origMax);
 
         try {
             cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_WRITE_POOL(?)");
@@ -363,6 +365,66 @@ public class SpliceAdminIT {
             cs.execute();
         }
 
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
+    public void testGetLoggers() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_LOGGERS()");
+        ResultSet rs = cs.executeQuery();
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_LOGGERS()", rs);
+        System.out.println(fr.toString());
+        Assert.assertTrue(fr.size() >= 80);
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
+    public void testGetSetLogLevel() throws Exception {
+        String logger = "com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext";
+        String origLevel = "FRED";
+        String newLogLevel = "INFO";
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL(?)");
+        cs.setString(1,logger);
+        ResultSet rs = cs.executeQuery();
+        while (rs.next()) {
+            origLevel = rs.getString(1);
+        }
+        Assert.assertEquals("TRACE", origLevel);
+
+        try {
+            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL(?,?)");
+            cs.setString(1,logger);
+            cs.setString(2, newLogLevel);
+            cs.execute();
+
+            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_LOGGER_LEVEL(?)");
+            cs.setString(1, logger);
+            rs = cs.executeQuery();
+            String currentLogLevel = "FRED";
+            while (rs.next()) {
+                currentLogLevel = rs.getString(1);
+            }
+            Assert.assertNotEquals("FRED",currentLogLevel);
+            Assert.assertEquals(newLogLevel,currentLogLevel);
+        } finally {
+            // reset to orig value
+            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL(?,?)");
+            cs.setString(1, logger);
+            cs.setString(2, origLevel);
+            cs.execute();
+        }
+
+        DbUtils.closeQuietly(rs);
+
+    }
+
+    @Test
+    public void testGetSpliceVersion() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_VERSION_INFO()");
+        ResultSet rs = cs.executeQuery();
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_VERSION_INFO()", rs);
+        System.out.println(fr.toString());
+        Assert.assertTrue(fr.size()>=1);
         DbUtils.closeQuietly(rs);
     }
 
