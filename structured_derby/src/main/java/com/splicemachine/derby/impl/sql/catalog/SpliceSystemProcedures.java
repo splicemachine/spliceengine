@@ -445,7 +445,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
     		            .sqlControl(RoutineAliasInfo.NO_SQL)
     		            .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
     		            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-    		            .arg("DATE", DataTypeDescriptor.getCatalogType(Types.DATE))
+    		            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
     		            .integer("NUMOFMONTHS")
     		            .build()
 	   		    });

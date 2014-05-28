@@ -11,11 +11,11 @@ import java.util.Calendar;
  */
 public class SpliceDateFunctions {
 
-	public static Date ADD_MONTHS(Date date, int numOfMonths) {
+	public static Date ADD_MONTHS(java.sql.Date source, int numOfMonths) {
+		if (source == null) return source;
 		Calendar c = Calendar.getInstance();
-	    c.setTime(date);
+	    c.setTime(source);
 	    c.add(Calendar.MONTH, numOfMonths);
 	    return new java.sql.Date(c.getTimeInMillis());
 	}
-	
 }
