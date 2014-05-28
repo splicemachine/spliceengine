@@ -34,12 +34,6 @@
       <version>2.1</version>
     </dependency>
     <dependency>
-      <groupId>com.splicemachine</groupId>
-      <artifactId>splice_machine</artifactId>
-      <version>0.5.1-SNAPSHOT</version>
-      <classifier>hdp2.0.10</classifier>
-    </dependency>
-    <dependency>
       <groupId>org.apache.derby</groupId>
       <artifactId>derby</artifactId>
       <version>${derby.version}</version>
