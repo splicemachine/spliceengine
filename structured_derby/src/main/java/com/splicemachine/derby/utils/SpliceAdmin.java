@@ -1,30 +1,29 @@
 package com.splicemachine.derby.utils;
 
-import com.google.common.collect.Lists;
-import com.google.common.io.Closeables;
-import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
-import com.splicemachine.derby.impl.job.JobInfo;
-import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
-import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
-import com.splicemachine.derby.management.StatementInfo;
-import com.splicemachine.derby.management.StatementManagement;
-import com.splicemachine.hbase.ThreadPoolStatus;
-import com.splicemachine.hbase.jmx.JMXUtils;
-import com.splicemachine.job.JobSchedulerManagement;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.utils.logging.Logging;
-
-import java.io.IOException;
-import java.sql.*;
-import java.util.*;
-
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
+import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -35,7 +34,16 @@ import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SPSDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecPreparedStatement;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.*;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLBoolean;
+import org.apache.derby.iapi.types.SQLChar;
+import org.apache.derby.iapi.types.SQLDouble;
+import org.apache.derby.iapi.types.SQLInteger;
+import org.apache.derby.iapi.types.SQLLongint;
+import org.apache.derby.iapi.types.SQLReal;
+import org.apache.derby.iapi.types.SQLTimestamp;
+import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
@@ -52,6 +60,21 @@ import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+
+import com.splicemachine.derby.hbase.ManifestReader.SpliceMachineVersion;
+import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
+import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
+import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
+import com.splicemachine.derby.management.StatementInfo;
+import com.splicemachine.derby.management.StatementManagement;
+import com.splicemachine.hbase.ThreadPoolStatus;
+import com.splicemachine.hbase.jmx.JMXUtils;
+import com.splicemachine.job.JobSchedulerManagement;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.utils.logging.Logging;
 
 /**
  * @author Jeff Cunningham
@@ -143,13 +166,37 @@ public class SpliceAdmin {
                         sb.append(", ");
                     }
                     sb.append(String.format("('%s',%d,%d,%d,%d)", connections.get(i).getFirst(),
-                            activeWrite.getActiveWriteThreads(),
-                            activeWrite.getCompactionQueueSizeLimit(),
-                            activeWrite.getFlushQueueSizeLimit(),
-                            activeWrite.getIpcReservedPool()));
+                                            activeWrite.getActiveWriteThreads(),
+                                            activeWrite.getCompactionQueueSizeLimit(),
+                                            activeWrite.getFlushQueueSizeLimit(),
+                                            activeWrite.getIpcReservedPool()));
                     i++;
                 }
                 sb.append(") foo (hostname, activeWriteThreads, compactionQueueSizeLimit, flushQueueSizeLimit, ipcReserverdPool)");
+                resultSet[0] = executeStatement(sb);
+            }
+        });
+    }
+
+    public static void SYSCS_GET_VERSION_INFO(final ResultSet[] resultSet) throws SQLException {
+        operate(new JMXServerOperation() {
+            @Override
+            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
+                List<SpliceMachineVersion> spliceMachineVersions = JMXUtils.getSpliceMachineVersion(connections);
+                StringBuilder sb = new StringBuilder("select * from (values ");
+                int i = 0;
+                for (SpliceMachineVersion spliceMachineVersion : spliceMachineVersions) {
+                    if (i != 0) {
+                        sb.append(", ");
+                    }
+                    sb.append(String.format("('%s','%s','%s','%s','%s')", connections.get(i).getFirst(),
+                                            spliceMachineVersion.getRelease(),
+                                            spliceMachineVersion.getImplementationVersion(),
+                                            spliceMachineVersion.getBuildTime(),
+                                            spliceMachineVersion.getURL()));
+                    i++;
+                }
+                sb.append(") foo (hostname, release, implementationVersion, buildTime, url)");
                 resultSet[0] = executeStatement(sb);
             }
         });
@@ -167,7 +214,7 @@ public class SpliceAdmin {
         });
     }
 
-    public static void SYSCS_GET_TASK_STATUS(final ResultSet[] resultSet) throws SQLException {
+    public static void SYSCS_GET_ACTIVE_JOB_IDS(final ResultSet[] resultSet) throws SQLException {
         operate(new JMXServerOperation() {
             @Override
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {

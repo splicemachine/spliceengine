@@ -1,18 +1,9 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
-import com.splicemachine.derby.impl.load.HdfsImport;
-import com.splicemachine.derby.impl.storage.TableSplit;
-import com.splicemachine.derby.impl.storage.TempSplit;
-import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.derby.utils.SpliceDateFunctions;
-import com.splicemachine.derby.utils.SpliceStringFunctions;
-
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
-import com.splicemachine.derby.utils.TransactionAdmin;
 
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.RoutineAliasInfo;
@@ -23,6 +14,14 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import org.apache.derby.impl.sql.catalog.Procedure;
+
+import com.splicemachine.derby.impl.load.HdfsImport;
+import com.splicemachine.derby.impl.storage.TableSplit;
+import com.splicemachine.derby.impl.storage.TempSplit;
+import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.utils.SpliceDateFunctions;
+import com.splicemachine.derby.utils.SpliceStringFunctions;
+import com.splicemachine.derby.utils.TransactionAdmin;
 
 /**
  * @author Scott Fines
@@ -187,12 +186,22 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         			/*
         			 * Procedure get stats info for region servers
         			 */
-        			Procedure getRegionServerStatsInfo = Procedure.newBuilder().name("SYSCS_GET_REGION_SERVER_STATS_INFO")
-        					.numOutputParams(0)
-        					.numResultSets(1)
-        					.ownerClass(SpliceAdmin.class.getCanonicalName())
-        					.build();
-        			procedures.add(getRegionServerStatsInfo);
+                    Procedure getRegionServerStatsInfo = Procedure.newBuilder().name("SYSCS_GET_REGION_SERVER_STATS_INFO")
+                                                                  .numOutputParams(0)
+                                                                  .numResultSets(1)
+                                                                  .ownerClass(SpliceAdmin.class.getCanonicalName())
+                                                                  .build();
+                    procedures.add(getRegionServerStatsInfo);
+
+        			/*
+        			 * Procedure get Splice Machine manifest info
+        			 */
+                    Procedure getVersionInfo = Procedure.newBuilder().name("SYSCS_GET_VERSION_INFO")
+                                                                  .numOutputParams(0)
+                                                                  .numResultSets(1)
+                                                                  .ownerClass(SpliceAdmin.class.getCanonicalName())
+                                                                  .build();
+                    procedures.add(getVersionInfo);
 
         			/*
         			 * Procedure get write pipeline intake info
@@ -207,7 +216,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         			/*
         			 * Procedure get the active statements' job and task status
         			 */
-        			Procedure getActiveJobIDs = Procedure.newBuilder().name("SYSCS_GET_TASK_STATUS")
+        			Procedure getActiveJobIDs = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_JOB_IDS")
         					.numOutputParams(0)
         					.numResultSets(1)
         					.ownerClass(SpliceAdmin.class.getCanonicalName())

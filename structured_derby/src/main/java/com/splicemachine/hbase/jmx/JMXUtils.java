@@ -14,6 +14,7 @@ import java.util.List;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.util.Pair;
 
+import com.splicemachine.derby.hbase.ManifestReader.SpliceMachineVersion;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
@@ -63,13 +64,21 @@ public class JMXUtils {
 		return monitoredThreadPools;
 	}
 
-	public static List<ActiveWriteHandlersIface> getActiveWriteHandlers(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-		List<ActiveWriteHandlersIface> activeWrites = new ArrayList<ActiveWriteHandlersIface>();
-		for (Pair<String,JMXConnector> mbsc: mbscArray) {
-			activeWrites.add(getNewMBeanProxy(mbsc.getSecond(),ACTIVE_WRITE_HANDLERS,ActiveWriteHandlersIface.class));
-		}
-		return activeWrites;
-	}
+    public static List<ActiveWriteHandlersIface> getActiveWriteHandlers(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
+        List<ActiveWriteHandlersIface> activeWrites = new ArrayList<ActiveWriteHandlersIface>();
+        for (Pair<String,JMXConnector> mbsc: mbscArray) {
+            activeWrites.add(getNewMBeanProxy(mbsc.getSecond(),ACTIVE_WRITE_HANDLERS,ActiveWriteHandlersIface.class));
+        }
+        return activeWrites;
+    }
+
+    public static List<SpliceMachineVersion> getSpliceMachineVersion(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
+        List<SpliceMachineVersion> versions = new ArrayList<SpliceMachineVersion>();
+        for (Pair<String,JMXConnector> mbsc: mbscArray) {
+            versions.add(getNewMBeanProxy(mbsc.getSecond(), SPLICEMACHINE_VERSION, SpliceMachineVersion.class));
+        }
+        return versions;
+    }
 
     public static List<Pair<String,JobSchedulerManagement>> getJobSchedulerManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
         List<Pair<String,JobSchedulerManagement>> jobMonitors = Lists.newArrayListWithCapacity(mbscArray.size());
