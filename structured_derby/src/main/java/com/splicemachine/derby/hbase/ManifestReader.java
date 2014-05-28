@@ -16,43 +16,66 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
 import com.google.common.collect.Maps;
+import org.apache.log4j.Logger;
 
 import com.splicemachine.hbase.jmx.JMXUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * @author Jeff Cunningham
  *         Date: 5/27/14
  */
 public class ManifestReader {
-    private SpliceMachineVersion version;
+    private static final Logger LOG = Logger.getLogger(ManifestReader.class);
 
     public void registerJMX(MBeanServer mbs) throws MalformedObjectNameException,
         NotCompliantMBeanException,
         InstanceAlreadyExistsException,
         MBeanRegistrationException {
         ObjectName name = new ObjectName(JMXUtils.SPLICEMACHINE_VERSION);
-        version = new SpliceMachineVersionImpl(readManifestOnClasspath());
-        mbs.registerMBean(version,name);
+        mbs.registerMBean(new SpliceMachineVersionImpl(readManifestOnClasspath()),name);
     }
 
     public static class SpliceMachineVersionImpl implements SpliceMachineVersion {
         private final Map<String,String> versionInfo;
 
-        public SpliceMachineVersionImpl(Map<String,String> versionInfo) {
-            this.versionInfo = translateMap(versionInfo);
+        public SpliceMachineVersionImpl(Map<String,String> manifestProps) {
+            if (manifestProps == null) {
+                SpliceLogUtils.warn(LOG, "Unable to register Splice Machine Version JMX entry. Version information " +
+                    "will be unavailable.");
+            }
+            this.versionInfo = manifestProps;
         }
 
         @Override
-        public String getVersionInfo() {
-            // TODO: Is this what we want returned?
-            return versionInfo.toString();
+        public String getRelease() {
+            return this.versionInfo.get("Release");
         }
 
+        @Override
+        public String getImplementationVersion() {
+            return this.versionInfo.get("Implementation-Version");
+        }
+
+        @Override
+        public String getBuildTime() {
+            return this.versionInfo.get("Build-Time");
+        }
+
+        @Override
+        public String getURL() {
+            return this.versionInfo.get("URL");
+        }
+
+        @Override
         public String toString() {
-            return getVersionInfo();
+            StringBuilder buf = new StringBuilder();
+            buf.append("Release ").append(getRelease()).append('\n').append("ImplementationVersion ").
+                append(getImplementationVersion()).append('\n').append("BuildTime ").append(getBuildTime()).append('\n').
+                   append("URL ").append(getURL()).append('\n');
+            return buf.toString();
         }
     }
-
 
     protected Map<String,String> readManifestOnClasspath() {
         Map<String,String> map = null;
@@ -60,7 +83,7 @@ public class ManifestReader {
             Enumeration resEnum = Thread.currentThread().getContextClassLoader().getResources(JarFile.MANIFEST_NAME);
             while (resEnum.hasMoreElements()) {
                 URL url = (URL) resEnum.nextElement();
-                if (url.getFile().startsWith("splice_machine-")) {
+                if (url.getFile().contains("splice_machine-")) {
                     InputStream is = null;
                     try {
                         is = url.openStream();
@@ -77,7 +100,10 @@ public class ManifestReader {
                 }
             }
         } catch (IOException e) {
-            // TODO: log
+            SpliceLogUtils.warn(LOG, "Unable to register Splice Machine Version JMX entry. Version information will be unavailable.", e);
+        }
+        if (map == null) {
+            SpliceLogUtils.warn(LOG, "Didn't find splice machine jar on the classpath. Version information will be unavailable.");
         }
         return map;
     }
@@ -91,12 +117,18 @@ public class ManifestReader {
         return rawMap;
     }
 
-    protected static Map<String,String> translateMap(Map<String,String> fromMap) {
+    // for testing
+    SpliceMachineVersion create() {
+        return new SpliceMachineVersionImpl(readManifestOnClasspath());
+    }
+
+    private static Map<String,String> translateMap(Map<String,String> fromMap) {
         Map<String,String> manifestToSpliceAttrMap = Maps.newLinkedHashMap();
-        // adding entries in the order we want to see them
+        // Add entries in the order we want to see them
         manifestToSpliceAttrMap.put("Release Version",fromMap.get("Release"));
         manifestToSpliceAttrMap.put("Implementation Version",fromMap.get("Implementation-Version"));
         manifestToSpliceAttrMap.put("Build Date",fromMap.get("Build-Time"));
+        manifestToSpliceAttrMap.put("URL",fromMap.get("URL"));
         return manifestToSpliceAttrMap;
     }
 

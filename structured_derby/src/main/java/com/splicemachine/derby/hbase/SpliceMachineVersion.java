@@ -9,5 +9,11 @@ import javax.management.MXBean;
 @MXBean
 public interface SpliceMachineVersion {
 
-    String getVersionInfo();
+    String getRelease();
+
+    String getImplementationVersion();
+
+    String getBuildTime();
+
+    String getURL();
 }

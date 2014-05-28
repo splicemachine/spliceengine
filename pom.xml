@@ -89,11 +89,12 @@
 					<configuration>
 						<classifier>${envClassifier}</classifier>
 						<archive>
-							<manifestEntries>
-								<Implementation-Version>${buildNumber}</Implementation-Version>
-								<Release>0.5</Release>
-								<URL>http://www.splicemachine.com</URL>
-							</manifestEntries>
+              <manifestEntries>
+                <Implementation-Version>${buildNumber}</Implementation-Version>
+                <Release>${project.version}</Release>
+                <Build-Time>${maven.build.timestamp}</Build-Time>
+                <URL>http://www.splicemachine.com</URL>
+              </manifestEntries>
 						</archive>
 						<excludes>
 							<exclude>**/*log4j.properties</exclude>
