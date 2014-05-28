@@ -65,8 +65,8 @@ public class SpliceUtilities extends SIConstants {
 	public static HTableDescriptor generateTempTable(String tableName) {
 		HTableDescriptor desc = new HTableDescriptor(tableName);
 		desc.addFamily(createTempDataFamily());
-		desc.setValue(HTableDescriptor.SPLIT_POLICY, ConstantSizeRegionSplitPolicy.class.getName());
-		desc.setMaxFileSize(SpliceConstants.tempTableMaxFileSize);
+//		desc.setValue(HTableDescriptor.SPLIT_POLICY, ConstantSizeRegionSplitPolicy.class.getName());
+//		desc.setMaxFileSize(SpliceConstants.tempTableMaxFileSize);
         return desc;
 	}
 
@@ -184,7 +184,7 @@ public class SpliceUtilities extends SIConstants {
 
     public static void createTempTable(HBaseAdmin admin) throws IOException {
         HTableDescriptor td = generateTempTable(TEMP_TABLE);
-        td.setMaxFileSize(SpliceConstants.tempTableMaxFileSize);
+        //td.setMaxFileSize(SpliceConstants.tempTableMaxFileSize);
         byte[][] prefixes = getAllPossibleBucketPrefixes();
         byte[][] splitKeys = new byte[prefixes.length - 1][];
         System.arraycopy(prefixes, 1, splitKeys, 0, prefixes.length - 1);
