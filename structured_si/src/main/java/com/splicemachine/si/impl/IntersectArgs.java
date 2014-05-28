@@ -13,4 +13,14 @@ public class IntersectArgs {
         this.transaction1 = transaction1;
         this.transaction2 = transaction2;
     }
+
+    @Override
+    public int hashCode() {
+    	long x = transaction1.getLongTransactionId();
+    	long y = transaction2.getLongTransactionId();
+        int result = (int) (x ^ (x >>> 32));
+        result = 31 * result + (int) (y ^ (y >>> 32));
+        return result;
+    }
+    
 }
