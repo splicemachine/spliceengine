@@ -570,6 +570,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 		conn.close();
 	}
 	
+    @Ignore("DB-1259")
 	@Test
 	@Category(SlowTest.class)
 	public void GetReadWriteCountBulkRecordWrites() throws Exception{
