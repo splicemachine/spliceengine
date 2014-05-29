@@ -28,7 +28,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
+import com.splicemachine.hbase.MeasuredRegionScanner;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -100,7 +100,7 @@ public class LastIndexKeyOperation extends ScanOperation {
         contextScan = context.getScan();
     }
 
-    private BufferedRegionScanner getTentativeScanner(Scan contextScan) throws IOException {
+    private BufferedRegionScanner getTentativeScanner(Scan contextScan, SpliceRuntimeContext spliceRuntimeContext) throws IOException {
         if(region==null)return null;
         byte[] endKey = region.getRegionInfo().getEndKey();
         if (endKey.length == 0) {
@@ -136,7 +136,7 @@ public class LastIndexKeyOperation extends ScanOperation {
         if (baseScanner == null) {
             baseScanner = region.getScanner(scan);
         }
-        return new BufferedRegionScanner(region,baseScanner,scan, SpliceConstants.DEFAULT_CACHE_SIZE, new SpliceRuntimeContext());
+        return new BufferedRegionScanner(region,baseScanner,scan, SpliceConstants.DEFAULT_CACHE_SIZE, spliceRuntimeContext);
     }
 
     @Override
@@ -158,7 +158,7 @@ public class LastIndexKeyOperation extends ScanOperation {
 				}else{
 
 						ExecRow currentRow = getExecRowDefinition();
-						tentativeScanner = getTentativeScanner(contextScan);
+						tentativeScanner = getTentativeScanner(contextScan, spliceRuntimeContext);
 						if(tableScanner==null){
 								MeasuredRegionScanner scanner = tentativeScanner!=null? tentativeScanner: regionScanner;
 								tableScanner = new TableScannerBuilder()
@@ -288,9 +288,11 @@ public class LastIndexKeyOperation extends ScanOperation {
 
     @Override
     protected void updateStats(OperationRuntimeStats stats) {
-        stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS, regionScanner.getRowsOutput());
-        stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES, regionScanner.getBytesOutput());
-        TimeView localScanTime = regionScanner.getReadTime();
+
+        MeasuredRegionScanner scanner = tentativeScanner!=null? tentativeScanner: regionScanner;
+        stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS, scanner.getRowsOutput());
+        stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES, scanner.getBytesOutput());
+        TimeView localScanTime = scanner.getReadTime();
         stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME, localScanTime.getWallClockTime());
         stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME, localScanTime.getCpuTime());
         stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME, localScanTime.getUserTime());

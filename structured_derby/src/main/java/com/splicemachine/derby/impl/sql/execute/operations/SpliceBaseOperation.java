@@ -606,15 +606,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 						stats.addMetric(OperationMetric.TOTAL_WALL_TIME,view.getWallClockTime());
 						stats.addMetric(OperationMetric.TOTAL_CPU_TIME,view.getCpuTime());
 						stats.addMetric(OperationMetric.TOTAL_USER_TIME,view.getUserTime());
-
-                        if (isTopOperation && this instanceof SinkingOperation) {
-                            // if this is a top operation and sinking operation, bump up the number of input rows
-                            stats.addMetric(OperationMetric.INPUT_ROWS, timer.getNumEvents());
-                        }
-                        else {
-                            // Otherwise, bump up the number of output rows
-                            stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
-                        }
+                    if(!(isTopOperation && this instanceof SinkingOperation)) {
+                        // Bump up hte output row if this is not writing to temp
+                        stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
+                    }
 				}
 
 				return stats;

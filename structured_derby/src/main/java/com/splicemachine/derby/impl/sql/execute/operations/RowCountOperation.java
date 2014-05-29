@@ -18,6 +18,7 @@ import com.splicemachine.derby.impl.storage.AbstractScanProvider;
 import com.splicemachine.derby.impl.storage.MultiScanRowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -166,6 +167,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 				//determine our offset
 				this.regionScan = context.getScan();
 				this.spliceScanner = context.getSpliceRegionScanner();
+                startExecutionTime = System.currentTimeMillis();
 		}
 
 		@Override
@@ -175,10 +177,14 @@ public class RowCountOperation extends SpliceBaseOperation{
 						firstTime=false;
 						getTotalOffset();
 						getFetchLimit();
+                        timer = spliceRuntimeContext.newTimer();
 				}
 
+                timer.startTiming();
 				if(fetchFirstMethod!=null && rowsFetched >=fetchFirst){
 						setCurrentRow(null);
+                        timer.stopTiming();
+                        stopExecutionTime = System.currentTimeMillis();
 						return null;
 				}else{
 						do{
@@ -197,7 +203,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 																subqueryTrackingArray = operationInformation.getSubqueryTrackingArray();
 												}
 										}
-
+                                        timer.tick(1);
 										setCurrentRow(row);
 										return row;
 								}else if (rowsSkipped > 0) {
@@ -206,9 +212,15 @@ public class RowCountOperation extends SpliceBaseOperation{
 						}while(row!=null);
 
 						setCurrentRow(null);
+                        timer.stopTiming();
+                        stopExecutionTime = System.currentTimeMillis();
 						return null;
 				}
 		}
+        @Override
+        protected void updateStats(OperationRuntimeStats stats) {
+                stats.addMetric(OperationMetric.INPUT_ROWS, timer.getNumEvents());
+        }
 
 		private long getTotalOffset() throws StandardException {
 				if(offsetMethod!=null){
