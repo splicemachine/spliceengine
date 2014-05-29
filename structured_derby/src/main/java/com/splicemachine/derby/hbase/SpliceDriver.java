@@ -233,18 +233,14 @@ public class SpliceDriver extends SIConstants {
                         boolean setRunning = true;
                         SpliceLogUtils.debug(LOG, "Booting Database");
                         setRunning = bootDatabase();
-												if(!setRunning){
-														abortStartup();
-														return null;
-												}
+                        if(!setRunning){
+                        	abortStartup();
+                        	return null;
+                        }
 
-												//ensure Zk paths exists
-												ZkUtils.safeInitializeZooKeeper();
-                        //table is set up
-                        snowflake = snowLoader.load();
-												statementManager = new StatementManager();
-												taskReporter = new XplainTaskReporter(1);
-												taskReporter.start(1);
+                        statementManager = new StatementManager();
+                        taskReporter = new XplainTaskReporter(1);
+                        taskReporter.start(1);
                         logging = new LogManager();
                         SpliceLogUtils.debug(LOG, "Finished Booting Database");
 
@@ -318,8 +314,12 @@ public class SpliceDriver extends SIConstants {
     	HBaseAdmin admin = null;
     	connection = null;
         try{
+        	// The HBaseAdmin creates a connection to the ZooKeeper ensemble and thereafter into the HBase cluster.
         	admin = SpliceAccessManager.getAdmin(config);
         	HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.INIT_TABLE);
+        	// Create the special "SPLICE_INIT" table which triggers the creation of the SpliceMasterObserver and ultimately
+        	// triggers the creation of the "SPLICE_*" HBase tables.  This is an asynchronous call and so we "loop" via a
+        	// "please hold" exception and a recursive call to bootDatabase() along with a sleep.
         	admin.createTable(desc);
 
         	return false;
@@ -328,6 +328,21 @@ public class SpliceDriver extends SIConstants {
         	SpliceLogUtils.info(LOG, "Waiting for Splice Schema to Create");
         	return bootDatabase();
         } catch (Exception e) {
+        	// The exception signaling the start of a successfully running Splice Engine will be a SpliceDoNotRetryIOException.
+        	// When this is returned, it means that a connection to HBase and the creation (or previous existence) of the
+        	// "SPLICE_*" tables in HBase has been successful.
+        	// Not exactly sure why we are catching a generic Exception above.  Possibly there are other valid exceptions???
+
+        	// Ensure ZK paths exist.
+        	ZkUtils.safeInitializeZooKeeper();
+        	// Initialize the table pool so the UUID generator below can access the SPLICE_SEQUENCES table in HBase.
+        	new SpliceAccessManager();
+        	// Since SPLICE_SEQUENCES table is set up, initialize the UUID generator, so the new Derby connection below
+        	// can execute an upgrade process if requested and create and store new system objects in the data dictionary tables.
+        	loadUUIDGenerator();
+
+            // Create an embedded connection to Derby.  This essentially boots up Derby by creating an internal connection to it.
+        	// External connections to Derby are created later when the Derby network server is started.
 			EmbedConnectionMaker maker = new EmbedConnectionMaker();
 			connection = maker.createNew();
 			return true;
