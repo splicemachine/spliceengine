@@ -1,28 +1,25 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
 import org.apache.derby.catalog.AliasInfo;
-import org.apache.derby.catalog.TypeDescriptor;
 import org.apache.derby.catalog.UUID;
-import org.apache.derby.catalog.types.RoutineAliasInfo;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.JDBC30Translation;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ScanQualifier;
 import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.Orderable;
 import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.derby.impl.sql.catalog.*;
 import org.apache.log4j.Logger;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+
+import com.splicemachine.constants.SpliceConstants;
 
 /**
  * @author Scott Fines
@@ -130,6 +127,32 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         initSystemIndexVariables(pkTable);
         return pkTable;
     }
+
+	/**
+	 * Initialize system catalogs. This is where Derby performs upgrade.
+	 * This is where Splice updates (reloads) the system stored procedures
+	 * when the <code>splice.updateSystemProcs</code> system property is set to true.
+	 *
+	 *	@param	tc				TransactionController
+	 *	@param	ddg				DataDescriptorGenerator
+	 *	@param	startParams		Properties
+	 *
+	 * 	@exception StandardException		Thrown on error
+	 */
+    @Override
+	protected void updateSystemProcedures(TransactionController tc)
+		throws StandardException
+	{        
+    	// Update (or create) the system stored procedures if requested.
+    	if (SpliceConstants.updateSystemProcs) {
+    		createOrUpdateAllSystemProcedures(getSysIBMSchemaDescriptor().getSchemaName(), tc);
+    		createOrUpdateAllSystemProcedures(SchemaDescriptor.STD_SQLJ_SCHEMA_NAME, tc);
+    		createOrUpdateAllSystemProcedures(getSystemUtilSchemaDescriptor().getSchemaName(), tc);
+    	}
+    	// Only update the system procedures once.  Otherwise, each time an ij session is created, the system procedures will be dropped/created again.
+    	// It would be better if it was possible to detect when the database is being booted during server startup versus the database being booted during ij startup.
+    	SpliceConstants.updateSystemProcs = false;
+	}
 
     @Override
     protected void createDictionaryTables(Properties params,
