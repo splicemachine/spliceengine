@@ -266,6 +266,10 @@ public class UpdateOperation extends DMLWriteOperation{
 						stats.addMetric(OperationMetric.REMOTE_GET_CPU_TIME,getView.getCpuTime());
 						stats.addMetric(OperationMetric.REMOTE_GET_USER_TIME,getView.getUserTime());
 				}
+				if(timer!=null){
+						//same number of inputs as outputs
+						stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
+				}
 		}
 
 		@Override
