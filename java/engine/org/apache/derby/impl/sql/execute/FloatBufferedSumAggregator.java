@@ -20,6 +20,7 @@ public class FloatBufferedSumAggregator extends SumAggregator {
 		private int position;
 
 		private float sum = 0f;
+		private boolean isNull = true;
 
 		public FloatBufferedSumAggregator(int bufferSize) {
 				int s = 1;
@@ -59,12 +60,14 @@ public class FloatBufferedSumAggregator extends SumAggregator {
 						position=0;
 				}
 				out.writeBoolean(eliminatedNulls);
+				out.writeBoolean(isNull);
 				out.writeFloat(sum);
 		}
 
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 				this.eliminatedNulls = in.readBoolean();
+				this.isNull = in.readBoolean();
 				this.sum = in.readFloat();
 		}
 
@@ -72,6 +75,10 @@ public class FloatBufferedSumAggregator extends SumAggregator {
 		public DataValueDescriptor getResult() throws StandardException {
 				if (value == null) {
 						value = new SQLReal();
+				}
+				if(isNull){
+						value.setToNull();
+						return value;
 				}
 				if(position!=0){
 						sum(position);
@@ -112,6 +119,7 @@ public class FloatBufferedSumAggregator extends SumAggregator {
 		}
 
 		private void incrementPosition() throws StandardException {
+				isNull=false;
 				position = (position+1) & length;
 				if(position==0){
 						sum(buffer.length);

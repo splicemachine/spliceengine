@@ -20,6 +20,7 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 		private int position;
 
 		private BigDecimal sum = BigDecimal.ZERO;
+		private boolean isNull = true;
 
 		public DecimalBufferedSumAggregator(int bufferSize) {
 				int s = 1;
@@ -59,12 +60,14 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 						position=0;
 				}
 				out.writeBoolean(eliminatedNulls);
+				out.writeBoolean(isNull);
 				out.writeObject(sum);
 		}
 
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 				this.eliminatedNulls = in.readBoolean();
+				this.isNull = in.readBoolean();
 				this.sum = (BigDecimal)in.readObject();
 		}
 
@@ -72,6 +75,10 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 		public DataValueDescriptor getResult() throws StandardException {
 				if (value == null) {
 						value = new SQLDecimal();
+				}
+				if(isNull){
+						value.setToNull();
+						return value;
 				}
 				if(position!=0){
 						sum(position);
@@ -94,6 +101,7 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 		public void init(BigDecimal sum,boolean eliminatedNulls){
 				this.sum = sum;
 				this.eliminatedNulls = eliminatedNulls;
+				this.isNull=false;
 		}
 
 		@Override
@@ -109,6 +117,7 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 		}
 
 		private void incrementPosition() throws StandardException {
+				isNull=false;
 				position = (position+1) & length;
 				if(position==0){
 						sum(buffer.length);

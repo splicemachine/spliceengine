@@ -20,8 +20,8 @@ public class LongBufferedSumAggregator extends SumAggregator {
 		private final int length;
 		private int position;
 
-
 		private long sum = 0;
+		private boolean isNull = true; //set to false when elements are added
 
 		public LongBufferedSumAggregator(int bufferSize) {
 				int s = 1;
@@ -61,12 +61,14 @@ public class LongBufferedSumAggregator extends SumAggregator {
 						position=0;
 				}
 				out.writeBoolean(eliminatedNulls);
+				out.writeBoolean(isNull);
 				out.writeLong(sum);
 		}
 
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 				this.eliminatedNulls = in.readBoolean();
+				this.isNull = in.readBoolean();
 				this.sum = in.readLong();
 		}
 
@@ -74,6 +76,10 @@ public class LongBufferedSumAggregator extends SumAggregator {
 		public DataValueDescriptor getResult() throws StandardException {
 				if (value == null) {
 						value = new SQLLongint();
+				}
+				if(isNull){
+						value.setToNull();
+						return value;
 				}
 				if(position!=0){
 						sum(position);
@@ -146,6 +152,7 @@ public class LongBufferedSumAggregator extends SumAggregator {
 		}
 
 		private void incrementPosition() throws StandardException {
+				isNull=false;
 				position = (position+1) & length;
 				if(position==0){
 						sum(buffer.length);
