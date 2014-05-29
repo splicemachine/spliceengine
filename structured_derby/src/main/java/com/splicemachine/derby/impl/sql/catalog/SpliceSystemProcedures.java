@@ -448,7 +448,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
     	        	//
     	        	// Date functions
     	        	//
-					Procedure.newBuilder().name("ADD_MONTHS")
+					 Procedure.newBuilder().name("ADD_MONTHS")
     		        	.numOutputParams(0)
     		        	.numResultSets(0)
     		            .sqlControl(RoutineAliasInfo.NO_SQL)
@@ -456,7 +456,55 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
     		            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
     		            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
     		            .integer("NUMOFMONTHS")
-    		            .build()
+    		            .build(),
+    		        Procedure.newBuilder().name("LAST_DAY")
+    		        	.numOutputParams(0)
+    		        	.numResultSets(0)
+    		            .sqlControl(RoutineAliasInfo.NO_SQL)
+    		            .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+    		            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+    		            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+    		            .build(),
+    		       
+    		        Procedure.newBuilder().name("TO_DATE")
+    		        	.numOutputParams(0)
+    		        	.numResultSets(0)
+    		        	.sqlControl(RoutineAliasInfo.NO_SQL)
+    		        	.returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+    		        	.isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+    		        	.varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
+    		        	.varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
+    		        	.build(),
+    		       
+    		        Procedure.newBuilder().name("NEXT_DAY")
+    		        	.numOutputParams(0)
+    		        	.numResultSets(0)
+    		        	.sqlControl(RoutineAliasInfo.NO_SQL)
+    		        	.returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+    		        	.isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+    		        	.arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+    		        	.varchar("WEEKDAY", Limits.DB2_VARCHAR_MAXWIDTH)
+    		        	.build(),
+    		        Procedure.newBuilder().name("MONTH_BETWEEN")
+    		        	.numOutputParams(0)
+    		        	.numResultSets(0)
+    		        	.sqlControl(RoutineAliasInfo.NO_SQL)
+    		        	.returnType(DataTypeDescriptor.getCatalogType(Types.DOUBLE))
+    		        	.isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+    		        	.arg("SOURCE1", DataTypeDescriptor.getCatalogType(Types.DATE))
+    		        	.arg("SOURCE2", DataTypeDescriptor.getCatalogType(Types.DATE))
+    		        	.build(),
+    		        Procedure.newBuilder().name("TO_CHAR")
+    		        	.numOutputParams(0)
+    		        	.numResultSets(0)
+    		        	.sqlControl(RoutineAliasInfo.NO_SQL)
+    		        	.returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
+    		        	.isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+    		        	.arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+    		        	.varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
+    		        	.build()
+    		            
+    		  
 	   		    });
     	        sysProcedures.put(sysFunUUID, sysFunProcs);
             }
