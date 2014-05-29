@@ -26,10 +26,6 @@ public class RegulatedWriter implements Writer{
         this.delegate = delegate;
         this.writeRejectedHandler = writeRejectedHandler;
 				this.valve = new SemaphoreValve(new SemaphoreValve.PassiveOpeningPolicy(maxConcurrentWrites));
-//				this.valve = new OptimizingValve(maxConcurrentWrites,
-//								maxConcurrentWrites,
-//								new MovingThreshold(MovingThreshold.OptimizationStrategy.MINIMIZE,16),
-//								new MovingThreshold(MovingThreshold.OptimizationStrategy.MAXIMIZE,16));
     }
 
 
@@ -44,6 +40,7 @@ public class RegulatedWriter implements Writer{
         }
         //The valve has allowed us through
         return delegate.write(tableName,action,new ClosingWriteConfiguration(writeConfiguration));
+
     }
 
     @Override
