@@ -67,7 +67,8 @@ public class SinkSortIterator extends AbstractStandardIterator {
 								continue; //iterator exhausted, break from the loop
 						toReturn = distinctBuffer.add(groupingKey(nextRow), nextRow);
 						shouldContinue = toReturn==null;
-						rowsRead++;
+                        if (shouldContinue)
+						    rowsRead++;
 				}while(shouldContinue);
 
 				if(toReturn!=null)

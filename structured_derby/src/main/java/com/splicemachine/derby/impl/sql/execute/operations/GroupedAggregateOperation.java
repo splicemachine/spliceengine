@@ -417,7 +417,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						isCurrentDistinct = row.isDistinct();
 						ExecRow execRow = row.getRow();
 						setCurrentRow(execRow);
-
+                        timer.tick(1);
 						return execRow;
 				}finally{
 						if(shouldClose) {

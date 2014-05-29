@@ -50,6 +50,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		private SpliceOperationContext context;
 		private final List<Pair<byte[],byte[]>> additionalColumns = Lists.newArrayListWithExpectedSize(0);
 		private boolean finished = false;
+        private boolean metricsReported = false;
 
 		private DataHash<ExecRow> rowEncoder;
 		//    private MultiFieldEncoder rowEncoder;
@@ -176,7 +177,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 										}
 								}
 								//record statistics info
-								if(spliceRuntimeContext.shouldRecordTraceMetrics()){
+								if(spliceRuntimeContext.shouldRecordTraceMetrics() && !metricsReported){
 										String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
 										List<OperationRuntimeStats> stats = OperationRuntimeStats.getOperationStats(
 														topOperation,SpliceDriver.driver().getUUIDGenerator().nextUUID(),
@@ -188,6 +189,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
 												reporter.report(spliceRuntimeContext.getXplainSchema(),opStats);
 										}
+                                        metricsReported = true;
 								}
 						}
 						return !results.isEmpty();
@@ -213,7 +215,22 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 				SpliceLogUtils.trace(LOG, "close");
 //				if(rowEncoder!=null)
 //						rowEncoder.close();
-				try {
+                //record statistics info
+                if(spliceRuntimeContext.shouldRecordTraceMetrics() && !metricsReported){
+                    String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
+                    List<OperationRuntimeStats> stats = OperationRuntimeStats.getOperationStats(
+                            topOperation,SpliceDriver.driver().getUUIDGenerator().nextUUID(),
+                            topOperation.getStatementId(), WriteStats.NOOP_WRITE_STATS,
+                            Metrics.noOpTimeView(),spliceRuntimeContext);
+                    XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
+                    for(OperationRuntimeStats opStats:stats){
+                        opStats.setHostName(hostName);
+
+                        reporter.report(spliceRuntimeContext.getXplainSchema(),opStats);
+                    }
+                    metricsReported = true;
+                }
+                try {
 						try {
 								topOperation.close();
 						} catch (StandardException e) {
