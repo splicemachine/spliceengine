@@ -635,6 +635,8 @@
 								<argument>-XX:MaxDirectMemorySize=1g</argument>
 								<argument>-enableassertions</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
+								<!-- Setting the updateSystemProcs option to true causes all of the system stored procedures to be re-created on server startup. -->
+								<argument>-Dsplice.updateSystemProcs=false</argument>
 								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
 								<argument>${project.build.directory}/zookeeper</argument>
 								<argument>file://${project.build.directory}/hbase</argument>
