@@ -6,8 +6,6 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
 
-import org.apache.commons.net.ntp.TimeStamp;
-
 /**
  * Implementation of standard Splice Date functions,
  * in particular those represented as system procedures
@@ -24,13 +22,15 @@ public class SpliceDateFunctions {
 	    return new java.sql.Date(c.getTimeInMillis());
 	}
 	/**
-	 * Implements the TO_DATE() fuction.
-	 * @throws ParseException 
 	 * 
-	 * 
+	 * Implements the To_date function
+	 * @param source
+	 * @param format
+	 * @return
+	 * @throws ParseException
 	 */
 	public static Date TO_DATE(String source, String format) throws ParseException{
-		if(source == null || format == null) return null;
+		if(source==null||format==null) return null;
 		SimpleDateFormat fmt = new SimpleDateFormat(format.toLowerCase().replaceAll("m", "M"));
 		java.util.Date inmd = fmt.parse(source);
 		java.sql.Date ret = new Date(inmd.getTime());
@@ -41,7 +41,7 @@ public class SpliceDateFunctions {
 	 *  
 	 */
 	public static Date LAST_DAY(java.sql.Date source) {
-		if(source == null) {
+		if(source==null) {
 			return source;
 		}
 		Calendar calendar = Calendar.getInstance();
@@ -84,10 +84,10 @@ public class SpliceDateFunctions {
 	}
 	/**11
 	 * Implements the MONTH_BETWEEN function
-	 * if any of the input values are null, the function will return -1. Else, it will return an positive double.
+	 * 
 	 */
 	public static double MONTH_BETWEEN(java.sql.Date source1, java.sql.Date source2){
-		if(source1 == null || source2 == null) return -1;
+		if(source1==null||source2==null) return -1.0;
 		Calendar cal1 = Calendar.getInstance();
 		cal1.setTime(source1);
 		Calendar cal2 = Calendar.getInstance();
@@ -101,16 +101,11 @@ public class SpliceDateFunctions {
 		ret = Math.abs(ret);
 		return ret;
 	}
-	
 	/**
 	 * Implements the to_char function
-	 * 
 	 */
-	public static String TO_CHAR(java.sql.Date source, String format){
-		if(source == null || format == null) return null;
-		SimpleDateFormat fmt = new SimpleDateFormat(format.toLowerCase().replaceAll("m", "M"));
+	public static String TO_CHAR(java.util.Date source, String format){
+		SimpleDateFormat fmt = new SimpleDateFormat(format);
 		return fmt.format(source);
 	}
-	
-	
 }
