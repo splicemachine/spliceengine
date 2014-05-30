@@ -28,6 +28,7 @@ public class XPLAINOperationHistoryDescriptor extends XPLAINBaseTableDescriptor{
 								SystemColumnImpl.getColumn(OPERATIONID_NAME,Types.BIGINT,false),
 								SystemColumnImpl.getColumn("OPERATION_TYPE",Types.VARCHAR,false,32642),
 								SystemColumnImpl.getColumn("PARENT_OPERATION_ID",Types.BIGINT,true),
+                                SystemColumnImpl.getColumn("INFO",Types.VARCHAR,false,32642),
 								SystemColumnImpl.getColumn("IS_RIGHT_CHILD_OP",Types.BOOLEAN,false),
 								SystemColumnImpl.getColumn("IS_SINK",Types.BOOLEAN,false),
 								SystemColumnImpl.getColumn("JOBCOUNT",Types.INTEGER,true),

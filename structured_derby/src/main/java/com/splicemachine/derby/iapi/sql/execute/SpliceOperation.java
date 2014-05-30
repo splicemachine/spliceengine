@@ -229,4 +229,6 @@ public interface SpliceOperation extends StandardCloseable {
     int[] getAccessedNonPkColumns() throws StandardException;
 		
 		void setActivation(Activation activation) throws StandardException;
+
+    String getInfo();
 }

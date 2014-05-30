@@ -84,6 +84,7 @@ public class XPlainTraceLegend {
         legendMap.put("WRITETHREADEDUSERTIME",  new LegendEntry("WRITETHREADEDUSERTIME", "WTUT", false));
         legendMap.put("WRITETHREADEDCPUTIME",  new LegendEntry("WRITETHREADEDCPUTIME", "WTCT", false));
         legendMap.put("ITERATIONS",  new LegendEntry("ITERATIONS", "ITR", false));
+        legendMap.put("INFO",  new LegendEntry("INFO", "IF", false));
     }
 
     public String getShortName(String fullName) {

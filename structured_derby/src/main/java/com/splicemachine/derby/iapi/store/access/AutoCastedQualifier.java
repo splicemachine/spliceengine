@@ -53,4 +53,9 @@ public class AutoCastedQualifier implements Qualifier {
     public void reinitialize() {
         originalQualifier.reinitialize();
     }
+
+    @Override
+    public String getText() {
+        return originalQualifier.getText();
+    }
 }

@@ -294,7 +294,7 @@ public class HdfsImport {
 								user,transactionId,
 								1,SpliceDriver.driver().getUUIDGenerator());
 				OperationInfo opInfo = new OperationInfo(
-								SpliceDriver.driver().getUUIDGenerator().nextUUID(), statementInfo.getStatementUuid(),"Import", false, -1l);
+								SpliceDriver.driver().getUUIDGenerator().nextUUID(), statementInfo.getStatementUuid(),"Import", null, false, -1l);
 				statementInfo.setOperationInfo(Arrays.asList(opInfo));
 
 				SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);

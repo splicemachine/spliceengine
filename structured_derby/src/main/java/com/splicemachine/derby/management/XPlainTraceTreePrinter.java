@@ -156,7 +156,7 @@ public class XPlainTraceTreePrinter extends XPlainTraceBasePrinter{
             if (isMetricColumn(columnName)) {
                 if (isStringMetric(columnName)) {
                     val = (String)field.get(operation);
-                    if (val != null) {
+                    if (val != null && val.length() > 0) {
                         if (first) {
                             first = false;
                         } else {
@@ -204,7 +204,8 @@ public class XPlainTraceTreePrinter extends XPlainTraceBasePrinter{
     private boolean isStringMetric(String columnName) {
 
         return (columnName.toUpperCase().compareTo("HOST") == 0 ||
-                columnName.toUpperCase().compareTo("REGION") == 0);
+                columnName.toUpperCase().compareTo("REGION") == 0 ||
+                columnName.toUpperCase().compareTo("INFO") == 0);
 
     }
 }

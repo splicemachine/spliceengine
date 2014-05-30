@@ -197,7 +197,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 					 * a "Scroll Insensitive" which returns the final output.
 					 */
 						scrollUuid = SpliceDriver.driver().getUUIDGenerator().nextUUID();
-						OperationInfo opInfo = new OperationInfo(scrollUuid,statementId,"ScrollInsensitive",false,parentOperationID);
+						OperationInfo opInfo = new OperationInfo(scrollUuid,statementId,"ScrollInsensitive", null, false,parentOperationID);
 						info.add(opInfo);
 				}else{
 						scrollUuid = -1l;
@@ -210,7 +210,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 		private void populateOpInfo(long statementId,long parentOperationId,boolean isRight,SpliceOperation operation, List<OperationInfo> infos) {
 				if(operation==null) return;
 				long operationUuid = Bytes.toLong(operation.getUniqueSequenceID());
-				OperationInfo opInfo = new OperationInfo(operationUuid,statementId, operation.getName(),isRight,parentOperationId);
+				OperationInfo opInfo = new OperationInfo(operationUuid,statementId, operation.getName(), operation.getInfo(), isRight,parentOperationId);
 				infos.add(opInfo);
 				populateOpInfo(statementId,operationUuid, false, operation.getLeftOperation(), infos);
 				populateOpInfo(statementId,operationUuid,true,operation.getRightOperation(),infos);

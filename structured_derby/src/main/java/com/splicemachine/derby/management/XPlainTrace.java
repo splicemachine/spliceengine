@@ -220,6 +220,7 @@ public class XPlainTrace {
             node.setParentOperationId(rs.getLong(2));
             node.setOperationType(rs.getString(3));
             node.setRightChildOp(rs.getBoolean(4));
+            node.setInfo(rs.getString(5));
             xPlainTreeNodeMap.put(operationId, node);
         }
         rs.close();
@@ -229,7 +230,7 @@ public class XPlainTrace {
     private ResultSet getOperationHistory() throws SQLException{
 
         StringBuilder query =
-                new StringBuilder("select operationId, parent_operation_id, operation_type, is_right_child_op from ");
+                new StringBuilder("select operationId, parent_operation_id, operation_type, is_right_child_op, info from ");
 
         query.append(schemaName)
                 .append(".")

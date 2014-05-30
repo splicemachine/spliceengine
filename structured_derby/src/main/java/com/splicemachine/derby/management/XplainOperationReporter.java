@@ -21,13 +21,13 @@ public class XplainOperationReporter extends XplainReporter<OperationInfo> {
 				return new EntryWriteableHash<OperationInfo>() {
 						@Override
 						protected EntryEncoder buildEncoder() {
-								int totalLength = 9;
+								int totalLength = 10;
 								BitSet fields  = new BitSet(totalLength);
 								fields.set(0,totalLength);
 								BitSet scalarFields = new BitSet(totalLength);
 								scalarFields.set(0, 2);
 								scalarFields.set(3);
-								scalarFields.set(6,totalLength);
+								scalarFields.set(7,totalLength);
 								BitSet floatFields = new BitSet(0);
 								BitSet doubleFields = new BitSet(0);
 
@@ -37,6 +37,7 @@ public class XplainOperationReporter extends XplainReporter<OperationInfo> {
 						@Override
 						protected void doEncode(MultiFieldEncoder encoder, OperationInfo element) {
 								long parentOperationUuid = element.getParentOperationUuid();
+                                String info = element.getInfo();
 								encoder.encodeNext(element.getStatementId())
 												.encodeNext(element.getOperationUuid())
 												.encodeNext(element.getOperationTypeName());
@@ -45,11 +46,12 @@ public class XplainOperationReporter extends XplainReporter<OperationInfo> {
 								else
 										encoder.encodeNext(parentOperationUuid);
 
-								encoder.encodeNext(element.isRight())
-												.encodeNext(element.getNumJobs() > 0)
-												.encodeNext(element.getNumJobs())
-												.encodeNext(element.getNumTasks())
-												.encodeNext(element.getNumFailedTasks());
+								encoder.encodeNext(info!=null?info:"")
+                                        .encodeNext(element.isRight())
+                                        .encodeNext(element.getNumJobs() > 0)
+                                        .encodeNext(element.getNumJobs())
+                                        .encodeNext(element.getNumTasks())
+                                        .encodeNext(element.getNumFailedTasks());
 						}
 				};
 		}

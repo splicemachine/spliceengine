@@ -54,8 +54,9 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		protected EntryPredicateFilter predicateFilter;
 		private boolean cachedPredicateFilter = false;
 		protected int[] keyDecodingMap;
-    protected Scan scan;
-    protected boolean scanSet = false;
+        protected Scan scan;
+        protected boolean scanSet = false;
+        protected String scanQualifiersField;
 
     public ScanOperation () {
 				super();
@@ -74,6 +75,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
 				this.lockMode = lockMode;
 				this.isolationLevel = isolationLevel;
+                this.scanQualifiersField = scanQualifiersField;
 
 				this.scanInformation = new DerbyScanInformation(resultRowAllocator.getMethodName(),
 								startKeyGetter!=null? startKeyGetter.getMethodName(): null,
@@ -146,11 +148,35 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 						currentTemplate = currentRow.getClone();
 						if (currentRowLocation == null)
 								currentRowLocation = new HBaseRowLocation();
+                        if(shouldRecordStats()&& info == null) {
+                            if(scanQualifiersField != null ) {
+                                getScanQualifiersInStringFormat();
+                            }
+                        }
 				} catch (Exception e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);
 				}
 		}
 
+        private void getScanQualifiersInStringFormat() throws StandardException{
+            Qualifier[][] scanQualifiers = null;
+
+            try {
+                scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
+            } catch (Exception e) {
+                throw StandardException.unexpectedUserException(e);
+            }
+
+            if (scanQualifiers != null) {
+                String qualifiersString = "Scan filter:";
+                for (Qualifier[] qualifiers : scanQualifiers) {
+                    for (Qualifier q : qualifiers) {
+                        qualifiersString += q.getText();
+                    }
+                }
+                info = (info == null) ? qualifiersString : info + qualifiersString;
+            }
+        }
 		@Override
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 				SpliceLogUtils.trace(LOG, "executeScan");
