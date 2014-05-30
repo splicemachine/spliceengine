@@ -545,23 +545,5 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
 		}
 	}
 
-	@Test
-	public void testQuerySpecificSchemaIdPreparedStatement() throws Exception{
-		String schemaId = "80000000-00d2-b38f-4cda-000a0a412c00";
-		PreparedStatement ps = methodWatcher.prepareStatement("select s.schemaname,s.schemaid from sys.sysschemas s where s.schemaid =?");
-		ps.setString(1,schemaId);
-		ResultSet rs = ps.executeQuery();
-		int count = 0;
-		while(rs.next()){
-			String schemaName = rs.getString(1);
-			String retSchemaId = rs.getString(2);
-			Assert.assertNotNull("schema name is null!",schemaName);
-			Assert.assertEquals("incorrect schema id returned!",schemaId,retSchemaId);
-			count++;
-		}
-		Assert.assertEquals("Incorrect number of rows returned!",1,count);
-	}
-
-
 
 }
