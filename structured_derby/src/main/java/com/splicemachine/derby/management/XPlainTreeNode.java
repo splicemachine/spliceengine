@@ -23,6 +23,7 @@ public class XPlainTreeNode {
     private int sequenceId;
     private int rightChild;
     private long statementId;
+    @Expose private String info;
 
     @Expose private int iterations;
 
@@ -210,4 +211,6 @@ public class XPlainTreeNode {
     public String getRegion() {
         return region;
     }
+
+    public void setInfo(String info) {this.info = info;}
 }

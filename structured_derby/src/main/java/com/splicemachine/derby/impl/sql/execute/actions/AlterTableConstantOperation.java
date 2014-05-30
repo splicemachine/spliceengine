@@ -1885,7 +1885,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                 columnInfos[droppedColumnPosition-1].name),userId,
                 activation.getTransactionController().getActiveStateTxIdString(),1, SpliceDriver.driver().getUUIDGenerator());
         statementInfo.setOperationInfo(Arrays.asList(new OperationInfo(statementInfo.getStatementUuid(),
-                SpliceDriver.driver().getUUIDGenerator().nextUUID(), "DropColumn", false, -1l)));
+                SpliceDriver.driver().getUUIDGenerator().nextUUID(), "DropColumn", null, false, -1l)));
         try{
             long start = System.currentTimeMillis();
             DropColumnJob job = new DropColumnJob(table, oldConglomId, newConglomId, ddlChange);
@@ -1939,7 +1939,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                 new StatementInfo(String.format("alter table %s.%s drop %s", td.getSchemaName(), td.getName(), columnInfo[0].name),
                         user,DropColumnTxnId, 1, SpliceDriver.driver().getUUIDGenerator());
         OperationInfo opInfo = new OperationInfo(
-                SpliceDriver.driver().getUUIDGenerator().nextUUID(), statementInfo.getStatementUuid(),"Alter Table Drop Column", false, -1l);
+                SpliceDriver.driver().getUUIDGenerator().nextUUID(), statementInfo.getStatementUuid(),"Alter Table Drop Column", null, false, -1l);
         statementInfo.setOperationInfo(Arrays.asList(opInfo));
         SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
 

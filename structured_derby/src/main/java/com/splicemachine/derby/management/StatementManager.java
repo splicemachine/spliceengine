@@ -33,8 +33,8 @@ public class StatementManager implements StatementManagement{
 				this.completedStatements = new AtomicReferenceArray<StatementInfo>(SpliceConstants.pastStatementBufferSize);
 				this.statementReporter = new XplainStatementReporter(1);
 				this.statementReporter.start(1);
-				this.operationReporter = new XplainOperationReporter(2);
-				this.operationReporter.start(2);
+				this.operationReporter = new XplainOperationReporter(1);
+				this.operationReporter.start(1);
 		}
 
 		public void addStatementInfo(StatementInfo statementInfo){

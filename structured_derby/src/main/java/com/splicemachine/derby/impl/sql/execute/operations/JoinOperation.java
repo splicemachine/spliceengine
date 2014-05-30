@@ -5,7 +5,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.lang.reflect.Method;
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
@@ -13,6 +13,7 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -174,6 +175,19 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 						mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
                 if (rightTemplate == null)
                     rightTemplate = rightRow.getClone();
+                if (shouldRecordStats() && restriction != null && info == null) {
+                    String restrictionToStringMethodName = restrictionMethodName + "ToString";
+                    try {
+                        Method method = activation.getClass().getMethod(restrictionToStringMethodName, null);
+                        String joinClause = "Join Condition:" + (String) method.invoke(activation, null);
+                        if (joinClause != null) {
+                            info = (info == null) ? joinClause : info + joinClause;
+                        }
+                    }catch (Exception e) {
+                        SpliceLogUtils.logAndThrow(LOG, "error during JoinOperation init",
+                                StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
+                    }
+                }
 		}
 
 		protected int[] generateHashKeys(int hashKeyItem) {

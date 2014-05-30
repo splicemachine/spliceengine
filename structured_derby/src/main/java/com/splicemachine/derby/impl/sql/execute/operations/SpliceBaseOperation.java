@@ -69,6 +69,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		protected long stopExecutionTime;
 		protected double optimizerEstimatedRowCount;
 		protected double optimizerEstimatedCost;
+        protected String info;
 
 		/**
 		 * Used to communicate a child transaction ID down to the sink operation in a sub-class.
@@ -656,5 +657,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             // by default return null
             return null;
         }
+
+        public String getInfo() {return info;}
 
 }
