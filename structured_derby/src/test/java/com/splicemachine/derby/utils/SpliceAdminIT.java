@@ -389,7 +389,6 @@ public class SpliceAdminIT {
         while (rs.next()) {
             origLevel = rs.getString(1);
         }
-        Assert.assertEquals("TRACE", origLevel);
 
         try {
             cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL(?,?)");
