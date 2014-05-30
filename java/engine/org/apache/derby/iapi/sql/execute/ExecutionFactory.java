@@ -175,7 +175,17 @@ public interface ExecutionFactory {
 						   boolean orderedNulls,
 						   boolean unknownRV,
 						   boolean negateCompareResult,
-						   int variantType);
+						   int variantType,
+                           String text);
+
+    Qualifier getQualifier(int columnId,
+                           int operator,
+                           GeneratedMethod orderableGetter,
+                           Activation activation,
+                           boolean orderedNulls,
+                           boolean unknownRV,
+                           boolean negateCompareResult,
+                           int variantType);
 
 	/**
 	  Create a new RowChanger for performing update and delete

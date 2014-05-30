@@ -122,4 +122,8 @@ public class UTFQualifier implements Qualifier
 	public void reinitialize()
 	{
 	}
+
+    public String getText() {
+        return null;
+    }
 }

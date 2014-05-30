@@ -426,6 +426,15 @@ abstract	class ExpressionClassBuilder implements ExpressionClassBuilderInterface
 		return mb;
 	}
 
+    MethodBuilder newUserExprToStringFun() {
+
+        // get next generated function
+        String exprName = "e".concat(Integer.toString(nextExprNum-1)).concat("ToString");
+
+        MethodBuilder mb = newGeneratedFun(exprName, "java.lang.String", Modifier.PUBLIC, (String[]) null);
+        mb.addThrownException("java.lang.Exception");
+        return mb;
+    }
 	///////////////////////////////////////////////////////////////////////
 	//
 	// CURRENT DATE/TIME SUPPORT

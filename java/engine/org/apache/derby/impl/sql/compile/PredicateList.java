@@ -2854,6 +2854,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
     Optimizable             optTable,
     boolean                 absolute,
     ExpressionClassBuilder  acb,
+    Predicate               pred,
     RelationalOperator      or_node,
 	LocalField              qualField,
     int                     array_idx_1,
@@ -2906,10 +2907,17 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
         /* variantType for qualifier's orderable */
         consMB.push(or_node.getOrderableVariantType(optTable));
 
+        int numArgs = 8;
+        if (getLanguageConnectionContext().getXplainSchema() != null) {
+            /* Qualifier's string representation */
+            consMB.push(pred.getText());
+            numArgs = 9;
+        }
+
         consMB.callMethod(
             VMOpcode.INVOKEINTERFACE, 
             ExecutionFactory.MODULE, 
-            "getQualifier", ClassName.Qualifier, 8);
+            "getQualifier", ClassName.Qualifier, numArgs);
 
         // result of getQualifier() is second arg for setQualifier
 
@@ -3169,6 +3177,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
                         optTable,
                         absolute,
                         acb,
+                        pred,
                         pred.getRelop(),
                         qualField,
                         0,
@@ -3251,6 +3260,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
                             optTable,
                             absolute,
                             acb,
+                            pred,
                             (RelationalOperator) a_list.get(i),
                             qualField,
                             and_idx,

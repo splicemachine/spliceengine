@@ -67,4 +67,15 @@ public interface GeneratedByteCode {
 	public Object e7() throws StandardException ;
 	public Object e8() throws StandardException ; 
 	public Object e9() throws StandardException ;
+
+    public String e0ToString() throws StandardException ;
+    public String e1ToString() throws StandardException ;
+    public String e2ToString() throws StandardException ;
+    public String e3ToString() throws StandardException ;
+    public String e4ToString() throws StandardException ;
+    public String e5ToString() throws StandardException ;
+    public String e6ToString() throws StandardException ;
+    public String e7ToString() throws StandardException ;
+    public String e8ToString() throws StandardException ;
+    public String e9ToString() throws StandardException ;
 }

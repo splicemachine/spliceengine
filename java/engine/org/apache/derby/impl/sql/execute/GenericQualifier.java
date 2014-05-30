@@ -44,8 +44,28 @@ public class GenericQualifier implements Qualifier
 	private boolean unknownRV;
 	private boolean negateCompareResult;
 	protected int variantType;
+    protected String text;
 
 	private DataValueDescriptor orderableCache = null;
+
+    public GenericQualifier(int columnId,
+                            int operator,
+                            GeneratedMethod orderableGetter,
+                            Activation activation,
+                            boolean orderedNulls,
+                            boolean unknownRV,
+                            boolean negateCompareResult,
+                            int variantType)
+    {
+        this.columnId = columnId;
+        this.operator = operator;
+        this.orderableGetter = orderableGetter;
+        this.activation = activation;
+        this.orderedNulls = orderedNulls;
+        this.unknownRV = unknownRV;
+        this.negateCompareResult = negateCompareResult;
+        this.variantType = variantType;
+    }
 
 	public GenericQualifier(int columnId,
 							int operator,
@@ -54,7 +74,8 @@ public class GenericQualifier implements Qualifier
 							boolean orderedNulls,
 							boolean unknownRV,
 							boolean negateCompareResult,
-							int variantType)
+							int variantType,
+                            String text)
 	{
 		this.columnId = columnId;
 		this.operator = operator;
@@ -64,12 +85,17 @@ public class GenericQualifier implements Qualifier
 		this.unknownRV = unknownRV;
 		this.negateCompareResult = negateCompareResult;
 		this.variantType = variantType;
+        this.text = text;
 	}
 
 	/* 
 	 * Qualifier interface
 	 */
 
+    @Override
+    public String getText() {
+        return text;
+    }
 	/** 
 	 * @see Qualifier#getColumnId
 	 */

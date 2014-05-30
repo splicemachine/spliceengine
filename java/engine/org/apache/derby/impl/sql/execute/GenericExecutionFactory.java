@@ -235,6 +235,24 @@ public class GenericExecutionFactory
 	{
 	}
 
+    /**
+     * @see ExecutionFactory#getQualifier
+     */
+    public Qualifier getQualifier(
+            int columnId,
+            int operator,
+            GeneratedMethod orderableGetter,
+            Activation activation,
+            boolean orderedNulls,
+            boolean unknownRV,
+            boolean negateCompareResult,
+            int variantType)
+    {
+        return new GenericQualifier(columnId, operator, orderableGetter,
+                activation, orderedNulls, unknownRV,
+                negateCompareResult, variantType);
+    }
+
 	/**
 	 * @see ExecutionFactory#getQualifier
 	 */
@@ -246,11 +264,12 @@ public class GenericExecutionFactory
 							boolean orderedNulls,
 							boolean unknownRV,
 							boolean negateCompareResult,
-							int variantType)
+							int variantType,
+                            String name)
 	{
 		return new GenericQualifier(columnId, operator, orderableGetter,
 									activation, orderedNulls, unknownRV,
-									negateCompareResult, variantType);
+									negateCompareResult, variantType, name);
 	}
 
 	/**

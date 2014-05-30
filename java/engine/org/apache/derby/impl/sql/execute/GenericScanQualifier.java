@@ -179,6 +179,10 @@ public class GenericScanQualifier implements ScanQualifier
 		this.unknownRV = unknownRV;
 		properInit = true;
 	}
+
+    public String getText() {
+        return null;
+    }
 }
 
 

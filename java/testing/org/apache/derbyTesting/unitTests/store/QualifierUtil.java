@@ -134,4 +134,8 @@ class QualifierUtil implements Qualifier
 	public void reinitialize()
 	{
 	}
+
+    public String getText() {
+        return null;
+    }
 }

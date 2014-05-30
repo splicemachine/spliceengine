@@ -146,4 +146,6 @@ public interface OptimizablePredicate
 	 * @return The index position that this predicate restricts (zero-based)
 	 */
 	int getIndexPosition();
+
+    String getText();
 }

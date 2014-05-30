@@ -534,6 +534,16 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	public Object e8() throws StandardException { return null; } 
 	public Object e9() throws StandardException { return null; }
 
+    public String e0ToString() throws StandardException { return null; }
+    public String e1ToString() throws StandardException { return null; }
+    public String e2ToString() throws StandardException { return null; }
+    public String e3ToString() throws StandardException { return null; }
+    public String e4ToString() throws StandardException { return null; }
+    public String e5ToString() throws StandardException { return null; }
+    public String e6ToString() throws StandardException { return null; }
+    public String e7ToString() throws StandardException { return null; }
+    public String e8ToString() throws StandardException { return null; }
+    public String e9ToString() throws StandardException { return null; }
 	//
 	// class interface
 	//

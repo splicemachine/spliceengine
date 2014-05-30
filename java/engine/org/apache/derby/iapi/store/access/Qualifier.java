@@ -257,4 +257,6 @@ public interface Qualifier
 	 * to be reset.
 	 */
 	void reinitialize();
+
+    String getText();
 }

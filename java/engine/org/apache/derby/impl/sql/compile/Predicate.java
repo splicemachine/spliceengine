@@ -1397,4 +1397,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
 		return null;
 	}
+
+    public String getText() {
+        ValueNode operand = getAndNode().getLeftOperand();
+        return XPlanUtils.opToString(operand);
+    }
 }
