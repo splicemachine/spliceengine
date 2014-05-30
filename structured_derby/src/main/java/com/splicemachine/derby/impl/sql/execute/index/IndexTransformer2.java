@@ -88,16 +88,16 @@ public class IndexTransformer2 {
 								int sourceKeyColumnPos = sourceKeyColumnEncodingOrder[i];
 								int destKeyPos = sourceKeyColumnPos<destKeyEncodingMap.length? destKeyEncodingMap[sourceKeyColumnPos]:-1;
 								if(destKeyPos<0){
-										skip(keyDecoder, columnTypes[i]);
+										skip(keyDecoder, columnTypes[sourceKeyColumnPos]);
 								}else{
 										int offset = keyDecoder.offset();
-										boolean isNull = skip(keyDecoder, columnTypes[i]);
+										boolean isNull = skip(keyDecoder, columnTypes[sourceKeyColumnPos]);
 										hasNullKeyFields = isNull ||hasNullKeyFields;
 										if(!isNull){
 												int length = keyDecoder.offset()-offset-1;
 												accumulate(keyAccumulator,destKeyPos,
 																columnTypes[sourceKeyColumnPos],
-																sourceKeyColumnSortOrder!=null && sourceKeyColumnSortOrder[i]!=destKeyColumnSortOrder[sourceKeyColumnPos],
+																sourceKeyColumnSortOrder!=null && sourceKeyColumnSortOrder[sourceKeyColumnPos]!=destKeyColumnSortOrder[sourceKeyColumnPos],
 																keyDecoder.array(),offset,length);
 										}
 								}
