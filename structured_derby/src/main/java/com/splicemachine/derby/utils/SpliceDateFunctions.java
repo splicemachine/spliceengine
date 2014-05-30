@@ -104,7 +104,7 @@ public class SpliceDateFunctions {
 	/**
 	 * Implements the to_char function
 	 */
-	public static String TO_CHAR(java.util.Date source, String format){
+	public static String TO_CHAR(java.sql.Date source, String format){
 		if(source == null || format == null) return null;
 		SimpleDateFormat fmt = new SimpleDateFormat(format.toLowerCase().replaceAll("m", "M"));
 		return fmt.format(source);
