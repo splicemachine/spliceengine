@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.splicemachine.test.SlowTest;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -16,6 +17,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -33,6 +35,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.utils.SpliceUtilities;
 
 @Category(SlowTest.class)
+@Ignore("This is preventing parallel ITs")
 public class SaltedTempTableIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = SaltedTempTableIT.class.getSimpleName().toUpperCase();
