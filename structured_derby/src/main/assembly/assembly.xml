@@ -31,7 +31,8 @@
 				<include>com.carrotsearch:hppc</include>
 				<include>org.apache.lucene:lucene-core</include>
 				<include>de.javakaffee:kryo-serializers</include>
-                <include>com.lmax:disruptor</include>
+            <include>com.lmax:disruptor</include>
+            <include>org.codehaus.jsr166-mirror:jrs166y</include>
 			</includes>
 		</dependencySet>
 	</dependencySets>
