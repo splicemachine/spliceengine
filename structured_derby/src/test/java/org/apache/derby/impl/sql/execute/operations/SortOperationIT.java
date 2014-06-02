@@ -6,23 +6,19 @@ import java.sql.Timestamp;
 import java.util.*;
 
 import com.google.common.collect.Maps;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 import static com.splicemachine.homeless.TestUtils.*;
 
 public class SortOperationIT extends SpliceUnitTest { 
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = SortOperationIT.class.getSimpleName().toUpperCase();
+	protected static SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 	public static final String TABLE_NAME_1 = "FOOD";
 	public static final String TABLE_NAME_2 = "PERSON";
 
@@ -117,7 +113,7 @@ public class SortOperationIT extends SpliceUnitTest {
                             "insert into sort_on_null values (1, NULL);",
                     CLASS_NAME));
 	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+	@Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 	
 	private static List<Triplet> correctByValue1 = Lists.newArrayList();
  	private static List<Triplet> distinctCorrectByValue1 = Lists.newArrayList();

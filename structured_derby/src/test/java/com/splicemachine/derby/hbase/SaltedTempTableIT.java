@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
 
 import org.apache.hadoop.conf.Configuration;
@@ -34,8 +35,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.utils.SpliceUtilities;
 
-@Category(SlowTest.class)
-@Ignore("This is preventing parallel ITs")
+@Category(value = {SlowTest.class, SerialTest.class})
 public class SaltedTempTableIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = SaltedTempTableIT.class.getSimpleName().toUpperCase();

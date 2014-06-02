@@ -3,15 +3,16 @@ package org.apache.derby.impl.sql.execute.operations.joins;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.test.SerialTest;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.ResultSet;
 import java.util.*;
@@ -20,6 +21,7 @@ import java.util.*;
  * @author Scott Fines
  * Date: 3/4/14
  */
+@Category(SerialTest.class)
 public class NestedLoopJoinIT {
 		public static final String CLASS_NAME = NestedLoopJoinIT.class.getSimpleName().toUpperCase();
 

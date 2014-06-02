@@ -14,28 +14,29 @@ public class SpliceTableWatcher extends TestWatcher {
 	public String tableName;
 	protected String schemaName;
 	protected String createString;
-	protected String userName;
-	protected String password;
+    protected String userName;
+    protected String password;
+
 	public SpliceTableWatcher(String tableName,String schemaName, String createString) {
 		this.tableName = tableName.toUpperCase();
 		this.schemaName = schemaName.toUpperCase();
 		this.createString = createString;
 	}
-	
-	public SpliceTableWatcher(String tableName, String schemaName, String createString, String userName, String password) {
-		this(tableName,schemaName,createString);
-		this.userName = userName;
-		this.password = password;
-	}
-	
+
+    public SpliceTableWatcher(String tableName, String schemaName, String createString, String userName, String password) {
+        this(tableName,schemaName,createString);
+        this.userName = userName;
+        this.password = password;
+    }
+
 	@Override
 	protected void starting(Description description) {
-		LOG.trace("Starting");
+		trace("Starting");
 		Connection connection = null;
 		Statement statement = null;
 		ResultSet rs = null;
 		try {
-			connection =  (userName == null)?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);			
+            connection =  (userName == null)?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);;
 			rs = connection.getMetaData().getTables(null, schemaName, tableName, null);
 			if (rs.next()) {
 				executeDrop(schemaName,tableName);
@@ -45,7 +46,7 @@ public class SpliceTableWatcher extends TestWatcher {
 			statement.execute(String.format("create table %s.%s %s",schemaName,tableName,createString));
 			connection.commit();
 		} catch (Exception e) {
-			LOG.error("Create table statement is invalid. Statement = "+ String.format("create table %s.%s %s",schemaName,tableName,createString));
+			error("Create table statement is invalid. Statement = "+ String.format("create table %s.%s %s",schemaName,tableName,createString));
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		} finally {
@@ -57,12 +58,12 @@ public class SpliceTableWatcher extends TestWatcher {
 	}
 	@Override
 	protected void finished(Description description) {
-		LOG.trace("finished");
+		trace("finished");
 //		executeDrop(schemaName,tableName);
 	}
 	
 	public static void executeDrop(String schemaName,String tableName, boolean isView) {
-		LOG.trace("executeDrop");
+		LOG.trace(tag("executeDrop", schemaName, tableName));
 		Connection connection = null;
 		Statement statement = null;
         String tableOrView = isView ? "view" : "table";
@@ -75,7 +76,7 @@ public class SpliceTableWatcher extends TestWatcher {
 				connection.commit();
 			}
 		} catch (Exception e) {
-			LOG.error("error Dropping " + e.getMessage(),e);
+			LOG.error(tag("error Dropping " + e.getMessage(), schemaName, tableName),e);
 			throw new RuntimeException(e);
 		} finally {
 			DbUtils.closeQuietly(statement);
@@ -98,7 +99,7 @@ public class SpliceTableWatcher extends TestWatcher {
 		    ps.setString(3,filename);
 		    ps.executeUpdate();
 		} catch (Exception e) {
-            LOG.error(e);
+            error(e);
 			throw new RuntimeException(e);
 		} finally {
 			DbUtils.closeQuietly(ps);
@@ -118,7 +119,7 @@ public class SpliceTableWatcher extends TestWatcher {
 		    ps.setString(4, timestamp);
 		    ps.executeUpdate();
 		} catch (Exception e) {
-            LOG.error(e);
+            error(e);
 			throw new RuntimeException(e);
 		} finally {
 			DbUtils.closeQuietly(ps);
@@ -133,5 +134,44 @@ public class SpliceTableWatcher extends TestWatcher {
 
     public String getSchema() {
         return schemaName;
+    }
+
+    //-----------------------------------------------------------------------------------------
+    // The following methods are for tagging the log messages with additional information
+    // related to the schema and table.
+    //-----------------------------------------------------------------------------------------
+
+    /**
+     * Tag the message with extra information (schema and table names) if the message is a String.
+     * @param message  message to be potentially tagged
+     * @param schema  name of schema
+     * @param table  name of table
+     */
+    protected static Object tag(Object message, String schema, String table) {
+    	if (message instanceof String) {
+    		return String.format("[%s.%s] %s", schema, table, message);
+    	} else {
+    		return message;
+    	}
+    }
+
+    /**
+     * Tag the message with extra information if the message is a String.
+     * @param message  message to be potentially tagged
+     */
+    protected Object tag(Object message) {
+    	return tag(message, schemaName, tableName);
+    }
+
+    protected void trace(Object message) {
+    	LOG.trace(tag(message));
+    }
+
+    protected void error(Object message) {
+    	LOG.error(tag(message));
+    }
+
+    protected void error(Object message, Throwable t) {
+    	LOG.error(tag(message), t);
     }
 }

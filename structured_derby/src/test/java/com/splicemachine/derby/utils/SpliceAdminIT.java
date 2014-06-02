@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.test.SerialTest;
 import org.apache.commons.dbutils.DbUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -29,6 +30,7 @@ import com.splicemachine.test.SlowTest;
  * @author Jeff Cunningham
  *         Date: 12/11/13
  */
+@Category(SerialTest.class)
 public class SpliceAdminIT {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = SpliceAdminIT.class.getSimpleName().toUpperCase();
