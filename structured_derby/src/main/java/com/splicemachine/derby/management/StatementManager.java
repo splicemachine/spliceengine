@@ -40,9 +40,11 @@ public class StatementManager implements StatementManagement{
 		public void addStatementInfo(StatementInfo statementInfo){
 				executingStatements.add(statementInfo);
             if (LOG.isTraceEnabled()) {
-                LOG.trace(String.format("Adding stmt %s to executings, size %s",
+                LOG.trace(String.format("Adding stmt to executings, size=%s, stmtUuid=%s, txnId=%s, SQL={\n%s\n}",
+                                               executingStatements.size(),
                                                statementInfo.getStatementUuid(),
-                                               executingStatements.size()));
+                                               statementInfo.getTxnId(),
+                                               statementInfo.getSql()));
             }
 		}
 
@@ -52,9 +54,9 @@ public class StatementManager implements StatementManagement{
 				completedStatements.set(position, statementInfo);
 				executingStatements.remove(statementInfo);
             if (LOG.isTraceEnabled()) {
-                LOG.trace(String.format("Completing stmt %s, executings size %s",
-                                               statementInfo.getStatementUuid(),
-                                               executingStatements.size()));
+                LOG.trace(String.format("Completing stmt from executings, size=%s, stmtUuid=%s",
+                                               executingStatements.size(),
+                                               statementInfo.getStatementUuid()));
             }
 				if(xplainSchema!=null){
 						statementReporter.report(xplainSchema, statementInfo);
@@ -93,5 +95,16 @@ public class StatementManager implements StatementManagement{
 								return;
 						}
 				}
+		}
+
+		public StatementInfo getExecutingStatementByTxnId(String txnId) {
+			if (txnId != null) {
+				for (StatementInfo info:executingStatements) {
+					if (txnId.equals(info.getTxnId())) {
+						return info;
+					}
+				}
+			}
+			return null;
 		}
 }

@@ -454,6 +454,11 @@ public class SpliceAdmin {
 
                     for (StatementInfo completedStatement : completedStatements) {
 
+                    	// Check for null.  My understanding was that ConcurrentHashMap would guarantee that the element would be there.
+                    	// It appears that the guarantee is that the key element will be there but not necessarily the value element.
+                    	// This was found to be true when running the ITs in parallel.  DB-1342
+                    	if (completedStatement == null) { continue; }
+
                         Set<JobInfo> completedJobs = completedStatement.getCompletedJobs();
                         Set<JobInfo> runningJobs = completedStatement.getRunningJobs();
 												template.resetRowArray();

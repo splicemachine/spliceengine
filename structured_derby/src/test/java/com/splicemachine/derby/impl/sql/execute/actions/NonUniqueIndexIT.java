@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
 import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -24,6 +25,7 @@ import java.util.List;
  * @author Scott Fines
  *         Created on: 3/8/13
  */
+@Category(SerialTest.class)
 public class NonUniqueIndexIT extends SpliceUnitTest { 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = NonUniqueIndexIT.class.getSimpleName().toUpperCase();

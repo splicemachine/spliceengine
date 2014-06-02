@@ -128,7 +128,7 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.16</version>
+				<version>2.17</version>
 				<configuration>
 					<argLine>-Xms256M -Xmx1024M</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
@@ -143,32 +143,58 @@
 					</excludes>
 				</configuration>
 			</plugin>
-			<plugin>
-				<artifactId>maven-failsafe-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>integration-tests</id>
-						<goals>
-							<goal>integration-test</goal>
-							<goal>verify</goal>
-						</goals>
-					</execution>
-				</executions>
-				<version>2.14.1</version>
-				<configuration>
-					<excludedGroups>${excluded.categories}</excludedGroups>
-					<skipTests>${skip.integration.tests}</skipTests>
-					<argLine>-Xms256M -Xmx1024M</argLine>
-					<redirectTestOutputToFile>true</redirectTestOutputToFile>
-					<includes>
-						<include>**/*IT.java</include>
-					</includes>
-					<excludes>
-						<!-- Skip all unit tests -->
-						<exclude>**/*Test.java</exclude>
-					</excludes>
-				</configuration>
-			</plugin>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>2.17</version>
+                <executions>
+                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL -->
+                    <execution>
+                        <id>integration-tests-serial</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <groups>com.splicemachine.test.SerialTest</groups>
+                            <excludedGroups>${excluded.categories}</excludedGroups>
+                            <skipTests>${skip.integration.tests}</skipTests>
+                            <argLine>-Xmx3g</argLine>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <includes>
+                                <include>**/*IT.java</include>
+                            </includes>
+                            <excludes>
+                                <!-- Skip all unit tests -->
+                                <exclude>**/*Test.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
+                    <execution>
+                        <id>integration-tests-parallel</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>
+                            <skipTests>${skip.integration.tests}</skipTests>
+                            <parallel>classes</parallel>
+                            <threadCount>4</threadCount>
+                            <perCoreThreadCount>false</perCoreThreadCount>
+                            <argLine>-Xmx3g</argLine>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <includes>
+                                <include>**/*IT.java</include>
+                            </includes>
+                            <excludes>
+                                <!-- Skip all unit tests -->
+                                <exclude>**/*Test.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
 		</plugins>
 	</build>
 	<reporting>
@@ -182,7 +208,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>surefire-report-maven-plugin</artifactId>
-				<version>2.16</version>
+				<version>2.17</version>
 				<inherited>true</inherited>
 			</plugin>
 		</plugins>
@@ -206,6 +232,16 @@
 				<enabled>true</enabled>
 			</releases>
 		</repository>
+        <repository>
+            <id>structured-hbase-snapshot</id>
+            <url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
 		<repository>
 			<id>protostuff-repo</id>
 			<name>protostuff-repo</name>

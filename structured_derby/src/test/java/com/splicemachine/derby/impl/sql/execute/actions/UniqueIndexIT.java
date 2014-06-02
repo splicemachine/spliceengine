@@ -8,12 +8,14 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.test.SerialTest;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -30,6 +32,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * @author Scott Fines
  *         Created on: 3/7/13
  */
+@Category(SerialTest.class)
 public class UniqueIndexIT extends SpliceUnitTest { 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = UniqueIndexIT.class.getSimpleName().toUpperCase();

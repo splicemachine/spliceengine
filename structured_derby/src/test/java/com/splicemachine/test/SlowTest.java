@@ -1,7 +1,8 @@
 package com.splicemachine.test;
 
 /**
- * Created by dgomezferro on 5/19/14.
+ * Used together with JUnit's @Category to annotate tests which should not run by default on a developer's machine.
+ * Currently slow tests do run on Jenkins.
  */
 public interface SlowTest {
 }

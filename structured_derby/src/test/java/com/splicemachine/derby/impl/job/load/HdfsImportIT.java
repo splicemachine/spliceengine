@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.job.load;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+@Category(SerialTest.class)
 public class HdfsImportIT extends SpliceUnitTest {
 		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = HdfsImportIT.class.getSimpleName().toUpperCase();

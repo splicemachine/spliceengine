@@ -23,7 +23,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 public class SpliceDateFunctionsIT {
 
-    private static final String CLASS_NAME = "APP";
+    private static final String CLASS_NAME = SpliceDateFunctionsIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher classWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);

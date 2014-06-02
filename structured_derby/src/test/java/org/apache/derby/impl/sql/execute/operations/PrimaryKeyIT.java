@@ -4,10 +4,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+
+import com.splicemachine.test.SerialTest;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -22,6 +25,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  * @author Scott Fines
  *         Created on: 3/1/13
  */
+@Category(SerialTest.class)
 public class PrimaryKeyIT extends SpliceUnitTest { 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = PrimaryKeyIT.class.getSimpleName().toUpperCase();

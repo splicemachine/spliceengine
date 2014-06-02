@@ -4,10 +4,12 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.test.SerialTest;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -24,6 +26,7 @@ import java.sql.Types;
  * @author Scott Fines
  * Created on: 9/20/13
  */
+@Category(SerialTest.class)
 public class ImportErrorIT {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = ImportErrorIT.class.getSimpleName().toUpperCase();
