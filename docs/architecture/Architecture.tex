@@ -7,6 +7,13 @@
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{listings}
+\usepackage{tikz}
+\usepackage{fancybox}
+\usepackage{tablefootnote}
+\usepackage{float}
+
+\floatstyle{boxed}
+\restylefloat{figure}
 
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{exmp}{Example}[section]
@@ -15,15 +22,22 @@
 \title{SpliceMachine Architecture}
 \author{Scott Fines}
 
-\begin{abstract}
-This document serves as a reference guide for understanding how SpliceMachine stores data in transactional tables, including both physical and logical structures, and transactional rules.
-\end{abstract}
+\maketitle
+\begingroup
+\let\clearpage\relax
+\chapter*{Introduction}
+\include{ArchitectureIntroduction}
+\endgroup
 
+\tableofcontents
+\begingroup
+\let\clearpage\relax
 \chapter{Transactions}
 \include{Transactions}
-\chapter{Encoding}
-\include{Encoding}
+\chapter{Task Execution}
+\include{ParallelExecution}
+\chapter{Operation Execution}
 \include{Operations}
-\include{PhysicalArchitecture}
+\endgroup
 
 \end{document}
