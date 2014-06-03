@@ -256,13 +256,13 @@ public final class AvgAggregator extends OrderableAggregator
 				return avg;
 		}
 
-		/**
-		 */
+        @Override
 		public ExecAggregator newAggregator()
 		{
 				AvgAggregator avgAggregator = new AvgAggregator();
 				avgAggregator.aggregator = (SumAggregator)this.aggregator.newAggregator();
-				return avgAggregator;
+                avgAggregator.scale = this.scale;
+                return avgAggregator;
 		}
 
 		/////////////////////////////////////////////////////////////

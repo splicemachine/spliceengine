@@ -118,9 +118,9 @@ public interface ExecAggregator extends Formatable
 	public DataValueDescriptor getResult() throws StandardException;
 
 	/**
- 	   Return a new initialized copy of this aggregator, any state
-	   set by the setup() method of the original Aggregator must be
-	   copied into the new aggregator.
+ 	   Return a new initialized copy of this aggregator, ANY STATE
+	   SET BY THE SETUP() METHOD OF THE ORIGINAL AGGREGATOR MUST BE
+	   COPIED INTO THE NEW AGGREGATOR.
 	 *
 	 * @return ExecAggregator the new aggregator
 	 */
