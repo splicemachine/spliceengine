@@ -64,7 +64,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		private byte[] rowKey = new byte[1];
 
 		public SpliceOperationRegionScanner(SpliceOperation topOperation,
-																				SpliceOperationContext context) throws StandardException {
+																				SpliceOperationContext context) throws StandardException, IOException {
 				stats.start();
 				SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at %d",stats.getStartTime());
 				this.topOperation = topOperation;
@@ -77,11 +77,12 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 						topOperation.init(context);
 				}catch (IOException e) {
 						ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
-						SpliceLogUtils.logAndThrowRuntime(LOG, e);
+						throw e;
+//						SpliceLogUtils.logAndThrowRuntime(LOG, e);
 				}
 		}
 
-		public SpliceOperationRegionScanner(final RegionScanner regionScanner, final Scan scan, final HRegion region) {
+		public SpliceOperationRegionScanner(final RegionScanner regionScanner, final Scan scan, final HRegion region) throws IOException {
 				SpliceLogUtils.trace(LOG, "instantiated with %s, and scan %s",regionScanner,scan);
 				stats.start();
 				SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at %d",stats.getStartTime());
@@ -110,7 +111,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 						SpliceLogUtils.trace(LOG, "Ready to execute stack %s", opStack);
 				} catch (Exception e) {
 						ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
-						SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
+						throw Exceptions.getIOException(e);
+//						SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
 				}finally{
 						if(prepared)
 								impl.resetContextManager();
@@ -159,9 +161,9 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 //								byte[] row = location!=null? location.getBytes():SpliceUtils.getUniqueKey();
 
 								if(rowEncoder==null){
-										int[] rowColumns = IntArrays.count(nextRow.nColumns());
+//										int[] rowColumns = IntArrays.count(nextRow.nColumns());
 										DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(nextRow);
-										rowEncoder = BareKeyHash.encoder(rowColumns,null,serializers);
+										rowEncoder = BareKeyHash.encoder(null,null,serializers);
 								}
 								rowEncoder.setRow(nextRow);
 								byte[] data = rowEncoder.encode();
