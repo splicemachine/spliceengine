@@ -382,19 +382,21 @@ public class BinaryRelationalOperatorNode
     }
 
     /**
-     * Make the target numeric constant have the same data type as the source operand (splice).
+     * Make the destination numeric constant have the same data type as the source operand (splice).
      *
-     * @param srcOperand    take the type from this operand
-     * @param targetOperand and make this (NumericConstantNode) node's type match
+     * @param srcOperand take the type from this operand
+     * @param dstOperand and make this (NumericConstantNode) node's type match
      */
-    private static void coerceDataType(ValueNode srcOperand, NumericConstantNode targetOperand) throws StandardException {
+    private static void coerceDataType(ValueNode srcOperand, NumericConstantNode dstOperand) throws StandardException {
         DataValueDescriptor srcValueDescriptor = srcOperand.getTypeServices().getNull();
-        srcValueDescriptor.setValue(targetOperand.getValue());
-        targetOperand.setValue(srcValueDescriptor);
+        DataValueDescriptor dstValueDescriptor = dstOperand.getValue();
+        srcValueDescriptor.setValue(dstValueDescriptor);
 
-        int newTargetNodeType = getCorrectNodeType(srcValueDescriptor.getTypeFormatId(), targetOperand.getNodeType());
-        targetOperand.setNodeType(newTargetNodeType);
-        targetOperand.setType(srcOperand.getTypeServices());
+        dstOperand.setValue(srcValueDescriptor);
+
+        int newTargetNodeType = getCorrectNodeType(srcValueDescriptor.getTypeFormatId(), dstOperand.getNodeType());
+        dstOperand.setNodeType(newTargetNodeType);
+        dstOperand.setType(srcOperand.getTypeServices());
     }
 
     private static int getCorrectNodeType(int typeFormatId, int originalNodeType) {
