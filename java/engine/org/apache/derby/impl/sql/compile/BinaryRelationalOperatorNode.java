@@ -333,20 +333,10 @@ public class BinaryRelationalOperatorNode
 					** return the other side
 					*/
 					//we like the right operand, but if it's a numeric type, gotta mess with it
-					if(rightOperand instanceof NumericConstantNode){
-						try{
-							if(!rightOperand.getTypeId().equals(leftOperand.getTypeId())){
-								DataValueDescriptor leftObject = leftOperand.getTypeServices().getNull();
-								leftObject.setValue(((NumericConstantNode)rightOperand).getValue());
-								((NumericConstantNode)rightOperand).setValue(leftObject);	
-								rightOperand.setNodeType(getCorrectNodeType(leftObject.getTypeFormatId(),rightOperand.getNodeType()));
-								rightOperand.setType(leftOperand.getTypeServices());
-							}
-						}catch(StandardException se){
-							throw new RuntimeException(se);	
-						}	
-					}
-					return rightOperand;
+                    if (rightOperand instanceof NumericConstantNode) {
+                        coerceDataTypeIfNecessary(leftOperand, (NumericConstantNode) rightOperand);
+                    }
+                    return rightOperand;
 				}
 			}
 			walkSubtree = false;
@@ -370,20 +360,10 @@ public class BinaryRelationalOperatorNode
 					** We've found the correct column -
 					** return the other side
 					*/
-					if(leftOperand instanceof NumericConstantNode){
-						try{
-							if(!rightOperand.getTypeId().equals(leftOperand.getTypeId())){
-								DataValueDescriptor rightObject = rightOperand.getTypeServices().getNull();
-								rightObject.setValue(((NumericConstantNode)leftOperand).getValue());
-								((NumericConstantNode)leftOperand).setValue(rightObject);	
-								leftOperand.setNodeType(getCorrectNodeType(rightObject.getTypeFormatId(),leftOperand.getNodeType()));
-								leftOperand.setType(rightOperand.getTypeServices());
-							}
-						}catch(StandardException se){
-								throw new RuntimeException(se);	
-							}	
-					}
-					return leftOperand;
+                    if (leftOperand instanceof NumericConstantNode) {
+                        coerceDataTypeIfNecessary(rightOperand, (NumericConstantNode) leftOperand);
+                    }
+                    return leftOperand;
 				}
 			}
 		}
@@ -391,26 +371,52 @@ public class BinaryRelationalOperatorNode
 		return null;
 	}
 
-	private int getCorrectNodeType(int typeFormatId,int originalNodeType){
-		switch(typeFormatId){
-			case StoredFormatIds.SQL_TINYINT_ID:
-				return C_NodeTypes.TINYINT_CONSTANT_NODE;
-			case StoredFormatIds.SQL_SMALLINT_ID:
-				return C_NodeTypes.SMALLINT_CONSTANT_NODE;
-			case StoredFormatIds.SQL_INTEGER_ID:
-				return C_NodeTypes.INT_CONSTANT_NODE;
-			case StoredFormatIds.SQL_LONGINT_ID:
-				return C_NodeTypes.LONGINT_CONSTANT_NODE;
-			case StoredFormatIds.SQL_REAL_ID:
-				return C_NodeTypes.FLOAT_CONSTANT_NODE;
-			case StoredFormatIds.SQL_DOUBLE_ID:
-				return C_NodeTypes.DOUBLE_CONSTANT_NODE;
-			case StoredFormatIds.SQL_DECIMAL_ID:
-				return C_NodeTypes.DECIMAL_CONSTANT_NODE;
-			default:
-				return originalNodeType;
-		}
-	}
+    private static void coerceDataTypeIfNecessary(ValueNode srcOperand, NumericConstantNode targetOperand) {
+        try {
+            if(!srcOperand.getTypeId().equals(targetOperand.getTypeId())) {
+                coerceDataType(srcOperand, targetOperand);
+            }
+        } catch (StandardException se) {
+            throw new RuntimeException(se);
+        }
+    }
+
+    /**
+     * Make the target numeric constant have the same data type as the source operand (splice).
+     *
+     * @param srcOperand    take the type from this operand
+     * @param targetOperand and make this (NumericConstantNode) node's type match
+     */
+    private static void coerceDataType(ValueNode srcOperand, NumericConstantNode targetOperand) throws StandardException {
+        DataValueDescriptor srcValueDescriptor = srcOperand.getTypeServices().getNull();
+        srcValueDescriptor.setValue(targetOperand.getValue());
+        targetOperand.setValue(srcValueDescriptor);
+
+        int newTargetNodeType = getCorrectNodeType(srcValueDescriptor.getTypeFormatId(), targetOperand.getNodeType());
+        targetOperand.setNodeType(newTargetNodeType);
+        targetOperand.setType(srcOperand.getTypeServices());
+    }
+
+    private static int getCorrectNodeType(int typeFormatId, int originalNodeType) {
+        switch (typeFormatId) {
+            case StoredFormatIds.SQL_TINYINT_ID:
+                return C_NodeTypes.TINYINT_CONSTANT_NODE;
+            case StoredFormatIds.SQL_SMALLINT_ID:
+                return C_NodeTypes.SMALLINT_CONSTANT_NODE;
+            case StoredFormatIds.SQL_INTEGER_ID:
+                return C_NodeTypes.INT_CONSTANT_NODE;
+            case StoredFormatIds.SQL_LONGINT_ID:
+                return C_NodeTypes.LONGINT_CONSTANT_NODE;
+            case StoredFormatIds.SQL_REAL_ID:
+                return C_NodeTypes.FLOAT_CONSTANT_NODE;
+            case StoredFormatIds.SQL_DOUBLE_ID:
+                return C_NodeTypes.DOUBLE_CONSTANT_NODE;
+            case StoredFormatIds.SQL_DECIMAL_ID:
+                return C_NodeTypes.DECIMAL_CONSTANT_NODE;
+            default:
+                return originalNodeType;
+        }
+    }
 
 	/**
 	 * @see RelationalOperator#getOperand
