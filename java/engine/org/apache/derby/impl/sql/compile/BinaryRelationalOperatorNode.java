@@ -25,9 +25,6 @@ import org.apache.derby.iapi.reference.ClassName;
 
 import org.apache.derby.iapi.util.JBitSet;
 
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.services.io.StoredFormatIds;
-
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 
 import org.apache.derby.iapi.services.sanity.SanityManager;
@@ -39,16 +36,12 @@ import org.apache.derby.iapi.sql.compile.Optimizable;
 
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 
-import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.TypeId;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 
 import org.apache.derby.iapi.types.Orderable;
-
-import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
 
 import java.sql.Types;
 
@@ -334,7 +327,7 @@ public class BinaryRelationalOperatorNode
 					*/
 					//we like the right operand, but if it's a numeric type, gotta mess with it
                     if (rightOperand instanceof NumericConstantNode) {
-                        coerceDataTypeIfNecessary(leftOperand, (NumericConstantNode) rightOperand);
+                        NodeDataValueUtil.coerceDataTypeIfNecessary((NumericConstantNode) rightOperand, leftOperand.getTypeServices());
                     }
                     return rightOperand;
 				}
@@ -361,7 +354,7 @@ public class BinaryRelationalOperatorNode
 					** return the other side
 					*/
                     if (leftOperand instanceof NumericConstantNode) {
-                        coerceDataTypeIfNecessary(rightOperand, (NumericConstantNode) leftOperand);
+                        NodeDataValueUtil.coerceDataTypeIfNecessary((NumericConstantNode) leftOperand, rightOperand.getTypeServices());
                     }
                     return leftOperand;
 				}
@@ -369,57 +362,6 @@ public class BinaryRelationalOperatorNode
 		}
 
 		return null;
-	}
-
-    private static void coerceDataTypeIfNecessary(ValueNode srcOperand, NumericConstantNode targetOperand) {
-        try {
-            if(!srcOperand.getTypeId().equals(targetOperand.getTypeId())) {
-                coerceDataType(srcOperand, targetOperand);
-            }
-        } catch (StandardException se) {
-            throw new RuntimeException(se);
-        }
-    }
-
-    /**
-     * Make the destination numeric constant have the same data type as the source operand if possible (splice).
-     *
-     * @param srcOperand take the type from this operand
-     * @param dstOperand and make this (NumericConstantNode) node's type match
-     */
-    private static void coerceDataType(ValueNode srcOperand, NumericConstantNode dstOperand) throws StandardException {
-        DataValueDescriptor srcValueDescriptor = srcOperand.getTypeServices().getNull();
-        DataValueDescriptor dstValueDescriptor = dstOperand.getValue();
-
-        if(srcValueDescriptor.getLength() >= dstValueDescriptor.getLength()) {
-            srcValueDescriptor.setValue(dstValueDescriptor);
-            dstOperand.setValue(srcValueDescriptor);
-
-            int newTargetNodeType = getCorrectNodeType(srcValueDescriptor.getTypeFormatId(), dstOperand.getNodeType());
-            dstOperand.setNodeType(newTargetNodeType);
-            dstOperand.setType(srcOperand.getTypeServices());
-        }
-    }
-
-    private static int getCorrectNodeType(int typeFormatId, int originalNodeType) {
-        switch (typeFormatId) {
-            case StoredFormatIds.SQL_TINYINT_ID:
-                return C_NodeTypes.TINYINT_CONSTANT_NODE;
-            case StoredFormatIds.SQL_SMALLINT_ID:
-                return C_NodeTypes.SMALLINT_CONSTANT_NODE;
-            case StoredFormatIds.SQL_INTEGER_ID:
-                return C_NodeTypes.INT_CONSTANT_NODE;
-            case StoredFormatIds.SQL_LONGINT_ID:
-                return C_NodeTypes.LONGINT_CONSTANT_NODE;
-            case StoredFormatIds.SQL_REAL_ID:
-                return C_NodeTypes.FLOAT_CONSTANT_NODE;
-            case StoredFormatIds.SQL_DOUBLE_ID:
-                return C_NodeTypes.DOUBLE_CONSTANT_NODE;
-            case StoredFormatIds.SQL_DECIMAL_ID:
-                return C_NodeTypes.DECIMAL_CONSTANT_NODE;
-            default:
-                return originalNodeType;
-        }
     }
 
 	/**
