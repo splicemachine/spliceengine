@@ -150,11 +150,13 @@ public class BroadcastJoinOperation extends JoinOperation {
         return next;
     }
 
+    /*
     private static final ExecutorService rhsLookupService =
         Executors.newCachedThreadPool(new ThreadFactoryBuilder()
                                           .setDaemon(true)
                                           .setNameFormat("broadcast-lookup-%d")
                                           .build());
+                                          */
 
     private Joiner initJoiner(final SpliceRuntimeContext ctx)
         throws StandardException, IOException {
@@ -165,6 +167,13 @@ public class BroadcastJoinOperation extends JoinOperation {
 				 */
         if (rhsFuture == null)
             submitRightHandSideLookup(ctx);
+        try {
+            this.rightSideMap = rhsFuture.get();
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException e) {
+            throw Exceptions.parseException(e);
+        }
         StandardPushBackIterator<ExecRow> leftRows =
             new StandardPushBackIterator<ExecRow>(StandardIterators.wrap(new Callable<ExecRow>() {
                 @Override
@@ -180,6 +189,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         leftRows.open();
         ExecRow firstLeft = leftRows.next(ctx);
         leftRows.pushBack(firstLeft == null ? null : firstLeft.getClone());
+        /*
         try {
             this.rightSideMap = rhsFuture.get();
         } catch (InterruptedException ie) {
@@ -187,6 +197,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e);
         }
+        */
         DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(leftRow);
         final KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE,
                                                         BareKeyHash.encoder(leftHashKeys, null, serializers),
@@ -217,7 +228,45 @@ public class BroadcastJoinOperation extends JoinOperation {
     private void submitRightHandSideLookup(final SpliceRuntimeContext ctx) {
         if (rhsFuture != null) return;
 
-        rhsFuture = rhsLookupService.submit(new RightHandLoader(ctx, rightRow.getClone()));
+        //rhsFuture = rhsLookupService.submit(new RightHandLoader(ctx, rightRow.getClone()));
+        rhsFuture = new Future<Map<ByteBuffer, List<ExecRow>>>() {
+            @Override
+            public boolean cancel(boolean b) {
+                return false;
+            }
+
+            @Override
+            public boolean isCancelled() {
+                return false;
+            }
+
+            @Override
+            public boolean isDone() {
+                return true;
+            }
+
+            @Override
+            public Map<ByteBuffer, List<ExecRow>> get() throws InterruptedException,
+                                                               ExecutionException {
+                try {
+                    return new RightHandLoader(ctx, rightRow.getClone()).call();
+                } catch (Exception e){
+                    throw new ExecutionException(e);
+                }
+            }
+
+            @Override
+            public Map<ByteBuffer, List<ExecRow>> get(long l, TimeUnit timeUnit) throws
+                                                                                 InterruptedException,
+                                                                                 ExecutionException,
+                                                                                 TimeoutException {
+                try {
+                    return new RightHandLoader(ctx, rightRow.getClone()).call();
+                } catch (Exception e){
+                    throw new ExecutionException(e);
+                }
+            }
+        };
     }
 
     @Override
