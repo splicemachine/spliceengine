@@ -113,7 +113,7 @@ public class ImportContext implements Externalizable{
 		public String getQuoteChar(){
 				String stripStr = getStripString();
 				if(stripStr==null||stripStr.length()<=0)
-						stripStr = "\'";
+						stripStr = "\"";
 				return stripStr;
 		}
 
