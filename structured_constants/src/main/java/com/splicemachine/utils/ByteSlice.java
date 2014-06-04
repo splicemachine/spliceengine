@@ -164,6 +164,7 @@ public class ByteSlice implements Externalizable {
 		public boolean equals(ByteSlice currentData, int equalsLength) {
 				if(this.length<=0)
 						return currentData.length<=0;
+				if(equalsLength!=this.length) return false;
 				return ArrayUtil.equals(this.buffer,this.offset,currentData.buffer,currentData.offset,equalsLength);
 		}
 
