@@ -1,0 +1,11 @@
+SpliceMachine is a stupendously complex beast--just implementing the SQL-92 specification is complicated enough, and SpliceMachine makes it much more so by attempting to do that in an environment consisting of multiple commodity(read \emph{cheap}) servers, which may fail at any time in any one of thousands of distinct and painful ways. 
+
+Consequently, the engineering architecture of SpliceMachine is complex, and requires considerable exposure before pieces start to come together. It is the hope of this book to encompass the major ideas and motivations behind the decisions made for the architecture of SpliceMachine. 
+
+This document is \emph{not} intended as a code reference; explicit references to explicit classes are not present unless no other means presents itself. On the other side of the coin, this document is \emph{not} intended as external documentation of feature sets\footnote{although some components may be taken and exposed for external consumption}. Consequently, this document hides nothing of internal design and implementation decisions.
+
+So if it's not a code reference, and it's not an external document, what \emph{is} it? Primarily, it is intended as a design reference, to be used as guidance when considering new features, and for reference with engineers who are less experienced with the internal architecture. Rather than relying on word of mouth and nineteen different explanations of the same idea, this document hopes to gather and generate a common terminology and idea-space within which engineers can communicate with one another.
+
+It also serves somewhat as a historical reference. Sometimes, elements exist primarily because they used to exist, or exist currently, but are not expected to survive (like the v0.5 TEMP space). In this way, an interested reader can piece together the flow of events that led to specific decisions being made.
+
+This document has been primarily compiled by Scott Fines, but no engineer who has contributed code, questions, or commentary can be ignored--it is the product of many hours of conversations, prototypes, bugs, bug-fixes, and design decisions by the engineering team as a whole. 
