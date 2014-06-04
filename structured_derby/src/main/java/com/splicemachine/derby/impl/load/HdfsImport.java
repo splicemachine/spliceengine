@@ -148,7 +148,7 @@ public class HdfsImport {
 		public static void SYSCS_IMPORT_DATA(String schemaName, String tableName,
 																				 String insertColumnList,
 																				 String columnIndexes,
-																				 String fileName, String columnDelimiter,
+														 						 String fileName, String columnDelimiter,
 																				 String characterDelimiter,
 																				 String timestampFormat,
 																				 String dateFormat,

@@ -1,12 +1,13 @@
 package com.splicemachine.derby.utils;
 
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
 
-import org.apache.commons.net.ntp.TimeStamp;
+
 
 /**
  * Implementation of standard Splice Date functions,
@@ -112,7 +113,165 @@ public class SpliceDateFunctions {
 		return fmt.format(source);
 	}
 	/**
-	 * Implements the 
+	 * Implements the trunc_date function
 	 */
+    public static Timestamp TRUNC_DATE(Timestamp source, String field){
+        if(source == null || field == null) return null;
+        Calendar c = Calendar.getInstance();
+        c.setTime(source);
+        field = field.toLowerCase();
+        HashMap<String, Integer> map = new HashMap<String, Integer>();
+        map.put("microseconds", 1);
+        map.put("milliseconds", 2);
+        map.put("second",3);
+        map.put("minute", 4);
+        map.put("hour", 5);
+        map.put("day", 6);
+        map.put("week", 7);
+        map.put("month", 8);
+        map.put("quarter", 9);
+        map.put("year", 10);
+        map.put("decade", 11);
+        map.put("century", 12);
+        map.put("millennium", 13);
+        int index = map.get(field.toLowerCase());
+        if(index == 1){
+           int nanos = source.getNanos();
+            nanos = nanos - nanos%1000;
+            source.setNanos(nanos);
+            return source;
+        }
+        else if(index == 2){
+            int nanos = source.getNanos();
+            nanos = nanos - nanos%1000000;
+            source.setNanos(nanos);
+            return source;
+        }
+        else if(index == 3){
+            source.setNanos(0);
+            return source;
+
+        }
+        else if (index == 4){
+            c.set(Calendar.SECOND,0);
+            c.set(Calendar.MILLISECOND,0);
+            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            ret.setNanos(0);
+            return ret;
+        }
+        else if(index == 5){
+            c.set(Calendar.MINUTE,0);
+            c.set(Calendar.SECOND,0);
+            c.set(Calendar.MILLISECOND,0);
+            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            ret.setNanos(0);
+            return ret;
+        }
+        else if (index == 6){
+            c.set(Calendar.HOUR_OF_DAY,0);
+            c.set(Calendar.MINUTE,0);
+            c.set(Calendar.SECOND,0);
+            c.set(Calendar.MILLISECOND,0);
+            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            ret.setNanos(0);
+            return ret;
+        }
+        else if (index == 7){
+            c.set(Calendar.DAY_OF_WEEK,0);
+            c.set(Calendar.HOUR_OF_DAY,0);
+            c.set(Calendar.MINUTE,0);
+            c.set(Calendar.SECOND,0);
+            c.set(Calendar.MILLISECOND,0);
+            c.add(Calendar.WEEK_OF_YEAR,-1);
+            c.add(Calendar.DAY_OF_YEAR,1);
+            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            ret.setNanos(0);
+            return ret;
+        }
+        else if (index == 8){
+            c.set(Calendar.DAY_OF_MONTH,0);
+            c.set(Calendar.HOUR_OF_DAY,0);
+            c.set(Calendar.MINUTE,0);
+            c.set(Calendar.SECOND,0);
+            c.set(Calendar.MILLISECOND,0);
+            c.add(Calendar.DAY_OF_YEAR,1);
+            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            ret.setNanos(0);
+            return ret;
+        }
+        else if (index == 9){
+            int month = c.get(Calendar.MONTH);
+            if((month+1)%3==2){
+                c.set(Calendar.MONTH,month-1);
+            }
+            else if((month+1)%3==0){
+                c.set(Calendar.MONTH,month-2);
+            }
+            c.set(Calendar.DAY_OF_MONTH,0);
+            c.set(Calendar.HOUR_OF_DAY,0);
+            c.set(Calendar.MINUTE,0);
+            c.set(Calendar.SECOND,0);
+            c.set(Calendar.MILLISECOND,0);
+            c.add(Calendar.DAY_OF_YEAR,1);
+            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            ret.setNanos(0);
+            return ret;
+        }
+        else if (index == 10){
+            c.set(Calendar.MONTH,0);
+            c.set(Calendar.DAY_OF_MONTH,0);
+            c.set(Calendar.HOUR_OF_DAY,0);
+            c.set(Calendar.MINUTE,0);
+            c.set(Calendar.SECOND,0);
+            c.set(Calendar.MILLISECOND,0);
+            c.add(Calendar.DAY_OF_YEAR,1);
+            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            ret.setNanos(0);
+            return ret;
+        }
+        else if (index == 11){
+            int year = c.get(Calendar.YEAR);
+            c.set(Calendar.YEAR,year-(year%10));
+            c.set(Calendar.MONTH,0);
+            c.set(Calendar.DAY_OF_MONTH,0);
+            c.set(Calendar.HOUR_OF_DAY,0);
+            c.set(Calendar.MINUTE,0);
+            c.set(Calendar.SECOND,0);
+            c.set(Calendar.MILLISECOND,0);
+            c.add(Calendar.DAY_OF_YEAR,1);
+            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            ret.setNanos(0);
+            return ret;
+        }
+        else if (index == 12){
+            int year = c.get(Calendar.YEAR);
+            c.set(Calendar.YEAR,year-(year%100));
+            c.set(Calendar.MONTH,0);
+            c.set(Calendar.DAY_OF_MONTH,0);
+            c.set(Calendar.HOUR_OF_DAY,0);
+            c.set(Calendar.MINUTE,0);
+            c.set(Calendar.SECOND,0);
+            c.set(Calendar.MILLISECOND,0);
+            c.add(Calendar.DAY_OF_YEAR,1);
+            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            ret.setNanos(0);
+            return ret;
+        }
+        else {
+            int year = c.get(Calendar.YEAR);
+            c.set(Calendar.YEAR,year-(year%1000));
+            c.set(Calendar.MONTH,0);
+            c.set(Calendar.DAY_OF_MONTH,0);
+            c.set(Calendar.HOUR_OF_DAY,0);
+            c.set(Calendar.MINUTE,0);
+            c.set(Calendar.SECOND,0);
+            c.set(Calendar.MILLISECOND,0);
+            c.add(Calendar.DAY_OF_YEAR,1);
+            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            ret.setNanos(0);
+            return ret;
+        }
+
+    }
 	
 }

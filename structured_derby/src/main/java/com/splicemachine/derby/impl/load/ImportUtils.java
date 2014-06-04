@@ -116,7 +116,7 @@ public class ImportUtils {
 				for(ColumnContext.Builder cb:columns.values()){
 						if(cb.isAutoIncrement()){
 								cb.sequenceRowLocation(rowLocationBytes[cb.getColumnNumber()]);
-						}
+                }
 				}
 		}
 

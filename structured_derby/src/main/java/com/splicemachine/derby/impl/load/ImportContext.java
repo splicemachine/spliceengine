@@ -94,8 +94,8 @@ public class ImportContext implements Externalizable{
 				this.columnInformation = columnInformation;
 				this.recordStats = recordStats;
 				this.xplainSchema = xplainSchema;
-				this.maxBadRecords = maxBadRecords;
 				this.badLogDirectory = badLogDirectory;
+            this.maxBadRecords = maxBadRecords;
 				this.tableVersion = tableVersion;
 		}
 
@@ -113,7 +113,7 @@ public class ImportContext implements Externalizable{
 		public String getQuoteChar(){
 				String stripStr = getStripString();
 				if(stripStr==null||stripStr.length()<=0)
-						stripStr = "\"";
+						stripStr = "\'";
 				return stripStr;
 		}
 
