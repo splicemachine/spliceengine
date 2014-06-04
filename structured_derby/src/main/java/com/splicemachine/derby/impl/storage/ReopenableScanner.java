@@ -41,7 +41,6 @@ public abstract class ReopenableScanner {
     public void incrementNumRetries() {numRetries++;}
 
     public ResultScanner reopenResultScanner(ResultScanner delegate, Scan scan, HTableInterface htable) throws IOException{
-        delegate.close();
 
         if (lastRow != null) {
             scan.setStartRow(lastRow);
@@ -66,7 +65,7 @@ public abstract class ReopenableScanner {
     }
 
     public MeasuredRegionScanner reopenRegionScanner(MeasuredRegionScanner delegate, HRegion region, Scan scan, MetricFactory metricFactory) throws IOException {
-        delegate.close();
+
         if (lastRow != null) {
             scan.setStartRow(lastRow);
         }
