@@ -407,6 +407,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         					.build();
         			procedures.add(getStoredStatementPlanInfo);
 
+        			/*
+        			 * Procedure to print all of the properties (JVM, Service, Database, App).
+        			 */
+        			Procedure getAllSystemProperties = Procedure.newBuilder().name("SYSCS_GET_ALL_PROPERTIES")
+        					.numOutputParams(0)
+        					.numResultSets(1)
+        					.ownerClass(SpliceAdmin.class.getCanonicalName())
+        					.build();
+        			procedures.add(getAllSystemProperties);
+
         			Procedure vacuum = Procedure.newBuilder().name("VACUUM")
         					.numOutputParams(0)
         					.numResultSets(0)
