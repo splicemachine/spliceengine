@@ -105,9 +105,9 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 						context.setSpliceRegionScanner(this);
 
 						topOperation.init(context);
-						List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
-						topOperation.generateLeftOperationStack(opStack);
-						SpliceLogUtils.trace(LOG, "Ready to execute stack %s", opStack);
+//						List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
+//						topOperation.generateLeftOperationStack(opStack);
+//						SpliceLogUtils.trace(LOG, "Ready to execute stack %s", opStack);
 				} catch (Exception e) {
 						ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
 						SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
