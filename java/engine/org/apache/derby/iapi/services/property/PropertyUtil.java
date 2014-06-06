@@ -74,7 +74,15 @@ public class PropertyUtil {
         Attribute.CRYPTO_ALGORITHM,
 		Attribute.RESTORE_FROM,
 		Attribute.LOG_DEVICE,
-		Property.LOG_ARCHIVE_MODE
+		Property.LOG_ARCHIVE_MODE,
+		// Additional Derby properties that Splice considers as "service" properties.
+		Property.PROPERTIES_CONGLOM_ID,
+		Property.ROW_LOCKING,
+		"derby.language.logStatementText",
+		"derby.language.logQueryPlan",
+		Property.LOCKS_ESCALATION_THRESHOLD,
+		Property.DATABASE_PROPERTIES_ONLY,
+		Property.DEFAULT_CONNECTION_MODE_PROPERTY
 	};
 
 	/**
