@@ -254,6 +254,15 @@ public class TableScanOperation extends ScanOperation {
 		@Override protected int getNumMetrics() { return 5; }
 
 		@Override
+		public String getName() {
+				if(this.tableName!=null){
+						return "TableScan(table="+tableName+")";
+				}else if(this.indexName!=null)
+						return "TableScan(index="+indexName+")";
+				return "TableScan";
+		}
+
+		@Override
 		protected void updateStats(OperationRuntimeStats stats) {
 				if(tableScanner!=null){
 						stats.addMetric(OperationMetric.FILTERED_ROWS,tableScanner.getRowsFiltered());

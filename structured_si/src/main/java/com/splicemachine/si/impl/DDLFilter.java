@@ -1,61 +1,67 @@
 package com.splicemachine.si.impl;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.splicemachine.si.api.TransactionStatus;
 import java.util.HashMap;
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.*;
 
 public class DDLFilter implements Comparable<DDLFilter> {
     private final Transaction myTransaction;
 	private final Transaction myParentTransaction;
     private final TransactionStore transactionStore;
-    private HashMap<String, Boolean> visibilityMap;
+		private Cache<String,Boolean> visibilityMap;
+//    private ConcurrentMap<String, Boolean> visibilityMap;
 
-    public DDLFilter(
-            Transaction myTransaction,
-		    Transaction myParentTransaction,
-            TransactionStore transactionStore) {
-        super();
-        this.myTransaction = myTransaction;
-        this.transactionStore = transactionStore;
-		this.myParentTransaction = myParentTransaction;
-        visibilityMap = new HashMap<String, Boolean>();
-    }
+		public DDLFilter(
+						Transaction myTransaction,
+						Transaction myParentTransaction,
+						TransactionStore transactionStore) {
+				super();
+				this.myTransaction = myTransaction;
+				this.transactionStore = transactionStore;
+				this.myParentTransaction = myParentTransaction;
+				visibilityMap = CacheBuilder.newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).maximumSize(10000).build();
+		}
 
-    public boolean isVisibleBy(String transactionId) throws IOException {
-                Boolean visible = visibilityMap.get(transactionId);
-                if (visible != null) {
-                    return visible.booleanValue();
-                }
+		public boolean isVisibleBy(final String transactionId) throws IOException {
+				Boolean visible = visibilityMap.getIfPresent(transactionId);
+				if (visible != null) {
+						return visible;
+				}
 				//if I didn't succeed, don't do anything
 				if(myTransaction.getEffectiveStatus()!= TransactionStatus.COMMITTED) return false;
 				//if I have a parent, and he was rolled back, don't do anything
 				if(myParentTransaction!=null && myParentTransaction.getEffectiveStatus()==TransactionStatus.ROLLED_BACK) return false;
+				try {
+						return visibilityMap.get(transactionId,new Callable<Boolean>() {
+								@Override
+								public Boolean call() throws Exception {
+										Transaction transaction = transactionStore.getTransaction(new TransactionId(transactionId));
+										/*
+										 * For the purposes of DDL, we intercept any writes which occur AFTER us, regardless of
+										 * my status.
+										 *
+										 * The reason for this is because the READ of us will not see those writes, which means
+										 * that we need to intercept them and deal with them as if we were committed. If we rollback,
+										 * then it shouldn't matter to the other operation (except for performance), and if we commit,
+										 * then we should see properly constructed data.
+										 */
+										long otherTxnId = transaction.getLongTransactionId();
+										visibilityMap.put(transactionId, myTransaction.getLongTransactionId() <= otherTxnId);
+										return myTransaction.getLongTransactionId()<=otherTxnId;
+								}
+						});
+				} catch (ExecutionException e) {
+						throw new IOException(e.getCause());
+				}
+		}
 
-                Transaction transaction = transactionStore.getTransaction(new TransactionId(transactionId));
-				/*
-				 * For the purposes of DDL, we intercept any writes which occur AFTER us, regardless of
-				 * my status.
-				 *
-				 * The reason for this is because the READ of us will not see those writes, which means
-				 * that we need to intercept them and deal with them as if we were committed. If we rollback,
-				 * then it shouldn't matter to the other operation (except for performance), and if we commit,
-				 * then we should see properly constructed data.
-				 */
-				long otherTxnId = transaction.getLongTransactionId();
-                visibilityMap.put(transactionId, new Boolean(myTransaction.getLongTransactionId()<=otherTxnId));
-				return myTransaction.getLongTransactionId()<=otherTxnId;
-//				// TODO use cache here
-//        return transaction.canSee(myTransaction, new TransactionSource() {
-//            @Override
-//            public Transaction getTransaction(long timestamp) throws IOException {
-//                return transactionStore.getTransaction(timestamp);
-//            }
-//        }).visible;
-    }
-
-    public Transaction getTransaction() {
-        return myTransaction;
-    }
+		public Transaction getTransaction() {
+				return myTransaction;
+		}
 
     @Override
     public int compareTo(DDLFilter o) {

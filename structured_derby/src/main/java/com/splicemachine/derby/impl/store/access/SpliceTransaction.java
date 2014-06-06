@@ -121,25 +121,26 @@ public class SpliceTransaction implements Transaction {
 	}
 
 	public LogInstant commit() throws StandardException {
-		SpliceLogUtils.debug(LOG, "commit, state=" + state + " for transaction " + transactionId.getTransactionIdString());
+			if(LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG, "commit, state=" + state + " for transaction " + transactionId.getTransactionIdString());
 		
 		if (state == IDLE) {
-			SpliceLogUtils.debug(LOG, "The transaction is in idle state and there is nothing to commit, transID=" + transactionId.getTransactionIdString());
+				if(LOG.isTraceEnabled())
+						SpliceLogUtils.trace(LOG, "The transaction is in idle state and there is nothing to commit, transID=" + transactionId.getTransactionIdString());
 			return null;
 		}
-		
-		if (state == CLOSED)
-        {
-			throw StandardException.newException("Transaction has already closed and cannot commit again");
-        }
-			
-		try {
-			transactor.commit(this.transactionId);
-			state = IDLE;
-		} catch (Exception e) {
-			throw StandardException.newException(e.getMessage(), e);
-		}
-		return null;
+
+			if (state == CLOSED) {
+					throw StandardException.newException("Transaction has already closed and cannot commit again");
+			}
+
+			try {
+					transactor.commit(this.transactionId);
+					state = IDLE;
+			} catch (Exception e) {
+					throw StandardException.newException(e.getMessage(), e);
+			}
+			return null;
 	}
 
 	public LogInstant commitNoSync(int commitflag) throws StandardException {
@@ -308,11 +309,9 @@ public class SpliceTransaction implements Transaction {
     }	
 	
 	public final void setActiveState(boolean readOnly, boolean nested, boolean dependent, String parentTransactionID) {
-		if (state == IDLE)
-		{
+		if (state == IDLE) {
 			try {
-				synchronized(this)
-				{
+				synchronized(this) {
                     boolean allowWrites = !readOnly;
                     this.setTransactionState(generateTransactionId(nested, dependent, parentTransactionID, allowWrites));
 					state = ACTIVE;
