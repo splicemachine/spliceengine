@@ -22,11 +22,7 @@
 package org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.reference.SQLState;
-
-import java.sql.Types;
 
 /**
  * This class represents an OLAP window definition.
@@ -39,6 +35,12 @@ public final class WindowDefinitionNode extends WindowNode
     private boolean inlined;
 
     /**
+     * The partition by list if the window definition contains a <window partition
+     * clause>, else null.
+     */
+    private GroupByList groupByList;
+
+    /**
      * The order by list if the window definition contains a <window order
      * clause>, else null.
      */
@@ -48,16 +50,19 @@ public final class WindowDefinitionNode extends WindowNode
      * Initializer.
      *
      * @param arg1 The window name, null if in-lined definition
-     * @param arg2 ORDER BY list
+     * @param arg2 GROUP BY list (partition)
+     * @param arg3 ORDER BY list
      * @exception StandardException
      */
     public void init(Object arg1,
-                     Object arg2)
+                     Object arg2,
+                     Object arg3)
         throws StandardException
     {
         String name = (String)arg1;
 
-        orderByList = (OrderByList)arg2;
+        groupByList = (GroupByList)arg2;
+        orderByList = (OrderByList)arg3;
 
         if (name != null) {
             super.init(arg1);
@@ -65,11 +70,6 @@ public final class WindowDefinitionNode extends WindowNode
         } else {
             super.init("IN-LINE");
             inlined = true;
-        }
-
-        if (orderByList != null) {
-            throw StandardException.newException(SQLState.NOT_IMPLEMENTED,
-                                                 "WINDOW/ORDER BY");
         }
     }
 
@@ -98,6 +98,11 @@ public final class WindowDefinitionNode extends WindowNode
         if (SanityManager.DEBUG)
         {
             super.printSubNodes(depth);
+
+            if (groupByList != null) {
+                printLabel(depth, "groupByList: "  + depth);
+                groupByList.treePrint(depth + 1);
+            }
 
             if (orderByList != null) {
                 printLabel(depth, "orderByList: "  + depth);

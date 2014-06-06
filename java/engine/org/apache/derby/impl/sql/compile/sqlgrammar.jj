@@ -1219,9 +1219,9 @@ public class SQLParser
 		switch (getToken(1).kind) {
 
 		case ROWNUMBER:
+		case RANK:
+		case DENSERANK:
 
-		// case RANK:
-		// case DENSE_RANK:
 		// case PERCENT_RANK:
 		// case CUME_DIST:
 
@@ -2467,6 +2467,7 @@ TOKEN [IGNORE_CASE] :
 |	<OVERLAPS: "overlaps">
 |	<PAD: "pad">
 |	<PARTIAL: "partial">
+|	<PARTITION: "partition">
 |	<PREPARE: "prepare">
 |	<PRESERVE: "preserve">
 |	<PRIMARY: "primary">
@@ -2657,6 +2658,7 @@ TOKEN [IGNORE_CASE] :
 |	<CURRENT_ROLE: "current_role">
 |	<CURTIME: "curtime">
 |   <DATABASE: "database">
+|	<DENSERANK: "dense_rank">
 |	<GET_CURRENT_CONNECTION: "getCurrentConnection">
 |	<EXPLAIN: "explain">
 |	<LONGINT: "bigint">
@@ -2664,6 +2666,7 @@ TOKEN [IGNORE_CASE] :
 |	<LTRIM: "ltrim">
 |	<NONE: "none">
 |	<OVER: "over">
+|	<RANK: "rank">
 |	<ROLE: "role">
 |	<ROWNUMBER: "row_number">
 |	<RTRIM: "rtrim">
@@ -9957,6 +9960,26 @@ windowOrAggregateFunctionNode() throws StandardException :
 		return winOrAgg;
 	}
 |
+	<DENSERANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
+	{
+		winOrAgg = (ValueNode) nodeFactory.getNode(
+			C_NodeTypes.DENSERANK_FUNCTION_NODE,
+			null,
+			window,
+			getContextManager());
+		return winOrAgg;
+	}
+|
+	<RANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
+	{
+		winOrAgg = (ValueNode) nodeFactory.getNode(
+			C_NodeTypes.RANK_RESULTSET_NODE,
+			null,
+			window,
+			getContextManager());
+		return winOrAgg;
+	}
+|
 	<ROWNUMBER> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
 	{
 		winOrAgg = (ValueNode) nodeFactory.getNode(
@@ -9973,17 +9996,20 @@ QueryTreeNode
 overClause() throws StandardException :
 {
 	String windowRef;
+	GroupByList partitionCols = null;
 	OrderByList orderCols = null;
+//	FrameExpression frame = null;
 }
 {
   LOOKAHEAD({ getToken(2).kind == LEFT_PAREN ||
 			  getToken(2).kind == IDENTIFIER })
 	<OVER>
-  ( <LEFT_PAREN> [ orderCols = orderByClause() ] <RIGHT_PAREN>
+  ( <LEFT_PAREN> [ partitionCols = partitionByClause() ] [ orderCols = orderByClause() ] <RIGHT_PAREN>
 	{
 		return (QueryTreeNode) nodeFactory.getNode(
 			C_NodeTypes.WINDOW_DEFINITION_NODE,
 			null,
+			partitionCols,
 			orderCols,
 			getContextManager());
 	}
@@ -9998,8 +10024,23 @@ overClause() throws StandardException :
  )
 
 }
-
-
+/*
+// TODO: impl frame clause
+   void FrameClause():
+   {}
+   {
+       ("ROWS" | "RANGE")
+       ( "CURRENT" "ROW"
+       | SQLSimpleExpression() ID("PRECEDING") // perhaps UNBOUNDED PRECEDING
+       | "BETWEEN" ( "CURRENT" "ROW"
+                   | SQLSimpleExpression() ID("PRECEDING|FOLLOWING") // perhaps UNBOUNDED FOLLOWING
+                   )
+             "AND" ( "CURRENT" "ROW"
+                   | SQLSimpleExpression() ID("PRECEDING|FOLLOWING") // perhaps UNBOUNDED PRECEDING
+                   )
+       )
+   }
+*/
 ValueNode
 aggregateExpression(String aggName, Class aggClass) throws StandardException :
 {
@@ -10197,12 +10238,36 @@ whereClause(Token beginToken) throws StandardException :
 }
 
 GroupByList
+partitionByClause() throws StandardException :
+{
+	GroupByList groupingCols;
+}
+{
+// TODO: this is a copy of groupByClause() below differing only by token.
+	<PARTITION> <BY>
+        (
+	LOOKAHEAD ( { getToken(1).kind == ROLLUP &&
+			getToken(2).kind == LEFT_PAREN } )
+        <ROLLUP> <LEFT_PAREN> groupingCols = groupingColumnReferenceList() <RIGHT_PAREN>
+	{
+		groupingCols.setRollup();
+		return groupingCols;
+	}
+|
+	groupingCols = groupingColumnReferenceList()
+	{
+		return groupingCols;
+	}
+        )
+}
+
+GroupByList
 groupByClause() throws StandardException :
 {
 	GroupByList groupingCols;
 }
 {
-	<GROUP> <BY> 
+	<GROUP> <BY>
         (
 	LOOKAHEAD ( { getToken(1).kind == ROLLUP &&
 			getToken(2).kind == LEFT_PAREN } )
@@ -14837,6 +14902,7 @@ reservedKeyword() :
 |	tok = <OVERLAPS>
 |	tok = <PAD>
 |	tok = <PARTIAL>
+|	tok = <PARTITION>
 |	tok = <PREPARE>
 |	tok = <PRESERVE>
 |	tok = <PRIMARY>
@@ -14972,6 +15038,7 @@ nonReservedKeyword()  :
 	|	tok = <DYNAMIC>
     |   tok = <DATABASE>
 	|	tok = <DB2SQL>
+	|	tok = <DENSERANK>
 	|	tok = <DERBY>
 	|	tok = <SPLICE_JDBC_RESULT_SET>
 	|	tok = <DOCUMENT>
@@ -15038,6 +15105,7 @@ nonReservedKeyword()  :
 	|	tok = <PRECISION>
 	|	tok = <PROPERTIES>
 	|	tok = <PURGE>
+	|	tok = <RANK>
 	|	tok = <READS>
 	|	tok = <REF>
 // SQL92 says it is reserved, but we want it to be non-reserved.

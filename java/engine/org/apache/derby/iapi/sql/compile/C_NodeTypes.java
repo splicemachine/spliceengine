@@ -243,10 +243,12 @@ public interface C_NodeTypes
 	static final int ROW_NUMBER_FUNCTION_NODE = 227;
 	static final int WINDOW_DEFINITION_NODE = 228;
 	static final int WINDOW_REFERENCE_NODE = 229;
-	static final int WINDOW_RESULTSET_NODE = 230;
+    static final int WINDOW_RESULTSET_NODE = 230;
+    static final int DENSERANK_FUNCTION_NODE = 231;
+    static final int RANK_RESULTSET_NODE = 232;
 
     // Final value in set, keep up to date!
-    static final int FINAL_VALUE = NEXT_SEQUENCE_NODE;
+    static final int FINAL_VALUE = RANK_RESULTSET_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision
