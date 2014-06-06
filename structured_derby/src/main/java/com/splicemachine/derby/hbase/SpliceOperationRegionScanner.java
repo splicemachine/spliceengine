@@ -22,12 +22,10 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.HConstants;
@@ -41,7 +39,6 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -106,9 +103,9 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 						context.setSpliceRegionScanner(this);
 
 						topOperation.init(context);
-						List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
-						topOperation.generateLeftOperationStack(opStack);
-						SpliceLogUtils.trace(LOG, "Ready to execute stack %s", opStack);
+//						List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
+//						topOperation.generateLeftOperationStack(opStack);
+//						SpliceLogUtils.trace(LOG, "Ready to execute stack %s", opStack);
 				} catch (Exception e) {
 						ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
 						throw Exceptions.getIOException(e);
