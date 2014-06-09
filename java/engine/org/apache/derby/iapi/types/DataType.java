@@ -541,10 +541,10 @@ public abstract class DataType
 			String msgId = se.getMessageId();
 
 			if (SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE.equals(msgId))
-				throw outOfRange();
+				throw outOfRange(se);
 
 			if (SQLState.LANG_FORMAT_EXCEPTION.equals(msgId))
-				throw invalidFormat();
+				throw invalidFormat(se);
 
 			throw se;
 
@@ -1260,6 +1260,10 @@ public abstract class DataType
 				SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, getTypeName());
 	}
 
+    protected final StandardException outOfRange(Throwable cause)  {
+        return StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, cause, getTypeName());
+    }
+
 	/**
 		Return an out of range exception for this type.
 	*/
@@ -1268,6 +1272,10 @@ public abstract class DataType
 		return StandardException.newException(
 				SQLState.LANG_FORMAT_EXCEPTION, getTypeName());
 	}
+
+    protected final StandardException invalidFormat(Throwable cause) {
+        return StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, cause, getTypeName());
+    }
 
     public boolean isLazy() {
         return false;
