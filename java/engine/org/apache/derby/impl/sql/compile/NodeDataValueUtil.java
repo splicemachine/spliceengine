@@ -12,18 +12,15 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Utility method(s) for manipulating Node DataValueDescriptors (splice).
+ * Given a BinaryRelationalOperatorNode with a ColumnReferenceOperand and a NumericConstantNode operand
+ * make the NumericConstantNode have the same type as the column reference.  If the numeric constant does not
+ * fit in the column's type, then change the value of the constant to Type.MAX_VALUE and adjust the relational
+ * operator node's operation accordingly (to always evaluate to TRUE or FALSE as appropriate).
  */
 class NodeDataValueUtil {
 
     private static final DataValueDescriptor ZERO_BIG_DECIMAL = new SQLDecimal(BigDecimal.ZERO);
 
-    /**
-     * Given a BinaryRelationalOperatorNode with a ColumnReferenceOperand and a NumericConstantNode operand
-     * make the NumericConstantNode have the same type as the column reference.  If the numeric constant does not
-     * fit in the column's type, then change the value of the constant to Type.MAX_VALUE and adjust the relational
-     * operator node's operation accordingly (to always evaluate to TRUE or FALSE as appropriate).
-     */
     public static void coerceDataTypeIfNecessary(BinaryRelationalOperatorNode operatorNode) {
 
         ValueNode leftOperand = operatorNode.getLeftOperand();
@@ -98,8 +95,8 @@ class NodeDataValueUtil {
 
     /**
      * When mutating the operator there are really four cases. Here I illustrate the cases using a column
-     * reference "column" and a positive numeric constant "L" which derby has determined to be too large for
-     * the column's type, perhaps it is an SQLLongint (long).
+     * reference "column" and a positive numeric constant "L" which we have determined to be too large for
+     * the column's type.
      *
      * CASE 1: expressions that always evaluate to TRUE
      *
