@@ -7,7 +7,6 @@ import com.splicemachine.homeless.TestUtils;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -18,6 +17,7 @@ import java.sql.SQLException;
 
 import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class NumericConstantsIT {
 
@@ -266,51 +266,43 @@ public class NumericConstantsIT {
         assertCount(1, "table_double", "a", ">=", DOUBLE_MAX);
     }
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     /* Assert that we have the same behavior as derby when using numeric constant greater than double */
     @Test
     public void double_minTimesTen() throws Exception {
         String DOUBLE_MIN_TIMES_10 = "-1.79769E+309";
-        expectedException.expect(SQLDataException.class);
-        expectedException.expectMessage("The resulting value is outside the range for the data type DOUBLE.");
-        methodWatcher.executeQuery("select * from table_double where a = " + DOUBLE_MIN_TIMES_10);
+        assertException("select * from table_double where a = " + DOUBLE_MIN_TIMES_10, SQLDataException.class,
+                "The resulting value is outside the range for the data type DOUBLE.");
     }
 
     /* Assert that we have the same behavior as derby when using numeric constant greater than double */
     @Test
     public void double_maxTimesTen() throws Exception {
         String DOUBLE_MAX_TIMES_10 = "1.79769E+309";
-        expectedException.expect(SQLDataException.class);
-        expectedException.expectMessage("The resulting value is outside the range for the data type DOUBLE.");
-        methodWatcher.executeQuery("select * from table_double where a = " + DOUBLE_MAX_TIMES_10);
+        assertException("select * from table_double where a = " + DOUBLE_MAX_TIMES_10, SQLDataException.class,
+                "The resulting value is outside the range for the data type DOUBLE.");
     }
 
     /* Assert that we have the same behavior as derby when using numeric constant greater than double */
     @Test
     public void double_maxTimesTen_LessThan() throws Exception {
         String DOUBLE_MAX_TIMES_10 = "1.79769E+309";
-        expectedException.expect(SQLDataException.class);
-        expectedException.expectMessage("The resulting value is outside the range for the data type DOUBLE.");
-        methodWatcher.executeQuery("select * from table_double where a < " + DOUBLE_MAX_TIMES_10);
+        assertException("select * from table_double where a < " + DOUBLE_MAX_TIMES_10, SQLDataException.class,
+                "The resulting value is outside the range for the data type DOUBLE.");
     }
 
     /* Assert that we have the same behavior as derby when using numeric constant greater than double */
     @Test
     public void double_maxTimesTen_GreaterThan() throws Exception {
         String DOUBLE_MAX_TIMES_10 = "1.79769E+309";
-        expectedException.expect(SQLDataException.class);
-        expectedException.expectMessage("The resulting value is outside the range for the data type DOUBLE.");
-        methodWatcher.executeQuery("select * from table_double where a > " + DOUBLE_MAX_TIMES_10);
+        assertException("select * from table_double where a > " + DOUBLE_MAX_TIMES_10, SQLDataException.class,
+                "The resulting value is outside the range for the data type DOUBLE.");
     }
 
     /* Assert that we have the same behavior as derby when using numeric constant greater than double */
     @Test
     public void double_maxTimesTen_GreaterThanConstantOnLeft() throws Exception {
-        expectedException.expect(SQLDataException.class);
-        expectedException.expectMessage("The resulting value is outside the range for the data type DOUBLE.");
-        methodWatcher.executeQuery("select * from table_double where 1.79769E+309 < a");
+        assertException("select * from table_double where 1.79769E+309 < a", SQLDataException.class,
+                "The resulting value is outside the range for the data type DOUBLE.");
     }
 
     /**
@@ -330,6 +322,16 @@ public class NumericConstantsIT {
     private void assertCount(int expectedCount, String sql) throws Exception {
         ResultSet rs = methodWatcher.executeQuery(sql);
         assertEquals(format("count mismatch for sql='%s'", sql), expectedCount, count(rs));
+    }
+
+    private void assertException(String sql, Class expectedException, String expectedMessage) throws Exception {
+        try {
+            methodWatcher.executeQuery(sql);
+            fail();
+        } catch (Exception e) {
+            assertEquals(expectedException, e.getClass());
+            assertEquals(expectedMessage, e.getMessage());
+        }
     }
 
     private static int count(ResultSet rs) throws SQLException {
