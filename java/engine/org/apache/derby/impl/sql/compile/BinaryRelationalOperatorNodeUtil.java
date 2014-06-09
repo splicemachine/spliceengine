@@ -17,7 +17,7 @@ import java.util.List;
  * fit in the column's type, then change the value of the constant to Type.MAX_VALUE and adjust the relational
  * operator node's operation accordingly (to always evaluate to TRUE or FALSE as appropriate).
  */
-class NodeDataValueUtil {
+class BinaryRelationalOperatorNodeUtil {
 
     private static final DataValueDescriptor ZERO_BIG_DECIMAL = new SQLDecimal(BigDecimal.ZERO);
 

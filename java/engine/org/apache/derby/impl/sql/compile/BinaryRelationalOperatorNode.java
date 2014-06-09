@@ -537,7 +537,7 @@ public class BinaryRelationalOperatorNode
 	public boolean usefulStartKey(Optimizable optTable)
 	{
 
-        NodeDataValueUtil.coerceDataTypeIfNecessary(this);
+        BinaryRelationalOperatorNodeUtil.coerceDataTypeIfNecessary(this);
 
 		/*
 		** Determine whether this operator is a useful start operator
