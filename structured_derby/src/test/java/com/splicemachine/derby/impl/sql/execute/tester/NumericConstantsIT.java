@@ -7,11 +7,13 @@ import com.splicemachine.homeless.TestUtils;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.math.BigInteger;
 import java.sql.ResultSet;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 
 import static java.lang.String.format;
@@ -178,6 +180,137 @@ public class NumericConstantsIT {
         assertCount(0, "table_bigint", "a", "<=", LONG_MIN_MINUS_1);
         assertCount(5, "table_bigint", "a", ">", LONG_MIN_MINUS_1);
         assertCount(5, "table_bigint", "a", ">=", LONG_MIN_MINUS_1);
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // real
+    //
+    // - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void real_min() throws Exception {
+        String REAL_MIN = "-3.402E+38";
+
+        assertCount(1, "table_real", "a", "=", REAL_MIN);
+        assertCount(4, "table_real", "a", "!=", REAL_MIN);
+        assertCount(0, "table_real", "a", "<", REAL_MIN);
+        assertCount(1, "table_real", "a", "<=", REAL_MIN);
+        assertCount(4, "table_real", "a", ">", REAL_MIN);
+        assertCount(5, "table_real", "a", ">=", REAL_MIN);
+    }
+
+    @Test
+    public void real_max() throws Exception {
+        String REAL_MAX = "3.402E+38";
+
+        assertCount(1, "table_real", "a", "=", REAL_MAX);
+        assertCount(4, "table_real", "a", "!=", REAL_MAX);
+        assertCount(4, "table_real", "a", "<", REAL_MAX);
+        assertCount(5, "table_real", "a", "<=", REAL_MAX);
+        assertCount(0, "table_real", "a", ">", REAL_MAX);
+        assertCount(1, "table_real", "a", ">=", REAL_MAX);
+    }
+
+    @Test
+    public void real_minTimesTen() throws Exception {
+        String REAL_MIN_TIMES_10 = "-3.402E+39";
+
+        assertCount(0, "table_real", "a", "=", REAL_MIN_TIMES_10);
+        assertCount(5, "table_real", "a", "!=", REAL_MIN_TIMES_10);
+        assertCount(0, "table_real", "a", "<", REAL_MIN_TIMES_10);
+        assertCount(0, "table_real", "a", "<=", REAL_MIN_TIMES_10);
+        assertCount(5, "table_real", "a", ">", REAL_MIN_TIMES_10);
+        assertCount(5, "table_real", "a", ">=", REAL_MIN_TIMES_10);
+    }
+
+    @Test
+    public void real_maxTimesTen() throws Exception {
+        String REAL_MAX_TIMES_10 = "3.402E+39";
+
+        assertCount(0, "table_real", "a", "=", REAL_MAX_TIMES_10);
+        assertCount(5, "table_real", "a", "!=", REAL_MAX_TIMES_10);
+        assertCount(5, "table_real", "a", "<", REAL_MAX_TIMES_10);
+        assertCount(5, "table_real", "a", "<=", REAL_MAX_TIMES_10);
+        assertCount(0, "table_real", "a", ">", REAL_MAX_TIMES_10);
+        assertCount(0, "table_real", "a", ">=", REAL_MAX_TIMES_10);
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // double
+    //
+    // - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void double_min() throws Exception {
+        String DOUBLE_MIN = "-1.79769E+308";
+
+        assertCount(1, "table_double", "a", "=", DOUBLE_MIN);
+        assertCount(4, "table_double", "a", "!=", DOUBLE_MIN);
+        assertCount(0, "table_double", "a", "<", DOUBLE_MIN);
+        assertCount(1, "table_double", "a", "<=", DOUBLE_MIN);
+        assertCount(4, "table_double", "a", ">", DOUBLE_MIN);
+        assertCount(5, "table_double", "a", ">=", DOUBLE_MIN);
+    }
+
+    @Test
+    public void double_max() throws Exception {
+        String DOUBLE_MAX = "1.79769E+308";
+
+        assertCount(1, "table_double", "a", "=", DOUBLE_MAX);
+        assertCount(4, "table_double", "a", "!=", DOUBLE_MAX);
+        assertCount(4, "table_double", "a", "<", DOUBLE_MAX);
+        assertCount(5, "table_double", "a", "<=", DOUBLE_MAX);
+        assertCount(0, "table_double", "a", ">", DOUBLE_MAX);
+        assertCount(1, "table_double", "a", ">=", DOUBLE_MAX);
+    }
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
+    /* Assert that we have the same behavior as derby when using numeric constant greater than double */
+    @Test
+    public void double_minTimesTen() throws Exception {
+        String DOUBLE_MIN_TIMES_10 = "-1.79769E+309";
+        expectedException.expect(SQLDataException.class);
+        expectedException.expectMessage("The resulting value is outside the range for the data type DOUBLE.");
+        methodWatcher.executeQuery("select * from table_double where a = " + DOUBLE_MIN_TIMES_10);
+    }
+
+    /* Assert that we have the same behavior as derby when using numeric constant greater than double */
+    @Test
+    public void double_maxTimesTen() throws Exception {
+        String DOUBLE_MAX_TIMES_10 = "1.79769E+309";
+        expectedException.expect(SQLDataException.class);
+        expectedException.expectMessage("The resulting value is outside the range for the data type DOUBLE.");
+        methodWatcher.executeQuery("select * from table_double where a = " + DOUBLE_MAX_TIMES_10);
+    }
+
+    /* Assert that we have the same behavior as derby when using numeric constant greater than double */
+    @Test
+    public void double_maxTimesTen_LessThan() throws Exception {
+        String DOUBLE_MAX_TIMES_10 = "1.79769E+309";
+        expectedException.expect(SQLDataException.class);
+        expectedException.expectMessage("The resulting value is outside the range for the data type DOUBLE.");
+        methodWatcher.executeQuery("select * from table_double where a < " + DOUBLE_MAX_TIMES_10);
+    }
+
+    /* Assert that we have the same behavior as derby when using numeric constant greater than double */
+    @Test
+    public void double_maxTimesTen_GreaterThan() throws Exception {
+        String DOUBLE_MAX_TIMES_10 = "1.79769E+309";
+        expectedException.expect(SQLDataException.class);
+        expectedException.expectMessage("The resulting value is outside the range for the data type DOUBLE.");
+        methodWatcher.executeQuery("select * from table_double where a > " + DOUBLE_MAX_TIMES_10);
+    }
+
+    /* Assert that we have the same behavior as derby when using numeric constant greater than double */
+    @Test
+    public void double_maxTimesTen_GreaterThanConstantOnLeft() throws Exception {
+        expectedException.expect(SQLDataException.class);
+        expectedException.expectMessage("The resulting value is outside the range for the data type DOUBLE.");
+        methodWatcher.executeQuery("select * from table_double where 1.79769E+309 < a");
     }
 
     /**
