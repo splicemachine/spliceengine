@@ -204,7 +204,7 @@ class BinaryRelationalOperatorNodeUtil {
             case StoredFormatIds.SQL_DOUBLE_ID:
                 return new SQLDouble(Limits.DB2_SMALLEST_DOUBLE);
             case StoredFormatIds.SQL_DECIMAL_ID:
-                return new SQLDecimal(getMaxBigDecimal((SQLDecimal) colReferValueDescriptor));
+                return new SQLDecimal(getMaxBigDecimal((SQLDecimal) colReferValueDescriptor).negate());
             default:
                 throw new IllegalArgumentException();
         }
@@ -225,7 +225,7 @@ class BinaryRelationalOperatorNodeUtil {
             case StoredFormatIds.SQL_DOUBLE_ID:
                 return new SQLDouble(Limits.DB2_LARGEST_DOUBLE);
             case StoredFormatIds.SQL_DECIMAL_ID:
-                return new SQLDecimal(getMaxBigDecimal((SQLDecimal) colReferValueDescriptor).negate());
+                return new SQLDecimal(getMaxBigDecimal((SQLDecimal) colReferValueDescriptor));
             default:
                 throw new IllegalArgumentException();
         }
