@@ -74,12 +74,7 @@ class NodeDataValueUtil {
         }
         /* We have a constant value bigger than the column. */
         else {
-            /*
-             * CASE: scalar, pretty easy
-             */
-            if (isScalarType(typeFormatId)) {
-                updateOperator(operatorNode, numericConstantNode, typeFormatId, columnSide);
-            }
+            updateOperator(operatorNode, numericConstantNode, typeFormatId, columnSide);
         }
     }
 
@@ -258,13 +253,6 @@ class NodeDataValueUtil {
             default:
                 return originalNodeType;
         }
-    }
-
-    private static boolean isScalarType(int columnFormat) {
-        return (columnFormat == StoredFormatIds.SQL_TINYINT_ID
-                || columnFormat == StoredFormatIds.SQL_SMALLINT_ID
-                || columnFormat == StoredFormatIds.SQL_INTEGER_ID
-                || columnFormat == StoredFormatIds.SQL_LONGINT_ID);
     }
 
     /**
