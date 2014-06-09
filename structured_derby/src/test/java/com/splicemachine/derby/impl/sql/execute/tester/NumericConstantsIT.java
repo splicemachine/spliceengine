@@ -5,7 +5,6 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -39,48 +38,46 @@ public class NumericConstantsIT {
 
     @Test
     public void smallInt_min() throws Exception {
-        assertCount(1, format("select * from table_smallint where a = %s", Short.MIN_VALUE));
-        assertCount(4, format("select * from table_smallint where a != %s", Short.MIN_VALUE));
-        assertCount(0, format("select * from table_smallint where a < %s", Short.MIN_VALUE));
-        assertCount(1, format("select * from table_smallint where a <= %s", Short.MIN_VALUE));
-        assertCount(4, format("select * from table_smallint where a > %s", Short.MIN_VALUE));
-        assertCount(5, format("select * from table_smallint where a >= %s", Short.MIN_VALUE));
+        assertCount(1, "table_smallint", "a", "=", Short.MIN_VALUE);
+        assertCount(4, "table_smallint", "a", "!=", Short.MIN_VALUE);
+        assertCount(0, "table_smallint", "a", "<", Short.MIN_VALUE);
+        assertCount(1, "table_smallint", "a", "<=", Short.MIN_VALUE);
+        assertCount(4, "table_smallint", "a", ">", Short.MIN_VALUE);
+        assertCount(5, "table_smallint", "a", ">=", Short.MIN_VALUE);
     }
 
     @Test
     public void smallInt_max() throws Exception {
-        assertCount(1, format("select * from table_smallint where a = %s", Short.MAX_VALUE));
-        assertCount(4, format("select * from table_smallint where a != %s", Short.MAX_VALUE));
-        assertCount(4, format("select * from table_smallint where a < %s", Short.MAX_VALUE));
-        assertCount(5, format("select * from table_smallint where a <= %s", Short.MAX_VALUE));
-        assertCount(0, format("select * from table_smallint where a > %s", Short.MAX_VALUE));
-        assertCount(1, format("select * from table_smallint where a >= %s", Short.MAX_VALUE));
+        assertCount(1, "table_smallint", "a", "=", Short.MAX_VALUE);
+        assertCount(4, "table_smallint", "a", "!=", Short.MAX_VALUE);
+        assertCount(4, "table_smallint", "a", "<", Short.MAX_VALUE);
+        assertCount(5, "table_smallint", "a", "<=", Short.MAX_VALUE);
+        assertCount(0, "table_smallint", "a", ">", Short.MAX_VALUE);
+        assertCount(1, "table_smallint", "a", ">=", Short.MAX_VALUE);
     }
 
-    @Ignore("fails, DB-1362")
     @Test
     public void smallInt_max_plusOne() throws Exception {
         String SHORT_MAX_PLUS_1 = new BigInteger(String.valueOf(Short.MAX_VALUE)).add(BigInteger.ONE).toString();
 
-        assertCount(0, format("select * from table_smallint where a = %s", SHORT_MAX_PLUS_1));
-        assertCount(5, format("select * from table_smallint where a != %s", SHORT_MAX_PLUS_1));
-        assertCount(5, format("select * from table_smallint where a < %s", SHORT_MAX_PLUS_1));
-        assertCount(5, format("select * from table_smallint where a <= %s", SHORT_MAX_PLUS_1));
-        assertCount(0, format("select * from table_smallint where a > %s", SHORT_MAX_PLUS_1));
-        assertCount(0, format("select * from table_smallint where a >= %s", SHORT_MAX_PLUS_1));
+        assertCount(0, "table_smallint", "a", "=", SHORT_MAX_PLUS_1);
+        assertCount(5, "table_smallint", "a", "!=", SHORT_MAX_PLUS_1);
+        assertCount(5, "table_smallint", "a", "<", SHORT_MAX_PLUS_1);
+        assertCount(5, "table_smallint", "a", "<=", SHORT_MAX_PLUS_1);
+        assertCount(0, "table_smallint", "a", ">", SHORT_MAX_PLUS_1);
+        assertCount(0, "table_smallint", "a", ">=", SHORT_MAX_PLUS_1);
     }
 
-    @Ignore("fails, DB-1362")
     @Test
     public void smallInt_min_minusOne() throws Exception {
         String SHORT_MIN_MINUS_1 = new BigInteger(String.valueOf(Short.MIN_VALUE)).subtract(BigInteger.ONE).toString();
 
-        assertCount(0, format("select * from table_smallint where a = %s", SHORT_MIN_MINUS_1));
-        assertCount(5, format("select * from table_smallint where a != %s", SHORT_MIN_MINUS_1));
-        assertCount(0, format("select * from table_smallint where a < %s", SHORT_MIN_MINUS_1));
-        assertCount(0, format("select * from table_smallint where a <= %s", SHORT_MIN_MINUS_1));
-        assertCount(5, format("select * from table_smallint where a > %s", SHORT_MIN_MINUS_1));
-        assertCount(5, format("select * from table_smallint where a >= %s", SHORT_MIN_MINUS_1));
+        assertCount(0, "table_smallint", "a", "=", SHORT_MIN_MINUS_1);
+        assertCount(5, "table_smallint", "a", "!=", SHORT_MIN_MINUS_1);
+        assertCount(0, "table_smallint", "a", "<", SHORT_MIN_MINUS_1);
+        assertCount(0, "table_smallint", "a", "<=", SHORT_MIN_MINUS_1);
+        assertCount(5, "table_smallint", "a", ">", SHORT_MIN_MINUS_1);
+        assertCount(5, "table_smallint", "a", ">=", SHORT_MIN_MINUS_1);
     }
 
     // - - - - - - - - - - - - - - - - - - - - - -
@@ -91,48 +88,46 @@ public class NumericConstantsIT {
 
     @Test
     public void integer_min() throws Exception {
-        assertCount(1, format("select * from table_integer where a = %s", Integer.MIN_VALUE));
-        assertCount(4, format("select * from table_integer where a != %s", Integer.MIN_VALUE));
-        assertCount(0, format("select * from table_integer where a < %s", Integer.MIN_VALUE));
-        assertCount(1, format("select * from table_integer where a <= %s", Integer.MIN_VALUE));
-        assertCount(4, format("select * from table_integer where a > %s", Integer.MIN_VALUE));
-        assertCount(5, format("select * from table_integer where a >= %s", Integer.MIN_VALUE));
+        assertCount(1, "table_integer", "a", "=", Integer.MIN_VALUE);
+        assertCount(4, "table_integer", "a", "!=", Integer.MIN_VALUE);
+        assertCount(0, "table_integer", "a", "<", Integer.MIN_VALUE);
+        assertCount(1, "table_integer", "a", "<=", Integer.MIN_VALUE);
+        assertCount(4, "table_integer", "a", ">", Integer.MIN_VALUE);
+        assertCount(5, "table_integer", "a", ">=", Integer.MIN_VALUE);
     }
 
     @Test
     public void integer_max() throws Exception {
-        assertCount(1, format("select * from table_integer where a = %s", Integer.MAX_VALUE));
-        assertCount(4, format("select * from table_integer where a != %s", Integer.MAX_VALUE));
-        assertCount(4, format("select * from table_integer where a < %s", Integer.MAX_VALUE));
-        assertCount(5, format("select * from table_integer where a <= %s", Integer.MAX_VALUE));
-        assertCount(0, format("select * from table_integer where a > %s", Integer.MAX_VALUE));
-        assertCount(1, format("select * from table_integer where a >= %s", Integer.MAX_VALUE));
+        assertCount(1, "table_integer", "a", "=", Integer.MAX_VALUE);
+        assertCount(4, "table_integer", "a", "!=", Integer.MAX_VALUE);
+        assertCount(4, "table_integer", "a", "<", Integer.MAX_VALUE);
+        assertCount(5, "table_integer", "a", "<=", Integer.MAX_VALUE);
+        assertCount(0, "table_integer", "a", ">", Integer.MAX_VALUE);
+        assertCount(1, "table_integer", "a", ">=", Integer.MAX_VALUE);
     }
 
-    @Ignore("fails, DB-1362")
     @Test
     public void integer_max_plusOne() throws Exception {
         String INT_MAX_PLUS_1 = new BigInteger(String.valueOf(Integer.MAX_VALUE)).add(BigInteger.ONE).toString();
 
-        assertCount(0, format("select * from table_integer where a = %s", INT_MAX_PLUS_1));
-        assertCount(5, format("select * from table_integer where a != %s", INT_MAX_PLUS_1));
-        assertCount(5, format("select * from table_integer where a < %s", INT_MAX_PLUS_1));
-        assertCount(5, format("select * from table_integer where a <= %s", INT_MAX_PLUS_1));
-        assertCount(0, format("select * from table_integer where a > %s", INT_MAX_PLUS_1));
-        assertCount(0, format("select * from table_integer where a >= %s", INT_MAX_PLUS_1));
+        assertCount(0, "table_integer", "a", "=", INT_MAX_PLUS_1);
+        assertCount(5, "table_integer", "a", "!=", INT_MAX_PLUS_1);
+        assertCount(5, "table_integer", "a", "<", INT_MAX_PLUS_1);
+        assertCount(5, "table_integer", "a", "<=", INT_MAX_PLUS_1);
+        assertCount(0, "table_integer", "a", ">", INT_MAX_PLUS_1);
+        assertCount(0, "table_integer", "a", ">=", INT_MAX_PLUS_1);
     }
 
-    @Ignore("fails, DB-1362")
     @Test
     public void integer_min_minusOne() throws Exception {
         String INT_MIN_MINUS_1 = new BigInteger(String.valueOf(Integer.MIN_VALUE)).subtract(BigInteger.ONE).toString();
 
-        assertCount(0, format("select * from table_integer where a = %s", INT_MIN_MINUS_1));
-        assertCount(5, format("select * from table_integer where a != %s", INT_MIN_MINUS_1));
-        assertCount(0, format("select * from table_integer where a < %s", INT_MIN_MINUS_1));
-        assertCount(0, format("select * from table_integer where a <= %s", INT_MIN_MINUS_1));
-        assertCount(5, format("select * from table_integer where a > %s", INT_MIN_MINUS_1));
-        assertCount(5, format("select * from table_integer where a >= %s", INT_MIN_MINUS_1));
+        assertCount(0, "table_integer", "a", "=", INT_MIN_MINUS_1);
+        assertCount(5, "table_integer", "a", "!=", INT_MIN_MINUS_1);
+        assertCount(0, "table_integer", "a", "<", INT_MIN_MINUS_1);
+        assertCount(0, "table_integer", "a", "<=", INT_MIN_MINUS_1);
+        assertCount(5, "table_integer", "a", ">", INT_MIN_MINUS_1);
+        assertCount(5, "table_integer", "a", ">=", INT_MIN_MINUS_1);
     }
 
     // - - - - - - - - - - - - - - - - - - - - - -
@@ -143,50 +138,61 @@ public class NumericConstantsIT {
 
     @Test
     public void bigint_min() throws Exception {
-        assertCount(1, format("select * from table_bigint where a = %s", Long.MIN_VALUE));
-        assertCount(4, format("select * from table_bigint where a != %s", Long.MIN_VALUE));
-        assertCount(0, format("select * from table_bigint where a < %s", Long.MIN_VALUE));
-        assertCount(1, format("select * from table_bigint where a <= %s", Long.MIN_VALUE));
-        assertCount(4, format("select * from table_bigint where a > %s", Long.MIN_VALUE));
-        assertCount(5, format("select * from table_bigint where a >= %s", Long.MIN_VALUE));
+        assertCount(1, "table_bigint", "a", "=", Long.MIN_VALUE);
+        assertCount(4, "table_bigint", "a", "!=", Long.MIN_VALUE);
+        assertCount(0, "table_bigint", "a", "<", Long.MIN_VALUE);
+        assertCount(1, "table_bigint", "a", "<=", Long.MIN_VALUE);
+        assertCount(4, "table_bigint", "a", ">", Long.MIN_VALUE);
+        assertCount(5, "table_bigint", "a", ">=", Long.MIN_VALUE);
     }
 
     @Test
     public void bigint_max() throws Exception {
-        assertCount(1, format("select * from table_bigint where a = %s", Long.MAX_VALUE));
-        assertCount(4, format("select * from table_bigint where a != %s", Long.MAX_VALUE));
-        assertCount(4, format("select * from table_bigint where a < %s", Long.MAX_VALUE));
-        assertCount(5, format("select * from table_bigint where a <= %s", Long.MAX_VALUE));
-        assertCount(0, format("select * from table_bigint where a > %s", Long.MAX_VALUE));
-        assertCount(1, format("select * from table_bigint where a >= %s", Long.MAX_VALUE));
+        assertCount(1, "table_bigint", "a", "=", Long.MAX_VALUE);
+        assertCount(4, "table_bigint", "a", "!=", Long.MAX_VALUE);
+        assertCount(4, "table_bigint", "a", "<", Long.MAX_VALUE);
+        assertCount(5, "table_bigint", "a", "<=", Long.MAX_VALUE);
+        assertCount(0, "table_bigint", "a", ">", Long.MAX_VALUE);
+        assertCount(1, "table_bigint", "a", ">=", Long.MAX_VALUE);
     }
 
-    @Ignore("fails, DB-1362")
     @Test
     public void bigint_max_plusOne() throws Exception {
         String LONG_MAX_PLUS_1 = new BigInteger(String.valueOf(Long.MAX_VALUE)).add(BigInteger.ONE).toString();
 
-        assertCount(0, format("select * from table_bigint where a = %s", LONG_MAX_PLUS_1));
-        assertCount(5, format("select * from table_bigint where a != %s", LONG_MAX_PLUS_1));
-        assertCount(5, format("select * from table_bigint where a < %s", LONG_MAX_PLUS_1));
-        assertCount(5, format("select * from table_bigint where a <= %s", LONG_MAX_PLUS_1));
-        assertCount(0, format("select * from table_bigint where a > %s", LONG_MAX_PLUS_1));
-        assertCount(0, format("select * from table_bigint where a >= %s", LONG_MAX_PLUS_1));
+        assertCount(0, "table_bigint", "a", "=", LONG_MAX_PLUS_1);
+        assertCount(5, "table_bigint", "a", "!=", LONG_MAX_PLUS_1);
+        assertCount(5, "table_bigint", "a", "<", LONG_MAX_PLUS_1);
+        assertCount(5, "table_bigint", "a", "<=", LONG_MAX_PLUS_1);
+        assertCount(0, "table_bigint", "a", ">", LONG_MAX_PLUS_1);
+        assertCount(0, "table_bigint", "a", ">=", LONG_MAX_PLUS_1);
     }
 
-    @Ignore("fails, DB-1362")
     @Test
     public void bigint_min_minusOne() throws Exception {
         String LONG_MIN_MINUS_1 = new BigInteger(String.valueOf(Long.MIN_VALUE)).subtract(BigInteger.ONE).toString();
 
-        assertCount(0, format("select * from table_bigint where a = %s", LONG_MIN_MINUS_1));
-        assertCount(5, format("select * from table_bigint where a != %s", LONG_MIN_MINUS_1));
-        assertCount(0, format("select * from table_bigint where a < %s", LONG_MIN_MINUS_1));
-        assertCount(0, format("select * from table_bigint where a <= %s", LONG_MIN_MINUS_1));
-        assertCount(5, format("select * from table_bigint where a > %s", LONG_MIN_MINUS_1));
-        assertCount(5, format("select * from table_bigint where a >= %s", LONG_MIN_MINUS_1));
+        assertCount(0, "table_bigint", "a", "=", LONG_MIN_MINUS_1);
+        assertCount(5, "table_bigint", "a", "!=", LONG_MIN_MINUS_1);
+        assertCount(0, "table_bigint", "a", "<", LONG_MIN_MINUS_1);
+        assertCount(0, "table_bigint", "a", "<=", LONG_MIN_MINUS_1);
+        assertCount(5, "table_bigint", "a", ">", LONG_MIN_MINUS_1);
+        assertCount(5, "table_bigint", "a", ">=", LONG_MIN_MINUS_1);
     }
 
+    /**
+     * EXECUTES:
+     *
+     * SELECT * FROM [table] WHERE [operandOne] [operator] [operandTwo]
+     * AND
+     * SELECT * FROM [table] WHERE [operandTwo] [operator] [operandOnE]
+     */
+    private void assertCount(int expectedCount, String table, String operandOne, String operator, Object operandTwo) throws Exception {
+        String SQL_TEMPLATE = "select * from %s where %s %s %s";
+        assertCount(expectedCount, format(SQL_TEMPLATE, table, operandOne, operator, operandTwo));
+        String operatorTwo = newOperator(operator);
+        assertCount(expectedCount, format(SQL_TEMPLATE, table, operandTwo, operatorTwo, operandOne));
+    }
 
     private void assertCount(int expectedCount, String sql) throws Exception {
         ResultSet rs = methodWatcher.executeQuery(sql);
@@ -199,6 +205,22 @@ public class NumericConstantsIT {
             count++;
         }
         return count;
+    }
+
+    private static String newOperator(String operator) {
+        if ("<".equals(operator.trim())) {
+            return ">";
+        }
+        if (">".equals(operator.trim())) {
+            return "<";
+        }
+        if ("<=".equals(operator.trim())) {
+            return ">=";
+        }
+        if (">=".equals(operator.trim())) {
+            return "<=";
+        }
+        return operator;
     }
 
 }
