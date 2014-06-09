@@ -38,13 +38,18 @@ public final class WindowDefinitionNode extends WindowNode
      * The partition by list if the window definition contains a <window partition
      * clause>, else null.
      */
-    private GroupByList groupByList;
+    private Partition partition;
 
     /**
      * The order by list if the window definition contains a <window order
      * clause>, else null.
      */
     private OrderByList orderByList;
+
+    /**
+     * The window frame.
+     */
+    private WindowFrameDefinition frameExtent;
 
     /**
      * Initializer.
@@ -56,13 +61,15 @@ public final class WindowDefinitionNode extends WindowNode
      */
     public void init(Object arg1,
                      Object arg2,
-                     Object arg3)
+                     Object arg3,
+                     Object arg4)
         throws StandardException
     {
         String name = (String)arg1;
 
-        groupByList = (GroupByList)arg2;
+        partition = (Partition)arg2;
         orderByList = (OrderByList)arg3;
+        frameExtent = (WindowFrameDefinition)arg4;
 
         if (name != null) {
             super.init(arg1);
@@ -71,6 +78,12 @@ public final class WindowDefinitionNode extends WindowNode
             super.init("IN-LINE");
             inlined = true;
         }
+
+        // TODO: Remove this exception once window functions fully implemented
+//        if (orderByList != null || partition != null) {
+//            throw StandardException.newException(SQLState.NOT_IMPLEMENTED,
+//                                                 "WINDOW/ORDER BY coming soon.");
+//        }
     }
 
 
@@ -99,14 +112,19 @@ public final class WindowDefinitionNode extends WindowNode
         {
             super.printSubNodes(depth);
 
-            if (groupByList != null) {
-                printLabel(depth, "groupByList: "  + depth);
-                groupByList.treePrint(depth + 1);
+            if (partition != null) {
+                printLabel(depth, "partition: "  + depth);
+                partition.treePrint(depth + 1);
             }
 
             if (orderByList != null) {
                 printLabel(depth, "orderByList: "  + depth);
                 orderByList.treePrint(depth + 1);
+            }
+
+            if (orderByList != null) {
+                printLabel(depth, "windowDefinition: "  + depth);
+                frameExtent.treePrint(depth + 1);
             }
         }
     }
@@ -149,7 +167,13 @@ public final class WindowDefinitionNode extends WindowNode
         return false;
     }
 
+    public Partition getPartition() {
+        return partition;
+    }
 
+    public WindowFrameDefinition getFrameExtent() {
+        return frameExtent;
+    }
 
     /**
      * @return the order by list of this window definition if any, else null.

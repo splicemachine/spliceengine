@@ -2404,6 +2404,7 @@ TOKEN [IGNORE_CASE] :
 |	<FETCH: "fetch">
 |	<FIRST: "first">
 |	<FLOAT: "float">
+|   <FOLLOWING: "following">
 |	<FOR: "for">
 |	<FOREIGN: "foreign">
 |	<FOUND: "found">
@@ -2469,6 +2470,7 @@ TOKEN [IGNORE_CASE] :
 |	<PARTIAL: "partial">
 |	<PARTITION: "partition">
 |	<PREPARE: "prepare">
+|   <PRECEDING: "preceding">
 |	<PRESERVE: "preserve">
 |	<PRIMARY: "primary">
 |	<PRIOR: "prior">
@@ -2484,6 +2486,7 @@ TOKEN [IGNORE_CASE] :
 |	<REVOKE: "revoke">
 |	<RIGHT: "right">
 |	<ROLLBACK: "rollback">
+|   <RANGE: "range">
 |	<ROWS: "rows">
 |	<SCHEMA: "schema">
 |	<SCROLL: "scroll">
@@ -2514,6 +2517,7 @@ TOKEN [IGNORE_CASE] :
 |	<TRIM: "trim">
 |	<TRUE: "true">
 |	<TS: "ts">
+|   <UNBOUNDED: "unbounded">
 |	<UNION: "union">
 |	<UNIQUE: "unique">
 |	<UNKNOWN: "unknown">
@@ -9996,24 +10000,27 @@ QueryTreeNode
 overClause() throws StandardException :
 {
 	String windowRef;
-	GroupByList partitionCols = null;
+	Partition partitionCols = null;
 	OrderByList orderCols = null;
-//	FrameExpression frame = null;
+	WindowFrameDefinition frameDefn = null;
 }
 {
   LOOKAHEAD({ getToken(2).kind == LEFT_PAREN ||
 			  getToken(2).kind == IDENTIFIER })
 	<OVER>
-  ( <LEFT_PAREN> [ partitionCols = partitionByClause() ] [ orderCols = orderByClause() ] <RIGHT_PAREN>
+  ( // Define window - can be none, any or all of "partition by", "order by", "frame"
+    <LEFT_PAREN> [ partitionCols = partitionByClause() ] [ orderCols = orderByClause() ] [ frameDefn = frameDefinitionClause() ] <RIGHT_PAREN>
 	{
 		return (QueryTreeNode) nodeFactory.getNode(
 			C_NodeTypes.WINDOW_DEFINITION_NODE,
 			null,
 			partitionCols,
 			orderCols,
+			frameDefn,
 			getContextManager());
 	}
  |
+   // Reference to a previously defined window
    windowRef = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
    {
 	   return (QueryTreeNode) nodeFactory.getNode(
@@ -10024,23 +10031,81 @@ overClause() throws StandardException :
  )
 
 }
-/*
-// TODO: impl frame clause
-   void FrameClause():
-   {}
+
+WindowFrameDefinition
+frameDefinitionClause():
+{
+	WindowFrameDefinition frameDefn = null;
+	WindowFrameDefinition.Window window = null;
+	WindowFrameDefinition.FrameType startFrame = null;
+	WindowFrameDefinition.FrameType endFrame = null;
+}
+{
+   ( window = frameClause() startFrame = frameStartEnd() |
+   <BETWEEN> startFrame = frameStartEnd() <AND> endFrame = frameStartEnd() )
    {
-       ("ROWS" | "RANGE")
-       ( "CURRENT" "ROW"
-       | SQLSimpleExpression() ID("PRECEDING") // perhaps UNBOUNDED PRECEDING
-       | "BETWEEN" ( "CURRENT" "ROW"
-                   | SQLSimpleExpression() ID("PRECEDING|FOLLOWING") // perhaps UNBOUNDED FOLLOWING
-                   )
-             "AND" ( "CURRENT" "ROW"
-                   | SQLSimpleExpression() ID("PRECEDING|FOLLOWING") // perhaps UNBOUNDED PRECEDING
-                   )
-       )
+       if (startFrame != null) {
+           frameDefn = new WindowFrameDefinition(window, startFrame, endFrame);
+       }
+       return frameDefn;
    }
-*/
+}
+
+WindowFrameDefinition.Window
+frameClause():
+{
+    WindowFrameDefinition.Window window = null;
+}
+{
+    ( <ROWS>
+      { window = WindowFrameDefinition.Window.ROWS; } |
+      <RANGE>
+      { window = WindowFrameDefinition.Window.RANGE; } )
+      {
+          return window;
+      }
+}
+
+WindowFrameDefinition.FrameType
+frameStartEnd():
+{
+    WindowFrameDefinition.FrameType frame = null;
+    int value = -1;
+}
+{
+  ( <CURRENT> <ROW>
+     { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.CURRENT_ROW, value); } |
+  value = nonNegativeInt()
+  (
+      <PRECEDING>
+        { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.PRECEDING, value); }  |
+      <FOLLOWING>
+        { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.FOLLOWING, value); }
+  )
+  <UNBOUNDED>
+  (
+      <PRECEDING>
+        { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.UNBOUNDED_PRECEDING, value); } |
+      <FOLLOWING>
+        { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.UNBOUNDED_FOLLOWING, value); }
+  )  )
+  {
+     return frame;
+  }
+}
+
+int
+nonNegativeInt():
+{
+    Token t;
+}
+{   // non-negative whole numbers: 0 or (1-9)*
+    t = < NON_NEGATIVE_INTEGER: "0" | ["1"-"9"] (<DIGIT>)* >
+    {
+        return Integer.parseInt(t.image);
+    }
+}
+
 ValueNode
 aggregateExpression(String aggName, Class aggClass) throws StandardException :
 {
@@ -10237,26 +10302,17 @@ whereClause(Token beginToken) throws StandardException :
 	}
 }
 
-GroupByList
+Partition
 partitionByClause() throws StandardException :
 {
 	GroupByList groupingCols;
 }
 {
-// TODO: this is a copy of groupByClause() below differing only by token.
 	<PARTITION> <BY>
         (
-	LOOKAHEAD ( { getToken(1).kind == ROLLUP &&
-			getToken(2).kind == LEFT_PAREN } )
-        <ROLLUP> <LEFT_PAREN> groupingCols = groupingColumnReferenceList() <RIGHT_PAREN>
-	{
-		groupingCols.setRollup();
-		return groupingCols;
-	}
-|
 	groupingCols = groupingColumnReferenceList()
 	{
-		return groupingCols;
+		return new Partition(groupingCols);
 	}
         )
 }
@@ -14833,6 +14889,7 @@ reservedKeyword() :
 |	tok = <FETCH>
 |	tok = <FIRST>
 |	tok = <FLOAT>
+|   tok = <FOLLOWING>
 |	tok = <FOR>
 |	tok = <FOREIGN>
 |	tok = <FOUND>
@@ -14904,6 +14961,7 @@ reservedKeyword() :
 |	tok = <PARTIAL>
 |	tok = <PARTITION>
 |	tok = <PREPARE>
+|   tok = <PRECEDING>
 |	tok = <PRESERVE>
 |	tok = <PRIMARY>
 |	tok = <PRIOR>
@@ -14919,6 +14977,7 @@ reservedKeyword() :
 |	tok = <REVOKE>
 |	tok = <RIGHT>
 |	tok = <ROLLBACK>
+|   tok = <RANGE>
 |	tok = <ROWS>
 |	tok = <SCHEMA>
 |	tok = <SCROLL>
@@ -14946,6 +15005,7 @@ reservedKeyword() :
 |	tok = <TRANSLATE>
 |	tok = <TRANSLATION>
 |	tok = <TRUE>
+|   tok = <UNBOUNDED>
 |	tok = <UNION>
 |	tok = <UNIQUE>
 |	tok = <UNKNOWN>
