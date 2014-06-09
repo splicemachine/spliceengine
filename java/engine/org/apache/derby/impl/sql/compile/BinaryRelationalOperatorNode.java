@@ -133,6 +133,11 @@ public class BinaryRelationalOperatorNode
 		btnVis = null;
 	}
 
+    public void reInitWithNodeType(int nodeType) {
+        setNodeType(nodeType);
+        init(leftOperand, rightOperand);
+    }
+
 	/**
 	 * Same as init() above except takes a third argument that is
 	 * an InListOperatorNode.  This version is used during IN-list
@@ -325,10 +330,6 @@ public class BinaryRelationalOperatorNode
 					** We've found the correct column -
 					** return the other side
 					*/
-					//we like the right operand, but if it's a numeric type, gotta mess with it
-                    if (rightOperand instanceof NumericConstantNode) {
-                        NodeDataValueUtil.coerceDataTypeIfNecessary((NumericConstantNode) rightOperand, leftOperand.getTypeServices());
-                    }
                     return rightOperand;
 				}
 			}
@@ -353,9 +354,6 @@ public class BinaryRelationalOperatorNode
 					** We've found the correct column -
 					** return the other side
 					*/
-                    if (leftOperand instanceof NumericConstantNode) {
-                        NodeDataValueUtil.coerceDataTypeIfNecessary((NumericConstantNode) leftOperand, rightOperand.getTypeServices());
-                    }
                     return leftOperand;
 				}
 			}
@@ -538,6 +536,9 @@ public class BinaryRelationalOperatorNode
 	/** @see RelationalOperator#usefulStartKey */
 	public boolean usefulStartKey(Optimizable optTable)
 	{
+
+        NodeDataValueUtil.coerceDataTypeIfNecessary(this);
+
 		/*
 		** Determine whether this operator is a useful start operator
 		** with knowledge of whether the key column is on the left or right.
