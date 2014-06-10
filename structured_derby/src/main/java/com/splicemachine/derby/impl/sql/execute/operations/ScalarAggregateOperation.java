@@ -146,19 +146,19 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             if (scanAggregator == null) {
                 PairDecoder decoder = OperationUtils.getPairDecoder(this, spliceRuntimeContext);
                 ScalarAggregateScan scan = new ScalarAggregateScan(decoder, spliceRuntimeContext, transactionID, region, reduceScan);
-                scanAggregator = new ScalarAggregator(scan,
-                        aggregates, true, false, false);
+                scanAggregator = new ScalarAggregator(scan, aggregates, true, false, false);
                 timer = spliceRuntimeContext.newTimer();
             }
 
         /*
          * To avoid a NotServingRegionException, we make sure that we start the operation once,
-          * then use nextRaw() internally to the scan. This way, we read everything within our
-          * region even if the region closes during read.
+         * then use nextRaw() internally to the scan. This way, we read everything within our
+         * region even if the region closes during read.
          */
             timer.startTiming();
-            if (region != null)
+            if (region != null) {
                 region.startRegionOperation();
+            }
             try {
                 ExecRow aggregate = scanAggregator.aggregate(spliceRuntimeContext);
                 if (aggregate != null) {
@@ -169,8 +169,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
                     return finish;
                 }
             } finally {
-                if (region != null)
+                if (region != null) {
                     region.closeRegionOperation();
+                }
             }
             timer.stopTiming();
             stopExecutionTime = System.currentTimeMillis();
@@ -238,11 +239,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 						row = this.getActivation().getExecutionFactory().getIndexableRow(rowAllocator.invoke());
 				}
 				setCurrentRow(row);
-				boolean eliminatedNulls = aggregator.finish(row);
-
-//				if (eliminatedNulls)
-//						addWarning(SQLWarningFactory.newSQLWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION));
-
+				aggregator.finish(row);
 				return row;
 		}
 
