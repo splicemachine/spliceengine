@@ -7,7 +7,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregateRowProvider;
 import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregateScan;
 import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregator;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
@@ -37,15 +36,17 @@ import java.io.ObjectOutput;
  * Operation for performing Scalar Aggregations (sum, avg, max/min, etc.). 
  *
  * @author Scott Fines
- *
  */
 public class ScalarAggregateOperation extends GenericAggregateOperation {
-		public static long serialVersionUID = 1l;
+
+        public static long serialVersionUID = 1l;
 		private static Logger LOG = Logger.getLogger(ScalarAggregateOperation.class);
-		protected boolean isInSortedOrder;
+
+        protected boolean isInSortedOrder;
 		protected boolean singleInputRow;
 		protected boolean isOpen=false;
-		private ScalarAggregator scanAggregator;
+        boolean returnDefault = true;
+        private ScalarAggregator scanAggregator;
 		private ScalarAggregator sinkAggregator;
 
 		public ScalarAggregateOperation () {
@@ -103,8 +104,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 				}
 				SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
 				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
-				RowProvider delegate = new ClientScanProvider("scalarAggregateReduce", tempTableBytes,reduceScan,rowDecoder,spliceRuntimeContext);
-				return new ScalarAggregateRowProvider(rowDecoder.getTemplate(),aggregates,delegate,returnDefaultValue);
+				return new ClientScanProvider("scalarAggregateReduce", tempTableBytes,reduceScan,rowDecoder,spliceRuntimeContext);
 		}
 
 		@Override
@@ -142,39 +142,45 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		}
 
 		@Override
-		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				if(scanAggregator==null){
-						PairDecoder decoder = OperationUtils.getPairDecoder(this,spliceRuntimeContext);
-						ScalarAggregateScan scan = new ScalarAggregateScan(decoder,spliceRuntimeContext,transactionID,region,reduceScan);
-						scanAggregator = new ScalarAggregator(scan,
-										aggregates,true,false,false);
-						timer = spliceRuntimeContext.newTimer();
-				}
+        public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+            if (scanAggregator == null) {
+                PairDecoder decoder = OperationUtils.getPairDecoder(this, spliceRuntimeContext);
+                ScalarAggregateScan scan = new ScalarAggregateScan(decoder, spliceRuntimeContext, transactionID, region, reduceScan);
+                scanAggregator = new ScalarAggregator(scan, aggregates, true, false, false);
+                timer = spliceRuntimeContext.newTimer();
+            }
 
         /*
          * To avoid a NotServingRegionException, we make sure that we start the operation once,
-          * then use nextRaw() internally to the scan. This way, we read everything within our
-          * region even if the region closes during read.
+         * then use nextRaw() internally to the scan. This way, we read everything within our
+         * region even if the region closes during read.
          */
-				timer.startTiming();
-				if(region!=null)
-						region.startRegionOperation();
-				try{
-						ExecRow aggregate = scanAggregator.aggregate(spliceRuntimeContext);
-						if(aggregate!=null){
-								ExecRow finish = finish(aggregate, scanAggregator);
-								timer.tick(1);
-								stopExecutionTime = System.currentTimeMillis();
-								return finish;
-						}
-				}finally{
-						if(region!=null)
-								region.closeRegionOperation();
-				}
-				timer.stopTiming();
-				stopExecutionTime = System.currentTimeMillis();
-				return null;
-		}
+            timer.startTiming();
+            if (region != null) {
+                region.startRegionOperation();
+            }
+            try {
+                ExecRow aggregate = scanAggregator.aggregate(spliceRuntimeContext);
+                if (aggregate != null) {
+                    ExecRow finish = finish(aggregate, scanAggregator);
+                    timer.tick(1);
+                    stopExecutionTime = System.currentTimeMillis();
+                    returnDefault = false;
+                    return finish;
+                }
+            } finally {
+                if (region != null) {
+                    region.closeRegionOperation();
+                }
+            }
+            timer.stopTiming();
+            stopExecutionTime = System.currentTimeMillis();
+            if (returnDefault) {
+                returnDefault = false;
+                return getExecRowDefinition();
+            }
+            return null;
+        }
 
 		@Override
 		public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
@@ -233,11 +239,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 						row = this.getActivation().getExecutionFactory().getIndexableRow(rowAllocator.invoke());
 				}
 				setCurrentRow(row);
-				boolean eliminatedNulls = aggregator.finish(row);
-
-//				if (eliminatedNulls)
-//						addWarning(SQLWarningFactory.newSQLWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION));
-
+				aggregator.finish(row);
 				return row;
 		}
 
