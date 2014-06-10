@@ -28,7 +28,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
-@Ignore("Tests take FOREVER to run, so don't unignore them unless you REALLY want to")
+//@Ignore("Tests take FOREVER to run, so don't unignore them unless you REALLY want to")
 public class SplittingTempTableIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = SplittingTempTableIT.class.getSimpleName().toUpperCase();
@@ -38,8 +38,9 @@ public class SplittingTempTableIT extends SpliceUnitTest {
         HBaseAdmin admin = new HBaseAdmin(new Configuration());
         HTableDescriptor htd = admin.getTableDescriptor(SpliceConstants.TEMP_TABLE_BYTES);
         // This parameters cause the Temp regions to split more often
-        htd.setMaxFileSize(10 * 1024 * 1024); // 10 MB
-        htd.setMemStoreFlushSize(10 * 1024 * 1024); // 10 MB
+				htd.setMemStoreFlushSize(1 * 1024 * 1024); // 10 MB
+        htd.setMaxFileSize(1 * 1024 * 1024); // 10 MB
+//				htd.setMaxFileSize(10 * 1024 * 1024*1024l); // 10 GB
         admin.disableTable(SpliceConstants.TEMP_TABLE_BYTES);
         admin.modifyTable(SpliceConstants.TEMP_TABLE_BYTES, htd);
         admin.enableTable(SpliceConstants.TEMP_TABLE_BYTES);
@@ -448,7 +449,7 @@ public class SplittingTempTableIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("Ignored because it takes forever and ever to run, and generates some 300 regions")
+//    @Ignore("Ignored because it takes forever and ever to run, and generates some 300 regions")
     public void testRepeatedThreeJoinMSJ() throws Exception {
         HBaseAdmin admin = new HBaseAdmin(new Configuration());
         for(int i=0;i<100;i++){
@@ -485,7 +486,7 @@ public class SplittingTempTableIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("Ignored because it takes forever and ever to run, and generates lots of regions")
+//    @Ignore("Ignored because it takes forever and ever to run, and generates lots of regions")
     public void testRepeatedTwoJoinMSJ() throws Exception {
         HBaseAdmin admin = new HBaseAdmin(new Configuration());
         for(int i=0;i<100;i++){
@@ -523,7 +524,7 @@ public class SplittingTempTableIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("Takes forever to run")
+//    @Ignore("Takes forever to run")
     public void testRepeatedOneJoinMSJ() throws Exception {
         HBaseAdmin admin = new HBaseAdmin(new Configuration());
         for(int i=0;i<100;i++){
