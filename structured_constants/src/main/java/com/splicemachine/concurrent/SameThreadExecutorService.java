@@ -27,12 +27,7 @@ public class SameThreadExecutorService implements ExecutorService{
 
 		@Override
 		public <T> Future<T> submit(Callable<T> task) {
-				try {
-						T call = task.call();
-						return value(call);
-				} catch (Exception e) {
-					return error(e);
-				}
+				return new ExecutingFuture<T>(task);
 		}
 
 		private <T> Future<T> error(Exception e) {
@@ -86,6 +81,27 @@ public class SameThreadExecutorService implements ExecutorService{
 		@Override
 		public void execute(Runnable command) {
 				command.run();
+		}
+
+		private static class ExecutingFuture<T> implements Future<T>{
+				private final Callable<T> callable;
+
+				private ExecutingFuture(Callable<T> callable) { this.callable = callable; }
+
+				@Override public boolean cancel(boolean mayInterruptIfRunning) { return false; }
+				@Override public boolean isCancelled() { return false; }
+				@Override public boolean isDone() { return true; }
+				@Override public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException { return get(); }
+
+				@Override
+				public T get() throws InterruptedException, ExecutionException {
+						try {
+								return callable.call();
+						} catch (Exception e) {
+								throw new ExecutionException(e);
+						}
+				}
+
 		}
     private static class CompletedFuture <T> implements Future<T> {
         private final T element;

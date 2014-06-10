@@ -113,6 +113,9 @@ public class OperationSink {
             writeBuffer.close();
 						writeTimer.stopTiming();
 
+						if(LOG.isTraceEnabled())
+								LOG.trace("Wrote "+rowsRead+" rows");
+
 						//stop timing events. We do this inside of the try block because we don't care
 						//if the task fails for some reason
 						totalTimer.stopTiming();

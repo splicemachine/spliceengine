@@ -194,50 +194,29 @@ class JobControl implements JobFuture {
         return maxCost;
     }
 
-		private static final ExecutorService cleanupService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).setNameFormat("job-cleanup-service").setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-				@Override
-				public void uncaughtException(Thread t, Throwable e) {
-						LOG.error("Detected error during job cleanup",e);
-				}
-		}).build());
-		private static final BlockingQueue<List<Op>> deleteQueue = new LinkedBlockingQueue<List<Op>>();
-		static{
-				cleanupService.submit(new Callable<Void>() {
-						@Override
-						public Void call() throws Exception {
-								ZooKeeper zooKeeper = ZkUtils.getZkManager().getRecoverableZooKeeper().getZooKeeper();
-								while(!Thread.currentThread().isInterrupted()){
-										List<Op> take = deleteQueue.take();
-										zooKeeper.multi(take);
-								}
-								return null;
-						}
-				});
-		}
     @Override
     public void cleanup() throws ExecutionException {
         SpliceLogUtils.trace(LOG, "cleaning up job %s", job.getJobId());
         try {
-						final List<Op> deletes = Lists.newArrayListWithExpectedSize(tasksToWatch.size() + 1);
-						deletes.add(Op.delete(jobPath,-1));
-//            zooKeeper.delete(jobPath, -1, new AsyncCallback.VoidCallback() {
-//                @Override
-//                public void processResult(int i, String s, Object o) {
-//                    LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
-//                }
-//            }, this);
+            ZooKeeper zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
+            zooKeeper.delete(jobPath, -1, new AsyncCallback.VoidCallback() {
+                @Override
+                public void processResult(int i, String s, Object o) {
+										if(LOG.isTraceEnabled())
+												LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
+                }
+            }, this);
             for (RegionTaskControl task : tasksToWatch) {
-								deletes.add(Op.delete(task.getTaskNode(), -1));
-
-//                zooKeeper.delete(task.getTaskNode(), -1, new AsyncCallback.VoidCallback() {
-//                    @Override
-//                    public void processResult(int i, String s, Object o) {
-//                        LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
-//                    }
-//                }, this);
+                zooKeeper.delete(task.getTaskNode(), -1, new AsyncCallback.VoidCallback() {
+                    @Override
+                    public void processResult(int i, String s, Object o) {
+												if(LOG.isTraceEnabled())
+														LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
             }
-						deleteQueue.add(deletes);
-
+                }, this);
+            }
+        } catch (ZooKeeperConnectionException e) {
+            throw new ExecutionException(e);
 				} finally {
             try {
                 for (Closeable c : closables) {
