@@ -233,42 +233,6 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                     .catalog("KEY")
                     .varchar("VALUE", Limits.DB2_VARCHAR_MAXWIDTH).build()
             ,
-            Procedure.newBuilder().name("SYSCS_COMPRESS_TABLE").numOutputParams(0).numResultSets(0)
-                    .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                    .ownerClass(SYSTEM_PROCEDURES)
-                    .catalog("SCHEMANAME")
-                    .catalog("TABLENAME")
-                    .smallint("SEQUENTIAL").build()
-            ,
-            Procedure.newBuilder().name("SYSCS_CHECKPOINT_DATABASE").numOutputParams(0).numResultSets(0)
-                    .sqlControl(RoutineAliasInfo.CONTAINS_SQL).returnType(null).isDeterministic(false)
-                    .ownerClass(SYSTEM_PROCEDURES).build()
-            ,
-            Procedure.newBuilder().name("SYSCS_FREEZE_DATABASE").numOutputParams(0).numResultSets(0)
-                    .sqlControl(RoutineAliasInfo.CONTAINS_SQL).returnType(null).isDeterministic(false)
-                    .ownerClass(SYSTEM_PROCEDURES).build()
-            ,
-            Procedure.newBuilder().name("SYSCS_UNFREEZE_DATABASE").numOutputParams(0).numResultSets(0)
-                    .sqlControl(RoutineAliasInfo.CONTAINS_SQL).returnType(null).isDeterministic(false)
-                    .ownerClass(SYSTEM_PROCEDURES).build()
-            ,
-            Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE").numOutputParams(0).numResultSets(0)
-                    .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                    .ownerClass(SYSTEM_PROCEDURES)
-                    .varchar("BACKUPDIR", Limits.DB2_VARCHAR_MAXWIDTH).build()
-            ,
-            Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE_AND_ENABLE_LOG_ARCHIVE_MODE")
-                    .numOutputParams(0).numResultSets(0)
-                    .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                    .ownerClass(SYSTEM_PROCEDURES)
-                    .varchar("BACKUPDIR", Limits.DB2_VARCHAR_MAXWIDTH)
-                    .smallint("DELETE_ARCHIVED_LOG_FILES").build()
-            ,
-            Procedure.newBuilder().name("SYSCS_DISABLE_LOG_ARCHIVE_MODE").numOutputParams(0).numResultSets(0)
-                    .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                    .ownerClass(SYSTEM_PROCEDURES)
-                    .smallint("DELETE_ARCHIVED_LOG_FILES").build()
-            ,
             Procedure.newBuilder().name("SYSCS_SET_RUNTIMESTATISTICS").numOutputParams(0).numResultSets(0)
                     .sqlControl(RoutineAliasInfo.CONTAINS_SQL).returnType(null).isDeterministic(false)
                     .ownerClass(SYSTEM_PROCEDURES)
@@ -342,35 +306,6 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .varchar("columnDelimiter",32762)
                 .charType("characterDelimiter",1)
                 .varchar("timestampFormat",32762).build()
-            ,
-            Procedure.newBuilder().name("SYSCS_BULK_INSERT").numOutputParams(0).numResultSets(0)
-                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .catalog("schemaName")
-                .catalog("tableName")
-                .varchar("vtiName",32762)
-                .varchar("vtiArg",32762).build()
-            ,
-            Procedure.newBuilder().name("SYSCS_INPLACE_COMPRESS_TABLE").numOutputParams(0).numResultSets(0)
-                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .catalog("SCHEMANAME")
-                .catalog("TABLENAME")
-                .smallint("PURGE_ROWS")
-                .smallint("DEFRAGMENT_ROWS")
-                .smallint("TRUNCATE_END").build()
-            ,
-            Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE_NOWAIT").numOutputParams(0).numResultSets(0)
-                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .varchar("BACKUPDIR",Limits.DB2_VARCHAR_MAXWIDTH).build()
-            ,
-            Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE_AND_ENABLE_LOG_ARCHIVE_MODE_NOWAIT")
-                .numOutputParams(0).numResultSets(0)
-                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .varchar("BACKUPDIR", Limits.DB2_VARCHAR_MAXWIDTH)
-                .smallint("DELETEONLINEARCHIVEDLOGFILES").build()
             ,
             Procedure.newBuilder().name("SYSCS_UPDATE_STATISTICS")
                 .numOutputParams(0).numResultSets(0)
