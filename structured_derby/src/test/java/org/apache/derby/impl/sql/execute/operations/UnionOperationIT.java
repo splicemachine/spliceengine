@@ -35,6 +35,21 @@ public class UnionOperationIT {
     @Rule
     public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
+    /* bug DB-1304 */
+    @Test
+    public void unionOfCounts() throws Exception {
+        Integer count = methodWatcher.query("select count(*) from empty_table1 UNION select count(*) from empty_table2");
+        assertEquals(0, count.intValue());
+    }
+
+    /* bug DB-1304 */
+    @Test
+    public void unionAllOfCounts() throws Exception {
+        List<Long> counts = methodWatcher.queryList("select count(*) from empty_table1 UNION ALL select count(*) from empty_table2");
+        assertEquals(2, counts.size());
+        assertEquals(0L, counts.get(0).longValue());
+        assertEquals(0L, counts.get(1).longValue());
+    }
 
     @Test
     public void testUnionAll() throws Exception {
@@ -58,7 +73,7 @@ public class UnionOperationIT {
                 ));
     }
 
-    /* This needs to use a provider interface for boths its traversals and not use isScan - JL */
+    /* This needs to use a provider interface for both of its traversals and not use isScan - JL */
     @Test
     public void testValuesUnion() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("SELECT TTABBREV, TABLE_TYPE from (VALUES ('T','TABLE'), ('S','SYSTEM TABLE'), ('V', 'VIEW'), ('A', 'SYNONYM')) T (TTABBREV,TABLE_TYPE)");
