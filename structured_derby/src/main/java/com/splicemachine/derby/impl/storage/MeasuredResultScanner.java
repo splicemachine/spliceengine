@@ -17,18 +17,20 @@ import org.apache.log4j.Logger;
  *         Date: 1/27/14
  */
 public class MeasuredResultScanner extends ReopenableScanner implements SpliceResultScanner {
-        private static Logger LOG = Logger.getLogger(MeasuredResultScanner.class);
+		private static Logger LOG = Logger.getLogger(MeasuredResultScanner.class);
 		private ResultScanner delegate;
 
 		private Timer remoteTimer;
 		private Counter remoteBytesCounter;
-        private HTableInterface htable;
-        private Scan scan;
+		private HTableInterface htable;
+		private Scan scan;
+
+		private long rowsRead = 0l;
 
 		public MeasuredResultScanner(HTableInterface htable, Scan scan, ResultScanner delegate, MetricFactory metricFactory) {
 				this.htable = htable;
-                this.scan = scan;
-                this.delegate = delegate;
+				this.scan = scan;
+				this.delegate = delegate;
 				this.remoteTimer = metricFactory.newWallTimer();
 				this.remoteBytesCounter = metricFactory.newCounter();
 		}
@@ -45,52 +47,60 @@ public class MeasuredResultScanner extends ReopenableScanner implements SpliceRe
 		@Override
 		public Result next() throws IOException {
 				remoteTimer.startTiming();
-                Result next = null;
-                try {
-                    next = delegate.next();
-                    if (next != null && next.size() > 0) {
-                        remoteTimer.tick(1);
-                        setLastRow(next.getRow());
-                        StatUtils.countBytes(remoteBytesCounter, next);
-                    } else
-                        remoteTimer.stopTiming();
-                } catch (IOException e) {
-                    if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES) {
-                        SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
-                        incrementNumRetries();
-                        delegate = reopenResultScanner(delegate, scan, htable);
-                        next = next();
-                    }
-                    else {
-                        SpliceLogUtils.logAndThrowRuntime(LOG, e);
-                    }
-                }
+				Result next = null;
+				try {
+						next = delegate.next();
+						if (next != null && next.size() > 0) {
+								rowsRead++;
+								remoteTimer.tick(1);
+								setLastRow(next.getRow());
+								StatUtils.countBytes(remoteBytesCounter, next);
+						} else{
+								remoteTimer.stopTiming();
+								if(LOG.isTraceEnabled())
+										LOG.trace("Read "+ rowsRead+" rows");
+						}
+				} catch (IOException e) {
+						if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES) {
+								if(LOG.isTraceEnabled())
+										SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
+								incrementNumRetries();
+								delegate = reopenResultScanner(delegate, scan, htable);
+								next = next();
+						} else {
+								SpliceLogUtils.logAndThrow(LOG, e);
+						}
+				}
 				return next;
 		}
 
 		@Override
 		public Result[] next(int nbRows) throws IOException {
 				remoteTimer.startTiming();
-                Result[] results = null;
-                try {
-                    results = delegate.next(nbRows);
-                    if (results != null && results.length > 0) {
-                        remoteTimer.tick(results.length);
-                        StatUtils.countBytes(remoteBytesCounter, results);
-                        setLastRow(results[results.length-1].getRow());
-                    } else
-                        remoteTimer.stopTiming();
-                } catch (IOException e) {
-                    if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES) {
-                        SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
-                        incrementNumRetries();
-                        delegate = reopenResultScanner(delegate, scan, htable);
-                        results = delegate.next(nbRows);
-                    }
-                    else {
-                        SpliceLogUtils.logAndThrowRuntime(LOG, e);
-                    }
-                }
+				Result[] results = null;
+				try {
+						results = delegate.next(nbRows);
+						if (results != null && results.length > 0) {
+								rowsRead+=results.length;
+								remoteTimer.tick(results.length);
+								StatUtils.countBytes(remoteBytesCounter, results);
+								setLastRow(results[results.length-1].getRow());
+						} else{
+								remoteTimer.stopTiming();
+								if(LOG.isTraceEnabled())
+										LOG.trace("Read "+ rowsRead+" rows");
+						}
+				} catch (IOException e) {
+						if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES) {
+								SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
+								incrementNumRetries();
+								delegate = reopenResultScanner(delegate, scan, htable);
+								results = delegate.next(nbRows);
+						}
+						else {
+								SpliceLogUtils.logAndThrow(LOG, e);
+						}
+				}
 				return results;
 		}
 
@@ -107,7 +117,7 @@ public class MeasuredResultScanner extends ReopenableScanner implements SpliceRe
 				@Override
 				public boolean hasNext() {
 						if(next==null){
-							next = next();
+								next = next();
 						}
 						return next !=null;
 				}

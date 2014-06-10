@@ -43,23 +43,14 @@ public class BulkWriteResult implements Externalizable {
     }
 
     public void addResult(int pos, WriteResult result) {
-        if(result.getCode()== WriteResult.Code.SUCCESS) return; //nothing to do
         switch (result.getCode()) {
-            case FAILED:
-            case WRITE_CONFLICT:
-            case PRIMARY_KEY_VIOLATION:
-            case UNIQUE_VIOLATION:
-            case FOREIGN_KEY_VIOLATION:
-            case CHECK_VIOLATION:
-            case NOT_SERVING_REGION:
-            case WRONG_REGION:
-                failedRows.put(pos,result);
-                break;
+						case SUCCESS:
+								return; //return nothing for success
             case NOT_RUN:
                 notRunRows.add(pos);
                 break;
             default:
-                //no-op
+								failedRows.put(pos,result);
         }
     }
 
