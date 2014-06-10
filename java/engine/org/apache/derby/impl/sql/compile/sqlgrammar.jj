@@ -10041,8 +10041,8 @@ frameDefinitionClause():
 	WindowFrameDefinition.FrameType endFrame = null;
 }
 {
-   ( window = frameClause() startFrame = frameStartEnd() |
-   <BETWEEN> startFrame = frameStartEnd() <AND> endFrame = frameStartEnd() )
+   ( window = frameClause() ( startFrame = frameStartEnd() |
+   <BETWEEN> startFrame = frameStartEnd() <AND> endFrame = frameStartEnd() ) )
    {
        if (startFrame != null) {
            frameDefn = new WindowFrameDefinition(window, startFrame, endFrame);
@@ -10076,19 +10076,20 @@ frameStartEnd():
   ( <CURRENT> <ROW>
      { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.CURRENT_ROW, value); } |
   value = nonNegativeInt()
-  (
-      <PRECEDING>
-        { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.PRECEDING, value); }  |
-      <FOLLOWING>
-        { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.FOLLOWING, value); }
-  )
+      (
+          <PRECEDING>
+            { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.PRECEDING, value); }  |
+          <FOLLOWING>
+            { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.FOLLOWING, value); }
+      )  |
   <UNBOUNDED>
-  (
-      <PRECEDING>
-        { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.UNBOUNDED_PRECEDING, value); } |
-      <FOLLOWING>
-        { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.UNBOUNDED_FOLLOWING, value); }
-  )  )
+      (
+          <PRECEDING>
+            { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.UNBOUNDED_PRECEDING, value); } |
+          <FOLLOWING>
+            { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.UNBOUNDED_FOLLOWING, value); }
+      )
+  )
   {
      return frame;
   }
