@@ -22,6 +22,7 @@
 package org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 
 /**
@@ -80,10 +81,10 @@ public final class WindowDefinitionNode extends WindowNode
         }
 
         // TODO: Remove this exception once window functions fully implemented
-//        if (orderByList != null || partition != null) {
-//            throw StandardException.newException(SQLState.NOT_IMPLEMENTED,
-//                                                 "WINDOW/ORDER BY coming soon.");
-//        }
+        if (orderByList != null || partition != null) {
+            throw StandardException.newException(SQLState.NOT_IMPLEMENTED,
+                                                 "WINDOW/ORDER BY coming soon.");
+        }
     }
 
 
