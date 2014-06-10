@@ -43,6 +43,9 @@ create table DUPS (
   vc30 varchar(30)
 );
 
+create table empty_table1 (col1 int, col2 int, col3 varchar(20));
+create table empty_table2 (col1 int, col2 int, col3 varchar(20));
+
 insert into ST_MARS values (3, 1, 'Nimoy-Leonard');
 insert into ST_MARS values (4, 1, 'Patrick');
 insert into ST_MARS values (5, 1,  NULL);
