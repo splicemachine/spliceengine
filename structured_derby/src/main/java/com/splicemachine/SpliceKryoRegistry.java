@@ -1,54 +1,25 @@
 package com.splicemachine;
 
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Properties;
+import java.util.TreeMap;
+
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.sql.execute.LazyTimestampDataValueDescriptor;
-import com.splicemachine.derby.hbase.ActivationSerializer;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.IndexRow;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
-
-import com.splicemachine.utils.kryo.KryoObjectInput;
-import com.splicemachine.utils.kryo.KryoObjectOutput;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
-
-import org.apache.derby.impl.sql.execute.*;
-
-import com.splicemachine.derby.impl.sql.execute.operations.*;
-import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.stats.TimingStats;
-import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
-import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
-import com.splicemachine.hbase.writer.BulkWrite;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.job.ErrorTransport;
-import com.splicemachine.job.TaskStatus;
-import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.kryo.ExternalizableSerializer;
-import com.splicemachine.utils.kryo.KryoPool;
-
-import java.io.Externalizable;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.util.*;
-
+import org.apache.derby.catalog.types.AggregateAliasInfo;
 import org.apache.derby.catalog.types.BaseTypeIdImpl;
 import org.apache.derby.catalog.types.DecimalTypeIdImpl;
 import org.apache.derby.catalog.types.DefaultInfoImpl;
@@ -59,7 +30,6 @@ import org.apache.derby.catalog.types.RowMultiSetImpl;
 import org.apache.derby.catalog.types.SynonymAliasInfo;
 import org.apache.derby.catalog.types.TypeDescriptorImpl;
 import org.apache.derby.catalog.types.UserDefinedTypeIdImpl;
-import org.apache.derby.catalog.types.AggregateAliasInfo;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -103,12 +73,88 @@ import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.catalog.DDColumnDependableFinder;
 import org.apache.derby.impl.sql.catalog.DD_Version;
 import org.apache.derby.impl.sql.catalog.DDdependableFinder;
+import org.apache.derby.impl.sql.execute.AggregatorInfo;
+import org.apache.derby.impl.sql.execute.AggregatorInfoList;
+import org.apache.derby.impl.sql.execute.AvgAggregator;
+import org.apache.derby.impl.sql.execute.CountAggregator;
+import org.apache.derby.impl.sql.execute.DecimalBufferedSumAggregator;
+import org.apache.derby.impl.sql.execute.DoubleBufferedSumAggregator;
+import org.apache.derby.impl.sql.execute.FKInfo;
+import org.apache.derby.impl.sql.execute.FloatBufferedSumAggregator;
+import org.apache.derby.impl.sql.execute.IndexColumnOrder;
+import org.apache.derby.impl.sql.execute.LongBufferedSumAggregator;
+import org.apache.derby.impl.sql.execute.MaxMinAggregator;
+import org.apache.derby.impl.sql.execute.SumAggregator;
+import org.apache.derby.impl.sql.execute.UserDefinedAggregator;
+import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.impl.store.access.PC_XenaVersion;
 
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.ActivationSerializer;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.LazyTimestampDataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.AnyOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.BroadcastJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.BroadcastLeftOuterJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.BulkTableScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.CachedOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DeleteOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DerbyDMLWriteInfo;
+import com.splicemachine.derby.impl.sql.execute.operations.DerbyOperationInformation;
+import com.splicemachine.derby.impl.sql.execute.operations.DerbyScanInformation;
+import com.splicemachine.derby.impl.sql.execute.operations.DistinctGroupedAggregateOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DistinctScalarAggregateOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DistinctScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.IndexRowToBaseRowOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.LastIndexKeyOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MergeLeftOuterJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MergeSortJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MergeSortLeftOuterJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeDerbyScanInformation;
+import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopLeftOuterJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.NormalizeOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.OnceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.RowCountOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.RowOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.ScalarAggregateOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.SortOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevPop;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevSamp;
+import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.UnionOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.UpdateOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.WindowOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.DerbyGroupedAggregateContext;
+import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.stats.TimingStats;
+import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
+import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.writer.BulkWrite;
+import com.splicemachine.job.ErrorTransport;
+import com.splicemachine.job.TaskStatus;
+import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.kryo.ExternalizableSerializer;
+import com.splicemachine.utils.kryo.KryoObjectInput;
+import com.splicemachine.utils.kryo.KryoObjectOutput;
+import com.splicemachine.utils.kryo.KryoPool;
 /**
  *
  * Maps serializable entities to a Kryo Serializer, so that
@@ -722,6 +768,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 						}
 				},161);
 
-
+            instance.register(WindowOperation.class,EXTERNALIZABLE_SERIALIZER,179);
 		}
 }
