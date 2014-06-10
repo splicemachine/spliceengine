@@ -1,30 +1,35 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import com.google.common.base.Strings;
-import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class WindowOperation extends SpliceBaseOperation {
-	private static Logger LOG = Logger.getLogger(WindowOperation.class);
+    private static Logger LOG = Logger.getLogger(WindowOperation.class);
+    protected String restrictionMethodName;
+
     private GeneratedMethod restriction = null;
     private GeneratedMethod row;
-
 
     /**
      * Source result set,
@@ -41,6 +46,10 @@ public class WindowOperation extends SpliceBaseOperation {
     private ExecRow allocatedRow;
     private long rownumber;
 
+    public WindowOperation() {
+        super();
+    }
+
     /**
      *  Constructor
      *
@@ -49,34 +58,63 @@ public class WindowOperation extends SpliceBaseOperation {
      *  @param  rowAllocator
      *  @param  resultSetNumber     The resultSetNumber
      *  @param  erdNumber           Int for ResultDescription
-	                                (so it can be turned back into an object)
+    (so it can be turned back into an object)
      *  @param  restriction         Restriction
      *  @param  optimizerEstimatedRowCount  The optimizer's estimated number
      *                                      of rows.
      *  @param  optimizerEstimatedCost      The optimizer's estimated cost
-     * @throws StandardException 
+     * @throws StandardException
      */
 
     public WindowOperation(Activation activation,
-        NoPutResultSet         source,
-        GeneratedMethod        rowAllocator,
-        int                    resultSetNumber,
-        int                    erdNumber,
-        GeneratedMethod        restriction,
-        double                 optimizerEstimatedRowCount,
-        double                 optimizerEstimatedCost) throws StandardException {
+                           SpliceOperation         source,
+                           GeneratedMethod        rowAllocator,
+                           int                    resultSetNumber,
+                           int                    erdNumber,
+                           GeneratedMethod        restriction,
+                           double                 optimizerEstimatedRowCount,
+                           double                 optimizerEstimatedCost) throws StandardException {
         super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
+        this.restrictionMethodName = (restriction == null) ? null : restriction.getMethodName();
         this.restriction = restriction;
-        this.source = (SpliceOperation) source;
+        this.source = source;
         this.row = rowAllocator;
         this.allocatedRow = null;
         this.rownumber = 0;
         if (erdNumber != -1) {
             this.referencedColumns = (FormatableBitSet)(activation.getPreparedStatement().getSavedObject(erdNumber));
         }
-        recordConstructorTime(); 
+        recordConstructorTime();
     }
 
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        // TODO: fix externalization
+        super.readExternal(in);
+        source = (SpliceOperation)in.readObject();
+        restrictionMethodName = readNullableString(in);
+//        row = (GeneratedMethod) in.readObject();
+        referencedColumns = (FormatableBitSet) in.readObject();
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        // TODO: fix externalization
+        super.writeExternal(out);
+        out.writeObject(source);
+        writeNullableString(restrictionMethodName, out);
+//        out.writeObject(row);
+        out.writeObject(referencedColumns);
+    }
+
+    @Override
+    public void init(SpliceOperationContext context) throws StandardException {
+        SpliceLogUtils.trace(LOG, "init called");
+        super.init(context);
+        // TODO: impl init
+//        restriction = restrictionMethodName == null ?
+//            null : new SpliceMethod<DataValueDescriptor>(restrictionMethodName, activation);
+    }
 
     /**
      * Open this ResultSet.
@@ -110,7 +148,6 @@ public class WindowOperation extends SpliceBaseOperation {
      * Restriction and projection parameters are evaluated for each row.
      *
      * @exception StandardException thrown on failure.
-     * @exception StandardException ResultSetNotOpen thrown if not yet open.
      *
      * @return the next row in the result
      */
@@ -144,7 +181,7 @@ public class WindowOperation extends SpliceBaseOperation {
                 // so the row won't be returned.
                 restrict = (restrictBoolean == null) ||
                     ((!restrictBoolean.isNull()) &&
-                    restrictBoolean.getBoolean());
+                        restrictBoolean.getBoolean());
 
                 if (!restrict) {
                     clearCurrentRow();
@@ -159,22 +196,32 @@ public class WindowOperation extends SpliceBaseOperation {
         return retval;
     }
 
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
+    }
+
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+        return source.getReduceRowProvider(top, rowDecoder,spliceRuntimeContext,returnDefaultValue);
+    }
+
     /**
      * If the result set has been opened, close the open scan, else throw.
      *
      * @exception StandardException thrown on error
      */
     public void close() throws StandardException, IOException {
-    	beginTime = getCurrentTimeMillis();
+        beginTime = getCurrentTimeMillis();
 
 //    	if (isOpen) {
-    		clearCurrentRow();
-    		source.close();
-    		super.close();
+        clearCurrentRow();
+        source.close();
+        super.close();
 
 //    	}
 
-    	closeTime += getElapsedMillis(beginTime);
+        closeTime += getElapsedMillis(beginTime);
     }
 
     /**
@@ -193,7 +240,7 @@ public class WindowOperation extends SpliceBaseOperation {
             for (int index = 0; index < columns.length; index++) {
 
                 if (referencedColumns != null &&
-                        !referencedColumns.get(index)) {
+                    !referencedColumns.get(index)) {
                     columns[index].setValue((long)this.rownumber);
                 } else {
                     destrow.setColumn(index+1, srcrow.getColumn(srcindex));
@@ -225,19 +272,19 @@ public class WindowOperation extends SpliceBaseOperation {
     }
 
 
-	@Override
-	public List<NodeType> getNodeTypes() {
-		SpliceLogUtils.trace(LOG, "getNodeTypes");
-		return Collections.singletonList(NodeType.SCAN);
-	}
-	
-	@Override
-	public List<SpliceOperation> getSubOperations() {
-		SpliceLogUtils.trace(LOG, "getSubOperations");
-		List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
-		operations.add(source);
-		return operations;
-	}
+    @Override
+    public List<NodeType> getNodeTypes() {
+        SpliceLogUtils.trace(LOG, "getNodeTypes");
+        return Collections.singletonList(NodeType.SCAN);
+    }
+
+    @Override
+    public List<SpliceOperation> getSubOperations() {
+        SpliceLogUtils.trace(LOG, "getSubOperations");
+        List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
+        operations.add(source);
+        return operations;
+    }
 
     @Override
     public int[] getRootAccessedCols(long tableNumber) throws StandardException {
@@ -250,7 +297,14 @@ public class WindowOperation extends SpliceBaseOperation {
     public boolean isReferencingTable(long tableNumber){
         return source.isReferencingTable(tableNumber);
     }
-	
+
+
+    @Override
+    public ExecRow getExecRowDefinition() throws StandardException {
+        SpliceLogUtils.trace(LOG,"getExecRowDefinition");
+        return source.getExecRowDefinition();
+    }
+
 //	@Override
 //	public long getTimeSpent(int type)
 //	{
@@ -267,9 +321,9 @@ public class WindowOperation extends SpliceBaseOperation {
         String indent = "\n"+ Strings.repeat("\t",indentLevel);
 
         return new StringBuilder("Window:")
-                .append(indent).append("resultSetNumber:").append(resultSetNumber)
-                .append(indent).append("referenceColumns").append(referencedColumns)
-                .append(indent).append("ronumber:").append(rownumber)
-                .toString();
+            .append(indent).append("resultSetNumber:").append(resultSetNumber)
+            .append(indent).append("referenceColumns").append(referencedColumns)
+            .append(indent).append("ronumber:").append(rownumber)
+            .toString();
     }
 }
