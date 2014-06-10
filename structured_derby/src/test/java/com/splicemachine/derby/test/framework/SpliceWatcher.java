@@ -129,6 +129,17 @@ public class SpliceWatcher extends TestWatcher {
 				return rs;
 		}
 
+        public <T> List<T> queryList(String sql) throws Exception {
+            List<T> resultList = Lists.newArrayList();
+            Statement s = getStatement();
+            ResultSet rs = s.executeQuery(sql);
+            resultSets.add(rs);
+            while(rs.next()) {
+                resultList.add((T)rs.getObject(1));
+            }
+            return resultList;
+        }
+
 		public int executeUpdate(String sql) throws Exception {
 				Statement s = getStatement();
 				return s.executeUpdate(sql);
