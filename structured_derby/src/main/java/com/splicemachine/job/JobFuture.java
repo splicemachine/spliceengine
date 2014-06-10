@@ -1,6 +1,7 @@
 package com.splicemachine.job;
 
 import java.io.Closeable;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
@@ -71,9 +72,41 @@ public interface JobFuture {
      */
     JobStats getJobStats();
 
+		/**
+		 * Cleans up any temporary data held by the Job during its execution. Temporary data
+		 * includes (but is not limited to):
+		 *
+		 * <ul>
+		 *     <li>Data held in Temporary space</li>
+		 *     <li>StateManagement data held in a State Machine (e.g. ZooKeeper, etc)</li>
+		 * </ul>
+		 *
+		 * As a result, one should be careful to <em>only</em> call then when the results of the
+		 * job are <em>no longer required</em>. Otherwise, it is possible that incorrect results may
+		 * occur!
+		 *
+		 * @throws ExecutionException If something goes wrong during cleanup
+		 */
     void cleanup() throws ExecutionException;
 
-    void addCleanupTask(Closeable closable);
+		/**
+		 * Cleans up any intermediate state data held by the Job, but <em>not</em> temporary data.
+		 *
+		 * This method should be called whenever the job is completed, to clean up any state which
+		 * does not need to be retained for a long period of time.
+		 *
+		 * @throws ExecutionException
+		 */
+		void intermediateCleanup() throws ExecutionException;
+
+		/**
+		 * Add an arbitrary task to be accomplished when the Job is cleaned up.
+		 *
+		 * @param closable
+		 */
+    void addCleanupTask(Callable<Void> closable);
+
+		void addIntermediateCleanupTask(Callable<Void> callable);
 
     int getNumTasks();
 

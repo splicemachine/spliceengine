@@ -44,6 +44,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -115,14 +116,14 @@ public class RowProviders {
 								baseError = Exceptions.parseException(e);
 								throw baseError;
 						} finally {
-//								if (job != null) {
-//										try {
-//												job.cleanup();
-//										} catch (ExecutionException e) {
-//												if (baseError == null)
-//														baseError = Exceptions.parseException(e.getCause());
-//										}
-//								}
+								if (job != null) {
+										try {
+												job.intermediateCleanup();
+										} catch (ExecutionException e) {
+												if (baseError == null)
+														baseError = Exceptions.parseException(e.getCause());
+										}
+								}
 								if (baseError != null) {
 										if (cancelOnError){
 												cancelAll(jobs);
@@ -166,7 +167,7 @@ public class RowProviders {
 				}
 		}
 
-		public static Pair<JobFuture,JobInfo> submitMultiScanJob(List<Scan> scans, HTableInterface table,
+		public static Pair<JobFuture,JobInfo> submitMultiScanJob(List<Scan> scans, final HTableInterface table,
 																														 SpliceObserverInstructions instructions,
 																														 SpliceRuntimeContext runtimeContext) throws StandardException {
 				instructions.setSpliceRuntimeContext(runtimeContext);
@@ -184,7 +185,14 @@ public class RowProviders {
 								stmtInfo.addRunningJob(Bytes.toLong(instructions.getTopOperation().getUniqueSequenceID()),info);
 								jobFuture.addCleanupTask(StatementInfo.completeOnClose(stmtInfo, info));
 						}
-						jobFuture.addCleanupTask(table);
+						//TODO -sf- close this earlier
+						jobFuture.addIntermediateCleanupTask(new Callable<Void>() {
+								@Override
+								public Void call() throws Exception {
+										table.close();
+										return null;
+								}
+						});
 
 						return Pair.newPair(jobFuture, info);
 

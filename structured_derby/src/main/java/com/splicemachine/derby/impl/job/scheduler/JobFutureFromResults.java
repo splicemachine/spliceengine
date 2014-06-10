@@ -1,13 +1,11 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
-import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.Status;
 
-import java.io.Closeable;
-import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
@@ -63,11 +61,21 @@ public class JobFutureFromResults implements JobFuture {
     }
 
     @Override
-    public void addCleanupTask(Closeable closable) {
+    public void addCleanupTask(Callable<Void> closable) {
         // no-op
     }
 
-    @Override
+		@Override
+		public void intermediateCleanup() throws ExecutionException {
+				//no-op
+		}
+
+		@Override
+		public void addIntermediateCleanupTask(Callable<Void> callable) {
+			//no-op
+		}
+
+		@Override
     public int getNumTasks() {
         return results.getJobStats().getNumTasks();
     }

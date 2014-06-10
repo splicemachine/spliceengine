@@ -82,7 +82,12 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
          */
 				//TODO -sf- make the magic number 17 dissappear
 				int ordinalOffset = rowKey.length - 17;
-				int ordinal = Encoding.decodeInt(rowKey, ordinalOffset);
+				int ordinal;
+				try{
+						ordinal = Encoding.decodeInt(rowKey, ordinalOffset);
+				}catch(ArrayIndexOutOfBoundsException aioobe){
+						throw aioobe;
+				}
         if(ordinal == JoinUtils.JoinSide.RIGHT.ordinal()){
             ExecRow rightRow = rightDecoder.decode(CellUtils.matchDataColumn(result.rawCells()));
             if(rightSideRow==null){

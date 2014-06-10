@@ -22,8 +22,6 @@ import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-import com.splicemachine.utils.ZkUtils;
-import net.sf.ehcache.util.NamedThreadFactory;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -33,10 +31,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.AsyncCallback;
-import org.apache.zookeeper.Op;
 import org.apache.zookeeper.ZooKeeper;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
@@ -58,7 +54,8 @@ class JobControl implements JobFuture {
     private final int maxResubmissionAttempts;
     private final JobMetrics jobMetrics;
     private final String jobPath;
-    private final LinkedList<Closeable> closables;
+    private final List<Callable<Void>> finalCleanupTasks;
+		private final List<Callable<Void>> intermediateCleanupTasks;
     private volatile boolean cancelled = false;
 
     JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
@@ -73,7 +70,8 @@ class JobControl implements JobFuture {
         this.failedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
         this.completedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
         this.cancelledTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
-        this.closables = Lists.newLinkedList();
+        this.finalCleanupTasks = Lists.newLinkedList();
+				this.intermediateCleanupTasks = Lists.newLinkedList();
         this.maxResubmissionAttempts = maxResubmissionAttempts;
     }
 
@@ -204,6 +202,7 @@ class JobControl implements JobFuture {
     @Override
     public void cleanup() throws ExecutionException {
         SpliceLogUtils.trace(LOG, "cleaning up job %s", job.getJobId());
+				intermediateCleanup(); //in case cleanups don't get called
         try {
             ZooKeeper zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
             zooKeeper.delete(jobPath, -1, new AsyncCallback.VoidCallback() {
@@ -213,26 +212,17 @@ class JobControl implements JobFuture {
 												LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
                 }
             }, this);
-            for (RegionTaskControl task : tasksToWatch) {
-                zooKeeper.delete(task.getTaskNode(), -1, new AsyncCallback.VoidCallback() {
-                    @Override
-                    public void processResult(int i, String s, Object o) {
-												if(LOG.isTraceEnabled())
-														LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
-            }
-                }, this);
-            }
         } catch (ZooKeeperConnectionException e) {
             throw new ExecutionException(e);
 				} finally {
             try {
-                for (Closeable c : closables) {
-                    c.close();
-                }
-            } catch (IOException ioe) {
-                throw new ExecutionException(ioe);
-            } finally {
-                closables.clear();
+								for(Callable<Void> c: finalCleanupTasks){
+										c.call();
+								}
+            } catch (Exception e) {
+								throw new ExecutionException(e);
+						} finally {
+                finalCleanupTasks.clear();
                 completedTasks.clear();
                 failedTasks.clear();
                 tasksToWatch.clear();
@@ -241,13 +231,48 @@ class JobControl implements JobFuture {
         }
     }
 
-    @Override
-    public void addCleanupTask(Closeable closable) {
-        // prepend, so closables are closed in reverse
-        closables.add(0, closable);
+		@Override
+		public void intermediateCleanup() throws ExecutionException {
+				ZooKeeper zooKeeper;
+				try {
+						zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
+				} catch (ZooKeeperConnectionException e) {
+						throw new ExecutionException(e);
+				}
+				for (RegionTaskControl task : tasksToWatch) {
+						zooKeeper.delete(task.getTaskNode(), -1, new AsyncCallback.VoidCallback() {
+								@Override
+								public void processResult(int i, String s, Object o) {
+										if(LOG.isTraceEnabled())
+												LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
+								}
+						}, this);
+				}
+
+				Throwable error = null;
+				for(Callable<Void> c:intermediateCleanupTasks){
+						try {
+								c.call();
+						} catch (Exception e) {
+								error = e;
+						}
+				}
+				if(error!=null)
+						throw new ExecutionException(error);
+		}
+
+		@Override
+    public void addCleanupTask(Callable<Void> closable) {
+        // prepend, so finalCleanupTasks are closed in reverse
+        finalCleanupTasks.add(0, closable);
     }
 
-    @Override public JobStats getJobStats() { return stats; }
+		@Override
+		public void addIntermediateCleanupTask(Callable<Void> callable) {
+				intermediateCleanupTasks.add(callable);
+		}
+
+		@Override public JobStats getJobStats() { return stats; }
     @Override public int getNumTasks() { return tasksToWatch.size(); }
 
     @Override
