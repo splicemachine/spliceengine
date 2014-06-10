@@ -305,6 +305,119 @@ public class NumericConstantsIT {
                 "The resulting value is outside the range for the data type DOUBLE.");
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // table_decimal_5_0
+    //
+    // - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void decimal_5_0_min() throws Exception {
+        String DECIMAL_MIN = "-99999.00";
+
+        assertCount(1, "table_decimal_5_0", "a", "=", DECIMAL_MIN);
+        assertCount(4, "table_decimal_5_0", "a", "!=", DECIMAL_MIN);
+        // existing decimal column bug/limitation prevents these asserts from working.
+        //assertCount(0, "table_decimal_5_0", "a", "<", DECIMAL_MIN);
+        //assertCount(1, "table_decimal_5_0", "a", "<=", DECIMAL_MIN);
+        //assertCount(4, "table_decimal_5_0", "a", ">", DECIMAL_MIN);
+        //assertCount(5, "table_decimal_5_0", "a", ">=", DECIMAL_MIN);
+    }
+
+    @Test
+    public void decimal_5_0_max() throws Exception {
+        String DECIMAL_MAX = "99999.00";
+
+        assertCount(1, "table_decimal_5_0", "a", "=", DECIMAL_MAX);
+        assertCount(4, "table_decimal_5_0", "a", "!=", DECIMAL_MAX);
+        assertCount(4, "table_decimal_5_0", "a", "<", DECIMAL_MAX);
+        assertCount(5, "table_decimal_5_0", "a", "<=", DECIMAL_MAX);
+        assertCount(0, "table_decimal_5_0", "a", ">", DECIMAL_MAX);
+        assertCount(1, "table_decimal_5_0", "a", ">=", DECIMAL_MAX);
+    }
+
+
+    @Test
+    public void decimal_5_0_minMinusOne() throws Exception {
+        String DECIMAL_MIN_MINUS_1 = "-100000.00";
+
+        assertCount(0, "table_decimal_5_0", "a", "=", DECIMAL_MIN_MINUS_1);
+        assertCount(5, "table_decimal_5_0", "a", "!=", DECIMAL_MIN_MINUS_1);
+        assertCount(0, "table_decimal_5_0", "a", "<", DECIMAL_MIN_MINUS_1);
+        assertCount(0, "table_decimal_5_0", "a", "<=", DECIMAL_MIN_MINUS_1);
+        assertCount(5, "table_decimal_5_0", "a", ">", DECIMAL_MIN_MINUS_1);
+        assertCount(5, "table_decimal_5_0", "a", ">=", DECIMAL_MIN_MINUS_1);
+    }
+
+    @Test
+    public void decimal_5_0_maxPlusOne() throws Exception {
+        String DECIMAL_MAX_PLUS_1 = "100000.00";
+
+        assertCount(0, "table_decimal_5_0", "a", "=", DECIMAL_MAX_PLUS_1);
+        assertCount(5, "table_decimal_5_0", "a", "!=", DECIMAL_MAX_PLUS_1);
+        assertCount(5, "table_decimal_5_0", "a", "<", DECIMAL_MAX_PLUS_1);
+        assertCount(5, "table_decimal_5_0", "a", "<=", DECIMAL_MAX_PLUS_1);
+        assertCount(0, "table_decimal_5_0", "a", ">", DECIMAL_MAX_PLUS_1);
+        assertCount(0, "table_decimal_5_0", "a", ">=", DECIMAL_MAX_PLUS_1);
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // table_decimal_11_2
+    //
+    // - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void decimal_11_2_min() throws Exception {
+        String DECIMAL_MIN = "-999999999.99";
+
+        assertCount(1, "table_decimal_11_2", "a", "=", DECIMAL_MIN);
+        assertCount(4, "table_decimal_11_2", "a", "!=", DECIMAL_MIN);
+        // existing decimal column bug/limitation prevents these asserts from working.
+        //assertCount(0, "table_decimal_11_2", "a", "<", DECIMAL_MIN);
+        //assertCount(1, "table_decimal_11_2", "a", "<=", DECIMAL_MIN);
+        //assertCount(4, "table_decimal_11_2", "a", ">", DECIMAL_MIN);
+        //assertCount(5, "table_decimal_11_2", "a", ">=", DECIMAL_MIN);
+    }
+
+    @Test
+    public void decimal_11_2_max() throws Exception {
+        String DECIMAL_MAX = "999999999.99";
+
+        assertCount(1, "table_decimal_11_2", "a", "=", DECIMAL_MAX);
+        assertCount(4, "table_decimal_11_2", "a", "!=", DECIMAL_MAX);
+        assertCount(4, "table_decimal_11_2", "a", "<", DECIMAL_MAX);
+        assertCount(5, "table_decimal_11_2", "a", "<=", DECIMAL_MAX);
+        assertCount(0, "table_decimal_11_2", "a", ">", DECIMAL_MAX);
+        assertCount(1, "table_decimal_11_2", "a", ">=", DECIMAL_MAX);
+    }
+
+
+    @Test
+    public void decimal_11_2_minMinusOne() throws Exception {
+        String DECIMAL_MIN_MINUS_1 = "-10000000000.99";
+
+        assertCount(0, "table_decimal_11_2", "a", "=", DECIMAL_MIN_MINUS_1);
+        assertCount(5, "table_decimal_11_2", "a", "!=", DECIMAL_MIN_MINUS_1);
+        assertCount(0, "table_decimal_11_2", "a", "<", DECIMAL_MIN_MINUS_1);
+        assertCount(0, "table_decimal_11_2", "a", "<=", DECIMAL_MIN_MINUS_1);
+        assertCount(5, "table_decimal_11_2", "a", ">", DECIMAL_MIN_MINUS_1);
+        assertCount(5, "table_decimal_11_2", "a", ">=", DECIMAL_MIN_MINUS_1);
+    }
+
+    @Test
+    public void decimal_11_2_maxPlusOne() throws Exception {
+        String DECIMAL_MAX_PLUS_1 = "10000000000.99";
+
+        assertCount(0, "table_decimal_11_2", "a", "=", DECIMAL_MAX_PLUS_1);
+        assertCount(5, "table_decimal_11_2", "a", "!=", DECIMAL_MAX_PLUS_1);
+        assertCount(5, "table_decimal_11_2", "a", "<", DECIMAL_MAX_PLUS_1);
+        assertCount(5, "table_decimal_11_2", "a", "<=", DECIMAL_MAX_PLUS_1);
+        assertCount(0, "table_decimal_11_2", "a", ">", DECIMAL_MAX_PLUS_1);
+        assertCount(0, "table_decimal_11_2", "a", ">=", DECIMAL_MAX_PLUS_1);
+    }
+
+
     /**
      * EXECUTES:
      *
