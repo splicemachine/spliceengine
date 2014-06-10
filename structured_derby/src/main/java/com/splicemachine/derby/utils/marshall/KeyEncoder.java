@@ -38,7 +38,7 @@ public class KeyEncoder implements Closeable {
 				int totalLength = prefixLength + hashBytes.length;
 				int postfixOffset = prefixLength+hashBytes.length;
 				int postfixLength = postfix.getPostfixLength(hashBytes);
-                if(postfixLength>0){
+				if(postfixLength>0){
 						totalLength++;
 						postfixOffset++;
 				}
@@ -48,9 +48,9 @@ public class KeyEncoder implements Closeable {
 				if(hashBytes.length>0){
 						System.arraycopy(hashBytes,0,finalRowKey,prefixLength,hashBytes.length);
 				}
-                if(postfixLength>0){
-                    finalRowKey[prefixLength + hashBytes.length] = 0x00;
-                }
+				if(postfixLength>0){
+						finalRowKey[prefixLength + hashBytes.length] = 0x00;
+				}
 				postfix.encodeInto(finalRowKey,postfixOffset,hashBytes);
 
 				return finalRowKey;

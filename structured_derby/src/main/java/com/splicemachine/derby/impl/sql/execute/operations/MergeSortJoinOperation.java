@@ -350,14 +350,14 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         KeyPostfix keyPostfix = new UniquePostfix(taskId) {
             @Override
             public int getPostfixLength(byte[] hashBytes) throws StandardException {
-                return 1 + joinSideBytes.length + super.getPostfixLength(hashBytes);
+                return joinSideBytes.length + super.getPostfixLength(hashBytes);
             }
 
             @Override
             public void encodeInto(byte[] keyBytes, int postfixPosition, byte[] hashBytes) {
-                keyBytes[postfixPosition] = 0x00;
-                System.arraycopy(joinSideBytes, 0, keyBytes, postfixPosition + 1, joinSideBytes.length);
-                super.encodeInto(keyBytes, postfixPosition + 1 + joinSideBytes.length, hashBytes);
+//                keyBytes[postfixPosition] = 0x00;
+                System.arraycopy(joinSideBytes, 0, keyBytes, postfixPosition, joinSideBytes.length);
+                super.encodeInto(keyBytes, postfixPosition + joinSideBytes.length, hashBytes);
             }
         };
 
