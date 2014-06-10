@@ -14,10 +14,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.ResultSet;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.resultSetSize;
 import static org.junit.Assert.*;
@@ -150,6 +147,27 @@ public class UnionOperationIT {
         assertEquals(Arrays.asList(0L, 0L, 0L, 0L), counts);
     }
 
+    /* bug DB-1304 */
+    @Test
+    public void unionAllOverScalarAggregate_countNonZero() throws Exception {
+        long COUNT1 = 1 + new Random().nextInt(9);
+        long COUNT2 = 1 + COUNT1 + new Random().nextInt(9);
+        insert(COUNT1, "insert into empty_table_1 values(100, 200, '')");
+        insert(COUNT2, "insert into empty_table_4 values(100, 200, '')");
+
+        List<Long> counts = methodWatcher.queryList("" +
+                "          select count(*) from empty_table_1 " +
+                "UNION ALL select count(*) from empty_table_2 " +
+                "UNION ALL select count(*) from empty_table_3 " +
+                "UNION ALL select count(*) from empty_table_4");
+        Collections.sort(counts);
+
+        assertEquals(Arrays.asList(0L, 0L, COUNT1, COUNT2), counts);
+
+        methodWatcher.executeUpdate("delete from empty_table_1");
+        methodWatcher.executeUpdate("delete from empty_table_4");
+    }
+
 
     // Bug 852
     @Test
@@ -227,5 +245,11 @@ public class UnionOperationIT {
         }
 
         assertArrayEquals("Incorrect values, there should be no rounding error present!", correct, actual, 1e-5f);
+    }
+
+    private void insert(long times, String sql) throws Exception {
+        for (long i = 0; i < times; i++) {
+            methodWatcher.executeUpdate(sql);
+        }
     }
 }
