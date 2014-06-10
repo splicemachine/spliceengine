@@ -11,6 +11,7 @@ import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -61,8 +62,12 @@ public class TempTable {
 						StoreFile.Reader reader = storeFile.getReader();
 						long maxStoreTs = reader.getMaxTimestamp();
 						if (maxStoreTs >= deadDataThreshold) {
+								if(LOG.isTraceEnabled())
+										LOG.trace("Keeping file with max timestamp "+maxStoreTs+", since maxTimestamp >= "+deadDataThreshold);
 								//keep this store file around, it has data that's still interesting to us
 								storeFileIterator.remove();
+						}else if(LOG.isTraceEnabled()){
+								LOG.trace("Removing file with timestamp "+maxStoreTs+" and "+reader.getEntries()+" rows");
 						}
 				}
 		}
@@ -72,6 +77,8 @@ public class TempTable {
 				if(LOG.isDebugEnabled()){
 						LOG.debug("Detected "+ activeOperations.length+" active operations");
 				}
+				if(LOG.isTraceEnabled())
+						LOG.trace("Active Operations: "+ Arrays.toString(activeOperations));
 				if(activeOperations.length==0){
 						//we can remove everything!
 						return System.currentTimeMillis();
@@ -97,7 +104,10 @@ public class TempTable {
 				long maxClockSkew = c.getLong("hbase.master.maxclockskew", 30000);
 				maxClockSkew*=2; //unfortunate fudge factor to deal with the reality of different system clocks
 
-				return Longs.min(activeTimestamps)-maxClockSkew;
+				long l = Longs.min(activeTimestamps) - maxClockSkew;
+				if(LOG.isTraceEnabled())
+						LOG.trace("Removing data which occurs before timestamp "+ l);
+				return l;
 		}
 
 		public byte[] getTempTableName() {

@@ -4,7 +4,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+
+import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
+import org.apache.derbyTesting.functionTests.tests.derbynet.executeUpdate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -39,8 +43,8 @@ public class SplittingTempTableIT extends SpliceUnitTest {
         HTableDescriptor htd = admin.getTableDescriptor(SpliceConstants.TEMP_TABLE_BYTES);
         // This parameters cause the Temp regions to split more often
 				htd.setMemStoreFlushSize(10 * 1024 * 1024); // 10 MB
-        htd.setMaxFileSize(10 * 1024 * 1024); // 10 MB
-//				htd.setMaxFileSize(10 * 1024 * 1024*1024l); // 10 GB
+//        htd.setMaxFileSize(10 * 1024 * 1024); // 10 MB
+				htd.setMaxFileSize(10 * 1024 * 1024*1024l); // 10 GB
         admin.disableTable(SpliceConstants.TEMP_TABLE_BYTES);
         admin.modifyTable(SpliceConstants.TEMP_TABLE_BYTES, htd);
         admin.enableTable(SpliceConstants.TEMP_TABLE_BYTES);
@@ -422,7 +426,18 @@ public class SplittingTempTableIT extends SpliceUnitTest {
         Assert.assertEquals("incorrect sum!",98304,currentSumFor1);
     }
 
-    @Test
+		@Test
+		public void testRepeatedMergeSortJoinFourJoins() throws Throwable {
+				repeatedExecute(new Callable<Void>() {
+						@Override
+						public Void call() throws Exception {
+								testMergeSortJoinFourJoins();
+								return null;
+						}
+				},1000);
+		}
+
+		@Test
     public void testMergeSortJoinThreeJoins() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
                 join(
@@ -449,16 +464,15 @@ public class SplittingTempTableIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("Ignored because it takes forever and ever to run, and generates some 300 regions")
-    public void testRepeatedThreeJoinMSJ() throws Exception {
-        HBaseAdmin admin = new HBaseAdmin(new Configuration());
-        for(int i=0;i<100;i++){
-            List<HRegionInfo> tableRegions = admin.getTableRegions(SpliceConstants.TEMP_TABLE_BYTES);
-            int numRegions = tableRegions.size();
-            testMergeSortJoinThreeJoins();
-            tableRegions = admin.getTableRegions(SpliceConstants.TEMP_TABLE_BYTES);
-            System.out.println("iteration "+ i+ " successful. Temp space went from "+ numRegions+" to "+ tableRegions.size() +" during this run");
-        }
+//    @Ignore("Ignored because it takes forever and ever to run, and generates some 300 regions")
+    public void testRepeatedThreeJoinMSJ() throws Throwable {
+				repeatedExecute(new Callable<Void>() {
+						@Override
+						public Void call() throws Exception {
+								testMergeSortJoinThreeJoins();
+								return null;
+						}
+				},1000);
     }
 
     @Test
@@ -487,15 +501,14 @@ public class SplittingTempTableIT extends SpliceUnitTest {
 
     @Test
     @Ignore("Ignored because it takes forever and ever to run, and generates lots of regions")
-    public void testRepeatedTwoJoinMSJ() throws Exception {
-        HBaseAdmin admin = new HBaseAdmin(new Configuration());
-        for(int i=0;i<100;i++){
-            List<HRegionInfo> tableRegions = admin.getTableRegions(SpliceConstants.TEMP_TABLE_BYTES);
-            int numRegions = tableRegions.size();
-            testMergeSortJoinTwoJoins();
-            tableRegions = admin.getTableRegions(SpliceConstants.TEMP_TABLE_BYTES);
-            System.out.println("iteration "+ i+ " successful. Temp space went from "+ numRegions+" to "+ tableRegions.size() +" during this run");
-        }
+    public void testRepeatedTwoJoinMSJ() throws Throwable {
+				repeatedExecute(new Callable<Void>() {
+						@Override
+						public Void call() throws Exception {
+								testMergeSortJoinTwoJoins();
+								return null;
+						}
+				},1000);
     }
 
     @Test
@@ -525,15 +538,14 @@ public class SplittingTempTableIT extends SpliceUnitTest {
 
     @Test
     @Ignore("Takes forever to run")
-    public void testRepeatedOneJoinMSJ() throws Exception {
-        HBaseAdmin admin = new HBaseAdmin(new Configuration());
-        for(int i=0;i<100;i++){
-            List<HRegionInfo> tableRegions = admin.getTableRegions(SpliceConstants.TEMP_TABLE_BYTES);
-            int numRegions = tableRegions.size();
-            testMergeSortJoinOneJoin();
-            tableRegions = admin.getTableRegions(SpliceConstants.TEMP_TABLE_BYTES);
-            System.out.println("iteration "+ i+ " successful. Temp space went from "+ numRegions+" to "+ tableRegions.size() +" during this run");
-        }
+    public void testRepeatedOneJoinMSJ() throws Throwable {
+				repeatedExecute(new Callable<Void>() {
+						@Override
+						public Void call() throws Exception {
+								testMergeSortJoinOneJoin();
+								return null;
+						}
+				},1000);
     }
 
     @Test
@@ -568,5 +580,22 @@ public class SplittingTempTableIT extends SpliceUnitTest {
         }
         return sb.toString();
     }
+
+		private void repeatedExecute(Callable<Void> callable,int iterations) throws Throwable {
+				HBaseAdmin admin = new HBaseAdmin(new Configuration());
+				for(int i=0;i<iterations;i++){
+						List<HRegionInfo> tableRegions = admin.getTableRegions(SpliceConstants.TEMP_TABLE_BYTES);
+						int numRegions = tableRegions.size();
+						try{
+								callable.call();
+								tableRegions = admin.getTableRegions(SpliceConstants.TEMP_TABLE_BYTES);
+								System.out.println("iteration " + i + " successful. Temp space went from " + numRegions + " to " + tableRegions.size() + " during this run");
+						}catch(Throwable e){
+								tableRegions = admin.getTableRegions(SpliceConstants.TEMP_TABLE_BYTES);
+								System.out.println("iteration " + i + " failed. Temp space went from " + numRegions + " to " + tableRegions.size() + " during this run");
+								throw e;
+						}
+				}
+		}
 
 }

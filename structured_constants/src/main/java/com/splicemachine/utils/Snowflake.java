@@ -234,8 +234,20 @@ public class Snowflake {
     }
 
     public static void main(String... args) throws Exception{
-				Date date = new Date(TIMESTAMP_MASK);
-				System.out.println(date);
+				long[] toDecode = new long[]{
+								-2074918693534679039l,
+								-7920591009858039807l,
+								-903982790418145279l,
+								-9091526912974639103l,
+								2320594542789664769l,
+								-6857741497818464255l,
+								-6875755896327991295l,
+								-4533884090081972223l
+				};
+
+				for(long l:toDecode){
+						System.out.println(timestampFromUUID(l));
+				}
     }
 
     @SuppressWarnings("unused")
