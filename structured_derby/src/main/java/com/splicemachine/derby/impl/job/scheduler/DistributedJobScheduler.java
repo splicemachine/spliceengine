@@ -76,13 +76,19 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
 						long[] jobs = new long[children.size()];
 						int i=0;
 						for(String child:children){
+								//remove everything before the first -
+								int firstDashIndex = child.indexOf("-");
+								String toParse = child;
+								if(firstDashIndex>=0){
+									toParse = child.substring(firstDashIndex+1);
+								}
 								try{
-										jobs[i] = Long.parseLong(child);
+										jobs[i] = Long.parseLong(toParse);
 								}catch(NumberFormatException nfe){
 										jobs[i] = -1;
-									if(LOG.isDebugEnabled()){
-										LOG.debug("job "+ child+" ignored, because it is not an operation job");
-									}
+										if(LOG.isDebugEnabled()){
+												LOG.debug("job "+ child+" ignored, because it is not an operation job");
+										}
 								}
 								i++;
 						}

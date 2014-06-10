@@ -155,8 +155,13 @@ public class BareKeyHash{
 						if(encoder==null){
 								if(keyColumns==null)
 										encoder = MultiFieldEncoder.create(currentRow.nColumns());
-								else
-										encoder = MultiFieldEncoder.create(keyColumns.length);
+								else{
+										int numFields = 0;
+										for (int keyColumn : keyColumns) {
+												if (keyColumn >= 0) numFields++;
+										}
+										encoder = MultiFieldEncoder.create(numFields);
+								}
 						}
 
 						pack(encoder,currentRow);

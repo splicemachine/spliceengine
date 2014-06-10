@@ -3,6 +3,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.PrefixFilter;
 
 /**
  * @author Scott Fines
@@ -31,7 +35,11 @@ public class MergeSortScanBoundary extends BaseHashAwareScanBoundary{
     private byte[] getKey(Result result) {
         byte[] data = result.getRow();
         if(data==null) return null;
-				int ordinalOffset = data.length-17;
+				/*
+				 * We use 18 instead of 17(annoying magic number) because we want to skip
+			   * the postfix field separator byte
+				 */
+				int ordinalOffset = data.length-18;
 				return BytesUtil.slice(data,0,ordinalOffset);
     }
 }

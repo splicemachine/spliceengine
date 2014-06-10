@@ -10,6 +10,7 @@ import java.beans.ConstructorProperties;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
@@ -188,11 +189,12 @@ public class StatementInfo {
 				return numFailed;
 		}
 
-    public static Closeable completeOnClose(final StatementInfo stInfo, final JobInfo jobInfo){
-        return new Closeable() {
+    public static Callable<Void> completeOnClose(final StatementInfo stInfo, final JobInfo jobInfo){
+        return new Callable<Void>() {
             @Override
-            public void close() throws IOException {
+            public Void call() throws IOException {
                 stInfo.completeJob(jobInfo);
+								return null;
             }
         };
     }
