@@ -24,6 +24,8 @@ import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.junit.runners.model.MultipleFailureException;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class SpliceWatcher extends TestWatcher {
 		private static final Logger LOG = Logger.getLogger(SpliceWatcher.class);
@@ -128,6 +130,30 @@ public class SpliceWatcher extends TestWatcher {
 				resultSets.add(rs);
 				return rs;
 		}
+
+        /**
+        * Return column one from all rows.
+        */
+        public <T> List<T> queryList(String sql) throws Exception {
+            List<T> resultList = Lists.newArrayList();
+            ResultSet rs = executeQuery(sql);
+            while (rs.next()) {
+                resultList.add((T) rs.getObject(1));
+            }
+            return resultList;
+        }
+
+       /**
+        * Return column one from the first row.  Asserts that one and only one row is returned.
+        */
+        public <T> T query(String sql) throws Exception {
+            T result;
+            ResultSet rs = executeQuery(sql);
+            assertTrue(rs.next());
+            result = (T) rs.getObject(1);
+            assertFalse(rs.next());
+            return result;
+        }
 
 		public int executeUpdate(String sql) throws Exception {
 				Statement s = getStatement();
