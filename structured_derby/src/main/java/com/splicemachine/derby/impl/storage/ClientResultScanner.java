@@ -38,6 +38,8 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
 		private final Timer remoteReadTimer;
 		private final Counter remoteBytesRead;
 
+		private long rowsRead = 0l;
+
     public ClientResultScanner(byte[] tableName,
 															 Scan scan,
 															 boolean bucketed,
@@ -82,6 +84,7 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
             try {
                 r = scanner.next();
                 if (r != null && r.size() > 0) {
+										rowsRead++;
                     remoteReadTimer.tick(1);
                     if (remoteBytesRead.isActive()) {
                         for (KeyValue kv : r.raw()) {
@@ -91,6 +94,8 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
                     setLastRow(r.getRow());
                 } else {
                     remoteReadTimer.tick(0);
+										if(LOG.isTraceEnabled())
+												LOG.trace("Read "+rowsRead+" rows");
                 }
             } catch (IOException e) {
                 if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES && keyDistributor==null) {

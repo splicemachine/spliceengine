@@ -115,17 +115,25 @@ public class RowProviders {
 								baseError = Exceptions.parseException(e);
 								throw baseError;
 						} finally {
-								if (job != null) {
-										try {
-												job.cleanup();
-										} catch (ExecutionException e) {
-												if (baseError == null)
-														baseError = Exceptions.parseException(e.getCause());
-										}
-								}
+//								if (job != null) {
+//										try {
+//												job.cleanup();
+//										} catch (ExecutionException e) {
+//												if (baseError == null)
+//														baseError = Exceptions.parseException(e.getCause());
+//										}
+//								}
 								if (baseError != null) {
 										if (cancelOnError){
 												cancelAll(jobs);
+										}
+										if(job!=null){
+												try {
+														job.cleanup();
+												} catch (ExecutionException e) {
+														LOG.error("Error while cleaning up job ",e);
+														//ignore because we are throwing the base error instead
+												}
 										}
 										SpliceLogUtils.logAndThrow(LOG, baseError);
 								}

@@ -5,6 +5,7 @@ import java.sql.SQLWarning;
 import java.sql.Timestamp;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.stats.IOStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -177,9 +178,16 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
 				try{
 						rowProvider.close();
+//						topOperation.close();
+						JobResults jobResults = topOperation.getJobResults();
+						if(jobResults!=null)
+								jobResults.cleanup();
 				}catch(RuntimeException r){
 						throw Exceptions.parseException(r);
 				}
+//				catch (IOException e) {
+//						throw Exceptions.parseException(e);
+//				}
 				boolean xplain = activation.getLanguageConnectionContext().getStatisticsTiming();
 				if(xplain){
 						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();

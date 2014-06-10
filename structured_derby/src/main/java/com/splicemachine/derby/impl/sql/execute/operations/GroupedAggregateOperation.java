@@ -363,6 +363,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						KeyEncoder encoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(groupingKeys,groupingKeyOrder,serializers),NoOpPostfix.INSTANCE);
 						aggregator = new ScanGroupedAggregateIterator(buffer,sourceIterator,encoder,groupingKeys,false);
 						aggregator.open();
+						LOG.info("nextRow being called on thread "+Thread.currentThread().getName());
 						timer = spliceRuntimeContext.newTimer();
 						timer.startTiming();
 				}
