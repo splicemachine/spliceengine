@@ -116,33 +116,32 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 		
 		
 		public void preCompactSelection(ObserverContext<RegionCoprocessorEnvironment> c, Store store,List<StoreFile> candidates) throws IOException {
-			if(!isTemp ||candidates.size()<=0){
-				return;
-			}
-			try {
-				SpliceDriver.driver().getTempTable().filterCompactionFiles(c.getEnvironment().getConfiguration(),candidates);
-				c.bypass();
-				c.complete();
-			} catch (ExecutionException e) {
-				throw new IOException(e.getCause());
-			}
+				filterFiles(c, candidates);
 		}
 
 		public void preCompactSelection(ObserverContext<RegionCoprocessorEnvironment> c, Store store, List<StoreFile> candidates, CompactionRequest request) throws IOException {
+				filterFiles(c, candidates);
+		}
+
+		/*******************************************************************************************************************/
+    /*private helper methods*/
+
+		private void filterFiles(ObserverContext<RegionCoprocessorEnvironment> c, List<StoreFile> candidates) throws IOException {
 				if(!isTemp ||candidates.size()<=0){
 						return;
 				}
+				if(LOG.isTraceEnabled())
+						LOG.trace(String.format("Filtering %d StoreFiles",candidates.size()));
 				try {
 						SpliceDriver.driver().getTempTable().filterCompactionFiles(c.getEnvironment().getConfiguration(),candidates);
+						if(LOG.isTraceEnabled())
+								LOG.trace(String.format("Deleting %d Store Files",candidates.size()));
 						c.bypass();
 						c.complete();
 				} catch (ExecutionException e) {
 						throw new IOException(e.getCause());
 				}
 		}
-
-		/*******************************************************************************************************************/
-    /*private helper methods*/
 
 
     private void mutate(RegionCoprocessorEnvironment rce, KVPair mutation,String txnId) throws IOException {

@@ -251,7 +251,9 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 		@Override
     public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
             byte[] start = uniqueSequenceID;
-            byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);
+            byte[] finish = new byte[start.length+1];
+						System.arraycopy(start,0,finish,0,start.length);
+						finish[finish.length-1] = 0x01;
             reduceScan = Scans.newScan(start, finish, SpliceUtils.NA_TRANSACTION_ID);
             if (failedTasks.size() > 0) {
                 reduceScan.setFilter(new SuccessFilter(failedTasks));

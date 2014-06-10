@@ -73,6 +73,8 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
 				 */
 				try {
 						List<String> children = zkManager.getRecoverableZooKeeper().getChildren(CoprocessorTaskScheduler.getJobPath(), false);
+						if(LOG.isTraceEnabled())
+								LOG.trace("activeOperations: "+ children.toString());
 						long[] jobs = new long[children.size()];
 						int i=0;
 						for(String child:children){

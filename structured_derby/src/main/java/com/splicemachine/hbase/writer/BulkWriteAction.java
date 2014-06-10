@@ -242,13 +242,13 @@ final class BulkWriteAction implements Callable<WriteStats> {
 								if(thrown)
 										throw new ExecutionException(e);
 
-								if (e instanceof RegionTooBusyException) {
-										if(LOG.isTraceEnabled())
-												SpliceLogUtils.trace(LOG, "[%d] Retrying write after receiving a RegionTooBusyException", id);
-										sleeper.sleep(WriteUtils.getWaitTime(maximumRetries - numAttempts + 1, writeConfiguration.getPause()));
-										writesToPerform.add(nextWrite);
-										continue;
-								}
+//								if (e instanceof RegionTooBusyException) {
+//										if(LOG.isTraceEnabled())
+//												SpliceLogUtils.trace(LOG, "[%d] Retrying write after receiving a RegionTooBusyException", id);
+//										sleeper.sleep(WriteUtils.getWaitTime(maximumRetries - numAttempts + 1, writeConfiguration.getPause()));
+//										writesToPerform.add(nextWrite);
+//										continue;
+//								}
 
 								Writer.WriteResponse writeResponse = writeConfiguration.globalError(e);
 								switch(writeResponse){

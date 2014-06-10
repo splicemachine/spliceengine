@@ -23,16 +23,16 @@ import java.util.List;
 public class DistributedScanner implements SpliceResultScanner {
     private final AbstractRowKeyDistributor keyDistributor;
     private final SpliceResultScanner[] scanners;
-    private final List<Result>[] nextOfScanners;
+    private final List<Result>[] scannerResultCache;
     private Result next = null;
 
     @SuppressWarnings("unchecked")
     public DistributedScanner(AbstractRowKeyDistributor keyDistributor, SpliceResultScanner[] scanners) throws IOException {
         this.keyDistributor = keyDistributor;
         this.scanners = scanners;
-        this.nextOfScanners = new List[scanners.length];
-        for (int i = 0; i < this.nextOfScanners.length; i++) {
-            this.nextOfScanners[i] = new ArrayList<Result>();
+        this.scannerResultCache = new List[scanners.length];
+        for (int i = 0; i < this.scannerResultCache.length; i++) {
+            this.scannerResultCache[i] = new ArrayList<Result>();
         }
     }
 
@@ -118,35 +118,35 @@ public class DistributedScanner implements SpliceResultScanner {
     private Result nextInternal(int nbRows) throws IOException {
         Result result = null;
         int indexOfScannerToUse = -1;
-        for (int i = 0; i < nextOfScanners.length; i++) {
-            if (nextOfScanners[i] == null) {
+        for (int i = 0; i < scannerResultCache.length; i++) {
+            if (scannerResultCache[i] == null) {
                 // result scanner is exhausted, don't advance it any more
                 continue;
             }
 
-            if (nextOfScanners[i].size() == 0) {
+            if (scannerResultCache[i].size() == 0) {
                 // advancing result scanner
                 Result[] results = scanners[i].next(nbRows);
                 if (results.length == 0) {
                     // marking result scanner as exhausted
-                    nextOfScanners[i] = null;
+                    scannerResultCache[i] = null;
                     continue;
                 }
-                nextOfScanners[i].addAll(Arrays.asList(results));
+                scannerResultCache[i].addAll(Arrays.asList(results));
             }
 
             // if result is null or next record has original key less than the
             // candidate to be returned
             if (result == null
-                    || Bytes.compareTo(keyDistributor.getOriginalKey(nextOfScanners[i].get(0).getRow()),
+                    || Bytes.compareTo(keyDistributor.getOriginalKey(scannerResultCache[i].get(0).getRow()),
                             keyDistributor.getOriginalKey(result.getRow())) < 0) {
-                result = nextOfScanners[i].get(0);
+                result = scannerResultCache[i].get(0);
                 indexOfScannerToUse = i;
             }
         }
 
         if (indexOfScannerToUse >= 0) {
-            nextOfScanners[indexOfScannerToUse].remove(0);
+            scannerResultCache[indexOfScannerToUse].remove(0);
         }
 
         return result;
