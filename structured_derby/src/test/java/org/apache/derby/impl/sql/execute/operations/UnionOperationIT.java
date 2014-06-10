@@ -35,22 +35,6 @@ public class UnionOperationIT {
     @Rule
     public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
-    /* bug DB-1304 */
-    @Test
-    public void unionOfCounts() throws Exception {
-        Long count = methodWatcher.query("select count(*) from empty_table1 UNION select count(*) from empty_table2");
-        assertEquals(0, count.intValue());
-    }
-
-    /* bug DB-1304 */
-    @Test
-    public void unionAllOfCounts() throws Exception {
-        List<Long> counts = methodWatcher.queryList("select count(*) from empty_table1 UNION ALL select count(*) from empty_table2");
-        assertEquals(2, counts.size());
-        assertEquals(0L, counts.get(0).longValue());
-        assertEquals(0L, counts.get(1).longValue());
-    }
-
     @Test
     public void testUnionAll() throws Exception {
         List<String> names = methodWatcher.queryList("select name from ST_MARS UNION ALL select name from ST_EARTH");
@@ -129,7 +113,7 @@ public class UnionOperationIT {
 
     // 792
     @Test
-    public void testUnionOverScalarAggregate() throws Exception {
+    public void unionOverScalarAggregate_max() throws Exception {
         List<Integer> maxList = methodWatcher.queryList("select max(a.i) from T1 a union select max(b.i) from T1 b");
         assertFalse(maxList.contains(null));
         assertEquals("union should return 1 rows", 1, maxList.size());
@@ -137,10 +121,35 @@ public class UnionOperationIT {
 
     // Bug 791
     @Test
-    public void testUnionAllOverScalarAggregate() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select max(a.i) from T1 a union all select max(b.i) from T1 b");
+    public void unionAllOverScalarAggregate_max() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select max(a.i) from T1 a UNION ALL select max(b.i) from T1 b");
         assertEquals("union all should return 2 rows", 2, resultSetSize(rs));
     }
+
+    /* bug DB-1304 */
+    @Test
+    public void unionOverScalarAggregate_count() throws Exception {
+        Long count2 = methodWatcher.query("select count(*) from empty_table_1 UNION select count(*) from empty_table_2");
+        Long count3 = methodWatcher.query("select count(*) from empty_table_1 UNION select count(*) from empty_table_2 UNION select count(*) from empty_table_3");
+        Long count4 = methodWatcher.query("select count(*) from empty_table_1 UNION select count(*) from empty_table_2 UNION select count(*) from empty_table_3 UNION select count(*) from empty_table_4");
+        assertEquals(0, count2.intValue());
+        assertEquals(0, count3.intValue());
+        assertEquals(0, count4.intValue());
+    }
+
+    /* bug DB-1304 */
+    @Test
+    public void unionAllOverScalarAggregate_count() throws Exception {
+        List<Long> counts = methodWatcher.queryList("select count(*) from empty_table_1 UNION ALL select count(*) from empty_table_2");
+        assertEquals(Arrays.asList(0L, 0L), counts);
+
+        counts = methodWatcher.queryList("select count(*) from empty_table_1 UNION ALL select count(*) from empty_table_2 UNION ALL select count(*) from empty_table_3");
+        assertEquals(Arrays.asList(0L, 0L, 0L), counts);
+
+        counts = methodWatcher.queryList("select count(*) from empty_table_1 UNION ALL select count(*) from empty_table_2 UNION ALL select count(*) from empty_table_3 UNION ALL select count(*) from empty_table_4");
+        assertEquals(Arrays.asList(0L, 0L, 0L, 0L), counts);
+    }
+
 
     // Bug 852
     @Test
