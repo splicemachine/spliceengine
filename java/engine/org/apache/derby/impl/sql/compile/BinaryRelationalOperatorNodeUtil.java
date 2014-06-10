@@ -22,14 +22,17 @@ class BinaryRelationalOperatorNodeUtil {
     private static final DataValueDescriptor ZERO_BIG_DECIMAL = new SQLDecimal(BigDecimal.ZERO);
 
     public static void coerceDataTypeIfNecessary(BinaryRelationalOperatorNode operatorNode) {
+        try {
+            ValueNode leftOperand = operatorNode.getLeftOperand();
+            ValueNode rightOperand = operatorNode.getRightOperand();
 
-        ValueNode leftOperand = operatorNode.getLeftOperand();
-        ValueNode rightOperand = operatorNode.getRightOperand();
-
-        if (leftOperand instanceof ColumnReference && rightOperand instanceof NumericConstantNode) {
-            coerceDataTypeIfNecessary(operatorNode, (ColumnReference) leftOperand, (NumericConstantNode) rightOperand, ColumnSide.LEFT);
-        } else if (rightOperand instanceof ColumnReference && leftOperand instanceof NumericConstantNode) {
-            coerceDataTypeIfNecessary(operatorNode, (ColumnReference) rightOperand, (NumericConstantNode) leftOperand, ColumnSide.RIGHT);
+            if (leftOperand instanceof ColumnReference && rightOperand instanceof NumericConstantNode) {
+                coerceDataTypeIfNecessary(operatorNode, (ColumnReference) leftOperand, (NumericConstantNode) rightOperand, ColumnSide.LEFT);
+            } else if (rightOperand instanceof ColumnReference && leftOperand instanceof NumericConstantNode) {
+                coerceDataTypeIfNecessary(operatorNode, (ColumnReference) rightOperand, (NumericConstantNode) leftOperand, ColumnSide.RIGHT);
+            }
+        } catch (StandardException se) {
+            throw new RuntimeException(se);
         }
     }
 
@@ -37,57 +40,50 @@ class BinaryRelationalOperatorNodeUtil {
             BinaryRelationalOperatorNode operatorNode,
             ColumnReference columnReferenceNode,
             NumericConstantNode numericConstantNode,
-            ColumnSide columnSide) {
-
-        DataTypeDescriptor newType = columnReferenceNode.getTypeServices();
-        try {
-            if (!newType.getTypeId().equals(numericConstantNode.getTypeId())) {
-                coerceDataType(operatorNode, numericConstantNode, newType, columnSide);
-            }
-        } catch (StandardException se) {
-            throw new RuntimeException(se);
-        }
-    }
-
-    private static void coerceDataType(
-            BinaryRelationalOperatorNode operatorNode,
-            NumericConstantNode numericConstantNode,
-            DataTypeDescriptor newType,
             ColumnSide columnSide) throws StandardException {
 
-        DataValueDescriptor colReferValueDescriptor = newType.getNull();
+        DataTypeDescriptor columnType = columnReferenceNode.getTypeServices();
+        TypeId columnTypeId = columnType.getTypeId();
+
+        if (columnTypeId.equals(numericConstantNode.getTypeId()) && !columnTypeId.isDecimalTypeId()) {
+            /* Types match, nothing to do */
+            return;
+        }
+
+        DataValueDescriptor colReferValueDescriptor = columnType.getNull();
         DataValueDescriptor constantValueDescriptor = numericConstantNode.getValue();
 
         /* We ALWAYS change the type of the numeric constant node */
         int typeFormatId = colReferValueDescriptor.getTypeFormatId();
         int newTargetNodeType = getCorrectNodeType(typeFormatId, numericConstantNode.getNodeType());
         numericConstantNode.setNodeType(newTargetNodeType);
-        numericConstantNode.setType(newType);
+        numericConstantNode.setType(columnType);
 
         /* We have a constant value that FITS in the column type. */
-        if (doesFit(colReferValueDescriptor, constantValueDescriptor)) {
+        if (doesFit(columnType, colReferValueDescriptor, constantValueDescriptor)) {
             colReferValueDescriptor.setValue(constantValueDescriptor);
             numericConstantNode.setValue(colReferValueDescriptor);
         }
         /* We have a constant value bigger than the column. */
         else {
-            updateOperator(operatorNode, colReferValueDescriptor, numericConstantNode, columnSide);
+            updateOperator(operatorNode, columnType, colReferValueDescriptor, numericConstantNode, columnSide);
         }
     }
 
     /**
      * Does the *VALUE* of the numeric constant fit within the *TYPE* of the column reference?
      */
-    private static boolean doesFit(DataValueDescriptor colReferValueDescriptor,
+    private static boolean doesFit(DataTypeDescriptor columnType,
+                                   DataValueDescriptor colReferValueDescriptor,
                                    DataValueDescriptor constValueDescriptor) throws StandardException {
 
         /* If the col ref type is larger, then yes */
-        if (colReferValueDescriptor.getLength() >= constValueDescriptor.getLength()) {
+        if (!columnType.getTypeId().isDecimalTypeId() && colReferValueDescriptor.getLength() >= constValueDescriptor.getLength()) {
             return true;
         }
         /* Otherwise only if the constant is <= the column's max type. AND >= the column's min type */
-        DataValueDescriptor maxValueForColumn = getMaxValueForType(colReferValueDescriptor);
-        DataValueDescriptor minValueForColumn = getMinValueForType(colReferValueDescriptor);
+        DataValueDescriptor maxValueForColumn = getMaxValueForType(columnType, colReferValueDescriptor);
+        DataValueDescriptor minValueForColumn = getMinValueForType(columnType, colReferValueDescriptor);
         return constValueDescriptor.lessOrEquals(constValueDescriptor, maxValueForColumn).getBoolean()
                 &&
                 constValueDescriptor.greaterOrEquals(constValueDescriptor, minValueForColumn).getBoolean();
@@ -122,27 +118,28 @@ class BinaryRelationalOperatorNodeUtil {
      *
      * CASE 3: expressions that always evaluate to TRUE
      *
-     *  L != column  ===> column <= Type.MAX_VALUE
+     * L != column  ===> column <= Type.MAX_VALUE
      * -L != column  ===> column <= Type.MAX_VALUE
      *
-     *  L >  column  ===>  column > Type.MAX_VALUE
-     *  L >= column  ===>  column > Type.MAX_VALUE
+     * L >  column  ===>  column > Type.MAX_VALUE
+     * L >= column  ===>  column > Type.MAX_VALUE
      *
      * -L <  column  ===>  column > Type.MAX_VALUE
      * -L <= column  ===>  column > Type.MAX_VALUE
      *
      * CASE 4: expressions that always evaluate to FALSE
      *
-     *  L =  column  ===>  column > Type.MAX_VALUE
+     * L =  column  ===>  column > Type.MAX_VALUE
      * -L =  column  ===>  column > Type.MAX_VALUE
      *
-     *  L <  column  ===> column <= Type.MAX_VALUE
-     *  L <= column  ===> column <= Type.MAX_VALUE
+     * L <  column  ===> column <= Type.MAX_VALUE
+     * L <= column  ===> column <= Type.MAX_VALUE
      *
      * -L >  column  ===> column <= Type.MAX_VALUE
      * -L >= column  ===> column <= Type.MAX_VALUE
      */
     private static void updateOperator(BinaryRelationalOperatorNode operatorNode,
+                                       DataTypeDescriptor columnType,
                                        DataValueDescriptor colReferValueDescriptor,
                                        NumericConstantNode numericConstantNode,
                                        ColumnSide columnSide) throws StandardException {
@@ -175,7 +172,7 @@ class BinaryRelationalOperatorNodeUtil {
         }
 
         operatorNode.reInitWithNodeType(newOperator);
-        numericConstantNode.setValue(getMaxValueForType(colReferValueDescriptor));
+        numericConstantNode.setValue(getMaxValueForType(columnType, colReferValueDescriptor));
     }
 
     private static final List<Integer> OP_SET_POSITIVE = Arrays.asList(
@@ -189,7 +186,8 @@ class BinaryRelationalOperatorNodeUtil {
             C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE
     );
 
-    private static DataValueDescriptor getMinValueForType(DataValueDescriptor colReferValueDescriptor) throws StandardException {
+    private static DataValueDescriptor getMinValueForType(DataTypeDescriptor columnType,
+                                                          DataValueDescriptor colReferValueDescriptor) throws StandardException {
         switch (colReferValueDescriptor.getTypeFormatId()) {
             case StoredFormatIds.SQL_TINYINT_ID:
                 return new SQLTinyint(Byte.MIN_VALUE);
@@ -204,13 +202,14 @@ class BinaryRelationalOperatorNodeUtil {
             case StoredFormatIds.SQL_DOUBLE_ID:
                 return new SQLDouble(Limits.DB2_SMALLEST_DOUBLE);
             case StoredFormatIds.SQL_DECIMAL_ID:
-                return new SQLDecimal(getMaxBigDecimal((SQLDecimal) colReferValueDescriptor).negate());
+                return new SQLDecimal(getMaxBigDecimal(columnType.getPrecision(), columnType.getScale()).negate());
             default:
                 throw new IllegalArgumentException();
         }
     }
 
-    private static DataValueDescriptor getMaxValueForType(DataValueDescriptor colReferValueDescriptor) throws StandardException {
+    private static DataValueDescriptor getMaxValueForType(DataTypeDescriptor columnType,
+                                                          DataValueDescriptor colReferValueDescriptor) throws StandardException {
         switch (colReferValueDescriptor.getTypeFormatId()) {
             case StoredFormatIds.SQL_TINYINT_ID:
                 return new SQLTinyint(Byte.MAX_VALUE);
@@ -225,16 +224,10 @@ class BinaryRelationalOperatorNodeUtil {
             case StoredFormatIds.SQL_DOUBLE_ID:
                 return new SQLDouble(Limits.DB2_LARGEST_DOUBLE);
             case StoredFormatIds.SQL_DECIMAL_ID:
-                return new SQLDecimal(getMaxBigDecimal((SQLDecimal) colReferValueDescriptor));
+                return new SQLDecimal(getMaxBigDecimal(columnType.getPrecision(), columnType.getScale()));
             default:
                 throw new IllegalArgumentException();
         }
-    }
-
-    private static BigDecimal getMaxBigDecimal(SQLDecimal colReferValueDescriptor) {
-        int precision = colReferValueDescriptor.getDecimalValuePrecision();
-        int scale = colReferValueDescriptor.getDecimalValueScale();
-        return getMaxBigDecimal(scale, precision);
     }
 
     private static BigDecimal getMaxBigDecimal(int precision, int scale) {
