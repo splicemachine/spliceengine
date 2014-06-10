@@ -38,7 +38,7 @@ public class UnionOperationIT {
     /* bug DB-1304 */
     @Test
     public void unionOfCounts() throws Exception {
-        Integer count = methodWatcher.query("select count(*) from empty_table1 UNION select count(*) from empty_table2");
+        Long count = methodWatcher.query("select count(*) from empty_table1 UNION select count(*) from empty_table2");
         assertEquals(0, count.intValue());
     }
 
