@@ -3194,7 +3194,8 @@ StatementPart(Token[] tokenHolder) throws StandardException :
 		statementNode = truncateTableStatement() |
 		statementNode = grantStatement() |
 		statementNode = revokeStatement() |
-		statementNode = execStatement()
+		statementNode = execStatement() |
+		statementNode = explainStatement()
         // statementNode = SQLTransactionStatement()
     )
     {
@@ -3365,6 +3366,21 @@ preparableSQLDataStatement() throws StandardException :
 	{
 		return dmlStatement;
 	}
+}
+
+StatementNode
+explainStatement() throws StandardException :
+{
+    StatementNode   statementNode;
+    StatementNode	explainStatement;
+}
+{
+    <EXPLAIN> statementNode = preparableSQLDataStatement()
+    {
+        return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
+                                   statementNode,
+                                   getContextManager());
+    }
 }
 
 /*

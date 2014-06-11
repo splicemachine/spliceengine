@@ -312,6 +312,8 @@ public interface C_NodeNames
 
 	static final String ROW_COUNT_NODE_NAME = "org.apache.derby.impl.sql.compile.RowCountNode";
 
+    static final String EXPLAIN_NODE_NAME = "org.apache.derby.impl.sql.compile.ExplainNode";
+
 	// The names are in alphabetic order.
 	//
     // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD

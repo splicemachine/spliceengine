@@ -2361,6 +2361,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
 
 
         if (firstToken.equalsIgnoreCase("select") || // captures <subselect> production
+                firstToken.equalsIgnoreCase("explain") ||
                 firstToken.equalsIgnoreCase("values")) // captures <values-clause> production
         {
             sqlMode_ = isQuery__;
