@@ -32,7 +32,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
-//@Ignore("Tests take FOREVER to run, so don't unignore them unless you REALLY want to")
+@Ignore("Tests take FOREVER to run, so don't unignore them unless you REALLY want to")
 public class SplittingTempTableIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = SplittingTempTableIT.class.getSimpleName().toUpperCase();

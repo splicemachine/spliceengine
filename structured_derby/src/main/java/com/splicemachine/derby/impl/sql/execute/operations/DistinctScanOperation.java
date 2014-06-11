@@ -345,7 +345,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(scanInformation.getConglomerateId())),scan,null,runtimeContext);
 
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this,runtimeContext);
-        return provider.shuffleRows(soi);
+        return provider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
     }
 
     @Override

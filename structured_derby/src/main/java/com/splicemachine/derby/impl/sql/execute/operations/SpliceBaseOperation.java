@@ -387,7 +387,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 				nextTime+= System.currentTimeMillis()-start;
 				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,spliceRuntimeContext);
-				jobResults = rowProvider.shuffleRows(soi);
+				jobResults = rowProvider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
 				return jobResults;
 		}
 
