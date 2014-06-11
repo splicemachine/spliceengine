@@ -10,6 +10,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.utils.marshall.KeyDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
@@ -18,12 +19,38 @@ import org.apache.log4j.Logger;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 public class OperationUtils {
 
 	private OperationUtils(){}
-	
-	public static void generateLeftOperationStack(SpliceOperation op,List<SpliceOperation> opAccumulator){
+
+		public static Callable<Void> cleanupSubTasks(final SpliceOperation op){
+				return new Callable<Void>(){
+
+						@Override
+						public Void call() throws Exception {
+								List<SpliceOperation> subOps = op.getSubOperations();
+								for(SpliceOperation subOp:subOps){
+										cleanupSubTask(subOp);
+								}
+								return null;
+						}
+				};
+		}
+
+		private static void cleanupSubTask(SpliceOperation op) throws StandardException {
+				JobResults jobResults = op.getJobResults();
+				if(jobResults!=null)
+						jobResults.cleanup();
+
+				List<SpliceOperation> subOperations = op.getSubOperations();
+				for(SpliceOperation subOp:subOperations){
+						cleanupSubTask(subOp);
+				}
+		}
+
+		public static void generateLeftOperationStack(SpliceOperation op,List<SpliceOperation> opAccumulator){
 		SpliceOperation leftOp = op.getLeftOperation();
 		if(leftOp !=null && !leftOp.getNodeTypes().contains(NodeType.REDUCE)){
 			//recursively generateLeftOperationStack

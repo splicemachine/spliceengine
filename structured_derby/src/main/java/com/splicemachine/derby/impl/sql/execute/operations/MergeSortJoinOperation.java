@@ -299,7 +299,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         SpliceRuntimeContext instructionContext = new SpliceRuntimeContext();
         instructionContext.setStatementInfo(runtimeContext.getStatementInfo());
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, instructionContext);
-        JobResults stats = combined.shuffleRows(soi);
+        JobResults stats = combined.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
         nextTime += System.currentTimeMillis() - start;
         return stats;
     }

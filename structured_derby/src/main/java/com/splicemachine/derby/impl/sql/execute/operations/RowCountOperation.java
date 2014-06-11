@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -556,8 +557,8 @@ public class RowCountOperation extends SpliceBaseOperation{
 				@Override public int getModifiedRowCount() { return provider.getModifiedRowCount(); }
 
 				@Override
-				public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-						return provider.shuffleRows(instructions);
+				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException {
+						return provider.shuffleRows(instructions,postCompleteTasks);
 				}
 
 				@Override
@@ -566,8 +567,8 @@ public class RowCountOperation extends SpliceBaseOperation{
 				}
 
 				@Override
-				public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFutures) throws StandardException {
-						return provider.finishShuffle(jobFutures);
+				public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobFutures, Callable<Void>... intermediateCleanupTasks) throws StandardException {
+						return provider.finishShuffle(jobFutures,intermediateCleanupTasks);
 				}
 
 				@Override

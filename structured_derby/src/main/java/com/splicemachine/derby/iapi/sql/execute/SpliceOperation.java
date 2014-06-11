@@ -7,6 +7,7 @@ import java.util.List;
 
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.job.JobResults;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -41,6 +42,8 @@ public interface SpliceOperation extends StandardCloseable {
 		 * @return the xplain schema to use, or {@code null} if no schema is known(or {@link #shouldRecordStats()} returns {@code false}.
 		 */
 		String getXplainSchema();
+
+	 JobResults getJobResults();
 
 		/**
 	 * 

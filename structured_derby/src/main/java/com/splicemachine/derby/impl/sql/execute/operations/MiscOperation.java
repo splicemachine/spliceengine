@@ -13,12 +13,12 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.util.List;
+import java.util.concurrent.Callable;
 
 
 /**
@@ -100,7 +100,7 @@ public class MiscOperation extends NoRowsOperation
 				@Override public byte[] getTableName() { return null; }
 
 				@Override
-				public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException {
 						throw new UnsupportedOperationException();
 				}
 
@@ -110,7 +110,7 @@ public class MiscOperation extends NoRowsOperation
 				}
 
 				@Override
-				public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFuture) throws StandardException {
+				public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobFuture, Callable<Void>... intermediateCleanupTasks) throws StandardException {
 						throw new UnsupportedOperationException();
 				}
 

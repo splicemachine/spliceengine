@@ -13,6 +13,7 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * Provides ExecRows for later stages in the execution computation.
@@ -44,14 +45,16 @@ public interface RowProvider extends RowProviderIterator<ExecRow>  {
     /**
      * Execute the constructed instructions against all the rows provided by this row provider.
      *
-     * @param instructions the instructions to execute
-     * @throws StandardException if something goes wrong during the shuffle phase
+     *
+		 * @param instructions the instructions to execute
+		 * @param postCompleteTasks
+		 * @throws StandardException if something goes wrong during the shuffle phase
      */
-    JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException;
+    JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException;
 
     List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException;
 
-    JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFuture) throws StandardException;
+    JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobFuture, Callable<Void>... intermediateCleanupTasks) throws StandardException;
 
     /**
      * Gets the "table name" of the backing storage, or {@code null} if there is none.

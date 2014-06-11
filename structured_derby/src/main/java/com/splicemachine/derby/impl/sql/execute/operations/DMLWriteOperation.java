@@ -40,6 +40,7 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 
 /**
@@ -260,8 +261,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				private SpliceObserverInstructions spliceObserverInstructions;
 
 				@Override
-				public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-						JobResults jobStats = rowProvider.shuffleRows(instructions);
+				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException {
+						JobResults jobStats = rowProvider.shuffleRows(instructions,postCompleteTasks);
 						long i = 0;
 						for (TaskStats stat: jobStats.getJobStats().getTaskStats()) {
 								i = i + stat.getTotalRowsWritten();
