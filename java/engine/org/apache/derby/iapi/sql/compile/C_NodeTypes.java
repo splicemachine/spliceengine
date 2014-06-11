@@ -236,7 +236,7 @@ public interface C_NodeTypes
     // sequences
     static final int CREATE_SEQUENCE_NODE = 224;
     static final int DROP_SEQUENCE_NODE = 225;
-    static final int NEXT_SEQUENCE_NODE = 231;
+    static final int NEXT_SEQUENCE_NODE = 232;
 
 	// Windowing
 	static final int AGGREGATE_WINDOW_FUNCTION_NODE = 226;
@@ -244,7 +244,7 @@ public interface C_NodeTypes
 	static final int WINDOW_DEFINITION_NODE = 228;
 	static final int WINDOW_REFERENCE_NODE = 229;
     static final int WINDOW_RESULTSET_NODE = 230;
-    static final int DENSERANK_FUNCTION_NODE = 232;
+    static final int DENSERANK_FUNCTION_NODE = 231;
     static final int RANK_FUNCTION_NODE = 233;
     static final int EXPLAIN_NODE = 234;
 
