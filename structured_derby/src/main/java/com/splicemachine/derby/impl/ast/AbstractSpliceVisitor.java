@@ -778,4 +778,9 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
         return defaultVisit(node);
     }
 
+    @Override
+    public Visitable visit(ExplainNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
 }
