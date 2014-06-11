@@ -7,7 +7,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.ast.PlanPrinter;
-import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.management.XPlainPlanNode;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
@@ -17,6 +16,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
 import org.apache.log4j.Logger;
+import org.apache.derby.impl.sql.execute.ValueRow;
 
 import java.util.*;
 import java.io.IOException;
@@ -48,7 +48,7 @@ public class ExplainOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public void init(SpliceOperationContext context) throws StandardException {
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         currentTemplate = new ValueRow(1);
         currentTemplate.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
@@ -119,7 +119,6 @@ public class ExplainOperation extends SpliceBaseOperation {
         DataValueDescriptor[] dvds = currentTemplate.getRowArray();
         dvds[0].setValue(plan[pos++]);
         return currentTemplate;
-
     }
 
     @Override
@@ -143,13 +142,18 @@ public class ExplainOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException{
         SpliceLogUtils.trace(LOG, "executeScan");
-        return new SpliceNoPutResultSet(activation, this, getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext));
+        try {
+            RowProvider rowProvider = getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext);
+            return new SpliceNoPutResultSet(activation, this, rowProvider);
+        }catch(IOException e) {
+            throw StandardException.newException(e.toString());
+        }
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "getMapRowProvider,top=%s", top);
         top.init(SpliceOperationContext.newContext(activation));
 

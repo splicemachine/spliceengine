@@ -1,7 +1,6 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.stats.TimeView;
 import org.apache.derby.iapi.error.StandardException;
 
 import java.io.IOException;
