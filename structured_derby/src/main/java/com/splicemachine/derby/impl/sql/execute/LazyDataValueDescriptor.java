@@ -105,7 +105,10 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 								serializer.decodeDirect(dvd, bytes.array(), bytes.offset(), bytes.length(), descendingOrder);
                 deserialized=true;
             }catch(Exception e){
-                SpliceLogUtils.error(LOG, "Error lazily deserializing bytes", e);
+                SpliceLogUtils.error(LOG, String.format("Error lazily deserializing %s from bytes with serializer %s",
+                                                            this.getClass().getSimpleName(),
+                                                            serializer == null ? "NULL" :
+                                                               serializer.getClass().getSimpleName()), e);
             }
         }
     }
@@ -125,7 +128,10 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
                 descendingOrder=desc;
 								tableVersion = destinationVersion;
             }catch(Exception e){
-                SpliceLogUtils.error(LOG, "Error serializing DataValueDescriptor to bytes", e);
+                SpliceLogUtils.error(LOG, String.format("Error serializing %s to bytes with serializer %s",
+                                                           this.getClass().getSimpleName(),
+                                                           serializer == null ? "NULL" :
+                                                               serializer.getClass().getSimpleName()), e);
             }
         }else if(desc!=descendingOrder){
 						byte[] data = bytes.getByteCopy();
