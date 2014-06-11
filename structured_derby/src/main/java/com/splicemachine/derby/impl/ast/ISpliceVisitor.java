@@ -168,5 +168,6 @@ public interface ISpliceVisitor {
     public Visitable visit(WindowNode node) throws StandardException;
     public Visitable visit(WindowReferenceNode node) throws StandardException;
     public Visitable visit(XMLConstantNode node) throws StandardException;
+    public Visitable visit(ExplainNode node) throws StandardException;
 
 }

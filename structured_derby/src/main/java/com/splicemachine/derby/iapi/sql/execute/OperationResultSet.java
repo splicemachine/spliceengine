@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
+import com.splicemachine.derby.impl.sql.execute.operations.ExplainOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
@@ -120,8 +121,13 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 				return delegate;
 		}
 
-		public void open(boolean useProbe) throws StandardException, IOException {
-			open(useProbe,true);
+		public void open(boolean useProbe) throws StandardException, IOException{
+            if (topOperation instanceof ExplainOperation) {
+                open(useProbe, false);
+            }
+            else {
+                open(useProbe, true);
+            }
 		}
 
     public void executeScan(boolean useProbe, SpliceRuntimeContext context) throws StandardException {
