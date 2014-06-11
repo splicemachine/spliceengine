@@ -49,8 +49,10 @@ class JobControl implements JobFuture {
     private final List<Callable<Void>> finalCleanupTasks;
 		private final List<Callable<Void>> intermediateCleanupTasks;
     private volatile boolean cancelled = false;
+		private volatile boolean cleanedUp = false;
+		private volatile boolean intermediateCleanedUp = false;
 
-    JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
+		JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
         this.job = job;
         this.jobPath = jobPath;
         this.zkManager = zkManager;
@@ -193,6 +195,10 @@ class JobControl implements JobFuture {
 
     @Override
     public void cleanup() throws ExecutionException {
+				if(cleanedUp)
+						return; //don't try cleaning up twice
+				else
+					cleanedUp = true;
         SpliceLogUtils.trace(LOG, "cleaning up job %s", job.getJobId());
 				intermediateCleanup(); //in case cleanups don't get called
         try {
@@ -225,6 +231,11 @@ class JobControl implements JobFuture {
 
 		@Override
 		public void intermediateCleanup() throws ExecutionException {
+				if(intermediateCleanedUp)
+						return; //don't cleanup twice
+				else
+					intermediateCleanedUp = true;
+
 				ZooKeeper zooKeeper;
 				try {
 						zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();

@@ -32,6 +32,7 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 public class OnceOperation extends SpliceBaseOperation {
 		private static final long serialversionUID = 1l;
@@ -241,8 +242,8 @@ public class OnceOperation extends SpliceBaseOperation {
 				@Override public int getModifiedRowCount() { return delegate.getModifiedRowCount(); }
 
 				@Override
-				public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-						return delegate.shuffleRows(instructions);
+				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException {
+						return delegate.shuffleRows(instructions,postCompleteTasks);
 				}
 
 				@Override
@@ -251,8 +252,8 @@ public class OnceOperation extends SpliceBaseOperation {
 				}
 
 				@Override
-				public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFutures) throws StandardException {
-						return delegate.finishShuffle(jobFutures);
+				public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobFutures, Callable<Void>... intermediateCleanupTasks) throws StandardException {
+						return delegate.finishShuffle(jobFutures,intermediateCleanupTasks);
 				}
 
 				@Override

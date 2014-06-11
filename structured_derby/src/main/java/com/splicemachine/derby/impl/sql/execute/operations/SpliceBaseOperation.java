@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -11,7 +10,6 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.RegionStats;
-import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.SerializerMap;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -190,6 +188,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 
 		@Override public String getXplainSchema() { return xplainSchema; }
+
+		@Override
+		public JobResults getJobResults() {
+				return jobResults;
+		}
+
 		@Override public boolean shouldRecordStats() { return statisticsTimingOn; }
 
 		@Override
