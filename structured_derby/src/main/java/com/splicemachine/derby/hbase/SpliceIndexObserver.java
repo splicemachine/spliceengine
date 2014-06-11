@@ -1,5 +1,6 @@
 package com.splicemachine.derby.hbase;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
@@ -28,6 +29,8 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -42,6 +45,8 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     private long conglomId;
 		private boolean isTemp;
 
+		private long blockingStoreFiles;
+
 		@Override
     public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
         //get the Conglomerate Id. If it's not a table that we can index (e.g. META, ROOT, SYS_TEMP,__TXN_LOG, etc)
@@ -52,11 +57,12 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         }catch(NumberFormatException nfe){
             SpliceLogUtils.debug(LOG, "Unable to parse Conglomerate Id for table %s, indexing is will not be set up", tableName);
             conglomId=-1;
+						blockingStoreFiles = SpliceConstants.config.getInt("hbase.hstore.blockingStoreFiles",10);
 						isTemp = SpliceConstants.TEMP_TABLE.equals(tableName);
             return;
         }
 
-        super.postOpen(e);
+				super.postOpen(e);
     }
 
     @Override
@@ -98,25 +104,24 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         super.preDelete(e, delete, edit, writeToWAL);
     }
 
-    @Override
-    public boolean preCheckAndPut(ObserverContext<RegionCoprocessorEnvironment> e, byte[] row, byte[] family, byte[] qualifier, CompareFilter.CompareOp compareOp, ByteArrayComparable comparator, Put put, boolean result) throws IOException {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "preCheckAndPut %s",put);
-    	return super.preCheckAndPut(e, row, family, qualifier, compareOp, comparator, put, result);    //To change body of overridden methods use File | Settings | File Templates.
-    }
-
-
 		@Override
-		public InternalScanner preCompactScannerOpen(ObserverContext<RegionCoprocessorEnvironment> c, Store store, List<? extends KeyValueScanner> scanners, ScanType scanType, long earliestPutTs, InternalScanner s) throws IOException {
+		public InternalScanner preCompactScannerOpen(ObserverContext<RegionCoprocessorEnvironment> c,
+																								 Store store,
+																								 List<? extends KeyValueScanner> scanners,
+																								 ScanType scanType,
+																								 long earliestPutTs, InternalScanner s) throws IOException {
 				if(!isTemp ||(s==null && scanners.size()<=0))
 						return super.preCompactScannerOpen(c, store, scanners,scanType,earliestPutTs,s);
 
-				c.complete();
-				return SpliceDriver.driver().getTempTable().getTempCompactionScanner();
+				if(blockingStoreFiles<=scanners.size()){
+						LOG.info("Falling back to normal HBase compaction for TEMP--consider increasing the number of blocking store files");
+						return super.preCompactScannerOpen(c,store,scanners,scanType,earliestPutTs,s);
+				}else{
+						c.complete();
+						return SpliceDriver.driver().getTempTable().getTempCompactionScanner();
+				}
 		}
 
-		
-		
 		public void preCompactSelection(ObserverContext<RegionCoprocessorEnvironment> c, Store store,List<StoreFile> candidates) throws IOException {
 				filterFiles(c, candidates);
 		}
@@ -129,15 +134,46 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     /*private helper methods*/
 
 		private void filterFiles(ObserverContext<RegionCoprocessorEnvironment> c, List<StoreFile> candidates) throws IOException {
+				/*
+				 * We want to remove TEMP files that we aren't interested in anymore. However, there is always the possibility
+				 * that these files can't be removed--that we're always interested in them. Normally, this is fine, we just
+				 * don't perform any compaction.
+				 *
+				 * However, once we exceed the blockingStoreFiles limit of files, then we are in trouble--we need to fall
+				 * back on SOME kind of compaction. Therefore, if we have at least as many candidate files as blockingStoreFiles,
+				 * AND we are unable to remove any from TEMP exposure, then retain them ALL and fall back to normal compaction.
+				 */
 				if(!isTemp ||candidates.size()<=0){
 						return;
 				}
 				if(LOG.isTraceEnabled())
 						LOG.trace(String.format("Filtering %d StoreFiles",candidates.size()));
+				List<StoreFile> copy = Lists.newArrayList(candidates);
 				try {
-						SpliceDriver.driver().getTempTable().filterCompactionFiles(c.getEnvironment().getConfiguration(),candidates);
-						if(LOG.isTraceEnabled())
-								LOG.trace(String.format("Deleting %d Store Files",candidates.size()));
+						SpliceDriver.driver().getTempTable().filterCompactionFiles(c.getEnvironment().getConfiguration(), copy);
+						if(copy.size()==0){
+								/*
+								 * We need to keep all the files around. This leaves two situations: when we have exceeded the
+								 * blocking store files and when we have not.
+								 *
+								 * When we have not exceeded blockingStoreFiles, then we can just behave like normal--leave
+								 * the files around. This means that we clear out the candidates list and return.
+								 *
+								 * When we exceed blockingStoreFiles, we keep candidates the same, and we will detect that the
+								 * number has exceeded in the preCompactScannerOpen and fall back to the default.
+								 */
+								if(candidates.size()<blockingStoreFiles){
+										//we are free to use the normal TEMP compaction procedure, which does nothing.
+										candidates.clear();
+								}
+								//if the above isn't met, then we do nothing to candidates, because we are falling back to normal TEMP
+								if(LOG.isDebugEnabled())
+										LOG.debug("Blocking Store files exceeded, falling back to default HBase compaction");
+						}else{
+								//there are at least some files to remove using the TEMP structure, so just go with it
+								candidates.retainAll(copy);
+						}
+
 						c.bypass();
 						c.complete();
 				} catch (ExecutionException e) {
