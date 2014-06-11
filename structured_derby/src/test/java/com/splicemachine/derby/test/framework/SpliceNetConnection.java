@@ -1,54 +1,51 @@
 package com.splicemachine.derby.test.framework;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import org.apache.log4j.Logger;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.test.SpliceNetDerbyTest;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Properties;
+
+/**
+ * Convenient factory for obtaining java.sql.Connection to LOCAL splice from tests.
+ */
 public class SpliceNetConnection {
-	private static final Logger LOG = Logger.getLogger(SpliceNetDerbyTest.class);
-    protected static String framework = "client";
-    protected static String driver = "org.apache.derby.jdbc.ClientDriver";
-    protected static String protocol = "jdbc:derby://localhost:1527/";
-    protected static Properties props = new Properties();
-	protected static Connection conn = null;
-	protected static List<Statement> statements = new ArrayList<Statement>();
-	protected static boolean loaded;
-		
-    protected synchronized static void loadDriver() throws Exception{
-    	SpliceLogUtils.trace(LOG, "Loading the JDBC Driver");
-        try {
-            Class.forName(driver).newInstance();
-        } catch (ClassNotFoundException e) {
-            System.err.println("\nUnable to load the JDBC driver " + driver);
-            System.err.println("Please check your CLASSPATH.");
-            e.printStackTrace(System.err);
-            throw e;
-        } catch (InstantiationException e) {
-            System.err.println(
-                        "\nUnable to instantiate the JDBC driver " + driver);
-            e.printStackTrace(System.err);
-            throw e;
-        } catch (IllegalAccessException e) {
-            System.err.println(
-                        "\nNot allowed to access the JDBC driver " + driver);
-            e.printStackTrace(System.err);
-            throw e;
+
+    private static final Logger LOG = Logger.getLogger(SpliceNetDerbyTest.class);
+
+    private static final String DRIVER_CLASS = "org.apache.derby.jdbc.ClientDriver";
+    private static final String DB_URL_LOCAL = "jdbc:derby://localhost:1527/";
+
+    private static boolean driverClassLoaded;
+
+    public static Connection getConnection() {
+        if (!driverClassLoaded) {
+            loadDriver();
         }
-        loaded =  true;
+        Properties props = new Properties();
+        try {
+            return DriverManager.getConnection(DB_URL_LOCAL + SpliceConstants.SPLICE_DB + ";create=true", props);
+        } catch (SQLException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
-    public static Connection getConnection() throws Exception {
-    	if (!loaded)
-    		loadDriver();
-        return DriverManager.getConnection(protocol + SpliceConstants.SPLICE_DB + ";create=true", props);
+    private synchronized static void loadDriver() {
+        SpliceLogUtils.trace(LOG, "Loading the JDBC Driver");
+        try {
+            Class.forName(DRIVER_CLASS).newInstance();
+            driverClassLoaded = true;
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException("Unable to load the JDBC driver " + DRIVER_CLASS + " Please check your CLASSPATH.");
+        } catch (InstantiationException e) {
+            throw new IllegalStateException("Unable to instantiate the JDBC driver " + DRIVER_CLASS);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException("Not allowed to access the JDBC driver " + DRIVER_CLASS);
+        }
     }
-	
+
 }
