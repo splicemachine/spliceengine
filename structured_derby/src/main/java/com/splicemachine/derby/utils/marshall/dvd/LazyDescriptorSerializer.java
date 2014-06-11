@@ -23,11 +23,12 @@ public class LazyDescriptorSerializer implements DescriptorSerializer {
 		}
 
 
-		public static Factory singletonFactory(final Factory delegateFactory,String tableVersion){
-				DescriptorSerializer delegate = delegateFactory.newInstance();
-				final LazyDescriptorSerializer me = new LazyDescriptorSerializer(delegate, tableVersion);
+		public static Factory factory(final Factory delegateFactory, final String tableVersion){
 				return new Factory() {
-						@Override public DescriptorSerializer newInstance() { return me; }
+                        @Override public DescriptorSerializer newInstance() {
+                            return new LazyDescriptorSerializer(delegateFactory.newInstance(),
+                                                                    tableVersion);
+                        }
 
 						@Override public boolean applies(DataValueDescriptor dvd) { return delegateFactory.applies(dvd); }
 						@Override public boolean applies(int typeFormatId) { return delegateFactory.applies(typeFormatId); }
