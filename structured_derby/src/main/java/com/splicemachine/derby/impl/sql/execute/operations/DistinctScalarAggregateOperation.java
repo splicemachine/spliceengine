@@ -55,6 +55,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.concurrent.Callable;
 
 /**
  *
@@ -184,7 +185,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 				}
 				nextTime+= System.currentTimeMillis()-start;
 				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,runtimeContext);
-				return provider.shuffleRows(soi);
+				return provider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
 		}
 
 		private void buildReduceScan(byte[] uniqueSequenceID) throws StandardException {

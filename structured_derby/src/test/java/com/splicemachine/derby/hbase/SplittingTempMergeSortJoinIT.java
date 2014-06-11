@@ -19,6 +19,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 6/9/14
  */
+@Ignore("Ignored cause it take for super long")
 public class SplittingTempMergeSortJoinIT {
 
 		private static final String SCHEMA_NAME=SplittingTempMergeSortJoinIT.class.getSimpleName().toUpperCase();

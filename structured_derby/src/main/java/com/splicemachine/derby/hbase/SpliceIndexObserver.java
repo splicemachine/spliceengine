@@ -115,6 +115,8 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 						LOG.info("Falling back to normal HBase compaction for TEMP--consider increasing the number of blocking store files");
 						return super.preCompactScannerOpen(c,store,scanners,scanType,earliestPutTs,s);
 				}else{
+						if(LOG.isTraceEnabled())
+								LOG.trace("Compacting TEMP using the TEMP compaction mechanism");
 						c.complete();
 						return SpliceDriver.driver().getTempTable().getTempCompactionScanner();
 				}
