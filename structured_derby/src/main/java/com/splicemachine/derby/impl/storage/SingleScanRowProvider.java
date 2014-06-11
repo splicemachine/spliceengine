@@ -8,14 +8,13 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * Abstract RowProvider which assumes a single Scan entity covers the entire data range.
@@ -30,8 +29,8 @@ public abstract class SingleScanRowProvider implements RowProvider {
 
 
     @Override
-    public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-        return finishShuffle(asyncShuffleRows(instructions));
+    public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException {
+        return finishShuffle(asyncShuffleRows(instructions),postCompleteTasks);
     }
 
     @Override
@@ -48,8 +47,8 @@ public abstract class SingleScanRowProvider implements RowProvider {
     }
 
     @Override
-    public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobs) throws StandardException {
-        return RowProviders.completeAllJobs(jobs);
+    public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobs, Callable<Void>... intermediateCleanupTasks) throws StandardException {
+        return RowProviders.completeAllJobs(jobs,false,intermediateCleanupTasks);
     }
 
     @Override

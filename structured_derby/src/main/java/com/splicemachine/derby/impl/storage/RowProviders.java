@@ -13,7 +13,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.operation.MultiScanOperationJob;
-import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.JobFutureFromResults;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
@@ -28,13 +27,9 @@ import com.splicemachine.job.*;
 import com.splicemachine.stats.IOStats;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.MultiStatsView;
-import com.splicemachine.stats.SimpleMultiTimeView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.tools.run;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
@@ -60,10 +55,6 @@ public class RowProviders {
 
 		private RowProviders(){}
 
-		public static RowProvider sourceProvider(SpliceOperation source, Logger log, SpliceRuntimeContext spliceRuntimeContext){
-				return new SourceRowProvider(source, log, spliceRuntimeContext);
-		}
-
 		public static RowProvider openedSourceProvider(SpliceOperation source, Logger log, SpliceRuntimeContext spliceRuntimeContext){
 				return new SourceRowProvider(source, log, spliceRuntimeContext){
 						@Override
@@ -82,63 +73,42 @@ public class RowProviders {
 				return new SerialCombinedRowProvider(first,second);
 		}
 
-		public static JobResults completeAllJobs(List<Pair<JobFuture, JobInfo>> jobs)
-						throws StandardException {
-				return completeAllJobs(jobs, false);
-		}
-
+		@SuppressWarnings("ThrowFromFinallyBlock")
 		public static JobResults completeAllJobs(List<Pair<JobFuture, JobInfo>> jobs,
-																						 boolean cancelOnError) throws StandardException {
+																						 boolean cancelOnError,Callable<Void>...intermediateCleanupTasks) throws StandardException {
 				JobResults results = null;
 				StandardException baseError = null;
 				List<JobStats> stats = new LinkedList<JobStats>();
 
 				long start = System.nanoTime();
 
-				for (Pair<JobFuture, JobInfo> jobPair : jobs) {
-						JobFuture job = jobPair.getFirst();
-						JobInfo jobInfo = jobPair.getSecond();
-						try {
-								job.completeAll(jobInfo);
-								stats.add(job.getJobStats());
-						} catch (ExecutionException ee) {
-								SpliceLogUtils.error(LOG, ee);
-								if (jobInfo != null) {
-										jobInfo.failJob();
-								}
-								baseError = Exceptions.parseException(ee.getCause());
-								throw baseError;
-						} catch (InterruptedException e) {
-								SpliceLogUtils.error(LOG, e);
-								if (jobInfo != null) {
-										jobInfo.failJob();
-								}
-								baseError = Exceptions.parseException(e);
-								throw baseError;
-						} finally {
-								if (job != null) {
-										try {
-												job.intermediateCleanup();
-										} catch (ExecutionException e) {
-												if (baseError == null)
-														baseError = Exceptions.parseException(e.getCause());
-										}
-								}
-								if (baseError != null) {
-										if (cancelOnError){
+				try{
+						for (Pair<JobFuture, JobInfo> jobPair : jobs) {
+								try{
+										stats.add(completeJob(jobPair));
+								}catch(StandardException se){
+										if(cancelOnError){
 												cancelAll(jobs);
-										}
-										if(job!=null){
-												try {
-														job.cleanup();
-												} catch (ExecutionException e) {
-														LOG.error("Error while cleaning up job ",e);
-														//ignore because we are throwing the base error instead
-												}
-										}
-										SpliceLogUtils.logAndThrow(LOG, baseError);
+												SpliceLogUtils.logAndThrow(LOG, se);
+										}else
+												baseError = se;
 								}
 						}
+						if(baseError!=null)
+								SpliceLogUtils.logAndThrow(LOG,baseError);
+				}finally{
+						//perform the intermediate cleanup actions
+						Throwable t = null;
+						for(Callable<Void> cleanupTask:intermediateCleanupTasks){
+								try{
+										cleanupTask.call();
+								} catch (Exception e) {
+										if(t==null)
+												t = e;
+								}
+						}
+						if(t!=null)
+								throw Exceptions.parseException(t);
 				}
 
 				long end = System.nanoTime();
@@ -155,6 +125,36 @@ public class RowProviders {
 				}
 
 				return results;
+		}
+
+		@SuppressWarnings("ThrowFromFinallyBlock")
+		protected static JobStats completeJob(Pair<JobFuture, JobInfo> jobPair) throws StandardException {
+				JobFuture job = jobPair.getFirst();
+				JobInfo jobInfo = jobPair.getSecond();
+				try {
+						job.completeAll(jobInfo);
+						return job.getJobStats();
+				} catch (ExecutionException ee) {
+						SpliceLogUtils.error(LOG, ee);
+						if (jobInfo != null) {
+								jobInfo.failJob();
+						}
+						throw Exceptions.parseException(ee.getCause());
+				} catch (InterruptedException e) {
+						SpliceLogUtils.error(LOG, e);
+						if (jobInfo != null) {
+								jobInfo.failJob();
+						}
+						throw Exceptions.parseException(e);
+				} finally {
+						if (job != null) {
+								try {
+										job.intermediateCleanup();
+								} catch (ExecutionException e) {
+										throw Exceptions.parseException(e);
+								}
+						}
+				}
 		}
 
 		public static void cancelAll(Collection<Pair<JobFuture, JobInfo>> jobs) {
@@ -262,8 +262,9 @@ public class RowProviders {
 				@Override public boolean hasNext() throws StandardException, IOException { return provider.hasNext(); }
 
 				@Override
-				public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-						return provider.shuffleRows(instructions);
+				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException {
+						return provider.shuffleRows(instructions,postCompleteTasks);
+
 				}
 
 				@Override
@@ -272,8 +273,8 @@ public class RowProviders {
 				}
 
 				@Override
-				public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFuture) throws StandardException {
-						return provider.finishShuffle(jobFuture);
+				public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobFuture, Callable<Void>... intermediateCleanupTasks) throws StandardException {
+						return provider.finishShuffle(jobFuture,intermediateCleanupTasks);
 				}
 
 				@Override public RowLocation getCurrentRowLocation() { return provider.getCurrentRowLocation(); }
@@ -323,7 +324,7 @@ public class RowProviders {
 				}
 
 				@Override
-				public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException {
 						spliceRuntimeContext.setCurrentTaskId(SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes());
 						SpliceOperation op = instructions.getTopOperation();
 						op.init(SpliceOperationContext.newContext(op.getActivation()));
@@ -337,6 +338,13 @@ public class RowProviders {
 								else {
 										byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
 										stats = new LocalTaskJobStats(opSink.sink(tempTableBytes, spliceRuntimeContext));
+								}
+								for(Callable<Void> callable:postCompleteTasks){
+										try{
+												callable.call();
+										}catch(Exception e){
+												throw Exceptions.parseException(e);
+										}
 								}
 
 								return new SimpleJobResults(stats, null);
@@ -458,12 +466,12 @@ public class RowProviders {
 				}
 
 				@Override
-				public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFutures) throws StandardException {
-						return firstRowProvider.finishShuffle(jobFutures);
+				public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobFutures, Callable<Void>... intermediateCleanupTasks) throws StandardException {
+						return firstRowProvider.finishShuffle(jobFutures,intermediateCleanupTasks);
 				}
 
-				public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-						return finishShuffle( asyncShuffleRows(instructions) );
+				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException {
+						return finishShuffle(asyncShuffleRows(instructions),postCompleteTasks);
 				}
 
 				@Override

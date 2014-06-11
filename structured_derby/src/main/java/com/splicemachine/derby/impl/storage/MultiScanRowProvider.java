@@ -7,7 +7,6 @@ import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
-import com.splicemachine.stats.IOStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -18,6 +17,7 @@ import org.apache.log4j.Logger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -32,8 +32,8 @@ public abstract class MultiScanRowProvider implements RowProvider {
     protected SpliceRuntimeContext spliceRuntimeContext;
 
     @Override
-    public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-        return finishShuffle(asyncShuffleRows(instructions));
+    public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException {
+        return finishShuffle(asyncShuffleRows(instructions),postCompleteTasks);
     }
 
     @Override
@@ -46,8 +46,8 @@ public abstract class MultiScanRowProvider implements RowProvider {
 		}
 
     @Override
-    public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobs) throws StandardException {
-        return RowProviders.completeAllJobs(jobs, true);
+    public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobs, Callable<Void>... intermediateCleanupTasks) throws StandardException {
+        return RowProviders.completeAllJobs(jobs, true,intermediateCleanupTasks);
     }
 
 		private void cancelAll(Collection<Pair<JobFuture, JobInfo>> jobs) {
