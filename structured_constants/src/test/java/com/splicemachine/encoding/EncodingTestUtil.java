@@ -1,7 +1,10 @@
 package com.splicemachine.encoding;
 
+import com.google.common.collect.Lists;
+
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -53,4 +56,19 @@ public class EncodingTestUtil {
     }
 
 
+    public static List<byte[]> toBytes(List<BigDecimal> bigIns) {
+        List<byte[]> bytesList = Lists.newArrayList();
+        for (BigDecimal bigDecimal : bigIns) {
+            bytesList.add(BigDecimalEncoding.toBytes(bigDecimal, false));
+        }
+        return bytesList;
+    }
+
+    public static List<BigDecimal> toBigDecimal(List<byte[]> bigIns) {
+        List<BigDecimal> bigDecimals = Lists.newArrayList();
+        for (byte[] bigDecimal : bigIns) {
+            bigDecimals.add(BigDecimalEncoding.toBigDecimal(bigDecimal, false));
+        }
+        return bigDecimals;
+    }
 }
