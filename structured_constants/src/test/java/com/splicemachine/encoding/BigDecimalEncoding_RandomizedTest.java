@@ -19,7 +19,7 @@ import static org.junit.Assert.assertTrue;
  * Created on: 6/7/13
  */
 @RunWith(Parameterized.class)
-public class DecimalEncoding_RandomizedTest {
+public class BigDecimalEncoding_RandomizedTest {
 
     private static final int NUM_TESTS =50;
     private static final int NUM_VALUES_PER_TEST =1000;
@@ -36,21 +36,21 @@ public class DecimalEncoding_RandomizedTest {
 
     private final BigDecimal[] data;
 
-    public DecimalEncoding_RandomizedTest(BigDecimal[] data) {
+    public BigDecimalEncoding_RandomizedTest(BigDecimal[] data) {
         this.data = data;
     }
 
     @Test
     public void testCanSerializeAndDeserializeCorrectly() throws Exception {
         for(BigDecimal decimal:data){
-            byte[] data = DecimalEncoding.toBytes(decimal,false);
-            BigDecimal ret = DecimalEncoding.toBigDecimal(data,false);
+            byte[] data = BigDecimalEncoding.toBytes(decimal, false);
+            BigDecimal ret = BigDecimalEncoding.toBigDecimal(data, false);
 
             assertTrue(decimal.compareTo(ret) == 0);
 
             //decode the negative version too, just to make sure
-            byte[] negData = DecimalEncoding.toBytes(decimal.negate(),false);
-            ret  = DecimalEncoding.toBigDecimal(negData,false);
+            byte[] negData = BigDecimalEncoding.toBytes(decimal.negate(), false);
+            ret  = BigDecimalEncoding.toBigDecimal(negData, false);
 
             assertTrue(decimal.negate().compareTo(ret) == 0);
         }
@@ -60,7 +60,7 @@ public class DecimalEncoding_RandomizedTest {
     public void testSortsBytesCorrectly() throws Exception {
         List<byte[]> serializedDecimals = Lists.newArrayList();
         for (BigDecimal aData : data) {
-            serializedDecimals.add(DecimalEncoding.toBytes(aData, false));
+            serializedDecimals.add(BigDecimalEncoding.toBytes(aData, false));
         }
 
         Collections.sort(serializedDecimals, Bytes.BYTES_COMPARATOR);
@@ -69,7 +69,7 @@ public class DecimalEncoding_RandomizedTest {
         BigDecimal last = null;
         BigDecimal current;
         for (byte[] serializedBytes : serializedDecimals) {
-            current = DecimalEncoding.toBigDecimal(serializedBytes, false);
+            current = BigDecimalEncoding.toBigDecimal(serializedBytes, false);
             assertTrue(String.format("last='%s', current='%s'", last, current), last == null || current.compareTo(last) >= 0);
             last = current;
         }

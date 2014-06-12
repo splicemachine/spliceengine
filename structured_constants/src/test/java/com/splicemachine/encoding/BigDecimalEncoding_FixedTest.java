@@ -1,11 +1,8 @@
 package com.splicemachine.encoding;
 
-import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertTrue;
@@ -14,13 +11,13 @@ import static org.junit.Assert.assertTrue;
  * @author Scott Fines
  *         Created on: 6/18/13
  */
-public class DecimalEncoding_FixedTest {
+public class BigDecimalEncoding_FixedTest {
 
     @Test
     public void testCanEncodeDecodeByteSpecificByteBuffersCorrectly() throws Exception {
         BigDecimal value = new BigDecimal("37661026");
-        byte[] encoding = DecimalEncoding.toBytes(value,false);
-        BigDecimal decoded = DecimalEncoding.toBigDecimal(encoding,false);
+        byte[] encoding = BigDecimalEncoding.toBytes(value, false);
+        BigDecimal decoded = BigDecimalEncoding.toBigDecimal(encoding, false);
         assertTrue("Incorrect decoding. Expected <" + value + ">, Actual <" + value + ">", value.compareTo(decoded) == 0);
 
     }
@@ -29,8 +26,8 @@ public class DecimalEncoding_FixedTest {
     public void testCanEncodedOnlyDecimalDescending() {
         /* Regression test to ensure this specific number decodes properly.  */
         BigDecimal value = new BigDecimal("0.02308185311033106312805784909869544208049774169921875");
-        byte[] encoding = DecimalEncoding.toBytes(value, true);
-        BigDecimal decoded = DecimalEncoding.toBigDecimal(encoding,true);
+        byte[] encoding = BigDecimalEncoding.toBytes(value, true);
+        BigDecimal decoded = BigDecimalEncoding.toBigDecimal(encoding, true);
         assertTrue("Incorrect decoding. Expected <" + value + ">, Actual <" + value + ">", value.compareTo(decoded) == 0);
     }
 

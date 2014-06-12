@@ -141,7 +141,7 @@ public class MultiFieldEncoder {
 
     public MultiFieldEncoder encodeNext(BigDecimal value){
 //        assert currentPos<fields.length;
-        byte[] bytes = DecimalEncoding.toBytes(value, false);
+        byte[] bytes = BigDecimalEncoding.toBytes(value, false);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
         currentPos++;
@@ -150,7 +150,7 @@ public class MultiFieldEncoder {
 
     public MultiFieldEncoder encodeNext(BigDecimal value,boolean desc){
 //        assert currentPos<fields.length;
-        byte[] bytes = DecimalEncoding.toBytes(value, desc);
+        byte[] bytes = BigDecimalEncoding.toBytes(value, desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
         currentPos++;
