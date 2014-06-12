@@ -381,7 +381,7 @@ public final class Encoding {
      * @return an ascending, order-preserving encoding of {@code value}.
      */
     public static byte[] encode(float value){
-        return DecimalEncoding.toBytes(value, false);
+        return FloatEncoding.toBytes(value, false);
     }
 
     /**
@@ -393,11 +393,11 @@ public final class Encoding {
      * @return the float represented by {@code data}.
      */
     public static float decodeFloat(byte[] data){
-        return DecimalEncoding.toFloat(data, false);
+        return FloatEncoding.toFloat(data, false);
     }
 
     public static float decodeFloat(byte[] data, int offset){
-        return DecimalEncoding.toFloat(data,offset,false);
+        return FloatEncoding.toFloat(data, offset, false);
     }
 
     /**
@@ -412,7 +412,7 @@ public final class Encoding {
      * @return an order-preserving encoding of {@code value}
      */
     public static byte[] encode(float value,boolean desc){
-        return DecimalEncoding.toBytes(value, desc);
+        return FloatEncoding.toBytes(value, desc);
     }
 
     /**
@@ -427,11 +427,11 @@ public final class Encoding {
      * @return the float represented by {@code data}
      */
     public static float decodeFloat(byte[] data,boolean desc){
-        return DecimalEncoding.toFloat(data,desc);
+        return FloatEncoding.toFloat(data, desc);
     }
 
     public static float decodeFloat(byte[] data,int offset,boolean desc){
-        return DecimalEncoding.toFloat(data, offset, desc);
+        return FloatEncoding.toFloat(data, offset, desc);
     }
 
     /**
@@ -443,7 +443,7 @@ public final class Encoding {
      * @return an ascending, order-preserving encoding of {@code value}.
      */
     public static byte[] encode(double value){
-        return DecimalEncoding.toBytes(value, false);
+        return DoubleEncoding.toBytes(value, false);
     }
 
     /**
@@ -455,11 +455,11 @@ public final class Encoding {
      * @return the double represented by {@code data}.
      */
     public static double decodeDouble(byte[] data){
-        return DecimalEncoding.toDouble(data, false);
+        return DoubleEncoding.toDouble(data, false);
     }
 
     public static double decodeDouble(byte[] data,int offset){
-        return DecimalEncoding.toDouble(data,offset, false);
+        return DoubleEncoding.toDouble(data, offset, false);
     }
 
     /**
@@ -474,7 +474,7 @@ public final class Encoding {
      * @return an order-preserving encoding of {@code value}
      */
     public static byte[] encode(double value,boolean desc){
-        return DecimalEncoding.toBytes(value, desc);
+        return DoubleEncoding.toBytes(value, desc);
     }
 
     /**
@@ -489,11 +489,11 @@ public final class Encoding {
      * @return the double represented by {@code data}
      */
     public static double decodeDouble(byte[] data,boolean desc){
-        return DecimalEncoding.toDouble(data, desc);
+        return DoubleEncoding.toDouble(data, desc);
     }
 
     public static double decodeDouble(byte[] data,int offset,boolean desc){
-        return DecimalEncoding.toDouble(data,offset, desc);
+        return DoubleEncoding.toDouble(data, offset, desc);
     }
 
     /**
@@ -674,20 +674,20 @@ public final class Encoding {
     }
 
     public static byte[] encodedNullDouble() {
-        return DecimalEncoding.NULL_DOUBLE_BYTES;
+        return DoubleEncoding.NULL_DOUBLE_BYTES;
     }
 
     public static byte[] encodedNullFloat() {
-        return DecimalEncoding.NULL_FLOAT_BYTES;
+        return DoubleEncoding.NULL_FLOAT_BYTES;
     }
     
     public static int encodedNullDoubleLength() {
-        return DecimalEncoding.NULL_DOUBLE_BYTES_LENGTH;
+        return DoubleEncoding.NULL_DOUBLE_BYTES_LENGTH;
     }
 
    
     public static int encodedNullFloatLength() {
-        return DecimalEncoding.NULL_FLOAT_BYTES_LENGTH;
+        return DoubleEncoding.NULL_FLOAT_BYTES_LENGTH;
     }
     
 
@@ -697,9 +697,9 @@ public final class Encoding {
     }
 
 		public static boolean isNullDOuble(byte[] data, int offset, int length) {
-				return length == DecimalEncoding.NULL_DOUBLE_BYTES.length;
+				return length == DoubleEncoding.NULL_DOUBLE_BYTES.length;
 		}
 		public static boolean isNullFloat(byte[] data, int offset,int length){
-				return length == DecimalEncoding.NULL_FLOAT_BYTES.length;
+				return length == DoubleEncoding.NULL_FLOAT_BYTES.length;
 		}
 }

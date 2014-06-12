@@ -4,10 +4,9 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.nio.ByteBuffer;
 
 /**
- * @author Scott Fines
- * Created on: 6/7/13
+ * Encapsulates logic for Double encoding.
  */
-final class DecimalEncoding {
+class DoubleEncoding {
 
     static final byte[] NULL_DOUBLE_BYTES = new byte[]{0,0};
     static final int NULL_DOUBLE_BYTES_LENGTH = 2;
@@ -72,50 +71,4 @@ final class DecimalEncoding {
         return Double.longBitsToDouble(l);
     }
 
-    public static byte[] toBytes(float value,boolean desc){
-
-        int j = Float.floatToIntBits(value);
-        j = (j^((j>>Integer.SIZE-1) | Integer.MIN_VALUE))+1;
-
-        if(desc)
-            j^=0xffffffff;
-
-        return Bytes.toBytes(j);
-    }
-
-    public static float toFloat(byte[] data, boolean desc){
-        return toFloat(data,0,desc);
-    }
-
-    public static float toFloat(ByteBuffer data, boolean desc){
-        int j = data.asIntBuffer().get();
-        if(desc)
-            j ^= 0xffffffff;
-
-        j--;
-        j ^= (~j >> Integer.SIZE-1)|Integer.MIN_VALUE;
-
-        return Float.intBitsToFloat(j);
-    }
-
-    public static float toFloat(byte[] data, int offset,boolean desc){
-        int j = Bytes.toInt(data,offset);
-        if(desc)
-            j ^= 0xffffffff;
-
-        j--;
-        j ^= (~j >> Integer.SIZE-1)|Integer.MIN_VALUE;
-
-        return Float.intBitsToFloat(j);
-    }
-
-    public static void main(String... args) throws Exception{
-        byte b = 0x02;
-        System.out.printf("%8s%n",Integer.toBinaryString(b));
-        b <<= 6;
-        System.out.printf("%8s%n",Integer.toBinaryString(b));
-        b &= 0xff;
-        System.out.printf("%8s%n",Integer.toBinaryString(b));
-
-    }
 }
