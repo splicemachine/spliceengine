@@ -2,15 +2,15 @@ package com.splicemachine.encoding;
 
 import com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Random;
+
+import static org.junit.Assert.assertArrayEquals;
 
 /**
  * @author Scott Fines
@@ -46,19 +46,8 @@ public class DoubleEncoding_RandomizedTest {
 
     @Test
     public void testCanSerializeAndDeserializeCorrectly() throws Exception {
-        for(double datum:data){
-            byte[] test = DoubleEncoding.toBytes(datum, false);
-            double ret = DoubleEncoding.toDouble(test, false);
-            Assert.assertEquals("Incorrect encoding",datum,ret,Math.pow(10,-12));
-        }
-    }
-
-    @Test
-    public void testCanSerializeAndDeserializeByteBuffersCorrectly() throws Exception {
-        for(double datum:data){
-            byte[] test = DoubleEncoding.toBytes(datum, false);
-            double ret = DoubleEncoding.toDouble(ByteBuffer.wrap(test), false);
-            Assert.assertEquals("Incorrect encoding",datum,ret,Math.pow(10,-12));
+        for (double datum : data) {
+            EncodingTestUtil.assertEncodeDecode(datum);
         }
     }
 
@@ -77,8 +66,8 @@ public class DoubleEncoding_RandomizedTest {
         }
 
         Arrays.sort(data);
-        
-        Assert.assertArrayEquals("Incorrect sort ordering",data,deserialized,Math.pow(10,-12));
+
+        assertArrayEquals("Incorrect sort ordering", data, deserialized, 1e-12);
     }
 
     @Test
@@ -101,6 +90,6 @@ public class DoubleEncoding_RandomizedTest {
         	reversed[j] = data[i];
         }
 
-        Assert.assertArrayEquals("Incorrect sort ordering",reversed,deserialized,Math.pow(10,-12));
+        assertArrayEquals("Incorrect sort ordering", reversed, deserialized, 1e-12);
     }
 }

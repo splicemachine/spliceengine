@@ -45,19 +45,7 @@ public class FloatEncoding_RandomizedTest {
     @Test
     public void testCanSerializeAndDeserializeCorrectly() throws Exception {
         for(float datum:data){
-            byte[] bits = FloatEncoding.toBytes(datum, false);
-            float deser = FloatEncoding.toFloat(bits, false);
-            Assert.assertEquals("Incorrect encoding for value "+ datum,datum,deser,Math.pow(10,-6));
-        }
-    }
-
-    @Test
-    public void testCanSerializeAndDeserializeByteBuffersCorrectly() throws Exception {
-        for(float datum:data){
-            byte[] bits = FloatEncoding.toBytes(datum, false);
-            ByteBuffer wrap = ByteBuffer.wrap(bits);
-            float deser = FloatEncoding.toFloat(wrap, false);
-            Assert.assertEquals("Incorrect encoding for value "+ datum,datum,deser,Math.pow(10,-6));
+            EncodingTestUtil.assertEncodeDecode(datum);
         }
     }
 
