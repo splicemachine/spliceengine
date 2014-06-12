@@ -12,7 +12,7 @@ import java.util.Arrays;
  * @author Scott Fines
  *         Created on: 6/18/13
  */
-public class FixedDecimalEncodingTest {
+public class DecimalEncoding_FixedTest {
 
     @Test
     public void testCanEncodeDecodeByteSpecificByteBuffersCorrectly() throws Exception {

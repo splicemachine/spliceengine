@@ -19,7 +19,7 @@ import static org.junit.Assert.assertTrue;
  * Created on: 6/7/13
  */
 @RunWith(Parameterized.class)
-public class RandomizedDecimalEncodingTest {
+public class DecimalEncoding_RandomizedTest {
 
     private static final int NUM_TESTS =50;
     private static final int NUM_VALUES_PER_TEST =1000;
@@ -36,7 +36,7 @@ public class RandomizedDecimalEncodingTest {
 
     private final BigDecimal[] data;
 
-    public RandomizedDecimalEncodingTest(BigDecimal[] data) {
+    public DecimalEncoding_RandomizedTest(BigDecimal[] data) {
         this.data = data;
     }
 
