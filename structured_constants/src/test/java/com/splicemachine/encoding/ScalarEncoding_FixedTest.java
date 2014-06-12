@@ -8,7 +8,7 @@ import java.util.Arrays;
  * @author Scott Fines
  *         Created on: 7/11/13
  */
-public class FixedScalarEncodingTest {
+public class ScalarEncoding_FixedTest {
 
     @Test
     public void testEncodeDecodeInteger() throws Exception {

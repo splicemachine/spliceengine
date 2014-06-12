@@ -16,7 +16,7 @@ import java.util.Random;
  * Created on: 6/6/13
  */
 @RunWith(Parameterized.class)
-public class IntegerEncoderTest {
+public class ScalarEncoding_RandomizedTest {
 
     private static final int numTests=0;
     private static final int testSize=100;
@@ -46,7 +46,7 @@ public class IntegerEncoderTest {
 
     private int[] data;
 
-    public IntegerEncoderTest(int[] data) {
+    public ScalarEncoding_RandomizedTest(int[] data) {
         this.data = data;
     }
 
