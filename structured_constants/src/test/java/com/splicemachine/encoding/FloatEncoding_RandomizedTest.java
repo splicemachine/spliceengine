@@ -12,12 +12,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Random;
 
-/**
- * @author Scott Fines
- * Created on: 6/7/13
+/*
+ * Test FloatEncoding with random values.
  */
 @RunWith(Parameterized.class)
-public class FloatEncodingTest {
+public class FloatEncoding_RandomizedTest {
     private static final int numTests=100;
     private static final int scale = 10;
     private static final int numFloatsPerTest = 10;
@@ -39,7 +38,7 @@ public class FloatEncodingTest {
 
     private final float[] data;
 
-    public FloatEncodingTest(float[] data) {
+    public FloatEncoding_RandomizedTest(float[] data) {
        this.data=data;
     }
 
