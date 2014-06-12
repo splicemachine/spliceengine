@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /*
@@ -41,32 +42,9 @@ public class BigDecimalEncoding_RandomizedTest {
 
     @Test
     public void testCanSerializeAndDeserializeCorrectly() throws Exception {
-
-        final boolean DESCENDING = true;
-        final boolean ASCENDING = false;
-
         for(BigDecimal decimal:data){
-
-            // encode/decode, descending
-            byte[] b1 = BigDecimalEncoding.toBytes(decimal, DESCENDING);
-            BigDecimal d1 = BigDecimalEncoding.toBigDecimal(b1, DESCENDING);
-            assertTrue(decimal.compareTo(d1) == 0);
-
-            // encode/decode, descending, NEGATIVE
-            byte[] b2 = BigDecimalEncoding.toBytes(decimal.negate(), DESCENDING);
-            BigDecimal d2  = BigDecimalEncoding.toBigDecimal(b2, DESCENDING);
-            assertTrue(decimal.negate().compareTo(d2) == 0);
-
-            // encode/decode, ascending
-            byte[] b3 = BigDecimalEncoding.toBytes(decimal, ASCENDING);
-            BigDecimal d3 = BigDecimalEncoding.toBigDecimal(b3, ASCENDING);
-            assertTrue(decimal.compareTo(d3) == 0);
-
-            // encode/decode, ascending, NEGATIVE
-            byte[] b4 = BigDecimalEncoding.toBytes(decimal.negate(), ASCENDING);
-            BigDecimal d4 = BigDecimalEncoding.toBigDecimal(b4, ASCENDING);
-            assertTrue(decimal.negate().compareTo(d4) == 0);
-
+            EncodingTestUtil.assertEncodeDecode(decimal);
+            EncodingTestUtil.assertEncodeDecode(decimal.negate());
         }
     }
 
@@ -87,6 +65,14 @@ public class BigDecimalEncoding_RandomizedTest {
             assertTrue(String.format("last='%s', current='%s'", last, current), last == null || current.compareTo(last) >= 0);
             last = current;
         }
+    }
+
+    @Test
+    public void toBigDecimalReturnsNullWhenOrderParameterIsWrong() {
+        byte[] bytesDes = BigDecimalEncoding.toBytes(new BigDecimal("42"), true);
+        byte[] bytesAsc = BigDecimalEncoding.toBytes(new BigDecimal("42"), false);
+        assertNull(BigDecimalEncoding.toBigDecimal(bytesAsc, true));
+        assertNull(BigDecimalEncoding.toBigDecimal(bytesDes, false));
     }
 
     @Test

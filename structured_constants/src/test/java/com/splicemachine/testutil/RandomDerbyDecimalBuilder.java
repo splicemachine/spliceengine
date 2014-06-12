@@ -61,9 +61,7 @@ public class RandomDerbyDecimalBuilder {
         checkArgument(scale <= precision);
 
         BigInteger unscaledVal = new BigInteger((negative ? "-" : "") + RandomStringUtils.randomNumeric(precision));
-        BigDecimal bigDecimal = new BigDecimal(unscaledVal, scale);
-        System.out.println("---> " + bigDecimal);
-        return bigDecimal;
+        return new BigDecimal(unscaledVal, scale);
     }
 
 
