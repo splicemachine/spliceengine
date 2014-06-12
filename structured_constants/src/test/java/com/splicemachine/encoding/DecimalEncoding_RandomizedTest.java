@@ -1,46 +1,42 @@
 package com.splicemachine.encoding;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.testutil.RandomDerbyDecimalBuilder;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Random;
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Scott Fines
  * Created on: 6/7/13
  */
 @RunWith(Parameterized.class)
-public class RandomizedDecimalEncodingTest {
-    private static final int numTests=50;
-    private static final int numValuesPerTest=1000;
-    private static final int maxSizePerDecimal=17;
+public class DecimalEncoding_RandomizedTest {
+
+    private static final int NUM_TESTS =50;
+    private static final int NUM_VALUES_PER_TEST =1000;
+    private static final RandomDerbyDecimalBuilder DERBY_DECIMAL_BUILDER = new RandomDerbyDecimalBuilder().withNegatives(true);
 
     @Parameterized.Parameters
     public static Collection<Object[]> getParameters() {
-        Random random = new Random();
-        Collection<Object[]> data = Lists.newArrayListWithCapacity(numTests);
-        for(int i=0;i<numTests;i++){
-            BigDecimal[] values = new BigDecimal[numValuesPerTest];
-            for(int j=0;j<values.length;j++){
-                values[j] = new BigDecimal(new BigInteger(maxSizePerDecimal,random),random.nextInt(maxSizePerDecimal));
-            }
-            data.add(new Object[]{values});
+        Collection<Object[]> data = Lists.newArrayListWithCapacity(NUM_TESTS);
+        for (int i = 0; i < NUM_TESTS; i++) {
+            data.add(new Object[]{DERBY_DECIMAL_BUILDER.buildArray(NUM_VALUES_PER_TEST)});
         }
         return data;
     }
 
     private final BigDecimal[] data;
 
-    public RandomizedDecimalEncodingTest(BigDecimal[] data) {
+    public DecimalEncoding_RandomizedTest(BigDecimal[] data) {
         this.data = data;
     }
 
@@ -50,43 +46,33 @@ public class RandomizedDecimalEncodingTest {
             byte[] data = DecimalEncoding.toBytes(decimal,false);
             BigDecimal ret = DecimalEncoding.toBigDecimal(data,false);
 
-            Assert.assertTrue(decimal.compareTo(ret)==0);
+            assertTrue(decimal.compareTo(ret) == 0);
 
             //decode the negative version too, just to make sure
             byte[] negData = DecimalEncoding.toBytes(decimal.negate(),false);
             ret  = DecimalEncoding.toBigDecimal(negData,false);
 
-            Assert.assertTrue(decimal.negate().compareTo(ret)==0);
+            assertTrue(decimal.negate().compareTo(ret) == 0);
         }
     }
 
     @Test
     public void testSortsBytesCorrectly() throws Exception {
-        byte[][] serData = new byte[data.length][];
-        for(int pos=0;pos<data.length;pos++){
-            serData[pos] = DecimalEncoding.toBytes(data[pos],false);
+        List<byte[]> serializedDecimals = Lists.newArrayList();
+        for (BigDecimal aData : data) {
+            serializedDecimals.add(DecimalEncoding.toBytes(aData, false));
         }
 
-        Arrays.sort(serData, Bytes.BYTES_COMPARATOR);
+        Collections.sort(serializedDecimals, Bytes.BYTES_COMPARATOR);
 
         //deserialize
-        BigDecimal[] deDat = new BigDecimal[serData.length];
-        for(int pos=0;pos<deDat.length;pos++){
-            deDat[pos] = DecimalEncoding.toBigDecimal(serData[pos],false);
+        BigDecimal last = null;
+        BigDecimal current;
+        for (byte[] serializedBytes : serializedDecimals) {
+            current = DecimalEncoding.toBigDecimal(serializedBytes, false);
+            assertTrue(String.format("last='%s', current='%s'", last, current), last == null || current.compareTo(last) >= 0);
+            last = current;
         }
-
-        for(int dePos=0;dePos<deDat.length;dePos++){
-            BigDecimal toCompare = deDat[dePos];
-            for(int i=0;i<dePos;i++){
-                BigDecimal lessThan = deDat[i];
-                Assert.assertTrue("Incorrect sort at position "+ dePos,lessThan.compareTo(toCompare)<=0);
-            }
-            for(int i=dePos+1;i<deDat.length;i++){
-                BigDecimal greaterThan = deDat[i];
-                Assert.assertTrue("Incorrect sort at position " + dePos,greaterThan.compareTo(toCompare)>=0);
-            }
-        }
-
     }
 
     @Test
@@ -101,7 +87,7 @@ public class RandomizedDecimalEncodingTest {
 
             BigDecimal result = Encoding.decodeBigDecimal(convertToDescending(bigDecBytes), true);
 
-            Assert.assertTrue(result.compareTo(testNum)==0);
+            assertTrue(result.compareTo(testNum) == 0);
 
             //check the negation as well
             BigDecimal t = testNum.negate();
@@ -109,7 +95,7 @@ public class RandomizedDecimalEncodingTest {
 
             result = Encoding.decodeBigDecimal(convertToDescending(bigDecBytes), true);
 
-            Assert.assertTrue(result.compareTo(t)==0);
+            assertTrue(result.compareTo(t) == 0);
         }
 
     }
