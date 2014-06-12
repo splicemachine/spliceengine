@@ -10,8 +10,6 @@ import org.junit.runners.Parameterized;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.Random;
 
 /**
@@ -49,8 +47,8 @@ public class DoubleEncodingTest {
     @Test
     public void testCanSerializeAndDeserializeCorrectly() throws Exception {
         for(double datum:data){
-            byte[] test = DecimalEncoding.toBytes(datum,false);
-            double ret = DecimalEncoding.toDouble(test,false);
+            byte[] test = DoubleEncoding.toBytes(datum, false);
+            double ret = DoubleEncoding.toDouble(test, false);
             Assert.assertEquals("Incorrect encoding",datum,ret,Math.pow(10,-12));
         }
     }
@@ -58,8 +56,8 @@ public class DoubleEncodingTest {
     @Test
     public void testCanSerializeAndDeserializeByteBuffersCorrectly() throws Exception {
         for(double datum:data){
-            byte[] test = DecimalEncoding.toBytes(datum,false);
-            double ret = DecimalEncoding.toDouble(ByteBuffer.wrap(test), false);
+            byte[] test = DoubleEncoding.toBytes(datum, false);
+            double ret = DoubleEncoding.toDouble(ByteBuffer.wrap(test), false);
             Assert.assertEquals("Incorrect encoding",datum,ret,Math.pow(10,-12));
         }
     }
@@ -68,14 +66,14 @@ public class DoubleEncodingTest {
     public void testCanSortByBytes() throws Exception {
         byte[][] dataBytes = new byte[data.length][];
         for(int pos=0;pos<data.length;pos++){
-            dataBytes[pos] = DecimalEncoding.toBytes(data[pos],false);
+            dataBytes[pos] = DoubleEncoding.toBytes(data[pos], false);
         }
 
         Arrays.sort(dataBytes, Bytes.BYTES_COMPARATOR);
 
         double[] deserialized = new double[dataBytes.length];
         for(int pos=0;pos<deserialized.length;pos++){
-            deserialized[pos] = DecimalEncoding.toDouble(dataBytes[pos],false);
+            deserialized[pos] = DoubleEncoding.toDouble(dataBytes[pos], false);
         }
 
         Arrays.sort(data);
@@ -87,14 +85,14 @@ public class DoubleEncodingTest {
     public void testCanSortByBytesReversed() throws Exception {
         byte[][] dataBytes = new byte[data.length][];
         for(int pos=0;pos<data.length;pos++){
-            dataBytes[pos] = DecimalEncoding.toBytes(data[pos],true);
+            dataBytes[pos] = DoubleEncoding.toBytes(data[pos], true);
         }
 
         Arrays.sort(dataBytes, Bytes.BYTES_COMPARATOR);
 
         double[] deserialized = new double[dataBytes.length];
         for(int pos=0;pos<deserialized.length;pos++){
-            deserialized[pos] = DecimalEncoding.toDouble(dataBytes[pos],true);
+            deserialized[pos] = DoubleEncoding.toDouble(dataBytes[pos], true);
         }
 
         Arrays.sort(data);

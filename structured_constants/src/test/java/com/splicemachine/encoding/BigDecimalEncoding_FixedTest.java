@@ -44,37 +44,37 @@ public class BigDecimalEncoding_FixedTest {
         double a = 0;
 
         System.out.println(pad(Double.doubleToLongBits(a)));
-        byte[] data = DecimalEncoding.toBytes(a,false);
+        byte[] data = DoubleEncoding.toBytes(a, false);
         System.out.println(Arrays.toString(data));
 
         long l = Long.MAX_VALUE | Long.MIN_VALUE;
         System.out.println(pad(l));
-        System.out.println(Arrays.toString(DecimalEncoding.toBytes(Double.longBitsToDouble(l), false)));
+        System.out.println(Arrays.toString(DoubleEncoding.toBytes(Double.longBitsToDouble(l), false)));
         System.out.println(Double.longBitsToDouble(l));
         l ^=(l>>>11);
         System.out.println(pad(l));
-        System.out.println(Arrays.toString(DecimalEncoding.toBytes(Double.longBitsToDouble(l), false)));
+        System.out.println(Arrays.toString(DoubleEncoding.toBytes(Double.longBitsToDouble(l), false)));
         System.out.println(Double.longBitsToDouble(l));
         l &=(l>>>8);
         l |= Long.MIN_VALUE>>2;
         l &= Long.MIN_VALUE>>2;
         System.out.println(pad(l));
-        System.out.println(Arrays.toString(DecimalEncoding.toBytes(Double.longBitsToDouble(l), false)));
+        System.out.println(Arrays.toString(DoubleEncoding.toBytes(Double.longBitsToDouble(l), false)));
         System.out.println(Double.longBitsToDouble(l));
         l &=(l>>>8);
         l |= Long.MIN_VALUE>>2;
         l &= Long.MIN_VALUE>>2;
         System.out.println(pad(l));
-        System.out.println(Arrays.toString(DecimalEncoding.toBytes(Double.longBitsToDouble(l),false)));
+        System.out.println(Arrays.toString(DoubleEncoding.toBytes(Double.longBitsToDouble(l), false)));
         System.out.println(Double.longBitsToDouble(l));
 
         int i = Integer.MAX_VALUE | Integer.MIN_VALUE;
         System.out.println(pad(i));
-        System.out.println(Arrays.toString(DecimalEncoding.toBytes(Float.intBitsToFloat(i),false)));
+        System.out.println(Arrays.toString(FloatEncoding.toBytes(Float.intBitsToFloat(i), false)));
         System.out.println(Float.intBitsToFloat(i));
         i ^= (i>>>9);
         System.out.println(pad(i));
-        System.out.println(Arrays.toString(DecimalEncoding.toBytes(Float.intBitsToFloat(i),false)));
+        System.out.println(Arrays.toString(FloatEncoding.toBytes(Float.intBitsToFloat(i), false)));
         System.out.println(Float.intBitsToFloat(i));
     }
 

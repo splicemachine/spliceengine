@@ -46,8 +46,8 @@ public class FloatEncodingTest {
     @Test
     public void testCanSerializeAndDeserializeCorrectly() throws Exception {
         for(float datum:data){
-            byte[] bits = DecimalEncoding.toBytes(datum,false);
-            float deser = DecimalEncoding.toFloat(bits,false);
+            byte[] bits = FloatEncoding.toBytes(datum, false);
+            float deser = FloatEncoding.toFloat(bits, false);
             Assert.assertEquals("Incorrect encoding for value "+ datum,datum,deser,Math.pow(10,-6));
         }
     }
@@ -55,9 +55,9 @@ public class FloatEncodingTest {
     @Test
     public void testCanSerializeAndDeserializeByteBuffersCorrectly() throws Exception {
         for(float datum:data){
-            byte[] bits = DecimalEncoding.toBytes(datum,false);
+            byte[] bits = FloatEncoding.toBytes(datum, false);
             ByteBuffer wrap = ByteBuffer.wrap(bits);
-            float deser = DecimalEncoding.toFloat(wrap,false);
+            float deser = FloatEncoding.toFloat(wrap, false);
             Assert.assertEquals("Incorrect encoding for value "+ datum,datum,deser,Math.pow(10,-6));
         }
     }
@@ -66,14 +66,14 @@ public class FloatEncodingTest {
     public void testSortsBytesCorrectly() throws Exception {
         byte[][] dataElements = new byte[data.length][];
         for(int pos=0;pos<data.length;pos++){
-            dataElements[pos] = DecimalEncoding.toBytes(data[pos],false);
+            dataElements[pos] = FloatEncoding.toBytes(data[pos], false);
         }
 
         Arrays.sort(dataElements, Bytes.BYTES_COMPARATOR);
 
         float[] newData = new float[dataElements.length];
         for(int i=0;i<dataElements.length;i++){
-            newData[i] = DecimalEncoding.toFloat(dataElements[i],false);
+            newData[i] = FloatEncoding.toFloat(dataElements[i], false);
         }
 
         Arrays.sort(data);
@@ -85,14 +85,14 @@ public class FloatEncodingTest {
     public void testSortsBytesCorrectlyReversed() throws Exception {
         byte[][] dataElements = new byte[data.length][];
         for(int pos=0;pos<data.length;pos++){
-            dataElements[pos] = DecimalEncoding.toBytes(data[pos],true);
+            dataElements[pos] = FloatEncoding.toBytes(data[pos], true);
         }
 
         Arrays.sort(dataElements, Bytes.BYTES_COMPARATOR);
 
         float[] newData = new float[dataElements.length];
         for(int i=0;i<dataElements.length;i++){
-            newData[i] = DecimalEncoding.toFloat(dataElements[i],true);
+            newData[i] = FloatEncoding.toFloat(dataElements[i], true);
         }
 
         Arrays.sort(data);
