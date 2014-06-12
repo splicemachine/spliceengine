@@ -17,7 +17,7 @@ import java.util.Random;
  * Created on: 6/8/13
  */
 @RunWith(Parameterized.class)
-public class DoubleEncodingTest {
+public class DoubleEncoding_RandomizedTest {
     private static final int numTests=100;
     private static final int doublesPerTest=100;
     private static final int scale=100;
@@ -39,7 +39,7 @@ public class DoubleEncodingTest {
 
     private final double[] data;
 
-    public DoubleEncodingTest(double[] data) {
+    public DoubleEncoding_RandomizedTest(double[] data) {
         this.data = data;
     }
 
