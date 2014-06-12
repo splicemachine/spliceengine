@@ -13,27 +13,61 @@ public class BigDecimalEncoding_FixedTest {
 
     @Test
     public void testCanEncodeDecodeByteSpecificByteBuffersCorrectly() throws Exception {
-        BigDecimal value = new BigDecimal("37661026");
-        byte[] encoding = BigDecimalEncoding.toBytes(value, false);
-        BigDecimal decoded = BigDecimalEncoding.toBigDecimal(encoding, false);
-        assertTrue("Incorrect decoding. Expected <" + value + ">, Actual <" + value + ">", value.compareTo(decoded) == 0);
+        assertEncodeDecode(new BigDecimal("37661026"));
     }
 
     @Test
     public void testCanEncodedOnlyDecimalDescending() {
         /* Regression test to ensure this specific number decodes properly.  */
-        BigDecimal value = new BigDecimal("0.02308185311033106312805784909869544208049774169921875");
-        byte[] encoding = BigDecimalEncoding.toBytes(value, true);
-        BigDecimal decoded = BigDecimalEncoding.toBigDecimal(encoding, true);
-        assertTrue("Incorrect decoding. Expected <" + value + ">, Actual <" + value + ">", value.compareTo(decoded) == 0);
+        assertEncodeDecode(new BigDecimal("0.02308185311033106312805784909869544208049774169921875"));
     }
 
     @Test
     public void testEncodeBigDecimalZeros() throws Exception {
-        BigDecimal bigDecimalIn = new BigDecimal("00000000000000.012340004");
-        byte[] data = Encoding.encode(bigDecimalIn);
-        BigDecimal bigDecimalOut = Encoding.decodeBigDecimal(data);
-        assertTrue(bigDecimalIn.compareTo(bigDecimalOut) == 0);
+        assertEncodeDecode(new BigDecimal("00000000000000.012340004"));
+    }
+
+    @Test
+    public void testNearZero() {
+        assertEncodeDecode(new BigDecimal("0"));
+        assertEncodeDecode(new BigDecimal("-1"));
+        assertEncodeDecode(new BigDecimal("1"));
+        assertEncodeDecode(new BigDecimal("1e100"));
+        assertEncodeDecode(new BigDecimal("0.0"));
+        assertEncodeDecode(new BigDecimal("-1e-100"));
+        assertEncodeDecode(new BigDecimal("-1.0"));
+        assertEncodeDecode(new BigDecimal("1.0"));
+    }
+
+    @Test
+    public void testJavaBoundary() {
+        assertEncodeDecode(new BigDecimal(String.valueOf(Byte.MIN_VALUE)));
+        assertEncodeDecode(new BigDecimal(String.valueOf(Byte.MAX_VALUE)));
+        assertEncodeDecode(new BigDecimal(String.valueOf(Integer.MIN_VALUE)));
+        assertEncodeDecode(new BigDecimal(String.valueOf(Integer.MAX_VALUE)));
+        assertEncodeDecode(new BigDecimal(String.valueOf(Long.MIN_VALUE)));
+        assertEncodeDecode(new BigDecimal(String.valueOf(Long.MAX_VALUE)));
+        assertEncodeDecode(new BigDecimal(String.valueOf(Float.MIN_VALUE)));
+        assertEncodeDecode(new BigDecimal(String.valueOf(Float.MAX_VALUE)));
+        assertEncodeDecode(new BigDecimal(String.valueOf(Double.MIN_VALUE)));
+        assertEncodeDecode(new BigDecimal(String.valueOf(Double.MAX_VALUE)));
+    }
+
+    @Test
+    public void testDerbyDecimalMinAndMaxes() {
+        assertEncodeDecode(new BigDecimal("1.79769E+308"));
+        assertEncodeDecode(new BigDecimal("-1.79769E+308"));
+    }
+
+    private void assertEncodeDecode(BigDecimal bigDecimalIn) {
+        byte[] bytesDes = BigDecimalEncoding.toBytes(bigDecimalIn, true);
+        byte[] bytesAsc = BigDecimalEncoding.toBytes(bigDecimalIn, false);
+
+        BigDecimal decimalOutDes = BigDecimalEncoding.toBigDecimal(bytesDes, true);
+        BigDecimal decimalOutAsc = BigDecimalEncoding.toBigDecimal(bytesAsc, false);
+
+        assertTrue(decimalOutAsc.compareTo(bigDecimalIn) == 0);
+        assertTrue(decimalOutDes.compareTo(bigDecimalIn) == 0);
     }
 
 }
