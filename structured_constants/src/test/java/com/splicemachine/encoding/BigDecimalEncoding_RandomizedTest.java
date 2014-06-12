@@ -20,8 +20,8 @@ import static org.junit.Assert.assertTrue;
 @RunWith(Parameterized.class)
 public class BigDecimalEncoding_RandomizedTest {
 
-    private static final int NUM_TESTS =50;
-    private static final int NUM_VALUES_PER_TEST =1000;
+    private static final int NUM_TESTS = 50;
+    private static final int NUM_VALUES_PER_TEST = 1000;
     private static final RandomDerbyDecimalBuilder DERBY_DECIMAL_BUILDER = new RandomDerbyDecimalBuilder().withNegatives(true);
 
     @Parameterized.Parameters
@@ -41,17 +41,32 @@ public class BigDecimalEncoding_RandomizedTest {
 
     @Test
     public void testCanSerializeAndDeserializeCorrectly() throws Exception {
+
+        final boolean DESCENDING = true;
+        final boolean ASCENDING = false;
+
         for(BigDecimal decimal:data){
-            byte[] data = BigDecimalEncoding.toBytes(decimal, false);
-            BigDecimal ret = BigDecimalEncoding.toBigDecimal(data, false);
 
-            assertTrue(decimal.compareTo(ret) == 0);
+            // encode/decode, descending
+            byte[] b1 = BigDecimalEncoding.toBytes(decimal, DESCENDING);
+            BigDecimal d1 = BigDecimalEncoding.toBigDecimal(b1, DESCENDING);
+            assertTrue(decimal.compareTo(d1) == 0);
 
-            //decode the negative version too, just to make sure
-            byte[] negData = BigDecimalEncoding.toBytes(decimal.negate(), false);
-            ret  = BigDecimalEncoding.toBigDecimal(negData, false);
+            // encode/decode, descending, NEGATIVE
+            byte[] b2 = BigDecimalEncoding.toBytes(decimal.negate(), DESCENDING);
+            BigDecimal d2  = BigDecimalEncoding.toBigDecimal(b2, DESCENDING);
+            assertTrue(decimal.negate().compareTo(d2) == 0);
 
-            assertTrue(decimal.negate().compareTo(ret) == 0);
+            // encode/decode, ascending
+            byte[] b3 = BigDecimalEncoding.toBytes(decimal, ASCENDING);
+            BigDecimal d3 = BigDecimalEncoding.toBigDecimal(b3, ASCENDING);
+            assertTrue(decimal.compareTo(d3) == 0);
+
+            // encode/decode, ascending, NEGATIVE
+            byte[] b4 = BigDecimalEncoding.toBytes(decimal.negate(), ASCENDING);
+            BigDecimal d4 = BigDecimalEncoding.toBigDecimal(b4, ASCENDING);
+            assertTrue(decimal.negate().compareTo(d4) == 0);
+
         }
     }
 
