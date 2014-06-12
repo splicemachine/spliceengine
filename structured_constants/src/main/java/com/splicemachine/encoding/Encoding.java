@@ -1,10 +1,8 @@
 package com.splicemachine.encoding;
 
 import com.splicemachine.constants.bytes.BytesUtil;
-import org.apache.hadoop.hbase.util.Bytes;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 
 /**
  * Utilities for encoding various values using a sort-order preserving encoding
@@ -507,7 +505,7 @@ public final class Encoding {
      * @return an ascending, order-preserving encoding of {@code value}.
      */
     public static byte[] encode(BigDecimal value){
-        return DecimalEncoding.toBytes(value, false);
+        return BigDecimalEncoding.toBytes(value, false);
     }
 
     /**
@@ -519,7 +517,7 @@ public final class Encoding {
      * @return the BigDecimal represented by {@code data}.
      */
     public static BigDecimal decodeBigDecimal(byte[] data){
-        return DecimalEncoding.toBigDecimal(data, false);
+        return BigDecimalEncoding.toBigDecimal(data, false);
     }
 
     /**
@@ -534,7 +532,7 @@ public final class Encoding {
      * @return an order-preserving encoding of {@code value}
      */
     public static byte[] encode(BigDecimal value,boolean desc){
-        return DecimalEncoding.toBytes(value, desc);
+        return BigDecimalEncoding.toBytes(value, desc);
     }
 
     /**
@@ -549,11 +547,11 @@ public final class Encoding {
      * @return the BigDecimal represented by {@code data}
      */
     public static BigDecimal decodeBigDecimal(byte[] data,boolean desc){
-        return DecimalEncoding.toBigDecimal(data, desc);
+        return BigDecimalEncoding.toBigDecimal(data, desc);
     }
 
     public static BigDecimal decodeBigDecimal(byte[] data,int offset,int length,boolean desc){
-        return DecimalEncoding.toBigDecimal(data,offset,length,desc);
+        return BigDecimalEncoding.toBigDecimal(data, offset, length, desc);
     }
 
     /**

@@ -31,8 +31,8 @@ public class SpecialEncodingTest {
     @Test
     public void testEncodeNegativeBigDecimal() throws Exception {
         BigDecimal value = new BigDecimal("-4440.3232");
-        byte[] test = DecimalEncoding.toBytes(value,false);
-        BigDecimal ret = DecimalEncoding.toBigDecimal(test,false);
+        byte[] test = BigDecimalEncoding.toBytes(value, false);
+        BigDecimal ret = BigDecimalEncoding.toBigDecimal(test, false);
         Assert.assertTrue(value.subtract(ret).compareTo(BigDecimal.valueOf(Math.pow(10,-6)))<0);
 
     }
