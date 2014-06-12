@@ -14,6 +14,7 @@ public class BigDecimalEncoding_FixedTest {
     @Test
     public void testCanEncodeDecodeByteSpecificByteBuffersCorrectly() throws Exception {
         assertEncodeDecode(new BigDecimal("37661026"));
+        assertEncodeDecode(new BigDecimal("-4440.3232"));
     }
 
     @Test
