@@ -113,7 +113,7 @@ public class MultiFieldEncoder {
 
     public MultiFieldEncoder encodeNext(float value,boolean desc){
 //        assert currentPos<fields.length;
-        byte[] bytes = DecimalEncoding.toBytes(value, desc);
+        byte[] bytes = FloatEncoding.toBytes(value, desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
         currentPos++;
@@ -123,7 +123,7 @@ public class MultiFieldEncoder {
 
     public MultiFieldEncoder encodeNext(double value){
 //        assert currentPos<fields.length;
-        byte[] bytes = DecimalEncoding.toBytes(value, false);
+        byte[] bytes = DoubleEncoding.toBytes(value, false);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
         currentPos++;
@@ -132,7 +132,7 @@ public class MultiFieldEncoder {
 
     public MultiFieldEncoder encodeNext(double value,boolean desc){
 //        assert currentPos<fields.length;
-        byte[] bytes = DecimalEncoding.toBytes(value, desc);
+        byte[] bytes = DoubleEncoding.toBytes(value, desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
         currentPos++;
