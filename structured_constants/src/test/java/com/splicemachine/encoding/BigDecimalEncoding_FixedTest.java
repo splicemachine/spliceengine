@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.math.BigDecimal;
 
 import static com.splicemachine.encoding.EncodingTestUtil.assertEncodeDecode;
+import static org.junit.Assert.assertArrayEquals;
 
 /*
  * Test BigDecimalEncoding with specific (aka fixed) values.
@@ -58,6 +59,12 @@ public class BigDecimalEncoding_FixedTest {
     public void testDerbyDecimalMinAndMaxes() {
         assertEncodeDecode(new BigDecimal("1.79769E+308"));
         assertEncodeDecode(new BigDecimal("-1.79769E+308"));
+    }
+
+    @Test
+    public void testEncodingOfZeroIsAlwaysOneByte() {
+        assertArrayEquals(new byte[] {-128}, BigDecimalEncoding.toBytes(BigDecimal.ZERO, false));
+        assertArrayEquals(new byte[] {64}, BigDecimalEncoding.toBytes(BigDecimal.ZERO, true));
     }
 
 }
