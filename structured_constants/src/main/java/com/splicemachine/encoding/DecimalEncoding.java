@@ -101,14 +101,6 @@ final class DecimalEncoding {
         BigInteger i = value.unscaledValue();
 
         byte[] data;
-        if(i==null){
-            data = new byte[1];
-            byte b = 0x00;
-            if(desc)
-                b ^= 0xff;
-            data[0] = (byte)(b<<Byte.SIZE-2);
-            return data;
-        }
 
         if(i.signum()==0){
             data = new byte[1];
