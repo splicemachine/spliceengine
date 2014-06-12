@@ -1,25 +1,22 @@
 package com.splicemachine.encoding;
 
+import com.splicemachine.testutil.BitFormat;
 import org.junit.Test;
 
 import java.util.Arrays;
 
-/**
- * @author Scott Fines
- *         Created on: 7/11/13
+import static org.junit.Assert.assertEquals;
+
+/*
+ * Test byte/short/int/long with specific (a.k.a fixed) values.
  */
 public class ScalarEncoding_FixedTest {
 
     @Test
     public void testEncodeDecodeInteger() throws Exception {
         byte[] data = new byte[]{(byte)0xE0,(byte)0x47,(byte)0x66};
-//        byte[] data = new byte[]{(byte)0xB4};
         int val = Encoding.decodeInt(data);
-        System.out.println(val);
-
-//        data = new byte[]{(byte)0x82};
-//        val = Encoding.decodeInt(data);
-//        System.out.println(val);
+        assertEquals(18278, val);
     }
 
     @Test
@@ -33,8 +30,40 @@ public class ScalarEncoding_FixedTest {
                 System.out.println("byte [] "+ Arrays.toString(dataElements[i])+ " is not a valid scalar");
             }
         }
+    }
 
-//        System.out.println(Encoding.decodeInt(new byte[]{-47,0}));
+    @Test
+    public void testLong() {
+        long minLong = Long.MAX_VALUE | Long.MIN_VALUE;
+        assertEquals("1111111111111111111111111111111111111111111111111111111111111111", BitFormat.pad(minLong));
+
+        assertEquals("[-1, -8, 0, 0, 0, 0, 0, 1]", Arrays.toString(DoubleEncoding.toBytes(Double.longBitsToDouble(minLong), false)));
+
+        minLong ^= (minLong >>> 11);
+        assertEquals("1111111111100000000000000000000000000000000000000000000000000000", BitFormat.pad(minLong));
+        assertEquals("[0, 32, 0, 0, 0, 0, 0, 0]", Arrays.toString(DoubleEncoding.toBytes(Double.longBitsToDouble(minLong), false)));
+
+        minLong &= (minLong >>> 8);
+        minLong |= Long.MIN_VALUE >> 2;
+        minLong &= Long.MIN_VALUE >> 2;
+        assertEquals("1110000000000000000000000000000000000000000000000000000000000000", BitFormat.pad(minLong));
+        assertEquals("[32, 0, 0, 0, 0, 0, 0, 0]", Arrays.toString(DoubleEncoding.toBytes(Double.longBitsToDouble(minLong), false)));
+
+        minLong &= (minLong >>> 8);
+        minLong |= Long.MIN_VALUE >> 2;
+        minLong &= Long.MIN_VALUE >> 2;
+        assertEquals("1110000000000000000000000000000000000000000000000000000000000000", BitFormat.pad(minLong));
+        assertEquals("[32, 0, 0, 0, 0, 0, 0, 0]", Arrays.toString(DoubleEncoding.toBytes(Double.longBitsToDouble(minLong), false)));
+    }
+
+    @Test
+    public void testInt() {
+        int i = Integer.MAX_VALUE | Integer.MIN_VALUE;
+        assertEquals("11111111111111111111111111111111", BitFormat.pad(i));
+        assertEquals("[-1, -64, 0, 1]", Arrays.toString(FloatEncoding.toBytes(Float.intBitsToFloat(i), false)));
+        i ^= (i >>> 9);
+        assertEquals("11111111100000000000000000000000", BitFormat.pad(i));
+        assertEquals("[0, -128, 0, 0]", Arrays.toString(FloatEncoding.toBytes(Float.intBitsToFloat(i), false)));
     }
 
 }

@@ -14,9 +14,8 @@ import java.util.List;
 
 import static org.junit.Assert.assertTrue;
 
-/**
- * @author Scott Fines
- * Created on: 6/7/13
+/*
+ * Test BigDecimalEncoding with random values.
  */
 @RunWith(Parameterized.class)
 public class BigDecimalEncoding_RandomizedTest {
