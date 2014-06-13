@@ -52,6 +52,7 @@ import org.apache.log4j.Logger;
 
 
 public class IndexConglomerate extends SpliceConglomerate {
+		private static final long serialVersionUID = 4l;
 	protected static Logger LOG = Logger.getLogger(IndexConglomerate.class);
 	protected static final String PROPERTY_BASECONGLOMID = "baseConglomerateId";
 	protected static final String PROPERTY_ROWLOCCOLUMN  = "rowLocationColumn";

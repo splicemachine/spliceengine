@@ -26,14 +26,22 @@ public class DerbyBytesUtil {
 
 		@SuppressWarnings("unchecked")
 		public static <T> T fromBytes(byte[] bytes) throws StandardException {
-				ByteDataInput bdi = null;
 				try {
-						bdi = new ByteDataInput(bytes);
-						return (T) bdi.readObject();
+						return fromBytesUnsafe(bytes);
 				} catch (Exception e) {
-						Closeables.closeQuietly(bdi);
 						SpliceLogUtils.logAndThrow(LOG, "fromBytes Exception", Exceptions.parseException(e));
 						return null; //can't happen
+				}
+		}
+
+		@SuppressWarnings("unchecked")
+		public static <T> T fromBytesUnsafe(byte[] bytes) throws IOException, ClassNotFoundException {
+				ByteDataInput bdi = null;
+				try{
+						bdi = new ByteDataInput(bytes);
+						return (T) bdi.readObject();
+				}finally{
+						Closeables.closeQuietly(bdi);
 				}
 		}
 
