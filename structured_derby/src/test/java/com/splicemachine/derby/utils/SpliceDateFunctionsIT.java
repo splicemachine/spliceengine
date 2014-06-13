@@ -175,7 +175,7 @@ public class SpliceDateFunctionsIT {
 	    }
     }
     @Test
-    public void testTruncDateFunction() throws Exception {
+     public void testTruncDateFunction() throws Exception {
         ResultSet rs;
         rs = methodWatcher.executeQuery("SELECT TRUNC_DATE(col1, col2), col3 from " + tableWatcherG);
         while (rs.next()) {
