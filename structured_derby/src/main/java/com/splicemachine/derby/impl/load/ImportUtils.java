@@ -180,6 +180,16 @@ public class ImportUtils {
 				 * deal with each case separately
 				 */
 				String colDefault = rs.getString(COLUMNDEFAULT_POSIITON);
+				 if(colDefault!=null) {
+	                  if(colType== Types.CHAR||colType==Types.VARCHAR||colType==Types.LONGVARCHAR) {
+	                      if (colDefault.startsWith("\'") && colDefault.endsWith("\'")) {
+	                          StringBuilder sb = new StringBuilder(colDefault);
+	                          sb.deleteCharAt(0);
+	                          sb.deleteCharAt(sb.length() - 1);
+	                          colDefault = sb.toString();
+	                      }
+	                  }
+	                }
 				String isAutoIncrement = rs.getString(ISAUTOINCREMENT_POSIITON);
 				boolean hasIncrementPrefix = colDefault!=null && colDefault.startsWith(AUTOINCREMENT_PREFIX);
 				if (!"YES".equals(isAutoIncrement) || !hasIncrementPrefix) {
