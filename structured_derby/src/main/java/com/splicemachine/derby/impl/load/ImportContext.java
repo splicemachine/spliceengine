@@ -304,6 +304,7 @@ public class ImportContext implements Externalizable{
 				}
 
 				public Builder colDelimiter(String columnDelimiter) {
+						if(columnDelimiter==null) return this; //rely on defaults
 						String colDelim = StringUtils.parseControlCharacters(columnDelimiter);
 						if(System.getProperty("line.separator").equals(colDelim)){
 								throw new AssertionError("cannot use linebreaks as column separators");
@@ -372,7 +373,7 @@ public class ImportContext implements Externalizable{
 				public ImportContext build() throws StandardException {
 						Preconditions.checkNotNull(filePath,"No File specified!");
 						Preconditions.checkNotNull(tableId,"No destination table specified!");
-						Preconditions.checkNotNull(columnDelimiter,"No column Delimiter specified");
+//						Preconditions.checkNotNull(columnDelimiter,"No column Delimiter specified");
 						Preconditions.checkNotNull(transactionId,"No transactionId specified");
 
 
