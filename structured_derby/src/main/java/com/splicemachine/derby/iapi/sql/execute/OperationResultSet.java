@@ -7,6 +7,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.impl.sql.execute.operations.ExplainOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
+import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.Exceptions;
@@ -55,6 +56,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     private boolean closed = false;
     private long parentOperationID = -1l;
     private long statementId;
+    private SpliceBaseOperation.XplainOperationChainInfo operationChainInfo;
 
 		private StatementInfo statementInfo;
 		private long scrollUuid;
@@ -141,13 +143,14 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         if(PLAN_LOG.isDebugEnabled() && Boolean.valueOf(System.getProperty("derby.language.logQueryPlan"))){
             PLAN_LOG.debug(topOperation.prettyPrint(1));
         }
-
     }
 
     public SpliceRuntimeContext sinkOpen(boolean useProbe, boolean showStatementInfo) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG,"openCore");
         closed=false;
         if(delegate!=null) delegate.close();
+        SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
+
         try {
             SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation);
             topOperation.init(operationContext);
@@ -160,13 +163,22 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         }
 
         try{
-            SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
+
             if(showStatementInfo)
                 runtimeContext.setStatementInfo(statementInfo);
             if(activation.getLanguageConnectionContext().getStatisticsTiming()){
                 runtimeContext.recordTraceMetrics();
                 String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
                 runtimeContext.setXplainSchema(xplainSchema);
+            }
+
+            List<SpliceBaseOperation.XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
+            if (operationChain != null && operationChain.size() > 0) {
+                operationChainInfo = operationChain.get(operationChain.size()-1);
+                runtimeContext.recordTraceMetrics();
+                runtimeContext.setXplainSchema(operationChainInfo.getXplainSchema());
+                parentOperationID = operationChainInfo.getOperationId();
+                statementId = operationChainInfo.getStatementId();
             }
 
             List<byte[]> taskChain = OperationSink.taskChain.get();
@@ -202,8 +214,10 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 					 * We add an extra OperationInfo on the top here to indicate that there is
 					 * a "Scroll Insensitive" which returns the final output.
 					 */
+                        String m = operationChainInfo==null ? null : operationChainInfo.getMethodName();
 						scrollUuid = SpliceDriver.driver().getUUIDGenerator().nextUUID();
-						OperationInfo opInfo = new OperationInfo(scrollUuid,statementId,"ScrollInsensitive", null, false,parentOperationID);
+						OperationInfo opInfo = new OperationInfo(scrollUuid,statementId,"ScrollInsensitive",
+                                m, false,parentOperationID);
 						info.add(opInfo);
 				}else{
 						scrollUuid = -1l;
@@ -401,12 +415,19 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     public void close() throws StandardException {
 				if(statementInfo!=null){
 						statementInfo.markCompleted();
-						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-						boolean explain = xplainSchema !=null &&
+                        String xplainSchema = null;
+                        if (operationChainInfo != null) {
+                            xplainSchema = operationChainInfo.getXplainSchema();
+                        }
+                        else {
+                            xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
+                        }
+
+                        boolean explain = xplainSchema !=null &&
                                 (activation.getLanguageConnectionContext().getRunTimeStatisticsMode() ||
-                                topOperation.shouldRecordStats());
-						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,
-										explain? xplainSchema: null);
+                                        topOperation.shouldRecordStats());
+                        SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,
+                                explain? xplainSchema: null);
 						statementInfo = null; //remove the field in case we call close twice
 				}
         if(delegate!=null)delegate.close();
