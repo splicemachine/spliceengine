@@ -47,6 +47,9 @@ import java.util.List;
 public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable {
 		private static final long serialVersionUID = 4l;
 		private static Logger LOG = Logger.getLogger(SpliceBaseOperation.class);
+        public static ThreadLocal<List<XplainOperationChainInfo>> operationChain =
+                new ThreadLocal<List<XplainOperationChainInfo>>();
+        protected XplainOperationChainInfo operationChainInfo;
 		protected String xplainSchema;
 		/* Run time statistics variables */
 		public int numOpens;
@@ -124,9 +127,20 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 															 int resultSetNumber,
 															 double optimizerEstimatedRowCount,
 															 double optimizerEstimatedCost) throws StandardException {
-				if (statisticsTimingOn = activation.getLanguageConnectionContext().getStatisticsTiming()){
+
+                statisticsTimingOn = activation.getLanguageConnectionContext().getStatisticsTiming();
+                List<XplainOperationChainInfo> opChain = operationChain.get();
+                if (opChain != null) {
+                    statisticsTimingOn = statisticsTimingOn || opChain.size() > 0;
+                }
+				if (statisticsTimingOn){
 						beginTime = startExecutionTime = getCurrentTimeMillis();
-						xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
+                        if (opChain != null && opChain.size() > 0) {
+                            xplainSchema = opChain.get(opChain.size() - 1).getXplainSchema();
+                        }
+                        else {
+                            xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
+                        }
 				}
 				this.operationInformation = new DerbyOperationInformation(activation,optimizerEstimatedRowCount,optimizerEstimatedCost,resultSetNumber);
 				this.activation = activation;
@@ -660,4 +674,37 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
         public String getInfo() {return info;}
 
+        public class XplainOperationChainInfo {
+
+            private long statementId;
+            private long operationId;
+            private String xplainSchema;
+            private String methodName;
+
+            public XplainOperationChainInfo(long statementId, long operationId, String xplainSchema) {
+                this.statementId = statementId;
+                this.operationId = operationId;
+                this.xplainSchema = xplainSchema;
+            }
+
+            public long getStatementId() {
+                return statementId;
+            }
+
+            public long getOperationId() {
+                return operationId;
+            }
+
+            public String getXplainSchema() {
+                return xplainSchema;
+            }
+
+            public void setMethodName(String name) {
+                this.methodName = name;
+            }
+
+            public String getMethodName() {
+                return methodName;
+            }
+        }
 }

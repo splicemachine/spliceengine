@@ -1,5 +1,7 @@
 package com.splicemachine.derby.management;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.splicemachine.derby.impl.sql.catalog.SpliceXplainUtils;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -9,6 +11,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.Deque;
+import java.util.List;
+import java.util.NavigableMap;
 
 /**
  * Created by jyuan on 5/8/14.
@@ -18,6 +22,7 @@ public class XPlainTrace {
 
     private static final String operationTableName = "SYSXPLAIN_OPERATIONHISTORY";
     private static final String taskTableName = "SYSXPLAIN_TASKHISTORY";
+    private static final String projectRestrict = "ProjectRestrict";
 
     /* SYSCS_UTIL.XPLAIN_TRACE() parameters */
     private String schemaName;
@@ -57,6 +62,8 @@ public class XPlainTrace {
 
             aggregateTableScan();
 
+            aggregateSubqueries();
+
             populateSequenceId(topOperation);
 
             if (format.toUpperCase().compareTo("TREE") == 0) {
@@ -74,6 +81,39 @@ public class XPlainTrace {
             throw e;
         } finally {
             connection.close();
+        }
+    }
+
+    private void aggregateSubqueries() throws IllegalAccessException{
+
+        // Walk through the tree, find all ProjectRestrict node that has a subquery
+        NavigableMap<Integer, List<XPlainTreeNode>> subqueryMap = Maps.newTreeMap();
+        populateSubQueryMap(topOperation, subqueryMap, 0);
+
+        // Aggregate subqueries
+        for(Integer level:subqueryMap.descendingKeySet()) {
+            List<XPlainTreeNode> l = subqueryMap.get(level);
+            for(XPlainTreeNode node:l) {
+                node.aggregateSubquery();
+            }
+        }
+    }
+
+    private void populateSubQueryMap(XPlainTreeNode node, NavigableMap<Integer,
+            List<XPlainTreeNode>> subqueryMap, int level) {
+
+        if (node.hasSubquery()) {
+            List<XPlainTreeNode> operations = subqueryMap.get(level);
+            if (operations == null) {
+                operations = Lists.newArrayList();
+                subqueryMap.put(level, operations);
+            }
+            operations.add(node);
+        }
+
+        Deque<XPlainTreeNode> children = node.getChildren();
+        for(XPlainTreeNode c:children) {
+            populateSubQueryMap(c, subqueryMap, level+1);
         }
     }
 

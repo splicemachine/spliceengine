@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
@@ -146,7 +147,18 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						restriction = new SpliceMethod<DataValueDescriptor>(restrictionMethodName,activation);
 				if (projectionMethodName != null)
 						projection = new SpliceMethod<ExecRow>(projectionMethodName,activation);
-				startExecutionTime = System.currentTimeMillis();
+
+                List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
+
+                // Prepare XplainOperationChainInfo record for subquery
+                if (operationChain != null && operationChain.size() > 0) {
+                    // This is in a subquery and explain trace is on
+                    XplainOperationChainInfo parent = operationChain.get(operationChain.size()-1);
+                    statisticsTimingOn = true;
+                    xplainSchema = parent.getXplainSchema();
+                }
+
+                startExecutionTime = System.currentTimeMillis();
 		}
 
 
@@ -240,6 +252,22 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 								if (restriction == null) {
 										restrict = true;
 								} else {
+                                        if (shouldRecordStats()) {
+                                            // Push the operation Id
+                                            if (operationChainInfo == null) {
+                                                operationChainInfo = new XplainOperationChainInfo(
+                                                    spliceRuntimeContext.getStatementId(),
+                                                    Bytes.toLong(uniqueSequenceID), xplainSchema);
+
+                                                operationChainInfo.setMethodName("Subquery: " + restrictionMethodName);
+                                            }
+                                            List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
+                                            if (operationChain == null) {
+                                                operationChain = Lists.newLinkedList();
+                                                SpliceBaseOperation.operationChain.set(operationChain);
+                                            }
+                                            operationChain.add(operationChainInfo);
+                                        }
 										setCurrentRow(candidateRow);
 										restrictBoolean = restriction.invoke();
 										// if the result is null, we make it false --
@@ -264,14 +292,19 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				currentRow = result;
 				setCurrentRow(currentRow);
 				if (statisticsTimingOn) {
-						if (! isTopResultSet) {
-								/* This is simply for RunTimeStats */
+						/*if (! isTopResultSet) {
+								// This is simply for RunTimeStats
 								//TODO: need to getStatementContext() from somewhere
 								if (activation.getLanguageConnectionContext().getStatementContext() == null)
 										SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
 								else
 										subqueryTrackingArray = activation.getLanguageConnectionContext().getStatementContext().getSubqueryTrackingArray();
-						}
+						}*/
+                        // Remove the last emelemt in the chain since this operation is exiting
+                        List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
+                        if (operationChain != null && operationChain.size() > 0) {
+                            operationChain.remove(operationChain.size() - 1);
+                        }
 						nextTime += getElapsedMillis(beginTime);
 				}
 				if(result ==null){

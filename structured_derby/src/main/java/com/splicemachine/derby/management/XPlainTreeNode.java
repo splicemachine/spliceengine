@@ -213,4 +213,51 @@ public class XPlainTreeNode {
     }
 
     public void setInfo(String info) {this.info = info;}
+
+    public String getInfo() {
+        return info;
+    }
+    public boolean hasSubquery() {
+        boolean result = false;
+
+        // A ProjectRestrict operation may contain a subquery
+        if (operationType.compareToIgnoreCase("ProjectRestrict") == 0) {
+            for(XPlainTreeNode n:children) {
+                if(n.getInfo().contains("Subquery:")) {
+                    return true;
+                }
+            }
+        }
+        return result;
+    }
+
+    public void aggregateSubquery() throws IllegalAccessException{
+
+        HashMap<String, XPlainTreeNode> nodeMap = new HashMap<String, XPlainTreeNode>();
+        while(!children.isEmpty()) {
+            XPlainTreeNode c = children.removeFirst();
+            String key = c.getInfo();
+            XPlainTreeNode node = nodeMap.get(key);
+            if (node != null) {
+                node.aggregateTree(c);
+            }
+            else {
+                node = c;
+            }
+            nodeMap.put(key, node);
+        }
+
+        for(String key:nodeMap.keySet()) {
+            children.add(nodeMap.get(key));
+        }
+    }
+
+    // Assume that the two trees has the same structure
+    public void aggregateTree(XPlainTreeNode other) throws IllegalAccessException{
+        aggregate(other);
+        for(XPlainTreeNode node:children) {
+            XPlainTreeNode otherChild = other.children.removeFirst();
+            node.aggregateTree(otherChild);
+        }
+    }
 }

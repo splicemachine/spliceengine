@@ -45,6 +45,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		private String xplainSchema;
 		private transient KryoPool kryoPool;
 		private TempTable tempTable;
+        private long statementId;
 
 		public SpliceRuntimeContext() {
 				this(SpliceDriver.driver().getTempTable(),SpliceDriver.driver().getKryoPool());
@@ -97,6 +98,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 				copy.isSink = isSink;
 				copy.currentTaskId = currentTaskId;
 				copy.statementInfo = statementInfo;
+                copy.statementId = statementId;
 				copy.xplainSchema = xplainSchema;
 				copy.recordTraceMetrics = recordTraceMetrics;
 				return copy;
@@ -105,6 +107,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 
 		public void setStatementInfo(StatementInfo statementInfo){
 				this.statementInfo = statementInfo;
+                this.statementId = statementInfo.getStatementUuid();
 		}
 
     public void addPath(int resultSetNumber, int state) {
@@ -137,6 +140,10 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
         out.writeByte(hashBucket);
         out.writeBoolean(firstStepInMultistep);
         out.writeBoolean(recordTraceMetrics);
+        out.writeBoolean(statementInfo != null);
+        if (statementInfo != null) {
+            out.writeLong(statementInfo.getStatementUuid());
+        }
     }
 
     @Override
@@ -149,6 +156,9 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
         hashBucket = in.readByte();
         firstStepInMultistep = in.readBoolean();
         this.recordTraceMetrics = in.readBoolean();
+        if(in.readBoolean()) {
+            this.statementId = in.readLong();
+        }
     }
 
 
@@ -253,6 +263,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		public StatementInfo getStatementInfo() {
 				return statementInfo;
 		}
+        public long getStatementId() { return statementId;};
 		public boolean shouldRecordTraceMetrics() { return recordTraceMetrics; }
 		public String getXplainSchema() { return xplainSchema; }
 		public void setXplainSchema(String xplainSchema) {
