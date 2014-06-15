@@ -11,6 +11,7 @@ import java.util.List;
 import static com.splicemachine.encoding.EncodingTestUtil.assertEncodeDecode;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 /*
  * Test BigDecimalEncoding with specific (aka fixed) values.
@@ -256,6 +257,14 @@ public class BigDecimalEncoding_FixedTest {
         Collections.shuffle(encodedBigDecimalsBytes);
         Collections.sort(encodedBigDecimalsBytes, Bytes.BYTES_COMPARATOR);
         assertEquals(bigDecimalList, EncodingTestUtil.toBigDecimal(encodedBigDecimalsBytes));
+    }
+
+    @Test
+    public void toBigDecimalReturnsNullWhenOrderParameterIsWrong() {
+        byte[] bytesDes = BigDecimalEncoding.toBytes(new BigDecimal("42"), true);
+        byte[] bytesAsc = BigDecimalEncoding.toBytes(new BigDecimal("42"), false);
+        assertNull(BigDecimalEncoding.toBigDecimal(bytesAsc, true));
+        assertNull(BigDecimalEncoding.toBigDecimal(bytesDes, false));
     }
 
 }

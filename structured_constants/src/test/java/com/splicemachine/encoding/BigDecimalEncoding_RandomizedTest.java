@@ -68,14 +68,6 @@ public class BigDecimalEncoding_RandomizedTest {
     }
 
     @Test
-    public void toBigDecimalReturnsNullWhenOrderParameterIsWrong() {
-        byte[] bytesDes = BigDecimalEncoding.toBytes(new BigDecimal("42"), true);
-        byte[] bytesAsc = BigDecimalEncoding.toBytes(new BigDecimal("42"), false);
-        assertNull(BigDecimalEncoding.toBigDecimal(bytesAsc, true));
-        assertNull(BigDecimalEncoding.toBigDecimal(bytesDes, false));
-    }
-
-    @Test
     public void testCanDecodeWhenManuallyConverted() throws Exception {
         /*
          * Some bits of code will manually convert from ascending to descending and back, this
