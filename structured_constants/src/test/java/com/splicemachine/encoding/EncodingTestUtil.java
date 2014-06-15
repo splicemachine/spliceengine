@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -17,6 +18,9 @@ public class EncodingTestUtil {
     public static void assertEncodeDecode(BigDecimal bigDecimalIn) {
         byte[] bytesDes = BigDecimalEncoding.toBytes(bigDecimalIn, true);
         byte[] bytesAsc = BigDecimalEncoding.toBytes(bigDecimalIn, false);
+
+        assertByteArrayDoesNotContainZero(bytesDes);
+        assertByteArrayDoesNotContainZero(bytesAsc);
 
         BigDecimal decimalOutDes = BigDecimalEncoding.toBigDecimal(bytesDes, true);
         BigDecimal decimalOutAsc = BigDecimalEncoding.toBigDecimal(bytesAsc, false);
@@ -70,5 +74,11 @@ public class EncodingTestUtil {
             bigDecimals.add(BigDecimalEncoding.toBigDecimal(bigDecimal, false));
         }
         return bigDecimals;
+    }
+
+    public static void assertByteArrayDoesNotContainZero(byte[] bytes) {
+        for(byte b : bytes) {
+            assertNotEquals(0 , b);
+        }
     }
 }
