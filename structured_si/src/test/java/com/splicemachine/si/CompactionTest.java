@@ -3,7 +3,6 @@ package com.splicemachine.si;
 import com.google.common.base.Function;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.coprocessors.RegionRollForwardAction;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.light.LStore;
@@ -11,7 +10,9 @@ import com.splicemachine.si.impl.RollForwardAction;
 import com.splicemachine.si.impl.SynchronousRollForwardQueue;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.impl.rollforward.RegionRollForwardAction;
 import com.splicemachine.utils.Providers;
+
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -22,6 +23,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -55,6 +57,16 @@ public class CompactionTest {
 																Providers.basicProvider(transactorSetup.transactionStore),
 																Providers.basicProvider(transactorSetup.dataStore)).rollForward(transactionId,rowList);
 												return true;
+										}
+
+										@Override
+										public Boolean rollForward(
+												long transactionId,
+												Long effectiveTimestamp,
+												byte[] rowKey)
+												throws IOException {
+											// TODO Auto-generated method stub
+											return null;
 										}
 								}, 10, 100, 1000, "test");
 				testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup,transactor,control);

@@ -1,8 +1,8 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.RollForwardFactory;
-import com.splicemachine.si.coprocessors.RegionRollForwardAction;
 import com.splicemachine.si.data.hbase.HbRegion;
+import com.splicemachine.si.impl.rollforward.RegionRollForwardAction;
 import com.splicemachine.utils.Provider;
 
 /**

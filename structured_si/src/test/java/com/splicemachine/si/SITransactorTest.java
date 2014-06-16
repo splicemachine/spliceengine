@@ -4,14 +4,15 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.*;
-import com.splicemachine.si.coprocessors.RegionRollForwardAction;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.light.*;
 import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.rollforward.RegionRollForwardAction;
 import com.splicemachine.si.impl.translate.Transcoder;
 import com.splicemachine.si.impl.translate.Translator;
 import com.splicemachine.utils.Providers;
+
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
@@ -21,6 +22,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.*;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -91,6 +93,14 @@ public class SITransactorTest extends SIConstants {
 																Providers.basicProvider(transactorSetup.dataStore)).rollForward(transactionId,rowList);
                         return true;
                     }
+
+					@Override
+					public Boolean rollForward(long transactionId,
+							Long effectiveTimestamp, byte[] rowKey)
+							throws IOException {
+						// TODO Auto-generated method stub
+						return null;
+					}
                 }, 10, 100, 1000, "test");
 				testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup,transactor,control);
     }

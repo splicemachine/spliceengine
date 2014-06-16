@@ -1,7 +1,10 @@
 package com.splicemachine.si.impl.rollforward;
 
 import com.splicemachine.si.impl.RollForwardAction;
-
+/**
+ * Placeholder for a RollForwardEvent
+ *
+ */
 public class RollForwardEvent {
 	private long transactionId;
 	private byte[] rowKey;
