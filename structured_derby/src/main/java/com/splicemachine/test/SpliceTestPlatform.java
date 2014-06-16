@@ -14,11 +14,15 @@ import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.coprocessors.SIObserver;
+import com.splicemachine.si.coprocessors.TimestampMasterObserver;
 import com.splicemachine.si.impl.TransactionId;
+
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
+
 import javax.annotation.Nullable;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
@@ -209,7 +213,9 @@ public class SpliceTestPlatform extends TestConstants {
                         CoprocessorTaskScheduler.class.getCanonicalName()+","+
                         SIObserver.class.getCanonicalName()
         );
-        configuration.set("hbase.coprocessor.master.classes", SpliceMasterObserver.class.getCanonicalName() + "");
+        configuration.set("hbase.coprocessor.master.classes",
+			SpliceMasterObserver.class.getCanonicalName() + "," +
+            TimestampMasterObserver.class.getCanonicalName());
     }
 
 }
