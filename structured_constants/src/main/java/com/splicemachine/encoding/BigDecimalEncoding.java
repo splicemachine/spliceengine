@@ -133,7 +133,7 @@ class BigDecimalEncoding {
         //our string encoding only requires 1 byte for 2 digits
         int length = (precision+1) >>>1;
 
-        data = new byte[expLength + length];
+        data = new byte[expLength + length + 1];
         System.arraycopy(expBytes,0,data,0,expBytes.length);
 
         String sigString = i.abs().toString(); //strip negatives off if necessary
@@ -150,6 +150,7 @@ class BigDecimalEncoding {
             data[expLength+pos] = bcd;
         }
 
+        data[data.length -1] = 1;
         if (value.signum() < 0) {
             for (int z = 0; z < data.length; z++) {
                 if (z == 0) {
@@ -174,7 +175,7 @@ class BigDecimalEncoding {
                 dataCopy[i] ^= 0xFF;
             }
         }
-        return toBigDecimal(dataCopy, 0, dataLength);
+        return toBigDecimal(dataCopy, 0, dataLength - 1);
     }
 
     private static BigDecimal toBigDecimal(byte[] data, int dataOffset, int dataLength) {

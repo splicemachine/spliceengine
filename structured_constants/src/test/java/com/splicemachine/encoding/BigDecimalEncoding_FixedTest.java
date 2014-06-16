@@ -65,7 +65,7 @@ public class BigDecimalEncoding_FixedTest {
     @Test
     public void testEncodingOfZeroIsAlwaysOneByte() {
         assertArrayEquals(new byte[]{-128}, BigDecimalEncoding.toBytes(BigDecimal.ZERO, false));
-        assertArrayEquals(new byte[]{64}, BigDecimalEncoding.toBytes(BigDecimal.ZERO, true));
+        assertArrayEquals(new byte[]{127}, BigDecimalEncoding.toBytes(BigDecimal.ZERO, true));
     }
 
     @Test
@@ -75,21 +75,21 @@ public class BigDecimalEncoding_FixedTest {
         assertEncodeDecode(BigDecimal.ONE.divide(BigDecimal.TEN.pow(64)));
         assertEncodeDecode(BigDecimal.ONE.divide(BigDecimal.TEN.pow(65)));
 
-        assertArrayEquals(new byte[]{48, 62, -33}, BigDecimalEncoding.toBytes(BigDecimal.ONE.divide(BigDecimal.TEN.pow(63)), true));
-        assertArrayEquals(new byte[]{-49, -63, 32}, BigDecimalEncoding.toBytes(BigDecimal.ONE.divide(BigDecimal.TEN.pow(63)), false));
+        assertArrayEquals(new byte[]{48, 62, -33, -2}, BigDecimalEncoding.toBytes(BigDecimal.ONE.divide(BigDecimal.TEN.pow(63)), true));
+        assertArrayEquals(new byte[]{-49, -63, 32, 1}, BigDecimalEncoding.toBytes(BigDecimal.ONE.divide(BigDecimal.TEN.pow(63)), false));
 
-        assertArrayEquals(new byte[]{48, 64, -33}, BigDecimalEncoding.toBytes(BigDecimal.ONE.divide(BigDecimal.TEN.pow(65)), true));
-        assertArrayEquals(new byte[]{-49, -65, 32}, BigDecimalEncoding.toBytes(BigDecimal.ONE.divide(BigDecimal.TEN.pow(65)), false));
+        assertArrayEquals(new byte[]{48, 64, -33, -2}, BigDecimalEncoding.toBytes(BigDecimal.ONE.divide(BigDecimal.TEN.pow(65)), true));
+        assertArrayEquals(new byte[]{-49, -65, 32, 1}, BigDecimalEncoding.toBytes(BigDecimal.ONE.divide(BigDecimal.TEN.pow(65)), false));
 
         assertEncodeDecode(BigDecimal.TEN.pow(62));
         assertEncodeDecode(BigDecimal.TEN.pow(63));
         assertEncodeDecode(BigDecimal.TEN.pow(64));
 
-        assertArrayEquals(new byte[]{15, -63, -33}, BigDecimalEncoding.toBytes(BigDecimal.TEN.pow(62), true));
-        assertArrayEquals(new byte[]{-16, 62, 32}, BigDecimalEncoding.toBytes(BigDecimal.TEN.pow(62), false));
+        assertArrayEquals(new byte[]{15, -63, -33, -2}, BigDecimalEncoding.toBytes(BigDecimal.TEN.pow(62), true));
+        assertArrayEquals(new byte[]{-16, 62, 32, 1}, BigDecimalEncoding.toBytes(BigDecimal.TEN.pow(62), false));
 
-        assertArrayEquals(new byte[]{15, -65, -33}, BigDecimalEncoding.toBytes(BigDecimal.TEN.pow(64), true));
-        assertArrayEquals(new byte[]{-16, 64, 32}, BigDecimalEncoding.toBytes(BigDecimal.TEN.pow(64), false));
+        assertArrayEquals(new byte[]{15, -65, -33, -2}, BigDecimalEncoding.toBytes(BigDecimal.TEN.pow(64), true));
+        assertArrayEquals(new byte[]{-16, 64, 32, 1}, BigDecimalEncoding.toBytes(BigDecimal.TEN.pow(64), false));
     }
 
     @Test
