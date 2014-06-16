@@ -1,16 +1,11 @@
 package com.splicemachine.encoding;
 
-import com.google.common.collect.Lists;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Test;
 
 import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.List;
 
 import static com.splicemachine.encoding.EncodingTestUtil.assertEncodeDecode;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 /*
@@ -95,168 +90,6 @@ public class BigDecimalEncoding_FixedTest {
 
         assertArrayEquals(new byte[]{15, -65, -33}, BigDecimalEncoding.toBytes(BigDecimal.TEN.pow(64), true));
         assertArrayEquals(new byte[]{-16, 64, 32}, BigDecimalEncoding.toBytes(BigDecimal.TEN.pow(64), false));
-    }
-
-    @Test
-    public void sort_positiveValue_negativeExponents() {
-        List<BigDecimal> bigDecimalList = Lists.newArrayList(
-                new BigDecimal(".5"),
-                new BigDecimal(".55"),
-                new BigDecimal(".555"),
-                new BigDecimal(".5555"),
-                new BigDecimal(".55555"),
-                new BigDecimal(".555555"),
-                new BigDecimal(".5555555"),
-                new BigDecimal(".55555555"),
-                new BigDecimal(".555555555"),
-                new BigDecimal(".5555555555"),
-                new BigDecimal(".55555555555"),
-                new BigDecimal(".555555555555"),
-                new BigDecimal(".5555555555555"),
-                new BigDecimal(".55555555555555"),
-                new BigDecimal(".555555555555555"),
-                new BigDecimal(".5555555555555555"),
-                new BigDecimal(".5555555555555555555555555555555555")
-        );
-        List<byte[]> encodedBigDecimalsBytes = EncodingTestUtil.toBytes(bigDecimalList);
-        Collections.shuffle(encodedBigDecimalsBytes);
-        Collections.sort(encodedBigDecimalsBytes, Bytes.BYTES_COMPARATOR);
-        assertEquals(bigDecimalList, EncodingTestUtil.toBigDecimal(encodedBigDecimalsBytes));
-    }
-
-    @Test
-    public void sort_positiveValue_positiveExponents() {
-        List<BigDecimal> bigDecimalList = Lists.newArrayList(
-                new BigDecimal("5"),
-                new BigDecimal("55"),
-                new BigDecimal("555"),
-                new BigDecimal("5555"),
-                new BigDecimal("55555"),
-                new BigDecimal("555555"),
-                new BigDecimal("5555555"),
-                new BigDecimal("55555555"),
-                new BigDecimal("555555555"),
-                new BigDecimal("5555555555"),
-                new BigDecimal("55555555555"),
-                new BigDecimal("555555555555"),
-                new BigDecimal("5555555555555"),
-                new BigDecimal("55555555555555"),
-                new BigDecimal("555555555555555"),
-                new BigDecimal("5555555555555555"),
-                new BigDecimal("5555555555555555555555555555555555")
-        );
-        List<byte[]> encodedBigDecimalsBytes = EncodingTestUtil.toBytes(bigDecimalList);
-        Collections.shuffle(encodedBigDecimalsBytes);
-        Collections.sort(encodedBigDecimalsBytes, Bytes.BYTES_COMPARATOR);
-        assertEquals(bigDecimalList, EncodingTestUtil.toBigDecimal(encodedBigDecimalsBytes));
-    }
-
-    @Test
-    public void sort_negativeValue_negativeExponents() {
-        List<BigDecimal> bigDecimalList = Lists.newArrayList(
-                new BigDecimal("-.5555555555555555555555555555555555"),
-                new BigDecimal("-.5555555555555555"),
-                new BigDecimal("-.555555555555555"),
-                new BigDecimal("-.55555555555555"),
-                new BigDecimal("-.5555555555555"),
-                new BigDecimal("-.555555555555"),
-                new BigDecimal("-.55555555555"),
-                new BigDecimal("-.5555555555"),
-                new BigDecimal("-.555555555"),
-                new BigDecimal("-.55555555"),
-                new BigDecimal("-.5555555"),
-                new BigDecimal("-.555555"),
-                new BigDecimal("-.55555"),
-                new BigDecimal("-.5555"),
-                new BigDecimal("-.555"),
-                new BigDecimal("-.55"),
-                new BigDecimal("-.5")
-        );
-        List<byte[]> encodedBigDecimalsBytes = EncodingTestUtil.toBytes(bigDecimalList);
-        Collections.shuffle(encodedBigDecimalsBytes);
-        Collections.sort(encodedBigDecimalsBytes, Bytes.BYTES_COMPARATOR);
-        assertEquals(bigDecimalList, EncodingTestUtil.toBigDecimal(encodedBigDecimalsBytes));
-    }
-
-    @Test
-    public void sort_negativeValue_positiveExponents() {
-        List<BigDecimal> bigDecimalList = Lists.newArrayList(
-                new BigDecimal("-5555555555555555555555555555555555"),
-                new BigDecimal("-5555555555555555"),
-                new BigDecimal("-555555555555555"),
-                new BigDecimal("-55555555555555"),
-                new BigDecimal("-5555555555555"),
-                new BigDecimal("-555555555555"),
-                new BigDecimal("-55555555555"),
-                new BigDecimal("-5555555555"),
-                new BigDecimal("-555555555"),
-                new BigDecimal("-55555555"),
-                new BigDecimal("-5555555"),
-                new BigDecimal("-555555"),
-                new BigDecimal("-55555"),
-                new BigDecimal("-5555"),
-                new BigDecimal("-555"),
-                new BigDecimal("-55"),
-                new BigDecimal("-5")
-        );
-        List<byte[]> encodedBigDecimalsBytes = EncodingTestUtil.toBytes(bigDecimalList);
-        Collections.shuffle(encodedBigDecimalsBytes);
-        Collections.sort(encodedBigDecimalsBytes, Bytes.BYTES_COMPARATOR);
-        assertEquals(bigDecimalList, EncodingTestUtil.toBigDecimal(encodedBigDecimalsBytes));
-    }
-
-    @Test
-    public void sort_positiveValues_positiveExponents_AND_negativeExponents() {
-        List<BigDecimal> bigDecimalList = Lists.newArrayList(
-                new BigDecimal(".5"),
-                new BigDecimal(".55"),
-                new BigDecimal(".555"),
-                new BigDecimal(".5555"),
-                new BigDecimal(".55555"),
-                new BigDecimal(".555555"),
-                new BigDecimal(".5555555"),
-                new BigDecimal(".55555555"),
-                new BigDecimal(".555555555"),
-                new BigDecimal("5"),
-                new BigDecimal("55"),
-                new BigDecimal("555"),
-                new BigDecimal("5555"),
-                new BigDecimal("55555"),
-                new BigDecimal("555555"),
-                new BigDecimal("5555555"),
-                new BigDecimal("55555555")
-        );
-        List<byte[]> encodedBigDecimalsBytes = EncodingTestUtil.toBytes(bigDecimalList);
-        Collections.shuffle(encodedBigDecimalsBytes);
-        Collections.sort(encodedBigDecimalsBytes, Bytes.BYTES_COMPARATOR);
-        assertEquals(bigDecimalList, EncodingTestUtil.toBigDecimal(encodedBigDecimalsBytes));
-    }
-
-    @Test
-    public void sort_negativeValues_positiveExponents_AND_negativeExponents() {
-        List<BigDecimal> bigDecimalList = Lists.newArrayList(
-                new BigDecimal("-55555555"),
-                new BigDecimal("-5555555"),
-                new BigDecimal("-555555"),
-                new BigDecimal("-55555"),
-                new BigDecimal("-5555"),
-                new BigDecimal("-555"),
-                new BigDecimal("-55"),
-                new BigDecimal("-5"),
-                new BigDecimal("-.555555555"),
-                new BigDecimal("-.55555555"),
-                new BigDecimal("-.5555555"),
-                new BigDecimal("-.555555"),
-                new BigDecimal("-.55555"),
-                new BigDecimal("-.5555"),
-                new BigDecimal("-.555"),
-                new BigDecimal("-.55"),
-                new BigDecimal("-.5")
-        );
-        List<byte[]> encodedBigDecimalsBytes = EncodingTestUtil.toBytes(bigDecimalList);
-        Collections.shuffle(encodedBigDecimalsBytes);
-        Collections.sort(encodedBigDecimalsBytes, Bytes.BYTES_COMPARATOR);
-        assertEquals(bigDecimalList, EncodingTestUtil.toBigDecimal(encodedBigDecimalsBytes));
     }
 
     @Test
