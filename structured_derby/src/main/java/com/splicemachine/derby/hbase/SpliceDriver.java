@@ -7,6 +7,7 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
+
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -28,10 +29,13 @@ import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
+
 import net.sf.ehcache.Cache;
+
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.db.OptimizerTrace;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -142,7 +146,7 @@ public class SpliceDriver extends SIConstants {
     private SpliceDriver(){
         ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat("splice-lifecycle-manager").build();
         executor = Executors.newSingleThreadExecutor(factory);
-
+        props.put(EmbedConnection.INTERNAL_CONNECTION, "true");
         try {
             snowLoader = new SnowflakeLoader();
             writerPool = WriteCoordinator.create(SpliceUtils.config);

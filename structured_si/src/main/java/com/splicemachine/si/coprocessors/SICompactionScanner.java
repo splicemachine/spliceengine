@@ -56,8 +56,10 @@ public class SICompactionScanner implements InternalScanner {
 		private boolean nextDirect(List<KeyValue> results, int limit) throws IOException {
         rawList.clear();
         final boolean more = delegate.next(rawList);
+        System.out.println("rawList " + rawList);
 		compactionState.mutate(rawList, results);
-        return more;
+        System.out.println("mutated rawList " + results);
+		return more;
     }
 
     @Override

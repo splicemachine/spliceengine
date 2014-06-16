@@ -12,7 +12,9 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.api.SIFilter;
+import com.splicemachine.si.coprocessors.RollForwardQueueMap;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.stats.Counter;
@@ -26,6 +28,7 @@ import com.splicemachine.storage.Indexed;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Provider;
 import com.splicemachine.utils.Providers;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -139,7 +142,8 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 																					EntryAccumulator accumulator,
 																					boolean isCountStar) throws IOException {
 										TransactionId transactionId= new TransactionId(transactionID);
-										IFilterState iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, transactionId);
+										RollForwardQueue queue = RollForwardQueueMap.lookupRollForwardQueue(regionScanner.getRegionInfo().getTableNameAsString());
+										IFilterState iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(queue, transactionId);
 
 										HRowAccumulator hRowAccumulator = new HRowAccumulator(predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
 										//noinspection unchecked

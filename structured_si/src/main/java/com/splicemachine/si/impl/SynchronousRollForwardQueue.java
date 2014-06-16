@@ -124,7 +124,9 @@ public class SynchronousRollForwardQueue implements RollForwardQueue {
      * that information.
      */
     @Override
-    public void recordRow(long transactionId, byte[] rowKey, Boolean knownToBeCommitted) {
+    public void recordRow(long transactionId, byte[] rowKey, Long effectiveTimestamp) {
+    	boolean knownToBeCommitted = effectiveTimestamp != null;
+    	System.out.println(String.format("transactionId %d, rowKey %s, knownToBeCommitted %s",transactionId, rowKey, knownToBeCommitted));
         synchronized (this) {
             forceResetIfNeeded();
             if (count < maxCount) {

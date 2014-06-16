@@ -10,6 +10,6 @@ public class NoOpRollForwardQueue implements RollForwardQueue {
 		public  static final NoOpRollForwardQueue INSTANCE = new NoOpRollForwardQueue();
 		@Override public void start() {  }
 		@Override public void stop() {  }
-		@Override public void recordRow(long transactionId, byte[] rowKey, Boolean knownToBeCommitted) {  }
+		@Override public void recordRow(long transactionId, byte[] rowKey, Long effectiveTimestamp) {  }
 		@Override public int getCount() { return 0; }
 }

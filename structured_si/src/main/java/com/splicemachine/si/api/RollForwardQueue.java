@@ -7,6 +7,6 @@ package com.splicemachine.si.api;
 public interface RollForwardQueue {
     void start();
     void stop();
-    void recordRow(long transactionId, byte[] rowKey, Boolean knownToBeCommitted);
+    void recordRow(long transactionId, byte[] rowKey, Long effectiveTimestamp);
     int getCount();
 }

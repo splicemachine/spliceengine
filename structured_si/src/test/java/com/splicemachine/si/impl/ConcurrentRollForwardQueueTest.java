@@ -44,7 +44,7 @@ public class ConcurrentRollForwardQueueTest {
         };
         final RollForwardQueue queue = new ConcurrentRollForwardQueue(action, 1024,4,SHORT_DELAY,timedPool,loadPool);
         queue.start();
-        queue.recordRow(1, new byte[] {10}, false);
+        queue.recordRow(1, new byte[] {10}, null);
         Thread.sleep(SHORT_WAIT);
         Assert.assertEquals(10, out[0]);
     }
@@ -63,12 +63,12 @@ public class ConcurrentRollForwardQueueTest {
         };
         final RollForwardQueue queue =new ConcurrentRollForwardQueue(action, 1024,4,100000,timedPool,loadPool);
         queue.start();
-        queue.recordRow(1, new byte[] {10}, false);
-        queue.recordRow(2, new byte[] {20}, false);
-        queue.recordRow(3, new byte[] {30}, false);
-        queue.recordRow(4, new byte[] {40}, false);
-        queue.recordRow(5, new byte[] {50}, false);
-        queue.recordRow(6, new byte[] {60}, false);
+        queue.recordRow(1, new byte[] {10}, null);
+        queue.recordRow(2, new byte[] {20}, null);
+        queue.recordRow(3, new byte[] {30}, null);
+        queue.recordRow(4, new byte[] {40}, null);
+        queue.recordRow(5, new byte[] {50}, null);
+        queue.recordRow(6, new byte[] {60}, null);
         Thread.sleep(SHORT_WAIT);
         Assert.assertEquals(4, out.size());
         Assert.assertTrue(out.contains((byte) 10));
@@ -91,12 +91,12 @@ public class ConcurrentRollForwardQueueTest {
         };
         final RollForwardQueue queue =new ConcurrentRollForwardQueue(action, 1024,4,100000,timedPool,loadPool);
         queue.start();
-        queue.recordRow(1, new byte[] {10}, false);
-        queue.recordRow(1, new byte[] {20}, false);
-        queue.recordRow(1, new byte[] {30}, false);
-        queue.recordRow(1, new byte[] {40}, false);
-        queue.recordRow(1, new byte[] {50}, false);
-        queue.recordRow(1, new byte[] {60}, false);
+        queue.recordRow(1, new byte[] {10}, null);
+        queue.recordRow(1, new byte[] {20}, null);
+        queue.recordRow(1, new byte[] {30}, null);
+        queue.recordRow(1, new byte[] {40}, null);
+        queue.recordRow(1, new byte[] {50}, null);
+        queue.recordRow(1, new byte[] {60}, null);
         Thread.sleep(SHORT_WAIT);
         Assert.assertEquals(4, out.size());
         Assert.assertTrue(out.contains((byte) 10));
@@ -119,8 +119,8 @@ public class ConcurrentRollForwardQueueTest {
         };
         final RollForwardQueue queue =new ConcurrentRollForwardQueue(action, 1024,4,LONG_DELAY,timedPool,loadPool);
         queue.start();
-        queue.recordRow(1, new byte[] {10}, false);
-        queue.recordRow(1, new byte[] {20}, false);
+        queue.recordRow(1, new byte[] {10}, null);
+        queue.recordRow(1, new byte[] {20}, null);
         Assert.assertEquals(2, queue.getCount());
         Thread.sleep(SHORT_WAIT);
         Assert.assertEquals(2, queue.getCount());
@@ -144,11 +144,11 @@ public class ConcurrentRollForwardQueueTest {
         };
         final RollForwardQueue queue =new ConcurrentRollForwardQueue(action, 1024,4,SHORT_DELAY,timedPool,loadPool);
         queue.start();
-        queue.recordRow(1, new byte[] {10}, false);
-        queue.recordRow(1, new byte[] {11}, false);
+        queue.recordRow(1, new byte[] {10}, null);
+        queue.recordRow(1, new byte[] {11}, null);
         Thread.sleep(LONG_WAIT);
-        queue.recordRow(2, new byte[] {20}, false);
-        queue.recordRow(3, new byte[] {30}, false);
+        queue.recordRow(2, new byte[] {20}, null);
+        queue.recordRow(3, new byte[] {30}, null);
         Thread.sleep(SHORT_WAIT);
         Assert.assertEquals(4, out.size());
         Assert.assertTrue(out.contains((byte) 10));
@@ -174,8 +174,8 @@ public class ConcurrentRollForwardQueueTest {
         };
         final RollForwardQueue queue =new ConcurrentRollForwardQueue(action, 1024,4,SHORT_DELAY,timedPool,loadPool);
         queue.start();
-        queue.recordRow(1, new byte[] {10}, false);
-        queue.recordRow(2, new byte[] {20}, false);
+        queue.recordRow(1, new byte[] {10}, null);
+        queue.recordRow(2, new byte[] {20}, null);
         Thread.sleep(SHORT_WAIT);
         Assert.assertEquals(20, out[0]);
     }
