@@ -133,7 +133,7 @@ final class ScalarEncoding {
         return data;
     }
 
-    static byte[] toBytes(long x, byte extraHeader,int extraHeaderSize, boolean desc){
+    static byte[] toBytes(long x, byte extraHeader,int extraHeaderSize){
         long sign = x&Long.MIN_VALUE;
         long diffBits = x^(sign >> SIGN_SHIFT);
         int numBits = Long.SIZE-Long.numberOfLeadingZeros(diffBits);
@@ -192,8 +192,6 @@ final class ScalarEncoding {
         b = (byte)((b>>>extraHeaderSize) | firstDataByte);
         b &= (0xff >>> extraHeaderSize);
         b |= (extraHeader <<Byte.SIZE - extraHeaderSize);
-        if(desc)
-            b ^= 0xff; //reverse the sign bit so that data is reversed in 2's-complement
 
         data[0] = (byte)b;
 
@@ -203,8 +201,6 @@ final class ScalarEncoding {
         for(int pos=2,i=1;i<length;i++,pos++){
             int bytePos = (length-pos)*8;
             byte nextByte = (byte)(x >>> bytePos);
-            if(desc)
-                nextByte^=0xff;
             data[i] = nextByte;
         }
         return data;
@@ -265,16 +261,9 @@ final class ScalarEncoding {
     }
 
 
-    /**
-     * @param data
-     * @param desc
-     * @return
-     */
-    public static long[] toLongWithOffset(byte[] data,int byteOffset, int reservedBits,boolean desc) {
+    public static long[] toLongWithOffset(byte[] data,int byteOffset, int reservedBits) {
         assert data.length >0; //need at least one byte
         byte headerByte = data[byteOffset];
-        if(desc)
-            headerByte ^= 0xff;
         headerByte <<=reservedBits;
 
         int sign = (headerByte & LONG_SIGN_BIT) !=0 ? 0: Byte.MIN_VALUE;
@@ -307,8 +296,6 @@ final class ScalarEncoding {
         int i=1;
         for(int pos=2;i<length;i++,pos++){
             byte next = data[byteOffset+i];
-            if(desc)
-                next ^=0xff;
             int offset = (length-pos)*8;
             if(sign!=0)
                 x &= ~(((long)~next&0xff)<<offset);
