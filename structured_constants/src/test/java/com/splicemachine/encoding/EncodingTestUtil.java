@@ -1,9 +1,13 @@
 package com.splicemachine.encoding;
 
+import com.google.common.collect.Lists;
+
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -14,6 +18,9 @@ public class EncodingTestUtil {
     public static void assertEncodeDecode(BigDecimal bigDecimalIn) {
         byte[] bytesDes = BigDecimalEncoding.toBytes(bigDecimalIn, true);
         byte[] bytesAsc = BigDecimalEncoding.toBytes(bigDecimalIn, false);
+
+        assertByteArrayDoesNotContainZero(bytesDes);
+        assertByteArrayDoesNotContainZero(bytesAsc);
 
         BigDecimal decimalOutDes = BigDecimalEncoding.toBigDecimal(bytesDes, true);
         BigDecimal decimalOutAsc = BigDecimalEncoding.toBigDecimal(bytesAsc, false);
@@ -53,4 +60,25 @@ public class EncodingTestUtil {
     }
 
 
+    public static List<byte[]> toBytes(List<BigDecimal> bigIns, boolean desc) {
+        List<byte[]> bytesList = Lists.newArrayList();
+        for (BigDecimal bigDecimal : bigIns) {
+            bytesList.add(BigDecimalEncoding.toBytes(bigDecimal, desc));
+        }
+        return bytesList;
+    }
+
+    public static List<BigDecimal> toBigDecimal(List<byte[]> bigIns, boolean desc) {
+        List<BigDecimal> bigDecimals = Lists.newArrayList();
+        for (byte[] bigDecimal : bigIns) {
+            bigDecimals.add(BigDecimalEncoding.toBigDecimal(bigDecimal, desc));
+        }
+        return bigDecimals;
+    }
+
+    public static void assertByteArrayDoesNotContainZero(byte[] bytes) {
+        for(byte b : bytes) {
+            assertNotEquals(0 , b);
+        }
+    }
 }
