@@ -11,7 +11,7 @@ curl -X PUT -H "Content-Type:application/json" -u admin:admin \
   -d '{ "roleTypeConfigs" : [ {
             "roleType" : "MASTER",
                 "items": [
-                    { "name": "hbase_coprocessor_master_classes", "value": "com.splicemachine.derby.hbase.SpliceMasterObserver" } ] }, {
+                    { "name": "hbase_coprocessor_master_classes", "value": "com.splicemachine.derby.hbase.SpliceMasterObserver,com.splicemachine.si.coprocessors.TimestampMasterObserver" } ] }, {
             "roleType" : "REGIONSERVER",
                 "items" : [
                     { "name": "hbase_coprocessor_region_classes", "value": "com.splicemachine.derby.hbase.SpliceOperationRegionObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceDerbyCoprocessor,com.splicemachine.derby.hbase.SpliceIndexManagementEndpoint,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler,com.splicemachine.si.coprocessors.SIObserver" } ] } ] }' \
