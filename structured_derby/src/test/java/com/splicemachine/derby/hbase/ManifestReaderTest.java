@@ -61,6 +61,16 @@ public class ManifestReaderTest {
         Assert.assertEquals("http://www.splicemachine.com", version.getURL());
     }
 
+    @Test // Test for DB-1431
+    public void testNullManifest() throws Exception {
+        ManifestReader.SpliceMachineVersion version = new ManifestReader().create();
+        System.out.println(version);
+        Assert.assertEquals("Unknown", version.getBuildTime());
+        Assert.assertEquals("Unknown", version.getImplementationVersion());
+        Assert.assertEquals("Unknown", version.getRelease());
+        Assert.assertEquals("Unknown", version.getURL());
+    }
+
     private static void printManifest(Manifest manifest) throws Exception {
         System.out.println("====================================================");
         for (Map.Entry<Object,Object> entry : manifest.getMainAttributes().entrySet()) {
