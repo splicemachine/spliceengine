@@ -11,12 +11,15 @@ import com.splicemachine.si.data.hbase.*;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.si.jmx.TransactorStatus;
+import com.splicemachine.si.txn.SpliceTimestampSource;
 import com.splicemachine.si.txn.ZooKeeperStatTimestampSource;
 import com.splicemachine.utils.Provider;
 import com.splicemachine.utils.Providers;
 import com.splicemachine.utils.ZkUtils;
+
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -115,7 +118,9 @@ public class HTransactorFactory extends SIConstants {
 								return;
 						}
 
-						TimestampSource timestampSource = new ZooKeeperStatTimestampSource(ZkUtils.getRecoverableZooKeeper(),zkSpliceTransactionPath);
+						// TODO: permanently purge this later (leave commented out for now while we test more)
+						// TimestampSource timestampSource = new ZooKeeperStatTimestampSource(ZkUtils.getRecoverableZooKeeper(),zkSpliceTransactionPath);
+						TimestampSource timestampSource = new SpliceTimestampSource(ZkUtils.getRecoverableZooKeeper());
 						BetterHTablePool hTablePool = new BetterHTablePool(new SpliceHTableFactory(),
 										SpliceConstants.tablePoolCleanerInterval, TimeUnit.SECONDS,
 										SpliceConstants.tablePoolMaxSize,SpliceConstants.tablePoolCoreSize);

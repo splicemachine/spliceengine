@@ -97,6 +97,10 @@ public class SpliceConstants {
 		@DefaultValue(TRANSACTION_PATH) public static final String DEFAULT_TRANSACTION_PATH = "/transactions";
 		public static String zkSpliceTransactionPath;
 
+		@Parameter public static final String MAX_RESERVED_TIMESTAMP_PATH = "splice.max_reserved_timestamp_node";
+		@DefaultValue(MAX_RESERVED_TIMESTAMP_PATH) public static final String DEFAULT_MAX_RESERVED_TIMESTAMP_PATH = "/transactions/maxReservedTimestamp";
+		public static String zkSpliceMaxReservedTimestampPath;
+
 		/**
 		 * The Path in zookeeper for storing the minimum active transaction.
 		 * Defaults to /transactions/minimum
@@ -159,6 +163,24 @@ public class SpliceConstants {
 		@Parameter public static final String DERBY_BIND_PORT = "splice.server.port";
 		@DefaultValue(DERBY_BIND_PORT) public static final int DEFAULT_DERBY_BIND_PORT = 1527;
 		public static int derbyBindPort;
+
+		// Splice timestamp server (generator) settings */
+
+		/**
+		 * The IP address to bind the Timestamp Server connection to.
+		 * Defaults to 0.0.0.0
+		 */
+		@Parameter public static final String TIMESTAMP_SERVER_BIND_ADDRESS = "splice.timestamp_server.address";
+		@DefaultValue(TIMESTAMP_SERVER_BIND_ADDRESS) public static final String DEFAULT_TIMESTAMP_SERVER_BIND_ADDRESS = "0.0.0.0";
+		public static String timestampServerBindAddress;
+
+		/**
+		 * The Port to bind the Timestamp Server connection to
+		 * Defaults to 60012
+		 */
+		@Parameter public static final String TIMESTAMP_SERVER_BIND_PORT = "splice.timestamp_server.port";
+		@DefaultValue(TIMESTAMP_SERVER_BIND_PORT) public static final int DEFAULT_TIMESTAMP_SERVER_BIND_PORT = 60012;
+		public static int timestampServerBindPort;
 
     /*Task and Job management*/
 		/**
@@ -752,8 +774,17 @@ public class SpliceConstants {
 
 		public static int ipcThreads;
 
-		public static List<String> zookeeperPaths = Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,zkSpliceConglomeratePath,
-						zkSpliceConglomerateSequencePath,zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath,zkSpliceTransactionPath,zkSpliceMinimumActivePath);
+		public static List<String> zookeeperPaths = Lists.newArrayList(
+			zkSpliceTaskPath,
+			zkSpliceJobPath,
+			zkSpliceConglomeratePath,
+			zkSpliceConglomerateSequencePath,
+			zkSpliceDerbyPropertyPath,
+			zkSpliceQueryNodePath,
+			zkSpliceTransactionPath,
+			zkSpliceMaxReservedTimestampPath,
+			zkSpliceMinimumActivePath
+		);
 
 		public static void setParameters() {
 				zkSpliceTaskPath = config.get(BASE_TASK_QUEUE_NODE,DEFAULT_BASE_TASK_QUEUE_NODE);
@@ -765,6 +796,7 @@ public class SpliceConstants {
 				zkSpliceBroadcastMessagesPath = zkSpliceBroadcastPath + "/messages";
 				zkSpliceJobPath = config.get(BASE_JOB_QUEUE_NODE,DEFAULT_BASE_JOB_QUEUE_NODE);
 				zkSpliceTransactionPath = config.get(TRANSACTION_PATH,DEFAULT_TRANSACTION_PATH);
+				zkSpliceMaxReservedTimestampPath = config.get(MAX_RESERVED_TIMESTAMP_PATH,DEFAULT_MAX_RESERVED_TIMESTAMP_PATH);
 				zkSpliceMinimumActivePath = config.get(MINIMUM_ACTIVE_PATH,DEFAULT_MINIMUM_ACTIVE_PATH);
 				zkSpliceConglomeratePath = config.get(CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
 				zkSpliceConglomerateSequencePath = zkSpliceConglomeratePath+"/__CONGLOM_SEQUENCE";
@@ -775,6 +807,8 @@ public class SpliceConstants {
 				zkSpliceStartupPath = config.get(STARTUP_PATH,DEFAULT_STARTUP_PATH);
 				derbyBindAddress = config.get(DERBY_BIND_ADDRESS, DEFAULT_DERBY_BIND_ADDRESS);
 				derbyBindPort = config.getInt(DERBY_BIND_PORT, DEFAULT_DERBY_BIND_PORT);
+				timestampServerBindAddress = config.get(TIMESTAMP_SERVER_BIND_ADDRESS, DEFAULT_TIMESTAMP_SERVER_BIND_ADDRESS);
+				timestampServerBindPort = config.getInt(TIMESTAMP_SERVER_BIND_PORT, DEFAULT_TIMESTAMP_SERVER_BIND_PORT);
 				operationTaskPriority = config.getInt(OPERATION_PRIORITY, DEFAULT_OPERATION_PRIORITY);
 				importTaskPriority = config.getInt(IMPORT_TASK_PRIORITY, DEFAULT_IMPORT_TASK_PRIORITY);
 				tablePoolMaxSize = config.getInt(POOL_MAX_SIZE,DEFAULT_POOL_MAX_SIZE);
@@ -832,7 +866,7 @@ public class SpliceConstants {
 				indexBatchSize = config.getInt(INDEX_BATCH_SIZE,DEFAULT_INDEX_BATCH_SIZE);
 				indexLookupBlocks = config.getInt(INDEX_LOOKUP_BLOCKS,DEFAULT_INDEX_LOOKUP_BLOCKS);
 				kryoPoolSize = config.getInt(KRYO_POOL_SIZE,DEFAULT_KRYO_POOL_SIZE);
-				debugFailTasksRandomly = config.getBoolean(DEBUG_FAIL_TASKS_RANDOMLY,DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY);
+				debugFailTasksRandomly = false; // config.getBoolean(DEBUG_FAIL_TASKS_RANDOMLY,DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY);
 				debugTaskFailureRate = config.getFloat(DEBUG_TASK_FAILURE_RATE,(float)DEFAULT_DEBUG_TASK_FAILURE_RATE);
 
 				sequenceBlockSize = config.getInt(SEQUENCE_BLOCK_SIZE,DEFAULT_SEQUENCE_BLOCK_SIZE);
