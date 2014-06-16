@@ -317,11 +317,10 @@ public class NumericConstantsIT {
 
         assertCount(1, "table_decimal_5_0", "a", "=", DECIMAL_MIN);
         assertCount(4, "table_decimal_5_0", "a", "!=", DECIMAL_MIN);
-        // existing decimal column bug/limitation prevents these asserts from working.
-        //assertCount(0, "table_decimal_5_0", "a", "<", DECIMAL_MIN);
-        //assertCount(1, "table_decimal_5_0", "a", "<=", DECIMAL_MIN);
-        //assertCount(4, "table_decimal_5_0", "a", ">", DECIMAL_MIN);
-        //assertCount(5, "table_decimal_5_0", "a", ">=", DECIMAL_MIN);
+        assertCount(0, "table_decimal_5_0", "a", "<", DECIMAL_MIN);
+        assertCount(1, "table_decimal_5_0", "a", "<=", DECIMAL_MIN);
+        assertCount(4, "table_decimal_5_0", "a", ">", DECIMAL_MIN);
+        assertCount(5, "table_decimal_5_0", "a", ">=", DECIMAL_MIN);
     }
 
     @Test
@@ -373,11 +372,10 @@ public class NumericConstantsIT {
 
         assertCount(1, "table_decimal_11_2", "a", "=", DECIMAL_MIN);
         assertCount(4, "table_decimal_11_2", "a", "!=", DECIMAL_MIN);
-        // existing decimal column bug/limitation prevents these asserts from working.
-        //assertCount(0, "table_decimal_11_2", "a", "<", DECIMAL_MIN);
-        //assertCount(1, "table_decimal_11_2", "a", "<=", DECIMAL_MIN);
-        //assertCount(4, "table_decimal_11_2", "a", ">", DECIMAL_MIN);
-        //assertCount(5, "table_decimal_11_2", "a", ">=", DECIMAL_MIN);
+        assertCount(0, "table_decimal_11_2", "a", "<", DECIMAL_MIN);
+        assertCount(1, "table_decimal_11_2", "a", "<=", DECIMAL_MIN);
+        assertCount(4, "table_decimal_11_2", "a", ">", DECIMAL_MIN);
+        assertCount(5, "table_decimal_11_2", "a", ">=", DECIMAL_MIN);
     }
 
     @Test
