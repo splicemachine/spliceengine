@@ -236,8 +236,9 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
 				LOG.trace("Rolling forward");
         TransactionStatus status = transaction.getEffectiveStatus();
         if (rollForwardQueue != null && status.isFinished()) {
+        	System.out.println(String.format("transaction begin timestamp %s, transaction commit timestamp %d, transaction effective commit timestamp %d",transaction.getTransactionId(), transaction.commitTimestamp, transaction.getEffectiveCommitTimestamp()));
             // TODO: revisit this in light of nested independent transactions
-            dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), keyValue.getRow(), true);
+            dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), keyValue.getRow(), transaction.getEffectiveCommitTimestamp());
         }
     }
 

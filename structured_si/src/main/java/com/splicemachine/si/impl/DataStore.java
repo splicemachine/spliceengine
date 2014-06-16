@@ -182,9 +182,9 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
         return KeyValueUtils.matchingValue(keyValue, siFail);
     }
 
-    public void recordRollForward(RollForwardQueue rollForwardQueue, long transactionId, byte[] row, Boolean knownToBeCommitted) {
+    public void recordRollForward(RollForwardQueue rollForwardQueue, long transactionId, byte[] row, Long effectiveTimestamp) {
         if (rollForwardQueue != null) {
-            rollForwardQueue.recordRow(transactionId, row, knownToBeCommitted);
+            rollForwardQueue.recordRow(transactionId, row, effectiveTimestamp);
         }
     }
 

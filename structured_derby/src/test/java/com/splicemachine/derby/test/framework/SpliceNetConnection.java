@@ -4,7 +4,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.test.SpliceNetDerbyTest;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -28,7 +27,7 @@ public class SpliceNetConnection {
         }
         Properties props = new Properties();
         try {
-            return DriverManager.getConnection(DB_URL_LOCAL + SpliceConstants.SPLICE_DB + ";create=true", props);
+            return DriverManager.getConnection(DB_URL_LOCAL + SpliceConstants.SPLICE_DB + ";create=true;user=splice;password=admin", props);
         } catch (SQLException e) {
             throw new IllegalStateException(e);
         }
