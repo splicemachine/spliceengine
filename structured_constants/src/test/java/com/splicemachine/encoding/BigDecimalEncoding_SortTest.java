@@ -183,6 +183,36 @@ public class BigDecimalEncoding_SortTest {
         assertSort(bigDecimalList);
     }
 
+    @Test
+    public void sort_extraLargeExponents() {
+        List<BigDecimal> bigDecimalList = Lists.newArrayList(
+                new BigDecimal("-1e5000"),
+                new BigDecimal("-1e1000"),
+                new BigDecimal("-1e100"),
+                new BigDecimal("-1e10"),
+                new BigDecimal("-1e1"),
+
+                new BigDecimal("-1e-1"),
+                new BigDecimal("-1e-10"),
+                new BigDecimal("-1e-100"),
+                new BigDecimal("-1e-1000"),
+                new BigDecimal("-1e-5000"),
+
+                new BigDecimal("1e-5000"),
+                new BigDecimal("1e-1000"),
+                new BigDecimal("1e-100"),
+                new BigDecimal("1e-10"),
+                new BigDecimal("1e-1"),
+
+                new BigDecimal("1e1"),
+                new BigDecimal("1e10"),
+                new BigDecimal("1e100"),
+                new BigDecimal("1e1000"),
+                new BigDecimal("1e5000")
+        );
+        assertSort(bigDecimalList);
+    }
+
     public void assertSort(List<BigDecimal> originalList) {
         List<BigDecimal> ascendingList = Lists.newArrayList(originalList);
         List<BigDecimal> descendingList = Lists.newArrayList(originalList);
