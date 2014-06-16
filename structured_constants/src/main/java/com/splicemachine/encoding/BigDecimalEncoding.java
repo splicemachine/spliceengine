@@ -2,6 +2,7 @@ package com.splicemachine.encoding;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Arrays;
 
 /**
  * Encapsulates logic for BigDecimal encoding.
@@ -86,7 +87,18 @@ class BigDecimalEncoding {
      * encoding described above.
      * @throws NullPointerException if {@code value} is null.
      */
-    public static byte[] toBytes(BigDecimal value, boolean desc){
+    public static byte[] toBytes(BigDecimal value, boolean desc) {
+        byte[] ascendingBytes = toBytes(value);
+        if(desc) {
+            for(int i=0;i<ascendingBytes.length;i++) {
+                ascendingBytes[i] ^= 0xFF;
+            }
+        }
+        return ascendingBytes;
+    }
+
+
+    public static byte[] toBytes(BigDecimal value){
         //avoid having duplicate numerically equivalent representations
         value = value.stripTrailingZeros();
         BigInteger i = value.unscaledValue();
@@ -96,8 +108,6 @@ class BigDecimalEncoding {
         if(i.signum()==0){
             data = new byte[1];
             byte b = 0x02;
-            if(desc)
-                b ^= 0xff;
             data[0] = (byte)((b<<Byte.SIZE-2) &0xff);
             return data;
         }
@@ -117,7 +127,7 @@ class BigDecimalEncoding {
          */
         byte extraHeader = (byte)(i.signum() <0 ? 0x01:0x03);
         int extraHeaderSize = 2;
-        byte[] expBytes = ScalarEncoding.toBytes(exp, extraHeader, extraHeaderSize, desc);
+        byte[] expBytes = ScalarEncoding.toBytes(exp, extraHeader, extraHeaderSize);
         int expLength = expBytes.length;
 
         //our string encoding only requires 1 byte for 2 digits
@@ -137,9 +147,17 @@ class BigDecimalEncoding {
             strPos++;
             if(strPos<precision)
                 bcd |= (byte)(1+Character.digit(sigChars[strPos],10));
-            if(desc)
-                bcd ^= 0xff;
             data[expLength+pos] = bcd;
+        }
+
+        if (value.signum() < 0) {
+            for (int z = 0; z < data.length; z++) {
+                if (z == 0) {
+                    data[z] ^= 63;
+                } else {
+                    data[z] ^= 0xFF;
+                }
+            }
         }
 
         return data;
@@ -150,16 +168,35 @@ class BigDecimalEncoding {
     }
 
     public static BigDecimal toBigDecimal(byte[] data,int dataOffset,int dataLength, boolean desc){
+        byte[] dataCopy = Arrays.copyOfRange(data, dataOffset, dataOffset + dataLength);
+        if(desc) {
+            for(int i=0;i<dataCopy.length;i++) {
+                dataCopy[i] ^= 0xFF;
+            }
+        }
+        return toBigDecimal(dataCopy, 0, dataLength);
+    }
+
+    private static BigDecimal toBigDecimal(byte[] data, int dataOffset, int dataLength) {
         int h = data[dataOffset];
-        if(desc)
-            h ^=0xff;
         h &=0xff;
         h >>>=Byte.SIZE-2;
         if(h==0x00) return null;
         if(h==0x02) return BigDecimal.ZERO;
 
         byte sign = (byte)(h==0x01 ? -1:0);
-        long[] expOffset = ScalarEncoding.toLongWithOffset(data, dataOffset,2, desc);
+
+        if (sign < 0) {
+            for (int z = 0; z < data.length; z++) {
+                if (z == 0) {
+                    data[z] ^= 63;
+                } else {
+                    data[z] ^= 0xFF;
+                }
+            }
+        }
+
+        long[] expOffset = ScalarEncoding.toLongWithOffset(data, dataOffset,2);
         long exp =  expOffset[0];
         int offset = (int)(expOffset[1]);
 
@@ -169,8 +206,6 @@ class BigDecimalEncoding {
             last = data[data.length-1];
         else
             last = data[dataOffset+dataLength-1];
-        if(desc)
-            last ^= 0xff;
         if((last &0xf) ==0)
             length-=1;
 
@@ -180,8 +215,6 @@ class BigDecimalEncoding {
         for(int i=0;i<dataLength && pos<chars.length;i++){
 //            if(pos>chars.length) break; //we're done
             byte next = data[dataOffset+offset+i];
-            if(desc)
-                next ^=0xff;
             byte f = (byte)((next>>>4) & 0xf);
             if(f==0)
                 break; //no more character
