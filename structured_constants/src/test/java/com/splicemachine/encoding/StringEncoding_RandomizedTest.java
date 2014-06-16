@@ -10,12 +10,11 @@ import org.junit.runners.Parameterized;
 import java.nio.ByteBuffer;
 import java.util.*;
 
-/**
- * @author Scott Fines
- *         Created on: 6/7/13
+/*
+ * Test StringEncoding with random values.
  */
 @RunWith(Parameterized.class)
-public class StringEncodingTest {
+public class StringEncoding_RandomizedTest {
 
     public static final int numTestsToRun=100;
     public static final int numStringsToCheckPerTest = 10;
@@ -43,7 +42,7 @@ public class StringEncodingTest {
 
     private final String[] dataToCheck;
 
-    public StringEncodingTest(String[] dataToCheck) {
+    public StringEncoding_RandomizedTest(String[] dataToCheck) {
         this.dataToCheck = dataToCheck;
     }
 
