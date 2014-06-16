@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
-import com.google.common.collect.Maps;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.hbase.jmx.JMXUtils;
@@ -78,16 +77,16 @@ public class ManifestReader {
         }
 
         @Override
-        public String getRelease() {return this.versionInfo.get("Release");}
+        public String getRelease() {return (this.versionInfo == null ? "Unknown" : this.versionInfo.get("Release"));}
 
         @Override
-        public String getImplementationVersion() {return this.versionInfo.get("Implementation-Version");}
+        public String getImplementationVersion() {return (this.versionInfo == null ? "Unknown" : this.versionInfo.get("Implementation-Version"));}
 
         @Override
-        public String getBuildTime() {return this.versionInfo.get("Build-Time");}
+        public String getBuildTime() {return (this.versionInfo == null ? "Unknown" : this.versionInfo.get("Build-Time"));}
 
         @Override
-        public String getURL() {return this.versionInfo.get("URL");}
+        public String getURL() {return (this.versionInfo == null ? "Unknown" : this.versionInfo.get("URL"));}
 
         @Override
         public String toString() {
@@ -148,17 +147,6 @@ public class ManifestReader {
     // for testing
     SpliceMachineVersion create() {
         return new SpliceMachineVersionImpl(readManifestOnClasspath());
-    }
-
-    private static Map<String,String> translateMap(Map<String,String> fromMap) {
-        Map<String,String> manifestToSpliceAttrMap = Maps.newLinkedHashMap();
-        // Rename entries and add them in the order we want to see them
-        // unused -- currently just taking entries as manifest defines
-        manifestToSpliceAttrMap.put("Release Version",fromMap.get("Release"));
-        manifestToSpliceAttrMap.put("Implementation Version",fromMap.get("Implementation-Version"));
-        manifestToSpliceAttrMap.put("Build Date",fromMap.get("Build-Time"));
-        manifestToSpliceAttrMap.put("URL",fromMap.get("URL"));
-        return manifestToSpliceAttrMap;
     }
 
 }
