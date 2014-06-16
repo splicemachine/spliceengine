@@ -3,11 +3,12 @@ package com.splicemachine.si;
 import com.google.common.base.Function;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.coprocessors.RegionRollForwardAction;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.rollforward.RegionRollForwardAction;
 import com.splicemachine.utils.Providers;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
@@ -17,11 +18,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
 import static com.splicemachine.constants.SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
 import static com.splicemachine.constants.SIConstants.DEFAULT_FAMILY_BYTES;
 /**
@@ -51,6 +54,16 @@ public class AsyncRollForwardTest {
 												return new RegionRollForwardAction(testSTable,
 																Providers.basicProvider(transactorSetup.transactionStore),
 																Providers.basicProvider(transactorSetup.dataStore)).rollForward(transactionId,rowList);
+										}
+
+										@Override
+										public Boolean rollForward(
+												long transactionId,
+												Long effectiveTimestamp,
+												byte[] rowKey)
+												throws IOException {
+											// TODO Auto-generated method stub
+											return null;
 										}
 								}, 1, 100, 1000, "test");
 				testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup,transactor,control);

@@ -7,5 +7,7 @@ import java.io.IOException;
  * decoupled.
  */
 public interface RollForwardAction {
-    Boolean rollForward(long transactionId, Long effectiveTimestamp, byte[] rowKey) throws IOException;
+	boolean begin();
+    boolean rollForward(long transactionId, Long effectiveTimestamp, byte[] rowKey) throws IOException;
+	boolean flush();
 }

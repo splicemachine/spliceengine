@@ -1,5 +1,7 @@
 package com.splicemachine.si.api;
 
+import com.splicemachine.si.impl.RollForwardAction;
+
 /**
  * @author Scott Fines
  * Created on: 8/21/13
