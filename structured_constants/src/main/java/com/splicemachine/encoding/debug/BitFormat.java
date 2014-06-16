@@ -3,8 +3,8 @@ package com.splicemachine.encoding.debug;
 import org.apache.commons.lang.StringUtils;
 
 /**
- * Format an integer/long as a formatted string of '1' and '0' characters consistent with its internal java
- * binary representation.
+ * Format a byte/byte[]/short/integer/long as a formatted string of '1' and '0' characters consistent with its internal
+ * java binary representation.
  * <p/>
  * NOTE: Integer.toBinaryString() can do this as well, but does not include the padding, spacing, etc.
  */
@@ -43,15 +43,13 @@ public class BitFormat {
         return buffer.toString();
     }
 
-    public void setIncludeDecimal(boolean includeDecimal) {
-        this.includeDecimal = includeDecimal;
-    }
-
     public String format(byte[] byteArray) {
-        setIncludeDecimal(false);
         StringBuilder builder = new StringBuilder();
-        for (byte b : byteArray) {
-            builder.append(b + " '" + format(b) + "' ");
+        for (int i = 0; i < byteArray.length; i++) {
+            builder.append(format(byteArray[i], 8, false));
+            if (i != byteArray.length - 1) {
+                builder.append(" ");
+            }
         }
         return builder.toString();
     }
