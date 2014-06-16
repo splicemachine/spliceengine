@@ -156,6 +156,32 @@ public class BigDecimalEncoding_SortTest {
         assertSort(bigDecimalList);
     }
 
+    @Test
+    public void sort_negativeAndPositiveValues_negativeAndPositiveExponents_multipleValuesWithSameExponent() {
+        List<BigDecimal> bigDecimalList = Lists.newArrayList(
+                new BigDecimal("-555"),
+                new BigDecimal("-55"),
+                new BigDecimal("-6"),
+                new BigDecimal("-5"),
+
+                new BigDecimal("-.5"),
+                new BigDecimal("-.05"),
+                new BigDecimal("-.006"),
+                new BigDecimal("-.005"),
+
+                new BigDecimal("0"),
+
+                new BigDecimal(".005"),
+                new BigDecimal(".006"),
+                new BigDecimal(".05"),
+                new BigDecimal(".5"),
+
+                new BigDecimal("5"),
+                new BigDecimal("6"),
+                new BigDecimal("55"),
+                new BigDecimal("555"));
+        assertSort(bigDecimalList);
+    }
 
     public void assertSort(List<BigDecimal> originalList) {
         List<BigDecimal> ascendingList = Lists.newArrayList(originalList);

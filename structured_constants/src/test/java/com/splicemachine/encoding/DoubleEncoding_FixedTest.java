@@ -12,13 +12,13 @@ import static org.junit.Assert.assertEquals;
  */
 public class DoubleEncoding_FixedTest {
 
-    private BitFormat bitFormat = new BitFormat();
+    private BitFormat bitFormat = new BitFormat(false);
 
     @Test
     public void testCanGetAllZerosDouble() throws Exception {
         double zero = 0.0;
 
-        assertEquals("00000000000000000000000000000000000000000000000000000000000000000", bitFormat.format(Double.doubleToLongBits(zero)));
+        assertEquals("00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000", bitFormat.format(Double.doubleToLongBits(zero)));
         byte[] data = DoubleEncoding.toBytes(zero, false);
         assertEquals("[-128, 0, 0, 0, 0, 0, 0, 1]", Arrays.toString(data));
     }
