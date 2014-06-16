@@ -60,18 +60,18 @@ public class EncodingTestUtil {
     }
 
 
-    public static List<byte[]> toBytes(List<BigDecimal> bigIns) {
+    public static List<byte[]> toBytes(List<BigDecimal> bigIns, boolean desc) {
         List<byte[]> bytesList = Lists.newArrayList();
         for (BigDecimal bigDecimal : bigIns) {
-            bytesList.add(BigDecimalEncoding.toBytes(bigDecimal, false));
+            bytesList.add(BigDecimalEncoding.toBytes(bigDecimal, desc));
         }
         return bytesList;
     }
 
-    public static List<BigDecimal> toBigDecimal(List<byte[]> bigIns) {
+    public static List<BigDecimal> toBigDecimal(List<byte[]> bigIns, boolean desc) {
         List<BigDecimal> bigDecimals = Lists.newArrayList();
         for (byte[] bigDecimal : bigIns) {
-            bigDecimals.add(BigDecimalEncoding.toBigDecimal(bigDecimal, false));
+            bigDecimals.add(BigDecimalEncoding.toBigDecimal(bigDecimal, desc));
         }
         return bigDecimals;
     }
