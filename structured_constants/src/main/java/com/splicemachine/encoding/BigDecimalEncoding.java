@@ -199,7 +199,7 @@ class BigDecimalEncoding {
             }
         }
 
-        long[] expOffset = ScalarEncoding.toLongWithOffset(data, dataOffset, 2);
+        long[] expOffset = ScalarEncoding.toLongWithOffset(data, dataOffset, HEADER_SIZE_BITS);
         long exp = expOffset[0];
         int offset = (int) (expOffset[1]);
 
