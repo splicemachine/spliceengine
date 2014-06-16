@@ -8,7 +8,9 @@ import org.apache.hadoop.hbase.client.ServerCallable;
 import org.apache.hadoop.hbase.client.coprocessor.Exec;
 import org.apache.hadoop.hbase.client.coprocessor.ExecResult;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
+import org.apache.hadoop.hbase.ipc.HBaseRPC;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.log4j.Logger;
 
@@ -60,10 +62,17 @@ public class NoRetryExecRPCInvoker implements InvocationHandler {
             final Exec exec = new Exec(conf, row, protocol, method, args);
             ServerCallable<ExecResult> callable =
                     new ServerCallable<ExecResult>(connection, table, row) {
-                        public ExecResult call() throws Exception {
+                	@Override
+            		public ExecResult call() throws Exception {
                             return server.execCoprocessor(location.getRegionInfo().getRegionName(),
                                     exec);
                         }
+                        @Override
+                        public void beforeCall() {
+                            this.startTime = EnvironmentEdgeManager.currentTimeMillis();
+                            HBaseRPC.setRpcTimeout(callTimeout);
+                          }
+                        
                     };
 
             ExecResult result = executeWithoutRetries(callable);
