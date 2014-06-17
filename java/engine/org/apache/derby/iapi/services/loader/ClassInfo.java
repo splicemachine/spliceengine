@@ -28,7 +28,7 @@ public class ClassInfo implements InstanceGetter {
 
     private static final Class[] NO_PARAMETERS = new Class[0];
     private static final Object[] NO_ARGUMENTS = new Object[0];
-    private static final NoArgumentConstructorMap<String, Constructor> CONSTRUCTOR_CACHE = new NoArgumentConstructorMap<String, Constructor>(100);
+    private static final NoArgumentConstructorMap CONSTRUCTOR_CACHE = new NoArgumentConstructorMap(100);
 
     private final Class clazz;
     private boolean useConstructor = true;
@@ -72,7 +72,7 @@ public class ClassInfo implements InstanceGetter {
         if (noArgConstructor == null) {
 
             try {
-                noArgConstructor = getNoArgConstructor(clazz);
+                noArgConstructor = CONSTRUCTOR_CACHE.getNoArgConstructor(clazz);
             } catch (NoSuchMethodException nsme) {
                 // let Class.newInstance() generate the exception
                 useConstructor = false;
@@ -92,18 +92,9 @@ public class ClassInfo implements InstanceGetter {
         }
     }
 
-    private static Constructor<?> getNoArgConstructor(Class<?> clazz) throws NoSuchMethodException {
-        String cacheKey = clazz.getCanonicalName();
-        synchronized (CONSTRUCTOR_CACHE) {
-            if (!CONSTRUCTOR_CACHE.containsKey(cacheKey)) {
-                CONSTRUCTOR_CACHE.put(cacheKey, clazz.getConstructor(NO_PARAMETERS));
-            }
-            return CONSTRUCTOR_CACHE.get(cacheKey);
-        }
-    }
 
     // LRU CACHE
-    private static class NoArgumentConstructorMap<K, V> extends LinkedHashMap<K,V> {
+    private static class NoArgumentConstructorMap extends LinkedHashMap<String, Constructor<?>> {
         private int maxCapacity;
 
         public NoArgumentConstructorMap(int maxCapacity) {
@@ -115,6 +106,15 @@ public class ClassInfo implements InstanceGetter {
         protected boolean removeEldestEntry(Entry eldest) {
             return size() >= this.maxCapacity;
         }
+
+        public synchronized Constructor<?> getNoArgConstructor(Class<?> clazz) throws NoSuchMethodException {
+            String cacheKey = clazz.getCanonicalName();
+            if (!this.containsKey(cacheKey)) {
+                this.put(cacheKey, clazz.getConstructor(NO_PARAMETERS));
+            }
+            return this.get(cacheKey);
+        }
+
     }
 
 }
