@@ -6,9 +6,10 @@ import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.impl.*;
-import com.splicemachine.si.impl.rollforward.RegionRollForwardAction;
+import com.splicemachine.si.impl.rollforward.DelayedRollForwardAction;
+import com.splicemachine.si.impl.rollforward.PushForwardAction;
+import com.splicemachine.si.impl.rollforward.SIRollForwardQueue;
 import com.splicemachine.utils.Providers;
-
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
@@ -16,15 +17,11 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 import static com.splicemachine.constants.SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
 import static com.splicemachine.constants.SIConstants.DEFAULT_FAMILY_BYTES;
 /**
@@ -42,36 +39,23 @@ public class AsyncRollForwardTest {
 		TransactorTestUtility testUtility;
 
 		@SuppressWarnings("unchecked")
-		void baseSetUp() {
+		void baseSetUp() throws IOException {
 				transactor = transactorSetup.transactor;
 				control = transactorSetup.control;
-				transactorSetup.rollForwardQueue = new SynchronousRollForwardQueue(
-								new RollForwardAction() {
-										@Override
-										public Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException {
-												final STableReader reader = storeSetup.getReader();
-												Object testSTable = reader.open(storeSetup.getPersonTableName());
-												return new RegionRollForwardAction(testSTable,
-																Providers.basicProvider(transactorSetup.transactionStore),
-																Providers.basicProvider(transactorSetup.dataStore)).rollForward(transactionId,rowList);
-										}
-
-										@Override
-										public Boolean rollForward(
-												long transactionId,
-												Long effectiveTimestamp,
-												byte[] rowKey)
-												throws IOException {
-											// TODO Auto-generated method stub
-											return null;
-										}
-								}, 1, 100, 1000, "test");
+				final STableReader reader = storeSetup.getReader();
+				Object testSTable = reader.open(storeSetup.getPersonTableName());
+				
+				transactorSetup.rollForwardQueue = new SIRollForwardQueue(new DelayedRollForwardAction(testSTable,Providers.basicProvider(transactorSetup.transactionStore),
+						Providers.basicProvider(transactorSetup.dataStore)),
+						new PushForwardAction(testSTable,Providers.basicProvider(transactorSetup.transactionStore),
+								Providers.basicProvider(transactorSetup.dataStore)));
 				testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup,transactor,control);
 		}
 
+		
+		
 		@Before
 		public void setUp() throws Exception {
-				SynchronousRollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
 				storeSetup = new LStoreSetup();
 				transactorSetup = new TestTransactionSetup(storeSetup, true);
 				baseSetUp();
@@ -188,35 +172,6 @@ public class AsyncRollForwardTest {
 				}
 		}
 
-		@Test(timeout = 11000)
-		public void asynchRollForwardViaScan() throws IOException, InterruptedException {
-				checkAsynchRollForwardViaScan(62, true, new Function<Object[], Object>() {
-						@Override
-						public Object apply(@Nullable Object[] input) {
-								Assert.assertTrue(input!=null && input[0] !=null);
-								TransactionId t = (TransactionId) input[0];
-								KeyValue cell = (KeyValue)input[1];
-								final SDataLib dataLib = storeSetup.getDataLib();
-								final long timestamp = (Long) dataLib.decode(cell.getValue(), Long.class);
-								Assert.assertEquals(t.getId() + 1, timestamp);
-								return null;
-						}
-				});
-		}
-
-		@Test(timeout = 11000)
-		public void asynchRollForwardViaScanRollback() throws IOException, InterruptedException {
-				checkAsynchRollForwardViaScan(72, false, new Function<Object[], Object>() {
-						@Override
-						public Object apply(@Nullable Object[] input) {
-								Assert.assertTrue(input != null && input[0] != null);
-								final long timestamp = getTimestamp(input);
-								Assert.assertEquals(-1, timestamp);
-								return null;
-						}
-				});
-		}
-
 		protected long getTimestamp(Object[] input) {
 				KeyValue cell = (KeyValue)input[1];
 				final SDataLib dataLib = storeSetup.getDataLib();
@@ -225,55 +180,6 @@ public class AsyncRollForwardTest {
 						return (Long)dataLib.decode(keyValueValue,Long.class);
 				else
 						return (Integer) dataLib.decode(keyValueValue, Integer.class);
-		}
-
-		/************************************************************************************************/
-		/*private helper methods*/
-		private void checkAsynchRollForwardViaScan(int testIndex, boolean commit,
-																							 Function<Object[], Object> timestampProcessor)
-						throws IOException, InterruptedException {
-				try {
-						final String testRow = "joe" + testIndex;
-						Tracer.rollForwardDelayOverride = 100;
-						TransactionId t1 = control.beginTransaction();
-						final CountDownLatch transactionlatch = makeTransactionLatch(t1);
-						testUtility.insertAge(t1, testRow, 20);
-						Assert.assertTrue(transactionlatch.await(11, TimeUnit.SECONDS));
-						if (commit) {
-								control.commit(t1);
-						} else {
-								control.rollback(t1);
-						}
-						Result result = testUtility.readRaw(testRow);
-						final SDataLib dataLib = storeSetup.getDataLib();
-						final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES),
-										dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
-						for (KeyValue c : commitTimestamps) {
-								final int timestamp = (Integer) dataLib.decode(c.getValue(), Integer.class);
-								Assert.assertEquals(-1, timestamp);
-								Assert.assertEquals(t1.getId(), c.getTimestamp());
-						}
-
-						final CountDownLatch latch = makeLatch(testRow);
-						TransactionId t2 = control.beginTransaction(false);
-						if (commit) {
-								Assert.assertEquals(testRow + " age=20 job=null", testUtility.read(t2, testRow));
-						} else {
-								Assert.assertEquals(testRow + " absent", testUtility.read(t2, testRow));
-						}
-						Assert.assertTrue(latch.await(11, TimeUnit.SECONDS));
-
-						Result result2 = testUtility.readRaw(testRow);
-
-						final List<KeyValue> commitTimestamps2 = result2.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES),
-										dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
-						for (KeyValue c2 : commitTimestamps2) {
-								timestampProcessor.apply(new Object[]{t1, c2});
-								Assert.assertEquals(t1.getId(), c2.getTimestamp());
-						}
-				} finally {
-						Tracer.rollForwardDelayOverride = null;
-				}
 		}
 
 		private static enum TransactionAction{

@@ -6,7 +6,7 @@ import java.io.IOException;
 
 public class SITransactorPackedTest extends SITransactorTest {
     @Override
-    public void setUp() {
+    public void setUp() throws IOException {
         super.setUp();
     }
 

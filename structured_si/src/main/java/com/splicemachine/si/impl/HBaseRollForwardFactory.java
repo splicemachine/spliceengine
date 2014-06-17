@@ -2,7 +2,8 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.RollForwardFactory;
 import com.splicemachine.si.data.hbase.HbRegion;
-import com.splicemachine.si.impl.rollforward.RegionRollForwardAction;
+import com.splicemachine.si.impl.rollforward.DelayedRollForwardAction;
+import com.splicemachine.si.impl.rollforward.PushForwardAction;
 import com.splicemachine.utils.Provider;
 
 /**
@@ -19,7 +20,12 @@ public class HBaseRollForwardFactory implements RollForwardFactory<byte[],HbRegi
 		}
 
 		@Override
-		public RollForwardAction newAction(HbRegion table) {
-				return new RegionRollForwardAction(table,transactionStore,dataStore);
+		public RollForwardAction delayedRollForward(HbRegion table) {
+			return new DelayedRollForwardAction(table,transactionStore,dataStore);
+		}
+
+		@Override
+		public RollForwardAction pushForward(HbRegion table) {
+			return new PushForwardAction(table,transactionStore,dataStore);
 		}
 }

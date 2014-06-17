@@ -8,23 +8,18 @@ import com.splicemachine.si.impl.RollForwardAction;
 public class RollForwardEvent {
 	private long transactionId;
 	private byte[] rowKey;
-	private long effectiveTimestamp;
+	private Long effectiveTimestamp;
 	private RollForwardAction rollForwardAction;
 	
 	public RollForwardEvent() {
+
 	}
 	
-	public void setData(RollForwardAction rollForwardAction, long transactionId, byte[] rowKey) {
-		this.rollForwardAction = rollForwardAction;
-		this.transactionId = transactionId;
-		this.rowKey = rowKey;
-	}
-
-	public void setData(RollForwardAction rollForwardAction, long transactionId, byte[] rowKey, long effectiveTimestamp) {
-		this.rollForwardAction = rollForwardAction;
-		this.transactionId = transactionId;
-		this.rowKey = rowKey;
-		this.effectiveTimestamp = effectiveTimestamp;
+	public void set(Object rollForwardAction, Object transactionId, Object rowKey, Object effectiveTimestamp) {
+		this.rollForwardAction = (RollForwardAction) rollForwardAction;
+		this.transactionId = (Long) transactionId;
+		this.rowKey = (byte[]) rowKey;
+		this.effectiveTimestamp = (Long) effectiveTimestamp;
 	}
 
 	public long getTransactionId() {
@@ -43,11 +38,11 @@ public class RollForwardEvent {
 		this.rowKey = rowKey;
 	}
 
-	public long getEffectiveTimestamp() {
+	public Long getEffectiveTimestamp() {
 		return effectiveTimestamp;
 	}
 
-	public void setEffectiveTimestamp(long effectiveTimestamp) {
+	public void setEffectiveTimestamp(Long effectiveTimestamp) {
 		this.effectiveTimestamp = effectiveTimestamp;
 	}
 

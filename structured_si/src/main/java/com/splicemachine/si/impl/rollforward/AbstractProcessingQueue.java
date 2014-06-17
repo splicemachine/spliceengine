@@ -3,6 +3,7 @@ package com.splicemachine.si.impl.rollforward;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
+import com.lmax.disruptor.EventTranslatorVararg;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.TimeoutException;
 import com.lmax.disruptor.dsl.Disruptor;
@@ -39,19 +40,21 @@ public abstract class AbstractProcessingQueue implements RollForwardQueue {
 	
 	@Override
 	public void recordRow(long transactionId, byte[] rowKey,Long effectiveTimestamp) {
-        long sequence = ringBuffer.next();
-        try {
-        	RollForwardEvent event = ringBuffer.get(sequence); 
-            event.setData(action, transactionId, rowKey, effectiveTimestamp);
-        }
-        finally
-        {
-            ringBuffer.publish(sequence);
-        }
+        ringBuffer.publishEvent(TRANSLATOR,action,transactionId, rowKey, effectiveTimestamp);
     }
-
+	
 	@Override
 	public int getCount() {
 		return 0;
 	}
+		
+	 private static final EventTranslatorVararg<RollForwardEvent> TRANSLATOR =
+			 new EventTranslatorVararg<RollForwardEvent>() {
+
+					@Override
+					public void translateTo(RollForwardEvent event,
+							long sequence, Object... args) {
+						event.set(args[0], args[1], args[2], args[3]);
+					}
+		        };		        
 }

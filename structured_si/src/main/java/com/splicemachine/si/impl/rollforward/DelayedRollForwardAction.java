@@ -1,19 +1,20 @@
 package com.splicemachine.si.impl.rollforward;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.utils.Provider;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * @author Scott Fines
@@ -21,11 +22,13 @@ import java.util.List;
  */
 public class DelayedRollForwardAction<Table,Put extends OperationWithAttributes> implements RollForwardAction {
         private static Logger LOG = Logger.getLogger(DelayedRollForwardAction.class);
-
         protected Table region;
 		protected Provider<TransactionStore> transactionStoreProvider;
 		protected Provider<DataStore> dataStoreProvider;
-	    protected HashMap<Table,List<Pair<OperationWithAttributes,Long>>> regionMutations;
+	    protected int mutationBucket;
+	    public static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5,
+	            new ThreadFactoryBuilder().setNameFormat("delayedRollForwardEvent-%d").build());
+
 	    
 		public DelayedRollForwardAction(Table region,
 										Provider<TransactionStore> transactionStoreProvider,
@@ -36,44 +39,39 @@ public class DelayedRollForwardAction<Table,Put extends OperationWithAttributes>
 		}
 
 		@Override
-		@SuppressWarnings("unchecked")
-		public boolean rollForward(long transactionId, Long effectiveCommitTimestamp, byte[] rowKey) throws IOException {
+		public boolean write(List<RollForwardEvent> rollForwardEvents) {
 			try {
-				final Transaction transaction = transactionStoreProvider.get().getTransaction(transactionId);
-				TransactionStatus status = transaction.getEffectiveStatus();
-			final Boolean isFinished = status.isFinished();
-			boolean isCommitted = status.isCommitted();
-			if (isCommitted) {
-				dataStoreProvider.get().setCommitTimestamp(region, rowKey, transaction.getLongTransactionId(), transaction.getEffectiveCommitTimestamp());
-			} else if (status.equals(TransactionStatus.ERROR) || status.equals(TransactionStatus.ROLLED_BACK)) {
-				dataStoreProvider.get().setCommitTimestampToFail(region, rowKey, transaction.getLongTransactionId());
-			} else {
-                LOG.warn("Transaction is finished but it's neither committed nor failed: " + transaction);
-            }
-			Tracer.traceRowRollForward(rowKey);
-			} catch (NotServingRegionException e) {
-				// If the region split and the row is not here, then just skip it
-			}
-			Tracer.traceTransactionRollForward(transactionId);
-			return true;
+				int size = rollForwardEvents.size();
+				List<Pair<OperationWithAttributes,Long>> regionMutations = new ArrayList<Pair<OperationWithAttributes,Long>>();		
+				for (int i =0; i<size; i++) {
+					RollForwardEvent rollForwardEvent = rollForwardEvents.get(i);
+					final Transaction transaction = transactionStoreProvider.get().getTransaction(rollForwardEvent.getTransactionId());
+					TransactionStatus status = transaction.getEffectiveStatus();
+					if (!status.isFinished())
+						continue;
+					if (status.isCommitted()) {
+						regionMutations.add(Pair.newPair(dataStoreProvider.get().generateCommitTimestamp(region, rollForwardEvent.getRowKey(), transaction.getLongTransactionId(), transaction.getEffectiveCommitTimestamp()), (Long) null));
+					} else if (status.equals(TransactionStatus.ERROR) || status.equals(TransactionStatus.ROLLED_BACK)) {
+						regionMutations.add(Pair.newPair(dataStoreProvider.get().generateCommitTimestampToFail(region, rollForwardEvent.getRowKey(), transaction.getLongTransactionId()), (Long) null));
+					} else {
+		                LOG.warn("Transaction is finished but it's neither committed nor failed: " + transaction);
+		            }
+				}
+				dataStoreProvider.get().writeBatch(region, regionMutations.toArray(new Pair[regionMutations.size()]));
+				
+				if (Tracer.isTracingRowRollForward()) { // Notify
+					for (int i =0; i<size; i++) {
+						RollForwardEvent rollForwardEvent = rollForwardEvents.get(i);
+						Tracer.traceRowRollForward(rollForwardEvent.getRowKey());
+					}	
+				}
+
+				
+				return true;
+			} catch (IOException e) {
+				SpliceLogUtils.warn(LOG, "Could not push forward data");
+				return false;
+			}								
 		}
 		
-		@Override
-		public boolean begin() {
-			regionMutations.clear();
-			return true;
-		}
-
-		@Override
-		public boolean flush() {
-			try {
-				for (Table table: regionMutations.keySet()) {
-					dataStoreProvider.get().writeBatch(region, regionMutations.get(table).toArray(new Pair[regionMutations.get(table).size()]));					
-				}				
-			} catch (IOException e) { // Swallow Error
-				SpliceLogUtils.error(LOG, "flush failed ",e);
-				return false;
-			}
-			return true;
-		}
 }
