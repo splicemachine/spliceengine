@@ -27,90 +27,91 @@ import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 
 public class ClassInfo implements InstanceGetter {
-	private static final Class[] noParameters = new Class[0];
-	private static final Object[] noArguments = new Object[0];
-	private final Class clazz;
-	private boolean useConstructor = true;
-	private Constructor noArgConstructor;
-	protected static NoArgumentConstructorMap constructors = new NoArgumentConstructorMap(100);
-	
-	public ClassInfo(Class clazz) {
-		this.clazz = clazz;
-	}
 
-	/**
-		Return the name of this class.
-	*/
-	public final String getClassName() {
-		return clazz.getName();
-	}
+    private static final Class[] noParameters = new Class[0];
+    private static final Object[] noArguments = new Object[0];
 
-	/**
-		Return the class object for this class.
+    private final Class clazz;
+    private boolean useConstructor = true;
+    private Constructor noArgConstructor;
 
-	*/
-	public final Class getClassObject() {
+    protected static NoArgumentConstructorMap constructors = new NoArgumentConstructorMap(100);
 
-		return clazz;
-	}
+    public ClassInfo(Class clazz) {
+        this.clazz = clazz;
+    }
 
-	/**
-		Create an instance of this class. Assumes that clazz has already been
-		initialized. Optimizes Class.newInstance() by caching and using the
-		no-arg Constructor directly. Class.newInstance() looks up the constructor
-		each time.
+    /**
+     * Return the name of this class.
+     */
+    public final String getClassName() {
+        return clazz.getName();
+    }
 
-		@exception InstantiationException Zero arg constructor can not be executed
-		@exception IllegalAccessException Class or zero arg constructor is not public.
-		@exception InvocationTargetException Exception throw in zero-arg constructor.
+    /**
+     * Return the class object for this class.
+     */
+    public final Class getClassObject() {
+        return clazz;
+    }
 
-	*/
-	public Object getNewInstance()
-		throws InstantiationException, IllegalAccessException, InvocationTargetException  {
+    /**
+     * Create an instance of this class. Assumes that clazz has already been
+     * initialized. Optimizes Class.newInstance() by caching and using the
+     * no-arg Constructor directly. Class.newInstance() looks up the constructor
+     * each time.
+     *
+     * @throws InstantiationException    Zero arg constructor can not be executed
+     * @throws IllegalAccessException    Class or zero arg constructor is not public.
+     * @throws InvocationTargetException Exception throw in zero-arg constructor.
+     */
+    @Override
+    public Object getNewInstance() throws InstantiationException, IllegalAccessException, InvocationTargetException {
 
-		if (!useConstructor) {
-			return clazz.newInstance();
-		}
+        if (!useConstructor) {
+            return clazz.newInstance();
+        }
 
-		if (noArgConstructor == null) {
+        if (noArgConstructor == null) {
 
-			try {
-				noArgConstructor = (Constructor) constructors.get(clazz.getCanonicalName());
-				if (noArgConstructor == null) {
-					noArgConstructor =  clazz.getConstructor(noParameters);
-					constructors.put(clazz.getCanonicalName(), noArgConstructor);
-				}
+            try {
+                noArgConstructor = (Constructor) constructors.get(clazz.getCanonicalName());
+                if (noArgConstructor == null) {
+                    noArgConstructor = clazz.getConstructor(noParameters);
+                    constructors.put(clazz.getCanonicalName(), noArgConstructor);
+                }
 
-			} catch (NoSuchMethodException nsme) {
-				// let Class.newInstace() generate the exception
-				useConstructor = false;
-				return getNewInstance();
+            } catch (NoSuchMethodException nsme) {
+                // let Class.newInstace() generate the exception
+                useConstructor = false;
+                return getNewInstance();
 
-			} catch (SecurityException se) {
-				// not allowed to to get a handle on the constructor
-				// just use the standard mechanism.
-				useConstructor = false;
-				return getNewInstance();
-			}
-		}
+            } catch (SecurityException se) {
+                // not allowed to to get a handle on the constructor just use the standard mechanism.
+                useConstructor = false;
+                return getNewInstance();
+            }
+        }
 
-		try {
-			return noArgConstructor.newInstance(noArguments);
-		} catch (IllegalArgumentException iae) {
-			// can't happen since no arguments are passed.
-			return null;
-		}
-	}
-	
-	public static class NoArgumentConstructorMap extends LinkedHashMap {
-		private int maxCapacity;
-		public NoArgumentConstructorMap(int maxCapacity){
-			super(0, 0.75F,true); // LRU CACHE
-			this.maxCapacity = maxCapacity;
-		}
-		protected boolean removeEldestEntry(Entry eldest) {
-			return size() >= this.maxCapacity;
-		}
-	}
-	
+        try {
+            return noArgConstructor.newInstance(noArguments);
+        } catch (IllegalArgumentException iae) {
+            // can't happen since no arguments are passed.
+            return null;
+        }
+    }
+
+    public static class NoArgumentConstructorMap extends LinkedHashMap {
+        private int maxCapacity;
+
+        public NoArgumentConstructorMap(int maxCapacity) {
+            super(0, 0.75F, true); // LRU CACHE
+            this.maxCapacity = maxCapacity;
+        }
+
+        protected boolean removeEldestEntry(Entry eldest) {
+            return size() >= this.maxCapacity;
+        }
+    }
+
 }
