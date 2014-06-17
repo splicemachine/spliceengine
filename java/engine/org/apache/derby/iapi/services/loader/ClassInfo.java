@@ -79,13 +79,13 @@ public class ClassInfo implements InstanceGetter {
                 }
 
             } catch (NoSuchMethodException nsme) {
-                // let Class.newInstace() generate the exception
+                // let Class.newInstance() generate the exception
                 useConstructor = false;
-                return getNewInstance();
+                return clazz.newInstance();
             } catch (SecurityException se) {
                 // not allowed to to get a handle on the constructor just use the standard mechanism.
                 useConstructor = false;
-                return getNewInstance();
+                return clazz.newInstance();
             }
         }
 
