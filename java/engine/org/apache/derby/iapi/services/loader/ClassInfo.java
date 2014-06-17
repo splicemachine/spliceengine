@@ -1,5 +1,4 @@
 /*
-
    Derby - Class org.apache.derby.iapi.services.loader.ClassInfo
 
    Licensed to the Apache Software Foundation (ASF) under one or more
@@ -18,7 +17,6 @@
    limitations under the License.
 
  */
-
 package org.apache.derby.iapi.services.loader;
 
 import java.lang.reflect.Constructor;
@@ -28,14 +26,13 @@ import java.util.Map.Entry;
 
 public class ClassInfo implements InstanceGetter {
 
-    private static final Class[] noParameters = new Class[0];
-    private static final Object[] noArguments = new Object[0];
+    private static final Class[] NO_PARAMETERS = new Class[0];
+    private static final Object[] NO_ARGUMENTS = new Object[0];
+    private static final NoArgumentConstructorMap<String, Constructor> CONSTRUCTOR_CACHE = new NoArgumentConstructorMap<String, Constructor>(100);
 
     private final Class clazz;
     private boolean useConstructor = true;
     private Constructor noArgConstructor;
-
-    protected static NoArgumentConstructorMap constructors = new NoArgumentConstructorMap(100);
 
     public ClassInfo(Class clazz) {
         this.clazz = clazz;
@@ -75,17 +72,16 @@ public class ClassInfo implements InstanceGetter {
         if (noArgConstructor == null) {
 
             try {
-                noArgConstructor = (Constructor) constructors.get(clazz.getCanonicalName());
+                noArgConstructor = CONSTRUCTOR_CACHE.get(clazz.getCanonicalName());
                 if (noArgConstructor == null) {
-                    noArgConstructor = clazz.getConstructor(noParameters);
-                    constructors.put(clazz.getCanonicalName(), noArgConstructor);
+                    noArgConstructor = clazz.getConstructor(NO_PARAMETERS);
+                    CONSTRUCTOR_CACHE.put(clazz.getCanonicalName(), noArgConstructor);
                 }
 
             } catch (NoSuchMethodException nsme) {
                 // let Class.newInstace() generate the exception
                 useConstructor = false;
                 return getNewInstance();
-
             } catch (SecurityException se) {
                 // not allowed to to get a handle on the constructor just use the standard mechanism.
                 useConstructor = false;
@@ -94,21 +90,23 @@ public class ClassInfo implements InstanceGetter {
         }
 
         try {
-            return noArgConstructor.newInstance(noArguments);
+            return noArgConstructor.newInstance(NO_ARGUMENTS);
         } catch (IllegalArgumentException iae) {
             // can't happen since no arguments are passed.
             return null;
         }
     }
 
-    public static class NoArgumentConstructorMap extends LinkedHashMap {
+    // LRU CACHE
+    private static class NoArgumentConstructorMap<K, V> extends LinkedHashMap<K,V> {
         private int maxCapacity;
 
         public NoArgumentConstructorMap(int maxCapacity) {
-            super(0, 0.75F, true); // LRU CACHE
+            super(0, 0.75F, true);
             this.maxCapacity = maxCapacity;
         }
 
+        @Override
         protected boolean removeEldestEntry(Entry eldest) {
             return size() >= this.maxCapacity;
         }
