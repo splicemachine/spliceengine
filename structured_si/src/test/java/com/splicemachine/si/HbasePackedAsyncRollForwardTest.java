@@ -1,11 +1,5 @@
 package com.splicemachine.si;
 
-import com.splicemachine.si.impl.SynchronousRollForwardQueue;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-
-import java.util.concurrent.Executors;
 
 /**
  * Packed version of HBase AsyncRollForwardTest

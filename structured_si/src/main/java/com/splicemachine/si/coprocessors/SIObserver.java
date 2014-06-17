@@ -7,6 +7,7 @@ import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.rollforward.SIRollForwardQueue;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -40,7 +41,6 @@ public class SIObserver extends BaseRegionObserver {
     protected HRegion region;
     private boolean tableEnvMatch = false;
     private String tableName;
-    private static final int S = 1000;
     private RollForwardQueue rollForwardQueue;
 
     @Override
@@ -50,10 +50,9 @@ public class SIObserver extends BaseRegionObserver {
         tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
         Tracer.traceRegion(tableName, region);
         tableEnvMatch = doesTableNeedSI(region);
-		RollForwardAction action = HTransactorFactory.getRollForwardFactory().newAction(new HbRegion(region));
-//		rollForwardQueue = new ConcurrentRollForwardQueue(action,10000,10000,5*60*S,timedRoller,rollerPool);
-		rollForwardQueue = new SynchronousRollForwardQueue(action,10000,10*S,5*60*S,tableName);
-        RollForwardQueueMap.registerRollForwardQueue(tableName, rollForwardQueue);
+		rollForwardQueue = new SIRollForwardQueue(
+				HTransactorFactory.getRollForwardFactory().delayedRollForward(new HbRegion(region)),
+				HTransactorFactory.getRollForwardFactory().pushForward(new HbRegion(region)));
         super.start(e);
     }
 

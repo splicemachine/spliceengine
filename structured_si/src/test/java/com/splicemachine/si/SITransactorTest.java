@@ -8,11 +8,12 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.light.*;
 import com.splicemachine.si.impl.*;
-import com.splicemachine.si.impl.rollforward.RegionRollForwardAction;
+import com.splicemachine.si.impl.rollforward.DelayedRollForwardAction;
+import com.splicemachine.si.impl.rollforward.PushForwardAction;
+import com.splicemachine.si.impl.rollforward.SIRollForwardQueue;
 import com.splicemachine.si.impl.translate.Transcoder;
 import com.splicemachine.si.impl.translate.Translator;
 import com.splicemachine.utils.Providers;
-
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
@@ -20,13 +21,10 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.*;
-
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("unchecked")
@@ -41,7 +39,7 @@ public class SITransactorTest extends SIConstants {
 	final List<TransactionId> createdParentTxns = Lists.newArrayList();
 
     @SuppressWarnings("unchecked")
-		void baseSetUp() {
+		void baseSetUp() throws IOException {
         transactor = transactorSetup.transactor;
 				control = new ForwardingTransactionManager(transactorSetup.control) {
 						@Override
@@ -82,26 +80,14 @@ public class SITransactorTest extends SIConstants {
 								return txnId;
 						}
 				};
-        transactorSetup.rollForwardQueue = new SynchronousRollForwardQueue(
-								new RollForwardAction() {
-                    @Override
-                    public Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException {
-                        final STableReader reader = storeSetup.getReader();
-                        Object testSTable = reader.open(storeSetup.getPersonTableName());
-												new RegionRollForwardAction(testSTable,
-																Providers.basicProvider(transactorSetup.transactionStore),
-																Providers.basicProvider(transactorSetup.dataStore)).rollForward(transactionId,rowList);
-                        return true;
-                    }
-
-					@Override
-					public Boolean rollForward(long transactionId,
-							Long effectiveTimestamp, byte[] rowKey)
-							throws IOException {
-						// TODO Auto-generated method stub
-						return null;
-					}
-                }, 10, 100, 1000, "test");
+				
+				final STableReader reader = storeSetup.getReader();
+				Object testSTable = reader.open(storeSetup.getPersonTableName());
+				
+				transactorSetup.rollForwardQueue = new SIRollForwardQueue(new DelayedRollForwardAction(testSTable,Providers.basicProvider(transactorSetup.transactionStore),
+						Providers.basicProvider(transactorSetup.dataStore)),
+						new PushForwardAction(testSTable,Providers.basicProvider(transactorSetup.transactionStore),
+								Providers.basicProvider(transactorSetup.dataStore)));
 				testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup,transactor,control);
     }
 
@@ -111,8 +97,7 @@ public class SITransactorTest extends SIConstants {
 				transactorSetup = new TestTransactionSetup(storeSetup, true);
 		}
     @Before
-    public void setUp() {
-        SynchronousRollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
+    public void setUp() throws IOException {
         baseSetUp();
     }
 
