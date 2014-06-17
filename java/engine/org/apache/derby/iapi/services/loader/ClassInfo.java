@@ -72,12 +72,7 @@ public class ClassInfo implements InstanceGetter {
         if (noArgConstructor == null) {
 
             try {
-                noArgConstructor = CONSTRUCTOR_CACHE.get(clazz.getCanonicalName());
-                if (noArgConstructor == null) {
-                    noArgConstructor = clazz.getConstructor(NO_PARAMETERS);
-                    CONSTRUCTOR_CACHE.put(clazz.getCanonicalName(), noArgConstructor);
-                }
-
+                noArgConstructor = getNoArgConstructor(clazz);
             } catch (NoSuchMethodException nsme) {
                 // let Class.newInstance() generate the exception
                 useConstructor = false;
@@ -94,6 +89,16 @@ public class ClassInfo implements InstanceGetter {
         } catch (IllegalArgumentException iae) {
             // can't happen since no arguments are passed.
             return null;
+        }
+    }
+
+    private static Constructor<?> getNoArgConstructor(Class<?> clazz) throws NoSuchMethodException {
+        String cacheKey = clazz.getCanonicalName();
+        synchronized (CONSTRUCTOR_CACHE) {
+            if (!CONSTRUCTOR_CACHE.containsKey(cacheKey)) {
+                CONSTRUCTOR_CACHE.put(cacheKey, clazz.getConstructor(NO_PARAMETERS));
+            }
+            return CONSTRUCTOR_CACHE.get(cacheKey);
         }
     }
 
