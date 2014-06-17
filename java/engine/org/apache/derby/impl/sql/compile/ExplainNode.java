@@ -14,7 +14,7 @@ import org.apache.derby.iapi.types.TypeId;
 /**
  * Created by jyuan on 6/9/14.
  */
-public class ExplainNode extends StatementNode {
+public class ExplainNode extends DMLStatementNode {
 
     StatementNode node;
 
@@ -78,4 +78,7 @@ public class ExplainNode extends StatementNode {
         }
     }
 
+    public StatementNode getExplainPlanRoot() {
+        return node;
+    }
 }

@@ -47,6 +47,8 @@ public interface ExecPreparedStatement
 	 */
 	void setSource(String txt);
 
+    String getSource();
+
 	/**
 	 *	Get the Execution constants. This routine is called at Execution time.
 	 *
