@@ -1845,8 +1845,8 @@ public class SITransactorTest extends SIConstants {
         final TransactionId t2 = control.beginTransaction();
 
         final Exception[] exception = new Exception[1];
-        final CountDownLatch latch = new CountDownLatch(1);
-        final CountDownLatch latch2 = new CountDownLatch(1);
+        final CountDownLatch latchBackgroundThread = new CountDownLatch(1);
+        final CountDownLatch latchForegroundThread = new CountDownLatch(1);
         Tracer.registerStatus(new Function<Object[], Object>() {
             @Override
             public Object apply(@Nullable Object[] input) {
@@ -1858,14 +1858,14 @@ public class SITransactorTest extends SIConstants {
                     if (status.equals(TransactionStatus.COMMITTING)) {
                         if (beforeChange) {
                             try {
-                                latch.await(2, TimeUnit.SECONDS);
+                                Assert.assertTrue("latch expired", latchBackgroundThread.await(20, TimeUnit.SECONDS));
                             } catch (InterruptedException e) {
                                 throw new RuntimeException(e);
                             }
                         }
                     } else if (status.equals(TransactionStatus.ERROR)) {
                         if (!beforeChange) {
-                            latch.countDown();
+                            latchBackgroundThread.countDown();
                         }
                     }
                 }
@@ -1880,7 +1880,7 @@ public class SITransactorTest extends SIConstants {
                     control.commit(t2);
                 } catch (IOException e) {
                     exception[0] = e;
-                    latch2.countDown();
+                    latchForegroundThread.countDown();
                 }
             }
         }).start();
@@ -1893,7 +1893,7 @@ public class SITransactorTest extends SIConstants {
             control.fail(t2);
         }
 
-        latch2.await(2, TimeUnit.SECONDS);
+        Assert.assertTrue("latch expired", latchForegroundThread.await(20, TimeUnit.SECONDS));
         Assert.assertEquals("committing failed", exception[0].getMessage());
         Assert.assertEquals(IOException.class, exception[0].getClass());
     }
