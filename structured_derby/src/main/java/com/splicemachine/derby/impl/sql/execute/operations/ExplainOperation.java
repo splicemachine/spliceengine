@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.ast.PlanPrinter;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.management.XPlainPlanNode;
@@ -33,7 +34,8 @@ public class ExplainOperation extends SpliceBaseOperation {
     private XPlainPlanNode root;
     private HashMap<SpliceOperation, XPlainPlanNode> xPlainPlanMap;
     private static final int INIT_SIZE = 30;
-    private int pos;
+    private int pos = 0;
+    private String[] plan;
 
     static {
         nodeTypes = Arrays.asList(NodeType.MAP, NodeType.SCAN);
@@ -50,11 +52,14 @@ public class ExplainOperation extends SpliceBaseOperation {
         super.init(context);
         currentTemplate = new ValueRow(1);
         currentTemplate.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
-        rows = new ArrayList<ExecRow>(INIT_SIZE);
-        xPlainPlanMap = new HashMap<SpliceOperation, XPlainPlanNode>(INIT_SIZE);
-        pos = 0;
-        constructExplainPlan();
-        printExplainPlan(root);
+        HashMap<String, String[]> m = PlanPrinter.planMap.get();
+        String sql = activation.getPreparedStatement().getSource();
+        plan = m.get(sql);
+        //rows = new ArrayList<ExecRow>(INIT_SIZE);
+        //xPlainPlanMap = new HashMap<SpliceOperation, XPlainPlanNode>(INIT_SIZE);
+        //pos = 0;
+        //constructExplainPlan();
+        //printExplainPlan(root);
     }
 
     private void printExplainPlan(XPlainPlanNode n) throws StandardException{
@@ -105,13 +110,16 @@ public class ExplainOperation extends SpliceBaseOperation {
 
     @Override
     public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        if (pos < rows.size()) {
-            int i = pos++;
-            return rows.get(i);
-        }
-        else {
+
+        if (plan == null || pos >= plan.length) {
             return null;
         }
+
+        currentTemplate.resetRowArray();
+        DataValueDescriptor[] dvds = currentTemplate.getRowArray();
+        dvds[0].setValue(plan[pos++]);
+        return currentTemplate;
+
     }
 
     @Override
