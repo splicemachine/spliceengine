@@ -1,6 +1,7 @@
 package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
 import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
@@ -19,6 +20,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
+
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -36,7 +38,9 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
+
 import javax.management.*;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -162,7 +166,9 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 									SpliceLogUtils.warn(LOG, "Index Endpoint is not rolling forward, configuration issue");
 						}
 						try {
-								context = getWriteContext(bulkWrite.getTxnId(),rce,queue,bulkWrite.getMutations().size());
+								context = getWriteContext(bulkWrite.getTxnId(),rce,
+										SIConstants.siDelayRollForwardMaxSize > bulkWrite.getSize()?queue:null // only queue when less than bulk write max size
+												,bulkWrite.getMutations().size());
 						} catch (InterruptedException e) {
 								//was interrupted while trying to create a write context.
 								//we're done, someone else will have to write this batch

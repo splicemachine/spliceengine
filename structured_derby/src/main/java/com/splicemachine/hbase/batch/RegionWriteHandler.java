@@ -233,8 +233,9 @@ public class RegionWriteHandler implements WriteHandler {
             if (queue ==null)
 				SpliceLogUtils.warn(LOG, "Region Write Handler is not rolling forward, configuration issue");
         }
-        
-				return transactor.processKvBatch(new HbRegion(region),queue,
+        	
+				return transactor.processKvBatch(new HbRegion(region),
+						SIConstants.siDelayRollForwardMaxSize > toProcess.size()?queue:null, // Only use queues when you have less than 300 buffered records
 								SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,
 								toProcess,ctx.getTransactionId(),constraintChecker);
     }
