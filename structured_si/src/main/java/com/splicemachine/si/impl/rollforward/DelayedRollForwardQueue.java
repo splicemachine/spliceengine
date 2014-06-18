@@ -24,6 +24,7 @@ import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.SleepingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.impl.RollForwardAction;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -38,8 +39,8 @@ public class DelayedRollForwardQueue extends AbstractProcessingQueue {
 
 	static {
 		executor = Executors.newCachedThreadPool();
-		disruptor = new Disruptor<RollForwardEvent>(new RollForwardEventFactory(),2048,executor,ProducerType.MULTI,new SleepingWaitStrategy());
-		disruptor.handleEventsWith(new DelayedRollForwardEventHandler(1000, 1000));
+		disruptor = new Disruptor<RollForwardEvent>(new RollForwardEventFactory(),SpliceConstants.delayedForwardRingBufferSize,executor,ProducerType.MULTI,new SleepingWaitStrategy());
+		disruptor.handleEventsWith(new DelayedRollForwardEventHandler(SpliceConstants.delayedForwardWriteBufferSize, SpliceConstants.delayedForwardAsyncWriteDelay));
 		disruptor.start();
 		ringBuffer = disruptor.getRingBuffer();		
 	}
@@ -97,7 +98,7 @@ public class DelayedRollForwardQueue extends AbstractProcessingQueue {
 	        if (LOG.isTraceEnabled())
 	        	SpliceLogUtils.trace(LOG, "executing scheduler on event");
 			queueSize.incrementAndGet();
-			if (queueSize.get() <= 6)
+			if (queueSize.get() <= SpliceConstants.delayedForwardQueueLimit)
 				scheduler.schedule(roller, getRollForwardDelay(), TimeUnit.MILLISECONDS);
 			else
 				skippedRollForwardsSize.incrementAndGet();

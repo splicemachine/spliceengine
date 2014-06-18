@@ -35,6 +35,30 @@ public class SpliceConstants {
 		@DefaultValue(IMPORT_LOG_QUEUE_SIZE) private static final int DEFAULT_IMPORT_LOG_QUEUE_SIZE = 1000;
 		public static int importLogQueueSize;
 
+		@Parameter public static final String PUSH_FORWARD_RING_BUFFER_SIZE = "splice.rollforward.pushForwardRingBufferSize";
+		@DefaultValue(PUSH_FORWARD_RING_BUFFER_SIZE) private static final int DEFAULT_PUSH_FORWARD_RING_BUFFER_SIZE = 4096;
+		public static int pushForwardRingBufferSize;
+
+		@Parameter public static final String PUSH_FORWARD_WRITE_BUFFER_SIZE = "splice.rollforward.pushForwardWriteBufferSize";
+		@DefaultValue(PUSH_FORWARD_WRITE_BUFFER_SIZE) private static final int DEFAULT_PUSH_FORWARD_WRITE_BUFFER_SIZE = 2048;
+		public static int pushForwardWriteBufferSize;
+		
+		@Parameter public static final String DELAYED_FORWARD_RING_BUFFER_SIZE = "splice.rollforward.delayedForwardRingBufferSize";
+		@DefaultValue(PUSH_FORWARD_RING_BUFFER_SIZE) private static final int DEFAULT_DELAYED_FORWARD_RING_BUFFER_SIZE = 4096;
+		public static int delayedForwardRingBufferSize;
+
+		@Parameter public static final String DELAYED_FORWARD_QUEUE_LIMIT = "splice.rollforward.delayedForwardQueueLimit";
+		@DefaultValue(DELAYED_FORWARD_QUEUE_LIMIT) private static final int DEFAULT_DELAYED_FORWARD_QUEUE_LIMIT = 10;
+		public static int delayedForwardQueueLimit;
+		
+		@Parameter public static final String DELAYED_FORWARD_WRITE_BUFFER_SIZE = "splice.rollforward.delayedForwardWriteBufferSize";
+		@DefaultValue(DELAYED_FORWARD_WRITE_BUFFER_SIZE) private static final int DEFAULT_DELAYED_FORWARD_WRITE_BUFFER_SIZE = 2048;
+		public static int delayedForwardWriteBufferSize;
+
+		@Parameter public static final String DELAYED_FORWARD_ASYNCH_WRITE_DELAY = "splice.rollforward.delayedForwardAsynchWriteDelay";
+		@DefaultValue(DELAYED_FORWARD_ASYNCH_WRITE_DELAY) private static final int DEFAULT_DELAYED_FORWARD_ASYNCH_WRITE_DELAY = 500;
+		public static int delayedForwardAsyncWriteDelay;
+		
 		@Parameter public static final String IMPORT_LOG_QUEUE_WAIT_TIME = "splice.import.badRecords.queueWaitTime";
 		@DefaultValue(IMPORT_LOG_QUEUE_WAIT_TIME) private static final long DEFAULT_IMPORT_LOG_QUEUE_WAIT_TIME = TimeUnit.MINUTES.toMillis(1); //1 minute
 		public static long importLogQueueWaitTimeMs;
@@ -915,7 +939,12 @@ public class SpliceConstants {
 				authenticationLDAPSearchBase = config.get(AUTHENTICATION_LDAP_SEARCHBASE,DEFAULT_AUTHENTICATION_LDAP_SEARCHBASE);
 				authenticationLDAPSearchFilter = config.get(AUTHENTICATION_LDAP_SEARCHFILTER,DEFAULT_AUTHENTICATION_LDAP_SEARCHFILTER);
 				
-				
+				delayedForwardRingBufferSize = config.getInt(DELAYED_FORWARD_RING_BUFFER_SIZE, DEFAULT_DELAYED_FORWARD_RING_BUFFER_SIZE);
+				pushForwardRingBufferSize = config.getInt(PUSH_FORWARD_RING_BUFFER_SIZE, DEFAULT_PUSH_FORWARD_RING_BUFFER_SIZE);
+				pushForwardWriteBufferSize = config.getInt(PUSH_FORWARD_WRITE_BUFFER_SIZE, DEFAULT_PUSH_FORWARD_WRITE_BUFFER_SIZE);
+				delayedForwardWriteBufferSize = config.getInt(DELAYED_FORWARD_WRITE_BUFFER_SIZE, DEFAULT_DELAYED_FORWARD_WRITE_BUFFER_SIZE);
+				delayedForwardAsyncWriteDelay = config.getInt(DELAYED_FORWARD_ASYNCH_WRITE_DELAY, DEFAULT_DELAYED_FORWARD_ASYNCH_WRITE_DELAY);
+				delayedForwardQueueLimit = config.getInt(DELAYED_FORWARD_QUEUE_LIMIT, DEFAULT_DELAYED_FORWARD_QUEUE_LIMIT);
 				
 				multicastGroupAddress = config.get(MULTICAST_GROUP_ADDRESS,DEFAULT_MULTICAST_GROUP_ADDRESS);
 				multicastGroupPort = config.getInt(MULTICAST_GROUP_PORT, DEFAULT_MULTICAST_GROUP_PORT);
