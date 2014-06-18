@@ -56,7 +56,7 @@ public class SpliceConstants {
 		public static int delayedForwardWriteBufferSize;
 
 		@Parameter public static final String DELAYED_FORWARD_ASYNCH_WRITE_DELAY = "splice.rollforward.delayedForwardAsynchWriteDelay";
-		@DefaultValue(DELAYED_FORWARD_ASYNCH_WRITE_DELAY) private static final int DEFAULT_DELAYED_FORWARD_ASYNCH_WRITE_DELAY = 500;
+		@DefaultValue(DELAYED_FORWARD_ASYNCH_WRITE_DELAY) private static final int DEFAULT_DELAYED_FORWARD_ASYNCH_WRITE_DELAY = 400;
 		public static int delayedForwardAsyncWriteDelay;
 		
 		@Parameter public static final String IMPORT_LOG_QUEUE_WAIT_TIME = "splice.import.badRecords.queueWaitTime";

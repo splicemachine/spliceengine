@@ -85,23 +85,29 @@ public class DelayedRollForwardQueue extends AbstractProcessingQueue {
 				@Override
 				public void run() {
 					try {
-					for (RollForwardAction action: regionMaps.keySet()) {
-				        if (LOG.isTraceEnabled())
-				        	SpliceLogUtils.trace(LOG, "running rollForward for action=%s",action);
-						action.write(regionMaps.get(action));
-					}	
+						for (RollForwardAction action: regionMaps.keySet()) {
+					        if (LOG.isTraceEnabled())
+					        	SpliceLogUtils.trace(LOG, "running rollForward for action=%s",action);
+							action.write(regionMaps.get(action));
+						}	
 					} finally {
 						queueSize.decrementAndGet();
 					}
 				}
 	        };		
 	        if (LOG.isTraceEnabled())
-	        	SpliceLogUtils.trace(LOG, "executing scheduler on event");
-			queueSize.incrementAndGet();
-			if (queueSize.get() <= SpliceConstants.delayedForwardQueueLimit)
+	        	SpliceLogUtils.trace(LOG, "determine whether to schedule event");
+			if (queueSize.incrementAndGet() <= SpliceConstants.delayedForwardQueueLimit) {
+		        if (LOG.isTraceEnabled()) 
+		        	SpliceLogUtils.trace(LOG, "scheduled event scheduled");
 				scheduler.schedule(roller, getRollForwardDelay(), TimeUnit.MILLISECONDS);
-			else
+		      }
+			else {
+				queueSize.decrementAndGet();
 				skippedRollForwardsSize.incrementAndGet();
+		        if (LOG.isTraceEnabled())
+		        	SpliceLogUtils.trace(LOG, "scheduled event excluded due to queue size of %d",queueSize.get());
+			}
 	    }
 
 	    /**

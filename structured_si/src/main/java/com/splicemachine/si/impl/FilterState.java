@@ -235,7 +235,7 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
     private void rollForward(Transaction transaction) throws IOException {
 				LOG.trace("Rolling forward");
         TransactionStatus status = transaction.getEffectiveStatus();
-        if (rollForwardQueue != null && status.isFinished()) {
+        if (rollForwardQueue != null && status.isFinished() && status.isCommitted()) {
             dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), keyValue.getRow(), transaction.getEffectiveCommitTimestamp());
         }
     }
