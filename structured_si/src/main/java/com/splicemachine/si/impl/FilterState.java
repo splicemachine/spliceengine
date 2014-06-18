@@ -68,7 +68,12 @@ public class FilterState<Result, Put extends OperationWithAttributes, Delete, Ge
         return filterByColumnType();
     }
 
-    void setKeyValue(KeyValue dataKeyValue) {
+		@Override
+		public KeyValueType getType(KeyValue keyValue) throws IOException {
+				return type;
+		}
+
+		void setKeyValue(KeyValue dataKeyValue) {
         keyValue = dataKeyValue;
         rowState.updateCurrentRow(keyValue);
         type = dataStore.getKeyValueType(dataKeyValue);

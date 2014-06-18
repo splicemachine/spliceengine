@@ -3,22 +3,19 @@ package com.splicemachine.si.impl;
 import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.api.SIFilter;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 
-public class FilterStatePacked<Result, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
-        Scan, Lock, OperationStatus, Mutation, IHTable> implements IFilterState,SIFilter {
+public class FilterStatePacked implements IFilterState,SIFilter {
     static final Logger LOG = Logger.getLogger(FilterStatePacked.class);
-    protected final FilterState<Result, Put, Delete, Get, Scan, Lock, OperationStatus,
-						Mutation, IHTable> simpleFilter;
+    protected final IFilterState simpleFilter;
     public final RowAccumulator accumulator;
     private KeyValue lastValidKeyValue;
     protected boolean excludeRow = false;
 
-    public FilterStatePacked(FilterState<Result, Put, Delete, Get, Scan, Lock,
-                            OperationStatus, Mutation, IHTable> simpleFilter,
+    public FilterStatePacked(IFilterState simpleFilter,
                              RowAccumulator accumulator) {
         this.simpleFilter = simpleFilter;
         this.accumulator = accumulator;
@@ -30,9 +27,9 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
 
     @Override
     public Filter.ReturnCode filterKeyValue(org.apache.hadoop.hbase.KeyValue dataKeyValue) throws IOException {
-        simpleFilter.setKeyValue(dataKeyValue);
-        final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
-        switch (simpleFilter.type) {
+//        simpleFilter.setKeyValue(dataKeyValue);
+        final Filter.ReturnCode returnCode = simpleFilter.filterKeyValue(dataKeyValue);
+        switch (simpleFilter.getType(dataKeyValue)) {
             case COMMIT_TIMESTAMP:
                 return returnCode; // These are always skip...
             case USER_DATA:
@@ -63,7 +60,7 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
 
 		public Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
 				if (!accumulator.isFinished() && !excludeRow && accumulator.isOfInterest(dataKeyValue)) {
-						if (!accumulator.accumulate(simpleFilter.keyValue)) {
+						if (!accumulator.accumulate(dataKeyValue)) {
 								excludeRow = true;
 						}
 				}
@@ -74,6 +71,10 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
 				return Filter.ReturnCode.SKIP;
 		}
 
+		@Override
+		public KeyValueType getType(KeyValue keyValue) throws IOException {
+				return simpleFilter.getType(keyValue);
+		}
 
 		@Override
 		public KeyValue produceAccumulatedKeyValue() {

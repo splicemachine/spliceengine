@@ -1,7 +1,6 @@
 package com.splicemachine.si;
 
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
@@ -52,6 +51,8 @@ public class TestTransactionSetup {
 		public final TransactionManager control;
     public ManagedTransactor hTransactor;
     public final TransactionStore transactionStore;
+		public final TxnStore txnAccess;
+		public  TxnLifecycleManager txnLifecycleManager;
     public RollForwardQueue rollForwardQueue;
     public DataStore dataStore;
     public TimestampSource timestampSource = new SimpleTimestampSource();
@@ -97,14 +98,18 @@ public class TestTransactionSetup {
 				SITransactor.Builder builder = new SITransactor.Builder();
 				control = new SITransactionManager(transactionStore,timestampSource,listener);
 
-				readController = new SITransactionReadController(dataStore,dataLib,transactionStore,control);
+				InMemoryTxnStore store = new InMemoryTxnStore(timestampSource);
+				txnLifecycleManager = new ClientTxnLifecycleManager(timestampSource,store);
+				store.setLifecycleManager(txnLifecycleManager);
+				txnAccess = store;
+				readController = new SITransactionReadController(dataStore,dataLib,transactionStore,control, txnAccess);
 				//noinspection unchecked
 				LClientTransactor cTransactor = new LClientTransactor(dataStore, control, dataLib);
 				builder = builder
 								.dataLib(dataLib)
 								.dataWriter(writer)
 								.dataStore(dataStore)
-								.transactionStore(transactionStore)
+								.txnStore(txnAccess)
 								.clock(storeSetup.getClock())
 								.transactionTimeout(SIConstants.transactionTimeout)
 								.control(control);

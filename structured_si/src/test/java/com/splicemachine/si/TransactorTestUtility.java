@@ -7,6 +7,8 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
@@ -44,7 +46,7 @@ public class TransactorTestUtility {
 		StoreSetup storeSetup;
 		TestTransactionSetup transactorSetup;
 		Transactor transactor;
-		TransactionManager control;
+		TxnLifecycleManager control;
 		SDataLib dataLib;
 		static KryoPool kryoPool;
 		
@@ -56,7 +58,7 @@ public class TransactorTestUtility {
 																 StoreSetup storeSetup,
 																 TestTransactionSetup transactorSetup,
 																 Transactor transactor,
-																 TransactionManager control) {
+																 TxnLifecycleManager control) {
 				this.useSimple = useSimple;
 				this.storeSetup = storeSetup;
 				this.transactorSetup = transactorSetup;
@@ -65,29 +67,29 @@ public class TransactorTestUtility {
 				dataLib = storeSetup.getDataLib();
 		}
 
-		public void insertAge(TransactionId transactionId, String name, Integer age) throws IOException {
-				insertAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name, age);
+		public void insertAge(Txn txn, String name, Integer age) throws IOException {
+				insertAgeDirect(useSimple, transactorSetup, storeSetup, txn, name, age);
 		}
 
 		public void insertAgeBatch(Object[]... args) throws IOException {
 				insertAgeDirectBatch(useSimple, transactorSetup, storeSetup, args);
 		}
 
-		public void insertJob(TransactionId transactionId, String name, String job) throws IOException {
-				insertJobDirect(useSimple, transactorSetup, storeSetup, transactionId, name, job);
+		public void insertJob(Txn txn, String name, String job) throws IOException {
+				insertJobDirect(useSimple, transactorSetup, storeSetup, txn, name, job);
 		}
 
-		public void deleteRow(TransactionId transactionId, String name) throws IOException {
-				deleteRowDirect(useSimple, transactorSetup, storeSetup, transactionId, name);
+		public void deleteRow(Txn txn, String name) throws IOException {
+				deleteRowDirect(useSimple, transactorSetup, storeSetup, txn, name);
 		}
 
-		public String read(TransactionId transactionId, String name) throws IOException {
-				return readAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name);
+		public String read(Txn txn, String name) throws IOException {
+				return readAgeDirect(useSimple, transactorSetup, storeSetup, txn, name);
 		}
 		
 		static void insertAgeDirect(boolean useSimple, TestTransactionSetup transactorSetup, StoreSetup storeSetup,
-				TransactionId transactionId, String name, Integer age) throws IOException {
-				insertField(useSimple, transactorSetup, storeSetup, transactionId, name, transactorSetup.agePosition, age);
+				Txn txn, String name, Integer age) throws IOException {
+				insertField(useSimple, transactorSetup, storeSetup, txn, name, transactorSetup.agePosition, age);
 		}
 
 		static void insertAgeDirectBatch(boolean useSimple, TestTransactionSetup transactorSetup, StoreSetup storeSetup,
@@ -96,23 +98,23 @@ public class TransactorTestUtility {
 		}
 
 		static void insertJobDirect(boolean useSimple, TestTransactionSetup transactorSetup, StoreSetup storeSetup,
-				TransactionId transactionId, String name, String job) throws IOException {
-			insertField(useSimple, transactorSetup, storeSetup, transactionId, name, transactorSetup.jobPosition, job);
+				Txn txn, String name, String job) throws IOException {
+			insertField(useSimple, transactorSetup, storeSetup, txn, name, transactorSetup.jobPosition, job);
 		}
 
 
-		public String scan(TransactionId transactionId, String name) throws IOException {
+		public String scan(Txn txn, String name) throws IOException {
 				final STableReader reader = storeSetup.getReader();
 				byte[] key = dataLib.newRowKey(new Object[]{name});
 				Object scan = makeScan(dataLib, key, null, key);
-				transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), scan);
+				transactorSetup.clientTransactor.initializeScan(txn, scan);
 				Object testSTable = reader.open(storeSetup.getPersonTableName());
 				try {
 						Iterator<Result> results = reader.scan(testSTable, scan);
 						if (results.hasNext()) {
 								Result rawTuple = results.next();
 								Assert.assertTrue(!results.hasNext());
-								return readRawTuple(useSimple, transactorSetup, storeSetup, transactionId, name, dataLib, rawTuple, false, 
+								return readRawTuple(useSimple, transactorSetup, storeSetup, txn, name, dataLib, rawTuple, false,
 												true, true);
 						} else {
 								return "";
@@ -122,11 +124,11 @@ public class TransactorTestUtility {
 				}
 		}
 
-		public String scanNoColumns(TransactionId transactionId, String name, boolean deleted) throws IOException {
-				return scanNoColumnsDirect(useSimple, transactorSetup, storeSetup, transactionId, name, deleted);
+		public String scanNoColumns(Txn txn, String name, boolean deleted) throws IOException {
+				return scanNoColumnsDirect(useSimple, transactorSetup, storeSetup, txn, name, deleted);
 		}
 
-		public String scanAll(TransactionId transactionId, String startKey, String stopKey, Integer filterValue) throws IOException {
+		public String scanAll(Txn txn, String startKey, String stopKey, Integer filterValue) throws IOException {
 				final STableReader reader = storeSetup.getReader();
 
 				byte[] key = dataLib.newRowKey(new Object[]{startKey});
@@ -141,7 +143,7 @@ public class TransactorTestUtility {
 						filter.setFilterIfMissing(true);
 						scan.setFilter(filter);
 				}
-				transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), get);
+				transactorSetup.clientTransactor.initializeScan(txn, get);
 				Object testSTable = reader.open(storeSetup.getPersonTableName());
 				try {
 						Iterator<Result> results = reader.scan(testSTable, get);
@@ -150,7 +152,7 @@ public class TransactorTestUtility {
 						while (results.hasNext()) {
 								final Result value = results.next();
 								final String name = Bytes.toString(value.getRow());
-								final String s = readRawTuple(useSimple, transactorSetup, storeSetup, transactionId, name, dataLib, value, false,
+								final String s = readRawTuple(useSimple, transactorSetup, storeSetup, txn, name, dataLib, value, false,
 												 true, true);
 								result.append(s);
 								if (s.length() > 0) {
@@ -165,15 +167,17 @@ public class TransactorTestUtility {
 
 
 		private static void insertField(boolean useSimple, TestTransactionSetup transactorSetup, StoreSetup storeSetup,
-																		TransactionId transactionId, String name, int index, Object fieldValue)
+																		Txn txn, String name, int index, Object fieldValue)
 						throws IOException {
 			final SDataLib dataLib = storeSetup.getDataLib();
 				final STableReader reader = storeSetup.getReader();
-				Object put = makePut(useSimple, transactorSetup, transactionId, name, index, fieldValue, dataLib);
+				Object put = makePut(useSimple, transactorSetup, txn, name, index, fieldValue, dataLib);
 				processPutDirect(useSimple, transactorSetup, storeSetup, reader, (OperationWithAttributes)put);
 		}
 
-		private static Object makePut(boolean useSimple, TestTransactionSetup transactorSetup, TransactionId transactionId, String name, int index, Object fieldValue, SDataLib dataLib) throws IOException {
+		private static Object makePut(boolean useSimple, TestTransactionSetup transactorSetup,
+																	Txn txn, String name, int index,
+																	Object fieldValue, SDataLib dataLib) throws IOException {
 				byte[] key = dataLib.newRowKey(new Object[]{name});
 				OperationWithAttributes put = dataLib.newPut(key);
 				final BitSet bitSet = new BitSet();
@@ -190,7 +194,7 @@ public class TransactorTestUtility {
 				} finally {
 					entryEncoder.close();
 				}
-				transactorSetup.clientTransactor.initializePut(transactionId.getTransactionIdString(), put);
+				transactorSetup.clientTransactor.initializePut(txn.getTxnId(), put);
 				return put;
 		}
 
@@ -202,7 +206,7 @@ public class TransactorTestUtility {
 				int i = 0;
 				for (Object subArgs : args) {
 						Object[] subArgsArray = (Object[]) subArgs;
-						TransactionId transactionId = (TransactionId) subArgsArray[0];
+						Txn transactionId = (Txn) subArgsArray[0];
 						String name = (String) subArgsArray[1];
 						Object fieldValue = subArgsArray[2];
 						Object put = makePut(useSimple, transactorSetup, transactionId, name, index, fieldValue, dataLib);
@@ -213,12 +217,12 @@ public class TransactorTestUtility {
 		}
 
 		static void deleteRowDirect(boolean useSimple, TestTransactionSetup transactorSetup, StoreSetup storeSetup,
-																TransactionId transactionId, String name) throws IOException {
+																Txn txn, String name) throws IOException {
 				final SDataLib dataLib = storeSetup.getDataLib();
 				final STableReader reader = storeSetup.getReader();
 
 				byte[] key = dataLib.newRowKey(new Object[]{name});
-				OperationWithAttributes deletePut = transactorSetup.clientTransactor.createDeletePut(transactionId, key);
+				OperationWithAttributes deletePut = transactorSetup.clientTransactor.createDeletePut(txn, key);
 				processPutDirect(useSimple, transactorSetup, storeSetup, reader, deletePut);
 		}
 
@@ -262,31 +266,31 @@ public class TransactorTestUtility {
 		}
 
 		static String readAgeDirect(boolean useSimple, TestTransactionSetup transactorSetup, StoreSetup storeSetup,
-																TransactionId transactionId, String name) throws IOException {
+																Txn txn, String name) throws IOException {
 				final SDataLib dataLib = storeSetup.getDataLib();
 				final STableReader reader = storeSetup.getReader();
 
 				byte[] key = dataLib.newRowKey(new Object[]{name});
 				Object get = makeGet(dataLib, key);
-				transactorSetup.clientTransactor.initializeGet(transactionId.getTransactionIdString(), get);
+				transactorSetup.clientTransactor.initializeGet(txn.getTxnId(), get);
 				Object testSTable = reader.open(storeSetup.getPersonTableName());
 				try {
 						Result rawTuple = reader.get(testSTable, get);
-						return readRawTuple(useSimple, transactorSetup, storeSetup, transactionId, name, dataLib, rawTuple, true, false, true);
+						return readRawTuple(useSimple, transactorSetup, storeSetup, txn, name, dataLib, rawTuple, true, false, true);
 				} finally {
 						reader.close(testSTable);
 				}
 		}
 
 		static String scanNoColumnsDirect(boolean useSimple, TestTransactionSetup transactorSetup, StoreSetup storeSetup,
-																			TransactionId transactionId, String name, boolean deleted) throws IOException {
+																			Txn txn, String name, boolean deleted) throws IOException {
 				final SDataLib dataLib = storeSetup.getDataLib();
 				final STableReader reader = storeSetup.getReader();
 
 				byte[] endKey = dataLib.newRowKey(new Object[]{name});
 				final ArrayList families = new ArrayList();
 				Object scan = makeScan(dataLib, endKey, families, endKey);
-				transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), scan);
+				transactorSetup.clientTransactor.initializeScan(txn, scan);
 				transactorSetup.readController.preProcessScan(scan);
 				Object testSTable = reader.open(storeSetup.getPersonTableName());
 				try {
@@ -297,14 +301,14 @@ public class TransactorTestUtility {
 //						}
 						Result rawTuple = results.next();
 						Assert.assertTrue(!results.hasNext());
-						return readRawTuple(useSimple, transactorSetup, storeSetup, transactionId, name, dataLib, rawTuple, false, false, true);
+						return readRawTuple(useSimple, transactorSetup, storeSetup, txn, name, dataLib, rawTuple, false, false, true);
 				} finally {
 						reader.close(testSTable);
 				}
 		}
 
 		private static String readRawTuple(boolean useSimple, TestTransactionSetup transactorSetup, StoreSetup storeSetup,
-																			 TransactionId transactionId, String name, SDataLib dataLib, Result rawTuple,
+																			 Txn txn, String name, SDataLib dataLib, Result rawTuple,
 																			 boolean singleRowRead, 
 																			 boolean dumpKeyValues, boolean decodeTimestamps)
 						throws IOException {
@@ -313,12 +317,12 @@ public class TransactorTestUtility {
 						if (useSimple) { // Process Results Through Filter
 								IFilterState filterState;
 								try {
-										filterState = transactorSetup.readController.newFilterState(transactorSetup.rollForwardQueue,transactionId);
+										filterState = transactorSetup.readController.newFilterState(transactorSetup.rollForwardQueue,txn);
 								} catch (IOException e) {
 										throw new RuntimeException(e);
 								}
 								EntryDecoder decoder = new EntryDecoder();
-								filterState = new FilterStatePacked((FilterState) filterState, new HRowAccumulator(EntryPredicateFilter.emptyPredicate(),decoder, false));
+								filterState = new FilterStatePacked(filterState, new HRowAccumulator(EntryPredicateFilter.emptyPredicate(),decoder, false));
 								result = transactorSetup.readController.filterResult(filterState, rawTuple);
 								
 						} 	

@@ -4,6 +4,9 @@ import com.google.common.base.Function;
 import com.google.common.base.Suppliers;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.coprocessors.RegionRollForwardAction;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.impl.Tracer;
@@ -15,6 +18,7 @@ import com.splicemachine.si.impl.rollforward.SIRollForwardQueue;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -38,21 +42,26 @@ public class AsyncRollForwardTest {
 		StoreSetup storeSetup;
 		TestTransactionSetup transactorSetup;
 		Transactor transactor;
-		TransactionManager control;
+//		TransactionManager control;
+		TxnLifecycleManager control;
 
 		TransactorTestUtility testUtility;
 
 		@SuppressWarnings("unchecked")
 		void baseSetUp() throws IOException {
 				transactor = transactorSetup.transactor;
-				control = transactorSetup.control;
-				final STableReader reader = storeSetup.getReader();
-				Object testSTable = reader.open(storeSetup.getPersonTableName());
-				
-				transactorSetup.rollForwardQueue = new SIRollForwardQueue(new DelayedRollForwardAction(testSTable, Suppliers.ofInstance(transactorSetup.transactionStore),
-						Suppliers.ofInstance(transactorSetup.dataStore)),
-						new PushForwardAction(testSTable, Suppliers.ofInstance(transactorSetup.transactionStore),
-                    Suppliers.ofInstance(transactorSetup.dataStore)));
+				control = transactorSetup.txnLifecycleManager;
+				transactorSetup.rollForwardQueue = new SynchronousRollForwardQueue(
+								new RollForwardAction() {
+										@Override
+										public Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException {
+												final STableReader reader = storeSetup.getReader();
+												Object testSTable = reader.open(storeSetup.getPersonTableName());
+												return new RegionRollForwardAction(testSTable,
+																Providers.basicProvider(transactorSetup.transactionStore),
+																Providers.basicProvider(transactorSetup.dataStore)).rollForward(transactionId,rowList);
+										}
+								}, 1, 100, 1000, "test");
 				testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup,transactor,control);
 		}
 
@@ -73,8 +82,8 @@ public class AsyncRollForwardTest {
 		public void asynchRollForward() throws IOException, InterruptedException {
 				checkAsynchRollForward(61,TransactionAction.COMMIT,false,null,false,new TransactionChecker() {
 						@Override
-						public void check(TransactionId tId, long timestamp) {
-								Assert.assertEquals(tId.getId() + 1, timestamp);
+						public void check(Txn tId, long timestamp) {
+								Assert.assertEquals(tId.getTxnId() + 1, timestamp);
 						}
 				});
 		}
@@ -83,7 +92,7 @@ public class AsyncRollForwardTest {
 		public void asynchRollForwardRolledBackTransaction() throws IOException, InterruptedException {
 				checkAsynchRollForward(71, TransactionAction.ROLLBACK, false, null, false, new TransactionChecker() {
 						@Override
-						public void check(TransactionId tId, long timestamp) {
+						public void check(Txn tId, long timestamp) {
 								Assert.assertEquals(-1, timestamp);
 
 						}
@@ -96,7 +105,7 @@ public class AsyncRollForwardTest {
 
 				checkAsynchRollForward(71, TransactionAction.FAIL, false, null, false, new TransactionChecker() {
 						@Override
-						public void check(TransactionId tId, long timestamp) {
+						public void check(Txn tId, long timestamp) {
 								Assert.assertEquals(-1, timestamp);
 						}
 				});
@@ -107,7 +116,7 @@ public class AsyncRollForwardTest {
 
 				checkAsynchRollForward(131, TransactionAction.COMMIT, true, TransactionAction.FAIL, false, new TransactionChecker() {
 						@Override
-						public void check(TransactionId tId, long timestamp) {
+						public void check(Txn tId, long timestamp) {
 								Assert.assertEquals(-1, timestamp);
 						}
 				});
@@ -118,7 +127,7 @@ public class AsyncRollForwardTest {
 
 				checkAsynchRollForward(132, TransactionAction.FAIL, true, TransactionAction.COMMIT, false, new TransactionChecker() {
 						@Override
-						public void check(TransactionId tId, long timestamp) {
+						public void check(Txn tId, long timestamp) {
 								Assert.assertEquals(-1, timestamp);
 						}
 				});
@@ -128,8 +137,8 @@ public class AsyncRollForwardTest {
 		public void asynchRollForwardNestedCommitCommit() throws IOException, InterruptedException {
 				checkAsynchRollForward(133, TransactionAction.COMMIT, true, TransactionAction.COMMIT, false, new TransactionChecker() {
 						@Override
-						public void check(TransactionId t, long timestamp) {
-								Assert.assertEquals(t.getId() + 1, timestamp);
+						public void check(Txn t, long timestamp) {
+								Assert.assertEquals(t.getTxnId() + 1, timestamp);
 						}
 				});
 		}
@@ -139,7 +148,7 @@ public class AsyncRollForwardTest {
 
 				checkAsynchRollForward(134, TransactionAction.FAIL, true, TransactionAction.FAIL, false, new TransactionChecker() {
 						@Override
-						public void check(TransactionId tId, long timestamp) {
+						public void check(Txn tId, long timestamp) {
 								Assert.assertEquals(-1, timestamp);
 						}
 				});
@@ -150,8 +159,8 @@ public class AsyncRollForwardTest {
 
 				checkAsynchRollForward(83, TransactionAction.COMMIT, false, null, true, new TransactionChecker() {
 						@Override
-						public void check(TransactionId t, long timestamp) {
-								Assert.assertEquals(t.getId() + 2, timestamp);
+						public void check(Txn t, long timestamp) {
+								Assert.assertEquals(t.getTxnId() + 2, timestamp);
 						}
 				});
 		}
@@ -162,12 +171,12 @@ public class AsyncRollForwardTest {
 						Tracer.rollForwardDelayOverride = 200;
 						final CountDownLatch latch = makeLatch("140moe");
 
-						TransactionId t1 = control.beginTransaction();
+						Txn t1 = control.beginTransaction();
 						testUtility.insertAge(t1, "140moe", 50);
 						testUtility.deleteRow(t1, "140moe");
-						control.commit(t1);
+						t1.commit();
 
-						TransactionId t2 = control.beginTransaction();
+						Txn t2 = control.beginTransaction();
 						String expected = "";
 						Assert.assertTrue(latch.await(11, TimeUnit.SECONDS));
 						Assert.assertEquals(expected, testUtility.scanAll(t2, "140a", "140z", null));
@@ -192,7 +201,7 @@ public class AsyncRollForwardTest {
 				FAIL
 		}
 		private static interface TransactionChecker{
-				void check(TransactionId tId, long timestamp);
+				void check(Txn tId, long timestamp);
 		}
 
 		private void checkAsynchRollForward(int testIndex, TransactionAction action, boolean nested, TransactionAction parentAction,
@@ -200,17 +209,17 @@ public class AsyncRollForwardTest {
 						throws IOException, InterruptedException {
 				try {
 						Tracer.rollForwardDelayOverride = 100;
-						TransactionId t0 = null;
+						Txn t0 = null;
 						if (nested) {
 								t0 = control.beginTransaction();
 						}
-						TransactionId t1;
+						Txn t1;
 						if (nested) {
-								t1 = control.beginChildTransaction(t0, true);
+								t1 = control.beginChildTransaction(t0, Bytes.toBytes("1184"));
 						} else {
 								t1 = control.beginTransaction();
 						}
-						TransactionId t1b = null;
+						Txn t1b = null;
 						if (conflictingWrite) {
 								t1b = control.beginTransaction();
 						}
@@ -220,13 +229,13 @@ public class AsyncRollForwardTest {
 												
 						switch(action){
 								case COMMIT:
-										control.commit(t1);
+										t1.commit();
 										break;
 								case ROLLBACK:
-										control.rollback(t1);
+										t1.rollback();
 										break;
 								case FAIL:
-										control.fail(t1);
+										t1.rollback();
 										break;
 								default:
 										Assert.fail("Unknown transaction action "+ action);
@@ -234,13 +243,13 @@ public class AsyncRollForwardTest {
 						if (nested) {
 								switch(parentAction){
 										case COMMIT:
-												control.commit(t0);
+												t0.commit();
 												break;
 										case ROLLBACK:
-												control.rollback(t0);
+												t0.rollback();
 												break;
 										case FAIL:
-												control.fail(t0);
+												t0.rollback();
 												break;
 										default:
 												Assert.fail("Unknown transaction action "+ action);
@@ -255,9 +264,9 @@ public class AsyncRollForwardTest {
 						for (KeyValue c2 : commitTimestamps2) {
 								long timestamp = getTimestamp(new Object[]{t1,c2});
 								checker.check(t1,timestamp);
-								Assert.assertEquals(t1.getId(), c2.getTimestamp());
+								Assert.assertEquals(t1.getTxnId(), c2.getTimestamp());
 						}
-						TransactionId t2 = control.beginTransaction(false);
+						Txn t2 = control.beginTransaction();
 						if(action==TransactionAction.COMMIT &&(!nested || parentAction==TransactionAction.COMMIT)){
 								Assert.assertEquals(testRow + " age=20 job=null", testUtility.read(t2, testRow));
 						} else {
@@ -271,7 +280,7 @@ public class AsyncRollForwardTest {
 								} catch (RetriesExhaustedWithDetailsException e) {
 										testUtility.assertWriteConflict(e);
 								} finally {
-										control.fail(t1b);
+										t1b.rollback();
 								}
 						}
 				} finally {
@@ -297,13 +306,13 @@ public class AsyncRollForwardTest {
 				return latch;
 		}
 
-		private CountDownLatch makeTransactionLatch(final TransactionId targetTransactionId) {
+		private CountDownLatch makeTransactionLatch(final Txn targetTransactionId) {
 				final CountDownLatch latch = new CountDownLatch(1);
 				Tracer.registerTransactionRollForward(new Function<Long, Object>() {
 						@Override
 						public Object apply(@Nullable Long input) {
 								Assert.assertNotNull(input);
-								if (input.equals(targetTransactionId.getId())) {
+								if (input.equals(targetTransactionId.getTxnId())) {
 										latch.countDown();
 								}
 								return null;

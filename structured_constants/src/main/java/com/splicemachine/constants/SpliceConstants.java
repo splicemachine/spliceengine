@@ -917,7 +917,7 @@ public class SpliceConstants {
 		public static final String TEST_TABLE = "SPLICE_TEST";
 		public static final String TRANSACTION_TABLE = "SPLICE_TXN";
 		public static final String TENTATIVE_TABLE = "TENTATIVE_DDL";
-		public static final int TRANSACTION_TABLE_BUCKET_COUNT = 16;
+		public static final int TRANSACTION_TABLE_BUCKET_COUNT = 16; //must be a power of 2
 		public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
 		public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
 		public static final String SYSSCHEMAS_CACHE = "SYSSCHEMAS_CACHE";

@@ -10,4 +10,6 @@ public interface IFilterState {
     void nextRow();
     KeyValue produceAccumulatedKeyValue();
     boolean getExcludeRow();
+
+		KeyValueType getType(KeyValue keyValue) throws IOException;
 }

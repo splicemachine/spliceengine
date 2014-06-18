@@ -1,13 +1,10 @@
 package com.splicemachine.si;
 
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.si.api.TransactionReadController;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.junit.After;
@@ -24,7 +21,7 @@ public class SIFilterTest extends SIConstants {
     StoreSetup storeSetup;
     TestTransactionSetup transactorSetup;
     Transactor transactor;
-		TransactionManager control;
+		TxnLifecycleManager control;
 		TransactionReadController readController;
 
     @Before
@@ -36,7 +33,7 @@ public class SIFilterTest extends SIConstants {
 
 		protected void baseSetup() {
 				transactor = transactorSetup.transactor;
-				control = transactorSetup.control;
+				control = transactorSetup.txnLifecycleManager;
 				readController = transactorSetup.readController;
 		}
 
@@ -44,8 +41,8 @@ public class SIFilterTest extends SIConstants {
     public void tearDown() throws Exception {
     }
 
-    private void insertAge(TransactionId transactionId, String name, int age) throws IOException {
-        TransactorTestUtility.insertAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name, age);
+    private void insertAge(Txn txn, String name, int age) throws IOException {
+        TransactorTestUtility.insertAgeDirect(useSimple, transactorSetup, storeSetup, txn, name, age);
     }
 
     Result readEntireTuple(String name) throws IOException {
@@ -65,12 +62,12 @@ public class SIFilterTest extends SIConstants {
     @Test
     public void testFiltering() throws Exception {
         final SDataLib dataLib = storeSetup.getDataLib();
-        final TransactionId t1 = control.beginTransaction();
+        final Txn t1 = control.beginTransaction();
         final IFilterState filterState = readController.newFilterState(transactorSetup.rollForwardQueue, t1);
         insertAge(t1, "bill", 20);
-        control.commit(t1);
+				t1.commit();
 
-        final TransactionId t2 = control.beginTransaction();
+        final Txn t2 = control.beginTransaction();
         insertAge(t2, "bill", 30);
 
         Result row = readEntireTuple("bill");

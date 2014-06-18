@@ -309,7 +309,9 @@ public class ImmutableTransaction {
      * @return three transactions as described above
      * @throws IOException
      */
-    private ImmutableTransaction[] intersect(boolean collapse, ImmutableTransaction transaction1, ImmutableTransaction transaction2) throws IOException {
+    private ImmutableTransaction[] intersect(boolean collapse,
+																						 ImmutableTransaction transaction1,
+																						 ImmutableTransaction transaction2) throws IOException {
         final IntersectArgs key = new IntersectArgs(collapse, transaction1, transaction2);
         ImmutableTransaction[] result = intersectCache.get(key);
         if (result == null) {
@@ -319,7 +321,9 @@ public class ImmutableTransaction {
         return result;
     }
 
-    private static ImmutableTransaction[] intersectDirect(boolean collapse, ImmutableTransaction transaction1, ImmutableTransaction transaction2) throws IOException {
+    private static ImmutableTransaction[] intersectDirect(boolean collapse,
+																													ImmutableTransaction transaction1,
+																													ImmutableTransaction transaction2) throws IOException {
         List<ImmutableTransaction> chain1 = transaction1.getChain();
         List<ImmutableTransaction> chain2 = transaction2.getChain();
         for (int i2 = 0; i2 < chain2.size(); i2++) {
