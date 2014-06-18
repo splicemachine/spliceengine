@@ -2,6 +2,7 @@ package com.splicemachine.si.coprocessors;
 
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.TransactionReadController;
+import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.impl.TransactionId;
@@ -22,6 +23,7 @@ import java.io.IOException;
 public class SIFilter extends FilterBase {
     private static Logger LOG = Logger.getLogger(SIFilter.class);
 	private TransactionManager transactionManager;
+//		private TxnLifecycleManager txnLifecycleManager;
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
     private IFilterState filterState = null;

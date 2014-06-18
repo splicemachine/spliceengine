@@ -36,7 +36,13 @@ public interface TransactionReadController<Get,Scan> {
 		 * in light of this state.
 		 */
 		IFilterState newFilterState(TransactionId transactionId) throws IOException;
+
+		IFilterState newFilterState(Txn txn) throws IOException;
+
+		@Deprecated
 		IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId) throws IOException;
+
+		IFilterState newFilterState(RollForwardQueue rollForwardQueue, Txn txn) throws IOException;
 
 		IFilterState newFilterStatePacked(String tableName, RollForwardQueue rollForwardQueue,
 																			EntryPredicateFilter predicateFilter, TransactionId transactionId, boolean countStar) throws IOException;

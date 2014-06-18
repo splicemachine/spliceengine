@@ -1,9 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.si.api.RollForwardQueue;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.api.TransactionReadController;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.storage.EntryDecoder;
@@ -28,17 +26,28 @@ public class SITransactionReadController<
 				implements TransactionReadController<Get,Scan>{
 		private final DataStore dataStore;
 		private final SDataLib dataLib;
-		private final TransactionStore transactionStore;
+//		private final TransactionStore transactionStore;
 		private final TransactionManager control;
+		private final TxnStore txnAccess;
 
 		public SITransactionReadController(DataStore dataStore,
 																			 SDataLib dataLib,
 																			 TransactionStore transactionStore,
-																			 TransactionManager control) {
+																			 TransactionManager control ) {
+				this(dataStore, dataLib, transactionStore, control,null);
+				throw new UnsupportedOperationException("Implement!");
+		}
+
+		public SITransactionReadController(DataStore dataStore,
+																			 SDataLib dataLib,
+																			 TransactionStore transactionStore,
+																			 TransactionManager control,
+																			 TxnStore txnAccess) {
 				this.dataStore = dataStore;
 				this.dataLib = dataLib;
-				this.transactionStore = transactionStore;
+//				this.transactionStore = transactionStore;
 				this.control = control;
+				this.txnAccess = txnAccess;
 		}
 
 		@Override
@@ -80,9 +89,21 @@ public class SITransactionReadController<
 		}
 
 		@Override
+		public IFilterState newFilterState(Txn txn) throws IOException {
+				return newFilterState(null,txn);
+		}
+
+		@Override
 		public IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId) throws IOException {
-				return new FilterState(dataLib, dataStore, transactionStore, rollForwardQueue, 
-								transactionStore.getImmutableTransaction(transactionId));
+				return new TxnFilterState(txnAccess, txnAccess.getTransaction(transactionId.getId()),rollForwardQueue,
+								dataStore);
+//				return new FilterState(dataLib, dataStore, transactionStore, rollForwardQueue,
+//								transactionStore.getImmutableTransaction(transactionId));
+		}
+
+		@Override
+		public IFilterState newFilterState(RollForwardQueue rollForwardQueue, Txn txn) throws IOException {
+				return new TxnFilterState(txnAccess, txn,rollForwardQueue, dataStore);
 		}
 
 		@Override
@@ -128,11 +149,13 @@ public class SITransactionReadController<
 
 		@Override
 		public DDLFilter newDDLFilter(String parentTransactionId, String transactionId) throws IOException {
-				return new DDLFilter(
-								transactionStore.getTransaction(control.transactionIdFromString(transactionId)),
-								parentTransactionId == null ? null : transactionStore.getTransaction(control.transactionIdFromString(parentTransactionId)),
-								transactionStore
-				);
+				throw new UnsupportedOperationException("Implement!");
+//				TransactionId transactionId1 = control.transactionIdFromString(transactionId);
+//				return new DDLFilter(
+//								transactionStore.getTransaction(transactionId1),
+//								parentTransactionId == null ? null : transactionStore.getTransaction(control.transactionIdFromString(parentTransactionId)),
+//								transactionStore
+//				);
 		}
 
 

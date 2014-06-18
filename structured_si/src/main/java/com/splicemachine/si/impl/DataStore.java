@@ -44,20 +44,20 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
     private final byte[] siAntiTombstoneValue;
     public final byte[] siFail;
     private final byte[] userColumnFamily;
-    
-    public DataStore(SDataLib<Put, Delete, Get, Scan> dataLib,
-					STableReader reader,
-					STableWriter writer,
-					String siNeededAttribute,
-                    byte[] siNeededValue,
-					String transactionIdAttribute,
-					String deletePutAttribute,
-					byte[] siCommitQualifier,
-					byte[] siTombstoneQualifier,
-                    byte[] siNull,
-                    byte[] siAntiTombstoneValue,
-                    byte[] siFail,
-                    byte[] userColumnFamily) {
+
+		public DataStore(SDataLib<Put, Delete, Get, Scan> dataLib,
+										 STableReader reader,
+										 STableWriter writer,
+										 String siNeededAttribute,
+										 byte[] siNeededValue,
+										 String transactionIdAttribute,
+										 String deletePutAttribute,
+										 byte[] siCommitQualifier,
+										 byte[] siTombstoneQualifier,
+										 byte[] siNull,
+										 byte[] siAntiTombstoneValue,
+										 byte[] siFail,
+										 byte[] userColumnFamily) {
         this.dataLib = dataLib;
         this.reader = reader;
         this.writer = writer;
@@ -104,6 +104,12 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 				if(value==null) return null;
 				return new TransactionId(Bytes.toString(value));
     }
+
+		public long getTxnIdFromOp(OperationWithAttributes put){
+				byte[] value = put.getAttribute(transactionIdAttribute);
+				if(value==null) return -1l;
+				return Long.parseLong(Bytes.toString(value));
+		}
 
 		public String getTransactionid(OperationWithAttributes owa){
 				byte[] value = owa.getAttribute(transactionIdAttribute);

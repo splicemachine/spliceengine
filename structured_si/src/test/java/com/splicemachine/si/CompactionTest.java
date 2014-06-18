@@ -4,10 +4,14 @@ import com.google.common.base.Function;
 import com.google.common.base.Suppliers;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.coprocessors.RegionRollForwardAction;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.light.LStore;
 import com.splicemachine.si.impl.Tracer;
+import com.splicemachine.utils.Providers;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.impl.rollforward.DelayedRollForwardAction;
 import com.splicemachine.si.impl.rollforward.PushForwardAction;
@@ -38,7 +42,8 @@ public class CompactionTest {
 		StoreSetup storeSetup;
 		TestTransactionSetup transactorSetup;
 		Transactor transactor;
-		TransactionManager control;
+//		TransactionManager control;
+		TxnLifecycleManager control;
 		TransactorTestUtility testUtility;
 		@SuppressWarnings("unchecked")
 		void baseSetUp() throws IOException {
@@ -68,11 +73,11 @@ public class CompactionTest {
 						@Override
 						public Object apply(@Nullable Object[] input) {
 								Assert.assertTrue(input!=null && input[0]!=null);
-								TransactionId t = (TransactionId) input[0];
+								Txn t = (Txn) input[0];
 								KeyValue cell = (KeyValue)input[1];
 								final SDataLib dataLib = storeSetup.getDataLib();
 								final long timestamp = (Long) dataLib.decode(cell.getValue(), Long.class);
-								Assert.assertEquals(t.getId() + 1, timestamp);
+								Assert.assertEquals(t.getTxnId() + 1, timestamp);
 								return null;
 						}
 				});
@@ -135,9 +140,9 @@ public class CompactionTest {
 
 				final HBaseTestingUtility testCluster = storeSetup.getTestCluster();
 				final HBaseAdmin admin = useSimple ? null : testCluster.getHBaseAdmin();
-				TransactionId t0 = null;
+				Txn t0 = null;
 				for (int i = 0; i < 10; i++) {
-						TransactionId tx = control.beginTransaction();
+						Txn tx = control.beginTransaction();
 						if (i == 0) {
 								t0 = tx;
 						}
@@ -146,9 +151,9 @@ public class CompactionTest {
 								admin.flush(storeSetup.getPersonTableName());
 						}
 						if (commit) {
-								control.commit(tx);
+								tx.commit();
 						} else {
-								control.rollback(tx);
+								tx.rollback();
 						}
 				}
 				Assert.assertNotNull(t0);
@@ -168,24 +173,24 @@ public class CompactionTest {
 									dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
 					for (KeyValue c : commitTimestamps) {
 							timestampProcessor.apply(new Object[]{t0, c});
-							Assert.assertEquals(t0.getId(), c.getTimestamp());
+							Assert.assertEquals(t0.getTxnId(), c.getTimestamp());
 					}
 				}
 		}
 
 		private void checkNoCompaction(int testIndex, boolean commit, Function<Object[], Object> timestampProcessor) throws IOException {
-				TransactionId t0 = null;
+				Txn t0 = null;
 				String testKey = "joe" + testIndex;
 				for (int i = 0; i < 10; i++) {
-						TransactionId tx = control.beginTransaction();
+						Txn tx = control.beginTransaction();
 						if (i == 0) {
 								t0 = tx;
 						}
 						testUtility.insertAge(tx, testKey + "-" + i, i);
 						if (commit) {
-								control.commit(tx);
+								tx.commit();
 						} else {
-								control.rollback(tx);
+								tx.rollback();
 						}
 				}
 				Assert.assertNotNull(t0);
@@ -195,7 +200,7 @@ public class CompactionTest {
 								dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN));
 				for (KeyValue c : commitTimestamps) {
 						timestampProcessor.apply(new Object[]{t0, c});
-						Assert.assertEquals(t0.getId(), c.getTimestamp());
+						Assert.assertEquals(t0.getTxnId(), c.getTimestamp());
 				}
 		}
 }

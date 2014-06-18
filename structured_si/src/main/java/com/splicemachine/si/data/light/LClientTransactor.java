@@ -1,6 +1,7 @@
 package com.splicemachine.si.data.light;
 
 import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.data.api.AbstractClientTransactor;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.DataStore;

@@ -3,6 +3,8 @@ package com.splicemachine.si.impl;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.SpliceReusableHashmap;
 import com.splicemachine.si.api.TransactionStatus;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.data.api.SDataLib;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
@@ -26,7 +28,7 @@ public class SICompactionState<Result,  Mutation,
         Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock, OperationStatus> {
     private final SDataLib<Put, Delete, Get, Scan> dataLib;
     private final DataStore<Mutation, Put, Delete, Get, Scan, IHTable> dataStore;
-    private final TransactionStore transactionStore;
+    private final TxnStore transactionStore;
     private SpliceReusableHashmap<ByteBuffer,KeyValue> evaluatedTransactions;
     public SortedSet<KeyValue> dataToReturn;
 
@@ -35,7 +37,11 @@ public class SICompactionState<Result,  Mutation,
      */
     private final Map<Long, Transaction> transactionCache = new HashMap<Long, Transaction>();
 
-    public SICompactionState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore) {
+		public SICompactionState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore) {
+			throw new UnsupportedOperationException("MOVE TO CORRECT CONSTRUCTOR");
+		}
+
+    public SICompactionState(SDataLib dataLib, DataStore dataStore, TxnStore transactionStore) {
         this.dataLib = dataLib;
         this.dataStore = dataStore;
         this.transactionStore = transactionStore;
@@ -102,27 +108,23 @@ public class SICompactionState<Result,  Mutation,
 					return;
 				}	
 			}
-			Transaction transaction = getFromCache(keyValue.getTimestamp());
-			final TransactionStatus effectiveStatus = transaction.getEffectiveStatus();
-			if (effectiveStatus.isFinished()) {
-				if (effectiveStatus.isCommitted()) {
+			Txn transaction = getFromCache(keyValue.getTimestamp());
+//			final TransactionStatus effectiveStatus = transaction.getEffectiveStatus();
+			if (transaction.getState().isFinal()) {
+				if (transaction.getState()== Txn.State.COMMITTED) {
 					final Long globalCommitTimestamp = transaction.getEffectiveCommitTimestamp();
 					dataToReturn.add(newTransactionTimeStampKeyValue(keyValue,dataLib.encode(globalCommitTimestamp)));
 					dataToReturn.add(keyValue);   
 				} else {
-   				// Finished and not-committed ??
+   				// Finished and not-committed ?? = ROLLEDBACK TODO -sf- implement rollback removal
 				}
 			} else {
 				dataToReturn.add(keyValue);
 			}
     }
 
-    private Transaction getFromCache(long timestamp) throws IOException {
-        Transaction result = transactionCache.get(timestamp);
-        if (result == null) {
-            result = transactionStore.getTransaction(timestamp);
-            transactionCache.put(timestamp, result);
-        }
+    private Txn getFromCache(long timestamp) throws IOException {
+        Txn result = transactionStore.getTransaction(timestamp);
         return result;
     }
 

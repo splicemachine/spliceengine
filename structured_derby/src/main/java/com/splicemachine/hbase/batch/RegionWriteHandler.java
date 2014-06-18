@@ -8,6 +8,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.ThrowIfDisconnected;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.Transactor;
