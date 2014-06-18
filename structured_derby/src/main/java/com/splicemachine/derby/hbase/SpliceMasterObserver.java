@@ -180,9 +180,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
     	    	HTableDescriptor td = loadTableDescriptorFromFile(tableDir.getPath().toString()+"/.tableinfo");
     	    	if (LOG.isInfoEnabled())
     	    		SpliceLogUtils.info(LOG, "Restoring table descriptor for %s {%s}",tableDir.getPath().getName(),td.getNameAsString());
-    	    	System.out.println("preadd");
     	    	masterServices.getTableDescriptors().add(td);
-    	    	System.out.println("postadd");
     	    	FileStatus[] regionDirectories = FSUtils.listStatus(fs, tableDir.getPath(),new PathFilter() {
 					@Override
 					public boolean accept(Path path) {
@@ -256,12 +254,12 @@ public class SpliceMasterObserver extends BaseMasterObserver {
     }
     
     public HTableDescriptor loadTableDescriptorFromFile(String fileToLoad) throws IOException{
-    	System.out.println("loadingTableDescriptor from file " + fileToLoad);
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "loadTableDescriptorFromFile %s",fileToLoad);
     	FileSystem fs = FileSystem.get(URI.create(fileToLoad),SpliceConstants.config);
     	FSDataInputStream in = fs.open(new Path(fileToLoad));
     	HTableDescriptor td = new HTableDescriptor();
     	td.readFields(in);
-    	System.out.println("loadingTableDescriptor from file after " + td);
     	return td;
     }
     
