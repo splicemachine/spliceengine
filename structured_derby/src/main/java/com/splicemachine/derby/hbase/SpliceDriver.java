@@ -75,6 +75,8 @@ import com.splicemachine.job.ZkTaskMonitor;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.impl.rollforward.DelayedRollForwardQueue;
+import com.splicemachine.si.impl.rollforward.PushForwardQueue;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.ResourcePool;
@@ -401,7 +403,11 @@ public class SpliceDriver extends SIConstants {
             writerPool.registerJMX(mbs);
 
             SpliceIndexEndpoint.registerJMX(mbs);
+            
+            DelayedRollForwardQueue.registerJMX(mbs);
 
+            PushForwardQueue.registerJMX(mbs);            
+            
             new ManifestReader().registerJMX(mbs);
             
             //registry metricsRegistry

@@ -50,8 +50,7 @@ public interface SDataLib<
 
     Delete newDelete(byte[] rowKey);
     void addKeyValueToDelete(Delete delete, byte[] family, byte[] qualifier, long timestamp);
-
 		KVPair toKVPair(Put put);
-
 		Put toPut(KVPair kvPair, byte[] family, byte[] column, long longTransactionId);
+		void setWriteToWAL(Put put, boolean writeToWAL);
 }

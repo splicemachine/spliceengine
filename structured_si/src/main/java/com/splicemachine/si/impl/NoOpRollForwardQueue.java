@@ -11,5 +11,4 @@ public class NoOpRollForwardQueue implements RollForwardQueue {
 		@Override public void start() {  }
 		@Override public void stop() {  }
 		@Override public void recordRow(long transactionId, byte[] rowKey, Long effectiveTimestamp) {  }
-		@Override public int getCount() { return 0; }
 }

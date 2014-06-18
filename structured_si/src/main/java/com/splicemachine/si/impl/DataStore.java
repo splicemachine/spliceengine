@@ -193,7 +193,9 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
     }
 
     public Put generateCommitTimestamp(IHTable table, byte[] rowKey, long beginTimestamp, long transactionId) throws IOException {
-    	return generateCommitTimestampDirect(table, rowKey, beginTimestamp, dataLib.encode(transactionId));
+    	Put put =  generateCommitTimestampDirect(table, rowKey, beginTimestamp, dataLib.encode(transactionId));
+    	dataLib.setWriteToWAL(put, false);
+    	return put;
     }
 
     
@@ -202,7 +204,9 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
     }
     
     public Put generateCommitTimestampToFail(IHTable table, byte[] rowKey, long transactionId) throws IOException {
-    	return generateCommitTimestampDirect(table, rowKey, transactionId, siFail);
+    	Put put = generateCommitTimestampDirect(table, rowKey, transactionId, siFail);
+    	dataLib.setWriteToWAL(put, false);
+    	return put;
     }
 
     private void setCommitTimestampDirect(IHTable table, byte[] rowKey, long transactionId, byte[] timestampValue) throws IOException {

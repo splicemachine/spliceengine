@@ -289,4 +289,10 @@ public class HDataLib implements SDataLib<Put, Delete, Get, Scan> {
 			}
 			return get;
 		}
+
+		@Override
+		public void setWriteToWAL(Put put, boolean writeToWAL) {
+			put.setWriteToWAL(writeToWAL);
+		}
+
 }
