@@ -195,6 +195,11 @@ public class SpliceConstants {
 		@DefaultValue(OPERATION_PRIORITY) public static final int DEFAULT_IMPORT_TASK_PRIORITY = 3;
 		public static int operationTaskPriority;
 
+		@Parameter public static final String SI_DELAY_ROLL_FORWARD_MAX_SIZE = "splice.si.delayRollForwardMaxSize";
+		@DefaultValue(SI_DELAY_ROLL_FORWARD_MAX_SIZE) public static final int DEFAULT_SI_DELAY_ROLL_FORWARD_MAX_SIZE = 300;
+		public static int siDelayRollForwardMaxSize;
+
+		
 		@SpliceConstants.Parameter public static final String TOTAL_WORKERS = "splice.task.maxWorkers";
 		@SpliceConstants.DefaultValue(TOTAL_WORKERS) public static final int DEFAULT_TOTAL_WORKERS=10;
 		public static int taskWorkers;
@@ -858,6 +863,7 @@ public class SpliceConstants {
 				maxBufferEntries = config.getInt(BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
 				maxThreads = config.getInt(WRITE_THREADS_MAX,DEFAULT_WRITE_THREADS_MAX);
 				maxTreeThreads = config.getInt(MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
+				siDelayRollForwardMaxSize = config.getInt(SI_DELAY_ROLL_FORWARD_MAX_SIZE, DEFAULT_SI_DELAY_ROLL_FORWARD_MAX_SIZE);
 				ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
 				if(ipcThreads < maxThreads){
             /*
