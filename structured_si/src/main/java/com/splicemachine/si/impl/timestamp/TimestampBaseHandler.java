@@ -76,9 +76,7 @@ public abstract class TimestampBaseHandler extends SimpleChannelHandler {
     	super.childChannelClosed(ctx, e);
     }
 
-    void doDebug(String message) {
-	}
+    protected abstract void doDebug(String message);
 	
-    void doError(String message) {
-	}
+    protected abstract void doError(String message);
 }

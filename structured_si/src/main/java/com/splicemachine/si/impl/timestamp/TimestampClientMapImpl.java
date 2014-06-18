@@ -33,11 +33,13 @@ public class TimestampClientMapImpl extends TimestampClient {
 	
 	private static final Logger LOG = Logger.getLogger(TimestampClientMapImpl.class);
 
-	private ConcurrentHashMap<Integer, ClientCallback> _clientCallbacks = null;
+	private final int CLIENT_COUNTER_INIT = 100; // actual value doesn't matter
 
     private enum State {
 		DISCONNECTED, CONNECTING, CONNECTED
     };
+
+	private ConcurrentHashMap<Integer, ClientCallback> _clientCallbacks = null;
 
     private AtomicReference<State> _state = new AtomicReference<State>(State.DISCONNECTED);
 
@@ -47,10 +49,14 @@ public class TimestampClientMapImpl extends TimestampClient {
     
     private ChannelFactory _factory = null;
     
-	private int CLIENT_COUNTER_INIT = 100; // actual value doesn't matter
     private AtomicInteger _clientCallCounter = null;
-    public TimestampClientMapImpl() {
+    
+    private int _port;
 
+    public TimestampClientMapImpl(int port) {
+
+    	_port = port;
+    	
     	_clientCallbacks = new ConcurrentHashMap<Integer, ClientCallback>();
     	
     	_clientCallCounter = new AtomicInteger(CLIENT_COUNTER_INIT);
@@ -85,8 +91,7 @@ public class TimestampClientMapImpl extends TimestampClient {
     }
     
     protected int getPort() {
-    	// TODO: Don't hardcode
-    	return 60012;
+    	return _port;
     }
 
     protected State connectIfNeeded() {
@@ -101,7 +106,7 @@ public class TimestampClientMapImpl extends TimestampClient {
             	return _state.get();
             }
 	
-			TimestampUtil.doClientInfo(LOG, "Attempting to connect to server...");
+			TimestampUtil.doClientInfo(LOG, "Attempting to connect to server (port " + getPort() + ")...");
 	
 			ChannelFuture futureConnect = _bootstrap.connect(new InetSocketAddress(getHost(), getPort()));
 			final CountDownLatch latchConnect = new CountDownLatch(1);
