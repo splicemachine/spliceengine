@@ -10,7 +10,6 @@ import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.rollforward.SIRollForwardQueue;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -57,7 +56,10 @@ public class SIObserver extends BaseRegionObserver {
         tableEnvMatch = doesTableNeedSI(region);
 		rollForwardQueue = new SIRollForwardQueue(
 				HTransactorFactory.getRollForwardFactory().delayedRollForward(new HbRegion(region)),
-				HTransactorFactory.getRollForwardFactory().pushForward(new HbRegion(region)));
+				HTransactorFactory.getRollForwardFactory().pushForward(new HbRegion(region))
+				);
+
+//        rollForwardQueue = new NoOpRollForwardQueue();
 		rollForwardQueueMap.registerRollForwardQueue(region.getRegionNameAsString(), rollForwardQueue);
         super.start(e);
     }

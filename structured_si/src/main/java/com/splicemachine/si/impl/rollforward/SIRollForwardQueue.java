@@ -7,14 +7,20 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class SIRollForwardQueue implements RollForwardQueue {
     private static Logger LOG = Logger.getLogger(SIRollForwardQueue.class);
-	public DelayedRollForwardQueue delayedRollForwardQueue;
-	public PushForwardQueue pushForwardQueue;
+	public RollForwardQueue delayedRollForwardQueue;
+	public RollForwardQueue pushForwardQueue;
 	
 	public SIRollForwardQueue(RollForwardAction delayedRollForwardQueueAction, RollForwardAction pushForwardQueueAction) {
 		delayedRollForwardQueue = new DelayedRollForwardQueue(delayedRollForwardQueueAction);
 		pushForwardQueue = new PushForwardQueue(pushForwardQueueAction);
 	}
-		
+
+	public SIRollForwardQueue(RollForwardQueue delayedRollForwardQueue, RollForwardQueue pushForwardQueue) {
+		this.delayedRollForwardQueue = delayedRollForwardQueue;
+		this.pushForwardQueue = pushForwardQueue;
+	}
+
+	
 	@Override
 	public void start() {
 		if (LOG.isTraceEnabled())
