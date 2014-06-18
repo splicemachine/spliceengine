@@ -279,4 +279,9 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
 		public LGet newGet(byte[] rowKey, List<byte[]> families,List<List<byte[]>> columns, Long effectiveTimestamp, int maxVersions) {
 			return new LGet(rowKey, rowKey,families,columns,effectiveTimestamp,maxVersions);
 		}
+
+		@Override
+		public void setWriteToWAL(LTuple put, boolean writeToWAL) {
+			// no op
+		}
 }

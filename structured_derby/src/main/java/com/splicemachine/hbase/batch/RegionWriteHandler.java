@@ -4,7 +4,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
-
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -19,6 +18,7 @@ import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.tools.ResettableCountDownLatch;
+import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
@@ -227,9 +227,13 @@ public class RegionWriteHandler implements WriteHandler {
 
     private OperationStatus[] doSIWrite(Collection<KVPair> toProcess,WriteContext ctx) throws IOException {
         final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
-        final String tableName = region.getTableDesc().getNameAsString();
-        if(queue==null)
-            queue =  RollForwardQueueMap.lookupRollForwardQueue(tableName);
+        final String regionName = region.getRegionNameAsString();
+        if(queue==null) {
+            queue =  RollForwardQueueMap.lookupRollForward(regionName);
+            if (queue ==null)
+				SpliceLogUtils.warn(LOG, "Region Write Handler is not rolling forward, configuration issue");
+        }
+        
 				return transactor.processKvBatch(new HbRegion(region),queue,
 								SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,
 								toProcess,ctx.getTransactionId(),constraintChecker);

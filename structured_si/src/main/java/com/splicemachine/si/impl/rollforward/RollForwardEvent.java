@@ -53,4 +53,10 @@ public class RollForwardEvent {
 	public void setRollForwardAction(RollForwardAction rollForwardAction) {
 		this.rollForwardAction = rollForwardAction;
 	}
+	
+	@Override
+	public String toString() {
+		return String.format("RollForwardEvent {rollForwardAction=%s, transactionId=%d, rowKey=%s, effectiveTimestamp=%d}",rollForwardAction,transactionId,rowKey,effectiveTimestamp);
+	}
+	
 }

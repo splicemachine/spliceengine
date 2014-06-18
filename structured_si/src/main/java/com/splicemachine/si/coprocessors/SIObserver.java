@@ -42,7 +42,12 @@ public class SIObserver extends BaseRegionObserver {
     private boolean tableEnvMatch = false;
     private String tableName;
     private RollForwardQueue rollForwardQueue;
+    public static RollForwardQueueMap rollForwardQueueMap;
 
+    static {
+    	rollForwardQueueMap = new RollForwardQueueMap();
+    }
+    
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
         SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
@@ -53,6 +58,7 @@ public class SIObserver extends BaseRegionObserver {
 		rollForwardQueue = new SIRollForwardQueue(
 				HTransactorFactory.getRollForwardFactory().delayedRollForward(new HbRegion(region)),
 				HTransactorFactory.getRollForwardFactory().pushForward(new HbRegion(region)));
+		rollForwardQueueMap.registerRollForwardQueue(region.getRegionNameAsString(), rollForwardQueue);
         super.start(e);
     }
 
@@ -67,8 +73,8 @@ public class SIObserver extends BaseRegionObserver {
 
     @Override
     public void stop(CoprocessorEnvironment e) throws IOException {
-        RollForwardQueueMap.deregisterRegion(tableName);
         SpliceLogUtils.trace(LOG, "stopping %s", SIObserver.class);
+		rollForwardQueueMap.deregisterRegion(region.getRegionNameAsString());
         super.stop(e);
     }
 

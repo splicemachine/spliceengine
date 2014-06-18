@@ -3,6 +3,7 @@ package com.splicemachine.si.impl.rollforward;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -15,16 +16,17 @@ import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
 import com.lmax.disruptor.EventHandler;
+import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.SleepingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.splicemachine.si.impl.RollForwardAction;
-import com.splicemachine.si.impl.rollforward.DelayedRollForwardQueue.DelayedRollForwardQueueReporter;
-import com.splicemachine.si.impl.rollforward.DelayedRollForwardQueue.DelayedRollForwardQueueReporterIFace;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class PushForwardQueue extends AbstractProcessingQueue {
-	
+	protected static ExecutorService executor;
+    protected static Disruptor<RollForwardEvent> disruptor;
+    protected static RingBuffer<RollForwardEvent> ringBuffer;
 	static {
 		executor = Executors.newCachedThreadPool();
 		disruptor = new Disruptor<RollForwardEvent>(new RollForwardEventFactory(),2048,executor,ProducerType.MULTI,new SleepingWaitStrategy());
@@ -73,26 +75,35 @@ public class PushForwardQueue extends AbstractProcessingQueue {
 	}	
 	
 	   public static void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
-	        ObjectName coordinatorName = new ObjectName("com.splicemachine.si.impl.rollforward=PushForwardQueue");
+	        ObjectName coordinatorName = new ObjectName("com.splicemachine.si.impl.rollforward:type=PushForwardQueue");
 	        mbs.registerMBean(PushForwardQueueReporter.get(),coordinatorName);
 	    }
 	
 	public static class PushForwardQueueReporter implements PushForwardQueueReporterIFace {
 		private static final PushForwardQueueReporter INSTANCE = new PushForwardQueueReporter();
 		private  PushForwardQueueReporter () {}
-
 		public static PushForwardQueueReporter get(){ return INSTANCE; }
-		
 		@Override public int getBufferSize() { return ringBuffer.getBufferSize(); }
 		@Override public long getRemainingCapacity() { return ringBuffer.remainingCapacity(); }
-		
+		@Override public long getPushedForwardSize() { return PushForwardAction.pushedForwardSize.get(); }		
 	}
 
 	@MXBean
 	@SuppressWarnings("UnusedDeclaration")
 	public interface PushForwardQueueReporterIFace {
 			public int getBufferSize();
-			public long getRemainingCapacity();		
+			public long getRemainingCapacity();	
+			public long getPushedForwardSize();
+	}
+
+	@Override
+	Disruptor<RollForwardEvent> getDisruptor() {
+		return disruptor;
+	}
+
+	@Override
+	RingBuffer<RollForwardEvent> getRingBuffer() {
+		return ringBuffer;
 	}
 
 	

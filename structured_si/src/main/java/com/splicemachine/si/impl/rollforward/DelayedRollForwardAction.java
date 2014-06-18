@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Scott Fines
@@ -22,6 +23,10 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 public class DelayedRollForwardAction<Table,Put extends OperationWithAttributes> implements RollForwardAction {
         private static Logger LOG = Logger.getLogger(DelayedRollForwardAction.class);
+        protected static AtomicLong committedRollForwards = new AtomicLong(0);	  
+        protected static AtomicLong siFailRollForwards = new AtomicLong(0);	  
+        protected static AtomicLong notFinishedRollForwards = new AtomicLong(0);	  
+        
         protected Table region;
 		protected Provider<TransactionStore> transactionStoreProvider;
 		protected Provider<DataStore> dataStoreProvider;
@@ -40,6 +45,8 @@ public class DelayedRollForwardAction<Table,Put extends OperationWithAttributes>
 
 		@Override
 		public boolean write(List<RollForwardEvent> rollForwardEvents) {
+			if (LOG.isDebugEnabled())
+				SpliceLogUtils.debug(LOG, "write with %d rollForwardEvents",rollForwardEvents.size());
 			try {
 				int size = rollForwardEvents.size();
 				List<Pair<OperationWithAttributes,Long>> regionMutations = new ArrayList<Pair<OperationWithAttributes,Long>>();		
@@ -47,11 +54,21 @@ public class DelayedRollForwardAction<Table,Put extends OperationWithAttributes>
 					RollForwardEvent rollForwardEvent = rollForwardEvents.get(i);
 					final Transaction transaction = transactionStoreProvider.get().getTransaction(rollForwardEvent.getTransactionId());
 					TransactionStatus status = transaction.getEffectiveStatus();
-					if (!status.isFinished())
+					if (!status.isFinished()) {
+						notFinishedRollForwards.incrementAndGet();
+						if (LOG.isTraceEnabled())
+							SpliceLogUtils.trace(LOG, "transaction not finished missed on rollForwardEvent=%s",rollForwardEvent);
 						continue;
+					}
 					if (status.isCommitted()) {
+						committedRollForwards.incrementAndGet();
+						if (LOG.isTraceEnabled())
+							SpliceLogUtils.trace(LOG, "transaction committed, delayed RollForwardHit on rollForwardEvent=%s",rollForwardEvent);
 						regionMutations.add(Pair.newPair(dataStoreProvider.get().generateCommitTimestamp(region, rollForwardEvent.getRowKey(), transaction.getLongTransactionId(), transaction.getEffectiveCommitTimestamp()), (Long) null));
 					} else if (status.equals(TransactionStatus.ERROR) || status.equals(TransactionStatus.ROLLED_BACK)) {
+						siFailRollForwards.incrementAndGet();
+						if (LOG.isTraceEnabled())
+							SpliceLogUtils.trace(LOG, "transaction errored, delayed RollForwardHit on rollForwardEvent=%s",rollForwardEvent);
 						regionMutations.add(Pair.newPair(dataStoreProvider.get().generateCommitTimestampToFail(region, rollForwardEvent.getRowKey(), transaction.getLongTransactionId()), (Long) null));
 					} else {
 		                LOG.warn("Transaction is finished but it's neither committed nor failed: " + transaction);
@@ -72,6 +89,11 @@ public class DelayedRollForwardAction<Table,Put extends OperationWithAttributes>
 				SpliceLogUtils.warn(LOG, "Could not push forward data");
 				return false;
 			}								
+		}
+
+		@Override
+		public String toString() {
+			return String.format("DelayedRollForwardAction={region=%s}",region);
 		}
 		
 }

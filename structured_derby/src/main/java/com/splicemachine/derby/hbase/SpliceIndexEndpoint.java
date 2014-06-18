@@ -156,8 +156,11 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 
 				try{
 						WriteContext context;
-						if(queue==null)
-								queue = RollForwardQueueMap.lookupRollForwardQueue(((RegionCoprocessorEnvironment) this.getEnvironment()).getRegion().getTableDesc().getNameAsString());
+						if(queue==null) {
+								queue = RollForwardQueueMap.lookupRollForward(((RegionCoprocessorEnvironment) this.getEnvironment()).getRegion().getRegionNameAsString());
+								if (queue == null)
+									SpliceLogUtils.warn(LOG, "Index Endpoint is not rolling forward, configuration issue");
+						}
 						try {
 								context = getWriteContext(bulkWrite.getTxnId(),rce,queue,bulkWrite.getMutations().size());
 						} catch (InterruptedException e) {

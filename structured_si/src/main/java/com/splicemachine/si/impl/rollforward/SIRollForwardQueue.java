@@ -27,17 +27,10 @@ public class SIRollForwardQueue implements RollForwardQueue {
 
 	@Override
 	public void recordRow(long transactionId, byte[] rowKey,Long effectiveTimestamp) {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.debug(LOG, "recordRow {transactionId=%d, rowKey=%s, effectiveTimestamp=%d",transactionId, rowKey, effectiveTimestamp);
 		if (effectiveTimestamp != null)
 			pushForwardQueue.recordRow(transactionId, rowKey, effectiveTimestamp);
 		else
 			delayedRollForwardQueue.recordRow(transactionId, rowKey, effectiveTimestamp);
     }
-
-	@Override
-	public int getCount() {
-		return 0;
-	}
 
 }
