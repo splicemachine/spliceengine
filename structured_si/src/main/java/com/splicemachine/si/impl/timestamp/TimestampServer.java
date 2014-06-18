@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl.timestamp;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 
@@ -15,8 +14,10 @@ public class TimestampServer implements Runnable {
     private static final Logger LOG = Logger.getLogger(TimestampServer.class);
 
 	private RecoverableZooKeeper _rzk;
+	private int _port;
 	
-	public TimestampServer(RecoverableZooKeeper rzk) {
+	public TimestampServer(int port, RecoverableZooKeeper rzk) {
+		_port = port;
 		_rzk = rzk;
 	}
 	
@@ -30,7 +31,7 @@ public class TimestampServer implements Runnable {
 			Executors.newCachedThreadPool(),
 			Executors.newCachedThreadPool());
 
-    	doDebug("Timestamp Server starting...");
+    	TimestampUtil.doServerInfo(LOG, "Timestamp Server starting (binding to port " + _port + ")...");
 
     	ServerBootstrap bootstrap = new ServerBootstrap(factory);
 
@@ -55,11 +56,11 @@ public class TimestampServer implements Runnable {
 
 		bootstrap.bind(new InetSocketAddress(getPortNumber()));
 		
-		doDebug("Timestamp Server started.");
+		TimestampUtil.doServerInfo(LOG, "Timestamp Server started.");
 	}
 	
 	protected int getPortNumber() {
-		return 60012;
+		return _port;
 	}
 	
     protected void doDebug(String s) {
