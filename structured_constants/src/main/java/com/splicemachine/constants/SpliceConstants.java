@@ -474,7 +474,7 @@ public class SpliceConstants {
 		 * Defaults to none
 		 */
 		@Parameter public static final String AUTHENTICATION = "splice.authentication";
-		@DefaultValue(AUTHENTICATION) public static final String DEFAULT_AUTHENTICATION = "NATIVE";
+		@DefaultValue(AUTHENTICATION) public static final String DEFAULT_AUTHENTICATION = "NONE";
 		public static String authentication;
 		
 		@Parameter public static final String AUTHENTICATION_LDAP_SERVER = "splice.authentication.ldap.server";
