@@ -20,6 +20,7 @@ import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.SleepingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.impl.RollForwardAction;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -29,8 +30,8 @@ public class PushForwardQueue extends AbstractProcessingQueue {
     protected static RingBuffer<RollForwardEvent> ringBuffer;
 	static {
 		executor = Executors.newCachedThreadPool();
-		disruptor = new Disruptor<RollForwardEvent>(new RollForwardEventFactory(),2048,executor,ProducerType.MULTI,new SleepingWaitStrategy());
-		disruptor.handleEventsWith(new PushForwardEventHandler(1000));
+		disruptor = new Disruptor<RollForwardEvent>(new RollForwardEventFactory(),SpliceConstants.pushForwardRingBufferSize,executor,ProducerType.MULTI,new SleepingWaitStrategy());
+		disruptor.handleEventsWith(new PushForwardEventHandler(SpliceConstants.pushForwardWriteBufferSize));
 		disruptor.start();
 		ringBuffer = disruptor.getRingBuffer();		
 	}
