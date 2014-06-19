@@ -214,6 +214,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
                 this.outerJoin = outerJoin;
             }
 
+
 				@Override
 				public boolean hasNext() {
 						SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin hasNext() ",(restriction != null?"with ":"without "),"restriction");
