@@ -18,11 +18,14 @@ public class SpliceNetConnection {
 
     private static final String DRIVER_CLASS = "org.apache.derby.jdbc.ClientDriver";
     private static final String DB_URL_LOCAL = "jdbc:derby://localhost:1527/";
-
+    public static final String DEFAULT_USER = "splice";
+    public static final String DEFAULT_USER_PASSWORD = "admin";
+    
+    
     private static boolean driverClassLoaded;
 
     public static Connection getConnection() {
-    	return getConnectionAs("splice", "admin");
+    	return getConnectionAs(DEFAULT_USER,DEFAULT_USER_PASSWORD);
     }
 
     public static Connection getConnectionAs(String userName, String password) {

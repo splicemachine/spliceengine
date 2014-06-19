@@ -1,6 +1,7 @@
 package com.splicemachine.derby.test.framework;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
@@ -11,29 +12,23 @@ import org.junit.runner.Description;
 
 public class SpliceRoleWatcher extends TestWatcher {
 	private static final Logger LOG = Logger.getLogger(SpliceRoleWatcher.class);
-	protected String createString;
-	private String userName;
-	private String password;
-	public SpliceRoleWatcher(String createString) {
-		this.createString = createString;		
+	protected String roleName;
+	public SpliceRoleWatcher(String roleName) {
+		this.roleName = roleName;		
 	}
 
-	public SpliceRoleWatcher(String createString, String userName, String password) {
-		this.createString = createString;		
-		this.userName = userName;
-		this.password = password;
-	}
 	
 	@Override
 	protected void starting(Description description) {
 		LOG.trace("Starting");
+		executeDrop(roleName.toUpperCase());
 		Connection connection = null;
 		Statement statement = null;
 		ResultSet rs = null;
 		try {
-			connection = userName == null?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);
+			connection = SpliceNetConnection.getConnection();
 			statement = connection.createStatement();
-			statement.execute(createString);
+			statement.execute(String.format("create role %s",roleName));
 			connection.commit();
 		} catch (Exception e) {
 			LOG.error("Role statement is invalid ");
@@ -49,6 +44,28 @@ public class SpliceRoleWatcher extends TestWatcher {
 	@Override
 	protected void finished(Description description) {
 		LOG.trace("finished");
+	}
+	
+	public static void executeDrop(String roleName) {
+		LOG.trace("ExecuteDrop");
+		Connection connection = null;
+		PreparedStatement statement = null;
+		try {
+			connection = SpliceNetConnection.getConnection();
+			statement = connection.prepareStatement("select roleid from sys.sysroles where roleid = ?");
+			statement.setString(1, roleName);
+			ResultSet rs = statement.executeQuery();
+			if (rs.next())
+				connection.createStatement().execute(String.format("drop role %s",roleName));
+			connection.commit();
+		} catch (Exception e) {
+			LOG.error("error Dropping " + e.getMessage());
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		} finally {
+			DbUtils.closeQuietly(statement);
+			DbUtils.commitAndCloseQuietly(connection);
+		}
 	}
 	
 }

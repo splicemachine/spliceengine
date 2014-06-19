@@ -137,6 +137,13 @@ public class SpliceWatcher extends TestWatcher {
 				return rs;
 		}
 
+		public ResultSet executeQuery(String sql, String userName, String password) throws Exception {
+			Statement s = getStatement(userName,password);
+			ResultSet rs = s.executeQuery(sql);
+			resultSets.add(rs);
+			return rs;
+		}
+
         /**
         * Return column one from all rows.
         */
@@ -166,11 +173,23 @@ public class SpliceWatcher extends TestWatcher {
 				return s.executeUpdate(sql);
 		}
 
+		public int executeUpdate(String sql, String userName, String password) throws Exception {
+			Statement s = getStatement(userName,password);
+			return s.executeUpdate(sql);
+		}
+
 		public Statement getStatement() throws Exception {
 				Statement s = getOrCreateConnection().createStatement();
 				statements.add(s);
 				return s;
 		}
+
+		public Statement getStatement(String userName, String password) throws Exception {
+			Statement s = createConnection(userName,password).createStatement();
+			statements.add(s);
+			return s;
+		}
+
 		public CallableStatement prepareCall(String sql) throws Exception {
 				CallableStatement s = getOrCreateConnection().prepareCall(sql);
 				statements.add(s);
