@@ -3,6 +3,7 @@ package com.splicemachine.derby.test.framework;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.log4j.Logger;
 import org.junit.rules.TestWatcher;
@@ -11,16 +12,25 @@ import org.junit.runner.Description;
 public class SpliceSchemaWatcher extends TestWatcher {
 	private static final Logger LOG = Logger.getLogger(SpliceSchemaWatcher.class);
 	public String schemaName;
+	protected String userName;
+	protected String password;
 	public SpliceSchemaWatcher(String schemaName) {
 		this.schemaName = schemaName.toUpperCase();
 	}
+	
+	public SpliceSchemaWatcher(String schemaName, String userName, String password) {
+		this(schemaName);
+		this.userName = userName;
+		this.password = password;
+	}
+	
 	@Override
 	protected void starting(Description description) {
 		Connection connection = null;
 		Statement statement = null;
 		ResultSet rs = null;
 		try {
-			connection = SpliceNetConnection.getConnection();
+			connection = userName==null?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);
 			rs = connection.getMetaData().getSchemas(null, schemaName);
 			if (rs.next())
 				executeDrop(schemaName);
