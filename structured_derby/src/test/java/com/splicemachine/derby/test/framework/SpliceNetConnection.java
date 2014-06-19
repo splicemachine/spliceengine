@@ -22,12 +22,16 @@ public class SpliceNetConnection {
     private static boolean driverClassLoaded;
 
     public static Connection getConnection() {
+    	return getConnectionAs("splice", "admin");
+    }
+
+    public static Connection getConnectionAs(String userName, String password) {
         if (!driverClassLoaded) {
             loadDriver();
         }
         Properties props = new Properties();
         try {
-            return DriverManager.getConnection(DB_URL_LOCAL + SpliceConstants.SPLICE_DB + ";create=true;user=splice;password=admin", props);
+        	return DriverManager.getConnection(String.format("%s%s;create=true;user=%s;password=%s",DB_URL_LOCAL,SpliceConstants.SPLICE_DB,userName, password), props);
         } catch (SQLException e) {
             throw new IllegalStateException(e);
         }
