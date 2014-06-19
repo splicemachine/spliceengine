@@ -292,7 +292,6 @@ public class BroadcastJoinOperation extends JoinOperation {
                 }
             });
 
-
             if (rightRowCounter == null) {
                 rightRowCounter = runtimeContext.newCounter();
                 if (rightRowCounter.isActive()) {
