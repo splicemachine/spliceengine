@@ -86,8 +86,6 @@ public class Exceptions {
 						}
         } else if(rootCause instanceof SpliceStandardException){
             return ((SpliceStandardException)rootCause).generateStandardException();
-        }else if(rootCause instanceof RetriesExhaustedWithDetailsException){
-            return parseException((RetriesExhaustedWithDetailsException)rootCause);
         }
 
         ErrorState state = ErrorState.stateFor(rootCause);
