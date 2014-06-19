@@ -22,12 +22,10 @@
 package org.apache.derby.impl.db;
 
 import org.apache.derby.iapi.error.PublicAPI;
-
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.reference.EngineType;
 import org.apache.derby.iapi.util.DoubleProperties;
 import org.apache.derby.iapi.util.IdUtil;
-
 import org.apache.derby.iapi.services.property.PropertyUtil;
 import org.apache.derby.iapi.services.loader.ClassFactory;
 import org.apache.derby.iapi.services.loader.JarReader;
@@ -45,13 +43,10 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-
 import org.apache.derby.iapi.sql.conn.LanguageConnectionFactory;
-
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.FileInfoDescriptor;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.sql.LanguageFactory;
 import org.apache.derby.iapi.store.access.AccessFactory;
@@ -64,7 +59,6 @@ import org.apache.derby.iapi.services.uuid.UUIDFactory;
 import org.apache.derby.impl.sql.execute.JarUtil;
 import org.apache.derby.io.StorageFile;
 import org.apache.derby.catalog.UUID;
-
 import org.apache.derby.iapi.store.replication.slave.SlaveFactory;
 
 import java.io.Serializable;
@@ -432,6 +426,10 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 			throw PublicAPI.wrapStandardException(se);
 		}
 	}
+
+    public void restore(String restoreDir, boolean wait) throws SQLException {
+    		throw new RuntimeException("UnsupportedException");
+    	}
 
 
     public void backupAndEnableLogArchiveMode(String  backupDir, 

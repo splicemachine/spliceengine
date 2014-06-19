@@ -8199,7 +8199,8 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                                         SchemaDescriptor.STD_DEFAULT_SCHEMA_NAME,
                                         SchemaDescriptor.DEFAULT_USER_NAME,
                                         uuidFactory.recreateUUID( SchemaDescriptor.DEFAULT_SCHEMA_UUID),
-                                        false);  
+                                        false); 		
+  		
   		addDescriptor(appSchemaDesc, null, SYSSCHEMAS_CATALOG_NUM, false, tc);
 	}
 

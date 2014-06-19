@@ -58,7 +58,7 @@ public final class  UserDescriptor extends TupleDescriptor
          )
 	{
 		super( dataDictionary );
-
+		
         _userName = userName;
         _hashingScheme = hashingScheme;
 
@@ -84,6 +84,8 @@ public final class  UserDescriptor extends TupleDescriptor
      */
 	public char[]   getAndZeroPassword()
 	{
+		if (_password == null)
+				return null;
 		int length = _password.length;
         char[] retval = new char[ length ];
         System.arraycopy( _password, 0, retval, 0, length );
@@ -102,7 +104,5 @@ public final class  UserDescriptor extends TupleDescriptor
 
 	/** @see TupleDescriptor#getDescriptorName */
 	public String getDescriptorName() { return _userName; }
-
-
 
 }

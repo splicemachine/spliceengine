@@ -70,6 +70,10 @@ public interface Database
     public void backup(String backupDir, boolean wait) 
         throws SQLException;
 
+    public void restore(String restoreDir, boolean wait) 
+            throws SQLException;
+    
+    
 
     /**
      * Backup the database to a backup directory and enable the log archive

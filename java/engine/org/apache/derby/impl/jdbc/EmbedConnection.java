@@ -117,6 +117,7 @@ public abstract class EmbedConnection implements EngineConnection
 {
 
 	protected static final StandardException exceptionClose = StandardException.closeException();
+    public static final String INTERNAL_CONNECTION = "SPLICE_INTERNAL_CONNECTION";
     
     /**
      * Static exception to be thrown when a Connection request can not
@@ -214,6 +215,7 @@ public abstract class EmbedConnection implements EngineConnection
     /** Cached string representation of the connection id */
     private String connString;
 
+    private boolean internal;
 
 	//////////////////////////////////////////////////////////
 	// CONSTRUCTORS
@@ -224,6 +226,7 @@ public abstract class EmbedConnection implements EngineConnection
 	public EmbedConnection(InternalDriver driver, String url, Properties info)
 		 throws SQLException
 	{
+		internal = info.getProperty(INTERNAL_CONNECTION) != null;
 		// Create a root connection.
 		applicationConnection = rootConnection = this;
 		factory = driver;
@@ -1246,7 +1249,8 @@ public abstract class EmbedConnection implements EngineConnection
         //
 
         if (dbname != null) {
-			checkUserIsNotARole();
+        	if (!internal)
+        		checkUserIsNotARole();
 		}
 
 		// Let's authenticate now
@@ -1254,7 +1258,9 @@ public abstract class EmbedConnection implements EngineConnection
         boolean authenticationSucceeded = true;
 
         try {
-            authenticationSucceeded = authenticationService.authenticate( dbname, userInfo );
+        		if (!internal)
+        			authenticationSucceeded = authenticationService.authenticate( dbname, userInfo );
+//        	authenticationSucceeded = true; // internal connections are allowed without authentication
         }
         catch (SQLWarning warnings)
         {
@@ -1263,7 +1269,6 @@ public abstract class EmbedConnection implements EngineConnection
             //
             addWarning( warnings );
         }
-			
 		if ( !authenticationSucceeded )
         {
             throw newSQLException(SQLState.NET_CONNECT_AUTH_FAILED,
@@ -1315,7 +1320,6 @@ public abstract class EmbedConnection implements EngineConnection
 	 *            (which is also stored in CNF).
 	 */
 	private void checkUserIsNotARole() throws SQLException {
-		/*
 		TransactionResourceImpl tr = getTR();
 
 		try {
@@ -1353,7 +1357,7 @@ public abstract class EmbedConnection implements EngineConnection
 
 			throw handleException(e);
 		}
-		*/
+	
 	}
 
 	/* Enumerate operations controlled by database owner powers */

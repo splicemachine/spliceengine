@@ -877,6 +877,20 @@ public class SystemProcedures  {
     }
 
     /**
+     * 
+     * @param backupDir the name of the directory where the backup should be
+     *                  stored. This directory will be created if it 
+     *                  does not exist.
+     * @exception StandardException thrown on error
+     */
+    public static void SYSCS_RESTORE_DATABASE(String restoreDir)
+		throws SQLException
+    {
+        Factory.getDatabaseOfConnection().restore(restoreDir,true);
+    }
+    
+    
+    /**
      * Backup the database to a backup directory.
      *
      * This procedure will throw error, if there are any uncommitted unlogged 
@@ -2246,16 +2260,14 @@ public class SystemProcedures  {
             ** the transaction.
             */
             dd.startWriting(lcc);
-
             UserDescriptor  userDescriptor = makeUserDescriptor( dd, tc, userName, password );
-
             dd.addDescriptor( userDescriptor, null, DataDictionary.SYSUSERS_CATALOG_NUM, false, tc );
 
             // turn on NATIVE::LOCAL authentication
             if ( dd.getAuthorizationDatabaseOwner().equals( userName ) )
             {
-                tc.setProperty
-                    ( Property.AUTHENTICATION_PROVIDER_PARAMETER, Property.AUTHENTICATION_PROVIDER_NATIVE_LOCAL, true );
+            //    tc.setProperty
+            //        ( Property.AUTHENTICATION_PROVIDER_PARAMETER, Property.AUTHENTICATION_PROVIDER_NATIVE_LOCAL, true );
             }
             
         } catch (StandardException se) { throw PublicAPI.wrapStandardException(se); }

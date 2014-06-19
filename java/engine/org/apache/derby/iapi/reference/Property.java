@@ -742,7 +742,7 @@ public interface Property {
 
 
   /* some static fields */
-	public static final String DEFAULT_USER_NAME = "APP";
+	public static final String DEFAULT_USER_NAME = "SPLICE";
 	public static final String DATABASE_MODULE = "org.apache.derby.database.Database";
 
 	/*

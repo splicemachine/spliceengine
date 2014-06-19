@@ -280,7 +280,12 @@ public class SQLChar
      */
     public  char[]  getRawDataAndZeroIt()
     {
-        if ( rawData == null ) { return null; }
+        if ( rawData == null ) { 
+        	if (value != null) {
+        		return value.toCharArray(); // Needs to be hidden
+        	}
+        	
+        	return null; }
 
         int length = rawData.length;
         char[] retval = new char[ length ];
