@@ -7,6 +7,7 @@ ROOT_DIR="$( pwd )"
 
 LOG4J_PROP_PATH="file:${ROOT_DIR}/target/splicemachine/lib/info-log4j.properties"
 export LOG4J_PROP_PATH
+
 # DEV_CP will be overridden in stand-alone script
 DEV_CP="${ROOT_DIR}/target/splicemachine/lib/*"
 export DEV_CP
