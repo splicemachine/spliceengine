@@ -5,6 +5,9 @@ package com.splicemachine.derby.management;
  */
 
 import com.google.gson.annotations.Expose;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -15,6 +18,7 @@ import java.util.HashMap;
 
 public class XPlainTreeNode {
 
+    private static final Logger LOG = Logger.getLogger(XPlainTreeNode.class);
     private static final String TABLESCAN = "TableScan";
 
     private long parentOperationId;
@@ -255,6 +259,9 @@ public class XPlainTreeNode {
     // Assume that the two trees has the same structure
     public void aggregateTree(XPlainTreeNode other) throws IllegalAccessException{
         aggregate(other);
+        if (operationType.compareToIgnoreCase(other.operationType) != 0) {
+            SpliceLogUtils.trace(LOG, "operation name not equal");
+        }
         for(XPlainTreeNode node:children) {
             XPlainTreeNode otherChild = other.children.removeFirst();
             node.aggregateTree(otherChild);

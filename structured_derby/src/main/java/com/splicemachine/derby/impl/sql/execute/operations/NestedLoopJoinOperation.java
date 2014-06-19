@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -131,7 +132,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 						leftResultSet.setCurrentRow(leftRow);
 						rowsSeenLeft++;
 						SpliceLogUtils.debug(LOG, ">>>  NestdLoopJoin: new NLIterator");
-						nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin,rightResultSetUniqueSequenceID);
+						nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin,rightResultSetUniqueSequenceID,spliceRuntimeContext);
 				}
 				if (leftRow == null){
 						if(nestedLoopIterator!=null){
@@ -190,14 +191,28 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				private boolean returnedRight=false;
 				private boolean outerJoin = false;
 
-				NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin,SpliceRuntimeContext context) throws StandardException, IOException {
-						SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
-						this.leftRow = leftRow;
-						probeResultSet = getRightResultSet();
-						probeResultSet.open(hash,false);
-						populated=false;
-						this.outerJoin = outerJoin;
-				}
+            NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin,byte[] rightResultSetUniqueSequenceID, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+                SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
+                this.leftRow = leftRow;
+                probeResultSet = getRightResultSet();
+
+                if (shouldRecordStats()) {
+                    if (operationChainInfo == null) {
+                        operationChainInfo = new XplainOperationChainInfo(
+                                spliceRuntimeContext.getStatementId(),
+                                Bytes.toLong(rightResultSetUniqueSequenceID));
+                    }
+                    List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
+                    if (operationChain == null) {
+                        operationChain = Lists.newLinkedList();
+                        SpliceBaseOperation.operationChain.set(operationChain);
+                    }
+                    operationChain.add(operationChainInfo);
+                }
+                probeResultSet.open(hash);
+                populated=false;
+                this.outerJoin = outerJoin;
+            }
 
 				@Override
 				public boolean hasNext() {
@@ -287,11 +302,15 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				}
 				public void close() throws StandardException {
 						beginTime = getCurrentTimeMillis();
-						if(xplainSchema!=null){
-								//have to set a unique Task id each time to ensure all the rows are written
-								probeResultSet.getDelegate().setTaskId(SpliceDriver.driver().getUUIDGenerator().nextUUID());
-								//probeResultSet.getDelegate().setScrollId(Bytes.toLong(uniqueSequenceID));
-								if(region!=null)
+						if(shouldRecordStats()){
+                            List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
+                            if (operationChain != null && operationChain.size() > 0) {
+                                operationChain.remove(operationChain.size() - 1);
+                            }
+							//have to set a unique Task id each time to ensure all the rows are written
+							probeResultSet.getDelegate().setTaskId(SpliceDriver.driver().getUUIDGenerator().nextUUID());
+							//probeResultSet.getDelegate().setScrollId(Bytes.toLong(uniqueSequenceID));
+							if(region!=null)
 										probeResultSet.getDelegate().setRegionName(region.getRegionNameAsString());
 
 						}
