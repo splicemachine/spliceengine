@@ -81,12 +81,8 @@ public class OnceOperationIT extends SpliceUnitTest {
 			ResultSet rs = methodWatcher.executeQuery(format("values (select k from %s where k = 3)",this.getTableReference(TABLE1_NAME)));
 			rs.next();
 		} catch (SQLException t) {
-            t.printStackTrace();
-            Assert.assertEquals("Incorrect SQLState returned","08006",t.getSQLState());
-            //String msg = "\"severity\":20000,\"textMessage\":\"Scalar subquery is only allowed to return a single row.\",\"sqlState\":\"21000\",\"messageId\":\"21000\"";
-            String msg = "\"messageId\":\"21000\"";
-            Assert.assertTrue("Incorrect SQLState buried way down in there",
-                                 t.getLocalizedMessage().contains(msg));
+            Assert.assertEquals("Incorrect SQLState returned","21000",t.getSQLState());
+            Assert.assertEquals("Scalar subquery is only allowed to return a single row.", t.getMessage());
             throw t;
 		}
 	}

@@ -68,6 +68,11 @@ public class Exceptions {
 						}
         } else if(rootCause instanceof SpliceStandardException){
             return ((SpliceStandardException)rootCause).generateStandardException();
+        } else if(rootCause instanceof RemoteException) {
+            IOException ioException = ((RemoteException) rootCause).unwrapRemoteException();
+            if(ioException instanceof SpliceDoNotRetryIOException) {
+                return convertSpliceDoNotRetryIOException((SpliceDoNotRetryIOException) ioException);
+            }
         }
 
         ErrorState state = ErrorState.stateFor(rootCause);
