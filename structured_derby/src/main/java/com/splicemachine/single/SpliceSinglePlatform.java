@@ -11,7 +11,10 @@ import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.si.coprocessors.SIObserver;
+import com.splicemachine.si.coprocessors.TimestampMasterObserver;
+
 import java.io.PrintStream;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
@@ -152,7 +155,9 @@ public class SpliceSinglePlatform extends ServerAdminClient {
                         CoprocessorTaskScheduler.class.getCanonicalName()+","+
                         SIObserver.class.getCanonicalName()
         );
-        configuration.set("hbase.coprocessor.master.classes", SpliceMasterObserver.class.getCanonicalName() + "");
+        configuration.set("hbase.coprocessor.master.classes",
+			SpliceMasterObserver.class.getCanonicalName() + "," +
+			TimestampMasterObserver.class.getCanonicalName());
     }
 
 }

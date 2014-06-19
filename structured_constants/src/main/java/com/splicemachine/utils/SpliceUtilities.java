@@ -126,6 +126,7 @@ public class SpliceUtilities extends SIConstants {
                 if (! admin.isTableDisabled(desc.getName())) {
                     admin.disableTable(desc.getName());
                 }
+   
                 admin.deleteTable(desc.getName());
             }
         }catch(Exception e){

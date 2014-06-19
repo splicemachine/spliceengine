@@ -7,9 +7,9 @@ import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.rollforward.SIRollForwardQueue;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -40,9 +40,13 @@ public class SIObserver extends BaseRegionObserver {
     protected HRegion region;
     private boolean tableEnvMatch = false;
     private String tableName;
-    private static final int S = 1000;
     private RollForwardQueue rollForwardQueue;
+    public static RollForwardQueueMap rollForwardQueueMap;
 
+    static {
+    	rollForwardQueueMap = new RollForwardQueueMap();
+    }
+    
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
         SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
@@ -50,10 +54,13 @@ public class SIObserver extends BaseRegionObserver {
         tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
         Tracer.traceRegion(tableName, region);
         tableEnvMatch = doesTableNeedSI(region);
-		RollForwardAction action = HTransactorFactory.getRollForwardFactory().newAction(new HbRegion(region));
-//		rollForwardQueue = new ConcurrentRollForwardQueue(action,10000,10000,5*60*S,timedRoller,rollerPool);
-		rollForwardQueue = new SynchronousRollForwardQueue(action,10000,10*S,5*60*S,tableName);
-        RollForwardQueueMap.registerRollForwardQueue(tableName, rollForwardQueue);
+		rollForwardQueue = new SIRollForwardQueue(
+				HTransactorFactory.getRollForwardFactory().delayedRollForward(new HbRegion(region)),
+				HTransactorFactory.getRollForwardFactory().pushForward(new HbRegion(region))
+				);
+
+//        rollForwardQueue = new NoOpRollForwardQueue();
+		rollForwardQueueMap.registerRollForwardQueue(region.getRegionNameAsString(), rollForwardQueue);
         super.start(e);
     }
 
@@ -68,8 +75,8 @@ public class SIObserver extends BaseRegionObserver {
 
     @Override
     public void stop(CoprocessorEnvironment e) throws IOException {
-        RollForwardQueueMap.deregisterRegion(tableName);
         SpliceLogUtils.trace(LOG, "stopping %s", SIObserver.class);
+		rollForwardQueueMap.deregisterRegion(region.getRegionNameAsString());
         super.stop(e);
     }
 

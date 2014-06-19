@@ -2,16 +2,14 @@ package com.splicemachine.si.coprocessors;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
-import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.hbase.IHTable;
-import com.splicemachine.si.impl.RollForwardAction;
-import com.splicemachine.si.impl.SynchronousRollForwardQueue;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.impl.rollforward.SIRollForwardQueue;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
@@ -27,14 +25,9 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-
 import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
 
 /**
@@ -55,17 +48,9 @@ public class SIObserverUnPacked extends BaseRegionObserver {
         tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
         Tracer.traceRegion(tableName, region);
         tableEnvMatch = doesTableNeedSI(region);
-
-				RollForwardAction action = HTransactorFactory.getRollForwardFactory().newAction(new HbRegion(region));
-//        RollForwardAction<byte[]> action = new RollForwardAction<byte[]>() {
-//            @Override
-//            public Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException {
-//                Transactor<IHTable, Mutation,Put, OperationStatus, byte[], ByteBuffer> transactor = HTransactorFactory.getTransactor();
-//                return transactor.rollForward(new HbRegion(region), transactionId, rowList);
-//            }
-//        };
-        rollForwardQueue = new SynchronousRollForwardQueue(action, 10000, 10 * S, 5 * 60 * S, tableName);
-        RollForwardQueueMap.registerRollForwardQueue(tableName, rollForwardQueue);
+		rollForwardQueue = new SIRollForwardQueue(
+			HTransactorFactory.getRollForwardFactory().delayedRollForward(new HbRegion(region)),
+			HTransactorFactory.getRollForwardFactory().pushForward(new HbRegion(region)));
         super.start(e);
     }
 

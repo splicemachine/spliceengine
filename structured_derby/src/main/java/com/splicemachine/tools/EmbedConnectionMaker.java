@@ -2,10 +2,13 @@ package com.splicemachine.tools;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
+
+import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.jdbc.EmbeddedDriver;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Properties;
 
 /**
  * @author Scott Fines
@@ -39,8 +42,16 @@ public final class EmbedConnectionMaker implements ConnectionPool.Supplier {
 
     @Override
     public Connection createNew() throws SQLException {
-        return driver.connect(protocol+SpliceConstants.SPLICE_DB+";create=true",
+        return driver.connect(protocol+SpliceConstants.SPLICE_DB+";create=true;user=splice;password=admin",
                 SpliceDriver.driver().getProperties());
+    }
+    
+    public Connection createFirstNew() throws SQLException {
+    	Properties first = (Properties) SpliceDriver.driver().getProperties().clone();
+    	first.remove(EmbedConnection.INTERNAL_CONNECTION);
+    	
+        return driver.connect(protocol+SpliceConstants.SPLICE_DB+";create=true;user=splice;password=admin",
+                first);    	
     }
 
     /*private helper methods*/

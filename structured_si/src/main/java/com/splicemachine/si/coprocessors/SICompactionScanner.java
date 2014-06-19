@@ -57,7 +57,7 @@ public class SICompactionScanner implements InternalScanner {
         rawList.clear();
         final boolean more = delegate.next(rawList);
 		compactionState.mutate(rawList, results);
-        return more;
+		return more;
     }
 
     @Override

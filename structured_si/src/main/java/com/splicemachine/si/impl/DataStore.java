@@ -182,9 +182,9 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
         return KeyValueUtils.matchingValue(keyValue, siFail);
     }
 
-    public void recordRollForward(RollForwardQueue rollForwardQueue, long transactionId, byte[] row, Boolean knownToBeCommitted) {
+    public void recordRollForward(RollForwardQueue rollForwardQueue, long transactionId, byte[] row, Long effectiveTimestamp) {
         if (rollForwardQueue != null) {
-            rollForwardQueue.recordRow(transactionId, row, knownToBeCommitted);
+            rollForwardQueue.recordRow(transactionId, row, effectiveTimestamp);
         }
     }
 
@@ -192,15 +192,32 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
         setCommitTimestampDirect(table, rowKey, beginTimestamp, dataLib.encode(transactionId));
     }
 
+    public Put generateCommitTimestamp(IHTable table, byte[] rowKey, long beginTimestamp, long transactionId) throws IOException {
+    	Put put =  generateCommitTimestampDirect(table, rowKey, beginTimestamp, dataLib.encode(transactionId));
+    	dataLib.setWriteToWAL(put, false);
+    	return put;
+    }
+
+    
     public void setCommitTimestampToFail(IHTable table, byte[] rowKey, long transactionId) throws IOException {
         setCommitTimestampDirect(table, rowKey, transactionId, siFail);
     }
+    
+    public Put generateCommitTimestampToFail(IHTable table, byte[] rowKey, long transactionId) throws IOException {
+    	Put put = generateCommitTimestampDirect(table, rowKey, transactionId, siFail);
+    	dataLib.setWriteToWAL(put, false);
+    	return put;
+    }
 
     private void setCommitTimestampDirect(IHTable table, byte[] rowKey, long transactionId, byte[] timestampValue) throws IOException {
+        writer.write(table, generateCommitTimestampDirect(table,rowKey, transactionId, timestampValue), false);
+    }
+    
+    private Put generateCommitTimestampDirect(IHTable table, byte[] rowKey, long transactionId, byte[] timestampValue) throws IOException {
         Put put = dataLib.newPut(rowKey);
         suppressIndexing(put);
         dataLib.addKeyValueToPut(put, userColumnFamily, commitTimestampQualifier, transactionId, timestampValue);
-        writer.write(table, put, false);
+        return put;
     }
 
     /**

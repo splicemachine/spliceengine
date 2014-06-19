@@ -12,7 +12,9 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.api.SIFilter;
+import com.splicemachine.si.coprocessors.RollForwardQueueMap;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.stats.Counter;
@@ -26,6 +28,8 @@ import com.splicemachine.storage.Indexed;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Provider;
 import com.splicemachine.utils.Providers;
+import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -33,8 +37,10 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -46,6 +52,7 @@ import java.util.List;
  * Date: 4/4/14
  */
 public class SITableScanner implements StandardIterator<ExecRow>{
+	private static Logger LOG = Logger.getLogger(SITableScanner.class);
 		private final Timer timer;
 		private final Counter filterCounter;
 
@@ -139,7 +146,11 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 																					EntryAccumulator accumulator,
 																					boolean isCountStar) throws IOException {
 										TransactionId transactionId= new TransactionId(transactionID);
-										IFilterState iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, transactionId);
+										RollForwardQueue queue = RollForwardQueueMap.lookupRollForward(regionScanner.getRegionInfo().getRegionNameAsString());
+										if (queue == null)
+											SpliceLogUtils.warn(LOG, "SI Table Scanner is not rolling forward, configuration issue");
+
+										IFilterState iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(queue, transactionId);
 
 										HRowAccumulator hRowAccumulator = new HRowAccumulator(predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
 										//noinspection unchecked

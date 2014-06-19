@@ -1,6 +1,7 @@
 package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.utils.CloseableIterator;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -13,9 +14,11 @@ import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+
 import static com.splicemachine.constants.SpliceConstants.CHECK_BLOOM_ATTRIBUTE_NAME;
 
 /**
@@ -129,5 +132,10 @@ public class HbRegion implements IHTable {
     public void unLockRow(Integer lock) throws IOException {
         region.releaseRowLock(lock);
     }
+
+	@Override
+	public String toString() {
+		return region.getRegionNameAsString();
+	}
 
 }

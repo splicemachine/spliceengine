@@ -8,5 +8,6 @@ import com.splicemachine.si.impl.RollForwardAction;
  *         Date: 2/13/14
  */
 public interface RollForwardFactory<Data,Table extends IHTable> {
-		RollForwardAction newAction(Table table);
+		RollForwardAction delayedRollForward(Table table);
+		RollForwardAction pushForward(Table table);		
 }

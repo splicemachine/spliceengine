@@ -1,10 +1,8 @@
 package com.splicemachine.si;
 
-import com.splicemachine.si.impl.SynchronousRollForwardQueue;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-
 import java.util.concurrent.Executors;
 
 /**
@@ -20,7 +18,6 @@ public abstract class HBaseCompactionTest extends CompactionTest {
 		@Override
 		@Before
 		public void setUp() throws Exception {
-				SynchronousRollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
 				this.storeSetup = HBaseSuite.classStoreSetup;
 				this.transactorSetup = HBaseSuite.classTransactorSetup;
 				baseSetUp();
