@@ -25,10 +25,6 @@ SHA-512 (Default) algorithm.  The
 splice.authentication=NATIVE
 splice.authentication.native.algorithm=MD5,SHA-256,SHA-512(Default)
 
-call syscs_util.syscs_create_user('username','password');
-call syscs_util.syscs_drop_user('username');
-call syscs_util.syscs_reset_password('username','password');
-
 
 \subsubsection{None}
 An open database that will allow each user to authenticate against the datbase
@@ -67,9 +63,12 @@ databaseName,Properties info) throws SQLException;
 
 
 \subsection{Authorization}
+Splice Machine will utilize derby authorization syntax and levels. 
 
-Splice Machine will utilize derby authorization syntax and levels.  These can be
-described in the following page.
+\subsubsection{Grand and Revoke}
+
+Splice Machine will utilize derby grant and revoke commands for
+authorization levels.  These can be described in the following page.
 
 \url{https://db.apache.org/derby/docs/10.9/devguide/cdevcsecuregrantrevokeaccess.html}
 
