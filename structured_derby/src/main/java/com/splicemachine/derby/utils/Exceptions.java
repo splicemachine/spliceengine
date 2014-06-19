@@ -61,25 +61,7 @@ public class Exceptions {
                 || rootCause instanceof ConstraintViolation.UniqueConstraintViolation){
             return createStandardExceptionForConstraintError(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT, (ConstraintViolation.ConstraintViolationException) e);
         }else if(rootCause instanceof SpliceDoNotRetryIOException){
-            SpliceDoNotRetryIOException spliceException = (SpliceDoNotRetryIOException)rootCause;
-            String fullMessage = spliceException.getMessage();
-            int firstColonIndex = fullMessage.indexOf(COLON);
-            int openBraceIndex = fullMessage.indexOf(OPEN_BRACE);
-            String exceptionType;
-            if(firstColonIndex < openBraceIndex)
-                exceptionType = fullMessage.substring(firstColonIndex+1,openBraceIndex).trim();
-            else
-                exceptionType = fullMessage.substring(0,openBraceIndex).trim();
-            Class exceptionClass;
-            try {
-                exceptionClass= Class.forName(exceptionType);
-            } catch (ClassNotFoundException e1) {
-                //shouldn't happen, but if it does, we'll just use Exception.class and deal with the fact
-                //that it might not be 100% correct
-                exceptionClass = Exception.class;
-            }
-            String json = fullMessage.substring(openBraceIndex,fullMessage.indexOf(CLOSE_BRACE)+1);
-            return parseException((Exception)gson.fromJson(json,exceptionClass));
+            return convertSpliceDoNotRetryIOException((SpliceDoNotRetryIOException) rootCause);
         } else if(rootCause instanceof DoNotRetryIOException ){
 						if(rootCause.getMessage()!=null && rootCause.getMessage().contains("rpc timeout")) {
 								return StandardException.newException(MessageId.QUERY_TIMEOUT, "Increase hbase.rpc.timeout");
@@ -90,6 +72,28 @@ public class Exceptions {
 
         ErrorState state = ErrorState.stateFor(rootCause);
         return state.newException(rootCause);
+    }
+
+    private static StandardException convertSpliceDoNotRetryIOException(SpliceDoNotRetryIOException rootCause) {
+        SpliceDoNotRetryIOException spliceException = (SpliceDoNotRetryIOException)rootCause;
+        String fullMessage = spliceException.getMessage();
+        int firstColonIndex = fullMessage.indexOf(COLON);
+        int openBraceIndex = fullMessage.indexOf(OPEN_BRACE);
+        String exceptionType;
+        if(firstColonIndex < openBraceIndex)
+            exceptionType = fullMessage.substring(firstColonIndex+1,openBraceIndex).trim();
+        else
+            exceptionType = fullMessage.substring(0,openBraceIndex).trim();
+        Class exceptionClass;
+        try {
+            exceptionClass= Class.forName(exceptionType);
+        } catch (ClassNotFoundException e1) {
+            //shouldn't happen, but if it does, we'll just use Exception.class and deal with the fact
+            //that it might not be 100% correct
+            exceptionClass = Exception.class;
+        }
+        String json = fullMessage.substring(openBraceIndex,fullMessage.indexOf(CLOSE_BRACE)+1);
+        return parseException((Exception)gson.fromJson(json,exceptionClass));
     }
 
     public static StandardException parseException(RetriesExhaustedWithDetailsException rewde){
