@@ -10,6 +10,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.SameThreadExecutorService;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
@@ -302,6 +303,22 @@ public class BroadcastJoinOperation extends JoinOperation {
             ByteBuffer hashKey;
             List<ExecRow> rows;
             Map<ByteBuffer, List<ExecRow>> cache = new HashMap<ByteBuffer, List<ExecRow>>();
+
+            if(runtimeContext.shouldRecordTraceMetrics()) {
+                activation.getLanguageConnectionContext().setStatisticsTiming(true);
+                if (operationChainInfo == null) {
+                    operationChainInfo = new XplainOperationChainInfo(
+                            runtimeContext.getStatementId(),
+                            Bytes.toLong(rightResultSet.getUniqueSequenceID()));
+                }
+                List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
+                if (operationChain == null) {
+                    operationChain = Lists.newLinkedList();
+                    SpliceBaseOperation.operationChain.set(operationChain);
+                }
+                operationChain.add(operationChainInfo);
+            }
+
             rightRowCounter = runtimeContext.newCounter();
             SpliceRuntimeContext ctxNoSink = runtimeContext.copy();
             ctxNoSink.unMarkAsSink();
@@ -334,7 +351,13 @@ public class BroadcastJoinOperation extends JoinOperation {
                 logSize(rightResultSet, cache);
             }
             BroadcastJoinOperation.this.rightHandTimer = resultSet.getStats();
-            resultSet.close();
+            ors.close();
+            if(shouldRecordStats()) {
+                List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
+                if (operationChain != null && operationChain.size() > 0) {
+                    operationChain.remove(operationChain.size() - 1);
+                }
+            }
             return Collections.unmodifiableMap(cache);
 
         }

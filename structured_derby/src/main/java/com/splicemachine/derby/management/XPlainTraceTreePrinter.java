@@ -198,7 +198,8 @@ public class XPlainTraceTreePrinter extends XPlainTraceBasePrinter{
                 columnName.toUpperCase().compareTo("CHILDREN") != 0 &&
                 columnName.toUpperCase().compareTo("FIELDS") != 0 &&
                 columnName.toUpperCase().compareTo("FIELDMAP") != 0 &&
-                columnName.toUpperCase().compareTo("OPERATIONTYPE") != 0);
+                columnName.toUpperCase().compareTo("OPERATIONTYPE") != 0 &&
+                columnName.toUpperCase().compareTo("LOG") != 0);
     }
 
     private boolean isStringMetric(String columnName) {
