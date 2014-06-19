@@ -51,6 +51,12 @@ public class SpliceWatcher extends TestWatcher {
 				return currentConnection;
 		}
 
+		public Connection createConnection(String userName, String password) throws Exception {
+			currentConnection = SpliceNetConnection.getConnectionAs(userName, password);
+			connections.add(currentConnection);
+			return currentConnection;
+		}
+
 		public PreparedStatement prepareStatement(String sql) throws Exception {
 				PreparedStatement ps = getOrCreateConnection().prepareStatement(sql);
 				statements.add(ps);
