@@ -547,7 +547,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 		Assert.assertFalse(twarning.contains("To load a large single file of data faster,"));
 	}
 
-	@Test
+	@Test 
+	@Ignore("No longer deterministic with roll forward queues")
 	@Category(SlowTest.class)
 	public void GetReadWriteCountMultipleSingleRecordWrites() throws Exception{
         Connection conn = methodWatcher.createConnection();
@@ -566,6 +567,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	
 	@Test
 	@Category(SlowTest.class)
+	@Ignore("No longer deterministic with roll forward queues")
 	public void GetReadWriteCountBulkRecordWrites() throws Exception{
 		Connection conn = methodWatcher.createConnection();
 		String tableID=getConglomerateNumber(conn,TABLE_17);

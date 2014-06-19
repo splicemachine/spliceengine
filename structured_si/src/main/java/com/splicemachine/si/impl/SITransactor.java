@@ -506,10 +506,10 @@ public class SITransactor<Table,
 						dataStore.setAntiTombstoneOnPut(newPut, txnIdLong);
 
 				byte[]row = kvPair.getRow();
-				dataStore.recordRollForward(rollForwardQueue,txnIdLong, row,false);
+				dataStore.recordRollForward(rollForwardQueue,txnIdLong, row,null);
 				if(conflictResults.toRollForward!=null){
 						for(Long txnIdToRollForward : conflictResults.toRollForward){
-								dataStore.recordRollForward(rollForwardQueue,txnIdToRollForward,row,false);
+								dataStore.recordRollForward(rollForwardQueue,txnIdToRollForward,row,null);
 						}
 				}
 				return newPut;

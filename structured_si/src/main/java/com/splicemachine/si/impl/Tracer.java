@@ -22,11 +22,19 @@ public class Tracer {
     public static void registerRowRollForward(Function<byte[],byte[]> f) {
         Tracer.fRowRollForward = f;
     }
+    
+    public static boolean isTracingRowRollForward() {
+    	return Tracer.fRowRollForward != null;
+    }
 
     public static void registerTransactionRollForward(Function<Long, Object> f) {
         Tracer.fTransactionRollForward = f;
     }
 
+    public static boolean isTracingTransactionRollForward() {
+    	return Tracer.fTransactionRollForward != null;
+    }
+    
     public static void registerStatus(Function<Object[], Object> f) {
         Tracer.fStatus = f;
     }

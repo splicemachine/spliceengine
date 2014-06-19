@@ -2,15 +2,15 @@ package com.splicemachine.si;
 
 import com.splicemachine.si.api.TransactionStatusTest;
 import com.splicemachine.si.impl.CacheMapTest;
-import com.splicemachine.si.impl.ConcurrentRollForwardQueueTest;
-import com.splicemachine.si.impl.RollForwardQueueTest;
 import com.splicemachine.si.impl.TransactionIdTest;
 import com.splicemachine.si.impl.iterator.ContiguousIteratorTest;
 import com.splicemachine.si.impl.iterator.OrderedMuxerTest;
+import com.splicemachine.si.impl.rollforward.SIRollForwardQueueTest;
 import com.splicemachine.si.impl.translate.MemoryTableFactoryTest;
 import com.splicemachine.si.impl.translate.TranslatorTest;
 import com.splicemachine.si.txn.JtaXAResourceTest;
 import com.splicemachine.si.txn.TransactionManagerTest;
+
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -32,8 +32,7 @@ import org.junit.runners.Suite;
 				MemoryTableFactoryTest.class,
 				TranslatorTest.class,
 				CacheMapTest.class,
-				ConcurrentRollForwardQueueTest.class,
-				RollForwardQueueTest.class,
+				SIRollForwardQueueTest.class,
 				TransactionIdTest.class,
 				CompactionTest.class,
                 TransactionStatusTest.class

@@ -3,6 +3,7 @@ package com.splicemachine.derby.test.framework;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.log4j.Logger;
 import org.junit.rules.TestWatcher;
@@ -11,9 +12,16 @@ import org.junit.runner.Description;
 public class SpliceSchemaWatcher extends TestWatcher {
 	private static final Logger LOG = Logger.getLogger(SpliceSchemaWatcher.class);
 	public String schemaName;
+	protected String userName;
 	public SpliceSchemaWatcher(String schemaName) {
 		this.schemaName = schemaName.toUpperCase();
 	}
+	
+	public SpliceSchemaWatcher(String schemaName, String userName) {
+		this(schemaName);
+		this.userName = userName;
+	}
+	
 	@Override
 	protected void starting(Description description) {
 		Connection connection = null;
@@ -26,7 +34,10 @@ public class SpliceSchemaWatcher extends TestWatcher {
 				executeDrop(schemaName);
 			connection.commit();
 			statement = connection.createStatement();
-			statement.execute("create schema " + schemaName);
+			if (userName != null)
+				statement.execute(String.format("create schema %s AUTHORIZATION %S",schemaName,userName));
+			else 
+				statement.execute(String.format("create schema %s",schemaName));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		} finally {
@@ -39,7 +50,6 @@ public class SpliceSchemaWatcher extends TestWatcher {
 	@Override
 	protected void finished(Description description) {
 		LOG.trace("Finished");
-//		executeDrop(schemaName);
 	}
 	
 	public static void executeDrop(String schemaName) {

@@ -9,13 +9,13 @@
 	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>0.5.1-SNAPSHOT</version>
+		<version>FUJI.0-SNAPSHOT</version>
 	</parent>
 	<dependencies>
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_constants</artifactId>
-			<version>0.5.1-SNAPSHOT</version>
+			<version>FUJI.0-SNAPSHOT</version>
 			<classifier>${envClassifier}</classifier>
 			<type>jar</type>
 			<scope>compile</scope>
@@ -146,9 +146,18 @@
 								<option>-keep public class com.splicemachine.si.coprocessors.SIObserver { public *; }</option>
 								<option>-keep public class com.splicemachine.si.coprocessors.SIFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.coprocessors.RollForwardQueueMap { public *; }</option>
+                                <option>-keep public class com.splicemachine.si.coprocessors.TimestampMasterObserver { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.Transactor { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.TransactionalFilter { public *; } </option>
 								<option>-keep public class com.splicemachine.si.api.TransactionReadController { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.AbstractProcessingQueue { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.DelayedRollForwardAction { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.DelayedRollForwardQueue { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.PushForwardAction { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.PushForwardQueue { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.RollForwardEvent { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.RollForwardEventFactory { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.rollforward.SIRollForwardQueue { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.ClientTransactor { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.ConstraintChecker { public *; }</option>
 								<!-- ### Method: beginTransaction ### -->

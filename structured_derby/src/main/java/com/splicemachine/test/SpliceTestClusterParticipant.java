@@ -3,9 +3,12 @@ package com.splicemachine.test;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.si.coprocessors.SIObserver;
+import com.splicemachine.si.coprocessors.TimestampMasterObserver;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
+
 import com.splicemachine.derby.hbase.SpliceDerbyCoprocessor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexManagementEndpoint;
@@ -72,7 +75,9 @@ public class SpliceTestClusterParticipant extends TestConstants {
                         CoprocessorTaskScheduler.class.getCanonicalName()+","+
                         SIObserver.class.getCanonicalName()
         );
-        configuration.set("hbase.coprocessor.master.classes", SpliceMasterObserver.class.getCanonicalName() + "");
+        configuration.set("hbase.coprocessor.master.classes",
+        		SpliceMasterObserver.class.getCanonicalName() + "," +
+        	    TimestampMasterObserver.class.getCanonicalName());
     }
 
 }

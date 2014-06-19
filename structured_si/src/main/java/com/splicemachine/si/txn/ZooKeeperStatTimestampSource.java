@@ -59,8 +59,15 @@ public class ZooKeeperStatTimestampSource implements TimestampSource {
 
     private String minimumTransactionPath;
 
+    // TODO: remove this (possibly purge whole class) once new ts generator is fully tested
+    private void ensureNotCalled() {
+    	throw new RuntimeException("Unexpectedly got to desupported timestamp source.");
+    }
+    
     public ZooKeeperStatTimestampSource(RecoverableZooKeeper rzk, String transactionPath) {
-        this.rzk = rzk;
+    	ensureNotCalled();
+
+    	this.rzk = rzk;
         this.highBitsTransactionPath = transactionPath;
 
         initialize();
@@ -68,6 +75,8 @@ public class ZooKeeperStatTimestampSource implements TimestampSource {
 
     @Override
     public long nextTimestamp() {
+    	ensureNotCalled();
+    	
         try {
             Stat stat = rzk.setData(counterTransactionPath, EMPTY_DATA, -1);
             int version = stat.getVersion();
@@ -95,6 +104,7 @@ public class ZooKeeperStatTimestampSource implements TimestampSource {
 
     @Override
     public void rememberTimestamp(long timestamp) {
+    	ensureNotCalled();
         byte[] data = Bytes.toBytes(timestamp);
         try {
             rzk.setData(SpliceConstants.zkSpliceMinimumActivePath, data, -1);
@@ -106,6 +116,7 @@ public class ZooKeeperStatTimestampSource implements TimestampSource {
 
     @Override
     public long retrieveTimestamp() {
+    	ensureNotCalled();
         byte[] data;
         try {
             data = rzk.getData(SpliceConstants.zkSpliceMinimumActivePath, false, null);

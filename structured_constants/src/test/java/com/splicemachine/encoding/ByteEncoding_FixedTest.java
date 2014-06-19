@@ -7,7 +7,7 @@ import org.junit.Test;
  * @author Scott Fines
  *         Created on: 10/3/13
  */
-public class FixedByteEncodingTest {
+public class ByteEncoding_FixedTest {
 
     @Test
     public void testCanEncodeAndDecodeValueCorrectlyDescending() throws Exception {

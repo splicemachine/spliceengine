@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class SpliceConstants {
+	
+		public enum AuthenticationType {NONE,LDAP,NATIVE,CUSTOM};
 
 		@Parameter public static final String SEQUENTIAL_IMPORT_THREASHOLD="splice.import.sequentialFileSize";
 		@DefaultValue(SEQUENTIAL_IMPORT_THREASHOLD) public static final long DEFAULT_SEQUENTIAL_IMPORT_THRESHOLD = 1024*1024*1024; //defaults to 1GB
@@ -33,6 +35,30 @@ public class SpliceConstants {
 		@DefaultValue(IMPORT_LOG_QUEUE_SIZE) private static final int DEFAULT_IMPORT_LOG_QUEUE_SIZE = 1000;
 		public static int importLogQueueSize;
 
+		@Parameter public static final String PUSH_FORWARD_RING_BUFFER_SIZE = "splice.rollforward.pushForwardRingBufferSize";
+		@DefaultValue(PUSH_FORWARD_RING_BUFFER_SIZE) private static final int DEFAULT_PUSH_FORWARD_RING_BUFFER_SIZE = 4096;
+		public static int pushForwardRingBufferSize;
+
+		@Parameter public static final String PUSH_FORWARD_WRITE_BUFFER_SIZE = "splice.rollforward.pushForwardWriteBufferSize";
+		@DefaultValue(PUSH_FORWARD_WRITE_BUFFER_SIZE) private static final int DEFAULT_PUSH_FORWARD_WRITE_BUFFER_SIZE = 2048;
+		public static int pushForwardWriteBufferSize;
+		
+		@Parameter public static final String DELAYED_FORWARD_RING_BUFFER_SIZE = "splice.rollforward.delayedForwardRingBufferSize";
+		@DefaultValue(PUSH_FORWARD_RING_BUFFER_SIZE) private static final int DEFAULT_DELAYED_FORWARD_RING_BUFFER_SIZE = 4096;
+		public static int delayedForwardRingBufferSize;
+
+		@Parameter public static final String DELAYED_FORWARD_QUEUE_LIMIT = "splice.rollforward.delayedForwardQueueLimit";
+		@DefaultValue(DELAYED_FORWARD_QUEUE_LIMIT) private static final int DEFAULT_DELAYED_FORWARD_QUEUE_LIMIT = 10;
+		public static int delayedForwardQueueLimit;
+		
+		@Parameter public static final String DELAYED_FORWARD_WRITE_BUFFER_SIZE = "splice.rollforward.delayedForwardWriteBufferSize";
+		@DefaultValue(DELAYED_FORWARD_WRITE_BUFFER_SIZE) private static final int DEFAULT_DELAYED_FORWARD_WRITE_BUFFER_SIZE = 2048;
+		public static int delayedForwardWriteBufferSize;
+
+		@Parameter public static final String DELAYED_FORWARD_ASYNCH_WRITE_DELAY = "splice.rollforward.delayedForwardAsynchWriteDelay";
+		@DefaultValue(DELAYED_FORWARD_ASYNCH_WRITE_DELAY) private static final int DEFAULT_DELAYED_FORWARD_ASYNCH_WRITE_DELAY = 400;
+		public static int delayedForwardAsyncWriteDelay;
+		
 		@Parameter public static final String IMPORT_LOG_QUEUE_WAIT_TIME = "splice.import.badRecords.queueWaitTime";
 		@DefaultValue(IMPORT_LOG_QUEUE_WAIT_TIME) private static final long DEFAULT_IMPORT_LOG_QUEUE_WAIT_TIME = TimeUnit.MINUTES.toMillis(1); //1 minute
 		public static long importLogQueueWaitTimeMs;
@@ -97,6 +123,10 @@ public class SpliceConstants {
 		@DefaultValue(TRANSACTION_PATH) public static final String DEFAULT_TRANSACTION_PATH = "/transactions";
 		public static String zkSpliceTransactionPath;
 
+		@Parameter public static final String MAX_RESERVED_TIMESTAMP_PATH = "splice.max_reserved_timestamp_node";
+		@DefaultValue(MAX_RESERVED_TIMESTAMP_PATH) public static final String DEFAULT_MAX_RESERVED_TIMESTAMP_PATH = "/transactions/maxReservedTimestamp";
+		public static String zkSpliceMaxReservedTimestampPath;
+
 		/**
 		 * The Path in zookeeper for storing the minimum active transaction.
 		 * Defaults to /transactions/minimum
@@ -160,6 +190,24 @@ public class SpliceConstants {
 		@DefaultValue(DERBY_BIND_PORT) public static final int DEFAULT_DERBY_BIND_PORT = 1527;
 		public static int derbyBindPort;
 
+		// Splice timestamp server (generator) settings */
+
+		/**
+		 * The IP address to bind the Timestamp Server connection to.
+		 * Defaults to 0.0.0.0
+		 */
+		@Parameter public static final String TIMESTAMP_SERVER_BIND_ADDRESS = "splice.timestamp_server.address";
+		@DefaultValue(TIMESTAMP_SERVER_BIND_ADDRESS) public static final String DEFAULT_TIMESTAMP_SERVER_BIND_ADDRESS = "0.0.0.0";
+		public static String timestampServerBindAddress;
+
+		/**
+		 * The Port to bind the Timestamp Server connection to
+		 * Defaults to 60012
+		 */
+		@Parameter public static final String TIMESTAMP_SERVER_BIND_PORT = "splice.timestamp_server.port";
+		@DefaultValue(TIMESTAMP_SERVER_BIND_PORT) public static final int DEFAULT_TIMESTAMP_SERVER_BIND_PORT = 60012;
+		public static int timestampServerBindPort;
+
     /*Task and Job management*/
 		/**
 		 * The priority under which to run user operation tasks. This can be any positive number, the higher
@@ -171,6 +219,11 @@ public class SpliceConstants {
 		@DefaultValue(OPERATION_PRIORITY) public static final int DEFAULT_IMPORT_TASK_PRIORITY = 3;
 		public static int operationTaskPriority;
 
+		@Parameter public static final String SI_DELAY_ROLL_FORWARD_MAX_SIZE = "splice.si.delayRollForwardMaxSize";
+		@DefaultValue(SI_DELAY_ROLL_FORWARD_MAX_SIZE) public static final int DEFAULT_SI_DELAY_ROLL_FORWARD_MAX_SIZE = 300;
+		public static int siDelayRollForwardMaxSize;
+
+		
 		@SpliceConstants.Parameter public static final String TOTAL_WORKERS = "splice.task.maxWorkers";
 		@SpliceConstants.DefaultValue(TOTAL_WORKERS) public static final int DEFAULT_TOTAL_WORKERS=10;
 		public static int taskWorkers;
@@ -414,6 +467,44 @@ public class SpliceConstants {
 		@DefaultValue(COMPRESSION) public static final String DEFAULT_COMPRESSION = "none";
 		public static String compression;
 
+		/**
+		 * The type of algorithm to use for native encryption.  Optional values are
+		 *  MD5, SHA-256, and SHA-512 (Default).
+		 *
+		 * Defaults to none
+		 */
+		@Parameter public static final String AUTHENTICATION = "splice.authentication";
+		@DefaultValue(AUTHENTICATION) public static final String DEFAULT_AUTHENTICATION = "NONE";
+		public static String authentication;
+		
+		@Parameter public static final String AUTHENTICATION_LDAP_SERVER = "splice.authentication.ldap.server";
+		@DefaultValue(AUTHENTICATION_LDAP_SERVER) public static final String DEFAULT_AUTHENTICATION_LDAP_SERVER = "localhost:9090";
+		public static String authenticationLDAPServer;
+		
+		@Parameter public static final String AUTHENTICATION_LDAP_SEARCHAUTHDN = "splice.authentication.ldap.searchAuthDN";
+		@DefaultValue(AUTHENTICATION_LDAP_SEARCHAUTHDN) public static final String DEFAULT_AUTHENTICATION_LDAP_SEARCHAUTHDN = "";
+		public static String authenticationLDAPSearchAuthDN;
+
+		@Parameter public static final String AUTHENTICATION_LDAP_SEARCHAUTHPW = "splice.authentication.ldap.searchAuthPW";
+		@DefaultValue(AUTHENTICATION_LDAP_SEARCHAUTHPW) public static final String DEFAULT_AUTHENTICATION_LDAP_SEARCHAUTHPW = "";
+		public static String authenticationLDAPSearchAuthPW;
+
+		@Parameter public static final String AUTHENTICATION_LDAP_SEARCHBASE = "splice.authentication.ldap.searchBase";
+		@DefaultValue(AUTHENTICATION_LDAP_SEARCHBASE) public static final String DEFAULT_AUTHENTICATION_LDAP_SEARCHBASE = "";
+		public static String authenticationLDAPSearchBase;
+
+		@Parameter public static final String AUTHENTICATION_LDAP_SEARCHFILTER = "splice.authentication.ldap.searchFilter";
+		@DefaultValue(AUTHENTICATION_LDAP_SEARCHFILTER) public static final String DEFAULT_AUTHENTICATION_LDAP_SEARCHFILTER = "";
+		public static String authenticationLDAPSearchFilter;		
+		
+		@Parameter public static final String AUTHENTICATION_NATIVE_ALGORITHM = "splice.authentication.native.algorithm";
+		@DefaultValue(AUTHENTICATION_NATIVE_ALGORITHM) public static final String DEFAULT_AUTHENTICATION_NATIVE_ALGORITHM = "SHA-512";
+		public static String authenticationNativeAlgorithm;
+		
+		@Parameter public static final String AUTHENTICATION_CUSTOM_PROVIDER = "splice.authentication.custom.provider";
+		@DefaultValue(AUTHENTICATION_CUSTOM_PROVIDER) public static final String DEFAULT_AUTHENTICATION_CUSTOM_PROVIDER = "com.splicemachine.derby.authentication.SpliceUserAuthentication";
+		public static String authenticationCustomProvider;					
+		
 		@Parameter public static final String MULTICAST_GROUP_ADDRESS = "splice.multicast_group_address";
 		@DefaultValue(MULTICAST_GROUP_ADDRESS) public static final String DEFAULT_MULTICAST_GROUP_ADDRESS = "230.0.0.1";
 		public static String multicastGroupAddress;
@@ -752,8 +843,17 @@ public class SpliceConstants {
 
 		public static int ipcThreads;
 
-		public static List<String> zookeeperPaths = Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,zkSpliceConglomeratePath,
-						zkSpliceConglomerateSequencePath,zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath,zkSpliceTransactionPath,zkSpliceMinimumActivePath);
+		public static List<String> zookeeperPaths = Lists.newArrayList(
+			zkSpliceTaskPath,
+			zkSpliceJobPath,
+			zkSpliceConglomeratePath,
+			zkSpliceConglomerateSequencePath,
+			zkSpliceDerbyPropertyPath,
+			zkSpliceQueryNodePath,
+			zkSpliceTransactionPath,
+			zkSpliceMaxReservedTimestampPath,
+			zkSpliceMinimumActivePath
+		);
 
 		public static void setParameters() {
 				zkSpliceTaskPath = config.get(BASE_TASK_QUEUE_NODE,DEFAULT_BASE_TASK_QUEUE_NODE);
@@ -765,6 +865,7 @@ public class SpliceConstants {
 				zkSpliceBroadcastMessagesPath = zkSpliceBroadcastPath + "/messages";
 				zkSpliceJobPath = config.get(BASE_JOB_QUEUE_NODE,DEFAULT_BASE_JOB_QUEUE_NODE);
 				zkSpliceTransactionPath = config.get(TRANSACTION_PATH,DEFAULT_TRANSACTION_PATH);
+				zkSpliceMaxReservedTimestampPath = config.get(MAX_RESERVED_TIMESTAMP_PATH,DEFAULT_MAX_RESERVED_TIMESTAMP_PATH);
 				zkSpliceMinimumActivePath = config.get(MINIMUM_ACTIVE_PATH,DEFAULT_MINIMUM_ACTIVE_PATH);
 				zkSpliceConglomeratePath = config.get(CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
 				zkSpliceConglomerateSequencePath = zkSpliceConglomeratePath+"/__CONGLOM_SEQUENCE";
@@ -775,6 +876,8 @@ public class SpliceConstants {
 				zkSpliceStartupPath = config.get(STARTUP_PATH,DEFAULT_STARTUP_PATH);
 				derbyBindAddress = config.get(DERBY_BIND_ADDRESS, DEFAULT_DERBY_BIND_ADDRESS);
 				derbyBindPort = config.getInt(DERBY_BIND_PORT, DEFAULT_DERBY_BIND_PORT);
+				timestampServerBindAddress = config.get(TIMESTAMP_SERVER_BIND_ADDRESS, DEFAULT_TIMESTAMP_SERVER_BIND_ADDRESS);
+				timestampServerBindPort = config.getInt(TIMESTAMP_SERVER_BIND_PORT, DEFAULT_TIMESTAMP_SERVER_BIND_PORT);
 				operationTaskPriority = config.getInt(OPERATION_PRIORITY, DEFAULT_OPERATION_PRIORITY);
 				importTaskPriority = config.getInt(IMPORT_TASK_PRIORITY, DEFAULT_IMPORT_TASK_PRIORITY);
 				tablePoolMaxSize = config.getInt(POOL_MAX_SIZE,DEFAULT_POOL_MAX_SIZE);
@@ -784,6 +887,7 @@ public class SpliceConstants {
 				maxBufferEntries = config.getInt(BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
 				maxThreads = config.getInt(WRITE_THREADS_MAX,DEFAULT_WRITE_THREADS_MAX);
 				maxTreeThreads = config.getInt(MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
+				siDelayRollForwardMaxSize = config.getInt(SI_DELAY_ROLL_FORWARD_MAX_SIZE, DEFAULT_SI_DELAY_ROLL_FORWARD_MAX_SIZE);
 				ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
 				if(ipcThreads < maxThreads){
             /*
@@ -821,6 +925,27 @@ public class SpliceConstants {
 				enableRegionCache = cacheUpdatePeriod>0l;
 				cacheExpirationPeriod = config.getLong(CACHE_EXPIRATION,DEFAULT_CACHE_EXPIRATION);
 				compression = config.get(COMPRESSION, DEFAULT_COMPRESSION);
+				authentication = config.get(AUTHENTICATION, DEFAULT_AUTHENTICATION);
+				authenticationNativeAlgorithm = config.get(AUTHENTICATION_NATIVE_ALGORITHM, DEFAULT_AUTHENTICATION_NATIVE_ALGORITHM);
+				
+				
+				
+				
+				authenticationCustomProvider = config.get(AUTHENTICATION_CUSTOM_PROVIDER,DEFAULT_AUTHENTICATION_CUSTOM_PROVIDER);
+				
+				authenticationLDAPServer = config.get(AUTHENTICATION_LDAP_SERVER,DEFAULT_AUTHENTICATION_LDAP_SERVER);
+				authenticationLDAPSearchAuthDN = config.get(AUTHENTICATION_LDAP_SEARCHAUTHDN,DEFAULT_AUTHENTICATION_LDAP_SEARCHAUTHDN);
+				authenticationLDAPSearchAuthPW = config.get(AUTHENTICATION_LDAP_SEARCHAUTHPW,DEFAULT_AUTHENTICATION_LDAP_SEARCHAUTHPW);
+				authenticationLDAPSearchBase = config.get(AUTHENTICATION_LDAP_SEARCHBASE,DEFAULT_AUTHENTICATION_LDAP_SEARCHBASE);
+				authenticationLDAPSearchFilter = config.get(AUTHENTICATION_LDAP_SEARCHFILTER,DEFAULT_AUTHENTICATION_LDAP_SEARCHFILTER);
+				
+				delayedForwardRingBufferSize = config.getInt(DELAYED_FORWARD_RING_BUFFER_SIZE, DEFAULT_DELAYED_FORWARD_RING_BUFFER_SIZE);
+				pushForwardRingBufferSize = config.getInt(PUSH_FORWARD_RING_BUFFER_SIZE, DEFAULT_PUSH_FORWARD_RING_BUFFER_SIZE);
+				pushForwardWriteBufferSize = config.getInt(PUSH_FORWARD_WRITE_BUFFER_SIZE, DEFAULT_PUSH_FORWARD_WRITE_BUFFER_SIZE);
+				delayedForwardWriteBufferSize = config.getInt(DELAYED_FORWARD_WRITE_BUFFER_SIZE, DEFAULT_DELAYED_FORWARD_WRITE_BUFFER_SIZE);
+				delayedForwardAsyncWriteDelay = config.getInt(DELAYED_FORWARD_ASYNCH_WRITE_DELAY, DEFAULT_DELAYED_FORWARD_ASYNCH_WRITE_DELAY);
+				delayedForwardQueueLimit = config.getInt(DELAYED_FORWARD_QUEUE_LIMIT, DEFAULT_DELAYED_FORWARD_QUEUE_LIMIT);
+				
 				multicastGroupAddress = config.get(MULTICAST_GROUP_ADDRESS,DEFAULT_MULTICAST_GROUP_ADDRESS);
 				multicastGroupPort = config.getInt(MULTICAST_GROUP_PORT, DEFAULT_MULTICAST_GROUP_PORT);
 				rmiPort = config.getInt(RMI_PORT, DEFAULT_RMI_PORT);

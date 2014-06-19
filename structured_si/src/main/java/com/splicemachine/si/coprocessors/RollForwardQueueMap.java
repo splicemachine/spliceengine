@@ -2,62 +2,19 @@ package com.splicemachine.si.coprocessors;
 
 import com.splicemachine.si.api.RollForwardQueue;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
-
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class RollForwardQueueMap {
-    private static ConcurrentMap<String,RollForwardQueueHolder> map  = new NonBlockingHashMap<String, RollForwardQueueHolder>();
-//    private static Map<String, RollForwardQueue<byte[], ByteBuffer>> map = new HashMap<String, RollForwardQueue<byte[], ByteBuffer>>();
+    private static ConcurrentMap<String,RollForwardQueue> map  = new NonBlockingHashMap<String, RollForwardQueue>();
 
-    public static void registerRollForwardQueue(String tableName, RollForwardQueue rollForwardQueue) {
-        RollForwardQueueHolder holder = new RollForwardQueueHolder(rollForwardQueue);
-        map.putIfAbsent(tableName, holder);
+    public static void registerRollForwardQueue(String regionName, RollForwardQueue rollForwardQueue) {
+        map.putIfAbsent(regionName, rollForwardQueue);
     }
 
-    public static RollForwardQueue lookupRollForwardQueue(String tableName) {
-        RollForwardQueueHolder holder = map.get(tableName);
-        if(holder==null) return null;
-        return holder.queue;
+    public static RollForwardQueue lookupRollForward(String regionName) {
+        return map.get(regionName);
     }
-
-    public static void deregisterRegion(String tableName) {
-
-        RollForwardQueueHolder holder = map.get(tableName);
-        if(holder==null) return;
-
-        int count = holder.refCount.decrementAndGet();
-        if(count<=0){
-            //we've closed all the regions for this table, so remove the queue from the map to prevent memory leaks
-            map.remove(tableName,holder);
-            holder.queue.stop();
-        }
+    public static void deregisterRegion(String regionName) {
+        map.remove(regionName);
     }
-
-
-    private static class RollForwardQueueHolder{
-        private final AtomicInteger refCount = new AtomicInteger(0);
-        private final RollForwardQueue queue;
-
-        private RollForwardQueueHolder(RollForwardQueue queue) {
-            this.queue = queue;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof RollForwardQueueHolder)) return false;
-
-            RollForwardQueueHolder that = (RollForwardQueueHolder) o;
-
-            return queue.equals(that.queue);
-
-        }
-
-        @Override
-        public int hashCode() {
-            return queue.hashCode();
-        }
-    }
-
 }

@@ -1,12 +1,11 @@
 package com.splicemachine.si;
 
-import com.splicemachine.si.impl.SynchronousRollForwardQueue;
-
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 
+import java.io.IOException;
 import java.util.concurrent.Executors;
 @Ignore
 public abstract class SITransactorHBaseTest extends SITransactorTest {
@@ -17,8 +16,7 @@ public abstract class SITransactorHBaseTest extends SITransactorTest {
 
     @Override
     @Before
-    public void setUp() {
-        SynchronousRollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
+    public void setUp() throws IOException {
         baseSetUp();
     }
 

@@ -19,7 +19,9 @@ public class SpliceViewWatcher extends TestWatcher {
     protected String viewName;
     protected String schemaName;
     protected String createString;
-
+    protected String userName;
+    protected String password;
+    
     /**
      *
      * @param viewName name for the view.
@@ -31,6 +33,14 @@ public class SpliceViewWatcher extends TestWatcher {
         this.schemaName = schemaName.toUpperCase();
         this.createString = createString;
     }
+
+    public SpliceViewWatcher(String viewName,String schemaName, String createString, String userName, String password) {
+    	this(viewName,schemaName,createString);
+    	this.userName = userName;
+    	this.password = password;
+    }
+
+    
     @Override
     public void starting(Description description) {
         LOG.trace("Starting");
@@ -38,7 +48,7 @@ public class SpliceViewWatcher extends TestWatcher {
         Statement statement = null;
         ResultSet rs = null;
         try {
-            connection = SpliceNetConnection.getConnection();
+            connection = userName==null?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);
             rs = connection.getMetaData().getTables(null, schemaName, viewName, null);
             if (rs.next()) {
                 executeDrop(schemaName, viewName);

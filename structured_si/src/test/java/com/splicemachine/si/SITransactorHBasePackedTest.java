@@ -15,7 +15,7 @@ public class SITransactorHBasePackedTest extends SITransactorHBaseTest {
 
     @Override
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         this.storeSetup = HBaseSuite.classStoreSetup;
         this.transactorSetup = HBaseSuite.classTransactorSetup;
         baseSetUp();

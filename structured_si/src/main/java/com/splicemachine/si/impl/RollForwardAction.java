@@ -1,12 +1,13 @@
 package com.splicemachine.si.impl;
 
-import java.io.IOException;
 import java.util.List;
+
+import com.splicemachine.si.impl.rollforward.RollForwardEvent;
 
 /**
  * Abstraction over the details of what it means to roll-forward a transaction. This allows the RollForwardQueue to be
  * decoupled.
  */
 public interface RollForwardAction {
-    Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException;
+	boolean write(List<RollForwardEvent> rollForwardEvents);
 }

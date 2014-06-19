@@ -14,11 +14,19 @@ public class SpliceFunctionWatcher extends TestWatcher {
 	protected String functionName;
 	protected String schemaName;
 	protected String createString;
+	protected String userName;
+	protected String password;
 	public SpliceFunctionWatcher(String functionName,String schemaName, String createString) {
 		this.functionName = functionName.toUpperCase();
 		this.schemaName = schemaName.toUpperCase();
 		this.createString = createString;		
 	}
+	public SpliceFunctionWatcher(String functionName,String schemaName, String createString, String userName, String password) {
+		this(functionName, schemaName, createString);
+		this.userName = userName;
+		this.password = password;
+	}
+	
 	@Override
 	protected void starting(Description description) {
 		LOG.trace("Starting");
@@ -26,7 +34,7 @@ public class SpliceFunctionWatcher extends TestWatcher {
 		Statement statement = null;
 		ResultSet rs = null;
 		try {
-			connection = SpliceNetConnection.getConnection();
+			connection = (userName==null)?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName, password);
 			rs = connection.getMetaData().getTables(null, schemaName, functionName, null);
 			if (rs.next()) {
 				executeDrop(schemaName,functionName);

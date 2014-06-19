@@ -13,12 +13,11 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Random;
 
-/**
- * @author Scott Fines
- * Created on: 6/10/13
+/*
+ * Test ByteEncoding with random values.
  */
 @RunWith(Parameterized.class)
-public class ByteEncodingTest {
+public class ByteEncoding_RandomizedTest {
     private static final int numTests=10;
     private static final int arraysPerTest =10;
     private static final int bytesPerArray = 11200;
@@ -41,7 +40,7 @@ public class ByteEncodingTest {
 
     private final byte[][] data;
 
-    public ByteEncodingTest(byte[][] data) {
+    public ByteEncoding_RandomizedTest(byte[][] data) {
         this.data = data;
     }
 

@@ -4,7 +4,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.test.SpliceNetDerbyTest;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -19,16 +18,23 @@ public class SpliceNetConnection {
 
     private static final String DRIVER_CLASS = "org.apache.derby.jdbc.ClientDriver";
     private static final String DB_URL_LOCAL = "jdbc:derby://localhost:1527/";
-
+    public static final String DEFAULT_USER = "splice";
+    public static final String DEFAULT_USER_PASSWORD = "admin";
+    
+    
     private static boolean driverClassLoaded;
 
     public static Connection getConnection() {
+    	return getConnectionAs(DEFAULT_USER,DEFAULT_USER_PASSWORD);
+    }
+
+    public static Connection getConnectionAs(String userName, String password) {
         if (!driverClassLoaded) {
             loadDriver();
         }
         Properties props = new Properties();
         try {
-            return DriverManager.getConnection(DB_URL_LOCAL + SpliceConstants.SPLICE_DB + ";create=true", props);
+        	return DriverManager.getConnection(String.format("%s%s;create=true;user=%s;password=%s",DB_URL_LOCAL,SpliceConstants.SPLICE_DB,userName, password), props);
         } catch (SQLException e) {
             throw new IllegalStateException(e);
         }

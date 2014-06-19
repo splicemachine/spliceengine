@@ -1172,6 +1172,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             SpliceLogUtils.trace(LOG, "getMiscResultSet");
             SpliceOperation top = new MiscOperation(activation);
             top.markAsTopResultSet();
+            activation.getLanguageConnectionContext().getAuthorizer().authorize(activation, 1);
             return new OperationResultSet(activation,top);
         }catch(Exception e){
             throw Exceptions.parseException(e);
@@ -1211,8 +1212,8 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new InsertOperation(below.getOperation(), generationClauses, checkGM);
-
             OperationResultSet opSet = new OperationResultSet(source.getActivation(),top);
+            source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             opSet.markAsTopResultSet();
             return opSet;
         }catch(Exception e){
@@ -1226,7 +1227,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new UpdateOperation(below.getOperation(), generationClauses, checkGM, source.getActivation());
-
+            source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             OperationResultSet resultSet = new OperationResultSet(source.getActivation(),top);
             resultSet.markAsTopResultSet();
             return resultSet;
