@@ -13,15 +13,13 @@ public class SpliceSchemaWatcher extends TestWatcher {
 	private static final Logger LOG = Logger.getLogger(SpliceSchemaWatcher.class);
 	public String schemaName;
 	protected String userName;
-	protected String password;
 	public SpliceSchemaWatcher(String schemaName) {
 		this.schemaName = schemaName.toUpperCase();
 	}
 	
-	public SpliceSchemaWatcher(String schemaName, String userName, String password) {
+	public SpliceSchemaWatcher(String schemaName, String userName) {
 		this(schemaName);
 		this.userName = userName;
-		this.password = password;
 	}
 	
 	@Override
@@ -30,13 +28,16 @@ public class SpliceSchemaWatcher extends TestWatcher {
 		Statement statement = null;
 		ResultSet rs = null;
 		try {
-			connection = userName==null?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);
+			connection = SpliceNetConnection.getConnection();
 			rs = connection.getMetaData().getSchemas(null, schemaName);
 			if (rs.next())
 				executeDrop(schemaName);
 			connection.commit();
 			statement = connection.createStatement();
-			statement.execute("create schema " + schemaName);
+			if (userName != null)
+				statement.execute(String.format("create schema %s AUTHORIZATION %S",schemaName,userName));
+			else 
+				statement.execute(String.format("create schema %s",schemaName));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		} finally {
@@ -49,7 +50,6 @@ public class SpliceSchemaWatcher extends TestWatcher {
 	@Override
 	protected void finished(Description description) {
 		LOG.trace("Finished");
-//		executeDrop(schemaName);
 	}
 	
 	public static void executeDrop(String schemaName) {

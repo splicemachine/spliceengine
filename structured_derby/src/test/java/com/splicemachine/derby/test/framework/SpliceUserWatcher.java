@@ -44,10 +44,10 @@ public class SpliceUserWatcher extends TestWatcher {
 		PreparedStatement statement = null;
 		try {
 			connection = SpliceNetConnection.getConnection();
-			statement = connection.prepareStatement("call syscs_util.syscs_create_user(?,?);");
+			statement = connection.prepareStatement("call syscs_util.syscs_create_user(?,?)");
 			statement.setString(1, userName);
 			statement.setString(2, password);
-			statement.executeQuery();
+			statement.execute();
 		} catch (Exception e) {
 			LOG.error("error Creating " + e.getMessage());
 			e.printStackTrace();
@@ -64,11 +64,16 @@ public class SpliceUserWatcher extends TestWatcher {
 		PreparedStatement statement = null;
 		try {
 			connection = SpliceNetConnection.getConnection();
-			statement = connection.prepareStatement("call syscs_util.syscs_drop_user(?);");
+			statement = connection.prepareStatement("select username from sys.sysusers where username = ?");
 			statement.setString(1, userName);
-			statement.executeQuery();
+			ResultSet rs = statement.executeQuery();
+			if (rs.next()) {
+				statement = connection.prepareStatement("call syscs_util.syscs_drop_user(?)");
+				statement.setString(1, userName);
+				statement.execute();
+			}
 		} catch (Exception e) {
-			LOG.error("error Dropping " + e.getMessage());
+			LOG.error("error Creating " + e.getMessage());
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		} finally {
