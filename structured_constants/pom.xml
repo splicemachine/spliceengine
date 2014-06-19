@@ -7,7 +7,7 @@
 	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>0.5.1-SNAPSHOT</version>
+		<version>FUJI.0-SNAPSHOT</version>
 	</parent>
 	<dependencies>
 		<dependency>
