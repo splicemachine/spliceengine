@@ -63,10 +63,6 @@ public class TimestampServer implements Runnable {
 		return _port;
 	}
 	
-    protected void doDebug(String s) {
-    	TimestampUtil.doServerDebug(LOG, s);
-    }
-    
     // Only used by main method when testing
     /*
     private static final int numZkRetries = 3;

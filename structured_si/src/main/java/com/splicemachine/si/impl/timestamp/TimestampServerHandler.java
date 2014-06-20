@@ -28,7 +28,7 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 
 	// TODO: better to do this from constructor but there are timing issues with this and zookeeper
 	public void initializeIfNeeded() {
-		TimestampUtil.doServerDebug(LOG, "initializeIfNeeded");
+		TimestampUtil.doServerTrace(LOG, "initializeIfNeeded");
 		synchronized(this) {
 			if (_oracle == null) {
 				_oracle = TimestampOracle.getInstance(_rzk, SpliceConstants.zkSpliceMaxReservedTimestampPath);
@@ -48,7 +48,7 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 		final int callerId = buf.readInt();
 		assert callerId > 0;
 		
-		doDebug("messageReceived: fetching next timestamp for caller " + callerId);
+		TimestampUtil.doServerDebug(LOG, "messageReceived: fetching next timestamp for caller " + callerId);
 		long nextTimestamp = _oracle.getNextTimestamp();
  		assert (buf.readableBytes() == 0);
 		
@@ -60,7 +60,7 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 		writeBuf.writeInt(callerId);
 		writeBuf.writeLong(nextTimestamp);
 		Channel channel = e.getChannel();
-		doDebug("messageReceived: writing timestamp " + nextTimestamp + " to client caller " + callerId + ", writable = " + channel.isWritable());
+		TimestampUtil.doServerTrace(LOG, "messageReceived: writing timestamp " + nextTimestamp + " to client caller " + callerId + ", writable = " + channel.isWritable());
 		// Two ways two write: Channels.write and e.getChannel().write.
 		// Keep both around for now and pick a winner later
 		// ChannelFuture futureResponse = Channels.write(channel, writeBuf, channel.getRemoteAddress());
@@ -68,7 +68,7 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 		futureResponse.addListener(new ChannelFutureListener() {
 			public void operationComplete(ChannelFuture cf) throws Exception {
 			    if (cf.isSuccess()) {
-		    		doDebug("messageReceived: writing to client (caller id " + callerId + ") complete.");
+			    	TimestampUtil.doServerTrace(LOG, "messageReceived: writing to client (caller id " + callerId + ") complete.");
 			    } else {
 			    	throw new RuntimeException(
 		    			"Something went wrong writing response back to TimestampClient", cf.getCause());
@@ -80,12 +80,16 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 		super.messageReceived(ctx, e);
 	}
 		   
+    protected void doTrace(String message) {
+    	TimestampUtil.doServerTrace(LOG, message);
+	}
+
     protected void doDebug(String message) {
     	TimestampUtil.doServerDebug(LOG, message);
 	}
 
-	protected void doError(String message) {
-    	TimestampUtil.doServerError(LOG, message);
+	protected void doError(String message, Throwable t) {
+    	TimestampUtil.doServerError(LOG, message, t);
     }
 
 }

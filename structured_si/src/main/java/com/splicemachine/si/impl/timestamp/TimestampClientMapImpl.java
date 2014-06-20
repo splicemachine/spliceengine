@@ -84,7 +84,7 @@ public class TimestampClientMapImpl extends TimestampClient {
     	try {
     		hostName = HConnectionManager.getConnection(SpliceConstants.config).getMaster().getClusterStatus().getMaster().getHostname();
     	} catch (Exception e) {
-    		TimestampUtil.doClientError(LOG, "Unable to determine host name for master. Using localhost as workaround but this is not correct.", null, e);
+    		TimestampUtil.doClientError(LOG, "Unable to determine host name for master. Using localhost as workaround but this is not correct.", e);
     		throw new RuntimeException("Unable to determine host name", e);
     	}
     	return hostName;
@@ -152,7 +152,7 @@ public class TimestampClientMapImpl extends TimestampClient {
 	
             ChannelBuffer buffer = ChannelBuffers.buffer(4);
     	    buffer.writeInt(clientCallId);
-			TimestampUtil.doClientDebug(LOG, "Writing request message to server", callback);
+			TimestampUtil.doClientTrace(LOG, "Writing request message to server", callback);
             ChannelFuture futureWrite = _channel.write(buffer);
 	        futureWrite.addListener(new ChannelFutureListener() {
 	            public void operationComplete(ChannelFuture future) {
@@ -160,22 +160,22 @@ public class TimestampClientMapImpl extends TimestampClient {
 	                   callback.error(new IOException("Error writing to socket from timestamp client"));
 	                   throw new RuntimeException("Error writing message from timestamp client to server", future.getCause());
 	                } else {
-	                   TimestampUtil.doClientDebug(LOG, "write to server operation complete", callback);
+	                   TimestampUtil.doClientTrace(LOG, "write to server operation complete", callback);
 	                }
 	            }
 	        });
     	} catch (Exception e) { // Correct to catch all Exceptions in this case so we can remove client call
-    		TimestampUtil.doClientError(LOG, "Got exception writing to server. Discarding callback", callback, e);
+    		TimestampUtil.doClientError(LOG, "Got exception writing to server. Discarding callback", e, callback);
         	_clientCallbacks.remove(clientCallId);
             callback.error(e);
         	throw new RuntimeException("Error occurred trying to write message to timestamp server", e);
     	}
         
 		try {
-			TimestampUtil.doClientDebug(LOG, "Waiting for response from server", callback);
+			TimestampUtil.doClientTrace(LOG, "Waiting for response from server", callback);
 			callback.await();
 		} catch (InterruptedException e) {
-            TimestampUtil.doClientError(LOG, "Interrupted or expired waiting for timestamp client callback", callback, e);
+            TimestampUtil.doClientError(LOG, "Interrupted or expired waiting for timestamp client callback", e, callback);
         	throw new RuntimeException("Interrupted or expired waiting for timestamp client callback", e);
 		}
     	
@@ -205,10 +205,11 @@ public class TimestampClientMapImpl extends TimestampClient {
  		assert (timestamp > 0);
  		assert (buf.readableBytes() == 0);
 
- 		TimestampUtil.doClientDebug(LOG, "messageReceived: clientCallerId = " + clientCallerId + " : timestamp = " + timestamp);
+ 		TimestampUtil.doClientTrace(LOG, "MessageReceived: clientCallerId = " + clientCallerId + " : timestamp = " + timestamp);
  		ClientCallback cb = _clientCallbacks.remove(clientCallerId);
         if (cb == null) {
-        	TimestampUtil.doClientError(LOG, "No client callback was found even though client received a timestamp: " + timestamp);
+        	TimestampUtil.doClientError(LOG, "No client callback was found even though client " + clientCallerId +
+        	    "received a timestamp: " + timestamp);
         	throw new RuntimeException("No client callback was found even though client received a timestamp: " + timestamp);
         }
 
@@ -218,7 +219,7 @@ public class TimestampClientMapImpl extends TimestampClient {
 	}
 
     public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-    	TimestampUtil.doClientInfo(LOG, "client successfully connected to server");
+    	TimestampUtil.doClientInfo(LOG, "Ssuccessfully connected to server");
         synchronized(_state) {
            _channel = e.getChannel();
            _state.set(State.CONNECTED);
@@ -226,13 +227,15 @@ public class TimestampClientMapImpl extends TimestampClient {
         super.channelConnected(ctx, e);
     }
 
+    protected void doTrace(String message) {
+    	TimestampUtil.doClientTrace(LOG, message);
+	}
+
     protected void doDebug(String message) {
     	TimestampUtil.doClientDebug(LOG, message);
 	}
 
-	protected void doError(String message) {
-    	TimestampUtil.doClientError(LOG, message);
+	protected void doError(String message, Throwable t) {
+    	TimestampUtil.doClientError(LOG, message, t);
     }
-
-	
 }
