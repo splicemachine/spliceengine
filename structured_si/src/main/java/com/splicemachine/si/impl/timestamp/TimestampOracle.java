@@ -33,7 +33,7 @@ public class TimestampOracle {
 	public static final TimestampOracle getInstance(RecoverableZooKeeper rzk, String blockNode) {
 		synchronized(TimestampOracle.class) {
 			if (_instance == null) {
-				TimestampUtil.doServerDebug(LOG, "initializing TimestampOracle...");
+				TimestampUtil.doServerInfo(LOG, "initializing TimestampOracle...");
 				_instance = new TimestampOracle(rzk, blockNode);
 			}
 			return _instance;
@@ -53,7 +53,7 @@ public class TimestampOracle {
 			synchronized(this) {
 				byte[] data = _zooKeeper.getData(_blockNode, false, new Stat());
 				long maxReservedTs = Bytes.toLong(data);
-				doDebug("initialize: existing max reserved timestamp = " + maxReservedTs);
+				TimestampUtil.doServerInfo(LOG, "initialize: existing max reserved timestamp = " + maxReservedTs);
 				
 				// If no previous maximum reserved timestamp found, then assume this is first time
 				// new implementation (TimestampOracle) is being used. Fetch previous maximum
@@ -71,7 +71,7 @@ public class TimestampOracle {
 		            byte[] dataCounter = _zooKeeper.getData(counterTransactionPath, false, statCounter);
 		            int version = statCounter.getVersion();
 		            maxReservedTs = version | highBits;
-					doDebug("Detected last timestamp from previous implementation: " + maxReservedTs);
+					TimestampUtil.doServerInfo(LOG, "initialize: Detected last timestamp from prior TimestampSource implementation: " + maxReservedTs);
 				}
 
 				_maxReservedTimestamp = maxReservedTs;
@@ -103,7 +103,7 @@ public class TimestampOracle {
 			try {
 				_zooKeeper.setData(_blockNode, data, -1 /* version */); // durably reserve the next block
 				_maxReservedTimestamp = nextMax;
-				doDebug("reserveNextBlock: next block reserved with max = " + _maxReservedTimestamp);
+				TimestampUtil.doServerDebug(LOG, "reserveNextBlock: next block reserved with max = " + _maxReservedTimestamp);
 			} catch (KeeperException e) {
 				throw new IOException(e);
 			} catch (InterruptedException e) {
@@ -111,9 +111,4 @@ public class TimestampOracle {
 			}
 		}
 	}
-
-	protected void doDebug(String s) {
-    	TimestampUtil.doServerDebug(LOG, s);
-    }
-	
 }

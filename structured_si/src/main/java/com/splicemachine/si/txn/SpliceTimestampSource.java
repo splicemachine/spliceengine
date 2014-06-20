@@ -6,10 +6,8 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.TimestampSource;
-import com.splicemachine.si.impl.timestamp.ClientCallback;
 import com.splicemachine.si.impl.timestamp.TimestampClient;
 import com.splicemachine.si.impl.timestamp.TimestampClientFactory;
-import com.splicemachine.si.impl.timestamp.TimestampUtil;
 
 public class SpliceTimestampSource implements TimestampSource {
 
@@ -29,7 +27,7 @@ public class SpliceTimestampSource implements TimestampSource {
     	// Should be fine since synchronization occurs on the server.
     	synchronized(this) {
     		if (_tc == null) {
-		    	doDebug("initialize: creating the TimestampClient...");
+		    	LOG.debug("Creating the TimestampClient...");
 		    	_tc = TimestampClientFactory.createNewInstance();
     		}
     	}
@@ -63,7 +61,7 @@ public class SpliceTimestampSource implements TimestampSource {
 			throw new RuntimeException("Unable to fetch new timestamp", e);
 		}
 
-		doDebug("nextTimestamp: got new timestamp " + nextTimestamp);
+		LOG.debug("Next timestamp: " + nextTimestamp);
 		
 		return nextTimestamp;
 	}
@@ -93,9 +91,4 @@ public class SpliceTimestampSource implements TimestampSource {
         }
         return Bytes.toLong(data);
     }
-
-    protected void doDebug(String s) {
-    	TimestampUtil.doClientDebug(LOG, s);
-    }
-    
 }

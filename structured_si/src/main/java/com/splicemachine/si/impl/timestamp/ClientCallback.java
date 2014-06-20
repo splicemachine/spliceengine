@@ -46,10 +46,10 @@ public class ClientCallback implements Callback {
     }
 
     public synchronized void complete(long timestamp) {
-    	TimestampUtil.doClientDebug(LOG, "complete: setting timestamp " + timestamp, this);
+    	TimestampUtil.doClientTrace(LOG, "Setting timestamp on callback " + timestamp, this);
         _newTimestamp = timestamp;
         countDown();
-    	TimestampUtil.doClientDebug(LOG, "complete: done with countdown", this);
+    	TimestampUtil.doClientTrace(LOG, "done with callback completion", this);
     }   
 
     public String toString() {
