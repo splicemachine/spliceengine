@@ -1,0 +1,176 @@
+\section{Spark Integration with HBase: Representing Log Structured Merge Trees
+with a Directed Acyclic Graph}
+The merging of an LSM tree (immutable data structures) with a Directed Acyclic
+Graph should yield significant performance capabilities over simply rescanning
+all the data out of the LSM tree for each execution.  
+
+\subsection{Splice Explain Plan Transformed from LSM to Performant DAG
+Structure} This section will go through a simple splice explain plan and then
+view it in the current DAG structure and the proposed DAG structure.
+
+\subsubsection{Splice Explain Tree}
+Here is the explain plan for a simple 3 way inner join.
+
+\tikzstyle{abstract}=[rectangle, draw=black, rounded corners, fill=blue!20, drop
+shadow, text centered, anchor=north, text=white, text width=3cm]
+\tikzstyle{comment}=[rectangle, draw=black, rounded corners, fill=green, drop shadow,
+        text centered, anchor=north, text=white, text width=3cm]
+\tikzstyle{myarrow}=[->, >=open triangle 90, thick]
+\tikzstyle{line}=[-, thick]
+        
+\begin{center}
+\begin{tikzpicture}[node distance=0.4cm]
+    \node (Table1) [abstract, rectangle split, rectangle split parts=1] {
+            \textbf{$Table_{1}$}
+        };
+    \node (Join1) [abstract, rectangle split, rectangle split parts=1,    
+    above right=of Table1] {
+            \textbf{$Join_{1}$}
+        };
+    \node (Table2) [abstract, rectangle split, rectangle split
+    parts=1,below right=of Join1] {
+            \textbf{$Table_{2}$}
+        };
+    \node (Projection1) [abstract, rectangle split, rectangle split parts=1,    
+        above right=of Join1] {
+                    \textbf{$Projection_{1}$}
+        };
+    \node (Join2) [abstract, rectangle split, rectangle split parts=1,    
+        above right=of Projection1] {
+            \textbf{$Join_{2}$}
+        };
+    \node (Table3) [abstract, rectangle split, rectangle split parts=1,    
+        below right=of Join2] {
+        \textbf{$Table_{3}$}
+        };
+        
+         \path (Table1) edge (Join1);
+         \path (Join1) edge (Projection1);
+         \path (Join1) edge (Table2);
+         \path (Projection1) edge (Join2);
+         \path (Join2) edge (Table3);
+\end{tikzpicture}
+\end{center}
+
+\subsubsection{Current DAG Model}
+Here is the current DAG model based on the current thinking on HBase integration
+with Spark via Hadoop Input Formats.
+
+\tikzstyle{abstract}=[rectangle, draw=black, rounded corners, fill=blue!20, drop
+shadow, text centered, anchor=north, text=white, text width=3cm]
+\tikzstyle{comment}=[rectangle, draw=black, rounded corners, fill=green, drop shadow,
+        text centered, anchor=north, text=white, text width=3cm]
+\tikzstyle{myarrow}=[->, >=open triangle 90, thick]
+\tikzstyle{line}=[-, thick]
+        
+\begin{center}
+\begin{tikzpicture}[node distance=0.4cm]
+    \node (Table1) [abstract, rectangle split, rectangle split parts=2] {
+            \textbf{$Table_{1}$}
+            \nodepart{second}Region Based RDD
+        };
+    \node (Join1) [abstract, rectangle split, rectangle split parts=2,    
+    above right=of Table1] {
+            \textbf{$Join_{1}$}
+            \nodepart{second}Post Join RDD
+        };
+    \node (Table2) [abstract, rectangle split, rectangle split
+    parts=2,below right=of Join1] {
+            \textbf{$Table_{2}$}
+            \nodepart{second}Region Based RDD
+        };
+    \node (Projection1) [abstract, rectangle split, rectangle split parts=1,    
+        above right=of Join1] {
+                    \textbf{$Projection_{1}$}
+        };
+    \node (Join2) [abstract, rectangle split, rectangle split parts=2,    
+        above right=of Projection1] {
+            \textbf{$Join_{2}$}
+            \nodepart{second}Post Join RDD
+        };
+    \node (Table3) [abstract, rectangle split, rectangle split parts=2,    
+        below right=of Join2] {
+        \textbf{$Table_{3}$}
+        \nodepart{second}Region Based RDD
+        };
+        
+         \path (Table1) edge (Join1);
+         \path (Join1) edge (Projection1);
+         \path (Join1) edge (Table2);
+         \path (Projection1) edge (Join2);
+         \path (Join2) edge (Table3);
+
+
+%        
+%        
+        
+\end{tikzpicture}
+\end{center}
+
+This approach has several significant pitfalls listed below:
+
+\begin{enumerate}
+	\item Scan Based RDD: Each individual scan against the data constructs a
+	different RDD based on the regions, filters, and fields participating.
+	\item Data Movement: The entire HBase results for the table scans must be
+	externally scanned (scan local to node but still external to process) and
+	transferred to the DAG model during each execution.  This causes all members of
+	the graph to be impossible to reuse.
+	\item Snapshot Isolation Application: Since Snapshot Isolation is applied in
+	HBase, each read from the HBase table could have a slightly smaller 
+	\item Updates:  A single update to a region will cause the DAG model to re-read
+	all regions for that table.  For example, you have 1TB of data and a single
+	update will require you to re-read the 1TB of data.
+\end{enumerate}
+
+\subsubsection{Proposed Simple DAG Model}
+Here is the proposed Simple DAG model based on trying to limit the amount of
+data needed to be read from HBase.  The changes are centered around the
+interaction with HBase Tables.  The remainder of the plan tree will be discarded
+for this analysis.
+
+\tikzstyle{abstract}=[rectangle, draw=black, rounded corners, fill=blue!20, drop
+shadow, text centered, anchor=north, text=white, text width=3cm]
+\tikzstyle{comment}=[rectangle, draw=black, rounded corners, fill=green, drop shadow,
+        text centered, anchor=north, text=white, text width=3cm]
+\tikzstyle{myarrow}=[->, >=open triangle 90, thick]
+\tikzstyle{line}=[-, thick]
+        
+\begin{center}
+\begin{tikzpicture}[node distance=0.4cm]
+    \node (Table1) [abstract, rectangle split, rectangle split parts=2] {
+            \textbf{$Table_{1}$}
+            \nodepart{second}No RDD, Just Scan Logic
+        };
+
+    \node (Table1Region1) [abstract, rectangle split, rectangle split parts=2,    
+    below left=of Table1] {
+            \textbf{$Table_{1}$$Region_{1}$}
+            \nodepart{second}RDD
+        };
+
+    \node (Table1RegionN) [abstract, rectangle split, rectangle split parts=2,    
+    below right=of Table1] {
+            \textbf{$Table_{1}$$Region_{n}$}
+            \nodepart{second}RDD
+        };
+
+        
+         \path (Table1RegionN) edge (Table1);
+         \path (Table1Region1) edge (Table1);
+
+\end{tikzpicture}
+\end{center}
+
+\begin{enumerate}
+	\item Scan Based RDD: Scans will go against the same cached RDD for evaluation.
+	\item Data Movement: Only regions with updated data will invalidate the RDD and
+	force a reload.
+	\item Snapshot Isolation Application: ? (XXX - TODO JL)
+	\item Updates:  A single update to a region will cause the DAG model to re-read
+	that single regions for that table (1 Gig).  For example, you have 1TB of data
+	and a single update will require you to re-read only 1GB of data.
+\end{enumerate}
+        
+
+%End LSM to DAG chapter
