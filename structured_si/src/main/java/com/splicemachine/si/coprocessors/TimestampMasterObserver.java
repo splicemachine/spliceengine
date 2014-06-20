@@ -25,7 +25,7 @@ public class TimestampMasterObserver extends BaseMasterObserver {
 
     @Override
     public void start(CoprocessorEnvironment ctx) throws IOException {
-        TimestampUtil.doServerDebug(LOG, "Starting Timestamp Master Observer...");
+        TimestampUtil.doServerInfo(LOG, "Starting Timestamp Master Observer...");
         
         ZooKeeperWatcher zkw = ((MasterCoprocessorEnvironment)ctx).getMasterServices().getZooKeeper();
         RecoverableZooKeeper rzk = zkw.getRecoverableZooKeeper();
@@ -37,7 +37,7 @@ public class TimestampMasterObserver extends BaseMasterObserver {
 
     @Override
     public void stop(CoprocessorEnvironment ctx) throws IOException {
-    	TimestampUtil.doServerDebug(LOG, "Stopping Timestamp Master Observer...");
+    	TimestampUtil.doServerInfo(LOG, "Stopping Timestamp Master Observer...");
         super.stop(ctx);
     }
 }

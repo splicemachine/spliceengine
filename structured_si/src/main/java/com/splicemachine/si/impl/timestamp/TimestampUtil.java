@@ -7,6 +7,26 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class TimestampUtil {
 
 	//
+	// Trace
+	//
+	
+	public static void doClientTrace(Logger logger, String message) {
+		SpliceLogUtils.trace(logger, message);
+	}
+	
+	public static void doClientTrace(Logger logger, String message, Object obj) {
+		SpliceLogUtils.trace(logger, message + " : " + obj);
+	}
+	
+	public static void doServerTrace(Logger logger, String message) {
+		SpliceLogUtils.trace(logger, message);
+	}
+	
+	public static void doServerTrace(Logger logger, String message, Object obj) {
+		SpliceLogUtils.trace(logger, message + " : " + obj);
+	}
+	
+	//
 	// Info
 	//
 	
@@ -58,20 +78,24 @@ public class TimestampUtil {
 		SpliceLogUtils.error(logger, message);		
 	}
 	
-	public static void doClientError(Logger logger, String message, Object obj) {
-		SpliceLogUtils.error(logger, message + " : " + obj);		
+	public static void doClientError(Logger logger, String message, Throwable t) {
+		SpliceLogUtils.error(logger, message, t);		
 	}
 	
-	public static void doClientError(Logger logger, String message, Object obj, Throwable t) {
-		SpliceLogUtils.error(logger, message + " : " + obj);		
+	public static void doClientError(Logger logger, String message, Throwable t, Object obj) {
+		SpliceLogUtils.error(logger, message + " : " + obj, t);		
 	}
 	
 	public static void doServerError(Logger logger, String message) {
 		SpliceLogUtils.error(logger, message);		
 	}
 	
-	public static void doServerError(Logger logger, String message, Object obj) {
-		SpliceLogUtils.error(logger, message + " : " + obj);		
+	public static void doServerError(Logger logger, String message, Throwable t) {
+		SpliceLogUtils.error(logger, message, t);		
+	}
+	
+	public static void doServerError(Logger logger, String message, Throwable t, Object obj) {
+		SpliceLogUtils.error(logger, message + " : " + obj, t);		
 	}
 	
 }
