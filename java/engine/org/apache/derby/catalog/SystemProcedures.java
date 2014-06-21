@@ -2019,13 +2019,12 @@ public class SystemProcedures  {
     }
 
     /**
-	 * Create or update all system stored procedures in a schema.  If the system stored procedure alreadys exists in the data dictionary,
+	 * Create or update all system stored procedures.  If the system stored procedure alreadys exists in the data dictionary,
 	 * the stored procedure will be dropped and then created again.
-	 * 
-	 * @param schemaName name of the system schema
+	 *
 	 * @throws SQLException
      */
-    public static void SYSCS_UPDATE_ALL_SYSTEM_PROCEDURES(String schemaName)
+    public static void SYSCS_UPDATE_ALL_SYSTEM_PROCEDURES()
        throws SQLException
     {
         try {
@@ -2033,7 +2032,7 @@ public class SystemProcedures  {
             TransactionController     tc  = lcc.getTransactionExecute();
             DataDictionary            dd =  lcc.getDataDictionary();
 
-        	dd.createOrUpdateAllSystemProcedures(schemaName, tc);
+        	dd.createOrUpdateAllSystemProcedures(tc);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         }

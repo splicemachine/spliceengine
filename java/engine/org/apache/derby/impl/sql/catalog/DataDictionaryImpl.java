@@ -76,7 +76,6 @@ import org.apache.derby.impl.sql.compile.ColumnReference;
 import org.apache.derby.impl.sql.compile.TableName;
 import org.apache.derby.impl.sql.depend.BasicDependencyManager;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
-import org.apache.derby.iapi.sql.execute.ExecPreparedStatement;
 import org.apache.derby.iapi.sql.execute.ExecutionContext;
 import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.sql.execute.ScanQualifier;
@@ -191,6 +190,15 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	protected DD_Version  softwareVersion;
 	protected String authorizationDatabaseOwner;
 	protected boolean usesSqlAuthorization;
+
+	/**
+	 * When enabled, will update the data dictionary with all system stored procedures defined in the Derby jar.
+	 * If a system stored procedure already exists in the data dictionary, it will be dropped and then created again.
+	 *
+	 * Defaults to false (off).
+	 */
+	private static boolean updateSystemProcs =
+			PropertyUtil.getSystemBoolean(Property.LANG_UPDATE_SYSTEM_PROCS, Property.LANG_UPDATE_SYSTEM_PROCS_DEFAULT);
 
 	/*
 	** This property and value are written into the database properties
@@ -7877,20 +7885,24 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	}
 
 	/**
-	 * Initialize system procedures. This is where Derby performs upgrade.
-	 * This is where Splice updates (reloads) the system stored procedures
-	 * when the <code>splice.updateSystemProcs</code> system property is set to true.
+	 * Initialize system procedures.
+	 * This is where Derby updates (reloads) the system stored procedures
+	 * when the <code>derby.language.updateSystemProcs</code> system property is set to true.
 	 *
 	 *	@param	tc				TransactionController
-	 *	@param	ddg				DataDescriptorGenerator
-	 *	@param	startParams		Properties
 	 *
 	 * 	@exception StandardException		Thrown on error
 	 */
 	protected void updateSystemProcedures(TransactionController tc)
 		throws StandardException
 	{
-		// No-op
+    	// Update (or create) the system stored procedures if requested.
+    	if (updateSystemProcs) {
+        	createOrUpdateAllSystemProcedures(tc);
+    	}
+    	// Only update the system procedures once.  Otherwise, each time an ij session is created, the system procedures will be dropped/created again.
+    	// It would be better if it was possible to detect when the database is being booted during server startup versus the database being booted during ij startup.
+    	updateSystemProcs = false;
 	}
 
 	/**
@@ -13938,18 +13950,19 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	}
 
 	/**
-	 * Create or update all system stored procedures in a schema.  If the system stored procedure alreadys exists in the data dictionary,
+	 * Create or update all system stored procedures.  If the system stored procedure alreadys exists in the data dictionary,
 	 * the stored procedure will be dropped and then created again.
 	 * 
-	 * @param schemaName the schema where the procedures do and/or will reside
 	 * @param tc the xact
 	 * @throws StandardException
 	 */
-	public void createOrUpdateAllSystemProcedures(String schemaName, TransactionController tc) throws StandardException {
+	public void createOrUpdateAllSystemProcedures(TransactionController tc) throws StandardException {
         HashSet newlyCreatedRoutines = new HashSet();
         SystemProcedureGenerator procedureGenerator = getSystemProcedures();
 
-        procedureGenerator.createOrUpdateAllProcedures(schemaName, tc, newlyCreatedRoutines);
+        procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME, tc, newlyCreatedRoutines);
+        procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME, tc, newlyCreatedRoutines);
+        procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.STD_SQLJ_SCHEMA_NAME, tc, newlyCreatedRoutines);
         grantPublicAccessToSystemRoutines(newlyCreatedRoutines, tc, authorizationDatabaseOwner);
 	}
 

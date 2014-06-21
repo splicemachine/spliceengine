@@ -663,6 +663,13 @@ public interface Property {
 	String STATEMENT_CACHE_SIZE = "derby.language.statementCacheSize";
 	int STATEMENT_CACHE_SIZE_DEFAULT = 100;
 
+	/**
+	 * Tells if the system stored procedures should be updated during database boot up.
+	 * Default is false.  System property.  Loaded once (static initializer).
+	 */
+	String	LANG_UPDATE_SYSTEM_PROCS = "derby.language.updateSystemProcs";
+	boolean	LANG_UPDATE_SYSTEM_PROCS_DEFAULT = false;
+
     /**
      * Tells if automatic index statistics update is enabled (default is true).
      */

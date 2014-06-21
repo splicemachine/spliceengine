@@ -501,7 +501,6 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .numOutputParams(0).numResultSets(0).modifiesSql()
                 .returnType(null).isDeterministic(false)
                 .ownerClass(SYSTEM_PROCEDURES)
-                .catalog("schemaName")
                 .build()
     }));
 
