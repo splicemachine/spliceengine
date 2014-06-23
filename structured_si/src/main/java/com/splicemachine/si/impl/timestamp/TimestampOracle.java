@@ -20,7 +20,7 @@ public class TimestampOracle {
 	// Pointer to the specific znode instance that is specifically configured for timestamp block storage
 	private final String _blockNode;
 	
-	private final int _blockSize = 10000; // TODO: configrable?
+	private final int _blockSize = SpliceConstants.timestampBlockSize;
 
 	// Contains the next timestamp value to be returned to caller use
 	private final AtomicLong _timestampCounter = new AtomicLong(0l);
@@ -28,6 +28,7 @@ public class TimestampOracle {
 	// Maximum timestamp that we can feed before reserving another block
 	private volatile long _maxReservedTimestamp = -1l;
 
+	// Singleton instance, used by TimestampServerHandler
 	private static TimestampOracle _instance;
 	
 	public static final TimestampOracle getInstance(RecoverableZooKeeper rzk, String blockNode) {
@@ -68,6 +69,7 @@ public class TimestampOracle {
 		            long highBits = (long)(statHigh.getVersion() - 1) << 32;
 
 		            Stat statCounter = new Stat();
+		            // We don't care about dataCounter. We're really after statCounter.
 		            byte[] dataCounter = _zooKeeper.getData(counterTransactionPath, false, statCounter);
 		            int version = statCounter.getVersion();
 		            maxReservedTs = version | highBits;
@@ -90,7 +92,6 @@ public class TimestampOracle {
 		if (nextTS > maxTS) {
 			reserveNextBlock(maxTS);
 		}
-		// TODO: assert that this ts has never been used before (for debugging purposes)?
 		return nextTS;
 	}
 

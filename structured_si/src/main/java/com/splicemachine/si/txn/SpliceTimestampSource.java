@@ -27,7 +27,7 @@ public class SpliceTimestampSource implements TimestampSource {
     	// Should be fine since synchronization occurs on the server.
     	synchronized(this) {
     		if (_tc == null) {
-		    	LOG.debug("Creating the TimestampClient...");
+		    	LOG.info("Creating the TimestampClient...");
 		    	_tc = TimestampClientFactory.createNewInstance();
     		}
     	}
@@ -40,19 +40,7 @@ public class SpliceTimestampSource implements TimestampSource {
     @Override
     public long nextTimestamp() {
 		TimestampClient client = getTimestampClient();
-		
-		// TODO: Add retry code, probably in TimestampClient not here
-		/*
-		int retryCount = 0;
-		long nextTimestamp = -1;
-		while (nextTimestamp < 0 && retryCount < 2) {
-			nextTimestamp = client.getNextTimestamp();
-			if (nextTimestamp < 0) {
-				TimestampUtil.doError(this, "TimestampClient did not return valid number so we will do retry #" + (++retryCount));
-			}
-		}
-		*/
-		
+				
 		long nextTimestamp;
 		try {
 			nextTimestamp = client.getNextTimestamp();

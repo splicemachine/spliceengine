@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl.timestamp;
 
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ChildChannelStateEvent;
@@ -75,6 +76,13 @@ public abstract class TimestampBaseHandler extends SimpleChannelHandler {
     	super.childChannelClosed(ctx, e);
     }
 
+    protected void ensureReadableBytes(ChannelBuffer buf, int expected) {
+ 		if (buf.readableBytes() != expected) {
+ 			throw new RuntimeException("Invalid number of readable bytes " + buf.readableBytes() +
+				" where " + expected + " was expected.");
+ 		};
+    }
+    
     protected abstract void doTrace(String message);
     
     protected abstract void doDebug(String message);
