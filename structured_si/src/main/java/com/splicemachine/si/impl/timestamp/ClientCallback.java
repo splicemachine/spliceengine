@@ -5,6 +5,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
+import com.splicemachine.constants.SpliceConstants;
+
 public class ClientCallback implements Callback {
 	
     private static final Logger LOG = Logger.getLogger(ClientCallback.class);
@@ -31,9 +33,7 @@ public class ClientCallback implements Callback {
     }
     
     public void await() throws InterruptedException {
-    	// TODO: decide on final timeout duration
-        // _latch.await();
-        _latch.await(30, TimeUnit.SECONDS);
+        _latch.await(SpliceConstants.timestampClientWaitTime, TimeUnit.MILLISECONDS);
     }
 
     public long getNewTimestamp() {

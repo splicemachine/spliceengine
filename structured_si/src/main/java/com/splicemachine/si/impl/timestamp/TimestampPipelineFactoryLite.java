@@ -9,6 +9,10 @@ import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
 
 public class TimestampPipelineFactoryLite implements ChannelPipelineFactory {
 
+	// This pipeline factory is called "lite" to distinguish it from
+	// more sophisticated implementations that might do things like
+	// specify an Executor.
+	
     private static final Logger LOG = Logger.getLogger(TimestampPipelineFactoryLite.class);
 
 	private ChannelHandler _tsHandler = null;
@@ -18,11 +22,12 @@ public class TimestampPipelineFactoryLite implements ChannelPipelineFactory {
 	}
 
 	public ChannelPipeline getPipeline() throws Exception {
-	    TimestampUtil.doServerDebug(LOG, "getPipeline: creating new pipeline (lite)");
+	    TimestampUtil.doServerDebug(LOG, "Creating new channel pipeline...");
         ChannelPipeline pipeline = Channels.pipeline();
         ((TimestampServerHandler)_tsHandler).initializeIfNeeded();
-		pipeline.addLast("decoder", new FixedLengthFrameDecoder(4)); // We receive 4 byte id from client
+		pipeline.addLast("decoder", new FixedLengthFrameDecoder(TimestampServer.FIXED_MSG_RECEIVED_LENGTH));
         pipeline.addLast("handler", _tsHandler);
+	    TimestampUtil.doServerDebug(LOG, "Done creating channel pipeline");
         return pipeline;
     }
     
