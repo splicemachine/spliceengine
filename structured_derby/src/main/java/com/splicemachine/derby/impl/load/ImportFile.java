@@ -44,15 +44,13 @@ class ImportFile {
 	
 		static {
 				try {
-						//noinspection NullArgumentToVariableArgMethod
-						FileStatus.class.getMethod(IS_DIRECTORY, null);
+						FileStatus.class.getMethod(IS_DIRECTORY);
 				directory = new Directory() {
 						@Override
-						@SuppressWarnings("NullArgumentToVariableArgMethod")
 						public boolean isDirectory(FileStatus fileStatus) throws IOException {
 							try {
-								Method method = fileStatus.getClass().getMethod(IS_DIRECTORY, null);
-								return (Boolean) method.invoke(fileStatus, null);
+								Method method = fileStatus.getClass().getMethod(IS_DIRECTORY);
+								return (Boolean) method.invoke(fileStatus);
 							} catch (Exception e) {
 								throw new IOException("Error with Hadoop Version, directory lookup off",e);
 							}
@@ -63,11 +61,10 @@ class ImportFile {
 				catch (NoSuchMethodException e) {
 					directory = new Directory() {
 						@Override
-						@SuppressWarnings("NullArgumentToVariableArgMethod")
 						public boolean isDirectory(FileStatus fileStatus) throws IOException {
 							try {
-								Method method = fileStatus.getClass().getMethod(IS_DIR, null);
-								return (Boolean) method.invoke(fileStatus, null);
+								Method method = fileStatus.getClass().getMethod(IS_DIR);
+								return (Boolean) method.invoke(fileStatus);
 							} catch (Exception e) {
 								throw new IOException("Error with Hadoop Version, directory lookup off",e);
 							}

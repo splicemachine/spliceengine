@@ -35,6 +35,7 @@ import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
 import org.apache.derby.impl.sql.execute.ValueRow;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HConstants;
@@ -361,7 +362,8 @@ public class HdfsImport {
 				try{
 						ImportFile file = new ImportFile(context.getFilePath().toString());
 						FileSystem fileSystem = file.getFileSystem();
-						filesize = fileSystem.getLength(context.getFilePath());
+						FileStatus fileStatus = fileSystem.getFileStatus(context.getFilePath());
+						filesize = fileStatus.getLen();
 						//make sure that we can read and write as needed
 						ImportUtils.validateReadable(context.getFilePath(),fileSystem,false);
 						ImportUtils.validateReadable(file);

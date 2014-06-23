@@ -1,9 +1,6 @@
 package com.splicemachine.derby.impl;
 
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
-
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -11,7 +8,8 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.impl.sql.execute.BaseActivation;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.utils.SpliceLogUtils;
+import java.lang.reflect.Method;
+import java.util.HashMap;
 
 public class SpliceMethod<T> {
 	private static Logger LOG = Logger.getLogger(SpliceMethod.class);
@@ -43,8 +41,8 @@ public class SpliceMethod<T> {
 		else { 	
 			try {
 				if (method == null)
-					method = activation.getClass().getMethod(methodName, null);
-				return (T) method.invoke(activation, null);
+					method = activation.getClass().getMethod(methodName);
+				return (T) method.invoke(activation);
 			} catch (Exception e) {
 				SpliceLogUtils.logAndThrow(LOG, "error during invoke",
 						StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
