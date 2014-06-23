@@ -28,6 +28,14 @@ public class SpliceConstants {
 		@SpliceConstants.Parameter public static final String CONSTRAINTS_ENABLED ="splice.constraints.enabled";
 		@DefaultValue(CONSTRAINTS_ENABLED) public static final boolean DEFAULT_CONSTRAINTS_ENABLED = true;
 		public static volatile boolean constraintsEnabled;
+		
+		@Parameter public static final String FLUSH_QUEUE_SIZE_BLOCK = "splice.client.write.flushQueueSizeBlock";
+		@DefaultValue(FLUSH_QUEUE_SIZE_BLOCK) private static final int DEFAULT_FLUSH_QUEUE_SIZE_BLOCK = 2;
+		public static int flushQueueSizeBlock;
+						
+		@Parameter public static final String COMPACTION_QUEUE_SIZE_BLOCK = "splice.client.write.compactionQueueSizeBlock";
+		@DefaultValue(COMPACTION_QUEUE_SIZE_BLOCK) private static final int DEFAULT_COMPACTION_QUEUE_SIZE_BLOCK = 1000;
+		public static int compactionQueueSizeBlock;
 
 		@Parameter public static final String IMPORT_LOG_QUEUE_SIZE = "splice.import.badRecords.queueSize";
 		@DefaultValue(IMPORT_LOG_QUEUE_SIZE) private static final int DEFAULT_IMPORT_LOG_QUEUE_SIZE = 1000;
@@ -862,6 +870,9 @@ public class SpliceConstants {
 
 				sequenceBlockSize = config.getInt(SEQUENCE_BLOCK_SIZE,DEFAULT_SEQUENCE_BLOCK_SIZE);
 
+				compactionQueueSizeBlock = config.getInt(COMPACTION_QUEUE_SIZE_BLOCK, DEFAULT_COMPACTION_QUEUE_SIZE_BLOCK);
+				flushQueueSizeBlock = config.getInt(FLUSH_QUEUE_SIZE_BLOCK, DEFAULT_FLUSH_QUEUE_SIZE_BLOCK);
+				
 				maxImportProcessingThreads = config.getInt(IMPORT_MAX_PROCESSING_THREADS,DEFAULT_IMPORT_MAX_PROCESSING_THREADS);
 				interruptLoopCheck = config.getInt(INTERRUPT_LOOP_CHECK,DEFAULT_INTERRUPT_LOOP_CHECK);
 				maxImportReadBufferSize = config.getInt(IMPORT_MAX_READ_BUFFER_SIZE,DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE);
