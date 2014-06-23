@@ -46,21 +46,36 @@ public class SinkGroupedAggregatorTest {
     public void testCanAggregateDistinctAndNonDistinctTogether() throws Exception {
         int size =10;
         List<ExecRow> sourceRows = Lists.newArrayListWithCapacity(size);
-        final ExecRow template = new ValueRow(6);
+        final ExecRow template = new ValueRow(7);
         template.setRowArray(new DataValueDescriptor[]{
                 new SQLInteger(),
                 new SQLInteger(),
                 new SQLInteger(),
                 new UserType(),
                 new SQLInteger(),
+                new SQLInteger(),
                 new UserType()
         });
-        for(int i=0;i<10;i++){
+        for(int i=0;i<size;i++){
             template.resetRowArray();
             template.getColumn(1).setValue(i%3); //group into three grouping fields
-            template.getColumn(2).setValue(i%2); //add a distinct column
+            template.getColumn(2).setValue(i%3); //group into three grouping fields
+            template.getColumn(5).setValue(i%2); //add a distinct column
             sourceRows.add(template.getClone());
         }
+
+        /* SourceRows:
+         * 0, 0, NULL, NULL, 0, NULL, NULL
+         * 1, 1, NULL, NULL, 1, NULL, NULL
+         * 2, 2, NULL, NULL, 0, NULL, NULL
+         * 0, 0, NULL, NULL, 1, NULL, NULL
+         * 1, 1, NULL, NULL, 0, NULL, NULL
+         * 2, 2, NULL, NULL, 1, NULL, NULL
+         * 0, 0, NULL, NULL, 0, NULL, NULL
+         * 1, 1, NULL, NULL, 1, NULL, NULL
+         * 2, 2, NULL, NULL, 0, NULL, NULL
+         * 0, 0, NULL, NULL, 1, NULL, NULL
+         */
 
         StandardIterator<ExecRow> source = StandardIterators.wrap(sourceRows);
 
@@ -76,8 +91,8 @@ public class SinkGroupedAggregatorTest {
                 Assert.fail("Should not emit warnings!");
             }
         };
-        SpliceGenericAggregator nonDistinctAggregate = getCountAggregator(4,1,3,false);
-        SpliceGenericAggregator distinctAggregate = getCountAggregator(6,2,5,true);
+        SpliceGenericAggregator nonDistinctAggregate = getCountAggregator(4,2,3,false);
+        SpliceGenericAggregator distinctAggregate = getCountAggregator(7,5,6,true);
         GroupedAggregateBuffer nonDistinctBuffer = new GroupedAggregateBuffer(10,
                 new SpliceGenericAggregator[]{nonDistinctAggregate},false,emptyRowSupplier,collector, Metrics.noOpMetricFactory(), true);
         GroupedAggregateBuffer distinctBuffer = new GroupedAggregateBuffer(10,
@@ -85,7 +100,7 @@ public class SinkGroupedAggregatorTest {
 
         int[] groupColumns = new int[]{0};
         boolean[] groupSortOrder = new boolean[]{true};
-        int[] uniqueNonGroupedColumns = new int[]{1};
+        int[] uniqueNonGroupedColumns = new int[]{4};
 
 				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(template);
         SinkGroupedAggregateIterator aggregator = SinkGroupedAggregateIterator.newInstance(nonDistinctBuffer,
@@ -101,6 +116,7 @@ public class SinkGroupedAggregatorTest {
         GroupedRow row = aggregator.next(null);
         while(row!=null){
             if(row.isDistinct()){
+                System.out.println(String.format("Adding row %s to distinct", row));
                 distinctResults.add(row.deepCopy());
             }else{
                 Assert.assertFalse("Duplicate grouping key seen!",nonDistinctValues.contains(row.getGroupingKey()));
@@ -146,6 +162,7 @@ public class SinkGroupedAggregatorTest {
         SpliceGenericAggregator aggregator = new SpliceGenericAggregator(execAggregator,aggregatorColumnId,inputColumn,resultColumnId);
         AggregatorInfo mockInfo = mock(AggregatorInfo.class);
         when(mockInfo.isDistinct()).thenReturn(distinct);
+        when(mockInfo.getInputColNum()).thenReturn(inputColumn - 1);
         aggregator.setAggInfo(mockInfo);
         return aggregator;
     }

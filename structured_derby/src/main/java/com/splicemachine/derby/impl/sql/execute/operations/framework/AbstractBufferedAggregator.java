@@ -21,4 +21,9 @@ public abstract class AbstractBufferedAggregator implements BufferedAggregator {
         this.emptyRowSupplier = emptyRowSupplier;
         this.warningCollector = warningCollector;
     }
+
+    @Override
+    public String toString() {
+        return currentRow.toString();
+    }
 }
