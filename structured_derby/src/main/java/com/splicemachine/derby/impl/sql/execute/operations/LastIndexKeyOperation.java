@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.BufferedRegionScanner;
@@ -76,8 +77,12 @@ public class LastIndexKeyOperation extends ScanOperation {
                 colRefItem, optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.indexName = indexName;
-        init(SpliceOperationContext.newContext(activation));
-        returnedRow = false;
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+				returnedRow = false;
         recordConstructorTime();
     }
 
@@ -88,7 +93,7 @@ public class LastIndexKeyOperation extends ScanOperation {
     }
 
     @Override
-    public void init(SpliceOperationContext context) throws StandardException {
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
 				this.baseColumnMap = operationInformation.getBaseColumnMap();
         startExecutionTime = System.currentTimeMillis();
@@ -241,7 +246,7 @@ public class LastIndexKeyOperation extends ScanOperation {
     }
 
 		@Override
-    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "getMapRowProvider");
         beginTime = System.currentTimeMillis();
 
@@ -255,9 +260,9 @@ public class LastIndexKeyOperation extends ScanOperation {
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
-        return getMapRowProvider(top, decoder, spliceRuntimeContext);
-    }
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
+				return getMapRowProvider(top, decoder, spliceRuntimeContext);
+		}
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {

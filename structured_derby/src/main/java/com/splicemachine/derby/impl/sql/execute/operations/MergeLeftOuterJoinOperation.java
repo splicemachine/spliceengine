@@ -3,12 +3,15 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
 
 /**
  * @author P Trolard
@@ -46,12 +49,16 @@ public class MergeLeftOuterJoinOperation extends MergeJoinOperation {
         SpliceLogUtils.trace(LOG, "instantiate");
         emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
         this.wasRightOuterJoin = wasRightOuterJoin;
-        init(SpliceOperationContext.newContext(activation));
-        recordConstructorTime();
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+				recordConstructorTime();
     }
 
     @Override
-    public void init(SpliceOperationContext context) throws StandardException {
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         emptyRowFun = (emptyRowFunMethodName == null) ? null :
                           new SpliceMethod<ExecRow>(emptyRowFunMethodName,activation);

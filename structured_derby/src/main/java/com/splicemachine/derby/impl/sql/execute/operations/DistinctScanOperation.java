@@ -108,8 +108,12 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         this.hashKeyItem = hashKeyItem;
         this.tableName = tableName;
         this.indexName = indexName;
-        init(SpliceOperationContext.newContext(activation));
-    }
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+		}
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
@@ -131,7 +135,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     }
 
     @Override
-    public void init(SpliceOperationContext context) throws StandardException {
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         FormatableArrayHolder fah = (FormatableArrayHolder)activation.getPreparedStatement().getSavedObject(hashKeyItem);
         FormatableIntHolder[] fihArray = (FormatableIntHolder[])fah.getArray(FormatableIntHolder.class);
@@ -283,7 +287,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     }
 
     @Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				try{
 						reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
 						/*
@@ -305,7 +309,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 						}
 						return new DistributedClientScanProvider("distinctScanReduce", SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
 				} catch (IOException e) {
-            throw Exceptions.parseException(e);
+						throw Exceptions.parseException(e);
         }
     }
 
@@ -334,13 +338,12 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 		}
 
 		@Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
-        return getMapRowProvider(top, decoder, spliceRuntimeContext);
-			
-    }
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
+				return getMapRowProvider(top, decoder, spliceRuntimeContext);
+		}
 
     @Override
-    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
         Scan scan = getNonSIScan(runtimeContext);
         
         RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(scanInformation.getConglomerateId())),scan,null,runtimeContext);
@@ -351,9 +354,12 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
     @Override
     public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-    	
-        RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext, true);
-        return new SpliceNoPutResultSet(activation,this,provider);
+				try {
+						RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext, true);
+						return new SpliceNoPutResultSet(activation,this,provider);
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
     }
 
 		@Override

@@ -10,6 +10,7 @@ import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
@@ -152,7 +153,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException {
+		public void init(SpliceOperationContext context) throws IOException, StandardException {
 				SpliceLogUtils.trace(LOG, "init called");
 				super.init(context);
 				restriction = restrictionMethodName == null ?
@@ -280,12 +281,12 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				return leftResultSet.getMapRowProvider(top, rowDecoder, spliceRuntimeContext);
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				return leftResultSet.getReduceRowProvider(top, rowDecoder, spliceRuntimeContext, returnDefaultValue);
 		}
 
@@ -302,7 +303,11 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		@Override
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				SpliceLogUtils.trace(LOG, "executeScan");
-				return new SpliceNoPutResultSet(activation,this, getReduceRowProvider(this, OperationUtils.getPairDecoder(this, spliceRuntimeContext), spliceRuntimeContext, true));
+				try {
+						return new SpliceNoPutResultSet(activation,this, getReduceRowProvider(this, OperationUtils.getPairDecoder(this, spliceRuntimeContext), spliceRuntimeContext, true));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 		}
 
     protected Restriction getRestriction() {

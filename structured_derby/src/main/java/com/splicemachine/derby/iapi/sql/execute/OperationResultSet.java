@@ -139,6 +139,8 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 						delegate.openCore();
 				}catch(RuntimeException e){
 						throw Exceptions.parseException(e);
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
 				}
 
 				if(PLAN_LOG.isDebugEnabled() && Boolean.valueOf(System.getProperty("derby.language.logQueryPlan"))){

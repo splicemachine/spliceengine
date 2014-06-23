@@ -399,6 +399,7 @@ public class IndexIT extends SpliceUnitTest {
             Assert.assertTrue(cnt == 1);
         } catch (Exception e){
             e.printStackTrace();
+						throw e;
         } finally {
             SpliceIndexWatcher.executeDrop(SCHEMA_NAME,HeaderTable.INDEX_NAME);
         }

@@ -9,6 +9,7 @@ import java.util.List;
 import com.google.common.base.Strings;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
@@ -48,10 +49,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		private boolean alwaysFalse;
 		protected SpliceMethod<DataValueDescriptor> restriction;
 		protected SpliceMethod<ExecRow> projection;
-		private ExecRow candidateRow;
-		private ExecRow result;
-		private boolean restrict;
-		private DataValueDescriptor restrictBoolean;
 
 		static {
 				nodeTypes = Collections.singletonList(NodeType.MAP);
@@ -60,9 +57,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		public NoPutResultSet[] subqueryTrackingArray;
 		private ExecRow execRowDefinition;
 
-		public ProjectRestrictOperation() {
-				super();
-		}
+		@SuppressWarnings("UnusedDeclaration")
+		public ProjectRestrictOperation() { super(); }
 
 		public ProjectRestrictOperation(SpliceOperation source,
 																		Activation activation,
@@ -85,7 +81,11 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				this.reuseResult = reuseResult;
 				this.doesProjection = doesProjection;
 				this.source = source;
-				init(SpliceOperationContext.newContext(activation));
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 				recordConstructorTime();
 		}
 
@@ -124,7 +124,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException{
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
 				source.init(context);
 
@@ -194,19 +194,23 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 		@Override
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext, true);
-				SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
-				nextTime += getCurrentTimeMillis() - beginTime;
-				return rs;
+				try {
+						RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext, true);
+						SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
+						nextTime += getCurrentTimeMillis() - beginTime;
+						return rs;
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 		}
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
 		}
 
@@ -221,10 +225,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						timer.startTiming();
 				}
 
-				candidateRow = null;
-				result = null;
-				restrict = false;
-				restrictBoolean = null;
+				ExecRow candidateRow;
+				ExecRow result = null;
+				boolean restrict = false;
+				DataValueDescriptor restrictBoolean;
 
 				do {
 						candidateRow = source.nextRow(spliceRuntimeContext);
@@ -241,14 +245,14 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 										// if the result is null, we make it false --
 										// so the row won't be returned.
 										restrict = ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
-										if (! restrict) {
+										if (!restrict) {
 												if (LOG.isTraceEnabled())
-														SpliceLogUtils.trace(LOG, ">>>   ProjectRestrictOp[%d]: Candidate Filtered: %s",Bytes.toLong(uniqueSequenceID),candidateRow);
+														SpliceLogUtils.trace(LOG, ">>>   ProjectRestrictOp[%d]: Candidate Filtered: %s",Bytes.toLong(uniqueSequenceID), candidateRow);
 												rowsFiltered++;
 										}
 								}
 						}
-				} while ( (candidateRow != null) && (! restrict ) );
+				} while ( (candidateRow != null) && (!restrict) );
 				if (candidateRow != null)  {
 						result = doProjection(candidateRow);
 						if (LOG.isTraceEnabled())
@@ -270,7 +274,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						}
 						nextTime += getElapsedMillis(beginTime);
 				}
-				if(result==null){
+				if(result ==null){
 						timer.stopTiming();
 						stopExecutionTime = System.currentTimeMillis();
 				}

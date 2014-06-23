@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation.NodeType;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.KeyDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
@@ -16,6 +17,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -66,24 +68,28 @@ public class OperationUtils {
 		return ops;
 	}
 
-	public static NoPutResultSet executeScan(SpliceOperation operation,Logger log) throws StandardException {
-		SpliceLogUtils.trace(log,"executeScan");
-		final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
-		operation.generateLeftOperationStack(operationStack);
-		SpliceLogUtils.trace(log, "operationStack=%s",operationStack);
-		SpliceOperation regionOperation = operationStack.get(0);
-		SpliceLogUtils.trace(log,"regionOperation=%s",regionOperation);
-		RowProvider provider;
-        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-			PairDecoder decoder = OperationUtils.getPairDecoder(operation,spliceRuntimeContext);
-		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && operation != regionOperation) {
-			SpliceLogUtils.trace(log,"scanning Temp Table");
-			provider = regionOperation.getReduceRowProvider(operation,decoder,spliceRuntimeContext, true);
-		} else {
-			SpliceLogUtils.trace(log,"scanning Map Table");
-			provider = regionOperation.getMapRowProvider(operation,decoder,spliceRuntimeContext);
-		}
-		return new SpliceNoPutResultSet(operation.getActivation(),operation, provider);
+		public static NoPutResultSet executeScan(SpliceOperation operation,Logger log) throws StandardException {
+				SpliceLogUtils.trace(log,"executeScan");
+				final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
+				operation.generateLeftOperationStack(operationStack);
+				SpliceLogUtils.trace(log, "operationStack=%s",operationStack);
+				SpliceOperation regionOperation = operationStack.get(0);
+				SpliceLogUtils.trace(log,"regionOperation=%s",regionOperation);
+				RowProvider provider;
+				SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+				PairDecoder decoder = OperationUtils.getPairDecoder(operation,spliceRuntimeContext);
+				try {
+						if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && operation != regionOperation) {
+								SpliceLogUtils.trace(log,"scanning Temp Table");
+								provider = regionOperation.getReduceRowProvider(operation,decoder,spliceRuntimeContext, true);
+						} else {
+								SpliceLogUtils.trace(log,"scanning Map Table");
+								provider = regionOperation.getMapRowProvider(operation,decoder,spliceRuntimeContext);
+						}
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+				return new SpliceNoPutResultSet(operation.getActivation(),operation, provider);
 	}
 
 		public static PairDecoder getPairDecoder(SpliceOperation operation,SpliceRuntimeContext runtimeContext) throws StandardException {

@@ -16,6 +16,7 @@ import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
@@ -74,7 +75,11 @@ public class UpdateOperation extends DMLWriteOperation{
 													 GeneratedMethod checkGM, Activation activation)
 						throws StandardException {
 				super(source, generationClauses, checkGM, activation);
-				init(SpliceOperationContext.newContext(activation));
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 				recordConstructorTime();
 		}
 
@@ -87,7 +92,7 @@ public class UpdateOperation extends DMLWriteOperation{
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException{
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG,"init with regionScanner %s",regionScanner);
 				super.init(context);
 				heapConglom = writeInfo.getConglomerateId();

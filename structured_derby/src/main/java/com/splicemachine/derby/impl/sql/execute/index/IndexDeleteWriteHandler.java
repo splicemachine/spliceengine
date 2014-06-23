@@ -139,7 +139,6 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
             failed=true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
         } catch (Exception e) {
-            e.printStackTrace();
             failed=true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
         }

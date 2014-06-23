@@ -75,7 +75,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException{
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
 				heapConglom = writeInfo.getConglomerateId();
 				pkCols = writeInfo.getPkColumnMap();
@@ -200,7 +200,11 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		@Override
 		public void setActivation(Activation activation) throws StandardException {
 			super.setActivation(activation);
-			init(SpliceOperationContext.newContext(activation));
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 		}
 
 		@Override

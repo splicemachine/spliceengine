@@ -287,7 +287,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException{
+		public void init(SpliceOperationContext context) throws IOException, StandardException{
 				this.activation = context.getActivation();
 				this.operationInformation.initialize(context);
 				this.resultSetNumber = operationInformation.getResultSetNumber();
@@ -342,13 +342,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		 * If the operation does a transformation (e.g. ProjectRestrict, Normalize, IndexRowToBaseRow), then
 		 * this should delegate to the operation's source.
 		 *
+		 *
 		 * @param top the top operation to be executed
 		 * @param decoder the decoder to use
 		 * @return a MapRowProvider
 		 * @throws StandardException if something goes wrong
 		 */
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				throw new UnsupportedOperationException("MapRowProviders not implemented for this node: "+ this.getClass());
 		}
 
@@ -359,6 +360,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		 * this should delegate to the operation's source.
 		 *
 		 *
+		 *
 		 * @param top the top operation to be executed
 		 * @param decoder the decoder to use
 		 * @param returnDefaultValue
@@ -366,12 +368,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		 * @throws StandardException if something goes wrong
 		 */
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				throw new UnsupportedOperationException("ReduceRowProviders not implemented for this node: "+ this.getClass());
 		}
 
 		@Override
-		public final void executeShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+		public final void executeShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
         /*
          * Marked final so that subclasses don't accidentally screw up their error-handling of the
          * TEMP table by forgetting to deal with failedTasks/statistics/whatever else needs to be handled.
@@ -381,9 +383,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				failedTasks = new ArrayList<byte[]>(jobResults.getJobStats().getFailedTasks());
 		}
 
-		protected JobResults doShuffle(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		protected JobResults doShuffle(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				long start = System.currentTimeMillis();
-				final RowProvider rowProvider = getMapRowProvider(this,OperationUtils.getPairDecoder(this,spliceRuntimeContext),spliceRuntimeContext);
+				final RowProvider rowProvider = getMapRowProvider(this, OperationUtils.getPairDecoder(this, spliceRuntimeContext),spliceRuntimeContext);
 
 				nextTime+= System.currentTimeMillis()-start;
 				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,spliceRuntimeContext);

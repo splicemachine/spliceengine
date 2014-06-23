@@ -15,6 +15,7 @@ import jsr166y.RecursiveAction;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
@@ -51,7 +52,7 @@ public class OperationTree {
     public static SpliceNoPutResultSet executeTree(SpliceOperation root,
                                                    final SpliceRuntimeContext ctx,
                                                    boolean useProbe)
-        throws StandardException{
+						throws StandardException, IOException {
         List<SinkingOperation> deps = immediateSinkDependencies(root);
         if (deps.size() > 0){
             List<ForkJoinTask> futures = Lists.newArrayListWithExpectedSize(deps.size());
@@ -116,8 +117,10 @@ public class OperationTree {
                     throw new RuntimeException(Exceptions.parseException(e));
                 } catch (StandardException e) {
                     throw new RuntimeException(Exceptions.parseException(e));
-                }
-            }
+                } catch (IOException e) {
+										 throw new RuntimeException(Exceptions.parseException(e));
+								 }
+						}
         };
     }
 
@@ -131,7 +134,7 @@ public class OperationTree {
     }
 
     public static void runSettingThreadLocals(SinkingOperation op, SpliceRuntimeContext ctx)
-            throws StandardException, SQLException {
+						throws StandardException, SQLException, IOException {
         SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
         boolean prepared = false;
         try {
@@ -145,7 +148,7 @@ public class OperationTree {
         }
     }
 
-    public static void shuffle(SinkingOperation op, SpliceRuntimeContext ctx) throws StandardException {
+    public static void shuffle(SinkingOperation op, SpliceRuntimeContext ctx) throws StandardException, IOException {
         long begin = System.currentTimeMillis();
         final StatementInfo info = ctx.getStatementInfo();
         boolean setStatement = info != null;

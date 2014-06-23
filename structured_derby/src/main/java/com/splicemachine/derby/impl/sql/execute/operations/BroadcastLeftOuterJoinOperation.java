@@ -8,6 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 
+import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -43,19 +44,23 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 		    boolean notExistsRightSide,
 			    double optimizerEstimatedRowCount,
 			double optimizerEstimatedCost,
-			String userSuppliedOptimizerOverrides) throws StandardException {		
+			String userSuppliedOptimizerOverrides) throws StandardException {
 				super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
 						activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide,
 						optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides);
 				SpliceLogUtils.trace(LOG, "instantiate");
 				emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
 				this.wasRightOuterJoin = wasRightOuterJoin;
-                init(SpliceOperationContext.newContext(activation));
-                recordConstructorTime(); 
+			try {
+					init(SpliceOperationContext.newContext(activation));
+			} catch (IOException e) {
+					throw Exceptions.parseException(e);
+			}
+			recordConstructorTime();
 	}
 	
     @Override
-    public void init(SpliceOperationContext context) throws StandardException {
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         emptyRowFun = (emptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(emptyRowFunMethodName,activation);
     }

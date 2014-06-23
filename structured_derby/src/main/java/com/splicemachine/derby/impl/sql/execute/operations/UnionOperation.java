@@ -9,7 +9,9 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.job.TaskScheduler;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -59,7 +61,11 @@ public class UnionOperation extends SpliceBaseOperation {
 				super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
 				this.firstResultSet = firstResultSet;
 				this.secondResultSet = secondResultSet;
-				init(SpliceOperationContext.newContext(activation));
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 		}
 
 		@Override
@@ -95,9 +101,13 @@ public class UnionOperation extends SpliceBaseOperation {
 				spliceLeftRuntimeContext.addLeftRuntimeContext(resultSetNumber);
 				SpliceRuntimeContext spliceRightRuntimeContext = runtimeContext.copy();
 				spliceRightRuntimeContext.addRightRuntimeContext(resultSetNumber);
-				RowProvider leftProvider =firstResultSet.getMapRowProvider(this,OperationUtils.getPairDecoder(firstResultSet,spliceLeftRuntimeContext),spliceLeftRuntimeContext);
-				RowProvider rightProvider = secondResultSet.getMapRowProvider(this,OperationUtils.getPairDecoder(secondResultSet,spliceRightRuntimeContext),spliceRightRuntimeContext);
-				return new SpliceNoPutResultSet(activation,this,RowProviders.combine(leftProvider, rightProvider));
+				try {
+						RowProvider leftProvider =firstResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(firstResultSet, spliceLeftRuntimeContext),spliceLeftRuntimeContext);
+						RowProvider rightProvider = secondResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(secondResultSet, spliceRightRuntimeContext),spliceRightRuntimeContext);
+						return new SpliceNoPutResultSet(activation,this,RowProviders.combine(leftProvider, rightProvider));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 		}
 
 		@Override
@@ -113,7 +123,7 @@ public class UnionOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException {
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
 				firstResultSet.init(context);
 				secondResultSet.init(context);
@@ -176,7 +186,7 @@ public class UnionOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				if(OperationUtils.isInMemory(this)){
 //				if(firstResultSet instanceof RowOperation && secondResultSet instanceof RowOperation){
 						spliceRuntimeContext.addPath(resultSetNumber, SpliceRuntimeContext.Side.MERGED);
@@ -193,7 +203,7 @@ public class UnionOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				return getMapRowProvider(top,decoder,spliceRuntimeContext);
 		}
 

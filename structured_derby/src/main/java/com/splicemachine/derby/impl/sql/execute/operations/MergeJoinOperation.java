@@ -69,8 +69,12 @@ public class MergeJoinOperation extends JoinOperation {
                 optimizerEstimatedCost, userSuppliedOptimizerOverrides);
         this.leftHashKeyItem = leftHashKeyItem;
         this.rightHashKeyItem = rightHashKeyItem;
-        init(SpliceOperationContext.newContext(activation));
-    }
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+		}
 
     @Override
     public List<NodeType> getNodeTypes() {
@@ -78,7 +82,7 @@ public class MergeJoinOperation extends JoinOperation {
     }
 
     @Override
-    public void init(SpliceOperationContext context) throws StandardException {
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);

@@ -889,7 +889,6 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
                     future = SpliceDriver.driver().getJobScheduler().submit(new ForbidPastWritesJob(table,null));
                     future.completeAll(null);
                 } catch (Exception e) {
-                    e.printStackTrace();
                     throw Exceptions.parseException(e);
                 }finally {
                     if (future!=null) {

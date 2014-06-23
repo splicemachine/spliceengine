@@ -57,7 +57,11 @@ public class RowOperation extends SpliceBaseOperation {
 				super(activation, resultSetNumber,optimizerEstimatedRowCount, optimizerEstimatedCost);
 				this.canCacheRow = canCacheRow;
 				this.rowMethodName = row.getMethodName();
-				init(SpliceOperationContext.newContext(activation));
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 				recordConstructorTime();
 		}
 
@@ -71,13 +75,17 @@ public class RowOperation extends SpliceBaseOperation {
 				super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
 				this.cachedRow = constantRow;
 				this.canCacheRow = canCacheRow;
-				init(SpliceOperationContext.newContext(activation));
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 				recordConstructorTime();
 		}
 
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException {
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
 				next = false;
 				if (row == null && rowMethodName != null) {
@@ -207,11 +215,15 @@ public class RowOperation extends SpliceBaseOperation {
 		@Override
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 				SpliceLogUtils.trace(LOG, "executeScan");
-				return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext));
+				try {
+						return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 		}
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
+		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "getMapRowProvider,top=%s",top);
 				top.init(SpliceOperationContext.newContext(activation));
 
@@ -221,7 +233,7 @@ public class RowOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				return getMapRowProvider(top,rowDecoder,spliceRuntimeContext);
 		}
 

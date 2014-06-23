@@ -262,13 +262,13 @@ public class RowProviders {
 				@Override public boolean hasNext() throws StandardException, IOException { return provider.hasNext(); }
 
 				@Override
-				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException {
+				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException, IOException {
 						return provider.shuffleRows(instructions,postCompleteTasks);
 
 				}
 
 				@Override
-				public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+				public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException, IOException {
 						return provider.asyncShuffleRows(instructions);
 				}
 
@@ -324,7 +324,7 @@ public class RowProviders {
 				}
 
 				@Override
-				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException {
+				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException, IOException {
 						spliceRuntimeContext.setCurrentTaskId(SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes());
 						SpliceOperation op = instructions.getTopOperation();
 						op.init(SpliceOperationContext.newContext(op.getActivation()));
@@ -355,7 +355,7 @@ public class RowProviders {
 
 				@Override
 				public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions)
-								throws StandardException {
+								throws StandardException, IOException {
 						return Collections.singletonList(futurePairForResults(shuffleRows(instructions)));
 				}
 
@@ -455,7 +455,7 @@ public class RowProviders {
 				}
 
 				@Override
-				public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+				public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException, IOException {
 						List<Pair<JobFuture,JobInfo>> firstFutures = firstRowProvider.asyncShuffleRows(instructions);
 						List<Pair<JobFuture,JobInfo>> secondFutures = secondRowProvider.asyncShuffleRows(instructions);
 
@@ -470,7 +470,7 @@ public class RowProviders {
 						return firstRowProvider.finishShuffle(jobFutures,intermediateCleanupTasks);
 				}
 
-				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException {
+				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException, IOException {
 						return finishShuffle(asyncShuffleRows(instructions),postCompleteTasks);
 				}
 
@@ -538,7 +538,7 @@ public class RowProviders {
 				}
 
 				@Override
-				public List<Pair<JobFuture, JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+				public List<Pair<JobFuture, JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException, IOException {
 						List<Pair<JobFuture, JobInfo>> l = new LinkedList<Pair<JobFuture, JobInfo>>();
 						for (RowProvider rp : Arrays.asList(firstRowProvider, secondRowProvider)) {
 								l.add(futurePairForResults(rp.finishShuffle(rp.asyncShuffleRows(instructions))));

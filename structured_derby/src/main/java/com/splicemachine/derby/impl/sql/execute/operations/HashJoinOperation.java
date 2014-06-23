@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -47,8 +48,12 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 		super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides);
 		if (LOG.isTraceEnabled())
 			LOG.trace("instantiate");
-        init(SpliceOperationContext.newContext(activation));
-        recordConstructorTime();
+			try {
+					init(SpliceOperationContext.newContext(activation));
+			} catch (IOException e) {
+					throw Exceptions.parseException(e);
+			}
+			recordConstructorTime();
 	}
 	
 	@Override
@@ -73,7 +78,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context) throws StandardException{
+	public void init(SpliceOperationContext context) throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "init");
 		super.init(context);
 		mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
@@ -129,22 +134,26 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 		SpliceOperation regionOperation = operationStack.get(0);
 		final RowProvider rowProvider;
 		final ExecRow template = getExecRowDefinition();
-		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
-			rowProvider = regionOperation.getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext, true);
-		} else {
-			rowProvider =regionOperation.getMapRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
-		}
-		return new SpliceNoPutResultSet(activation,this, rowProvider);
+			try {
+					if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
+							rowProvider = regionOperation.getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext, true);
+					} else {
+							rowProvider =regionOperation.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext);
+					}
+					return new SpliceNoPutResultSet(activation,this, rowProvider);
+			} catch (IOException e) {
+					throw Exceptions.parseException(e);
+			}
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         //TODO -sf- is this right?
 				return getRightOperation().getMapRowProvider(top,decoder,spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
         return getLeftOperation().getReduceRowProvider(top,decoder,spliceRuntimeContext, returnDefaultValue);
     }
 

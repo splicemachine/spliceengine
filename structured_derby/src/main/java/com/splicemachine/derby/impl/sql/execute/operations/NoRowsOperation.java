@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.StatementContext;
@@ -34,12 +35,16 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 	public NoRowsOperation(Activation activation)  throws StandardException {
 		super(activation,-1,0d,0d);
 		this.activation = activation;
-		init(SpliceOperationContext.newContext(activation));
-		recordConstructorTime(); 
+			try {
+					init(SpliceOperationContext.newContext(activation));
+			} catch (IOException e) {
+					throw Exceptions.parseException(e);
+			}
+			recordConstructorTime();
 	}
 	
 	@Override
-	public void init(SpliceOperationContext context) throws StandardException{
+	public void init(SpliceOperationContext context) throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG,"init with regionScanner %s",regionScanner);
 		super.init(context);
 		
