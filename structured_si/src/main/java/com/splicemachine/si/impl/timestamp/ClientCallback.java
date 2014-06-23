@@ -34,6 +34,10 @@ public class ClientCallback implements Callback {
         return _latch.await(timeoutMillis, TimeUnit.MILLISECONDS);
     }
 
+    public void await() throws InterruptedException {
+        _latch.await(SpliceConstants.timestampClientWaitTime, TimeUnit.MILLISECONDS);
+    }
+
     public long getNewTimestamp() {
     	return _newTimestamp;
     }
