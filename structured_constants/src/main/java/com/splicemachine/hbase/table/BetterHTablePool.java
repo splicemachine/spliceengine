@@ -197,17 +197,25 @@ public class BetterHTablePool {
         @Override public ResultScanner getScanner(byte[] family) throws IOException { return table.getScanner(family); }
         @Override public void put(Put put) throws IOException { table.put(put); }
         @Override public void put(List<Put> puts) throws IOException { table.put(puts); }
-        @Override public boolean isAutoFlush() { return table.isAutoFlush(); }
-        @Override public void flushCommits() throws IOException { table.flushCommits(); }
-		@Override public RowLock lockRow(byte[] row) throws IOException { return table.lockRow(row); }
-		@Override public void unlockRow( RowLock rl) throws IOException { table.unlockRow(rl); }
-        @Override public void delete(Delete delete) throws IOException { table.delete(delete); }
-        @Override public void delete(List<Delete> deletes) throws IOException { table.delete(deletes); }
+				@Override public boolean isAutoFlush() { return table.isAutoFlush(); }
+				@Override public void flushCommits() throws IOException { table.flushCommits(); }
 
-        @Override
-        public boolean checkAndPut(byte[] row, byte[] family, byte[] qualifier, byte[] value, Put put) throws IOException {
-            return table.checkAndPut(row, family, qualifier, value, put);
-        }
+				/**
+				 * @deprecated RowLock is deprecated. This is the only way to eliminate the warning
+				 */
+				@Override public RowLock lockRow(byte[] row) throws IOException { return table.lockRow(row); }
+				/**
+				 * @deprecated RowLock is deprecated. This is the only way to eliminate the warning
+				 */
+				@Override public void unlockRow( RowLock rl) throws IOException { table.unlockRow(rl); }
+
+				@Override public void delete(Delete delete) throws IOException { table.delete(delete); }
+				@Override public void delete(List<Delete> deletes) throws IOException { table.delete(deletes); }
+
+				@Override
+				public boolean checkAndPut(byte[] row, byte[] family, byte[] qualifier, byte[] value, Put put) throws IOException {
+						return table.checkAndPut(row, family, qualifier, value, put);
+				}
 
         @Override
         public boolean checkAndDelete(byte[] row, byte[] family, byte[] qualifier, byte[] value, Delete delete) throws IOException {
@@ -232,7 +240,7 @@ public class BetterHTablePool {
         }
 
         @Override
-        public <T extends CoprocessorProtocol, R> Map<byte[], R> coprocessorExec(Class<T> protocol, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable) throws IOException, Throwable {
+        public <T extends CoprocessorProtocol, R> Map<byte[], R> coprocessorExec(Class<T> protocol, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable) throws Throwable {
             if(startKey==null)
                 startKey = new byte[]{};
             if(endKey==null)
@@ -242,7 +250,7 @@ public class BetterHTablePool {
         }
 
         @Override
-        public <T extends CoprocessorProtocol, R> void coprocessorExec(Class<T> protocol, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable, Batch.Callback<R> callback) throws IOException, Throwable {
+        public <T extends CoprocessorProtocol, R> void coprocessorExec(Class<T> protocol, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable, Batch.Callback<R> callback) throws Throwable {
             table.coprocessorExec(protocol, startKey, endKey, callable, callback);
         }
 

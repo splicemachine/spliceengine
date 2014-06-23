@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.ipc.HMasterInterface;
 import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -82,7 +83,12 @@ public class TimestampClientMapImpl extends TimestampClient {
     protected String getHost() {
     	String hostName;
     	try {
-    		hostName = HConnectionManager.getConnection(SpliceConstants.config).getMaster().getClusterStatus().getMaster().getHostname();
+					/*
+					 * We have to use the deprecated API here because there appears to be no other way to get the hostname
+					 * and ip of the HMaster (short of going to ZooKeeper directly, at any rate).
+					 */
+					@SuppressWarnings("deprecation") HMasterInterface master = HConnectionManager.getConnection(SpliceConstants.config).getMaster();
+					hostName = master.getClusterStatus().getMaster().getHostname();
     	} catch (Exception e) {
     		TimestampUtil.doClientError(LOG, "Unable to determine host name for master. Using localhost as workaround but this is not correct.", e);
     		throw new RuntimeException("Unable to determine host name", e);

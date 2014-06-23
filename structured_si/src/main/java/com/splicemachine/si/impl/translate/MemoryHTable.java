@@ -15,7 +15,6 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Row;
-import org.apache.hadoop.hbase.client.RowLock;
 import org.apache.hadoop.hbase.client.RowMutations;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
@@ -25,6 +24,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+@SuppressWarnings("deprecation")
 public class MemoryHTable implements HTableInterface {
     private final HTableInterface delegate;
     private final Translator translator;
@@ -176,13 +176,23 @@ public class MemoryHTable implements HTableInterface {
         delegate.close();
     }
 
+		/**
+		 * @deprecated Uses fully-qualified class name here to avoid an import of a deprecated
+		 * class, which causes a javac warning to be emitted. Using a deprecated javadoc because
+		 * this is the only way that javac ignores the deprecation warning on RowLock
+		 */
     @Override
-    public RowLock lockRow(byte[] row) throws IOException {
+    public org.apache.hadoop.hbase.client.RowLock lockRow(byte[] row) throws IOException {
         return delegate.lockRow(row);
     }
 
+		/**
+		 * @deprecated Uses fully-qualified class name here to avoid an import of a deprecated
+		 * class, which causes a javac warning to be emitted. Using a deprecated javadoc because
+		 * this is the only way that javac ignores the deprecation warning on RowLock
+		 */
     @Override
-    public void unlockRow(RowLock rl) throws IOException {
+    public void unlockRow(org.apache.hadoop.hbase.client.RowLock rl) throws IOException {
         delegate.unlockRow(rl);
     }
 
