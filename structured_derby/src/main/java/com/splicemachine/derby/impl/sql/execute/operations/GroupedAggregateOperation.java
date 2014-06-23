@@ -128,7 +128,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException{
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "init called");
 				context.setCacheBlocks(false);
 				super.init(context);
@@ -139,7 +139,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				buildReduceScan();
 				if(top!=this && top instanceof SinkingOperation){
 						SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
@@ -172,14 +172,14 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		}
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				return getReduceRowProvider(top,decoder,spliceRuntimeContext, true);
 		}
 
 		@Override
-		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext ) throws StandardException {
+		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext ) throws StandardException, IOException {
 				long start = System.currentTimeMillis();
-				final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
+				final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext);
 				nextTime+= System.currentTimeMillis()-start;
 				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,runtimeContext);
 				return rowProvider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));

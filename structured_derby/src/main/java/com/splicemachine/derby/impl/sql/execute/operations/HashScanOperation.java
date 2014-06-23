@@ -103,7 +103,11 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 				this.nextQualifierField = nextQualifierField;
 				this.indexName = indexName;
 				runTimeStatisticsOn = activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
-				init(SpliceOperationContext.newContext(activation));
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 				recordConstructorTime();
 		}
 
@@ -130,7 +134,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException{
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "init called");
 				super.init(context);
 				ExecRow candidate = scanInformation.getResultRow();//(ExecRow) generatedMethod.invoke(activation);
@@ -161,7 +165,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		}
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				try{
 						Scan scan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
 						return new ClientScanProvider("hashScanMap",SpliceOperationCoprocessor.TEMP_TABLE,scan,
@@ -172,12 +176,12 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				return getMapRowProvider(top,decoder, spliceRuntimeContext);
 		}
 
 		@Override
-		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
 				Scan scan = buildScan(runtimeContext);
 				RowProvider provider =  new ClientScanProvider("shuffler",Bytes.toBytes(tableName),scan,null,runtimeContext);
 				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,runtimeContext);
@@ -242,8 +246,12 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 
 		@Override
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext, true);
-				return new SpliceNoPutResultSet(activation,this,provider);
+				try {
+						RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext, true);
+						return new SpliceNoPutResultSet(activation,this,provider);
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 		}
 
 		public Qualifier[][] getNextQualifier() {

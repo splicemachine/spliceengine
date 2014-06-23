@@ -319,7 +319,6 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 				try{
 						rowProvider.open();
 				}catch(Exception e){
-						e.printStackTrace();
 						throw Exceptions.parseException(e);
 				}
 				closed=false;

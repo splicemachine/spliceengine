@@ -104,7 +104,11 @@ public class RowCountOperation extends SpliceBaseOperation{
 				firstTime = true;
 				rowsFetched =0;
 				runTimeStatsOn = activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
-				init(SpliceOperationContext.newContext(activation));
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 
 				offset = getTotalOffset();
 		}
@@ -148,7 +152,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException {
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
 				source.init(context);
 				if(offsetMethodName!=null)
@@ -230,7 +234,11 @@ public class RowCountOperation extends SpliceBaseOperation{
 
 		@Override
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext, true));
+				try {
+						return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext, true));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 		}
 
 		@Override
@@ -244,7 +252,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				RowProvider provider = source.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
 				long fetchLimit = getFetchLimit();
 				long offset = getTotalOffset();
@@ -322,7 +330,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 		}
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
 		}
 
@@ -557,12 +565,12 @@ public class RowCountOperation extends SpliceBaseOperation{
 				@Override public int getModifiedRowCount() { return provider.getModifiedRowCount(); }
 
 				@Override
-				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException {
+				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException, IOException {
 						return provider.shuffleRows(instructions,postCompleteTasks);
 				}
 
 				@Override
-				public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+				public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException, IOException {
 						return provider.asyncShuffleRows(instructions);
 				}
 

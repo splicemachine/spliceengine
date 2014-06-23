@@ -37,7 +37,7 @@ public class DeleteOperation extends DMLWriteOperation {
 	}
 
 	@Override
-	public void init(SpliceOperationContext context) throws StandardException{
+	public void init(SpliceOperationContext context) throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG,"DeleteOperation init with regionScanner %s",regionScanner);
 		super.init(context);
 		heapConglom = writeInfo.getConglomerateId();

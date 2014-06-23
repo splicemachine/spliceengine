@@ -64,7 +64,7 @@ public class CallStatementOperation extends NoRowsOperation {
 
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException {
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
 				methodCall = new SpliceMethod<Object>(methodName,activation);
 		}

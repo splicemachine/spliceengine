@@ -88,8 +88,12 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         SpliceLogUtils.trace(LOG, "instantiate");
         this.leftHashKeyItem = leftHashKeyItem;
         this.rightHashKeyItem = rightHashKeyItem;
-        init(SpliceOperationContext.newContext(activation));
-        recordConstructorTime();
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+				recordConstructorTime();
     }
 
     @Override
@@ -111,7 +115,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     }
 
     @Override
-    public void init(SpliceOperationContext context) throws StandardException {
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "init");
         super.init(context);
         SpliceLogUtils.trace(LOG, "leftHashkeyItem=%d,rightHashKeyItem=%d", leftHashKeyItem, rightHashKeyItem);
@@ -249,7 +253,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 		}
 
 		@Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
             byte[] start = uniqueSequenceID;
             byte[] finish = new byte[start.length+1];
 						System.arraycopy(start,0,finish,0,start.length);
@@ -279,12 +283,12 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         return getReduceRowProvider(top, decoder, spliceRuntimeContext, true);
     }
 
     @Override
-    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "executeShuffle");
         long start = System.currentTimeMillis();
         SpliceRuntimeContext spliceLRuntimeContext = runtimeContext.copy();
@@ -293,9 +297,9 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         SpliceRuntimeContext spliceRRuntimeContext = runtimeContext.copy();
         spliceRRuntimeContext.addRightRuntimeContext(resultSetNumber);
         spliceRRuntimeContext.setStatementInfo(runtimeContext.getStatementInfo());
-        RowProvider leftProvider = leftResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this, spliceLRuntimeContext), spliceLRuntimeContext);
-        RowProvider rightProvider = rightResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this, spliceRRuntimeContext), spliceRRuntimeContext);
-        RowProvider combined = RowProviders.combine(leftProvider, rightProvider);
+				RowProvider leftProvider = leftResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this, spliceLRuntimeContext), spliceLRuntimeContext);
+				RowProvider rightProvider = rightResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this, spliceRRuntimeContext), spliceRRuntimeContext);
+				RowProvider combined = RowProviders.combine(leftProvider, rightProvider);
         SpliceRuntimeContext instructionContext = new SpliceRuntimeContext();
         instructionContext.setStatementInfo(runtimeContext.getStatementInfo());
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, instructionContext);
@@ -311,8 +315,12 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         this.generateLeftOperationStack(opStack);
         SpliceLogUtils.trace(LOG, "operationStack=%s", opStack);
 
-        RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext, true);
-        return new SpliceNoPutResultSet(activation, this, provider);
+				try {
+						RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext, true);
+						return new SpliceNoPutResultSet(activation, this, provider);
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
     }
 
     @Override

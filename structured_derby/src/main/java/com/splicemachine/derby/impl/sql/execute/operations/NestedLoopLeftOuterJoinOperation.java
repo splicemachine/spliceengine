@@ -5,6 +5,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -45,7 +46,11 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 				SpliceLogUtils.trace(LOG, "instantiate");
 				this.emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
 				this.wasRightOuterJoin = wasRightOuterJoin;
-				init(SpliceOperationContext.newContext(activation));
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 				recordConstructorTime();
 		}
 
@@ -88,7 +93,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException{
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "init");
 				super.init(context);
 				try {

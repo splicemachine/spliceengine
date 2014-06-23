@@ -10,13 +10,13 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.stats.TimeView;
-import com.splicemachine.tools.splice;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Snowflake;
@@ -111,7 +111,11 @@ public class TableScanOperation extends ScanOperation {
 				runTimeStatisticsOn = operationInformation.isRuntimeStatisticsEnabled();
 				if (LOG.isTraceEnabled())
 						SpliceLogUtils.trace(LOG, "statisticsTimingOn=%s,isTopResultSet=%s,runTimeStatisticsOn%s",statisticsTimingOn,isTopResultSet,runTimeStatisticsOn);
-				init(SpliceOperationContext.newContext(activation));
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 				recordConstructorTime();
 		}
 
@@ -135,7 +139,7 @@ public class TableScanOperation extends ScanOperation {
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException{
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
 				this.baseColumnMap = operationInformation.getBaseColumnMap();
 				this.slice = ByteSlice.empty();
@@ -154,7 +158,7 @@ public class TableScanOperation extends ScanOperation {
 		}
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "getMapRowProvider");
 				beginTime = System.currentTimeMillis();
 				Scan scan = getNonSIScan(spliceRuntimeContext);
@@ -166,7 +170,7 @@ public class TableScanOperation extends ScanOperation {
 
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				return getMapRowProvider(top, decoder, spliceRuntimeContext);
 		}
 

@@ -55,7 +55,6 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.concurrent.Callable;
 
 /**
  *
@@ -121,7 +120,11 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 				super(source,aggregateItem,source.getActivation(),rowAllocator,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
 				this.orderItem = orderItem;
 				this.isInSortedOrder = false; // XXX TODO Jleach: Optimize when data is already sorted.
-				init(SpliceOperationContext.newContext(source.getActivation()));
+				try {
+						init(SpliceOperationContext.newContext(source.getActivation()));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 		}
 
 		@Override
@@ -135,7 +138,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				if (LOG.isTraceEnabled())
 						SpliceLogUtils.trace(LOG, "getReduceRowProvider");
 				buildReduceScan(uniqueSequenceID);
@@ -146,7 +149,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 						byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
 						return new DistributedClientScanProvider("distinctScalarAggregateReduce",tempTableBytes,reduceScan,rowDecoder, spliceRuntimeContext);
 				}else{
-        	/* 
+					/*
         	 * Scanning back to client, the last aggregation has to be performed on the client because we cannot do server side buffering when
         	 * data is being passed back to the client due to the fact that HBase is a forward only scan in the case of interuptions.
         	 */
@@ -155,7 +158,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 		}
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				buildReduceScan(extraUniqueSequenceID);
 				boolean serializeSourceTemp = serializeSource;
 				serializeSource = spliceRuntimeContext.isFirstStepInMultistep();
@@ -167,7 +170,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 
 
 		@Override
-		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext ) throws StandardException {
+		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext ) throws StandardException,IOException {
 				long start = System.currentTimeMillis();
 				RowProvider provider;
 				if (!isInSortedOrder) {
@@ -175,13 +178,13 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 						firstStep.setStatementInfo(runtimeContext.getStatementInfo());
 						SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(false);
 						secondStep.setStatementInfo(runtimeContext.getStatementInfo());
-						final RowProvider step1 = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext), firstStep); // Step 1
-						final RowProvider step2 = getMapRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext), secondStep); // Step 2
+						final RowProvider step1 = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), firstStep); // Step 1
+						final RowProvider step2 = getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), secondStep); // Step 2
 						provider = RowProviders.combineInSeries(step1, step2);
 				} else {
 						SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(false);
 						secondStep.setStatementInfo(runtimeContext.getStatementInfo());
-						provider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext), secondStep); // Step 1
+						provider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), secondStep); // Step 1
 				}
 				nextTime+= System.currentTimeMillis()-start;
 				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,runtimeContext);
@@ -384,7 +387,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException {
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
 				ExecPreparedStatement gsps = activation.getPreparedStatement();
 				ColumnOrdering[] order =

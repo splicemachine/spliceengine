@@ -10,9 +10,9 @@ import java.util.List;
 import com.google.common.base.Strings;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
@@ -66,7 +66,11 @@ public class NormalizeOperation extends SpliceBaseOperation {
 				this.source = source;
 				this.erdNumber = erdNumber;
 				this.forUpdate = forUpdate;
-				init(SpliceOperationContext.newContext(activation));
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 				recordConstructorTime();
 		}
 
@@ -88,7 +92,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException{
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
 				source.init(context);
 				this.resultDescription =
@@ -101,14 +105,14 @@ public class NormalizeOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
 		}
 
 
 		@Override
 		public RowProvider getReduceRowProvider(SpliceOperation top,
-																						PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+																						PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
 		}
 

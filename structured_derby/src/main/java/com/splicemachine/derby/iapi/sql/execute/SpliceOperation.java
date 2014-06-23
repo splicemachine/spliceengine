@@ -80,13 +80,13 @@ public interface SpliceOperation extends StandardCloseable {
 	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
 	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
 	 */
-	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException;
 	
 	/**
 	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
 	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
 	 */
-	public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException;
+	public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException;
 
 		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
 
@@ -97,7 +97,7 @@ public interface SpliceOperation extends StandardCloseable {
 	 * 
 	 * @throws StandardException
 	 */
-	public void init(SpliceOperationContext operationContext) throws StandardException;
+	public void init(SpliceOperationContext operationContext) throws IOException, StandardException;
 
 	/**
 	 * List of Node Types that determine the Operation's behaviour pattern.
@@ -121,7 +121,7 @@ public interface SpliceOperation extends StandardCloseable {
 	 * 
 	 * @see com.splicemachine.derby.impl.sql.execute.operations.OperationTree
 	 */
-	public void executeShuffle(SpliceRuntimeContext runtimeContext) throws StandardException;
+	public void executeShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException;
 	/**
 	 * 
 	 * Executes a scan operation from a node that has either a SCROLL node type or that is called from another node.

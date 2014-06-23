@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.SpliceGenericResultSetFactory;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.tools.splice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -57,7 +58,11 @@ public class NestedLoopJoinOperation extends JoinOperation {
 								resultSetNumber,oneRowRightSide,notExistsRightSide,optimizerEstimatedRowCount,
 								optimizerEstimatedCost,userSuppliedOptimizerOverrides);
 				this.isHash = false;
-				init(SpliceOperationContext.newContext(activation));
+				try{
+						init(SpliceOperationContext.newContext(activation));
+				}catch(IOException ioe){
+						throw Exceptions.parseException(ioe);
+				}
 				recordConstructorTime();
 		}
 
@@ -79,7 +84,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException{
+		public void init(SpliceOperationContext context) throws IOException, StandardException{
 				super.init(context);
 				startExecutionTime = System.currentTimeMillis();
 		}

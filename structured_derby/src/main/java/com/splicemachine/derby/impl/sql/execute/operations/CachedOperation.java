@@ -8,6 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -71,11 +72,15 @@ public class CachedOperation extends SpliceBaseOperation {
 
     @Override
     public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-        return new SpliceNoPutResultSet(activation, this, getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext));
-    }
+				try {
+						return new SpliceNoPutResultSet(activation, this, getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+		}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         top.init(SpliceOperationContext.newContext(activation));
 
         //make sure the runtime context knows it can be merged
@@ -84,9 +89,9 @@ public class CachedOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
-        return getMapRowProvider(top, rowDecoder, spliceRuntimeContext);
-    }
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
+				return getMapRowProvider(top, rowDecoder, spliceRuntimeContext);
+		}
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {

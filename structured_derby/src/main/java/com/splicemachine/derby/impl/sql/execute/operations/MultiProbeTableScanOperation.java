@@ -179,7 +179,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     }
 
     @Override
-    public void init(SpliceOperationContext context) throws StandardException {
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
     }
 
@@ -202,7 +202,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     }
     
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 		beginTime = System.currentTimeMillis();
 			List<Scan> scans = scanInformation.getScans(getTransactionID(), null, activation, top, spliceRuntimeContext);
 			for(Scan scan:scans){
@@ -216,8 +216,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 	}
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
-        return getMapRowProvider(top, decoder, spliceRuntimeContext);
-    }
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
+				return getMapRowProvider(top, decoder, spliceRuntimeContext);
+		}
         
 }

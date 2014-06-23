@@ -98,8 +98,12 @@ public class BroadcastJoinOperation extends JoinOperation {
                  optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides);
         this.leftHashKeyItem = leftHashKeyItem;
         this.rightHashKeyItem = rightHashKeyItem;
-        init(SpliceOperationContext.newContext(activation));
-    }
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+		}
 
     @Override
     public void readExternal(ObjectInput in) throws IOException,
@@ -256,25 +260,25 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top,
+		public RowProvider getReduceRowProvider(SpliceOperation top,
                                             PairDecoder decoder,
                                             SpliceRuntimeContext spliceRuntimeContext,
                                             boolean returnDefaultValue)
-            throws StandardException {
+						throws StandardException, IOException {
         return leftResultSet.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top,
+		public RowProvider getMapRowProvider(SpliceOperation top,
                                          PairDecoder decoder,
                                          SpliceRuntimeContext spliceRuntimeContext)
-            throws StandardException {
+						throws StandardException, IOException {
         return leftResultSet.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
 
     @Override
-    public void init(SpliceOperationContext context) throws StandardException {
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
@@ -294,24 +298,28 @@ public class BroadcastJoinOperation extends JoinOperation {
         if (joiner != null) joiner.close();
     }
 
-    @Override
-    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws
-                                                                                 StandardException {
-        final List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
-        this.generateLeftOperationStack(opStack);
-        SpliceLogUtils.trace(LOG, "operationStack=%s", opStack);
+		@Override
+		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws
+						StandardException {
+				final List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
+				this.generateLeftOperationStack(opStack);
+				SpliceLogUtils.trace(LOG, "operationStack=%s", opStack);
 
-        // Get the topmost value, instead of the bottommost, in case it's you
-        SpliceOperation regionOperation = opStack.get(opStack.size() - 1);
-        SpliceLogUtils.trace(LOG, "regionOperation=%s", opStack);
-        RowProvider provider;
-        PairDecoder decoder = OperationUtils.getPairDecoder(this, runtimeContext);
-        if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)) {
-            provider = regionOperation.getReduceRowProvider(this, decoder, runtimeContext, true);
-        } else {
-            provider = regionOperation.getMapRowProvider(this, decoder, runtimeContext);
-        }
-        return new SpliceNoPutResultSet(activation, this, provider);
+				// Get the topmost value, instead of the bottommost, in case it's you
+				SpliceOperation regionOperation = opStack.get(opStack.size() - 1);
+				SpliceLogUtils.trace(LOG, "regionOperation=%s", opStack);
+				RowProvider provider;
+				PairDecoder decoder = OperationUtils.getPairDecoder(this, runtimeContext);
+				try {
+						if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)) {
+								provider = regionOperation.getReduceRowProvider(this, decoder, runtimeContext, true);
+						} else {
+								provider = regionOperation.getMapRowProvider(this, decoder, runtimeContext);
+						}
+						return new SpliceNoPutResultSet(activation, this, provider);
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
     }
 
     @Override

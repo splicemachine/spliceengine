@@ -10,6 +10,7 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.si.api.HTransactorFactory;
@@ -73,7 +74,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				this.source = source;
 				this.activation = activation;
 				this.writeInfo = new DerbyDMLWriteInfo();
-				init(SpliceOperationContext.newContext(activation));
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 
 		}
 
@@ -113,7 +118,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException{
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG,"init with regionScanner %s",regionScanner);
 				super.init(context);
 				source.init(context);
@@ -155,25 +160,28 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		 * nodetype, this should be executed in parallel, so *don't* attempt to
 		 * insert here.
 		 */
-				RowProvider rowProvider = getMapRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
-
-				modifiedProvider = new ModifiedRowProvider(rowProvider,writeInfo.buildInstructions(this));
-				//modifiedProvider.setRowsModified(rowsSunk);
-				return new SpliceNoPutResultSet(activation,this,modifiedProvider,false);
+				try {
+						RowProvider rowProvider = getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext);
+						modifiedProvider = new ModifiedRowProvider(rowProvider,writeInfo.buildInstructions(this));
+						//modifiedProvider.setRowsModified(rowsSunk);
+						return new SpliceNoPutResultSet(activation,this,modifiedProvider,false);
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 		}
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext,returnDefaultValue);
 		}
 
 		@Override
-		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
 				JobResults jobResults = super.doShuffle(runtimeContext);
 				long rowsModified = 0;
 				for(TaskStats stats:jobResults.getJobStats().getTaskStats()){
@@ -261,7 +269,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				private SpliceObserverInstructions spliceObserverInstructions;
 
 				@Override
-				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException {
+				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException, IOException {
 						JobResults jobStats = rowProvider.shuffleRows(instructions,postCompleteTasks);
 						long i = 0;
 						for (TaskStats stat: jobStats.getJobStats().getTaskStats()) {

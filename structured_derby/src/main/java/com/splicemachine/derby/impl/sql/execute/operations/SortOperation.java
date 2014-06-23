@@ -95,7 +95,11 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 				this.distinct = distinct;
 				this.orderingItem = orderingItem;
 				this.numColumns = numColumns;
-				init(SpliceOperationContext.newContext(a));
+				try {
+						init(SpliceOperationContext.newContext(a));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 				recordConstructorTime();
 				aggregator = null;
 		}
@@ -132,7 +136,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException {
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
 				source.init(context);
 
@@ -268,7 +272,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				try {
 						//be sure and include the hash prefix
 						byte[] range = new byte[uniqueSequenceID.length+1];
@@ -302,10 +306,14 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
 		@Override
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this,spliceRuntimeContext),spliceRuntimeContext, true);
-				SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this,provider);
-				nextTime += getCurrentTimeMillis() - beginTime;
-				return rs;
+				try {
+						RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, spliceRuntimeContext),spliceRuntimeContext, true);
+						SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this,provider);
+						nextTime += getCurrentTimeMillis() - beginTime;
+						return rs;
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 		}
 
 		@Override
@@ -361,14 +369,14 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 		}
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				return getReduceRowProvider(top, rowDecoder, spliceRuntimeContext, true);
 		}
 
 		@Override
-		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
 				long start = System.currentTimeMillis();
-				final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
+				final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext);
 				nextTime += System.currentTimeMillis() - start;
 				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
 				return rowProvider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));

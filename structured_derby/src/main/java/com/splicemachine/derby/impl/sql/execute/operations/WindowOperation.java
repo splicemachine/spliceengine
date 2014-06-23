@@ -108,7 +108,7 @@ public class WindowOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public void init(SpliceOperationContext context) throws StandardException {
+    public void init(SpliceOperationContext context) throws IOException, StandardException {
         SpliceLogUtils.trace(LOG, "init called");
         super.init(context);
         // TODO: impl init
@@ -197,12 +197,12 @@ public class WindowOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
         return source.getReduceRowProvider(top, rowDecoder,spliceRuntimeContext,returnDefaultValue);
     }
 

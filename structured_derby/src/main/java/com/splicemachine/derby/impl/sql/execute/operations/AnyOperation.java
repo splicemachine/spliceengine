@@ -13,6 +13,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.RowProviders;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.stats.IOStats;
 import org.apache.derby.iapi.error.StandardException;
@@ -57,18 +58,22 @@ public class AnyOperation extends SpliceBaseOperation {
 
     public AnyOperation() { }
 
-    public AnyOperation(SpliceOperation s, Activation a, GeneratedMethod emptyRowFun,
-						int resultSetNumber, int subqueryNumber,
-						int pointOfAttachment,
-						double optimizerEstimatedRowCount,
-						double optimizerEstimatedCost) throws StandardException {
-		super(a, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
-        source = s;
-		this.subqueryNumber = subqueryNumber;
-		this.pointOfAttachment = pointOfAttachment;
-        this.emptyRowFunName = emptyRowFun.getMethodName();
-        init(SpliceOperationContext.newContext(a));
-    }
+		public AnyOperation(SpliceOperation s, Activation a, GeneratedMethod emptyRowFun,
+												int resultSetNumber, int subqueryNumber,
+												int pointOfAttachment,
+												double optimizerEstimatedRowCount,
+												double optimizerEstimatedCost) throws StandardException {
+				super(a, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
+				source = s;
+				this.subqueryNumber = subqueryNumber;
+				this.pointOfAttachment = pointOfAttachment;
+				this.emptyRowFunName = emptyRowFun.getMethodName();
+				try {
+						init(SpliceOperationContext.newContext(a));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+		}
 
     @Override
     public List<NodeType> getNodeTypes() {
@@ -114,7 +119,7 @@ public class AnyOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public void init(SpliceOperationContext context) throws StandardException {
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         source.init(context);
         if(emptyRowFun==null)
@@ -130,8 +135,12 @@ public class AnyOperation extends SpliceBaseOperation {
 
     @Override
     public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-        RowProvider provider = getReduceRowProvider(source,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext, false);
-        return new SpliceNoPutResultSet(activation,this,provider);
+				try {
+						RowProvider provider = getReduceRowProvider(source, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext, false);
+						return new SpliceNoPutResultSet(activation,this,provider);
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
     }
 
     @Override
@@ -146,12 +155,12 @@ public class AnyOperation extends SpliceBaseOperation {
     }
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				return source.getMapRowProvider(top,decoder,spliceRuntimeContext);
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				return new RowProviders.DelegatingRowProvider(source.getReduceRowProvider(top,decoder,spliceRuntimeContext, returnDefaultValue)) {
 						@Override
 						public boolean hasNext() throws StandardException {
@@ -177,7 +186,7 @@ public class AnyOperation extends SpliceBaseOperation {
 						}
 
 				};
-    }
+		}
 
     @Override
     public ExecRow getExecRowDefinition() throws StandardException {

@@ -9,6 +9,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
@@ -72,7 +73,11 @@ public class OnceOperation extends SpliceBaseOperation {
 				this.cardinalityCheck = cardinalityCheck;
 				this.subqueryNumber = subqueryNumber;
 				this.pointOfAttachment = pointOfAttachment;
-				init(SpliceOperationContext.newContext(a));
+				try {
+						init(SpliceOperationContext.newContext(a));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 				recordConstructorTime();
 		}
 
@@ -105,7 +110,7 @@ public class OnceOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException {
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
 				source.init(context);
 
@@ -149,8 +154,12 @@ public class OnceOperation extends SpliceBaseOperation {
 				SpliceLogUtils.trace(LOG, "operationStack=%s",operationStack);
 				SpliceOperation regionOperation = operationStack.get(0);
 				SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-				RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(source, runtimeContext),runtimeContext, true);
-				return new SpliceNoPutResultSet(activation,this, provider);
+				try {
+						RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(source, runtimeContext),runtimeContext, true);
+						return new SpliceNoPutResultSet(activation,this, provider);
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 		}
 
 		@Override
@@ -169,13 +178,13 @@ public class OnceOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
+		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "getMapRowProvider");
 				return source.getMapRowProvider(top,rowDecoder,spliceRuntimeContext);
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException{
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "getReduceRowProvider");
 				return new OnceRowProvider(source.getReduceRowProvider(top,rowDecoder, spliceRuntimeContext, returnDefaultValue));
 		}
@@ -242,12 +251,12 @@ public class OnceOperation extends SpliceBaseOperation {
 				@Override public int getModifiedRowCount() { return delegate.getModifiedRowCount(); }
 
 				@Override
-				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException {
+				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException, IOException {
 						return delegate.shuffleRows(instructions,postCompleteTasks);
 				}
 
 				@Override
-				public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+				public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException, IOException {
 						return delegate.asyncShuffleRows(instructions);
 				}
 

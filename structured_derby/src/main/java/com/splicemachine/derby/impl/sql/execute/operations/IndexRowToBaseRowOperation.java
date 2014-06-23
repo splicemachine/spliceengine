@@ -10,16 +10,13 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
@@ -118,7 +115,11 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				this.heapOnlyColRefItem = heapOnlyColRefItem;
 				this.indexColMapItem = indexColMapItem;
 				this.restrictionMethodName = restriction==null? null: restriction.getMethodName();
-				init(SpliceOperationContext.newContext(activation));
+				try {
+						init(SpliceOperationContext.newContext(activation));
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 				recordConstructorTime();
 //                getKeyColumnDVDs();
 		}
@@ -156,7 +157,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		}
 
 		@Override
-		public void init(SpliceOperationContext context) throws StandardException{
+		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
 				source.init(context);
 				try {
@@ -240,19 +241,23 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 
 		@Override
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext, true);
-				SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
-				nextTime += getCurrentTimeMillis() - beginTime;
-				return rs;
+				try {
+						RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext, true);
+						SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
+						nextTime += getCurrentTimeMillis() - beginTime;
+						return rs;
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
 		}
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
 		}
 
 		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException {
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
 		}
 
