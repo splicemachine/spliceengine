@@ -39,6 +39,14 @@ public class SpliceConstants {
 		@DefaultValue(PUSH_FORWARD_RING_BUFFER_SIZE) private static final int DEFAULT_PUSH_FORWARD_RING_BUFFER_SIZE = 4096;
 		public static int pushForwardRingBufferSize;
 
+		@Parameter public static final String FLUSH_QUEUE_SIZE_BLOCK = "splice.client.write.flushQueueSizeBlock";
+		@DefaultValue(FLUSH_QUEUE_SIZE_BLOCK) private static final int DEFAULT_FLUSH_QUEUE_SIZE_BLOCK = 2;
+		public static int flushQueueSizeBlock;
+						
+		@Parameter public static final String COMPACTION_QUEUE_SIZE_BLOCK = "splice.client.write.compactionQueueSizeBlock";
+		@DefaultValue(COMPACTION_QUEUE_SIZE_BLOCK) private static final int DEFAULT_COMPACTION_QUEUE_SIZE_BLOCK = 1000;
+		public static int compactionQueueSizeBlock;
+		
 		@Parameter public static final String PUSH_FORWARD_WRITE_BUFFER_SIZE = "splice.rollforward.pushForwardWriteBufferSize";
 		@DefaultValue(PUSH_FORWARD_WRITE_BUFFER_SIZE) private static final int DEFAULT_PUSH_FORWARD_WRITE_BUFFER_SIZE = 2048;
 		public static int pushForwardWriteBufferSize;
@@ -960,6 +968,9 @@ public class SpliceConstants {
 				debugFailTasksRandomly = config.getBoolean(DEBUG_FAIL_TASKS_RANDOMLY,DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY);
 				debugTaskFailureRate = config.getFloat(DEBUG_TASK_FAILURE_RATE,(float)DEFAULT_DEBUG_TASK_FAILURE_RATE);
 
+				flushQueueSizeBlock = config.getInt(FLUSH_QUEUE_SIZE_BLOCK, DEFAULT_FLUSH_QUEUE_SIZE_BLOCK);
+				compactionQueueSizeBlock = config.getInt(COMPACTION_QUEUE_SIZE_BLOCK, DEFAULT_COMPACTION_QUEUE_SIZE_BLOCK);
+				
 				sequenceBlockSize = config.getInt(SEQUENCE_BLOCK_SIZE,DEFAULT_SEQUENCE_BLOCK_SIZE);
 
 				maxImportProcessingThreads = config.getInt(IMPORT_MAX_PROCESSING_THREADS,DEFAULT_IMPORT_MAX_PROCESSING_THREADS);
