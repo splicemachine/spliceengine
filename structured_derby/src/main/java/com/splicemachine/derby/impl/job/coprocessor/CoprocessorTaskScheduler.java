@@ -12,6 +12,7 @@ import com.splicemachine.job.TaskStatus;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -67,7 +68,10 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
 
         //make sure that the task is fully contained within this region
-        if(!HRegionUtil.containsRange(rce.getRegion(),taskStart,taskEnd))
+				HRegion region = rce.getRegion();
+				if(region.isClosed()|| region.isClosing())
+						throw new NotServingRegionException("Region "+ region.getRegionNameAsString()+" is closing");
+        if(!HRegionUtil.containsRange(region,taskStart,taskEnd))
             throw new IncorrectRegionException("Incorrect region for Task submission");
 
         return doSubmit(task, rce);
