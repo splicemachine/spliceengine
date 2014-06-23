@@ -208,6 +208,8 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
         private final SingleBuffer nonDistinctBuffer;
         private final SingleBuffer distinctBuffer;
         private final List<GroupedRow> evictedRows;
+        private final int[] nonDistinctInputCols;
+        private final int[] distinctInputCols;
 
         private DoubleBuffer(GroupedAggregateBuffer nonDistinctBuffer,
                              GroupedAggregateBuffer distinctBuffer,
@@ -217,29 +219,51 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
             boolean dontAggregateDistinct = !distinctBuffer.hasAggregates() && nonDistinctBuffer.hasAggregates();
             boolean dontAggregateNonDistinct = !nonDistinctBuffer.hasAggregates() && distinctBuffer.hasAggregates();
 
+            nonDistinctInputCols = new int[nonDistinctBuffer.getAggregates().length];
+            distinctInputCols = new int[distinctBuffer.getAggregates().length];
+
+            for (int i = 0; i < nonDistinctInputCols.length; i++){
+                nonDistinctInputCols[i] = nonDistinctBuffer.getAggregates()[i].getAggregatorInfo().getInputColNum();
+            }
+            for (int i = 0; i < distinctInputCols.length; i++){
+                distinctInputCols[i] = distinctBuffer.getAggregates()[i].getAggregatorInfo().getInputColNum();
+            }
 
             this.nonDistinctBuffer = new SingleBuffer(nonDistinctBuffer, groupKeyEncoder, dontAggregateNonDistinct);
             this.distinctBuffer = new SingleBuffer(distinctBuffer, allKeyEncoder, dontAggregateDistinct);
             this.evictedRows = evictedRows;
         }
 
+        private ExecRow maskedDistinctRow(ExecRow row){
+            DataValueDescriptor[] cols = row.getRowArray();
+            for (int idx: nonDistinctInputCols){
+                cols[idx] = null;
+                //cols[idx - 1].setToNull();
+            }
+            return row;
+        }
+
         @Override
         public GroupedRow buffer(ExecRow row) throws StandardException {
-            GroupedRow distinct = distinctBuffer.buffer(row);
             GroupedRow firstEvicted = nonDistinctBuffer.buffer(row);
-
+            GroupedRow distinct = distinctBuffer.buffer(maskedDistinctRow(row));
+            GroupedRow toReturn = null;
 
             if (firstEvicted != null) {
                 firstEvicted.setDistinct(false);
+                toReturn = firstEvicted;
                 if (distinct != null) {
                     distinct.setDistinct(true);
+                    // TODO BUG: when are evicted rows ever returned?
                     evictedRows.add(distinct);
                 }
             } else if (distinct != null) {
                 distinct.setDistinct(true);
-                firstEvicted = distinct;
+                //firstEvicted = distinct;
+                toReturn = distinct;
             }
-            return firstEvicted;
+            //return firstEvicted;
+            return toReturn;
         }
 
         @Override
