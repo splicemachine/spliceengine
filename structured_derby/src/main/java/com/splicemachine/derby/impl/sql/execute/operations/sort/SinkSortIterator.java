@@ -25,8 +25,6 @@ import java.io.IOException;
  */
 public class SinkSortIterator extends AbstractStandardIterator {
 		private final DistinctSortAggregateBuffer distinctBuffer;
-//		private final int[] sortColumns;
-//		private boolean[] sortColumnOrder;
 		private KeyEncoder keyEncoder;
 		private long rowsRead;
 		private boolean completed;
@@ -36,12 +34,8 @@ public class SinkSortIterator extends AbstractStandardIterator {
 		public SinkSortIterator(DistinctSortAggregateBuffer distinctBuffer,
 														StandardIterator<ExecRow> source,
 														KeyEncoder keyEncoder){
-//														int[] sortColumns,
-//														boolean[] sortColumnOrder) {
 				super(source);
 				this.distinctBuffer = distinctBuffer;
-//				this.sortColumns = sortColumns;
-//				this.sortColumnOrder = sortColumnOrder;
 				this.keyEncoder = keyEncoder;
 		}
 
@@ -102,11 +96,5 @@ public class SinkSortIterator extends AbstractStandardIterator {
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
 				}
-//				if(encoder==null)
-//						encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),sortColumns.length);
-//				encoder.reset();
-//				//noinspection RedundantCast
-//				((KeyMarshall)KeyType.BARE).encodeKey(nextRow.getRowArray(), sortColumns, sortColumnOrder, null, encoder);
-//				return encoder.build();
 		}
 }

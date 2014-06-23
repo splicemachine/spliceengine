@@ -478,16 +478,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				return groupedAggregateContext.getNumDistinctAggregates()>0;
 		}
 
-		//    @Override
-//    public long getTimeSpent(int type)
-//    {
-//        long totTime = constructorTime + openTime + nextTime + closeTime;
-//
-//        if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-//            return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-//        else
-//            return totTime;
-//    }
 		@Override
 		public void	close() throws StandardException, IOException {
 				super.close();

@@ -37,18 +37,7 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
 																				int[] groupColumns,
 																				KeyEncoder groupKeyEncoder,
 																				KeyEncoder allKeyEncoder){
-//																				boolean[] groupSortOrder,
-//																				int[] nonGroupedUniqueColumns) {
 				super(source,rollup,groupColumns);
-
-//				int[] allKeyColumns = new int[groupColumns.length + nonGroupedUniqueColumns.length];
-//				System.arraycopy(groupColumns,0, allKeyColumns,0,groupColumns.length);
-//				System.arraycopy(nonGroupedUniqueColumns,0, allKeyColumns,groupColumns.length,nonGroupedUniqueColumns.length);
-//
-//				boolean[] allSortOrders = new boolean[groupColumns.length + nonGroupedUniqueColumns.length];
-//				System.arraycopy(groupSortOrder, 0, allSortOrders, 0, groupSortOrder.length);
-//				Arrays.fill(allSortOrders,groupSortOrder.length, allSortOrders.length,true);
-
 				int maxEvictedSize = isRollup? groupColumns.length: 1;
 				evictedRows = Lists.newArrayListWithCapacity(maxEvictedSize);
 				this.buffer = new DoubleBuffer(nonDistinctBuffer,distinctBuffer,groupKeyEncoder,allKeyEncoder,evictedRows);
@@ -308,13 +297,6 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
 						} catch (IOException e) {
 								throw Exceptions.parseException(e);
 						}
-//						if(encoder==null)
-//								encoder = MultiFieldEncoder.create(SpliceKryoRegistry.getInstance(),groupKeys.length);
-//
-//						encoder.reset();
-//						//noinspection RedundantCast
-//						((KeyMarshall)KeyType.BARE).encodeKey(nextRow.getRowArray(), groupKeys, sortOrder, null, encoder);
-//						return encoder.build();
 				}
 		}
 }
