@@ -60,8 +60,8 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     protected static AtomicInteger activeWriteThreads = new AtomicInteger(0); 
     public static volatile int ipcReserved = 10;
     private static volatile int maxWorkers = 10;
-    private static volatile int flushQueueSizeBlock = 10; // needs to be configurable XXX TODO jleach
-    private static volatile int compactionQueueSizeBlock = 1000; // needs to be configurable XXX TODO jleach
+    private static volatile int flushQueueSizeBlock = SpliceConstants.flushQueueSizeBlock; 
+    private static volatile int compactionQueueSizeBlock = SpliceConstants.compactionQueueSizeBlock;
     private RegionServerMetrics metrics;
 
     
