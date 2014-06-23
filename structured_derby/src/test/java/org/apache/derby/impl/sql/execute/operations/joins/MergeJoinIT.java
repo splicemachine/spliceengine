@@ -42,7 +42,7 @@ public class MergeJoinIT extends SpliceUnitTest {
                     "L_LINENUMBER  INTEGER NOT NULL, L_QUANTITY DECIMAL(15,2), L_EXTENDEDPRICE DECIMAL(15,2)," +
                     "L_DISCOUNT DECIMAL(15,2), L_TAX DECIMAL(15,2), L_RETURNFLAG  CHAR(1), L_LINESTATUS CHAR(1), " +
                     "L_SHIPDATE DATE, L_COMMITDATE DATE, L_RECEIPTDATE DATE, L_SHIPINSTRUCT CHAR(25)," +
-                    "L_SHIPMODE CHAR(10),L_COMMENT VARCHAR(44),PRIMARY KEY(L_ORDERKEY,L_LINENUMBER))");
+                    "L_SHIPMODE VARCHAR(10),L_COMMENT VARCHAR(44),PRIMARY KEY(L_ORDERKEY,L_LINENUMBER))");
     protected static SpliceTableWatcher orderTable = new SpliceTableWatcher(ORDERS, CLASS_NAME,
             "( O_ORDERKEY INTEGER NOT NULL PRIMARY KEY,O_CUSTKEY INTEGER,O_ORDERSTATUS CHAR(1)," +
                     "O_TOTALPRICE DECIMAL(15,2),O_ORDERDATE DATE, O_ORDERPRIORITY  CHAR(15), " +
@@ -50,53 +50,67 @@ public class MergeJoinIT extends SpliceUnitTest {
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceSchemaWatcher)
-            .around(spliceClassWatcher)
-            .around(lineItemTable)
-            .around(orderTable)
-            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
-            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME))
-            .around(new SpliceDataWatcher() {
-                @Override
-                protected void starting(Description description) {
-                    try {
-                        PreparedStatement ps = spliceClassWatcher.prepareStatement(
-                                format("call SYSCS_UTIL.SYSCS_IMPORT_DATA(" +
-                                        "'%s','%s',null,null,'%s','|','\"',null,null,null)",
-                                        CLASS_NAME, LINEITEM, TPCHIT.getResource("lineitem.tbl")));
-                        ps.execute();
-                        ps = spliceClassWatcher.prepareStatement(
-                                format("call SYSCS_UTIL.SYSCS_IMPORT_DATA(" +
-                                        "'%s','%s',null,null,'%s','|','\"',null,null,null)",
-                                        CLASS_NAME, ORDERS, TPCHIT.getResource("orders.tbl")));
-                        ps.execute();
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    } finally {
-                        spliceClassWatcher.closeAll();
-                    }
+        .around(spliceClassWatcher)
+        .around(lineItemTable)
+        .around(orderTable)
+        .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
+        .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME))
+        .around(new SpliceDataWatcher() {
+            @Override
+            protected void starting(Description description) {
+                try {
+                    PreparedStatement ps = spliceClassWatcher.prepareStatement(
+                            format("call SYSCS_UTIL.SYSCS_IMPORT_DATA(" +
+                                    "'%s','%s',null,null,'%s','|','\"',null,null,null)",
+                                    CLASS_NAME, LINEITEM, TPCHIT.getResource("lineitem.tbl")));
+                    ps.execute();
+                    ps = spliceClassWatcher.prepareStatement(
+                            format("call SYSCS_UTIL.SYSCS_IMPORT_DATA(" +
+                                    "'%s','%s',null,null,'%s','|','\"',null,null,null)",
+                                    CLASS_NAME, ORDERS, TPCHIT.getResource("orders.tbl")));
+                    ps.execute();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    spliceClassWatcher.closeAll();
                 }
-            })
+            }
+        })
         .around(TestUtils.createStringDataWatcher(spliceClassWatcher,
-                                                     "create table people " +
-                                                         "  (fname varchar(25)," +
-                                                         "  lname varchar(25), " +
-                                                         "  age int, " +
-                                                         "  primary key(fname,lname));" +
-                                                         "create table purchase " +
-                                                         "  (fname varchar(25)," +
-                                                         "  lname varchar(25), num int," +
-                                                         "  primary key (fname,lname,num));" +
-                                                         "insert into people values " +
-                                                         "  ('adam', 'scott', 22)," +
-                                                         "  ('scott', 'anchorman', 23)," +
-                                                         "  ('tori', 'spelling', 9);" +
-                                                         "insert into purchase values" +
-                                                         "  ('adam', 'scott', 1)," +
-                                                         "  ('scott', 'anchorman', 1)," +
-                                                         "  ('scott', 'anchorman', 2)," +
-                                                         "  ('tori', 'spelling', 1)," +
-                                                         "  ('adam', 'scott', 10)," +
-                                                         "  ('scott', 'anchorman', 5);",
+                                                 "create table people " +
+                                                     "  (fname varchar(25)," +
+                                                     "  lname varchar(25), " +
+                                                     "  age int, " +
+                                                     "  primary key(fname,lname));" +
+                                                     "create table purchase " +
+                                                     "  (fname varchar(25)," +
+                                                     "  lname varchar(25), num int," +
+                                                     "  primary key (fname,lname,num));" +
+                                                     "insert into people values " +
+                                                     "  ('adam', 'scott', 22)," +
+                                                     "  ('scott', 'anchorman', 23)," +
+                                                     "  ('tori', 'spelling', 9);" +
+                                                     "insert into purchase values" +
+                                                     "  ('adam', 'scott', 1)," +
+                                                     "  ('scott', 'anchorman', 1)," +
+                                                     "  ('scott', 'anchorman', 2)," +
+                                                     "  ('tori', 'spelling', 1)," +
+                                                     "  ('adam', 'scott', 10)," +
+                                                     "  ('scott', 'anchorman', 5);",
+                                                 CLASS_NAME))
+    .around(TestUtils.createStringDataWatcher(spliceClassWatcher,
+                                                     "create table shipmode " +
+                                                         "  (mode varchar(10)," +
+                                                         "  id int," +
+                                                         "  primary key (id)); " +
+                                                         "insert into shipmode values " +
+                                                         "  ('AIR', 1)," +
+                                                         "  ('FOB', 2)," +
+                                                         "  ('MAIL', 3)," +
+                                                         "  ('RAIL', 4)," +
+                                                         "  ('REG AIR', 5)," +
+                                                         "  ('SHIP', 6)," +
+                                                         "  ('TRUCK', 7);",
                                                      CLASS_NAME));
 
 
@@ -224,5 +238,17 @@ public class MergeJoinIT extends SpliceUnitTest {
             methodWatcher.executeUpdate("drop index staff_ordered");
             methodWatcher.executeUpdate("drop index works_ordered");
         }
+    }
+
+    @Test
+    public void testBCastOverMerge() throws Exception {
+        String query = "select count(*) " +
+                           "from --splice-properties joinOrder=fixed\n" +
+                           "    (select * from orders where o_orderkey > 1000) o, " +
+                           "    lineitem l --splice-properties joinStrategy=merge\n" +
+                           "     , shipmode s --splice-properties joinStrategy=broadcast\n " +
+                           "where o_orderkey = l_orderkey" +
+                               "  and l_shipmode = s.mode";
+        Assert.assertEquals(8954L, TestUtils.resultSetToArrays(methodWatcher.executeQuery(query)).get(0)[0]);
     }
 }
