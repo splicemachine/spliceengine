@@ -44,6 +44,7 @@ import java.util.Arrays;
  * Created on: 11/1/13
  */
 public abstract class AbstractAggregateBuffer extends AbstractAggregateBufferConstants {
+    private final static Logger LOG = Logger.getLogger(AbstractAggregateBuffer.class);
 		protected byte[][] keys;
 		protected BufferedAggregator[] values;
 		protected final ByteHash32[] hashes;
@@ -117,7 +118,9 @@ public abstract class AbstractAggregateBuffer extends AbstractAggregateBufferCon
 				} else {
 						merges++;
 						mergeCounter.add(1);
+                    LOG.error(String.format("Merging %s with agg row %s", nextRow, aggregate));
 						aggregate.merge(nextRow);
+                    LOG.error(String.format("Post-merge: %s", aggregate));
 				}
 				return evicted;
 		}
@@ -134,10 +137,22 @@ public abstract class AbstractAggregateBuffer extends AbstractAggregateBufferCon
 				return aggregates!=null && aggregates.length>0;
 		}
 
+    public SpliceGenericAggregator[] getAggregates() {
+        return aggregates;
+    }
+
 		/*methods exposing statistics*/
 		public long getRowsMerged(){ return merges; }
 		public long getRowsMissed(){ return misCounter.getTotal(); }		
 		public double getMaxFillRatio(){ return maxFillRatio.getValue(); }
+
+    public String toString() {
+        StringBuilder sb = new StringBuilder("AggregateBuffer: \n");
+        for (int i = 0; i < currentSize; i++){
+            sb.append(String.format("%s: %s\n", Arrays.toString(keys[i]), values[i]));
+        }
+        return sb.toString();
+    }
 
 /*********************************************************************************************************************/
     /*private helper functions*/

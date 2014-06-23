@@ -382,8 +382,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						currentKey = row.getGroupingKey();
 						isCurrentDistinct = row.isDistinct();
 						ExecRow execRow = row.getRow();
+                    /*
                         LOG.error(String.format("Produced row from GAO: %s (isD: %s, key: %s)",
                                                    execRow, isCurrentDistinct, BytesUtil.toHex(currentKey)));
+                                                   */
 						setCurrentRow(execRow);
 
 						return execRow;
