@@ -9,6 +9,7 @@ import java.util.Set;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -20,20 +21,15 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-
+import static com.splicemachine.homeless.TestUtils.executeSql;
 import static com.splicemachine.homeless.TestUtils.o;
 
 public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = DistinctGroupedAggregateOperationIT.class.getSimpleName().toUpperCase();
+    protected static SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 	public static final String TABLE_NAME_1 = "A";
 	private static Logger LOG = Logger.getLogger(DistinctGroupedAggregateOperationIT.class);
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(oid int, quantity int)");
 	
 	@ClassRule 
@@ -69,7 +65,7 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
                                                     "(null, null), (2,1), (3,1), (10,10);",
                                                 CLASS_NAME));
 
-    public SpliceWatcher methodWatcher = new SpliceWatcher();
+    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
     @Test
     public void testMultipleDistinctAggregates() throws Exception {
@@ -119,8 +115,32 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
         Assert.assertEquals("Incorrect number of oids returned!",0,correctOids.size());
 	}
 
+    //@Ignore("DB-1277")
     @Test
     public void testDistinctAndNonDistinctAggregate() throws Exception {
-        List<Object[]> expected = Arrays.asList(o());
+        List<Object[]> sumExpected = Arrays.asList(new Object[]{null}, o(6L), o(10L));
+        List<Object[]> sumRows = TestUtils.resultSetToArrays(methodWatcher.executeQuery("select sum(c1) " +
+                                                                                            "from t1 group by c2 " +
+                                                                                            "order by 1"));
+
+        Assert.assertArrayEquals(sumExpected.toArray(), sumRows.toArray());
+
+        List<Object[]> sumDistinctExpected = Arrays.asList(new Object[]{null}, o(6L), o(10L));
+        List<Object[]> sumDistinctRows = TestUtils
+                                             .resultSetToArrays(methodWatcher.executeQuery("select sum(distinct c1) " +
+                                                                                               "from t1 group by c2 " +
+                                                                                               "order by 1"));
+        Assert.assertArrayEquals(sumDistinctExpected.toArray(), sumDistinctRows.toArray());
+
+        List<Object[]> bothSumsExpected = Arrays.asList(o(null, null), o(6L, 6L), o(10L, 10L));
+        List<Object[]> bothSumsRows = TestUtils
+                                             .resultSetToArrays(methodWatcher.executeQuery("select sum(distinct c1), " +
+                                                                                               "sum(c1) " +
+                                                                                               "from t1 group by c2 " +
+                                                                                               "order by 1"));
+        for (Object[] o: bothSumsRows){
+            System.out.println(Arrays.toString(o));
+        }
+        Assert.assertArrayEquals(bothSumsExpected.toArray(), bothSumsRows.toArray());
     }
 }
