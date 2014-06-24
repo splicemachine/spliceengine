@@ -525,8 +525,7 @@ public final class SQLDate extends DataType
 		}
         else
         {
-            Calendar cal = new GregorianCalendar();
-			setValue(theValue.getDate( cal), cal);
+			setValue(theValue.getDateTime());
         }
 	}
 
