@@ -197,11 +197,16 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 	        return isRow;
 	    }
 
-		@Override
-		public void setActivation(Activation activation) throws StandardException {
-			super.setActivation(activation);
-			init(SpliceOperationContext.newContext(activation));
-		}
+//		@Override
+//		public void setActivation(Activation activation) throws StandardException {
+//			super.setActivation(activation);
+//
+////				try {
+////						init(SpliceOperationContext.newContext(activation));
+////				} catch (IOException e) {
+////						throw Exceptions.parseException(e);
+////				}
+//		}
 
 		@Override
 		public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
