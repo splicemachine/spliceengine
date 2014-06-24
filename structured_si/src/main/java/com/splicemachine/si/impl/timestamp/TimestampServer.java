@@ -15,12 +15,12 @@ public class TimestampServer {
 	/**
 	 * Fixed number of bytes in the message we expect to receive from the client.
 	 */
-	static final int FIXED_MSG_RECEIVED_LENGTH = 4; // 4 byte client id
+	static final int FIXED_MSG_RECEIVED_LENGTH = 2; // 2 byte client id
 	
 	/**
 	 * Fixed number of bytes in the message we expect to send back to the client.
 	 */
-	static final int FIXED_MSG_SENT_LENGTH = 12; // 4 byte client id + 8 byte timestamp
+	static final int FIXED_MSG_SENT_LENGTH = 10; // 2 byte client id + 8 byte timestamp
 	
 	private RecoverableZooKeeper _rzk;
 	private int _port;
