@@ -9,7 +9,9 @@ import com.splicemachine.constants.SpliceConstants;
 
 public class ClientCallback implements Callback {
 	
-    private final short _callerId; 
+    private static final Logger LOG = Logger.getLogger(ClientCallback.class);
+
+    private final short _callerId;
 	private volatile long _newTimestamp = -1l;
 	private Exception _e = null;
     private CountDownLatch _latch = new CountDownLatch(1);
