@@ -195,44 +195,44 @@ public class SpliceDateFunctions {
             return ret;
         }
         else if (index == 10){
-            DateTime modified = dt.dayOfMonth().roundFloorCopy();
-            modified = modified.hourOfDay().roundFloorCopy();
-            modified = modified.monthOfYear().roundFloorCopy();
-            modified = modified.minuteOfHour().roundFloorCopy();
-            modified = modified.secondOfMinute().roundFloorCopy();
+            DateTime modified = dt.dayOfMonth().roundFloorCopy()
+                                  .hourOfDay().roundFloorCopy()
+                                  .monthOfYear().roundFloorCopy()
+                                  .minuteOfHour().roundFloorCopy()
+                                  .secondOfMinute().roundFloorCopy();
             Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if (index == 11){
-            DateTime modified = dt.dayOfMonth().roundFloorCopy();
-            modified = modified.minusYears(dt.getYear()%10);
-            modified = modified.hourOfDay().roundFloorCopy();
-            modified = modified.monthOfYear().roundFloorCopy();
-            modified = modified.minuteOfHour().roundFloorCopy();
-            modified = modified.secondOfMinute().roundFloorCopy();
+            DateTime modified = dt.dayOfMonth().roundFloorCopy()
+                                  .minusYears(dt.getYear()%10)
+                                  .hourOfDay().roundFloorCopy()
+                                  .monthOfYear().roundFloorCopy()
+                                  .minuteOfHour().roundFloorCopy()
+                                  .secondOfMinute().roundFloorCopy();
             Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if (index == 12){
-            DateTime modified = dt.dayOfMonth().roundFloorCopy();
-            modified = modified.hourOfDay().roundFloorCopy();
-            modified = modified.yearOfCentury().roundFloorCopy();
-            modified = modified.monthOfYear().roundFloorCopy();
-            modified = modified.minuteOfHour().roundFloorCopy();
-            modified = modified.secondOfMinute().roundFloorCopy();
+            DateTime modified = dt.dayOfMonth().roundFloorCopy()
+                                  .hourOfDay().roundFloorCopy()
+                                  .yearOfCentury().roundFloorCopy()
+                                  .monthOfYear().roundFloorCopy()
+                                  .minuteOfHour().roundFloorCopy()
+                                  .secondOfMinute().roundFloorCopy();
             Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else {
-            DateTime modified = dt.dayOfMonth().roundFloorCopy();
-            modified = modified.minusYears(dt.getYear()%1000);
-            modified = modified.hourOfDay().roundFloorCopy();
-            modified = modified.monthOfYear().roundFloorCopy();
-            modified = modified.minuteOfHour().roundFloorCopy();
-            modified = modified.secondOfMinute().roundFloorCopy();
+            DateTime modified = dt.dayOfMonth().roundFloorCopy()
+                                  .minusYears(dt.getYear()%1000)
+                                  .hourOfDay().roundFloorCopy()
+                                  .monthOfYear().roundFloorCopy()
+                                  .minuteOfHour().roundFloorCopy()
+                                  .secondOfMinute().roundFloorCopy();
             Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
