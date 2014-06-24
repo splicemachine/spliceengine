@@ -11,16 +11,16 @@ public class ClientCallback implements Callback {
 	
     private static final Logger LOG = Logger.getLogger(ClientCallback.class);
 
-    private final int _callerId; 
+    private final short _callerId; 
 	private volatile long _newTimestamp = -1l;
 	private Exception _e = null;
     private CountDownLatch _latch = new CountDownLatch(1);
     		
-    public ClientCallback(int callerId) {
+    public ClientCallback(short callerId) {
     	_callerId = callerId;
     }
     
-    public int getCallerId() {
+    public short getCallerId() {
     	return _callerId;
     }
     

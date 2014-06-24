@@ -200,7 +200,7 @@ public class SpliceConstants {
 		 * Defaults to 10000
 		 */
 		@Parameter public static final String TIMESTAMP_BLOCK_SIZE = "splice.timestamp_server.blocksize";
-		@DefaultValue(TIMESTAMP_BLOCK_SIZE) public static final int DEFAULT_TIMESTAMP_BLOCK_SIZE = 10000;
+		@DefaultValue(TIMESTAMP_BLOCK_SIZE) public static final int DEFAULT_TIMESTAMP_BLOCK_SIZE = 1024;
 		public static int timestampBlockSize;
 
 		/**

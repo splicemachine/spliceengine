@@ -4,7 +4,6 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -43,11 +42,10 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 		assert buf != null;
  		ensureReadableBytes(buf, TimestampServer.FIXED_MSG_RECEIVED_LENGTH);
 		
-		final int callerId = buf.readInt();
-		assert callerId > 0;
+		final short callerId = buf.readShort();
  		ensureReadableBytes(buf, 0);
 		
-		TimestampUtil.doServerDebug(LOG, "messageReceived: fetching next timestamp for caller " + callerId);
+		TimestampUtil.doServerTrace(LOG, "received timetamp request from client. Caller id = " + callerId);
 		long nextTimestamp = _oracle.getNextTimestamp();
 		assert nextTimestamp > 0;
 		
@@ -56,21 +54,15 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 		//
 
 		ChannelBuffer writeBuf = ChannelBuffers.buffer(TimestampServer.FIXED_MSG_SENT_LENGTH);
-		writeBuf.writeInt(callerId);
+		writeBuf.writeShort(callerId);
 		writeBuf.writeLong(nextTimestamp);
-		Channel channel = e.getChannel();
-		TimestampUtil.doServerTrace(LOG, "messageReceived: writing timestamp " + nextTimestamp + " to client caller " + callerId + ", writable = " + channel.isWritable());
-		// Two ways two write: Channels.write and e.getChannel().write.
-		// Keep both around for now and pick a winner later
-		// ChannelFuture futureResponse = Channels.write(channel, writeBuf, channel.getRemoteAddress());
-        ChannelFuture futureResponse = e.getChannel().write(writeBuf);
+		TimestampUtil.doServerDebug(LOG, "Responding to caller " + callerId + " with timestamp " + nextTimestamp);
+        ChannelFuture futureResponse = e.getChannel().write(writeBuf); // Could also use Channels.write
 		futureResponse.addListener(new ChannelFutureListener() {
 			public void operationComplete(ChannelFuture cf) throws Exception {
-			    if (cf.isSuccess()) {
-			    	TimestampUtil.doServerTrace(LOG, "messageReceived: writing to client (caller id " + callerId + ") complete.");
-			    } else {
+			    if (!cf.isSuccess()) {
 			    	throw new RuntimeException(
-		    			"Something went wrong writing response back to TimestampClient", cf.getCause());
+		    			"Failed to respond successfully to caller id " + callerId, cf.getCause());
 			    }																					
 			  }
 			}
