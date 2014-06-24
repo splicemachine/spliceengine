@@ -166,13 +166,14 @@ public class MergeJoinOperation extends JoinOperation {
         StandardPushBackIterator<ExecRow> leftPushBack =
             new StandardPushBackIterator<ExecRow>(StandardIterators.wrap(leftResultSet));
         ExecRow firstLeft = leftPushBack.next(spliceRuntimeContext);
+        SpliceRuntimeContext<ExecRow> ctxWithOverride = spliceRuntimeContext.copy();
         if (firstLeft != null) {
             firstLeft = firstLeft.getClone();
-            spliceRuntimeContext.addScanStartOverride(getKeyRow(firstLeft, leftHashKeys));
+            ctxWithOverride.addScanStartOverride(getKeyRow(firstLeft, leftHashKeys));
             leftPushBack.pushBack(firstLeft);
         }
         rightRows = StandardIterators
-                        .ioIterator(rightResultSet.executeScan(spliceRuntimeContext));
+                        .ioIterator(rightResultSet.executeScan(ctxWithOverride));
         mergedRowSource = new MergeJoinRows(leftPushBack, rightRows, leftHashKeys, rightHashKeys);
         StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
             @Override

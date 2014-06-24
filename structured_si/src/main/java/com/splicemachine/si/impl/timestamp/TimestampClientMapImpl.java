@@ -26,17 +26,26 @@ import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
 
 import com.splicemachine.constants.SpliceConstants;
 
+/**
+ * TimestampClient implementation class that keeps track of client calls
+ * in a concurrent map. This class should generally not be constructed
+ * directly. Rather, {@link TimestampClientFactory} should be used to
+ * fetch the appropriate instance.
+ * 
+ * @author Walt Koetke
+ */
 public class TimestampClientMapImpl extends TimestampClient {
 
-	// TODO: review each bootstrap.setOption value
-
-	// TODO: throw more specific exception type like TimestampException (instead of just IOException/RuntimeException)?
-	
 	private static final Logger LOG = Logger.getLogger(TimestampClientMapImpl.class);
 
 	private final int CLIENT_COUNTER_INIT = 100; // actual value doesn't matter
 
-    private enum State {
+	/**
+	 * Fixed number of bytes in the message we expect to receive back from the server.
+	 */
+	private static final int FIXED_MSG_RECEIVED_LENGTH = 12; // 4 byte client id + 8 byte timestamp
+	
+	private enum State {
 		DISCONNECTED, CONNECTING, CONNECTED
     };
 
@@ -54,9 +63,9 @@ public class TimestampClientMapImpl extends TimestampClient {
     
     private int _port;
 
-    public TimestampClientMapImpl(int port) {
+    public TimestampClientMapImpl() {
 
-    	_port = port;
+    	_port = SpliceConstants.timestampServerBindPort;
     	
     	_clientCallbacks = new ConcurrentHashMap<Integer, ClientCallback>();
     	
@@ -68,34 +77,44 @@ public class TimestampClientMapImpl extends TimestampClient {
      
 		_bootstrap = new ClientBootstrap(_factory);
 		
+    	// If we end up needing to use one of the memory aware executors,
+    	// do so with code like this (leave commented out for reference).
+    	//
 	    // _bootstrap.getPipeline().addLast("executor", new ExecutionHandler(
 		// 	   new OrderedMemoryAwareThreadPoolExecutor(10 /* threads */, 1024*1024, 4*1024*1024)));
 
-		_bootstrap.getPipeline().addLast("decoder", new FixedLengthFrameDecoder(12)); // We receive 4 byte id plus 8 byte ts from server
+		_bootstrap.getPipeline().addLast("decoder", new FixedLengthFrameDecoder(FIXED_MSG_RECEIVED_LENGTH));
 		_bootstrap.getPipeline().addLast("handler", this);
 
 		_bootstrap.setOption("tcpNoDelay", false);
 		_bootstrap.setOption("keepAlive", true);
 		_bootstrap.setOption("reuseAddress", true);
 		// _bootstrap.setOption("connectTimeoutMillis", 120000);
+		
+		// Would be nice to try connecting here, but not sure if this works right.
+		// connectIfNeeded();
     }
 
     protected String getHost() {
     	String hostName;
     	try {
-					/*
-					 * We have to use the deprecated API here because there appears to be no other way to get the hostname
-					 * and ip of the HMaster (short of going to ZooKeeper directly, at any rate).
-					 */
-					@SuppressWarnings("deprecation") HMasterInterface master = HConnectionManager.getConnection(SpliceConstants.config).getMaster();
-					hostName = master.getClusterStatus().getMaster().getHostname();
+			/*
+			 * We have to use the deprecated API here because there appears to be no other way to get the host name
+			 * and IP of the HMaster (short of going to ZooKeeper directly, at any rate).
+			 */
+			@SuppressWarnings("deprecation") HMasterInterface master = HConnectionManager.getConnection(SpliceConstants.config).getMaster();
+			hostName = master.getClusterStatus().getMaster().getHostname();
     	} catch (Exception e) {
-    		TimestampUtil.doClientError(LOG, "Unable to determine host name for master. Using localhost as workaround but this is not correct.", e);
+    		TimestampUtil.doClientError(LOG, "Unable to determine host name for master.", e);
     		throw new RuntimeException("Unable to determine host name", e);
     	}
     	return hostName;
     }
     
+    /**
+     * Returns the port number which the client should use when connecting
+     * to the timestamp server.
+     */
     protected int getPort() {
     	return _port;
     }
@@ -201,15 +220,15 @@ public class TimestampClientMapImpl extends TimestampClient {
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
     	ChannelBuffer buf = (ChannelBuffer)e.getMessage();
  		assert (buf != null);
- 		assert (buf.readableBytes() == 12);
+ 		ensureReadableBytes(buf, 12);
  		
  		int clientCallerId = buf.readInt();
  		assert (clientCallerId > 0);
- 		assert (buf.readableBytes() == 8);
+ 		ensureReadableBytes(buf, 8);
  		
  		long timestamp = buf.readLong();
  		assert (timestamp > 0);
- 		assert (buf.readableBytes() == 0);
+ 		ensureReadableBytes(buf, 0);
 
  		TimestampUtil.doClientTrace(LOG, "MessageReceived: clientCallerId = " + clientCallerId + " : timestamp = " + timestamp);
  		ClientCallback cb = _clientCallbacks.remove(clientCallerId);
@@ -225,7 +244,7 @@ public class TimestampClientMapImpl extends TimestampClient {
 	}
 
     public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-    	TimestampUtil.doClientInfo(LOG, "Ssuccessfully connected to server");
+    	TimestampUtil.doClientInfo(LOG, "Successfully connected to server");
         synchronized(_state) {
            _channel = e.getChannel();
            _state.set(State.CONNECTED);
