@@ -21,6 +21,8 @@ public class Partition extends GroupByList {
         }
         for (int i=0; i<groupByList.size(); i++) {
             addGroupByColumn(groupByList.getGroupByColumn(i));
+            setContextManager(groupByList.getContextManager());
+            // TODO: what else am I forgetting to set here
         }
     }
 

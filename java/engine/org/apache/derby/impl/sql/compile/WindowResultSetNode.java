@@ -111,25 +111,25 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @throws StandardException Thrown on error
      */
     public void init(
-        Object bottomPR,
-        Object windowDef,
-        Object windowFunctions,
-        Object tableProperties,
-        Object nestingLevel)
-        throws StandardException {
+            Object bottomPR,
+            Object windowDef,
+            Object windowFunctions,
+            Object tableProperties,
+            Object nestingLevel)
+            throws StandardException {
         super.init(bottomPR, tableProperties);
         setLevel(((Integer) nestingLevel).intValue());
         /* Group by without aggregates gets xformed into distinct */
         if (SanityManager.DEBUG) {
-			SanityManager.ASSERT(((Vector) windowFunctions).size() > 0,
-			"windowFunctions expected to be non-empty");
+            SanityManager.ASSERT(((Vector) windowFunctions).size() > 0,
+                    "windowFunctions expected to be non-empty");
             if (!(childResult instanceof Optimizable)) {
                 SanityManager.THROWASSERT("childResult, " + childResult.getClass().getName() +
-                                              ", expected to be instanceof Optimizable");
+                        ", expected to be instanceof Optimizable");
             }
             if (!(childResult instanceof FromTable)) {
                 SanityManager.THROWASSERT("childResult, " + childResult.getClass().getName() +
-                                              ", expected to be instanceof FromTable");
+                        ", expected to be instanceof FromTable");
             }
         }
 
@@ -164,7 +164,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		 */
         if (partition != null) {
             ColumnReference[] crs =
-                new ColumnReference[this.partition.size()];
+                    new ColumnReference[this.partition.size()];
 
             // Now populate the CR array and see if ordered
             int glSize = this.partition.size();
@@ -225,8 +225,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		** Get the new PR, put above the GroupBy.
 		*/
         ResultColumnList rclNew = (ResultColumnList) getNodeFactory().getNode(
-            C_NodeTypes.RESULT_COLUMN_LIST,
-            getContextManager());
+                C_NodeTypes.RESULT_COLUMN_LIST,
+                getContextManager());
         int sz = resultColumns.size();
         for (int i = 0; i < sz; i++) {
             ResultColumn rc = (ResultColumn) resultColumns.elementAt(i);
@@ -241,31 +241,31 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         rclNew.copyOrderBySelect(resultColumns);
 
         parent = (FromTable) getNodeFactory().getNode(
-            C_NodeTypes.PROJECT_RESTRICT_NODE,
-            this,    // child
-            rclNew,
-            null, //havingClause,
-            null,                // restriction list
-            null,                // project subqueries
-            null,               // having subqueries
-            tableProperties,
-            getContextManager());
+                C_NodeTypes.PROJECT_RESTRICT_NODE,
+                this,    // child
+                rclNew,
+                null, //havingClause,
+                null,                // restriction list
+                null,                // project subqueries
+                null,               // having subqueries
+                tableProperties,
+                getContextManager());
 
 
 		/*
 		** Reset the bottom RCL to be empty.
 		*/
         childResult.setResultColumns((ResultColumnList)
-                                         getNodeFactory().getNode(
-                                             C_NodeTypes.RESULT_COLUMN_LIST,
-                                             getContextManager()));
+                getNodeFactory().getNode(
+                        C_NodeTypes.RESULT_COLUMN_LIST,
+                        getContextManager()));
 
         /*
          * Set the Windowing RCL to be empty
          */
         resultColumns = (ResultColumnList) getNodeFactory().getNode(
-            C_NodeTypes.RESULT_COLUMN_LIST,
-            getContextManager());
+                C_NodeTypes.RESULT_COLUMN_LIST,
+                getContextManager());
 
     }
 
@@ -284,10 +284,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         for (int i = 0; i < sz; i++) {
             GroupByColumn gbc = (GroupByColumn) partition.elementAt(i);
             ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##PartitionColumn",
-                gbc.getColumnExpression(),
-                getContextManager());
+                    C_NodeTypes.RESULT_COLUMN,
+                    "##PartitionColumn",
+                    gbc.getColumnExpression(),
+                    getContextManager());
 
             // add this result column to the bottom rcl
             bottomRCL.addElement(newRC);
@@ -297,10 +297,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
             // now add this column to the groupbylist
             ResultColumn gbRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##PartitionColumn",
-                gbc.getColumnExpression(),
-                getContextManager());
+                    C_NodeTypes.RESULT_COLUMN,
+                    "##PartitionColumn",
+                    gbc.getColumnExpression(),
+                    getContextManager());
             groupByRCL.addElement(gbRC);
             gbRC.markGenerated();
             gbRC.bindResultColumnToExpression();
@@ -311,11 +311,11 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			 ** Group By result set.
 			 */
             VirtualColumnNode vc = (VirtualColumnNode) getNodeFactory().getNode(
-                C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                this, // source result set.
-                gbRC,
-                new Integer(groupByRCL.size()),
-                getContextManager());
+                    C_NodeTypes.VIRTUAL_COLUMN_NODE,
+                    this, // source result set.
+                    gbRC,
+                    new Integer(groupByRCL.size()),
+                    getContextManager());
 
             // we replace each group by expression
             // in the projection list with a virtual column node
@@ -339,8 +339,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             //
             ValueNode vn = gbc.getColumnExpression();
             SubstituteExpressionVisitor vis =
-                new SubstituteExpressionVisitor(vn, vc,
-                                                AggregateNode.class);
+                    new SubstituteExpressionVisitor(vn, vc,
+                            AggregateNode.class);
             referencesToSubstitute.add(vis);
 
             // Since we always need a PR node on top of the GB
@@ -371,7 +371,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         Collections.sort(referencesToSubstitute, sorter);
         for (int r = 0; r < referencesToSubstitute.size(); r++)
             parent.getResultColumns().accept(
-                (SubstituteExpressionVisitor) referencesToSubstitute.get(r));
+                    (SubstituteExpressionVisitor) referencesToSubstitute.get(r));
     }
 
     /**
@@ -449,7 +449,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @throws StandardException
      */
     private void addNewColumnsForAggregation()
-        throws StandardException {
+            throws StandardException {
         aggInfo = new AggregatorInfoList();
         ArrayList havingRefsToSubstitute = null;
 
@@ -488,12 +488,12 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         LanguageFactory lf = getLanguageConnectionContext().getLanguageFactory();
 
         ReplaceAggregatesWithCRVisitor replaceAggsVisitor =
-            new ReplaceAggregatesWithCRVisitor(
-                (ResultColumnList) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN_LIST,
-                    getContextManager()),
-                ((FromTable) childResult).getTableNumber(),
-                ResultSetNode.class);
+                new ReplaceAggregatesWithCRVisitor(
+                        (ResultColumnList) getNodeFactory().getNode(
+                                C_NodeTypes.RESULT_COLUMN_LIST,
+                                getContextManager()),
+                        ((FromTable) childResult).getTableNumber(),
+                        ResultSetNode.class);
         parent.getResultColumns().accept(replaceAggsVisitor);
 
 		/*
@@ -508,10 +508,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** bottom project restrict.
 			*/
             newRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##WindowResult",
-                aggregate.getNewNullResultExpression(),
-                getContextManager());
+                    C_NodeTypes.RESULT_COLUMN,
+                    "##WindowResult",
+                    aggregate.getNewNullResultExpression(),
+                    getContextManager());
             newRC.markGenerated();
             newRC.bindResultColumnToExpression();
             bottomRCL.addElement(newRC);
@@ -525,18 +525,18 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** ReplaceAggregatesWithCRVisitor()
 			*/
             newColumnRef = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                newRC.getName(),
-                null,
-                getContextManager());
+                    C_NodeTypes.COLUMN_REFERENCE,
+                    newRC.getName(),
+                    null,
+                    getContextManager());
             newColumnRef.setSource(newRC);
             newColumnRef.setNestingLevel(this.getLevel());
             newColumnRef.setSourceLevel(this.getLevel());
             tmpRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                newRC.getColumnName(),
-                newColumnRef,
-                getContextManager());
+                    C_NodeTypes.RESULT_COLUMN,
+                    newRC.getColumnName(),
+                    newColumnRef,
+                    getContextManager());
             tmpRC.markGenerated();
             tmpRC.bindResultColumnToExpression();
             groupByRCL.addElement(tmpRC);
@@ -561,10 +561,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             newRC.setVirtualColumnId(bottomRCL.size());
             aggInputVColId = newRC.getVirtualColumnId();
             aggResultRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##WindowExpression",
-                aggregate.getNewNullResultExpression(),
-                getContextManager());
+                    C_NodeTypes.RESULT_COLUMN,
+                    "##WindowExpression",
+                    aggregate.getNewNullResultExpression(),
+                    getContextManager());
 
 
 			/*
@@ -600,8 +600,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** to this agg if it is a user agg.
 			*/
             aggRCL = (ResultColumnList) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+                    C_NodeTypes.RESULT_COLUMN_LIST,
+                    getContextManager());
             aggRCL.addElement(aggResultRC);
 
 			/*
@@ -609,13 +609,13 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** so we have to subtract 1.
 			*/
             aggInfo.addElement(new AggregatorInfo(
-                aggregate.getAggregateName(),
-                aggregate.getAggregatorClassName(),
-                aggInputVColId - 1,            // aggregate input column
-                aggResultVColId - 1,            // the aggregate result column
-                aggregatorVColId - 1,        // the aggregator column
-                aggregate.isDistinct(),
-                lf.getResultDescription(aggRCL.makeResultDescriptors(), "SELECT")
+                    aggregate.getAggregateName(),
+                    aggregate.getAggregatorClassName(),
+                    aggInputVColId - 1,            // aggregate input column
+                    aggResultVColId - 1,            // the aggregate result column
+                    aggregatorVColId - 1,        // the aggregator column
+                    aggregate.isDistinct(),
+                    lf.getResultDescription(aggRCL.makeResultDescriptors(), "SELECT")
             ));
             this.processedAggregates.add(aggregate.getWrappedAggregate());
         }
@@ -642,23 +642,23 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @see Optimizable#optimizeIt
      */
     public CostEstimate optimizeIt(
-        Optimizer optimizer,
-        OptimizablePredicateList predList,
-        CostEstimate outerCost,
-        RowOrdering rowOrdering)
-        throws StandardException {
+            Optimizer optimizer,
+            OptimizablePredicateList predList,
+            CostEstimate outerCost,
+            RowOrdering rowOrdering)
+            throws StandardException {
         // RESOLVE: NEED TO FACTOR IN THE COST OF GROUPING (SORTING) HERE
         CostEstimate childCost = ((Optimizable) childResult).optimizeIt(
-            optimizer,
-            predList,
-            outerCost,
-            rowOrdering);
+                optimizer,
+                predList,
+                outerCost,
+                rowOrdering);
 
         CostEstimate retval = super.optimizeIt(
-            optimizer,
-            predList,
-            outerCost,
-            rowOrdering
+                optimizer,
+                predList,
+                outerCost,
+                rowOrdering
         );
 
         return retval;
@@ -674,20 +674,20 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                                      Optimizer optimizer,
                                      RowOrdering rowOrdering
     )
-        throws StandardException {
+            throws StandardException {
         // RESOLVE: NEED TO FACTOR IN THE COST OF GROUPING (SORTING) HERE
         //
         CostEstimate childCost = ((Optimizable) childResult).estimateCost(
-            predList,
-            cd,
-            outerCost,
-            optimizer,
-            rowOrdering);
+                predList,
+                cd,
+                outerCost,
+                optimizer,
+                rowOrdering);
 
         CostEstimate costEstimate = getCostEstimate(optimizer);
         costEstimate.setCost(childCost.getEstimatedCost(),
-                             childCost.rowCount(),
-                             childCost.singleScanRowCount());
+                childCost.rowCount(),
+                childCost.singleScanRowCount());
 
         return costEstimate;
     }
@@ -698,7 +698,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      */
 
     public boolean pushOptPredicate(OptimizablePredicate optimizablePredicate)
-        throws StandardException {
+            throws StandardException {
         return ((Optimizable) childResult).pushOptPredicate(optimizablePredicate);
     }
 
@@ -731,7 +731,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
             for (int i = 0; i < windowFunctions.size(); i++) {
                 AggregateNode agg =
-                    (AggregateNode) windowFunctions.get(i);
+                        (AggregateNode) windowFunctions.get(i);
                 debugPrint(formatNodeString("[" + i + "]:", depth + 1));
                 agg.treePrint(depth + 1);
             }
@@ -771,30 +771,30 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     public ResultSetNode optimize(DataDictionary dataDictionary,
                                   PredicateList predicates,
                                   double outerRows)
-        throws StandardException {
+            throws StandardException {
 		/* We need to implement this method since a PRN can appear above a
 		 * SelectNode in a query tree.
 		 */
         childResult = (ResultSetNode) childResult.optimize(
-            dataDictionary,
-            predicates,
-            outerRows);
+                dataDictionary,
+                predicates,
+                outerRows);
         Optimizer optimizer = getOptimizer(
-            (FromList) getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager()),
-            predicates,
-            dataDictionary,
-            (RequiredRowOrdering) null);
+                (FromList) getNodeFactory().getNode(
+                        C_NodeTypes.FROM_LIST,
+                        getNodeFactory().doJoinOrderOptimization(),
+                        getContextManager()),
+                predicates,
+                dataDictionary,
+                (RequiredRowOrdering) null);
 
         // RESOLVE: NEED TO FACTOR IN COST OF SORTING AND FIGURE OUT HOW
         // MANY ROWS HAVE BEEN ELIMINATED.
         costEstimate = optimizer.newCostEstimate();
 
         costEstimate.setCost(childResult.getCostEstimate().getEstimatedCost(),
-                             childResult.getCostEstimate().rowCount(),
-                             childResult.getCostEstimate().singleScanRowCount());
+                childResult.getCostEstimate().rowCount(),
+                childResult.getCostEstimate().singleScanRowCount());
 
         return this;
     }
@@ -826,7 +826,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      */
     public void generate(ActivationClassBuilder acb,
                          MethodBuilder mb)
-        throws StandardException {
+            throws StandardException {
         int orderingItem = 0;
         int aggInfoItem = 0;
         FormatableArrayHolder orderingHolder;
@@ -851,11 +851,11 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
                 s.append("Partition column ordering is (");
                 org.apache.derby.iapi.store.access.ColumnOrdering[] ordering =
-                    (org.apache.derby.iapi.store.access.ColumnOrdering[]) orderingHolder.getArray(org.apache.derby
-                                                                                                      .iapi.store
-                                                                                                      .access
-                                                                                                      .ColumnOrdering
-                                                                                                      .class);
+                        (org.apache.derby.iapi.store.access.ColumnOrdering[]) orderingHolder.getArray(org.apache.derby
+                                .iapi.store
+                                .access
+                                .ColumnOrdering
+                                .class);
 
                 for (int i = 0; i < ordering.length; i++) {
                     s.append(ordering[i].getColumnId());
@@ -874,7 +874,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		*/
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(aggInfo != null,
-                                 "aggInfo not set up as expected");
+                    "aggInfo not set up as expected");
         }
         aggInfoItem = acb.addItem(aggInfo);
 
@@ -906,7 +906,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         mb.push(costEstimate.getEstimatedCost());
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getWindowResultSet",
-                      ClassName.NoPutResultSet, 9);
+                ClassName.NoPutResultSet, 9);
 
     }
 
@@ -927,23 +927,23 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      */
     private ResultColumn getColumnReference(ResultColumn targetRC,
                                             DataDictionary dd)
-        throws StandardException {
+            throws StandardException {
         ColumnReference tmpColumnRef;
         ResultColumn newRC;
 
         tmpColumnRef = (ColumnReference) getNodeFactory().getNode(
-            C_NodeTypes.COLUMN_REFERENCE,
-            targetRC.getName(),
-            null,
-            getContextManager());
+                C_NodeTypes.COLUMN_REFERENCE,
+                targetRC.getName(),
+                null,
+                getContextManager());
         tmpColumnRef.setSource(targetRC);
         tmpColumnRef.setNestingLevel(this.getLevel());
         tmpColumnRef.setSourceLevel(this.getLevel());
         newRC = (ResultColumn) getNodeFactory().getNode(
-            C_NodeTypes.RESULT_COLUMN,
-            targetRC.getColumnName(),
-            tmpColumnRef,
-            getContextManager());
+                C_NodeTypes.RESULT_COLUMN,
+                targetRC.getColumnName(),
+                tmpColumnRef,
+                getContextManager());
         newRC.markGenerated();
         newRC.bindResultColumnToExpression();
         return newRC;
@@ -971,7 +971,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 ValueNode v2 = ((SubstituteExpressionVisitor) o2).getSource();
                 int refCount1, refCount2;
                 CollectNodesVisitor vis = new CollectNodesVisitor(
-                    ColumnReference.class);
+                        ColumnReference.class);
                 v1.accept(vis);
                 refCount1 = vis.getList().size();
                 vis = new CollectNodesVisitor(ColumnReference.class);
