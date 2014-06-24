@@ -34,7 +34,8 @@ public class ReplaceWindowFuncCallsWithCRVisitor implements Visitor
 {
 	private ResultColumnList rcl;
 	private Class skipOverClass;
-	private int tableNumber;
+    private int nestingLevel;
+    private int tableNumber;
 
 	/**
 	 * Replace all window function calls with column references.  Add
@@ -43,14 +44,17 @@ public class ReplaceWindowFuncCallsWithCRVisitor implements Visitor
 	 *
 	 * @param rcl the result column list
 	 * @param tableNumber	The tableNumber for the new CRs
+     * @param nestingLevel sets the nesting level in which the new CR appears
 	 * @param skipOverClass Don't go past this
 	 */
 	public ReplaceWindowFuncCallsWithCRVisitor(ResultColumnList rcl,
 											int tableNumber,
+                                            int nestingLevel,
 											Class skipOverClass)
 	{
 		this.rcl = rcl;
 		this.tableNumber = tableNumber;
+        this.nestingLevel = nestingLevel;
 		this.skipOverClass = skipOverClass;
 	}
 
@@ -66,17 +70,20 @@ public class ReplaceWindowFuncCallsWithCRVisitor implements Visitor
 	 * @see Visitor#visit
 	 *
 	 */
-	public Visitable visit(Visitable node)
-		throws StandardException
-	{
-		if (node instanceof WindowFunctionNode)
-		{
+	public Visitable visit(Visitable node) throws StandardException {
+		if (node instanceof WindowFunctionNode) {
 			/*
 			** Let windowFunctionNode replace itself.
 			*/
-			node = ((WindowFunctionNode)node).
-				replaceCallsWithColumnReferences(rcl, tableNumber);
-		}
+            // FIXME: we can get rid of this class, ReplaceAggregatesWithCRVisitor does the job
+//			node = ((WindowFunctionNode)node).
+//				replaceCallsWithColumnReferences(rcl, tableNumber, nestingLevel);
+		} else if (node instanceof AggregateNode) {
+            /*
+			** Let aggregateNode replace itself.
+			*/
+            node = ((AggregateNode)node).replaceAggregatesWithColumnReferences(rcl, tableNumber);
+        }
 
 		return node;
 	}

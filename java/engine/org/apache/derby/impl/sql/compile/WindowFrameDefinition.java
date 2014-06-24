@@ -39,6 +39,7 @@ public class WindowFrameDefinition extends QueryTreeNode {
         public FrameType(Frame frame, int value) {
             this.frame = frame;
             this.value = value;
+            // TODO: Should this verification happen here?
 //            if ( (this.frame.equals(Frame.PRECEDING) || this.frame.equals(Frame.FOLLOWING)) && !( this.value >= 0) ) {
 //                throw StandardException.newException(SQLState.ID_PARSE_ERROR,
 //                                                 "When window frame is PRECEDING or FOLLOWING, value must be non negative.");
@@ -51,6 +52,26 @@ public class WindowFrameDefinition extends QueryTreeNode {
 
         public Frame getFrame() {
             return frame;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            FrameType frameType = (FrameType) o;
+
+            if (value != frameType.value) return false;
+            if (frame != frameType.frame) return false;
+
+            return true;
+    }
+
+        @Override
+        public int hashCode() {
+            int result = frame.hashCode();
+            result = 31 * result + value;
+            return result;
         }
     }
 
@@ -75,5 +96,15 @@ public class WindowFrameDefinition extends QueryTreeNode {
         return frameStart;
     }
 
+    public boolean isEquivalent(WindowFrameDefinition other) {
+        if (this == other) return true;
+        if (other == null) return false;
+
+        if (window != null ? !window.equals(other.window) : other.window != null) return false;
+        if (frameStart != null ? !frameStart.equals(other.frameStart) : other.frameStart != null) return false;
+        if (frameEnd != null ? !frameEnd.equals(other.frameEnd) : other.frameEnd != null) return false;
+
+        return true;
+    }
 }
 

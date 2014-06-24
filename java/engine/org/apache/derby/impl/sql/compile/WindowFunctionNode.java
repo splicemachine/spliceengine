@@ -21,39 +21,22 @@
 package org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.compile.CompilerContext;
-import org.apache.derby.iapi.sql.compile.C_NodeTypes;
-import org.apache.derby.iapi.reference.SQLState;
-
-import java.sql.Types;
-import java.util.Vector;
 
 
 /**
  * Superclass of any window function call.
  */
-public abstract class WindowFunctionNode extends UnaryOperatorNode
+public abstract class WindowFunctionNode extends AggregateNode
 {
 
     private WindowNode window; // definition or reference
-
-    /*
-    ** We wind up pushing all window function calls into a different
-    ** resultColumnList.  When we do this (in replaceCallsWithColumnReference),
-    ** we return a column reference and create a new result column.  This is
-    ** used to store that result column.
-    */
-    private ResultColumn            generatedRC;
-    private ColumnReference         generatedRef;
 
     /**
      * Initializer for a WindowFunctionNode
      * @param arg1 null (operand)
      * @param arg2 function mame (operator)
      * @param arg3 window node (definition or reference)
-     * @exception StandardException
      */
     public void init(Object arg1, Object arg2, Object arg3)
     {
@@ -101,35 +84,6 @@ public abstract class WindowFunctionNode extends UnaryOperatorNode
         this.window = wdn;
     }
 
-
-    /**
-     * ValueNode override.
-     * @see ValueNode#bindExpression
-     */
-    public ValueNode bindExpression(
-            FromList fromList,
-            SubqueryList subqueryList,
-            Vector  aggregateVector)
-        throws StandardException
-    {
-        if (window instanceof WindowReferenceNode) {
-
-            WindowDefinitionNode found =
-                definedWindow(fromList.getWindows(), window.getName());
-
-            if (found != null) {
-                window = found;
-            } else {
-                throw StandardException.
-                    newException(SQLState.LANG_NO_SUCH_WINDOW,
-                                 window.getName());
-            }
-        }
-
-        return this;
-    }
-
-
     /**
      * @return if name matches a defined window (in windows), return the
      * definition of that window, else null.
@@ -165,74 +119,6 @@ public abstract class WindowFunctionNode extends UnaryOperatorNode
     }
 
     /**
-     * Replace window function calls in the expression tree with a
-     * ColumnReference to that window function, append the aggregate to the
-     * supplied RCL (assumed to be from the child ResultSetNode) and return the
-     * ColumnReference.
-     *
-     * @param rcl   The RCL to append to.
-     * @param tableNumber   The tableNumber for the new ColumnReference
-     *
-     * @return ValueNode    The (potentially) modified tree.
-     *
-     * @exception StandardException         Thrown on error
-     */
-    public ValueNode replaceCallsWithColumnReferences(ResultColumnList rcl,
-                                                      int tableNumber)
-        throws StandardException
-    {
-        /*
-         * This call is idempotent.  Do the right thing if we have already
-         * replaced ourselves.
-         */
-        if (generatedRef == null)
-        {
-            String                  generatedColName;
-            CompilerContext         cc = getCompilerContext();
-            generatedColName ="SQLCol" + cc.getNextColumnNumber();
-            generatedRC = (ResultColumn) getNodeFactory().getNode(
-                                            C_NodeTypes.RESULT_COLUMN,
-                                            generatedColName,
-                                            this,
-                                            getContextManager());
-            generatedRC.markGenerated();
-
-            // Parse time.
-            //
-            generatedRef = (ColumnReference) getNodeFactory().getNode(
-                                                C_NodeTypes.COLUMN_REFERENCE,
-                                                generatedRC.getName(),
-                                                null,
-                                                getContextManager());
-
-            // RESOLVE - unknown nesting level, but not correlated, so nesting
-            // levels must be 0
-            generatedRef.setSource(generatedRC);
-            generatedRef.setNestingLevel(0);
-            generatedRef.setSourceLevel(0);
-
-            if (tableNumber != -1)
-            {
-                generatedRef.setTableNumber(tableNumber);
-            }
-
-            rcl.addResultColumn(generatedRC);
-
-
-            // Mark the ColumnReference as being generated to replace a call to
-            // a window function
-
-            generatedRef.markGeneratedToReplaceWindowFunctionCall();
-        }
-        else
-        {
-            rcl.addResultColumn(generatedRC);
-        }
-
-        return generatedRef;
-    }
-
-    /**
      * Get the generated ColumnReference to this window function after the
      * parent called replaceCallsWithColumnReferences().
      * <p/>
@@ -250,11 +136,18 @@ public abstract class WindowFunctionNode extends UnaryOperatorNode
      *
      * @return the column reference
      */
-    public ColumnReference getGeneratedRef()
-    {
-        return generatedRef;
-    }
+    @Override
+    public abstract ColumnReference getGeneratedRef();
 
+    /**
+     * Get the generated ResultColumn where this
+     * aggregate now resides after a call to
+     * replaceAggregatesWithColumnReference().
+     *
+     * @return the result column
+     */
+    @Override
+    public abstract ResultColumn getGeneratedRC();
 
     /**
      * Get the null result expression column.

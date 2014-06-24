@@ -58,6 +58,7 @@ public final class WindowDefinitionNode extends WindowNode
      * @param arg1 The window name, null if in-lined definition
      * @param arg2 GROUP BY list (partition)
      * @param arg3 ORDER BY list
+     * @param arg4 frame
      * @exception StandardException
      */
     public void init(Object arg1,
@@ -123,8 +124,8 @@ public final class WindowDefinitionNode extends WindowNode
                 orderByList.treePrint(depth + 1);
             }
 
-            if (orderByList != null) {
-                printLabel(depth, "windowDefinition: "  + depth);
+            if (frameExtent != null) {
+                printLabel(depth, "frame: "  + depth);
                 frameExtent.treePrint(depth + 1);
             }
         }
@@ -138,7 +139,7 @@ public final class WindowDefinitionNode extends WindowNode
      * @return an existing window definition from wl, if 'this' is equivalent
      * to a window in wl.
      */
-    public WindowDefinitionNode findEquivalentWindow(WindowList wl) {
+    public WindowDefinitionNode findEquivalentWindow(WindowList wl) throws StandardException {
         for (int i = 0; i < wl.size(); i++) {
             WindowDefinitionNode old = (WindowDefinitionNode)wl.elementAt(i);
 
@@ -147,25 +148,6 @@ public final class WindowDefinitionNode extends WindowNode
             }
         }
         return null;
-    }
-
-
-
-    /**
-     * @return true if the window specifications are equal; no need to create
-     * more than one window then.
-     */
-    private boolean isEquivalent(WindowDefinitionNode other) {
-        if (orderByList == null && other.getOrderByList() == null) {
-            return true;
-        }
-
-        if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(
-                false,
-                "FIXME: ordering in windows not implemented yet");
-        }
-        return false;
     }
 
     public Partition getPartition() {
@@ -181,5 +163,34 @@ public final class WindowDefinitionNode extends WindowNode
      */
     public OrderByList getOrderByList() {
         return orderByList;
+    }
+
+    /**
+     * @return true if the window specifications are equivalent; no need to create
+     * more than one window then.
+     */
+    private boolean isEquivalent(WindowDefinitionNode other) throws StandardException {
+        if (this == other) return true;
+        if (other == null) return false;
+
+        if (frameExtent != null ? !frameExtent.isEquivalent(other.frameExtent) : other.frameExtent != null) return false;
+        if (orderByList != null ? !isEquivalent(orderByList, other.orderByList) : other.orderByList != null) return false;
+        if (partition != null ? !partition.isEquivalent(other.partition) : other.partition != null) return false;
+
+        return true;
+    }
+
+    private boolean isEquivalent(OrderByList thisOne, OrderByList thatOne) throws StandardException {
+        if (thisOne == thatOne) return true;
+        if (thatOne == null) return false;
+        if (thisOne.allAscending() != thatOne.allAscending()) return false;
+        if (thisOne.size() != thatOne.size()) return false;
+
+        for (int i=0; i<thatOne.size(); i++) {
+            if (! thisOne.getOrderByColumn(i).getResultColumn().isEquivalent(thatOne.getOrderByColumn(i)
+                                                                                    .getResultColumn()))
+                return false;
+        }
+        return true;
     }
 }

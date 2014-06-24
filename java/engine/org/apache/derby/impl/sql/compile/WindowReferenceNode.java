@@ -22,11 +22,6 @@
 package org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.TypeId;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-
-import java.sql.Types;
-import java.util.Vector;
 
 /**
  * Represents a reference to an explicitly defined window
@@ -46,9 +41,25 @@ public final class WindowReferenceNode extends WindowNode
         super.init(arg1);
     }
 
+    @Override
+    public Partition getPartition() {
+        return null;
+    }
+
+    @Override
+    public WindowFrameDefinition getFrameExtent() {
+        return null;
+    }
+
+    @Override
+    public OrderByList getOrderByList() {
+        return null;
+    }
+
     // java.lang.Object override
     public String toString() {
         return "referenced window: " + getName() + "\n" +
             super.toString();
     }
+
 }

@@ -9249,7 +9249,7 @@ tableExpression(ResultColumnList selectList) throws StandardException :
 								"COUNT(*)",
 								getContextManager());
 			AggregateNode n = (AggregateNode) vn;
-			n.replaceAggregatesWithColumnReferences(selectList, 0);			
+			n.replaceAggregatesWithColumnReferences(selectList, 0);
 		}
 		
 		selectNode = (SelectNode) nodeFactory.getNode(
@@ -9977,7 +9977,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 	<RANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
 	{
 		winOrAgg = (ValueNode) nodeFactory.getNode(
-			C_NodeTypes.RANK_RESULTSET_NODE,
+			C_NodeTypes.RANK_FUNCTION_NODE,
 			null,
 			window,
 			getContextManager());

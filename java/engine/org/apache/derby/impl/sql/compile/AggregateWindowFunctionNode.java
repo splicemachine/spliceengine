@@ -20,19 +20,18 @@
 
 package org.apache.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.TypeId;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.reference.SQLState;
-
-import java.sql.Types;
 import java.util.Vector;
 
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.compiler.MethodBuilder;
+import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+
 /**
- * Represents aggregate function calls on a window
+ * Represents aggregate function calls on a window. Delegates to real
+ * aggregate function.
  */
-public final class AggregateWindowFunctionNode extends WindowFunctionNode
-{
+public final class AggregateWindowFunctionNode extends WindowFunctionNode {
 
     private AggregateNode aggregateFunction;
 
@@ -41,53 +40,99 @@ public final class AggregateWindowFunctionNode extends WindowFunctionNode
      *
      * @param arg1 The window definition or reference
      * @param arg2 aggregate function node
-     *
-     * @exception StandardException
+     * @throws StandardException
      */
-    public void init(Object arg1, Object arg2)
-        throws StandardException
-    {
+    public void init(Object arg1, Object arg2) throws StandardException {
         super.init(null, "?", arg1);
-        aggregateFunction = (AggregateNode)arg2;
-
-        throw StandardException.newException(
-            SQLState.NOT_IMPLEMENTED,
-            "WINDOW/" + aggregateFunction.getAggregateName());
+        aggregateFunction = (AggregateNode) arg2;
     }
 
-
-    /**
-     * ValueNode override.
-     * @see ValueNode#bindExpression
-     */
-    public ValueNode bindExpression(
-                    FromList            fromList,
-                    SubqueryList        subqueryList,
-                    Vector              aggregateVector)
-            throws StandardException
-    {
-        aggregateFunction.bindExpression(
-            fromList, subqueryList, aggregateVector);
-        return this;
+    @Override
+    public ValueNode getNewNullResultExpression() throws StandardException {
+        return aggregateFunction.getNewNullResultExpression();
     }
-
-
 
     /**
      * QueryTreeNode override. Prints the sub-nodes of this object.
-     * @see QueryTreeNode#printSubNodes
      *
-     * @param depth     The depth of this node in the tree
+     * @param depth The depth of this node in the tree
+     * @see QueryTreeNode#printSubNodes
      */
-
-    public void printSubNodes(int depth)
-    {
-        if (SanityManager.DEBUG)
-        {
+    public void printSubNodes(int depth) {
+        if (SanityManager.DEBUG) {
             super.printSubNodes(depth);
 
             printLabel(depth, "aggregate: ");
             aggregateFunction.treePrint(depth + 1);
         }
+    }
+
+    @Override
+    public ValueNode replaceAggregatesWithColumnReferences(ResultColumnList rcl,
+                                                           int tableNumber) throws StandardException {
+        return aggregateFunction.replaceAggregatesWithColumnReferences(rcl,tableNumber);
+    }
+
+    /**
+     * Get the generated ResultColumn where this
+     * aggregate now resides after a call to
+     * replaceAggregatesWithColumnReference().
+     *
+     * @return the result column
+     */
+    @Override
+    AggregateDefinition getAggregateDefinition() {
+        return aggregateFunction.getAggregateDefinition();
+    }
+
+    @Override
+    public ValueNode bindExpression(FromList fromList, SubqueryList subqueryList, Vector aggregateVector) throws
+        StandardException {
+        return aggregateFunction.bindExpression(fromList, subqueryList, aggregateVector);
+    }
+
+    @Override
+    public boolean isDistinct() {
+        return aggregateFunction.isDistinct();
+    }
+
+    @Override
+    public String getAggregatorClassName() {
+        return aggregateFunction.getAggregatorClassName();
+    }
+
+    @Override
+    public String getAggregateName() {
+        return aggregateFunction.getAggregateName();
+    }
+
+    @Override
+    public ResultColumn getNewAggregatorResultColumn(DataDictionary dd) throws StandardException {
+        return aggregateFunction.getNewAggregatorResultColumn(dd);
+    }
+
+    @Override
+    public ResultColumn getNewExpressionResultColumn(DataDictionary dd) throws StandardException {
+        return aggregateFunction.getNewExpressionResultColumn(dd);
+    }
+
+    @Override
+    public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
+        aggregateFunction.generateExpression(acb, mb);
+    }
+
+    @Override
+    public String getSQLName() {
+        return aggregateFunction.getSQLName();
+    }
+
+    @Override
+    public ColumnReference getGeneratedRef() {
+        return aggregateFunction.getGeneratedRef();
+    }
+
+    @Override
+    public ResultColumn getGeneratedRC() {
+        return aggregateFunction.getGeneratedRC();
     }
 }

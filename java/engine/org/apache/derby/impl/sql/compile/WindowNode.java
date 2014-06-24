@@ -22,11 +22,6 @@
 package org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.TypeId;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-
-import java.sql.Types;
-import java.util.Vector;
 
 /**
  * Superclass of window definition and window reference.
@@ -64,5 +59,9 @@ public abstract class WindowNode extends QueryTreeNode
     }
 
 
+    public abstract Partition getPartition();
 
+    public abstract WindowFrameDefinition getFrameExtent();
+
+    public abstract OrderByList getOrderByList();
 }

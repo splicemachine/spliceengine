@@ -20,12 +20,11 @@
 
 package org.apache.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.TypeId;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import java.sql.Types;
 import java.util.Vector;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.types.TypeId;
 
 /**
  * Class that represents a call to the ROW_NUMBER() window function.
@@ -64,5 +63,17 @@ public final class RowNumberFunctionNode extends WindowFunctionNode
     {
         super.bindExpression(fromList, subqueryList, aggregateVector);
         return this;
+    }
+
+    @Override
+    public ColumnReference getGeneratedRef() {
+        // TODO: impl
+        return null;
+    }
+
+    @Override
+    public ResultColumn getGeneratedRC() {
+        // TODO: impl
+        return null;
     }
 }

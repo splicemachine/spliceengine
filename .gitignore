@@ -5,8 +5,9 @@
 *.iws
 *.ipr
 *.iml
+javadoc/
 maven2/target/
-maven2/**/target/
+**/target/
 *.class
 *.jad
 .project
@@ -20,3 +21,4 @@ generated
 jars
 classes.storeless/
 changenumber.properties
+*.log

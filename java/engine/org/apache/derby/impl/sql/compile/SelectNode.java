@@ -22,30 +22,23 @@
 
 package	org.apache.derby.impl.sql.compile;
 
+import java.util.HashSet;
+import java.util.Vector;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.Limits;
+import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.sql.compile.C_NodeTypes;
+import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.sql.compile.Optimizer;
 import org.apache.derby.iapi.sql.compile.Visitor;
-import org.apache.derby.iapi.sql.compile.C_NodeTypes;
-
 import org.apache.derby.iapi.sql.conn.Authorizer;
-
-import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-
-
-import org.apache.derby.iapi.reference.Limits;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.store.access.TransactionController;
-
-import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.util.JBitSet;
-
-import java.util.Vector;
-import java.util.HashSet;
 
 /**
  * A SelectNode represents the result set for any of the basic DML
@@ -211,7 +204,7 @@ public class SelectNode extends ResultSetNode
 	}
 
 	private WindowList addInlinedWindowDefinition (WindowList wl,
-												   WindowFunctionNode wfn) {
+												   WindowFunctionNode wfn) throws StandardException {
 		WindowDefinitionNode wdn = (WindowDefinitionNode)wfn.getWindow();
 
 		if (wl == null) {
@@ -664,6 +657,17 @@ public class SelectNode extends ResultSetNode
 
 			checkNoWindowFunctions(groupByList, "GROUP BY");
 		}
+
+        /* Bind the window partition */
+        if (hasWindows()) {
+            for (int i=0; i<windows.size(); ++i) {
+                WindowDefinitionNode wdn = (WindowDefinitionNode) windows.elementAt(i);
+                Partition partition = wdn.getPartition();
+                Vector partitionAggregateVector = new Vector();
+                partition.bindGroupByColumns(this, partitionAggregateVector);
+            }
+        }
+
 		/* If ungrouped query with aggregates in SELECT list, verify
 		 * that all result columns are valid aggregate expressions -
 		 * no column references outside of an aggregate.
@@ -673,7 +677,8 @@ public class SelectNode extends ResultSetNode
 		 * allowed outside of an aggregate are columns in expressions in 
 		 * the group by list.
 		 */
-		if (groupByList != null || selectAggregates.size() > 0)
+		if ((groupByList != null || selectAggregates.size() > 0) && ! hasWindows())
+            // FIXME: the ! hasWindows() above was added because visitor was seeing CR node and forcing a non-null groupby list
 		{
 
   			VerifyAggregateExpressionsVisitor visitor = 
@@ -1472,6 +1477,37 @@ public class SelectNode extends ResultSetNode
 								null,
 								getContextManager()	 );
 
+        if (windows != null) {
+
+            // Now we add a window result set wrapped in a PRN on top of what
+            // we currently have.
+
+            if (windows.size() > 1) {
+                // FIXME: JPC - why are we limiting to 1 WF?
+                throw StandardException.newException(
+                    SQLState.LANG_WINDOW_LIMIT_EXCEEDED);
+            }
+
+            WindowNode wn = (WindowNode)windows.elementAt(0);
+
+            WindowResultSetNode wrsn =
+                (WindowResultSetNode)getNodeFactory().getNode(
+                    C_NodeTypes.WINDOW_RESULTSET_NODE,
+                    prnRSN,
+                    wn,
+                    windowFuncCalls,
+                    null,   // table properties
+                    new Integer(nestingLevel),
+                    getContextManager());
+
+            prnRSN = wrsn.getParent();
+            wrsn.assignCostEstimate(optimizer.getOptimizedCost());
+
+            // DEBUG: JPC - testing  - remove
+            selectAggregates.clear();
+        }
+
+
 		/*
 		** If we have aggregates OR a select list we want
 		** to generate a GroupByNode.  In the case of a
@@ -1508,31 +1544,6 @@ public class SelectNode extends ResultSetNode
 			eliminateSort = eliminateSort || gbn.getIsInSortedOrder();
 		}
 
-
-		if (windows != null) {
-
-			// Now we add a window result set wrapped in a PRN on top of what
-			// we currently have.
-
-			if (windows.size() > 1) {
-				throw StandardException.newException(
-					SQLState.LANG_WINDOW_LIMIT_EXCEEDED);
-			}
-
-			WindowNode wn = (WindowNode)windows.elementAt(0);
-
-			WindowResultSetNode wrsn =
-				(WindowResultSetNode)getNodeFactory().getNode(
-					C_NodeTypes.WINDOW_RESULTSET_NODE,
-					prnRSN,
-					wn,
-					windowFuncCalls,
-					new Integer(nestingLevel),
-					getContextManager());
-
-			prnRSN = wrsn.getParent();
-			wrsn.assignCostEstimate(optimizer.getOptimizedCost());
-		}
 
 
 		// if it is distinct, that must also be taken care of.
