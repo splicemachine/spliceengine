@@ -1,14 +1,13 @@
 package com.splicemachine.derby.utils;
 
+import org.joda.time.*;
+
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
-
-
-
 
 
 
@@ -23,38 +22,30 @@ public class SpliceDateFunctions {
 
 	public static Date ADD_MONTHS(java.sql.Date source, int numOfMonths) {
 		if (source == null) return source;
-		Calendar c = Calendar.getInstance();
-	    c.setTime(source);
-	    c.add(Calendar.MONTH, numOfMonths);
-	    return new java.sql.Date(c.getTimeInMillis());
+		DateTime dt = new DateTime(source);
+	    return new Date(dt.plusMonths(numOfMonths).getMillis());
 	}
 	/**
+	 * Implements the TO_DATE() fuction.
+	 * @throws ParseException 
 	 * 
-	 * Implements the To_date function
-	 * @param source
-	 * @param format
-	 * @return
-	 * @throws ParseException
+	 * 
 	 */
-	public static Date TO_DATE(String source, String format) throws ParseException{
-		if(source==null||format==null) return null;
+	public static java.sql.Date TO_DATE(String source, String format) throws ParseException{
+		if(source == null || format == null) return null;
 		SimpleDateFormat fmt = new SimpleDateFormat(format.toLowerCase().replaceAll("m", "M"));
-		java.util.Date inmd = fmt.parse(source);
-		java.sql.Date ret = new Date(inmd.getTime());
-		return ret;
+		return new Date(fmt.parse(source).getTime());
 	}
 	/**
 	 * Implements the LAST_DAY function
 	 *  
 	 */
 	public static Date LAST_DAY(java.sql.Date source) {
-		if(source==null) {
+		if(source == null) {
 			return source;
 		}
-		Calendar calendar = Calendar.getInstance();
-		calendar.setTime(source);
-		calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMaximum(Calendar.DAY_OF_MONTH));
-		return new java.sql.Date(calendar.getTimeInMillis());
+        DateTime dt = new DateTime(source).dayOfMonth().withMaximumValue();
+        return new java.sql.Date(dt.getMillis());
 	}
 	/**
 	 * Implements the NEXT_DAY function
@@ -62,9 +53,8 @@ public class SpliceDateFunctions {
 	public static Date NEXT_DAY(java.sql.Date source, String weekday){
 		if(source==null||weekday==null) return source;
 		try{
-			Calendar calendar = Calendar.getInstance();
-			calendar.setTime(source);
-			HashMap<String, Integer> map = new HashMap<String, Integer>();
+            DateTime dt = new DateTime(source);
+            HashMap<String, Integer> map = new HashMap<String, Integer>();
 			map.put("sunday", 1);
 			map.put("monday", 2);
 			map.put("tuesday", 3);
@@ -72,18 +62,17 @@ public class SpliceDateFunctions {
 			map.put("thursday", 5);
 			map.put("friday", 6);
 			map.put("saturday", 7);
-			int increment = map.get(weekday.toLowerCase())-calendar.get(Calendar.DAY_OF_WEEK);
+			int increment = map.get(weekday.toLowerCase())-dt.getDayOfWeek()-1;
 			if(increment>0){
-				calendar.add(Calendar.DAY_OF_WEEK, increment);
+				return new Date(dt.plusDays(increment).getMillis());
 			}
 			else if(increment==0){
-				calendar.add(Calendar.DAY_OF_WEEK, 7);
+                return new Date(dt.plusDays(7).getMillis());
 			}
 			else{
-				calendar.add(Calendar.DAY_OF_WEEK, 7+increment);
+                return new Date(dt.plusDays(7+increment).getMillis());
 			}
-			Date ret = new Date(calendar.getTime().getTime());
-			return ret;
+
 		}  catch (NullPointerException e){
 			System.out.print("Day does not exist");
 			return null;
@@ -91,25 +80,19 @@ public class SpliceDateFunctions {
 	}
 	/**11
 	 * Implements the MONTH_BETWEEN function
-	 * 
+	 * if any of the input values are null, the function will return -1. Else, it will return an positive double.
 	 */
 	public static double MONTH_BETWEEN(java.sql.Date source1, java.sql.Date source2){
-		if(source1==null||source2==null) return -1.0;
-		Calendar cal1 = Calendar.getInstance();
-		cal1.setTime(source1);
-		Calendar cal2 = Calendar.getInstance();
-		cal2.setTime(source2);
-		double ret = 0;
-		ret = (cal1.get(Calendar.YEAR)-cal2.get(Calendar.YEAR))*12+(cal1.get(Calendar.MONTH)-cal2.get(Calendar.MONTH));
-		if(cal1.get(Calendar.DAY_OF_MONTH)!=cal1.getActualMaximum(Calendar.DAY_OF_MONTH)
-				|| cal2.get(Calendar.DAY_OF_MONTH)!=cal2.getActualMaximum(Calendar.DAY_OF_MONTH)){
-			ret += ((cal1.get(Calendar.DAY_OF_MONTH)-cal2.get(Calendar.DAY_OF_MONTH))/31d);
-		}
-		ret = Math.abs(ret);
-		return ret;
+		if(source1 == null || source2 == null) return -1;
+        DateTime dt1 = new DateTime(source1);
+        DateTime dt2 = new DateTime(source2);
+        int months = Months.monthsBetween(dt1,dt2).getMonths();
+        return months;
 	}
+	
 	/**
 	 * Implements the to_char function
+	 * 
 	 */
 	public static String TO_CHAR(java.sql.Date source, String format){
 		if(source == null || format == null) return null;
@@ -119,10 +102,9 @@ public class SpliceDateFunctions {
 	/**
 	 * Implements the trunc_date function
 	 */
-    public static Timestamp TRUNC_DATE(Timestamp source, String field){
+	public static Timestamp TRUNC_DATE(Timestamp source, String field){
         if(source == null || field == null) return null;
-        Calendar c = Calendar.getInstance();
-        c.setTime(source);
+        DateTime dt = new DateTime(source);
         field = field.toLowerCase();
         HashMap<String, Integer> map = new HashMap<String, Integer>();
         map.put("microseconds", 1);
@@ -157,121 +139,101 @@ public class SpliceDateFunctions {
 
         }
         else if (index == 4){
-            c.set(Calendar.SECOND,0);
-            c.set(Calendar.MILLISECOND,0);
-            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            DateTime modified = dt.minusSeconds(dt.getSecondOfMinute());
+            Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if(index == 5){
-            c.set(Calendar.MINUTE,0);
-            c.set(Calendar.SECOND,0);
-            c.set(Calendar.MILLISECOND,0);
-            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            DateTime modified = dt.minusMinutes(dt.getMinuteOfHour())
+                                  .minusSeconds(dt.getSecondOfMinute());
+            Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if (index == 6){
-            c.set(Calendar.HOUR_OF_DAY,0);
-            c.set(Calendar.MINUTE,0);
-            c.set(Calendar.SECOND,0);
-            c.set(Calendar.MILLISECOND,0);
-            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            DateTime modified = dt.minusHours(dt.getHourOfDay())
+                                  .minusMinutes(dt.getMinuteOfHour())
+                                  .minusSeconds(dt.getSecondOfMinute());
+            Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if (index == 7){
-            c.set(Calendar.DAY_OF_WEEK,0);
-            c.set(Calendar.HOUR_OF_DAY,0);
-            c.set(Calendar.MINUTE,0);
-            c.set(Calendar.SECOND,0);
-            c.set(Calendar.MILLISECOND,0);
-            c.add(Calendar.WEEK_OF_YEAR,-1);
-            c.add(Calendar.DAY_OF_YEAR,1);
-            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            DateTime modified = dt.minusDays(dt.getDayOfWeek())
+                                  .minusHours(dt.getHourOfDay())
+                                  .minusMinutes(dt.getMinuteOfHour())
+                                  .minusSeconds(dt.getSecondOfMinute());
+            Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if (index == 8){
-            c.set(Calendar.DAY_OF_MONTH,0);
-            c.set(Calendar.HOUR_OF_DAY,0);
-            c.set(Calendar.MINUTE,0);
-            c.set(Calendar.SECOND,0);
-            c.set(Calendar.MILLISECOND,0);
-            c.add(Calendar.DAY_OF_YEAR,1);
-            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            DateTime modified = dt.minusDays(dt.get(DateTimeFieldType.dayOfMonth())-1)
+                                  .minusHours(dt.getHourOfDay())
+                                  .minusMinutes(dt.getMinuteOfHour())
+                                  .minusSeconds(dt.getSecondOfMinute());
+            Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if (index == 9){
-            int month = c.get(Calendar.MONTH);
-            if((month+1)%3==2){
-                c.set(Calendar.MONTH,month-1);
+            int month = dt.getMonthOfYear();
+            DateTime modified = dt;
+            if((month+1)%3==1){
+                modified = dt.minusMonths(2);
             }
             else if((month+1)%3==0){
-                c.set(Calendar.MONTH,month-2);
+                modified = dt.minusMonths(1);
             }
-            c.set(Calendar.DAY_OF_MONTH,0);
-            c.set(Calendar.HOUR_OF_DAY,0);
-            c.set(Calendar.MINUTE,0);
-            c.set(Calendar.SECOND,0);
-            c.set(Calendar.MILLISECOND,0);
-            c.add(Calendar.DAY_OF_YEAR,1);
-            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            DateTime fin = modified.minusDays(dt.get(DateTimeFieldType.dayOfMonth())-1)
+                                   .minusHours(dt.getHourOfDay())
+                                   .minusMinutes(dt.getMinuteOfHour())
+                                   .minusSeconds(dt.getSecondOfMinute());
+            Timestamp ret = new Timestamp(fin.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if (index == 10){
-            c.set(Calendar.MONTH,0);
-            c.set(Calendar.DAY_OF_MONTH,0);
-            c.set(Calendar.HOUR_OF_DAY,0);
-            c.set(Calendar.MINUTE,0);
-            c.set(Calendar.SECOND,0);
-            c.set(Calendar.MILLISECOND,0);
-            c.add(Calendar.DAY_OF_YEAR,1);
-            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            DateTime modified = dt.minusDays(dt.get(DateTimeFieldType.dayOfMonth())-1)
+                                  .minusHours(dt.getHourOfDay())
+                                  .minusMonths(dt.getMonthOfYear()-1)
+                                  .minusMinutes(dt.getMinuteOfHour())
+                                  .minusSeconds(dt.getSecondOfMinute());
+            Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if (index == 11){
-            int year = c.get(Calendar.YEAR);
-            c.set(Calendar.YEAR,year-(year%10));
-            c.set(Calendar.MONTH,0);
-            c.set(Calendar.DAY_OF_MONTH,0);
-            c.set(Calendar.HOUR_OF_DAY,0);
-            c.set(Calendar.MINUTE,0);
-            c.set(Calendar.SECOND,0);
-            c.set(Calendar.MILLISECOND,0);
-            c.add(Calendar.DAY_OF_YEAR,1);
-            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            DateTime modified = dt.minusDays(dt.get(DateTimeFieldType.dayOfMonth())-1)
+                                  .minusYears(dt.getYear()%10)
+                                  .minusHours(dt.getHourOfDay())
+                                  .minusMonths(dt.getMonthOfYear()-1)
+                                  .minusMinutes(dt.getMinuteOfHour())
+                                  .minusSeconds(dt.getSecondOfMinute());
+            Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if (index == 12){
-            int year = c.get(Calendar.YEAR);
-            c.set(Calendar.YEAR,year-(year%100));
-            c.set(Calendar.MONTH,0);
-            c.set(Calendar.DAY_OF_MONTH,0);
-            c.set(Calendar.HOUR_OF_DAY,0);
-            c.set(Calendar.MINUTE,0);
-            c.set(Calendar.SECOND,0);
-            c.set(Calendar.MILLISECOND,0);
-            c.add(Calendar.DAY_OF_YEAR,1);
-            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            DateTime modified = dt.minusDays(dt.get(DateTimeFieldType.dayOfMonth())-1)
+                                  .minusHours(dt.getHourOfDay())
+                                  .minusYears(dt.getYear()%100)
+                                  .minusMonths(dt.getMonthOfYear()-1)
+                                  .minusMinutes(dt.getMinuteOfHour())
+                                  .minusSeconds(dt.getSecondOfMinute());
+            Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else {
-            int year = c.get(Calendar.YEAR);
-            c.set(Calendar.YEAR,year-(year%1000));
-            c.set(Calendar.MONTH,0);
-            c.set(Calendar.DAY_OF_MONTH,0);
-            c.set(Calendar.HOUR_OF_DAY,0);
-            c.set(Calendar.MINUTE,0);
-            c.set(Calendar.SECOND,0);
-            c.set(Calendar.MILLISECOND,0);
-            c.add(Calendar.DAY_OF_YEAR,1);
-            Timestamp ret = new Timestamp(c.getTimeInMillis());
+            DateTime modified = dt.minusDays(dt.get(DateTimeFieldType.dayOfMonth())-1)
+                                  .minusYears(dt.getYear()%1000)
+                                  .minusHours(dt.getHourOfDay())
+                                  .minusMonths(dt.getMonthOfYear()-1)
+                                  .minusMinutes(dt.getMinuteOfHour())
+                                  .minusSeconds(dt.getSecondOfMinute());
+            Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
