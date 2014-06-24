@@ -139,100 +139,100 @@ public class SpliceDateFunctions {
 
         }
         else if (index == 4){
-            DateTime modified = dt.secondOfMinute().roundFloorCopy();
+            DateTime modified = dt.minusSeconds(dt.getSecondOfMinute());
             Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if(index == 5){
-            DateTime modified = dt.minuteOfHour().roundFloorCopy()
-                                  .secondOfMinute().roundFloorCopy();
+            DateTime modified = dt.minusMinutes(dt.getMinuteOfHour())
+                                  .minusSeconds(dt.getSecondOfMinute());
             Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if (index == 6){
-            DateTime modified = dt.hourOfDay().roundFloorCopy()
-                                .minuteOfHour().roundFloorCopy()
-                                .secondOfMinute().roundFloorCopy();
+            DateTime modified = dt.minusHours(dt.getHourOfDay())
+                                  .minusMinutes(dt.getMinuteOfHour())
+                                  .minusSeconds(dt.getSecondOfMinute());
             Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if (index == 7){
-            DateTime modified = dt.dayOfWeek().roundFloorCopy()
-                                  .hourOfDay().roundFloorCopy()
-                                  .minuteOfHour().roundFloorCopy()
-                                  .secondOfMinute().roundFloorCopy();
+            DateTime modified = dt.minusDays(dt.getDayOfWeek())
+                                  .minusHours(dt.getHourOfDay())
+                                  .minusMinutes(dt.getMinuteOfHour())
+                                  .minusSeconds(dt.getSecondOfMinute());
             Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if (index == 8){
-            DateTime modified = dt.dayOfMonth().roundFloorCopy()
-                                  .dayOfWeek().roundFloorCopy()
-                                  .hourOfDay().roundFloorCopy()
-                                  .minuteOfHour().roundFloorCopy()
-                                  .secondOfMinute().roundFloorCopy();
+            DateTime modified = dt.minusDays(dt.get(DateTimeFieldType.dayOfMonth())-1)
+                                  .minusHours(dt.getHourOfDay())
+                                  .minusMinutes(dt.getMinuteOfHour())
+                                  .minusSeconds(dt.getSecondOfMinute());
             Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if (index == 9){
             int month = dt.getMonthOfYear();
-            if((month+1)%3==2){
-               DateTime modified = dt.minusMonths(1);
+            DateTime modified = dt;
+            if((month+1)%3==1){
+                modified = dt.minusMonths(2);
             }
             else if((month+1)%3==0){
-                DateTime modified = dt.minusMonths(2);
+                modified = dt.minusMonths(1);
             }
-            DateTime modified = dt.dayOfMonth().roundFloorCopy()
-                                  .hourOfDay().roundFloorCopy()
-                                  .minuteOfHour().roundFloorCopy()
-                                  .secondOfMinute().roundFloorCopy();
-            Timestamp ret = new Timestamp(modified.getMillis());
+            DateTime fin = modified.minusDays(dt.get(DateTimeFieldType.dayOfMonth())-1)
+                                   .minusHours(dt.getHourOfDay())
+                                   .minusMinutes(dt.getMinuteOfHour())
+                                   .minusSeconds(dt.getSecondOfMinute());
+            Timestamp ret = new Timestamp(fin.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if (index == 10){
-            DateTime modified = dt.dayOfMonth().roundFloorCopy()
-                                  .hourOfDay().roundFloorCopy()
-                                  .monthOfYear().roundFloorCopy()
-                                  .minuteOfHour().roundFloorCopy()
-                                  .secondOfMinute().roundFloorCopy();
+            DateTime modified = dt.minusDays(dt.get(DateTimeFieldType.dayOfMonth())-1)
+                                  .minusHours(dt.getHourOfDay())
+                                  .minusMonths(dt.getMonthOfYear()-1)
+                                  .minusMinutes(dt.getMinuteOfHour())
+                                  .minusSeconds(dt.getSecondOfMinute());
             Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if (index == 11){
-            DateTime modified = dt.dayOfMonth().roundFloorCopy()
+            DateTime modified = dt.minusDays(dt.get(DateTimeFieldType.dayOfMonth())-1)
                                   .minusYears(dt.getYear()%10)
-                                  .hourOfDay().roundFloorCopy()
-                                  .monthOfYear().roundFloorCopy()
-                                  .minuteOfHour().roundFloorCopy()
-                                  .secondOfMinute().roundFloorCopy();
+                                  .minusHours(dt.getHourOfDay())
+                                  .minusMonths(dt.getMonthOfYear()-1)
+                                  .minusMinutes(dt.getMinuteOfHour())
+                                  .minusSeconds(dt.getSecondOfMinute());
             Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else if (index == 12){
-            DateTime modified = dt.dayOfMonth().roundFloorCopy()
-                                  .hourOfDay().roundFloorCopy()
-                                  .yearOfCentury().roundFloorCopy()
-                                  .monthOfYear().roundFloorCopy()
-                                  .minuteOfHour().roundFloorCopy()
-                                  .secondOfMinute().roundFloorCopy();
+            DateTime modified = dt.minusDays(dt.get(DateTimeFieldType.dayOfMonth())-1)
+                                  .minusHours(dt.getHourOfDay())
+                                  .minusYears(dt.getYear()%100)
+                                  .minusMonths(dt.getMonthOfYear()-1)
+                                  .minusMinutes(dt.getMinuteOfHour())
+                                  .minusSeconds(dt.getSecondOfMinute());
             Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
         }
         else {
-            DateTime modified = dt.dayOfMonth().roundFloorCopy()
+            DateTime modified = dt.minusDays(dt.get(DateTimeFieldType.dayOfMonth())-1)
                                   .minusYears(dt.getYear()%1000)
-                                  .hourOfDay().roundFloorCopy()
-                                  .monthOfYear().roundFloorCopy()
-                                  .minuteOfHour().roundFloorCopy()
-                                  .secondOfMinute().roundFloorCopy();
+                                  .minusHours(dt.getHourOfDay())
+                                  .minusMonths(dt.getMonthOfYear()-1)
+                                  .minusMinutes(dt.getMinuteOfHour())
+                                  .minusSeconds(dt.getSecondOfMinute());
             Timestamp ret = new Timestamp(modified.getMillis());
             ret.setNanos(0);
             return ret;
