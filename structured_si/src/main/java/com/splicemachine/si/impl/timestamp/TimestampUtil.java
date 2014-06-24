@@ -86,6 +86,19 @@ public class TimestampUtil {
 		SpliceLogUtils.error(logger, message + " : " + obj, t);		
 	}
 	
+	public static void doClientErrorThrow(Logger logger, String message, Throwable t, Object obj) {
+		if (message == null) message = "";
+		if (obj == null) obj = "";
+		StringBuffer sb = new StringBuffer();
+		String fullMsg = sb.append(message).append(" : ").append(obj).toString();
+		if (t != null) {
+			SpliceLogUtils.logAndThrowRuntime(logger, fullMsg, t);
+		} else {
+			SpliceLogUtils.error(logger, fullMsg);
+			throw new RuntimeException(fullMsg);
+		}
+	}
+	
 	public static void doServerError(Logger logger, String message) {
 		SpliceLogUtils.error(logger, message);		
 	}
