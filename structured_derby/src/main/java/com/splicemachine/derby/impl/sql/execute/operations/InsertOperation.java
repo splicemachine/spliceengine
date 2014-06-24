@@ -77,6 +77,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException{
 				super.init(context);
+				writeInfo.initialize(context);
 				heapConglom = writeInfo.getConglomerateId();
 				pkCols = writeInfo.getPkColumnMap();
 				singleRowResultSet = isSingleRowResultSet();
@@ -197,16 +198,19 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 	        return isRow;
 	    }
 
-//		@Override
-//		public void setActivation(Activation activation) throws StandardException {
-//			super.setActivation(activation);
-//
-////				try {
-////						init(SpliceOperationContext.newContext(activation));
-////				} catch (IOException e) {
-////						throw Exceptions.parseException(e);
-////				}
-//		}
+		@Override
+		public void setActivation(Activation activation) throws StandardException {
+			super.setActivation(activation);
+
+				SpliceOperationContext context = SpliceOperationContext.newContext(activation);
+				writeInfo.initialize(context);
+				heapConglom = writeInfo.getConglomerateId();
+				pkCols = writeInfo.getPkColumnMap();
+				singleRowResultSet = isSingleRowResultSet();
+				autoIncrementRowLocationArray = writeInfo.getConstantAction() != null &&
+								((InsertConstantOperation) writeInfo.getConstantAction()).getAutoincRowLocation() != null?
+								((InsertConstantOperation) writeInfo.getConstantAction()).getAutoincRowLocation():new RowLocation[0];
+		}
 
 		@Override
 		public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
