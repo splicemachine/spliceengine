@@ -26,6 +26,9 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.monitor.ModuleFactory;
+import org.apache.derby.iapi.services.monitor.Monitor;
+import org.apache.derby.iapi.services.property.PropertyUtil;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.conn.ConnectionUtil;
@@ -34,6 +37,7 @@ import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SPSDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecPreparedStatement;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLBoolean;
@@ -1022,6 +1026,135 @@ public class SpliceAdmin {
     	} catch (StandardException se) {
     		throw PublicAPI.wrapStandardException(se);
     	}
+    }
+
+    /**
+     * Get the values of all properties for the current connection.
+     *
+     *  @param rs array of result set objects that contains all of the defined properties
+     *            for the JVM, service, database, and app.
+     *
+     * @exception  StandardException  Standard exception policy.
+     **/
+    public static void SYSCS_GET_ALL_PROPERTIES(ResultSet[] rs) throws SQLException
+    {
+    	try {
+    		LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+    		TransactionController tc = lcc.getTransactionExecute();
+
+    		// Fetch all the properties.
+    		Properties jvmProps = addTypeToProperties(System.getProperties(), "JVM", true);
+    		Properties dbProps = addTypeToProperties(tc.getProperties());  // Includes both database and service properties.
+    		ModuleFactory monitor = Monitor.getMonitorLite();
+    		Properties appProps = addTypeToProperties(monitor.getApplicationProperties(), "APP", false);
+
+    		// Merge the properties using the correct search order.
+    		// SEARCH ORDER: JVM, Service, Database, App
+    		appProps.putAll(dbProps);  // dbProps already has been overwritten with service properties.
+    		appProps.putAll(jvmProps);
+    		ArrayList<ExecRow> rows = new ArrayList<ExecRow>(appProps.size());
+
+    		// Describe the format of the input rows (ExecRow).
+    		//
+    		// Columns of "virtual" row:
+    		//   KEY			VARCHAR
+    		//   VALUE			VARCHAR
+    		//   TYPE			VARCHAR (JVM, SERVICE, DATABASE, APP)
+    		DataValueDescriptor[] dvds = new DataValueDescriptor[] {
+    				new SQLVarchar(),
+    				new SQLVarchar(),
+    				new SQLVarchar()
+    		};
+    		int numCols = dvds.length;
+    		ExecRow dataTemplate = new ValueRow(numCols);
+    		dataTemplate.setRowArray(dvds);
+
+    		// Transform the properties into rows.
+    		for (Iterator iter = appProps.entrySet().iterator(); iter.hasNext(); )
+    		{
+    			Map.Entry prop = (Map.Entry) iter.next();
+    			String key = (String) prop.getKey();
+    			String[] typedValue = (String[]) prop.getValue();
+    			dvds[0].setValue(key);
+    			dvds[1].setValue(typedValue[0]);
+    			dvds[2].setValue(typedValue[1]);
+    			rows.add(dataTemplate.getClone());
+    		}
+
+    		// Describe the format of the output rows (ResultSet).
+    		ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[numCols];
+    		columnInfo[0] = new GenericColumnDescriptor("KEY", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 50));
+    		columnInfo[1] = new GenericColumnDescriptor("VALUE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40));
+    		columnInfo[2] = new GenericColumnDescriptor("TYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 10));
+    		EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+    		Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+    		IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo, lastActivation);
+    		resultsToWrap.openCore();
+    		EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap, false, null, true);
+    		rs[0] = ers;
+    	} catch (StandardException se) {
+    		throw PublicAPI.wrapStandardException(se);
+    	}
+    }
+
+    /**
+     * Tag each property value with a 'type'.  The structure of the map changes from:
+     *     {key --> value}
+     * to:
+     *     {key --> [value, type]}
+     *
+     * @param props				Map of properties to tag with type
+     * @param type				Type of property (JVM, SERVICE, DATABASE, APP, etc.)
+     * @param derbySpliceOnly	If true, only include properties with keys that start with "derby" or "splice".
+     *
+     * @return the new map of typed properties
+     */
+    private static Properties addTypeToProperties(Properties props, String type, boolean derbySpliceOnly) {
+    	Properties typedProps = new Properties();
+    	if (props != null) {
+    		for (Iterator iter = props.entrySet().iterator(); iter.hasNext(); )
+    		{
+    			Map.Entry prop = (Map.Entry) iter.next();
+    			String key = (String) prop.getKey();
+    			if (derbySpliceOnly && key != null) {
+    				String lowerKey = key.toLowerCase();
+    				if (!lowerKey.startsWith("derby") && !lowerKey.startsWith("splice")) {
+    					continue;
+    				}
+    			}
+    			String[] typedValue = new String[2];
+    			typedValue[0] = (String) prop.getValue();
+    			typedValue[1] = type;
+    			typedProps.put(key, typedValue);
+    		}
+    	}
+    	return typedProps;
+    }
+
+    /**
+     * Tag each property value with a 'type' of SERVICE or DATABASE.  The structure of the map changes from:
+     *     {key --> value}
+     * to:
+     *     {key --> [value, type]}
+     *
+     * @param props  Map of properties to tag with type
+     *
+     * @return the new map of typed properties
+     */
+    private static Properties addTypeToProperties(Properties props) {
+    	Properties typedProps = new Properties();
+    	if (props != null) {
+    		for (Iterator iter = props.entrySet().iterator(); iter.hasNext(); )
+    		{
+    			Map.Entry prop = (Map.Entry) iter.next();
+    			String key = (String) prop.getKey();
+    			String[] typedValue = new String[2];
+    			typedValue[0] = (String) prop.getValue();
+    			typedValue[1] = PropertyUtil.isServiceProperty(key) ? "SERVICE" : "DATABASE";
+    			typedProps.put(key, typedValue);
+    		}
+    	}
+    	return typedProps;
     }
 
     public static void getActiveTasks() throws MasterNotRunningException, ZooKeeperConnectionException {

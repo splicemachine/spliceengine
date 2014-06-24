@@ -46,6 +46,7 @@ public class PropertyConglomerate {
 	protected Properties serviceProperties;
 	protected Properties loadedProperties;
 	private Dictionary	cachedSet;
+	private Dictionary	cachedStoreSet;
 	private PropertyFactory  pf;
 
     /* Constructors for This class: */
@@ -86,13 +87,17 @@ public class PropertyConglomerate {
                     conglomProperties, 
                     TransactionController.IS_DEFAULT);
 
+			//
+			// IMPORTANT: Hey, you!  Yeah, you!  Before you think about adding another "service" property default here,
+			// make sure that you add it to PropertyUtil.servicePropertyList.  If you don't, you will never be able to override the default.  Ouch!
+			//
 			serviceProperties.put(Property.PROPERTIES_CONGLOM_ID, Long.toString(propertiesConglomId));
-			serviceProperties.put("derby.storage.rowLocking", "false");
+			serviceProperties.put(Property.ROW_LOCKING, "false");
 			serviceProperties.put("derby.language.logStatementText", "false");
 			serviceProperties.put("derby.language.logQueryPlan", "false");
-			serviceProperties.put("derby.locks.escalationThreshold", "500");
-			serviceProperties.put("derby.database.propertiesOnly", "false");
-			serviceProperties.put("derby.database.defaultConnectionMode", "fullAccess");
+			serviceProperties.put(Property.LOCKS_ESCALATION_THRESHOLD, "500");
+			serviceProperties.put(Property.DATABASE_PROPERTIES_ONLY, "false");
+			serviceProperties.put(Property.DEFAULT_CONNECTION_MODE_PROPERTY, "fullAccess");
 			for (Object key: serviceProperties.keySet()) {
 				SpliceUtils.addProperty((String)key, serviceProperties.getProperty((String)key));
 			}
@@ -111,7 +116,7 @@ public class PropertyConglomerate {
 		PC_XenaVersion softwareVersion = new PC_XenaVersion();
 		if (create)
 			setProperty(tc,DataDictionary.PROPERTY_CONGLOMERATE_VERSION,softwareVersion, true);
-		getCachedDbProperties(tc);
+		getCachedProperties(tc);
 	}
 
     /* Private/Protected methods of This class: */
@@ -420,7 +425,7 @@ public class PropertyConglomerate {
     public Serializable getCachedProperty(TransactionController tc, String key) throws StandardException {
 		//
 		//Get the cached set of properties.
-		Dictionary dbProps = getCachedDbProperties(tc);
+		Dictionary dbProps = getCachedProperties(tc);
 
 		//
 		//Return the value if it is defined.
@@ -433,7 +438,7 @@ public class PropertyConglomerate {
     public Serializable getCachedPropertyDefault(TransactionController tc, String key, Dictionary dbProps) throws StandardException {
 		//
 		//Get the cached set of properties.
-		if (dbProps == null) dbProps = getCachedDbProperties(tc);
+		if (dbProps == null) dbProps = getCachedProperties(tc);
 		//
 		//return the default for the value if it is defined.
 		Dictionary defaults = (Dictionary)dbProps.get(AccessFactoryGlobals.DEFAULT_PROPERTY_NAME);
@@ -519,26 +524,81 @@ public class PropertyConglomerate {
 	public void getProperties(TransactionController tc, Dictionary d, boolean stringsOnly, boolean defaultsOnly) throws StandardException {
 		// See if I'm the exclusive owner. If so I cannot populate
 		// the cache as it would contain my uncommitted changes.
-		Dictionary dbProps = getCachedDbProperties(tc);
-		Dictionary defaults = (Dictionary)dbProps.get(AccessFactoryGlobals.DEFAULT_PROPERTY_NAME);
+		Dictionary props = getCachedProperties(tc);
+		Dictionary defaults = (Dictionary)props.get(AccessFactoryGlobals.DEFAULT_PROPERTY_NAME);
 		copyValues(d,defaults,stringsOnly);
 		if (!defaultsOnly)
-			copyValues(d,dbProps,stringsOnly);
-		
-//			Dictionary dbProps = readDbProperties(tc);
-//			Dictionary defaults = (Dictionary)dbProps.get(AccessFactoryGlobals.DEFAULT_PROPERTY_NAME);
-//			copyValues(d,defaults,stringsOnly);
-//			if (!defaultsOnly)copyValues(d,dbProps,stringsOnly);
-		
+			copyValues(d,props,stringsOnly);
 	}
 
-	public void resetCache() {cachedSet = null;}
+	/**
+	 * Fetch the set of store properties as a Properties object. This means
+	 * that only keys that have String values will be included.
+	 */
+	public Properties getStoreProperties(TransactionController tc) throws StandardException {
 
-	/** Read the database properties and add in the service set. */
-	public Dictionary readDbProperties(TransactionController tc) throws StandardException {
+		Properties p = new Properties();
+		getStoreProperties(tc,p,true/*stringsOnly*/,false/*!defaultsOnly*/);		
+		return p;
+	}
+
+	public void getStoreProperties(TransactionController tc, Dictionary d, boolean stringsOnly, boolean defaultsOnly) throws StandardException {
+		// See if I'm the exclusive owner. If so I cannot populate
+		// the cache as it would contain my uncommitted changes.
+		Dictionary props = getCachedStoreProperties(tc);
+		Dictionary defaults = (Dictionary)props.get(AccessFactoryGlobals.DEFAULT_PROPERTY_NAME);
+		copyValues(d,defaults,stringsOnly);
+		if (!defaultsOnly)
+			copyValues(d,props,stringsOnly);
+	}
+
+	/**
+	 * Fetch the set of service properties as a Properties object. This means
+	 * that only keys that have String values will be included.
+	 */
+	public Properties getServiceProperties(TransactionController tc) throws StandardException {
+
+		Properties p = new Properties();
+		getServiceProperties(tc,p,true/*stringsOnly*/,false/*!defaultsOnly*/);		
+		return p;
+	}
+
+	public void getServiceProperties(TransactionController tc, Dictionary d, boolean stringsOnly, boolean defaultsOnly) throws StandardException {
+		// See if I'm the exclusive owner. If so I cannot populate
+		// the cache as it would contain my uncommitted changes.
+		Dictionary props = getCachedServiceProperties(tc);
+		Dictionary defaults = (Dictionary)props.get(AccessFactoryGlobals.DEFAULT_PROPERTY_NAME);
+		copyValues(d,defaults,stringsOnly);
+		if (!defaultsOnly)
+			copyValues(d,props,stringsOnly);
+	}
+
+	void resetCache() {cachedSet = null;}
+
+	/** Read the database (store) properties and add in the service set. */
+	private Dictionary readProperties(TransactionController tc) throws StandardException {
+		Dictionary set = readStoreProperties(tc);
+
+		// add the known properties from the service properties set
+		Dictionary serviceSet = readServiceProperties(tc);
+		for (Enumeration e = serviceSet.keys(); e.hasMoreElements();) {
+			Object key = e.nextElement();
+			set.put(key, serviceSet.get(key));
+		}
+
+		return set;
+	}
+
+	/**
+	 * Read the database properties from the store.  (Do not read the service properties.)
+	 * @param tc
+	 * @return set
+	 * @throws StandardException
+	 */
+	private Dictionary readStoreProperties(TransactionController tc) throws StandardException {
 		Dictionary set = new Hashtable();
 
-        // scan the table for a row with no matching "key"
+		// scan the table for a row with no matching "key"
 		ScanController scan = openScan(tc, (String) null, 0);
 
 		DataValueDescriptor[] row = makeNewTemplate();
@@ -554,6 +614,17 @@ public class PropertyConglomerate {
 			set.put(key, value);
 		}
 		scan.close();
+		return set;
+	}
+
+	/**
+	 * Read only the service properties from the store.
+	 * @param tc
+	 * @return set
+	 * @throws StandardException
+	 */
+	private Dictionary readServiceProperties(TransactionController tc) throws StandardException {
+		Dictionary set = new Hashtable();
 
 		// add the known properties from the service properties set
 		for (int i = 0; i < PropertyUtil.servicePropertyList.length; i++) {
@@ -564,20 +635,36 @@ public class PropertyConglomerate {
 		return set;
 	}
 
-	public Dictionary getCachedDbProperties(TransactionController tc) throws StandardException {
-		Dictionary dbProps = cachedSet;
-		//Get the cached set of properties.
-		if (dbProps == null) {
-			dbProps = readDbProperties(tc);
-			cachedSet = dbProps;
+	private Dictionary getCachedProperties(TransactionController tc) throws StandardException {
+		Dictionary props = cachedSet;
+		// Get the cached set of properties.
+		if (props == null) {
+			props = readProperties(tc);
+			cachedSet = props;
 		}
-		return dbProps;
+		return props;
 	}
 
+	private Dictionary getCachedStoreProperties(TransactionController tc) throws StandardException {
+		Dictionary props = cachedStoreSet;
+		// Get the cached set of store properties.
+		if (props == null) {
+			props = readStoreProperties(tc);
+			cachedStoreSet = props;
+		}
+		return props;
+	}
+
+	private Dictionary getCachedServiceProperties(TransactionController tc) throws StandardException {
+		// Just call the read method since the service properties are loaded in the constructor
+		// and its durable storage (ZooKeeper, in Splice's case) is considered immutable at this time.
+		// This is most likely due to the history of Derby's service.properties file where these
+		// service properties lived in the past and it would have been difficult to update this file previously.
+		// In the future, Splice may allow for updates to the service properties within ZooKeeper.
+		return readServiceProperties(tc);
+	}
 }
 
 /**
 	Only used for exclusive lock purposes.
 */
-
-

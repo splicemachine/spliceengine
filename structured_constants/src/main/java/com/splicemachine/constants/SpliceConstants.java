@@ -131,6 +131,11 @@ public class SpliceConstants {
 		@DefaultValue(TRANSACTION_PATH) public static final String DEFAULT_TRANSACTION_PATH = "/transactions";
 		public static String zkSpliceTransactionPath;
 
+		/**
+		 * The Path in zookeeper for storing the maximum reserved timestamp
+		 * from the SpliceTimestampSource implementation.
+		 * Defaults to /transactions/maxReservedTimestamp
+		 */
 		@Parameter public static final String MAX_RESERVED_TIMESTAMP_PATH = "splice.max_reserved_timestamp_node";
 		@DefaultValue(MAX_RESERVED_TIMESTAMP_PATH) public static final String DEFAULT_MAX_RESERVED_TIMESTAMP_PATH = "/transactions/maxReservedTimestamp";
 		public static String zkSpliceMaxReservedTimestampPath;
@@ -215,6 +220,22 @@ public class SpliceConstants {
 		@Parameter public static final String TIMESTAMP_SERVER_BIND_PORT = "splice.timestamp_server.port";
 		@DefaultValue(TIMESTAMP_SERVER_BIND_PORT) public static final int DEFAULT_TIMESTAMP_SERVER_BIND_PORT = 60012;
 		public static int timestampServerBindPort;
+
+		/**
+		 * The number of timestamps to 'reserve' at a time in the Timestamp Server.
+		 * Defaults to 10000
+		 */
+		@Parameter public static final String TIMESTAMP_BLOCK_SIZE = "splice.timestamp_server.blocksize";
+		@DefaultValue(TIMESTAMP_BLOCK_SIZE) public static final int DEFAULT_TIMESTAMP_BLOCK_SIZE = 10000;
+		public static int timestampBlockSize;
+
+		/**
+		 * The number of milliseconds the timestamp client should wait for the response.
+		 * Defaults to 10000 (10 seconds)
+		 */
+		@Parameter public static final String TIMESTAMP_CLIENT_WAIT_TIME = "splice.timestamp_server.clientWaitTime";
+		@DefaultValue(TIMESTAMP_CLIENT_WAIT_TIME) public static final int DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME = 10000;
+		public static int timestampClientWaitTime;
 
     /*Task and Job management*/
 		/**
@@ -647,15 +668,6 @@ public class SpliceConstants {
 		public static final double DEFAULT_DEBUG_TASK_FAILURE_RATE= 0.1; //fail 10% of tasks when enabled
 
 		/**
-		 * When enabled, will update the data dictionary with all system stored procedures defined in the Splice jar.
-		 * If a system stored procedure already exists in the data dictionary, it will be dropped and then created again.
-		 *
-		 * Defaults to false (off)
-		 */
-		@Parameter public static final String UPDATE_SYSTEM_PROCS ="splice.updateSystemProcs";
-		public static boolean updateSystemProcs;
-
-		/**
 		 * When enabled, will collect timing stats for TableScans, Index lookups, and a few other
 		 * things, and log those results to JMX and/or a logger.
 		 *
@@ -886,6 +898,8 @@ public class SpliceConstants {
 				derbyBindPort = config.getInt(DERBY_BIND_PORT, DEFAULT_DERBY_BIND_PORT);
 				timestampServerBindAddress = config.get(TIMESTAMP_SERVER_BIND_ADDRESS, DEFAULT_TIMESTAMP_SERVER_BIND_ADDRESS);
 				timestampServerBindPort = config.getInt(TIMESTAMP_SERVER_BIND_PORT, DEFAULT_TIMESTAMP_SERVER_BIND_PORT);
+				timestampBlockSize = config.getInt(TIMESTAMP_BLOCK_SIZE, DEFAULT_TIMESTAMP_BLOCK_SIZE);
+				timestampClientWaitTime = config.getInt(TIMESTAMP_CLIENT_WAIT_TIME, DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME);
 				operationTaskPriority = config.getInt(OPERATION_PRIORITY, DEFAULT_OPERATION_PRIORITY);
 				importTaskPriority = config.getInt(IMPORT_TASK_PRIORITY, DEFAULT_IMPORT_TASK_PRIORITY);
 				tablePoolMaxSize = config.getInt(POOL_MAX_SIZE,DEFAULT_POOL_MAX_SIZE);
@@ -981,8 +995,6 @@ public class SpliceConstants {
 
 				long regionMaxFileSize = config.getLong(HConstants.HREGION_MAX_FILESIZE,HConstants.DEFAULT_MAX_FILE_SIZE);
 				tempTableMaxFileSize = config.getLong(TEMP_MAX_FILE_SIZE,100*1024 * 1024 * 1024L); // 100 Gigs...
-
-				updateSystemProcs = Boolean.getBoolean(UPDATE_SYSTEM_PROCS);
 
 				collectStats = config.getBoolean(COLLECT_PERF_STATS,DEFAULT_COLLECT_STATS);
 				pause = config.getLong(CLIENT_PAUSE,DEFAULT_CLIENT_PAUSE);

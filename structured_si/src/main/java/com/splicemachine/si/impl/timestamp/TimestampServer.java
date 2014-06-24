@@ -8,21 +8,26 @@ import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.ChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
 
-public class TimestampServer implements Runnable {
+public class TimestampServer {
     private static final Logger LOG = Logger.getLogger(TimestampServer.class);
 
+	/**
+	 * Fixed number of bytes in the message we expect to receive from the client.
+	 */
+	static final int FIXED_MSG_RECEIVED_LENGTH = 4; // 4 byte client id
+	
+	/**
+	 * Fixed number of bytes in the message we expect to send back to the client.
+	 */
+	static final int FIXED_MSG_SENT_LENGTH = 12; // 4 byte client id + 8 byte timestamp
+	
 	private RecoverableZooKeeper _rzk;
 	private int _port;
 	
 	public TimestampServer(int port, RecoverableZooKeeper rzk) {
 		_port = port;
 		_rzk = rzk;
-	}
-	
-	public void run() {
-		startServer();
 	}
 	
     public void startServer() {
@@ -38,13 +43,17 @@ public class TimestampServer implements Runnable {
     	// Instantiate handler once and share it
     	final TimestampServerHandler handler = new TimestampServerHandler(_rzk);
     	
-        //final ThreadPoolExecutor pipelineExecutor = new OrderedMemoryAwareThreadPoolExecutor(
-    	//	5 /* threads */, 1048576, 1073741824,
-        //    100, TimeUnit.MILLISECONDS, // Default would have been 30 SECONDS
-        //    Executors.defaultThreadFactory());
-
+    	// If we end up needing to use one of the memory aware executors,
+    	// do so with code like this (leave commented out for reference).
+    	// But for now we can use the 'lite' implementation.
+    	//
+        // final ThreadPoolExecutor pipelineExecutor = new OrderedMemoryAwareThreadPoolExecutor(
+    	//     5 /* threads */, 1048576, 1073741824,
+        //     100, TimeUnit.MILLISECONDS, // Default would have been 30 SECONDS
+        //     Executors.defaultThreadFactory());
         // bootstrap.setPipelineFactory(new TimestampPipelineFactory(pipelineExecutor, handler));
-        bootstrap.setPipelineFactory(new TimestampPipelineFactoryLite(handler));
+
+    	bootstrap.setPipelineFactory(new TimestampPipelineFactoryLite(handler));
         
         bootstrap.setOption("tcpNoDelay", false);
         // bootstrap.setOption("child.sendBufferSize", 1048576);
@@ -62,35 +71,4 @@ public class TimestampServer implements Runnable {
 	protected int getPortNumber() {
 		return _port;
 	}
-	
-    // Only used by main method when testing
-    /*
-    private static final int numZkRetries = 3;
-    private static final int zkRetryPauseMs = 1000;
-    private static final int zkSessionTimeoutMs = 10000;
-
-    private static RecoverableZooKeeper getZooKeeper()  {
-        try {
-        	RecoverableZooKeeper rzk = new RecoverableZooKeeper(
-            	"localhost:2181",
-            	TimestampServer.zkSessionTimeoutMs,
-            	new Watcher() {
-            		@Override
-            		public void process(WatchedEvent watchedEvent) {
-            			// System.out.println(watchedEvent);
-            		}
-            	},
-            	TimestampServer.numZkRetries,
-            	TimestampServer.zkRetryPauseMs);
-        	return rzk;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static void main(String[] args) throws Exception {
-    	new Thread(new TimestampServer(getZooKeeper())).start();
-    	Thread.sleep(10000);
-    }
-    */
 }
