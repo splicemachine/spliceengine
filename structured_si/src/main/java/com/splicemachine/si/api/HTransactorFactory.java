@@ -12,7 +12,6 @@ import com.splicemachine.si.impl.*;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.si.jmx.TransactorStatus;
 import com.splicemachine.si.txn.SpliceTimestampSource;
-import com.splicemachine.si.txn.ZooKeeperStatTimestampSource;
 import com.splicemachine.utils.Provider;
 import com.splicemachine.utils.Providers;
 import com.splicemachine.utils.ZkUtils;
@@ -118,7 +117,7 @@ public class HTransactorFactory extends SIConstants {
 								return;
 						}
 
-						// TODO: permanently purge this later (leave commented out for now while we test more)
+						// Left here commented out for reference, but as of 0.5.1 we no longer use ZooKeeperStatTimestampSource.
 						// TimestampSource timestampSource = new ZooKeeperStatTimestampSource(ZkUtils.getRecoverableZooKeeper(),zkSpliceTransactionPath);
 						TimestampSource timestampSource = new SpliceTimestampSource(ZkUtils.getRecoverableZooKeeper());
 						BetterHTablePool hTablePool = new BetterHTablePool(new SpliceHTableFactory(),

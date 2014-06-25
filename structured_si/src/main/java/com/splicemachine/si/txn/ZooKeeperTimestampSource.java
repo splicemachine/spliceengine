@@ -3,6 +3,7 @@ package com.splicemachine.si.txn;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
+
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.AsyncCallback;
@@ -10,6 +11,10 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
+/**
+ * @deprecated No longer supported. Will throw runtime exception if used.
+ * Use {@link SpliceTimestampSource} instead.
+ */
 public class ZooKeeperTimestampSource implements TimestampSource {
     private static Logger LOG = Logger.getLogger(ZooKeeperTimestampSource.class);
     protected RecoverableZooKeeper rzk;

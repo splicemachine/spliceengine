@@ -76,9 +76,9 @@ public abstract class TimestampBaseHandler extends SimpleChannelHandler {
     	super.childChannelClosed(ctx, e);
     }
 
-    protected void ensureReadableBytes(ChannelBuffer buf, int expected) {
+    protected void ensureReadableBytes(ChannelBuffer buf, int expected) throws TimestampIOException {
  		if (buf.readableBytes() != expected) {
- 			throw new RuntimeException("Invalid number of readable bytes " + buf.readableBytes() +
+ 			throw new TimestampIOException("Invalid number of readable bytes " + buf.readableBytes() +
 				" where " + expected + " was expected.");
  		};
     }

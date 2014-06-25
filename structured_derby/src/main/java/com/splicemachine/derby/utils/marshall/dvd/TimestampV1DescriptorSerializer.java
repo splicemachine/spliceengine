@@ -26,12 +26,12 @@ class TimestampV1DescriptorSerializer extends AbstractTimeDescriptorSerializer {
 
 		@Override
 		public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
-			fieldEncoder.encodeNext(toLong(dvd.getTimestamp(getCalendar())),desc);
+			fieldEncoder.encodeNext(toLong(dvd.getTimestamp(null)),desc);
 		}
 
 		@Override
 		public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
-				return Encoding.encode(toLong(dvd.getTimestamp(getCalendar())), desc);
+				return Encoding.encode(toLong(dvd.getTimestamp(null)), desc);
 		}
 
 		@Override
