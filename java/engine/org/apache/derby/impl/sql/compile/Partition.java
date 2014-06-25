@@ -14,10 +14,13 @@ public class Partition extends GroupByList {
 
     public Partition(GroupByList groupByList) {
         super();
+        setContextManager(groupByList.getContextManager());
+        setNodeType(groupByList.getNodeType());
+        if (groupByList.isRollup()) {
+            setRollup();
+        }
         for (int i=0; i<groupByList.size(); i++) {
             addGroupByColumn(groupByList.getGroupByColumn(i));
-            setContextManager(groupByList.getContextManager());
-            // TODO: what else am I forgetting to set here
         }
     }
 
