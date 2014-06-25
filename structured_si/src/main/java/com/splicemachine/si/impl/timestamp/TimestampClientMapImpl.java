@@ -1,11 +1,10 @@
 package com.splicemachine.si.impl.timestamp;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hadoop.hbase.client.HConnectionManager;
@@ -25,12 +24,16 @@ import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
- * TimestampClient implementation class that keeps track of client calls
- * in a concurrent map. This class should generally not be constructed
- * directly. Rather, {@link TimestampClientFactory} should be used to
- * fetch the appropriate instance.
+ * TimestampClient implementation class that accepts concurrent client requests
+ * (typically from {@link SITransactionManager} and sends them over a shared
+ * connection to the remote {@link TimestampServer}.
+ * <p>
+ * This class should generally not be constructed directly.
+ * Rather, {@link TimestampClientFactory} should be used 
+ * to fetch the appropriate instance.
  * 
  * @author Walt Koetke
  */
@@ -38,18 +41,22 @@ public class TimestampClientMapImpl extends TimestampClient {
 
 	private static final Logger LOG = Logger.getLogger(TimestampClientMapImpl.class);
 
-	private final int CLIENT_COUNTER_INIT = 100; // actual value doesn't matter
+	private static final short CLIENT_COUNTER_INIT = 100; // actual value doesn't matter
 
 	/**
 	 * Fixed number of bytes in the message we expect to receive back from the server.
 	 */
-	private static final int FIXED_MSG_RECEIVED_LENGTH = 12; // 4 byte client id + 8 byte timestamp
+	private static final int FIXED_MSG_RECEIVED_LENGTH = 10; // 2 byte client id + 8 byte timestamp
 	
 	private enum State {
 		DISCONNECTED, CONNECTING, CONNECTED
     };
 
-	private ConcurrentHashMap<Integer, ClientCallback> _clientCallbacks = null;
+    /**
+     * A map representing all currently active callers to this TimestampClient
+     * waiting for their response.
+     */
+	private ConcurrentMap<Short, ClientCallback> _clientCallbacks = null;
 
     private AtomicReference<State> _state = new AtomicReference<State>(State.DISCONNECTED);
 
@@ -59,17 +66,22 @@ public class TimestampClientMapImpl extends TimestampClient {
     
     private ChannelFactory _factory = null;
     
-    private AtomicInteger _clientCallCounter = null;
-    
+	/**
+	 * Internal unique identifier for a single synchronous call to this instance
+	 * of {@link TimestampClient}. Necessary in order to subsequently associate
+	 * a server response with the original request.
+	 */
+    // We might even get away with using a byte here (256 concurrent client calls),
+    // but use a short just in case.
+    private volatile short _clientCallCounter = CLIENT_COUNTER_INIT;
+   
     private int _port;
 
     public TimestampClientMapImpl() {
 
     	_port = SpliceConstants.timestampServerBindPort;
     	
-    	_clientCallbacks = new ConcurrentHashMap<Integer, ClientCallback>();
-    	
-    	_clientCallCounter = new AtomicInteger(CLIENT_COUNTER_INIT);
+    	_clientCallbacks = new ConcurrentHashMap<Short, ClientCallback>();
     	
     	_factory = new NioClientSocketChannelFactory(
 			Executors.newCachedThreadPool(),
@@ -96,7 +108,7 @@ public class TimestampClientMapImpl extends TimestampClient {
     }
 
     protected String getHost() {
-    	String hostName;
+    	String hostName = null;
     	try {
 			/*
 			 * We have to use the deprecated API here because there appears to be no other way to get the host name
@@ -105,8 +117,7 @@ public class TimestampClientMapImpl extends TimestampClient {
 			@SuppressWarnings("deprecation") HMasterInterface master = HConnectionManager.getConnection(SpliceConstants.config).getMaster();
 			hostName = master.getClusterStatus().getMaster().getHostname();
     	} catch (Exception e) {
-    		TimestampUtil.doClientError(LOG, "Unable to determine host name for master.", e);
-    		throw new RuntimeException("Unable to determine host name", e);
+    		TimestampUtil.doClientErrorThrow(LOG, "Unable to determine host name for master.", e, null);
     	}
     	return hostName;
     }
@@ -131,7 +142,7 @@ public class TimestampClientMapImpl extends TimestampClient {
             	return _state.get();
             }
 	
-			TimestampUtil.doClientInfo(LOG, "Attempting to connect to server (port " + getPort() + ")...");
+			TimestampUtil.doClientInfo(LOG, "Attempting to connect to server (host " + getHost() + ", port " + getPort() + ")");
 	
 			ChannelFuture futureConnect = _bootstrap.connect(new InetSocketAddress(getHost(), getPort()));
 			final CountDownLatch latchConnect = new CountDownLatch(1);
@@ -141,8 +152,7 @@ public class TimestampClientMapImpl extends TimestampClient {
  				    	_channel = cf.getChannel();
 						latchConnect.countDown();
 				    } else {
-				    	TimestampUtil.doClientError(LOG, "TimestampClient unable to connect to TimestampServer", cf.getCause());
-				    	throw new RuntimeException("TimestampClient unable to connect to TimestampServer", cf.getCause());
+				    	TimestampUtil.doClientErrorThrow(LOG, "TimestampClient unable to connect to TimestampServer", cf.getCause(), null);
 				    }
 				  }
 				}
@@ -166,42 +176,46 @@ public class TimestampClientMapImpl extends TimestampClient {
 
     	connectIfNeeded();
     	
-    	int clientCallId = _clientCallCounter.incrementAndGet();
+    	short clientCallId = incrementClientCounter();
     	final ClientCallback callback = new ClientCallback(clientCallId);
-    	TimestampUtil.doClientDebug(LOG, "Starting new client call", callback);
+    	TimestampUtil.doClientDebug(LOG, "Starting new client call with id " + clientCallId);
     	
-    	try {
-    	    // Don't need to synchronize because _clientCallbacks is implicitly synchronized.
-    		// Should we check whether it already exists in the map?
-    		_clientCallbacks.put(clientCallId, callback);
-	
+		// Add this caller (id and callback) to the map of current clients.
+		// If an entry was already present for this caller id, that is a bug,
+		// so throw an exception.
+		if (_clientCallbacks.putIfAbsent(clientCallId, callback) != null) {
+    		TimestampUtil.doClientErrorThrow(LOG, "Found existing client callback with caller id " + clientCallId +
+				", so unable to process the new call", null, callback);
+		}
+
+		try {
             ChannelBuffer buffer = ChannelBuffers.buffer(4);
-    	    buffer.writeInt(clientCallId);
+    	    buffer.writeShort(clientCallId);
 			TimestampUtil.doClientTrace(LOG, "Writing request message to server", callback);
             ChannelFuture futureWrite = _channel.write(buffer);
 	        futureWrite.addListener(new ChannelFutureListener() {
 	            public void operationComplete(ChannelFuture future) {
 	                if (!future.isSuccess()) {
-	                   callback.error(new IOException("Error writing to socket from timestamp client"));
-	                   throw new RuntimeException("Error writing message from timestamp client to server", future.getCause());
+	                    TimestampUtil.doClientErrorThrow(LOG, "Error writing message from timestamp client to server", future.getCause(), null);
 	                } else {
-	                   TimestampUtil.doClientTrace(LOG, "write to server operation complete", callback);
+	                    TimestampUtil.doClientTrace(LOG, "Request to server complete. Waiting for response.", callback);
 	                }
 	            }
 	        });
     	} catch (Exception e) { // Correct to catch all Exceptions in this case so we can remove client call
-    		TimestampUtil.doClientError(LOG, "Got exception writing to server. Discarding callback", e, callback);
         	_clientCallbacks.remove(clientCallId);
             callback.error(e);
-        	throw new RuntimeException("Error occurred trying to write message to timestamp server", e);
+    		TimestampUtil.doClientErrorThrow(LOG, "Exception writing message to timestamp server", e, callback);
     	}
         
+    	// If we get here, request was successfully sent without exception.
+    	// However, we might not have received response yet, so we need to
+    	// wait for that now.
+    	
 		try {
-			TimestampUtil.doClientTrace(LOG, "Waiting for response from server", callback);
 			callback.await();
 		} catch (InterruptedException e) {
-            TimestampUtil.doClientError(LOG, "Interrupted or expired waiting for timestamp client callback", e, callback);
-        	throw new RuntimeException("Interrupted or expired waiting for timestamp client callback", e);
+            TimestampUtil.doClientErrorThrow(LOG, "Interrupted waiting for timestamp client callback", e, callback);
 		}
     	
 		// If we get here, it should mean the client received the response with the timestamp,
@@ -217,12 +231,16 @@ public class TimestampClientMapImpl extends TimestampClient {
     	return timestamp;
     }
 
+    private synchronized short incrementClientCounter() {
+    	return ++_clientCallCounter;
+    }
+    
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-    	ChannelBuffer buf = (ChannelBuffer)e.getMessage();
+ 		ChannelBuffer buf = (ChannelBuffer)e.getMessage();
  		assert (buf != null);
- 		ensureReadableBytes(buf, 12);
+ 		ensureReadableBytes(buf, FIXED_MSG_RECEIVED_LENGTH);
  		
- 		int clientCallerId = buf.readInt();
+ 		short clientCallerId = buf.readShort();
  		assert (clientCallerId > 0);
  		ensureReadableBytes(buf, 8);
  		
@@ -230,14 +248,16 @@ public class TimestampClientMapImpl extends TimestampClient {
  		assert (timestamp > 0);
  		ensureReadableBytes(buf, 0);
 
- 		TimestampUtil.doClientTrace(LOG, "MessageReceived: clientCallerId = " + clientCallerId + " : timestamp = " + timestamp);
+ 		TimestampUtil.doClientDebug(LOG, "Response from server: clientCallerId = " + clientCallerId + ", timestamp = " + timestamp);
  		ClientCallback cb = _clientCallbacks.remove(clientCallerId);
         if (cb == null) {
-        	TimestampUtil.doClientError(LOG, "No client callback was found even though client " + clientCallerId +
-        	    "received a timestamp: " + timestamp);
-        	throw new RuntimeException("No client callback was found even though client received a timestamp: " + timestamp);
+        	TimestampUtil.doClientErrorThrow(LOG, "Client callback with id " + clientCallerId +
+        	    " not found, so unable to deliver timestamp " + timestamp, null, null);
         }
 
+        // This releases the latch the original client thread is waiting for
+        // (to provide the synchronous behavior for that caller) and also
+        // provides the timestamp.
         cb.complete(timestamp);
         
         super.messageReceived(ctx,  e);
