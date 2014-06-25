@@ -42,9 +42,6 @@ public class SpliceDateFunctionTest {
         Date date4 = new Date(formatter.parse("2014/06/27").getTime());
         Date date5 = new Date(formatter.parse("2014/05/12").getTime());
         Date date6 = new Date(formatter.parse("2014/05/17").getTime());
-        System.out.println(com.splicemachine.derby.utils.SpliceDateFunctions.NEXT_DAY(date1,"wednesday")+ "should be "+date3);
-        System.out.println(com.splicemachine.derby.utils.SpliceDateFunctions.NEXT_DAY(date1,"sunday")+ "should be "+date2);
-        System.out.println(com.splicemachine.derby.utils.SpliceDateFunctions.NEXT_DAY(date1,"friday")+ "should be "+date4);
         Assert.assertEquals(date3,com.splicemachine.derby.utils.SpliceDateFunctions.NEXT_DAY(date1,"wednesday"));
         Assert.assertEquals(date2,com.splicemachine.derby.utils.SpliceDateFunctions.NEXT_DAY(date1,"sunday"));
         Assert.assertEquals(date4,com.splicemachine.derby.utils.SpliceDateFunctions.NEXT_DAY(date1,"friday"));
@@ -74,7 +71,6 @@ public class SpliceDateFunctionTest {
         System.out.println("the date is now "+ date);
         String format = "MM/dd/yyyy";
         String compare = "06/24/2014";
-        System.out.println(com.splicemachine.derby.utils.SpliceDateFunctions.TO_CHAR(date, format)+ "should be "+ compare);
         org.junit.Assert.assertEquals(compare,com.splicemachine.derby.utils.SpliceDateFunctions.TO_CHAR(date, format));
     }
     @Test
@@ -87,12 +83,6 @@ public class SpliceDateFunctionTest {
         Timestamp date4 = new Timestamp(formatter.parse("2014/01/01").getTime());
         Timestamp date5 = new Timestamp(formatter.parse("2010/01/01").getTime());
         Timestamp date6 = new Timestamp(formatter.parse("2000/01/01").getTime());
-        System.out.println("the problem is it should be " + date2 + " but the function returns "+com.splicemachine.derby.utils.SpliceDateFunctions.TRUNC_DATE(date1,"month"));
-        System.out.println("the problem is it should be " + date3 + " but the function returns "+com.splicemachine.derby.utils.SpliceDateFunctions.TRUNC_DATE(date1,"week"));
-        System.out.println("the problem is it should be " + date7 + " but the function returns "+com.splicemachine.derby.utils.SpliceDateFunctions.TRUNC_DATE(date1,"quarter"));
-        System.out.println("the problem is it should be " + date4 + " but the function returns "+com.splicemachine.derby.utils.SpliceDateFunctions.TRUNC_DATE(date1,"year"));
-        System.out.println("the problem is it should be " + date5 + " but the function returns "+com.splicemachine.derby.utils.SpliceDateFunctions.TRUNC_DATE(date1,"decade"));
-        System.out.println("the problem is it should be " + date6 + " but the function returns "+com.splicemachine.derby.utils.SpliceDateFunctions.TRUNC_DATE(date1,"century"));
         org.junit.Assert.assertEquals(com.splicemachine.derby.utils.SpliceDateFunctions.TRUNC_DATE(date1,"month"),date2);
         org.junit.Assert.assertEquals(com.splicemachine.derby.utils.SpliceDateFunctions.TRUNC_DATE(date1,"week"),date3);
         org.junit.Assert.assertEquals(com.splicemachine.derby.utils.SpliceDateFunctions.TRUNC_DATE(date1,"quarter"),date7);
