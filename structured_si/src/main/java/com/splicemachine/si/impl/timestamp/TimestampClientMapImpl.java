@@ -24,7 +24,6 @@ import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * TimestampClient implementation class that accepts concurrent client requests
@@ -189,7 +188,7 @@ public class TimestampClientMapImpl extends TimestampClient {
 		}
 
 		try {
-            ChannelBuffer buffer = ChannelBuffers.buffer(4);
+            ChannelBuffer buffer = ChannelBuffers.buffer(2);
     	    buffer.writeShort(clientCallId);
 			TimestampUtil.doClientTrace(LOG, "Writing request message to server", callback);
             ChannelFuture futureWrite = _channel.write(buffer);
