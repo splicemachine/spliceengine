@@ -106,16 +106,20 @@ public interface TxnLifecycleProtocol extends CoprocessorProtocol {
 		 */
 		void rollback(long txnId) throws IOException;
 
-		/**
-		 * Time out the transaction.
+
+/**
+		 * Indicate that this transaction is still alive.
 		 *
-		 * This is functionally equivalent to rolling back the transaction--in fact, returned transactions will
-		 * have ROLLED_BACK as their state. However, the physically stored state value may be different, in order
-		 * to allow for debugging cluster difficulties.
+		 * If the transaction is in a terminal state, then this will return {@code false}, to indicate
+		 * that future keep alives are not necessary.
 		 *
-		 * @param txnId the transaction id to time out
-		 * @throws IOException if something goes wrong
-		 * @see #rollback(long)
+		 * If the transaction has exceeded its keep-alive limit, this will throw a
+		 * {@link com.splicemachine.si.api.TransactionTimeoutException}
+		 *
+		 * @param txnId the transaction to keep alive.
+		 * @return true if the transaction is still active after the keep-alive has completed, or {@code false}
+		 * 							if the transaction is in a terminal state and further keep-alives should not be attempted.
+		 * @throws IOException if something goes wrong attempting to keep it alive.
 		 */
-		void timeout(long txnId) throws IOException;
+		boolean keepAlive(long txnId) throws IOException;
 }

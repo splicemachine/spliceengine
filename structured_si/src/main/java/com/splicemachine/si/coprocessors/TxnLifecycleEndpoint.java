@@ -41,7 +41,7 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 		}
 
 		@Override
-		public void timeout(long txnId) throws IOException {
-
+		public boolean keepAlive(long txnId) throws IOException {
+				return false;
 		}
 }

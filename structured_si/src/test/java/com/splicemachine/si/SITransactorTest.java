@@ -29,7 +29,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("unchecked")
-@Ignore
+//@Ignore
 public class SITransactorTest extends SIConstants {
 		public static final byte[] DESTINATION_TABLE = Bytes.toBytes("1184");
 		boolean useSimple = true;
@@ -1800,11 +1800,12 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
+		@Ignore("KeepAlives function differently now")
     public void transactionNoTimeoutWithKeepAlive() throws IOException, InterruptedException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe64", 20);
         sleep();
-        txnStore.keepAlive(t1);
+//        txnStore.keepAlive(t1);
         Txn t2 = control.beginTransaction();
         try {
             testUtility.insertAge(t2, "joe64", 21);
@@ -1817,12 +1818,12 @@ public class SITransactorTest extends SIConstants {
         }
     }
 
-    @Ignore
+    @Ignore("KeepAlives function differently now")
     public void transactionTimeoutAfterKeepAlive() throws IOException, InterruptedException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe65", 20);
         sleep();
-				txnStore.keepAlive(t1);
+//				txnStore.keepAlive(t1);
         sleep();
         Txn t2 = control.beginTransaction();
         testUtility.insertAge(t2, "joe65", 21);

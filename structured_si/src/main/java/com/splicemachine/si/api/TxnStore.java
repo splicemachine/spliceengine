@@ -1,9 +1,6 @@
 package com.splicemachine.si.api;
 
-import com.splicemachine.si.impl.TransactionId;
-
 import java.io.IOException;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -45,5 +42,4 @@ public interface TxnStore extends TxnAccess{
 		 */
 		long[] getActiveTransactions(Txn txn,byte[] table) throws IOException;
 
-		void keepAlive(Txn txn) throws IOException;
 }

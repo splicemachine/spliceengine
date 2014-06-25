@@ -80,8 +80,10 @@ public class ForwardingLifecycleManager implements TxnLifecycleManager{
 		}
 
 		@Override
-		public void elevateTransaction(Txn txn, byte[] destinationTable) throws IOException {
-				lifecycleManager.elevateTransaction(txn, destinationTable);
+		public Txn elevateTransaction(Txn txn, byte[] destinationTable) throws IOException {
+				Txn txn1 = lifecycleManager.elevateTransaction(txn, destinationTable);
+				afterStart(txn1);
+				return txn1;
 		}
 
 		@Override
@@ -92,11 +94,6 @@ public class ForwardingLifecycleManager implements TxnLifecycleManager{
 		@Override
 		public void rollback(long txnId) throws IOException {
 				lifecycleManager.rollback(txnId);
-		}
-
-		@Override
-		public void timeout(long txnId) throws IOException {
-				lifecycleManager.timeout(txnId);
 		}
 
 

@@ -1,13 +1,13 @@
 package com.splicemachine.si.api;
 
+import com.splicemachine.si.impl.AbstractTxn;
 import com.splicemachine.si.impl.ConflictType;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.Collections;
 
 /**
  * @author Scott Fines
@@ -16,34 +16,44 @@ import java.util.Set;
 public interface Txn {
 		static final Logger TXN_LOGGER = Logger.getLogger(Txn.class);
 
-		static final Txn ROOT_TRANSACTION = new AbstractTxn(-1l,0,IsolationLevel.SNAPSHOT_ISOLATION) {
-				@Override public boolean isDependent() { return false; }
-				@Override public boolean isAdditive() { return false; }
+		static final Txn ROOT_TRANSACTION = new Txn() {
+				@Override public Collection<byte[]> getDestinationTables() { return Collections.emptyList(); }
+				@Override public boolean descendsFrom(Txn potentialParent) { return false; }
+				@Override public State getEffectiveState() { return State.ACTIVE; }
+				@Override public IsolationLevel getIsolationLevel() { return IsolationLevel.SNAPSHOT_ISOLATION; }
+				@Override public long getTxnId() { return -1l; }
+				@Override public long getBeginTimestamp() { return 0; }
 				@Override public long getCommitTimestamp() { return -1l; }
 				@Override public long getEffectiveCommitTimestamp() { return -1l; }
+				@Override public long getEffectiveBeginTimestamp() { return 0; }
 				@Override public Txn getParentTransaction() { return null; }
 				@Override public State getState() { return State.ACTIVE; }
 				@Override public boolean allowsWrites() { return true; }
-				@Override public long getGlobalCommitTimestamp() { return -1l; }
 
 				@Override
 				public void commit() throws IOException {
-					throw new UnsupportedOperationException("Root Transaction cannot be committed");
+					throw new UnsupportedOperationException("Cannot commit the root transaction");
 				}
 
 				@Override
 				public void rollback() throws IOException {
-						throw new UnsupportedOperationException("Root Transaction cannot be rolled back");
-				}
-
-				@Override
-				public void timeout() throws IOException {
-						throw new UnsupportedOperationException("Root Transaction cannot timeout");
+						throw new UnsupportedOperationException("Cannot rollback the root transaction");
 				}
 
 				@Override
 				public Txn elevateToWritable(byte[] writeTable) throws IOException {
-						throw new UnsupportedOperationException("Root Transaction cannot elevate");
+						throw new UnsupportedOperationException("Cannot elevate the root transaction");
+				}
+
+				@Override public boolean canSee(Txn otherTxn) { return false; }
+				@Override public boolean isDependent() { return false; }
+				@Override public boolean isAdditive() { return false; }
+
+				@Override public long getGlobalCommitTimestamp() { return -1l; }
+
+				@Override
+				public ConflictType conflicts(Txn otherTxn) {
+						return ConflictType.CHILD; //every transaction is a child of this
 				}
 		};
 
@@ -261,16 +271,6 @@ public interface Txn {
 		 * @throws IOException If something goes wrong when attempting to rollback
 		 */
 		void rollback() throws IOException;
-
-		/**
-		 * Time out the transaction. A Timedout transaction behaves exactly as if it has been rolled back.
-		 *
-		 * If the transaction has already been committed, this operation will do nothing.
-		 *
-		 * If the transaction has already been rolled back (or timed out), this operation will do nothing.
-		 * @throws IOException if something goes wrong when attempting to timeout
-		 */
-		void timeout() throws IOException;
 
 
 		/**

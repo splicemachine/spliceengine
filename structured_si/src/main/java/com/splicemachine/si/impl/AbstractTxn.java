@@ -1,5 +1,6 @@
-package com.splicemachine.si.api;
+package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.ConflictType;
 
 import java.util.Collection;
@@ -10,7 +11,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 6/18/14
  */
-public abstract class AbstractTxn implements Txn{
+public abstract class AbstractTxn implements Txn {
 		protected final long txnId;
 		protected final long beginTimestamp;
 		protected final IsolationLevel isolationLevel;

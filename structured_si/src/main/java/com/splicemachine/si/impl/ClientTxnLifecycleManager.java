@@ -20,11 +20,14 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 
 		@ThreadSafe private final TimestampSource timestampSource;
 		@ThreadSafe private final TxnStore store;
+		@ThreadSafe private final KeepAliveScheduler keepAliveScheduler;
 
 		public ClientTxnLifecycleManager(@ThreadSafe TimestampSource timestampSource,
-																		 @ThreadSafe TxnStore store) {
+																		 @ThreadSafe TxnStore store,
+																		 @ThreadSafe KeepAliveScheduler keepAliveScheduler) {
 				this.timestampSource = timestampSource;
 				this.store = store;
+				this.keepAliveScheduler = keepAliveScheduler;
 		}
 
 		@Override
@@ -111,8 +114,16 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 		}
 
 		@Override
-		public void elevateTransaction(Txn txn, byte[] destinationTable) throws IOException {
+		public Txn elevateTransaction(Txn txn, byte[] destinationTable) throws IOException {
 				store.elevateTransaction(txn,destinationTable);
+				if(!txn.allowsWrites()){
+						//we've elevated from a read-only to a writable, so make sure that we add
+						//it to the keep alive
+						Txn writableTxn = new WritableTxn(txn,this,destinationTable);
+						keepAliveScheduler.scheduleKeepAlive(writableTxn);
+						txn = writableTxn;
+				}
+				return txn;
 		}
 
 		@Override
@@ -126,13 +137,6 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 				store.rollback(txnId);
 				//TODO -sf- add the transaction to the global cache?
 		}
-
-		@Override
-		public void timeout(long txnId) throws IOException {
-				store.timeout(txnId);
-				//TODO -sf- add the transaction to the global cache?
-		}
-
 
 		/**********************************************************************************************************/
 		/*private helper method*/
@@ -155,6 +159,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 								timestamp,isolationLevel,parentTxn,this,isDependent,additive,destinationTable);
 				//record the transaction on the transaction table--network call
 				store.recordNewTransaction(newTxn);
+				keepAliveScheduler.scheduleKeepAlive(newTxn);
 
 				return newTxn;
 		}

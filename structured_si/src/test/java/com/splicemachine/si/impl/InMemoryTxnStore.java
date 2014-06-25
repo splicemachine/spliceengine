@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongArrayList;
+import com.splicemachine.concurrent.LongStripedSynchronizer;
 import com.splicemachine.si.api.*;
 
 import java.io.IOException;
@@ -8,6 +9,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
 
 /**
  * In-memory representation of a full Transaction Store.
@@ -19,76 +22,107 @@ import java.util.concurrent.ConcurrentMap;
  * Date: 6/23/14
  */
 public class InMemoryTxnStore implements TxnStore {
-		private final ConcurrentMap<Long,Txn> txnMap;
+		private LongStripedSynchronizer<ReadWriteLock> lockStriper;
+		private final ConcurrentMap<Long,TxnHolder> txnMap;
 		private final TimestampSource commitTsGenerator;
 		private TxnLifecycleManager tc;
+		private final long txnTimeOutIntervalMs;
 
-		public InMemoryTxnStore(TimestampSource commitTsGenerator) {
-				this.txnMap = new ConcurrentHashMap<Long, Txn>();
+
+		public InMemoryTxnStore(TimestampSource commitTsGenerator,long txnTimeOutIntervalMs) {
+				this.txnMap = new ConcurrentHashMap<Long, TxnHolder>();
 				this.commitTsGenerator = commitTsGenerator;
+				this.txnTimeOutIntervalMs = txnTimeOutIntervalMs;
+				this.lockStriper = LongStripedSynchronizer.stripedReadWriteLock(16,false);
 		}
 
 		@Override
 		public Txn getTransaction(long txnId) throws IOException {
-				Txn txn = txnMap.get(txnId);
-//				assert txn !=null : "txnId "+ txnId+" does not exist!";
+				ReadWriteLock rwlLock = lockStriper.get(txnId);
+				Lock rl = rwlLock.readLock();
+				rl.lock();
+				try{
+						TxnHolder txn = txnMap.get(txnId);
+						if(txn==null) return null;
 
-				return txn;
+						if(isTimedOut(txn))
+								return getRolledbackTxn(txnId,txn.txn);
+						else return txn.txn;
+				}finally{
+						rl.unlock();
+				}
 		}
+
+
 
 		@Override public boolean transactionCached(long txnId) { return false; }
 		@Override public void cache(Txn toCache) {  }
 
 		@Override
 		public void recordNewTransaction(Txn txn) throws IOException {
-				Txn txn1 = txnMap.putIfAbsent(txn.getTxnId(), txn);
-				assert txn1 == null : "Transaction already existed!";
+				ReadWriteLock readWriteLock = lockStriper.get(txn.getTxnId());
+				Lock wl = readWriteLock.writeLock();
+				wl.lock();
+				try{
+					TxnHolder txn1 = txnMap.get(txn.getTxnId());
+					assert txn1==null: " Transaction "+ txn.getTxnId()+" already existed!";
+					txnMap.put(txn.getTxnId(),new TxnHolder(txn));
+				}finally{
+						wl.unlock();
+				}
 		}
 
 		@Override
 		public void rollback(long txnId) throws IOException {
-				boolean shouldContinue;
-				do{
-						Txn txn = txnMap.get(txnId);
-						if(txn==null) return; //no transaction exists
+				ReadWriteLock readWriteLock = lockStriper.get(txnId);
+				Lock wl = readWriteLock.writeLock();
+				wl.lock();
+				try{
+						TxnHolder txnHolder = txnMap.get(txnId);
+						if(txnHolder==null) return; //no transaction exists
+
+						Txn txn = txnHolder.txn;
 
 						Txn.State state = txn.getState();
-						switch(state){
-								case ROLLEDBACK:
-								case COMMITTED:
-										return;
-						}
-						Txn replacementTxn = new InheritingTxnView(txn.getParentTransaction(),txnId,txn.getBeginTimestamp(),
-										txn.getIsolationLevel(),true,txn.isDependent(),
-										true,txn.isAdditive(),
-										true,txn.allowsWrites(),
-										-1l,-1l, Txn.State.ROLLEDBACK);
-						shouldContinue = !txnMap.replace(txnId,txn,replacementTxn);
-				}while(shouldContinue);
+						if(state!= Txn.State.ACTIVE) return; //nothing to do if we aren't active
+						txnHolder.txn = getRolledbackTxn(txnId, txn);
+				}finally{
+						wl.unlock();
+				}
+		}
+
+		protected Txn getRolledbackTxn(long txnId, Txn txn) {
+				return new InheritingTxnView(txn.getParentTransaction(),txnId,txn.getBeginTimestamp(),
+												txn.getIsolationLevel(),true,txn.isDependent(),
+												true,txn.isAdditive(),
+												true,txn.allowsWrites(),
+												-1l,-1l, Txn.State.ROLLEDBACK);
 		}
 
 		@Override
 		public long commit(long txnId) throws IOException {
-				boolean shouldContinue;
-				long commitTs;
-				do{
-						Txn txn = txnMap.get(txnId);
-						if(txn==null) throw new CannotCommitException(txnId,null);
+				ReadWriteLock readWriteLock = lockStriper.get(txnId);
+				Lock wl = readWriteLock.writeLock();
+				wl.lock();
+				try{
+						TxnHolder txnHolder = txnMap.get(txnId);
+						if(txnHolder==null) throw new CannotCommitException(txnId,null);
 
-						Txn.State state = txn.getState();
-						switch(state){
-								case ROLLEDBACK:
-										throw new CannotCommitException(txnId, Txn.State.ROLLEDBACK);
-						}
-						commitTs = commitTsGenerator.nextTimestamp();
-						Txn replacementTxn = new InheritingTxnView(txn.getParentTransaction(),txnId,txn.getBeginTimestamp(),
+						Txn txn = txnHolder.txn;
+						if(txn.getEffectiveState()== Txn.State.ROLLEDBACK)
+								throw new CannotCommitException(txnId, Txn.State.ROLLEDBACK);
+						if(isTimedOut(txnHolder))
+								throw new CannotCommitException(txnId, Txn.State.ROLLEDBACK);
+						long commitTs = commitTsGenerator.nextTimestamp();
+						txnHolder.txn = new InheritingTxnView(txn.getParentTransaction(),txnId,txn.getBeginTimestamp(),
 										txn.getIsolationLevel(),true,txn.isDependent(),
 										true,txn.isAdditive(),
 										true,txn.allowsWrites(),
 										commitTs,commitTs, Txn.State.COMMITTED);
-						shouldContinue = !txnMap.replace(txnId,txn,replacementTxn);
-				}while(shouldContinue);
-				return commitTs;
+						return commitTs;
+				}finally{
+						wl.unlock();
+				}
 		}
 
 		@Override
@@ -98,21 +132,22 @@ public class InMemoryTxnStore implements TxnStore {
 
 		@Override
 		public void elevateTransaction(Txn txn, byte[] newDestinationTable) throws IOException {
-				boolean shouldContinue;
 				long txnId = txn.getTxnId();
-				Txn writableTxnCopy = new WritableTxn(txn,tc,newDestinationTable);
-				do{
-						Txn oldTxn = txnMap.get(txnId);
+				ReadWriteLock readWriteLock = lockStriper.get(txnId);
+				Lock wl = readWriteLock.writeLock();
+				wl.lock();
+				try{
+						Txn writableTxnCopy = new WritableTxn(txn,tc,newDestinationTable);
+						TxnHolder oldTxn = txnMap.get(txnId);
 						if(oldTxn==null) {
-								Txn txn1 = txnMap.putIfAbsent(txnId, writableTxnCopy);
-								shouldContinue = txn1!=null;
+								txnMap.put(txnId,new TxnHolder(writableTxnCopy));
+						} else{
+								assert oldTxn.txn.getEffectiveState()== Txn.State.ACTIVE : "Cannot elevate transaction "+ txnId +" because it is not active";
+								oldTxn.txn = writableTxnCopy;
 						}
-						else{
-								assert  oldTxn.getState()== Txn.State.ACTIVE : "Cannot elevate transaction "+ txnId +" because it is not active";
-								shouldContinue = !txnMap.replace(txnId,oldTxn,writableTxnCopy);
-						}
-				}while(shouldContinue);
-
+				}finally{
+						wl.unlock();
+				}
 		}
 
 		@Override
@@ -122,6 +157,27 @@ public class InMemoryTxnStore implements TxnStore {
 				else return findActiveTransactions(txn, table);
 		}
 
+		public boolean keepAlive(Txn txn) throws TransactionTimeoutException {
+				Lock wl = lockStriper.get(txn.getTxnId()).writeLock();
+				wl.lock();
+				try{
+						TxnHolder txnHolder = txnMap.get(txn.getTxnId());
+						if(txnHolder==null) return false; //nothing to keep alive
+						if(txnHolder.txn.getEffectiveState()== Txn.State.ACTIVE && isTimedOut(txnHolder))
+								throw new TransactionTimeoutException(txn.getTxnId());
+						if(txn.getEffectiveState()!= Txn.State.ACTIVE) return false;
+
+						txnHolder.keepAliveTs = System.currentTimeMillis();
+						return true;
+				}finally{
+						wl.unlock();
+				}
+		}
+
+		protected boolean isTimedOut(TxnHolder txn) {
+				return txn.txn.getEffectiveState() == Txn.State.ACTIVE &&
+								(System.currentTimeMillis() - txn.keepAliveTs) > txnTimeOutIntervalMs;
+		}
 
 		private long[] getAllActiveTransactions(Txn txn) throws IOException {
 				long minTimestamp = commitTsGenerator.retrieveTimestamp();
@@ -131,8 +187,9 @@ public class InMemoryTxnStore implements TxnStore {
 				else maxId = txn.getTxnId();
 
 				LongArrayList activeTxns = new LongArrayList(txnMap.size());
-				for(Map.Entry<Long,Txn> txnEntry:txnMap.entrySet()){
-						Txn value = txnEntry.getValue();
+				for(Map.Entry<Long,TxnHolder> txnEntry:txnMap.entrySet()){
+						if(isTimedOut(txnEntry.getValue())) continue;
+						Txn value = txnEntry.getValue().txn;
 						if(value.getEffectiveState()== Txn.State.ACTIVE
 										&& value.getTxnId()<=maxId
 										&& value.getTxnId()>=minTimestamp)
@@ -148,8 +205,9 @@ public class InMemoryTxnStore implements TxnStore {
 						maxId = Long.MAX_VALUE;
 				else maxId = txn.getTxnId();
 				LongArrayList activeTxns = new LongArrayList(txnMap.size());
-				for(Map.Entry<Long,Txn> txnEntry:txnMap.entrySet()){
-						Txn value = txnEntry.getValue();
+				for(Map.Entry<Long,TxnHolder> txnEntry:txnMap.entrySet()){
+						if(isTimedOut(txnEntry.getValue())) continue;
+						Txn value = txnEntry.getValue().txn;
 						if(value.getEffectiveState()== Txn.State.ACTIVE && value.getTxnId()<=maxId && value.getTxnId()>=minTimestamp){
 								Collection<byte[]> destinationTables = value.getDestinationTables();
 								if(destinationTables.contains(table)){
@@ -160,13 +218,17 @@ public class InMemoryTxnStore implements TxnStore {
 				return activeTxns.toArray();
 		}
 
-		@Override
-		public void keepAlive(Txn txn) throws IOException {
-				throw new UnsupportedOperationException("IMPLEMENT");
-		}
-
 		public void setLifecycleManager(TxnLifecycleManager lifecycleManager) {
 				this.tc = lifecycleManager;
 		}
 
+		private static class TxnHolder{
+				private volatile Txn txn;
+				private volatile long keepAliveTs;
+
+				private TxnHolder(Txn txn) {
+						this.txn = txn;
+						this.keepAliveTs = System.currentTimeMillis();
+				}
+		}
 }
