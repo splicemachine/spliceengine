@@ -16,7 +16,7 @@ import com.splicemachine.derby.utils.SpliceDateFunctions;
 /**
  * Created by yifu on 6/24/14.
  */
-public class SpliceDateFunctionTest {
+public class SpliceDateFunctionsTest {
     @Test
     public void testAddMonth(){
         Calendar c = Calendar.getInstance();
