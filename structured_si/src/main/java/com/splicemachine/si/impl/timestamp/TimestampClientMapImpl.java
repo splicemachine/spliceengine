@@ -240,7 +240,6 @@ public class TimestampClientMapImpl extends TimestampClient {
  		ensureReadableBytes(buf, FIXED_MSG_RECEIVED_LENGTH);
  		
  		short clientCallerId = buf.readShort();
- 		assert (clientCallerId > 0);
  		ensureReadableBytes(buf, 8);
  		
  		long timestamp = buf.readLong();
