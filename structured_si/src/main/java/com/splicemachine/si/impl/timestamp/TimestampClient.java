@@ -5,6 +5,10 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.management.InstanceAlreadyExistsException;
@@ -82,6 +86,8 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
 	 * we consume it internally as a short so that we only pass two bytes (not four)
 	 * over the wire.
 	 */
+    // We might even get away with using a byte here (256 concurrent client calls),
+    // but use a short just in case.
     private AtomicInteger _clientCallCounter = new AtomicInteger(CLIENT_COUNTER_INIT);
    
     private int _port;
