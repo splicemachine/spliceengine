@@ -95,9 +95,6 @@ public class TimestampUtil {
 	public static void doClientErrorThrow(Logger logger, String message, Throwable t, Object obj)
 		throws TimestampIOException {
 		
-		System.out.println(message);
-		System.out.println(t);
-		
 		if (message == null) message = "";
 		if (obj == null) obj = "";
 		StringBuffer sb = new StringBuffer();
