@@ -9,6 +9,18 @@ import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.impl.timestamp.TimestampClient;
 import com.splicemachine.si.impl.timestamp.TimestampClientFactory;
 
+/**
+ * Timestamp source implementation that utilizes a special purpose service
+ * {@link TimestampServer} to provide transaction timestamps. To access
+ * this service, a singleton client instance of {@link TimestampClient}
+ * is used to manage the concurrent requests that come through this
+ * timestamp source.
+ * <p>
+ * This class obsoletes {@link ZooKeeperStatTimestampSource},
+ * which should no longer be used.
+ * 
+ * @author Walt Koetke
+ */
 public class SpliceTimestampSource implements TimestampSource {
 
     private static final Logger LOG = Logger.getLogger(SpliceTimestampSource.class);
