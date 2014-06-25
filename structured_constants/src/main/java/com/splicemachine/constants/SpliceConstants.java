@@ -1,6 +1,7 @@
 package com.splicemachine.constants;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -15,6 +16,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class SpliceConstants {
+    private static final Logger LOG = Logger.getLogger(SpliceConstants.class);
+
+		public enum AuthenticationType {NONE,LDAP,NATIVE,CUSTOM};
 
 		@Parameter public static final String SEQUENTIAL_IMPORT_THREASHOLD="splice.import.sequentialFileSize";
 		@DefaultValue(SEQUENTIAL_IMPORT_THREASHOLD) public static final long DEFAULT_SEQUENTIAL_IMPORT_THRESHOLD = 1024*1024*1024; //defaults to 1GB
@@ -223,7 +227,7 @@ public class SpliceConstants {
 		public static int operationTaskPriority;
 
 		@SpliceConstants.Parameter public static final String TOTAL_WORKERS = "splice.task.maxWorkers";
-		@SpliceConstants.DefaultValue(TOTAL_WORKERS) public static final int DEFAULT_TOTAL_WORKERS=10;
+		@SpliceConstants.DefaultValue(TOTAL_WORKERS) public static final int DEFAULT_TOTAL_WORKERS=Runtime.getRuntime().availableProcessors()*2;
 		public static int taskWorkers;
 
 		@SpliceConstants.Parameter public static final String NUM_PRIORITY_TIERS = "splice.task.numPriorities";
@@ -910,6 +914,8 @@ public class SpliceConstants {
 
 				importSplitFactor = config.getInt(IMPORT_SPLIT_FACTOR,DEFAULT_IMPORT_SPLIT_FACTOR);
 				taskWorkers = config.getInt(TOTAL_WORKERS,DEFAULT_TOTAL_WORKERS);
+				if (taskWorkers > DEFAULT_TOTAL_WORKERS)
+					SpliceLogUtils.warn(LOG, "your task workers are set at {%d} and that is more than 2*(Number of Java Cores) {%d}", taskWorkers,DEFAULT_TOTAL_WORKERS);
 				numPriorityTiers = config.getInt(NUM_PRIORITY_TIERS,DEFAULT_NUM_PRIORITY_TIERS);
 				maxPriority = config.getInt(MAX_PRIORITY,DEFAULT_MAX_PRIORITY);
 
