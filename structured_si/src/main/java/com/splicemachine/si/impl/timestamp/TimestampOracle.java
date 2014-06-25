@@ -137,7 +137,7 @@ public class TimestampOracle implements TimestampMasterManagement {
         registerJMX(mbs);
         TimestampUtil.doServerInfo(LOG, "Timestamp Generator on master successfully registered with JMX");
 	}
-	
+
     private void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
         ObjectName name = new ObjectName("com.splicemachine.si.impl.timestamp.generator:type=TimestampMasterManagement");  // Same string is in JMXUtils
         mbs.registerMBean(this, name);
