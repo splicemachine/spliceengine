@@ -1,6 +1,6 @@
 package com.splicemachine.derby.utils.test;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.sql.Date;
