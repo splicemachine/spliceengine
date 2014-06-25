@@ -63,7 +63,7 @@ import java.text.CollationKey;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Calendar;
-
+import org.joda.time.DateTime;
 import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
 
 
@@ -513,6 +513,31 @@ public class SQLChar
         throws StandardException
     {
         return getDate(cal, getString(), getLocaleFinder());
+    }
+
+    /**
+     * Get date from a SQLChar.
+     *
+     * @see DataValueDescriptor#getDate
+     *
+     * @exception StandardException thrown on failure to convert
+     **/
+    public DateTime getDateTime() throws StandardException {
+        return getDate(getString(), getLocaleFinder());
+    }    
+    
+    
+    public static DateTime getDate(
+    String              str, 
+    LocaleFinder        localeFinder) 
+        throws StandardException
+    {
+        if( str == null)
+            return null;
+
+        SQLDate internalDate = new SQLDate(str, false, localeFinder);
+
+        return internalDate.getDateTime();
     }
 
     /**

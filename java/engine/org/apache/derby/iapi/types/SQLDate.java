@@ -716,6 +716,18 @@ public final class SQLDate extends DataType
         
         return new Date(getTimeInMillis(cal));
 	}
+	
+	
+    /**
+     * Get date from a SQLChar.
+     *
+     * @see DataValueDescriptor#getDate
+     *
+     * @exception StandardException thrown on failure to convert
+     **/
+    public DateTime getDateTime() throws StandardException {
+    	return new DateTime(getTimeInMillis(null));
+    }    
 
 	/**
 	 * Get the year from the encodedDate.
