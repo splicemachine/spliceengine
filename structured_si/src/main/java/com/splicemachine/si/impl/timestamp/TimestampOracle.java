@@ -8,7 +8,6 @@ import org.apache.zookeeper.data.Stat;
 
 import com.splicemachine.constants.SpliceConstants;
 
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class TimestampOracle {
@@ -31,7 +30,8 @@ public class TimestampOracle {
 	// Singleton instance, used by TimestampServerHandler
 	private static TimestampOracle _instance;
 	
-	public static final TimestampOracle getInstance(RecoverableZooKeeper rzk, String blockNode) {
+	public static final TimestampOracle getInstance(RecoverableZooKeeper rzk, String blockNode)
+	    throws TimestampIOException {
 		synchronized(TimestampOracle.class) {
 			if (_instance == null) {
 				TimestampUtil.doServerInfo(LOG, "initializing TimestampOracle...");
@@ -41,13 +41,13 @@ public class TimestampOracle {
 		}
 	}
 	
-	private TimestampOracle(RecoverableZooKeeper rzk, String blockNode) {
+	private TimestampOracle(RecoverableZooKeeper rzk, String blockNode) throws TimestampIOException {
 		_zooKeeper = rzk;
 		_blockNode = blockNode;
 		initialize();
 	}
 
-	private void initialize() {
+	private void initialize() throws TimestampIOException {
 
 		// read the current state of the block
 		try {
@@ -80,13 +80,13 @@ public class TimestampOracle {
 				_timestampCounter.set(_maxReservedTimestamp + 1);
 			}
 		} catch (KeeperException e) {
-			throw new RuntimeException(e);
+			throw new TimestampIOException(e);
 		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
+			throw new TimestampIOException(e);
 		}
 	}
 
-	public long getNextTimestamp() throws IOException {
+	public long getNextTimestamp() throws TimestampIOException {
 		long nextTS = _timestampCounter.getAndIncrement();
 		long maxTS = _maxReservedTimestamp; // avoid the double volatile read
 		if (nextTS > maxTS) {
@@ -95,10 +95,9 @@ public class TimestampOracle {
 		return nextTS;
 	}
 
-	private void reserveNextBlock(long priorMaxReservedTimestamp) throws IOException {
+	private void reserveNextBlock(long priorMaxReservedTimestamp) throws TimestampIOException {
 		synchronized(this)  {
 			if (_maxReservedTimestamp > priorMaxReservedTimestamp) return; // some other thread got there first
-
 			long nextMax = _maxReservedTimestamp + _blockSize;
 			byte[] data = Bytes.toBytes(nextMax);
 			try {
@@ -106,9 +105,9 @@ public class TimestampOracle {
 				_maxReservedTimestamp = nextMax;
 				TimestampUtil.doServerDebug(LOG, "reserveNextBlock: next block reserved with max = " + _maxReservedTimestamp);
 			} catch (KeeperException e) {
-				throw new IOException(e);
+				throw new TimestampIOException(e);
 			} catch (InterruptedException e) {
-				throw new IOException(e);
+				throw new TimestampIOException(e);
 			}
 		}
 	}
