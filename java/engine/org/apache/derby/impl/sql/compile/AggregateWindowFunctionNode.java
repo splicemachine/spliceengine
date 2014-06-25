@@ -52,6 +52,11 @@ public final class AggregateWindowFunctionNode extends WindowFunctionNode {
         return aggregateFunction.getNewNullResultExpression();
     }
 
+    @Override
+    public AggregateNode getWrappedAggregate() {
+        return this.aggregateFunction;
+    }
+
     /**
      * QueryTreeNode override. Prints the sub-nodes of this object.
      *

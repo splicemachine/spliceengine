@@ -165,4 +165,12 @@ public abstract class WindowFunctionNode extends AggregateNode
         //
         return getNullNode(getTypeServices());
     }
+
+    /**
+     * Get the aggregate node, if any, wrapped by this
+     * window function
+     *
+     * @return the window aggregate function or <code>null</code>
+     */
+    public abstract AggregateNode getWrappedAggregate();
 }

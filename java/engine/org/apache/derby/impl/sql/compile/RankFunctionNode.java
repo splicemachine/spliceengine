@@ -71,4 +71,10 @@ public final class RankFunctionNode extends WindowFunctionNode {
         // TODO: impl
         return null;
     }
+
+    @Override
+    public AggregateNode getWrappedAggregate() {
+        // TODO: impl
+        return null;
+    }
 }

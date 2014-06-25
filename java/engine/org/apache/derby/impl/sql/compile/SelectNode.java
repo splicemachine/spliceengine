@@ -22,6 +22,8 @@
 
 package	org.apache.derby.impl.sql.compile;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Vector;
 
@@ -1483,7 +1485,7 @@ public class SelectNode extends ResultSetNode
             // we currently have.
 
             if (windows.size() > 1) {
-                // FIXME: JPC - why are we limiting to 1 WF?
+                // FIXME: JPC - Derby currently limiting to 1 WF, why?
                 throw StandardException.newException(
                     SQLState.LANG_WINDOW_LIMIT_EXCEEDED);
             }
@@ -1503,8 +1505,17 @@ public class SelectNode extends ResultSetNode
             prnRSN = wrsn.getParent();
             wrsn.assignCostEstimate(optimizer.getOptimizedCost());
 
-            // DEBUG: JPC - testing  - remove
-            selectAggregates.clear();
+            // we need to remove any aggregates that were processed as window functions
+            // we do this so they're not processed again below
+            Collection<AggregateNode> toRemove = new ArrayList<AggregateNode>();
+            for (AggregateNode windowAgg : wrsn.getProcessedAggregates()) {
+                for (Object aggNode : selectAggregates) {
+                    if (aggNode == windowAgg) {
+                        toRemove.add((AggregateNode)aggNode);
+                    }
+                }
+            }
+            selectAggregates.removeAll(toRemove);
         }
 
 

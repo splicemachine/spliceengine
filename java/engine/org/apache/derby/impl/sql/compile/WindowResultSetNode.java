@@ -87,6 +87,12 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     Vector windowFunctions;
 
     /**
+     * The list of aggregate nodes we've processed as
+     * window functions
+     */
+    Vector<AggregateNode> processedAggregates = new Vector<AggregateNode>();
+
+    /**
      * Information that is used at execution time to
      * process aggregates.
      */
@@ -146,7 +152,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         }
 
         this.wdn = (WindowDefinitionNode) windowDef;
-        // TODO: Partition IS the set of groupby cols
         this.partition = wdn.getPartition();
         this.windowFunctions = (Vector) windowFunctions;
         this.parent = this;
@@ -204,6 +209,15 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     }
 
     /**
+     * Get the aggregates that were processed as window function
+     *
+     * @return list of aggregates processed as window functions
+     */
+    Vector<AggregateNode> getProcessedAggregates() {
+        return this.processedAggregates;
+    }
+
+    /**
      * Get whether or not the source is in sorted order.
      *
      * @return Whether or not the source is in sorted order.
@@ -218,11 +232,59 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      *
      * @throws StandardException
      */
-    private void addAggregates()
-        throws StandardException {
+    private void addAggregates() throws StandardException {
         addNewPRNode();
         addNewColumnsForAggregation();
         addDistinctAggregatesToOrderBy();
+    }
+
+    private void addOrderby() throws StandardException {
+        /* Generate the OrderByNode if a sort is still required for
+		 * the order by.
+		 */
+        ResultSetNode prnRSN = parent;
+        OrderByList windowOrderBy = wdn.getOrderByList();
+        if (windowOrderBy != null) {
+            if (windowOrderBy.getSortNeeded()) {
+                prnRSN = (ResultSetNode) getNodeFactory().getNode(
+                    C_NodeTypes.ORDER_BY_NODE,
+                    prnRSN,
+                    windowOrderBy,
+                    null,
+                    getContextManager());
+                prnRSN.costEstimate = costEstimate.cloneMe();
+            }
+
+            // There may be columns added to the select projection list
+            // a query like:
+            // select a, b from t group by a,b order by a+b
+            // the expr a+b is added to the select list.
+            int orderBySelect = this.getResultColumns().getOrderBySelect();
+            if (orderBySelect > 0)  {
+                // Keep the same RCL on top, since there may be references to
+                // its result columns above us, i.e. in this query:
+                //
+                // select sum(j),i from t group by i having i
+                //             in (select i from t order by j)
+                //
+                ResultColumnList topList = prnRSN.getResultColumns();
+                ResultColumnList newSelectList = topList.copyListAndObjects();
+                prnRSN.setResultColumns(newSelectList);
+
+                topList.removeOrderByColumns();
+                topList.genVirtualColumnNodes(prnRSN, newSelectList);
+                prnRSN = (ResultSetNode) getNodeFactory().getNode(
+                    C_NodeTypes.PROJECT_RESTRICT_NODE,
+                    prnRSN,
+                    topList,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    getContextManager());
+            }
+        }
     }
 
     /**
@@ -261,8 +323,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      *
      * @throws StandardException
      */
-    private void addNewPRNode()
-        throws StandardException {
+    private void addNewPRNode() throws StandardException {
 		/*
 		** Get the new PR, put above the GroupBy.
 		*/
@@ -325,11 +386,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         int sz = partition.size();
         for (int i = 0; i < sz; i++) {
             GroupByColumn gbc = (GroupByColumn) partition.elementAt(i);
-//            ValueNode gbcExp = gbc.getColumnExpression();
-//            if (gbcExp instanceof ColumnReference) {
-//                ((ColumnReference)gbcExp).setNestingLevel(this.getLevel());
-//                ((ColumnReference)gbcExp).setSourceLevel(this.getLevel());
-//            }
             ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
                 "##UnaggColumn",
@@ -664,6 +720,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 aggregate.isDistinct(),
                 lf.getResultDescription(aggRCL.makeResultDescriptors(), "SELECT")
             ));
+            this.processedAggregates.add(aggregate.getWrappedAggregate());
         }
     }
 
@@ -1079,94 +1136,93 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		 * temporary restriction of no qualifications at all (because
 		 * we don't have true backward scans).
 		 */
-        if (partition == null) {
-            if (windowFunctions.size() == 1) {
-                AggregateNode an = (AggregateNode) windowFunctions.get(0);
-                AggregateDefinition ad = an.getAggregateDefinition();
-                if (ad instanceof MaxMinAggregateDefinition) {
-                    if (an.getOperand() instanceof ColumnReference) {
-						/* See if the underlying ResultSet tree
-						 * is ordered on the ColumnReference.
-						 */
-                        ColumnReference[] crs = new ColumnReference[1];
-                        crs[0] = (ColumnReference) an.getOperand();
+        if (partition == null && windowFunctions.size() == 1) {
+            // TODO: Again enforcing window functions limited to 1, why?
+            AggregateNode an = (AggregateNode) windowFunctions.get(0);
+            AggregateDefinition ad = an.getAggregateDefinition();
+            if (ad instanceof MaxMinAggregateDefinition) {
+                if (an.getOperand() instanceof ColumnReference) {
+                    /* See if the underlying ResultSet tree
+                     * is ordered on the ColumnReference.
+                     */
+                    ColumnReference[] crs = new ColumnReference[1];
+                    crs[0] = (ColumnReference) an.getOperand();
 
-                        Vector tableVector = new Vector();
-                        boolean minMaxOptimizationPossible = isOrderedOn(crs, false, tableVector);
-                        if (SanityManager.DEBUG) {
-                            SanityManager.ASSERT(tableVector.size() <= 1, "bad number of FromBaseTables returned by " +
-                                "isOrderedOn() -- " + tableVector.size());
-                        }
-
-                        if (minMaxOptimizationPossible) {
-                            boolean ascIndex = true;
-                            int colNum = crs[0].getColumnNumber();
-
-							/* Check if we have an access path, this will be
-							 * null in a join case (See Beetle 4423,DERBY-3904)
-							 */
-                            AccessPath accessPath = getTrulyTheBestAccessPath();
-                            if (accessPath == null ||
-                                accessPath.getConglomerateDescriptor() == null ||
-                                accessPath.getConglomerateDescriptor().
-                                    getIndexDescriptor() == null)
-                                return;
-                            IndexDescriptor id = accessPath.
-                                                               getConglomerateDescriptor().
-                                                               getIndexDescriptor();
-                            int[] keyColumns = id.baseColumnPositions();
-                            boolean[] isAscending = id.isAscending();
-                            for (int i = 0; i < keyColumns.length; i++) {
-								/* in such a query: select min(c3) from
-								 * tab1 where c1 = 2 and c2 = 5, if prefix keys
-								 * have equality operator, then we can still use
-								 * the index.  The checking of equality operator
-								 * has been done in isStrictlyOrderedOn.
-								 */
-                                if (colNum == keyColumns[i]) {
-                                    if (!isAscending[i])
-                                        ascIndex = false;
-                                    break;
-                                }
-                            }
-                            FromBaseTable fbt = (FromBaseTable) tableVector.firstElement();
-                            MaxMinAggregateDefinition temp = (MaxMinAggregateDefinition) ad;
-
-							/*  MAX   ASC      NULLABLE
-                             *  ----  ----------
-							 *  TRUE  TRUE      TRUE/FALSE  =  Special Last Key Scan (ASC Index Last key with null
-							 *  skips)
-							 *  TRUE  FALSE     TRUE/FALSE  =  JustDisableBulk(DESC index 1st key with null skips)
-							 *  FALSE TRUE      TRUE/FALSE  = JustDisableBulk(ASC index 1st key)
-							 *  FALSE FALSE     TRUE/FALSE  = Special Last Key Scan(Desc Index Last Key)
-							 */
-
-                            if (((!temp.isMax()) && ascIndex) ||
-                                ((temp.isMax()) && !ascIndex)) {
-                                fbt.disableBulkFetch();
-                                singleInputRowOptimization = true;
-                            }
-							/*
-							** Max optimization with asc index or min with
-							** desc index is currently more
-							** restrictive than otherwise.
-							** We are getting the store to return the last
-							** row from an index (for the time being, the
-							** store cannot do real backward scans).  SO
-							** we cannot do this optimization if we have
-							** any predicates at all.
-							*/
-                            else if (!selectHasPredicates &&
-                                ((temp.isMax() && ascIndex) ||
-                                    (!temp.isMax() && !ascIndex))) {
-                                fbt.disableBulkFetch();
-                                fbt.doSpecialMaxScan();
-                                singleInputRowOptimization = true;
-                            }
-                        }
-                    } else if (an.getOperand() instanceof ConstantNode) {
-                        singleInputRowOptimization = true;
+                    Vector tableVector = new Vector();
+                    boolean minMaxOptimizationPossible = isOrderedOn(crs, false, tableVector);
+                    if (SanityManager.DEBUG) {
+                        SanityManager.ASSERT(tableVector.size() <= 1, "bad number of FromBaseTables returned by " +
+                            "isOrderedOn() -- " + tableVector.size());
                     }
+
+                    if (minMaxOptimizationPossible) {
+                        boolean ascIndex = true;
+                        int colNum = crs[0].getColumnNumber();
+
+                        /* Check if we have an access path, this will be
+                         * null in a join case (See Beetle 4423,DERBY-3904)
+                         */
+                        AccessPath accessPath = getTrulyTheBestAccessPath();
+                        if (accessPath == null ||
+                            accessPath.getConglomerateDescriptor() == null ||
+                            accessPath.getConglomerateDescriptor().
+                                getIndexDescriptor() == null)
+                            return;
+                        IndexDescriptor id = accessPath.
+                                                           getConglomerateDescriptor().
+                                                           getIndexDescriptor();
+                        int[] keyColumns = id.baseColumnPositions();
+                        boolean[] isAscending = id.isAscending();
+                        for (int i = 0; i < keyColumns.length; i++) {
+                            /* in such a query: select min(c3) from
+                             * tab1 where c1 = 2 and c2 = 5, if prefix keys
+                             * have equality operator, then we can still use
+                             * the index.  The checking of equality operator
+                             * has been done in isStrictlyOrderedOn.
+                             */
+                            if (colNum == keyColumns[i]) {
+                                if (!isAscending[i])
+                                    ascIndex = false;
+                                break;
+                            }
+                        }
+                        FromBaseTable fbt = (FromBaseTable) tableVector.firstElement();
+                        MaxMinAggregateDefinition temp = (MaxMinAggregateDefinition) ad;
+
+                        /*  MAX   ASC      NULLABLE
+                         *  ----  ----------
+                         *  TRUE  TRUE      TRUE/FALSE  =  Special Last Key Scan (ASC Index Last key with null
+                         *  skips)
+                         *  TRUE  FALSE     TRUE/FALSE  =  JustDisableBulk(DESC index 1st key with null skips)
+                         *  FALSE TRUE      TRUE/FALSE  = JustDisableBulk(ASC index 1st key)
+                         *  FALSE FALSE     TRUE/FALSE  = Special Last Key Scan(Desc Index Last Key)
+                         */
+
+                        if (((!temp.isMax()) && ascIndex) ||
+                            ((temp.isMax()) && !ascIndex)) {
+                            fbt.disableBulkFetch();
+                            singleInputRowOptimization = true;
+                        }
+                        /*
+                        ** Max optimization with asc index or min with
+                        ** desc index is currently more
+                        ** restrictive than otherwise.
+                        ** We are getting the store to return the last
+                        ** row from an index (for the time being, the
+                        ** store cannot do real backward scans).  SO
+                        ** we cannot do this optimization if we have
+                        ** any predicates at all.
+                        */
+                        else if (!selectHasPredicates &&
+                            ((temp.isMax() && ascIndex) ||
+                                (!temp.isMax() && !ascIndex))) {
+                            fbt.disableBulkFetch();
+                            fbt.doSpecialMaxScan();
+                            singleInputRowOptimization = true;
+                        }
+                    }
+                } else if (an.getOperand() instanceof ConstantNode) {
+                    singleInputRowOptimization = true;
                 }
             }
         }
