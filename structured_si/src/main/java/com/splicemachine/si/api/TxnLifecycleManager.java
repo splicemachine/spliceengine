@@ -150,7 +150,7 @@ public interface TxnLifecycleManager {
 		 *                         a DDL activity).
 		 * @throws IOException If something goes wrong during the elevation
 		 */
-		public void elevateTransaction(Txn txn,byte[] destinationTable) throws IOException;
+		public Txn elevateTransaction(Txn txn,byte[] destinationTable) throws IOException;
 
 		/**
 		 * Commit the specified transaction id.
@@ -174,16 +174,6 @@ public interface TxnLifecycleManager {
 		 * @throws IOException If something goes wrong during the rollback
 		 */
 		public void rollback(long txnId) throws IOException;
-
-		/**
-		 * Timeout the transaction identified with {@code txnId}.
-		 *
-		 * If the transaction has already been rolled back, committed, or timed out, this method will do nothing.
-		 *
-		 * @param txnId the id of the transaction to timeout
-		 * @throws IOException If something goes wrong during the timeout
-		 */
-		public void timeout(long txnId) throws IOException;
 
 		/**
 		 * "Chains" a new transaction to the old one.

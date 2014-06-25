@@ -1,4 +1,8 @@
-package com.splicemachine.si.api;
+package com.splicemachine.si.impl;
+
+import com.splicemachine.si.api.CannotCommitException;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,7 +32,7 @@ public class ReadOnlyTxn extends AbstractTxn {
 																															IsolationLevel isolationLevel,
 																															TxnLifecycleManager tc,
 																															boolean additive){
-				return new ReadOnlyTxn(txnId,beginTimestamp,isolationLevel,Txn.ROOT_TRANSACTION,tc,false,additive);
+				return new ReadOnlyTxn(txnId,beginTimestamp,isolationLevel, ROOT_TRANSACTION,tc,false,additive);
 		}
 
 		protected ReadOnlyTxn(long txnId,
@@ -105,17 +109,12 @@ public class ReadOnlyTxn extends AbstractTxn {
 				}while(shouldContinue);
 		}
 
-		@Override
-		public void timeout() throws IOException {
-				rollback();
-		}
-
 		@Override public boolean allowsWrites() { return false; }
 
 		@Override
 		public Txn elevateToWritable(byte[] writeTable) throws IOException {
 				assert state.get()==State.ACTIVE: "Cannot elevate an inactive transaction!";
-				if(txnId==-1l && (parentTxn!=null && !Txn.ROOT_TRANSACTION.equals(parentTxn))){
+				if(txnId==-1l && (parentTxn!=null && !ROOT_TRANSACTION.equals(parentTxn))){
 						/*
 						 * We are a read-only child transaction of a parent. This means that we didn't actually
 						 * create a child transaction id or a begin timestamp of our own. Instead of elevating,
@@ -123,8 +122,7 @@ public class ReadOnlyTxn extends AbstractTxn {
 						 */
 						return tc.beginChildTransaction(parentTxn,isolationLevel,dependent,additive,writeTable);
 				}else{
-						tc.elevateTransaction(this, writeTable); //requires at least one network call
-						return new WritableTxn(txnId,beginTimestamp,isolationLevel,parentTxn,tc,dependent,additive);
+						return tc.elevateTransaction(this, writeTable); //requires at least one network call
 				}
 		}
 }

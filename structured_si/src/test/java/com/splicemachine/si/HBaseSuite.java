@@ -8,6 +8,7 @@ import com.splicemachine.si.txn.JtaXAResourceHBaseTest;
 import com.splicemachine.si.txn.TransactionManagerHBaseTest;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -23,6 +24,7 @@ import org.junit.runners.Suite;
 				HBasePackedCompactionTest.class
 })
 @RunWith(Suite.class)
+@Ignore("Temporary ignoring")
 public class HBaseSuite {
 		public static HStoreSetup classStoreSetup;
 		public static TestTransactionSetup classTransactorSetup;

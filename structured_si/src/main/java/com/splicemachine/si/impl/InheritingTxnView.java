@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.api.AbstractTxn;
 import com.splicemachine.si.api.Txn;
 
 import java.io.IOException;
@@ -105,11 +104,6 @@ public class InheritingTxnView extends AbstractTxn {
 		@Override
 		public void rollback() throws IOException {
 			throw new UnsupportedOperationException("Cannot rollback a transaction view");
-		}
-
-		@Override
-		public void timeout() throws IOException {
-				throw new UnsupportedOperationException("Cannot rollback a transaction view");
 		}
 
 		@Override

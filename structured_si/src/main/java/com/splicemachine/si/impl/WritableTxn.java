@@ -1,11 +1,12 @@
-package com.splicemachine.si.api;
+package com.splicemachine.si.impl;
 
 import com.splicemachine.encoding.MultiFieldEncoder;
-import org.apache.hadoop.hbase.generated.master.tablesDetailed_jsp;
+import com.splicemachine.si.api.CannotCommitException;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -144,27 +145,6 @@ public class WritableTxn extends AbstractTxn {
 				}
 		}
 
-		@Override
-		public void timeout() throws IOException {
-				switch(state){
-						case COMMITTED://don't need to rollback
-						case ROLLEDBACK:
-								return;
-				}
-
-				synchronized (this){
-						switch(state){
-								case COMMITTED://don't need to rollback
-								case ROLLEDBACK:
-										return;
-						}
-
-						tc.timeout(txnId);
-						state = State.ROLLEDBACK;
-				}
-
-		}
-
 		@Override public boolean allowsWrites() { return true; }
 
 		@Override
@@ -187,7 +167,7 @@ public class WritableTxn extends AbstractTxn {
 				MultiFieldEncoder encoder = MultiFieldEncoder.create(fields);
 				encoder.encodeNext(getBeginTimestamp());
 				Txn parentTxn = getParentTransaction();
-				if(parentTxn!=null && !Txn.ROOT_TRANSACTION.equals(parentTxn))
+				if(parentTxn!=null && !ROOT_TRANSACTION.equals(parentTxn))
 						encoder.encodeNext(parentTxn.getTxnId());
 				else
 						encoder.encodeEmpty();

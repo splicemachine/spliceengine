@@ -235,12 +235,6 @@ public class LazyTxn implements Txn {
 		}
 
 		@Override
-		public void timeout() throws IOException {
-				lookup(!inFinalState);
-				delegate.timeout();
-		}
-
-		@Override
 		public boolean allowsWrites() {
 				try {
 						lookup(false); //never changes

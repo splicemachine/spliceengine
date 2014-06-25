@@ -57,6 +57,8 @@ public class TestTransactionSetup {
     public DataStore dataStore;
     public TimestampSource timestampSource = new SimpleTimestampSource();
 		public TransactionReadController readController;
+		public long transactionTimeout = 1000; //1 second for testing
+		public ManualKeepAliveScheduler keepAliveScheduler;
 
     public TestTransactionSetup(StoreSetup storeSetup, boolean simple) {
         final SDataLib dataLib = storeSetup.getDataLib();
@@ -98,8 +100,9 @@ public class TestTransactionSetup {
 				SITransactor.Builder builder = new SITransactor.Builder();
 				control = new SITransactionManager(transactionStore,timestampSource,listener);
 
-				InMemoryTxnStore store = new InMemoryTxnStore(timestampSource);
-				txnLifecycleManager = new ClientTxnLifecycleManager(timestampSource,store);
+				InMemoryTxnStore store = new InMemoryTxnStore(timestampSource,transactionTimeout);
+				keepAliveScheduler = new ManualKeepAliveScheduler(store);
+				txnLifecycleManager = new ClientTxnLifecycleManager(timestampSource,store, keepAliveScheduler);
 				store.setLifecycleManager(txnLifecycleManager);
 				txnAccess = store;
 				readController = new SITransactionReadController(dataStore,dataLib,transactionStore,control, txnAccess);
