@@ -52,7 +52,7 @@ public class SpliceDateFunctionTest {
         Date t = new Date(c.getTime().getTime());
         c.add(Calendar.MONTH,3);
         Date s = new Date(c.getTime().getTime());
-        Assert.assertEquals(3.0,com.splicemachine.derby.utils.SpliceDateFunctions.MONTH_BETWEEN(t, s));
+        Assert.assertEquals(3.0,com.splicemachine.derby.utils.SpliceDateFunctions.MONTH_BETWEEN(t, s), 0.001);
     }
     @Test
     public void testToDate() throws ParseException {
