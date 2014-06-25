@@ -52,6 +52,7 @@ import com.splicemachine.constants.SpliceConstants;
  */
 public class TimestampClient extends TimestampBaseHandler implements TimestampRegionManagement {
 
+
 	private static final Logger LOG = Logger.getLogger(TimestampClient.class);
 
 	private static final short CLIENT_COUNTER_INIT = 100; // actual value doesn't matter
