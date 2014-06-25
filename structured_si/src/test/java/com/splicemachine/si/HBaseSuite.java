@@ -18,7 +18,7 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({JtaXAResourceHBaseTest.class,
 				TransactionManagerHBaseTest.class,
 				SIFilterHBaseTest.class,
-				HbasePackedAsyncRollForwardTest.class,
+	//			HbasePackedAsyncRollForwardTest.class,
 				SITransactorHBasePackedTest.class,
 				HBasePackedCompactionTest.class
 })
