@@ -2,21 +2,17 @@ package com.splicemachine.derby.utils.test;
 
 import org.junit.Assert;
 import org.junit.Test;
-
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.HashMap;
-
-import com.splicemachine.derby.utils.SpliceDateFunctions;
 
 /**
  * Created by yifu on 6/24/14.
  */
-public class SpliceDateFunctionTest {
+public class SpliceDateFunctionsTest {
     @Test
     public void testAddMonth(){
         Calendar c = Calendar.getInstance();
