@@ -24,7 +24,7 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 		_rzk = rzk;
 	}
 
-	public void initializeIfNeeded() {
+	public void initializeIfNeeded() throws TimestampIOException {
 		TimestampUtil.doServerTrace(LOG, "initializeIfNeeded");
 		synchronized(this) {
 			if (_oracle == null) {
@@ -61,7 +61,7 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 		futureResponse.addListener(new ChannelFutureListener() {
 			public void operationComplete(ChannelFuture cf) throws Exception {
 			    if (!cf.isSuccess()) {
-			    	throw new RuntimeException(
+			    	throw new TimestampIOException(
 		    			"Failed to respond successfully to caller id " + callerId, cf.getCause());
 			    }																					
 			  }
