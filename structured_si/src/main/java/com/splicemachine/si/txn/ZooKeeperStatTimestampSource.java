@@ -46,6 +46,9 @@ import org.apache.zookeeper.data.Stat;
  *
  * @author Scott Fines
  * Created on: 11/6/13
+ * 
+ * @deprecated No longer supported as of version 0.5.1. Will throw runtime exception if used.
+ * Use {@link SpliceTimestampSource} instead.
  */
 public class ZooKeeperStatTimestampSource implements TimestampSource {
     private static final Logger LOG = Logger.getLogger(ZooKeeperStatTimestampSource.class);

@@ -27,9 +27,10 @@ import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
 import com.splicemachine.constants.SpliceConstants;
 
 /**
- * TimestampClient implementation class that accepts concurrent client requests
- * (typically from {@link SITransactionManager} and sends them over a shared
- * connection to the remote {@link TimestampServer}.
+ * Accepts concurrent requests for new transactional timestamps and
+ * sends them over a shared connection to the remote {@link TimestampServer}.
+ * For the caller, the invocation of {@link #getNextTimestamp()}
+ * is synchronous.
  * <p>
  * This class should generally not be constructed directly.
  * Rather, {@link TimestampClientFactory} should be used 
@@ -107,7 +108,7 @@ public class TimestampClient extends TimestampBaseHandler {
 		// connectIfNeeded();
     }
 
-    protected String getHost() {
+    protected String getHost() throws TimestampIOException {
     	String hostName = null;
     	try {
 			/*
@@ -130,7 +131,7 @@ public class TimestampClient extends TimestampBaseHandler {
     	return _port;
     }
 
-    protected State connectIfNeeded() {
+    protected State connectIfNeeded() throws TimestampIOException {
 
     	// Even though state is an atomic reference, synchronize on whole block
     	// including code that attempts connection. Otherwise, two threads might
@@ -158,11 +159,10 @@ public class TimestampClient extends TimestampBaseHandler {
 				}
 			);
 	
-    	
-			try {
+ 			try {
 				latchConnect.await();
 			} catch (InterruptedException e) {
-				throw new RuntimeException("Interrupted waiting for timestamp client to connect to server", e);
+				throw new TimestampIOException("Interrupted waiting for timestamp client to connect to server", e);
 			}
 
 			// Can only assume connecting (not connected) until channelConnected method is invoked
@@ -172,7 +172,7 @@ public class TimestampClient extends TimestampBaseHandler {
     	}
     }
     
-    public long getNextTimestamp() {
+    public long getNextTimestamp() throws TimestampIOException {
 
     	connectIfNeeded();
     	
@@ -194,7 +194,7 @@ public class TimestampClient extends TimestampBaseHandler {
 			TimestampUtil.doClientTrace(LOG, "Writing request message to server", callback);
             ChannelFuture futureWrite = _channel.write(buffer);
 	        futureWrite.addListener(new ChannelFutureListener() {
-	            public void operationComplete(ChannelFuture future) {
+	            public void operationComplete(ChannelFuture future) throws Exception {
 	                if (!future.isSuccess()) {
 	                    TimestampUtil.doClientErrorThrow(LOG, "Error writing message from timestamp client to server", future.getCause(), null);
 	                } else {
@@ -223,7 +223,7 @@ public class TimestampClient extends TimestampBaseHandler {
 		
 		long timestamp = callback.getNewTimestamp();
         if (timestamp < 0) {
-        	throw new RuntimeException("Invalid timestamp created in timestamp callback " + callback);
+        	throw new TimestampIOException("Invalid timestamp created in timestamp callback " + callback);
         }
     	
         TimestampUtil.doClientDebug(LOG, "Client call complete", callback);

@@ -86,16 +86,21 @@ public class TimestampUtil {
 		SpliceLogUtils.error(logger, message + " : " + obj, t);		
 	}
 	
-	public static void doClientErrorThrow(Logger logger, String message, Throwable t, Object obj) {
+	public static void doClientErrorThrow(Logger logger, String message, Throwable t, Object obj)
+		throws TimestampIOException {
+		
+		System.out.println(message);
+		System.out.println(t);
+		
 		if (message == null) message = "";
 		if (obj == null) obj = "";
 		StringBuffer sb = new StringBuffer();
 		String fullMsg = sb.append(message).append(" : ").append(obj).toString();
+		SpliceLogUtils.error(logger, fullMsg);
 		if (t != null) {
-			SpliceLogUtils.logAndThrowRuntime(logger, fullMsg, t);
+			throw new TimestampIOException(fullMsg, t);
 		} else {
-			SpliceLogUtils.error(logger, fullMsg);
-			throw new RuntimeException(fullMsg);
+			throw new TimestampIOException(fullMsg);
 		}
 	}
 	
