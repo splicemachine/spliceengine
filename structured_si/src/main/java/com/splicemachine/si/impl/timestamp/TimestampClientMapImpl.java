@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hadoop.hbase.client.HConnectionManager;
@@ -72,7 +73,7 @@ public class TimestampClientMapImpl extends TimestampClient {
 	 */
     // We might even get away with using a byte here (256 concurrent client calls),
     // but use a short just in case.
-    private volatile short _clientCallCounter = CLIENT_COUNTER_INIT;
+    private AtomicInteger _clientCallCounter = new AtomicInteger(CLIENT_COUNTER_INIT);
    
     private int _port;
 
@@ -175,7 +176,7 @@ public class TimestampClientMapImpl extends TimestampClient {
 
     	connectIfNeeded();
     	
-    	short clientCallId = incrementClientCounter();
+    	short clientCallId = (short)_clientCallCounter.getAndIncrement();
     	final ClientCallback callback = new ClientCallback(clientCallId);
     	TimestampUtil.doClientDebug(LOG, "Starting new client call with id " + clientCallId);
     	
@@ -230,10 +231,6 @@ public class TimestampClientMapImpl extends TimestampClient {
     	return timestamp;
     }
 
-    private synchronized short incrementClientCounter() {
-    	return ++_clientCallCounter;
-    }
-    
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
  		ChannelBuffer buf = (ChannelBuffer)e.getMessage();
  		assert (buf != null);
