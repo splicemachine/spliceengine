@@ -64,6 +64,7 @@ import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.hbase.ManifestReader.SpliceMachineVersion;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
@@ -77,7 +78,9 @@ import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.logging.Logging;
 
 /**
@@ -85,7 +88,8 @@ import com.splicemachine.utils.logging.Logging;
  *         Date: 12/9/13
  */
 public class SpliceAdmin {
-
+	private static Logger LOG = Logger.getLogger(SpliceAdmin.class);
+	
     public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName, final String logLevel) throws SQLException {
         operate(new JMXServerOperation() {
             @Override
@@ -855,10 +859,14 @@ public class SpliceAdmin {
             for (long conglomID : getConglomids(getDefaultConn(), schemaName, tableName)) {
                 try {
                     admin.majorCompact(Bytes.toBytes(Long.toString(conglomID)));
-                } catch (IOException e) {
-                    throw new SQLException(e);
-                } catch (InterruptedException e) {
-                    throw new SQLException(e);
+                } catch (Exception e) {
+                	SpliceLogUtils.warn(LOG, "SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE failed on %s with this message %s, waiting two seconds and will try again", Long.toString(conglomID),e.getMessage());
+                	try {
+                		Thread.sleep(2000);
+                		admin.majorCompact(Bytes.toBytes(Long.toString(conglomID)));
+                	} catch (Exception secondE) {
+                    	SpliceLogUtils.warn(LOG, "SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE failed on %s with this message %s after waiting 2 seconds, compaction attempt aborted", Long.toString(conglomID),e.getMessage());                			
+                	}
                 }
             }
         } finally {
