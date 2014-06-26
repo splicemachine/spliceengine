@@ -23,18 +23,19 @@ public class ScanGroupedAggregateIterator extends GroupedAggregateIterator{
 		private final KeyEncoder groupKeyEncoder;
 
     public ScanGroupedAggregateIterator(GroupedAggregateBuffer buffer,
-                                 StandardIterator<ExecRow> source,
-																 KeyEncoder encoder,
-																 int[] groupColumns,
-                                 boolean isRollup) {
-				super(source,isRollup,groupColumns);
+                                        StandardIterator<ExecRow> source,
+                                        KeyEncoder encoder,
+                                        int[] groupColumns,
+                                        boolean isRollup) {
+        super(source, isRollup, groupColumns);
         this.buffer = buffer;
-				this.groupKeyEncoder = encoder;
+        this.groupKeyEncoder = encoder;
 //        this.groupSortByColumns = groupSortByColumns;
 //        groupKeyHasher = KeyType.BARE;
-        int maxEvicted = isRollup? groupColumns.length+1: 1;
+        int maxEvicted = isRollup ? groupColumns.length + 1 : 1;
         evictedRows = Lists.newArrayListWithCapacity(maxEvicted);
     }
+
     @Override
     public void open() throws StandardException, IOException {
         source.open();
@@ -44,18 +45,11 @@ public class ScanGroupedAggregateIterator extends GroupedAggregateIterator{
     public GroupedRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         //return any previously evicted rows first
         if (evictedRows.size() > 0) {
-
-            GroupedRow e = evictedRows.remove(0);
-            System.out.println(String.format("ScanGAIt returning evicted row: %s", e));
-            return e;
-            //return evictedRows.remove(0);
+            return evictedRows.remove(0);
         }
         if (completed) {
             if (buffer.size() > 0) {
-                GroupedRow r = buffer.getFinalizedRow();
-                System.out.println(String.format("ScanGAIt completed, returning finalized row: %s", r));
-                return r;
-                //return buffer.getFinalizedRow();
+                return buffer.getFinalizedRow();
             }
             else return null;
         }
@@ -65,7 +59,6 @@ public class ScanGroupedAggregateIterator extends GroupedAggregateIterator{
         do {
             SpliceBaseOperation.checkInterrupt(rowsRead, SpliceConstants.interruptLoopCheck);
             ExecRow nextRow = source.next(spliceRuntimeContext);
-            System.out.println(String.format("Source row from TEMP: %s", nextRow));
             shouldContinue = nextRow != null;
             if (!shouldContinue)
                 break; //iterator exhausted, break from the loop
@@ -76,7 +69,6 @@ public class ScanGroupedAggregateIterator extends GroupedAggregateIterator{
         } while (shouldContinue);
 
         if (toReturn != null) {
-            System.out.println(String.format("toReturn returned from ScanGAIt: %s", toReturn));
             return toReturn;
         }
         /*
@@ -87,10 +79,7 @@ public class ScanGroupedAggregateIterator extends GroupedAggregateIterator{
 
         //we've exhausted the iterator, so return an entry from the buffer
         if (buffer.size() > 0) {
-            GroupedRow r = buffer.getFinalizedRow();
-            System.out.println(String.format("ScanGAIt finalizedRow: %s", r));
-            return r;
-            //return buffer.getFinalizedRow();
+            return buffer.getFinalizedRow();
         }
 
         //the buffer has nothing in it either, just return null
