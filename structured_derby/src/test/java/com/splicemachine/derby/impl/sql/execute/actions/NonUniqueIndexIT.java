@@ -245,7 +245,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
     @Test
     public void testCanAddDuplicateAndDelete() throws Exception{
     	new SpliceIndexWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,INDEX_51,spliceSchemaWatcher.schemaName,"(name)").starting(null);
-        String name = "sfines";
+        String name = "uniqueTestTableYifu";
         addDuplicateAndDeleteTest(name);
     }
 
@@ -271,11 +271,15 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
 
         ResultSet resultSet = methodWatcher.executeQuery(format("select * from %s where name = '%s'",spliceTableWatcher5,name));
         List<String> results = Lists.newArrayListWithExpectedSize(1);
+        int count=0;
         while(resultSet.next()){
+            count++;
+        	System.out.println(count + " results exist");
             String retName = resultSet.getString(1);
             int val = resultSet.getInt(2);
             Assert.assertEquals("Incorrect name returned!", name, retName);
             results.add(String.format("name:%s,value:%d", retName, val));
+           
         }
         Assert.assertEquals("Incorrect number of rows returned!",2,results.size());
         for(String result:results){
@@ -289,10 +293,10 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
 
     @Test(timeout=10000)
     public void testCanDeleteEverything() throws Exception {
-        new SpliceIndexWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,INDEX_51,spliceSchemaWatcher.schemaName,"(name)").starting(null);
+        methodWatcher.getStatement().execute(format("delete from %s",spliceTableWatcher5.toString()));
+    	new SpliceIndexWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,INDEX_51,spliceSchemaWatcher.schemaName,"(name)").starting(null);
         methodWatcher.getStatement().execute(format("insert into %s.%s (name,val) values ('sfines',2)",spliceSchemaWatcher.schemaName,TABLE_NAME_5));
         methodWatcher.getStatement().execute(format("delete from %s",spliceTableWatcher5.toString()));
-
         ResultSet resultSet = methodWatcher.executeQuery("select * from "+spliceTableWatcher5.toString());
         Assert.assertTrue("Results returned!",!resultSet.next());
     }
