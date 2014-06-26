@@ -1320,28 +1320,30 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 		return new OperationResultSet(activation, op);
 	}
 
-    public NoPutResultSet getWindowResultSet(
-        Activation activation,
-        NoPutResultSet source,
-        GeneratedMethod rowAllocator,
-        int resultSetNumber,
-        int erdNumber,
-        GeneratedMethod restriction,
-        double optimizerEstimatedRowCount,
-        double optimizerEstimatedCost)
+    public NoPutResultSet getWindowResultSet(NoPutResultSet source,
+                                             boolean isInSortedOrder,
+                                             int aggregateItem,
+                                             int orderingItem,
+                                             GeneratedMethod rowAllocator,
+                                             int maxRowSize,
+                                             int resultSetNumber,
+                                             double optimizerEstimatedRowCount,
+                                             double optimizerEstimatedCost)
         throws StandardException {
         SpliceLogUtils.trace(LOG, "getWindowResultSet");
-        ConvertedResultSet convertedResultSet = (ConvertedResultSet)source;
 
-        SpliceOperation op = new WindowOperation (
-            activation,
-            convertedResultSet.getOperation(),
-            rowAllocator,
-            resultSetNumber,
-            erdNumber,
-            restriction,
-            optimizerEstimatedRowCount,
-            optimizerEstimatedCost);
-        return new OperationResultSet(activation,op);
+        ConvertedResultSet below = (ConvertedResultSet)source;
+        SpliceOperation op =  new WindowOperation(below.getOperation(),
+                                                            isInSortedOrder,
+                                                            aggregateItem,
+                                                            orderingItem,
+                                                            source.getActivation(),
+                                                            rowAllocator,
+                                                            maxRowSize,
+                                                            resultSetNumber,
+                                                            optimizerEstimatedRowCount,
+                                                            optimizerEstimatedCost);
+
+        return new OperationResultSet(source.getActivation(),op);
     }
 }
