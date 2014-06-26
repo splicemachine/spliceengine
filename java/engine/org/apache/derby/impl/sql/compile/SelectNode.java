@@ -664,9 +664,19 @@ public class SelectNode extends ResultSetNode
         if (hasWindows()) {
             for (int i=0; i<windows.size(); ++i) {
                 WindowDefinitionNode wdn = (WindowDefinitionNode) windows.elementAt(i);
+
+                // Window partition
                 Partition partition = wdn.getPartition();
-                Vector partitionAggregateVector = new Vector();
-                partition.bindGroupByColumns(this, partitionAggregateVector);
+                if (partition != null) {
+                    Vector partitionAggregateVector = new Vector();
+                    partition.bindGroupByColumns(this, partitionAggregateVector);
+                }
+
+                // Window order by
+                OrderByList orderBy = wdn.getOrderByList();
+                if (orderBy != null) {
+                    orderBy.bindOrderByColumns(this);
+                }
             }
         }
 

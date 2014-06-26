@@ -206,6 +206,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 isInSortedOrder = childResult.isOrderedOn(crs, true, (Vector) null);
             }
         }
+
+        // TODO: OrderBy?
+        addOrderby();
     }
 
     /**
@@ -242,23 +245,22 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         /* Generate the OrderByNode if a sort is still required for
 		 * the order by.
 		 */
-        ResultSetNode prnRSN = parent;
         OrderByList windowOrderBy = wdn.getOrderByList();
-        if (windowOrderBy != null) {
-            if (windowOrderBy.getSortNeeded()) {
-                prnRSN = (ResultSetNode) getNodeFactory().getNode(
-                    C_NodeTypes.ORDER_BY_NODE,
-                    prnRSN,
-                    windowOrderBy,
-                    null,
-                    getContextManager());
-                prnRSN.costEstimate = costEstimate.cloneMe();
-            }
+
+        if (windowOrderBy != null && windowOrderBy.getSortNeeded()) {
+            ResultSetNode prnRSN = parent;
+            prnRSN = (ResultSetNode) getNodeFactory().getNode(
+                C_NodeTypes.ORDER_BY_NODE,
+                prnRSN,
+                windowOrderBy,
+                null,
+                getContextManager());
 
             // There may be columns added to the select projection list
             // a query like:
             // select a, b from t group by a,b order by a+b
             // the expr a+b is added to the select list.
+            // TODO: probably no orderbyselect in this context
             int orderBySelect = this.getResultColumns().getOrderBySelect();
             if (orderBySelect > 0)  {
                 // Keep the same RCL on top, since there may be references to
@@ -960,10 +962,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         }
 
         if (SanityManager.DEBUG) {
-            if (SanityManager.DEBUG_ON("AggregateTrace")) {
+            if (SanityManager.DEBUG_ON("WindowTrace")) {
                 StringBuilder s = new StringBuilder();
 
-                s.append("Group by column ordering is (");
+                s.append("Partition column ordering is (");
                 org.apache.derby.iapi.store.access.ColumnOrdering[] ordering =
                     (org.apache.derby.iapi.store.access.ColumnOrdering[]) orderingHolder.getArray(org.apache.derby
                                                                                                       .iapi.store
@@ -994,62 +996,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
         acb.pushGetResultSetFactoryExpression(mb);
 
-        // Generate the child ResultSet
-        childResult.generate(acb, mb);
-        mb.push(isInSortedOrder);
-        mb.push(aggInfoItem);
-        mb.push(orderingItem);
 
-        resultColumns.generateHolder(acb, mb);
-
-        mb.push(resultColumns.getTotalColumnSize());
-        mb.push(resultSetNumber);
-
-		/* Generate a (Distinct)ScalarAggregateResultSet if scalar aggregates */
-        if ((partition == null) || (partition.size() == 0)) {
-            genScalarAggregateResultSet(acb, mb);
-        }
-		/* Generate a (Distinct)GroupedAggregateResultSet if grouped aggregates */
-        else {
-            genGroupedAggregateResultSet(acb, mb);
-        }
-    }
-
-    /**
-     * Generate the code to evaluate scalar aggregates.
-     */
-    private void genScalarAggregateResultSet(ActivationClassBuilder acb,
-                                             MethodBuilder mb) {
-		/* Generate the (Distinct)ScalarAggregateResultSet:
-		 *	arg1: childExpress - Expression for childResult
-		 *  arg2: isInSortedOrder - true if source result set in sorted order
-		 *  arg3: aggregateItem - entry in saved objects for the aggregates,
-		 *  arg4: orderItem - entry in saved objects for the ordering
-		 *  arg5: Activation
-		 *  arg6: rowAllocator - method to construct rows for fetching
-		 *			from the sort
-		 *  arg7: row size
-		 *  arg8: resultSetNumber
-		 *  arg9: Whether or not to perform min optimization.
-		 */
-        String resultSet = (addDistinctAggregate) ? "getDistinctScalarAggregateResultSet" :
-            "getScalarAggregateResultSet";
-
-        mb.push(singleInputRowOptimization);
-        mb.push(costEstimate.rowCount());
-        mb.push(costEstimate.getEstimatedCost());
-
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, resultSet,
-                      ClassName.NoPutResultSet, 10);
-    }
-
-    /**
-     * Generate the code to evaluate grouped aggregates.
-     */
-    private void genGroupedAggregateResultSet(ActivationClassBuilder acb,
-                                              MethodBuilder mb)
-        throws StandardException {
-		/* Generate the (Distinct)GroupedAggregateResultSet:
+		/* Generate the WindowResultSet:
 		 *	arg1: childExpress - Expression for childResult
 		 *  arg2: isInSortedOrder - true if source result set in sorted order
 		 *  arg3: aggregateItem - entry in saved objects for the aggregates,
@@ -1061,15 +1009,21 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		 *  arg8: resultSetNumber
 		 *  arg9: isRollup
 		 */
-        String resultSet = (addDistinctAggregate) ? "getDistinctGroupedAggregateResultSet" :
-            "getGroupedAggregateResultSet";
+        // Generate the child ResultSet
+        childResult.generate(acb, mb);
+        mb.push(isInSortedOrder);
+        mb.push(aggInfoItem);
+        mb.push(orderingItem);
 
+        resultColumns.generateHolder(acb, mb);
+
+        mb.push(resultColumns.getTotalColumnSize());
+        mb.push(resultSetNumber);
         mb.push(costEstimate.rowCount());
         mb.push(costEstimate.getEstimatedCost());
-        mb.push(partition.isRollup());
 
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, resultSet,
-                      ClassName.NoPutResultSet, 10);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getWindowResultSet",
+                      ClassName.NoPutResultSet, 9);
 
     }
 

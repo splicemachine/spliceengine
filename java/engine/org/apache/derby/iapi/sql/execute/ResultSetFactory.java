@@ -21,20 +21,13 @@
 
 package org.apache.derby.iapi.sql.execute;
 
-import org.apache.derby.catalog.TypeDescriptor;
+import java.util.List;
 
 import org.apache.derby.iapi.error.StandardException;
-
-import org.apache.derby.iapi.sql.ResultDescription;
-import org.apache.derby.iapi.sql.ResultSet;
-import org.apache.derby.iapi.sql.Activation;
-
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
-
-import org.apache.derby.iapi.store.access.Qualifier;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-
-import java.util.List;
 
 /**
  * ResultSetFactory provides a wrapper around all of
@@ -1161,38 +1154,38 @@ public interface ResultSetFactory {
 			throws StandardException;
 
 
+    /**
+     A OLAP window on top of a regular result set. It is used to realize
+     window functions.
 
-	/**
-	   A OLAP window on top of a regular result set. It is used to realize
-	   window functions.
-	   <p>
-	   @param activation   Activation
-	   @param source       The result set input to this result set.
-	   @param rowAllocator A reference to a method in the activation
-			               that generates rows of the right size and
-						   shape for the source.
-	   @param resultSetNumber The resultSetNumber for the ResultSet
-	   @param erdNumber    Int for ResultDescription
-	                       (so it can be turned back into an object)
-	   @param restriction  The restriction, if any, to be applied to the
-	                       base row
-	   @param optimizerEstimatedRowCount
-                           Estimated total # of rows by optimizer
-	   @param optimizerEstimatedCost
-                           Estimated total cost by optimizer
-	   @throws StandardException
-	 */
-	public NoPutResultSet getWindowResultSet(
-								Activation activation,
-								NoPutResultSet source,
-								GeneratedMethod rowAllocator,
-								int resultSetNumber,
-								int erdNumber,
-								GeneratedMethod restriction,
-								double optimizerEstimatedRowCount,
-								double optimizerEstimatedCost)
-			throws StandardException;
-
+     @param source the result set from which to take rows to be
+     filtered by this operation.
+     @param isInSortedOrder	true if the source result set is in sorted order
+     @param aggregateItem entry in preparedStatement's savedObjects for aggregates
+     @param orderingItem  entry in preparedStatement's savedObjects for order
+     @param rowAllocator a reference to a method in the activation
+     that generates rows of the right size and shape for the source
+     @param rowSize			the size of the row that is allocated by rowAllocator.
+     size should be the maximum size of the sum of all the datatypes.
+     user type are necessarily approximated
+     @param resultSetNumber	The resultSetNumber for the ResultSet
+     @param optimizerEstimatedRowCount	Estimated total # of rows by
+     optimizer
+     @param optimizerEstimatedCost		Estimated total cost by optimizer
+     @return the scalar aggregation operation as a result set.
+     @exception StandardException thrown when unable to create the
+     result set
+     */
+    NoPutResultSet getWindowResultSet(NoPutResultSet source,
+                                               boolean isInSortedOrder,
+                                               int aggregateItem,
+                                               int orderingItem,
+                                               GeneratedMethod rowAllocator,
+                                               int rowSize,
+                                               int resultSetNumber,
+                                               double optimizerEstimatedRowCount,
+                                               double optimizerEstimatedCost)
+        throws StandardException;
 
 
 	/**

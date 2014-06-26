@@ -21,7 +21,8 @@
 
 package org.apache.derby.impl.sql.execute;
 
-import org.apache.derby.catalog.TypeDescriptor;
+import java.util.List;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.services.sanity.SanityManager;
@@ -29,11 +30,10 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultSet;
 import org.apache.derby.iapi.sql.conn.Authorizer;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.sql.execute.ResultSetFactory;
-import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
-import java.util.List;
 
 /**
  * ResultSetFactory provides a wrapper around all of
@@ -512,34 +512,35 @@ public abstract class GenericResultSetFactory implements ResultSetFactory
 								optimizerEstimatedCost);
 	}
 
-	/**
-		@see ResultSetFactory#getWindowResultSet
-		@exception StandardException	Thrown on error
-	 */
-	public NoPutResultSet getWindowResultSet(
-								Activation activation,
-								NoPutResultSet source,
-								GeneratedMethod rowAllocator,
-								int resultSetNumber,
-								int erdNumber,
-								GeneratedMethod restriction,
-								double optimizerEstimatedRowCount,
-								double optimizerEstimatedCost)
-		throws StandardException
-	{
-		return new WindowResultSet(
-								activation,
-								source,
-								rowAllocator,
-								resultSetNumber,
-								erdNumber,
-								restriction,
-								optimizerEstimatedRowCount,
-								optimizerEstimatedCost);
-	}
+    /**
+     @see ResultSetFactory#getWindowResultSet
+     @exception StandardException	Thrown on error
+     */
+    public NoPutResultSet getWindowResultSet(NoPutResultSet source,
+                                             boolean isInSortedOrder,
+                                             int aggregateItem,
+                                             int orderingItem,
+                                             GeneratedMethod rowAllocator,
+                                             int rowSize,
+                                             int resultSetNumber,
+                                             double optimizerEstimatedRowCount,
+                                             double optimizerEstimatedCost)
+        throws StandardException
+    {
+        return new WindowResultSet(source,
+        isInSortedOrder,
+        aggregateItem,
+        orderingItem,
+        source.getActivation(),
+        rowAllocator,
+        rowSize,
+        resultSetNumber,
+        optimizerEstimatedRowCount,
+        optimizerEstimatedCost);
+    }
 
 
-	/**
+    /**
 		@see ResultSetFactory#getNestedLoopJoinResultSet
 		@exception StandardException thrown on error
 	 */
