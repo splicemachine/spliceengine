@@ -3,78 +3,83 @@ package org.apache.derby.impl.sql.execute.operations;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Types;
+import java.util.List;
 
+import com.google.common.collect.Lists;
+import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.suites.Stats;
 import com.splicemachine.utils.SpliceLogUtils;
 
-public class ScalarAggregateOperationIT extends SpliceUnitTest { 
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	private static final Logger LOG = Logger.getLogger(ScalarAggregateOperationIT.class);
-	 public static final String CLASS_NAME = ScalarAggregateOperationIT.class.getSimpleName().toUpperCase();
-		public static final String TABLE_NAME = "T";
-		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
-		protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(username varchar(40),i int)");
-        protected static SpliceTableWatcher nullTableWatcher = new SpliceTableWatcher("NT",CLASS_NAME,"(a int,b int)");
-    	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("EMPTY_TABLE",CLASS_NAME,"(oid int, catalog varchar(40), score int, brand char(40))");
+public class ScalarAggregateOperationIT extends SpliceUnitTest {
+    public static final String CLASS_NAME = ScalarAggregateOperationIT.class.getSimpleName().toUpperCase();
+    protected static SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+    private static final Logger LOG = Logger.getLogger(ScalarAggregateOperationIT.class);
+    public static final String TABLE_NAME = "T";
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME, CLASS_NAME, "(username varchar(40),i int)");
+    protected static SpliceTableWatcher nullTableWatcher = new SpliceTableWatcher("NT", CLASS_NAME, "(a int,b int)");
+    protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("EMPTY_TABLE", CLASS_NAME, "(oid int, catalog varchar(40), score int, brand char(40))");
 
-		protected static String INSERT = String.format("insert into %s.%s (username, i) values (?,?)", CLASS_NAME,TABLE_NAME);
-		public static int size = 10;
-		public static Stats stats = new Stats();
+    protected static String INSERT = String.format("insert into %s.%s (username, i) values (?,?)", CLASS_NAME, TABLE_NAME);
+    public static int size = 10;
+    public static Stats stats = new Stats();
 
-		@ClassRule
-        public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-                .around(spliceSchemaWatcher)
-                .around(spliceTableWatcher)
-                .around(nullTableWatcher)
-                .around(spliceTableWatcher2)
-                .around(new SpliceDataWatcher() {
-                    @Override
-                    protected void starting(Description description) {
-                        try {
-                            PreparedStatement ps = spliceClassWatcher.prepareStatement(INSERT);
-                            for (int i = 0; i < size-1; i++) {
-                                ps.setString(1, format("user%s", i + 1));
-                                ps.setInt(2, i);
-                                stats.add(i);
-                                ps.executeUpdate();
-                            }
-                            
-                            ps.setString(1, format("user%s", size));
-                            ps.setInt(2, Integer.MAX_VALUE - 1);
-                            stats.add(Integer.MAX_VALUE - 1);
+    @ClassRule
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWatcher)
+            .around(spliceTableWatcher)
+            .around(nullTableWatcher)
+            .around(spliceTableWatcher2)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        PreparedStatement ps = spliceClassWatcher.prepareStatement(INSERT);
+                        for (int i = 0; i < size-1; i++) {
+                            ps.setString(1, format("user%s", i + 1));
+                            ps.setInt(2, i);
+                            stats.add(i);
                             ps.executeUpdate();
+                        }
+
+                        ps.setString(1, format("user%s", size));
+                        ps.setInt(2, Integer.MAX_VALUE - 1);
+                        stats.add(Integer.MAX_VALUE - 1);
+                        ps.executeUpdate();
 //                            spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, size / 3);
 
-                            ps = spliceClassWatcher.prepareStatement("insert into " + nullTableWatcher.toString() + " values (?,?)");
-                            for (int i = 0; i < size; i++) {
-                                if (i % 2 == 0) {
-                                    ps.setNull(1, Types.INTEGER);
-                                } else
-                                    ps.setInt(1, i);
-                                ps.setInt(2, i * 2);
-                                ps.executeUpdate();
-                            }
-                        } catch (Exception e) {
-														e.printStackTrace();
-                            throw new RuntimeException(e);
-                        } finally {
-                            spliceClassWatcher.closeAll();
+                        ps = spliceClassWatcher.prepareStatement("insert into " + nullTableWatcher.toString() + " values (?,?)");
+                        for (int i = 0; i < size; i++) {
+                            if (i % 2 == 0) {
+                                ps.setNull(1, Types.INTEGER);
+                            } else
+                                ps.setInt(1, i);
+                            ps.setInt(2, i * 2);
+                            ps.executeUpdate();
                         }
+                    } catch (Exception e) {
+                                                    e.printStackTrace();
+                        throw new RuntimeException(e);
+                    } finally {
+                        spliceClassWatcher.closeAll();
                     }
+            }})
+           .around(TestUtils
+                       .createStringDataWatcher(spliceClassWatcher,
+                                                   "create table summer (vals int, nullvals int); " +
+                                                       "insert into summer values " +
+                                                       "(20, null), (20, null), (20, null), (12, null), " +
+                                                       "(40, null), (12, null), (40, null), (80, null), " +
+                                                       "(40, null), (20, null), (80, null), (80, null);",
+                                                   CLASS_NAME));
 
-                });
-
-    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+    @Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
 	@Test
 	public void testCountOperation() throws Exception{
@@ -300,5 +305,17 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
         }
         Assert.assertEquals("No rows returned!",1,i);
 
+    }
+
+    @Test
+    public void testThatSummedNullsReturnNullNotZero() throws Exception {
+        Object[] expected = new Object[]{464L, null};
+
+        Assert.assertArrayEquals(expected,
+                                    TestUtils
+                                        .resultSetToArrays(methodWatcher
+                                                               .executeQuery("select sum(vals), sum(nullvals)" +
+                                                                                 " from summer"))
+                                        .get(0));
     }
 }
