@@ -548,6 +548,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	}
 
 	@Test
+	@Ignore("Removed Rollback on bulk writes - should not write twice on these")
 	@Category(SlowTest.class)
 	public void GetReadWriteCountMultipleSingleRecordWrites() throws Exception{
         Connection conn = methodWatcher.createConnection();
@@ -566,6 +567,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	
 	@Test
 	@Category(SlowTest.class)
+	@Ignore("Removed Rollback on bulk writes - should not write twice on these")
 	public void GetReadWriteCountBulkRecordWrites() throws Exception{
 		Connection conn = methodWatcher.createConnection();
 		String tableID=getConglomerateNumber(conn,TABLE_17);
