@@ -5,6 +5,7 @@ import java.util.*;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.splicemachine.derby.test.framework.*;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -15,16 +16,11 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 
 public class GroupedAggregateOperationIT extends SpliceUnitTest {
     public static final String CLASS_NAME = GroupedAggregateOperationIT.class.getSimpleName().toUpperCase();
-    public static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    public static final SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
     public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     public static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("OMS_LOG",CLASS_NAME,"(swh_date date, i integer)");
     public static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("T8",CLASS_NAME,"(c1 int, c2 int)");
@@ -33,38 +29,37 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
     public static TestRule rule = RuleChain.outerRule(spliceSchemaWatcher)
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee-2table.sql", CLASS_NAME))
             .around(spliceTableWatcher)
-            .around(spliceTableWatcher2)            
-            		.around(new SpliceDataWatcher() {
-            @Override
-            protected void starting(Description description) {
-                try {                	
-                    spliceClassWatcher.setAutoCommit(true);    
-                    spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-01-01'),1)", spliceTableWatcher));
-                    spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-02-01'),1)", spliceTableWatcher));
-                    spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-03-01'),1)", spliceTableWatcher));
-                    spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-03-01'),2)", spliceTableWatcher));
-                    spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-03-01'),3)", spliceTableWatcher));
-                    spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-04-01'),3)", spliceTableWatcher));
-                    spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-05-01'),3)", spliceTableWatcher));
-                    spliceClassWatcher.executeUpdate(format("insert into %s values (null, null), (1,1), (null, null), (2,1), (3,1),(10,10)", spliceTableWatcher2));
-                    
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    spliceClassWatcher.closeAll();
-                }
-            }
+            .around(spliceTableWatcher2)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        spliceClassWatcher.setAutoCommit(true);
+                        spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-01-01'),1)", spliceTableWatcher));
+                        spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-02-01'),1)", spliceTableWatcher));
+                        spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-03-01'),1)", spliceTableWatcher));
+                        spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-03-01'),2)", spliceTableWatcher));
+                        spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-03-01'),3)", spliceTableWatcher));
+                        spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-04-01'),3)", spliceTableWatcher));
+                        spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-05-01'),3)", spliceTableWatcher));
+                        spliceClassWatcher.executeUpdate(format("insert into %s values (null, null), (1,1), (null, null), (2,1), (3,1),(10,10)", spliceTableWatcher2));
 
-        });
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        spliceClassWatcher.closeAll();
+                    }
+                }
+            });
 
     @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher();
+    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
     @Test
     // Confirm baseline HAVING support
     public void testHaving() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
-              format("SELECT T1.PNUM FROM %s.T1 T1 GROUP BY T1.PNUM " + 
+              format("SELECT T1.PNUM FROM %s.T1 T1 GROUP BY T1.PNUM " +
                  "HAVING T1.PNUM IN ('P1', 'P2', 'P3')",
                   CLASS_NAME));
         Assert.assertEquals(3, TestUtils.resultSetToMaps(rs).size());
@@ -117,9 +112,9 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
 						int correct = correctResults.get(groupKey);
 						Assert.assertEquals("Incorrect count for group key "+ groupKey,correct,count);
         }
-        Assert.assertEquals("Should return only rows for the group by columns",5, i);	
+        Assert.assertEquals("Should return only rows for the group by columns",5, i);
     }
-    
+
     @Test
     public void testCountOfNullsAndBooleanSet() throws Exception {
          /*
@@ -185,7 +180,7 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
 
 
         Assert.assertArrayEquals("Should return only rows for the group by columns",correctResults.toArray(),results.toArray());
-    }    
+    }
 
     @Test()
     // Bugzilla #787
@@ -195,8 +190,8 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
         while (rs.next()) {
         	i++;
         }
-        Assert.assertEquals("Should return 5 rows",5, i);	
-    }    
+        Assert.assertEquals("Should return 5 rows",5, i);
+    }
 
     @Test()
     // Bugzilla #790
@@ -206,7 +201,6 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
         while (rs.next()) {
         	i++;
         }
-        Assert.assertEquals("Should return 3 rows",3, i);	
-    } 
-        
+        Assert.assertEquals("Should return 3 rows",3, i);
+    }
 }
