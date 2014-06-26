@@ -24,8 +24,6 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.derby.iapi.types.UserType;
-import org.apache.derby.impl.sql.execute.AggregatorInfo;
-import org.apache.derby.impl.sql.execute.CountAggregator;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
@@ -34,9 +32,8 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * @author Scott Fines
@@ -64,7 +61,7 @@ public class ScanGroupedAggregatorTest {
 
         StandardIterator<ExecRow> source = StandardIterators.wrap(sourceRows);
 
-        SpliceGenericAggregator countAggregator = getCountAggregator(4,1,3);
+        SpliceGenericAggregator countAggregator = GroupedAggregatorTest.countAggregator(4,1,3,false);
         GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(20,
                 new SpliceGenericAggregator[]{countAggregator},false,new StandardSupplier<ExecRow>() {
             @Override
@@ -127,6 +124,7 @@ public class ScanGroupedAggregatorTest {
 
         }
     }
+
     @Test
     public void testGroupedAggregateWorksCorrectly() throws Exception {
         List<ExecRow> sourceRows = Lists.newArrayListWithCapacity(10);
@@ -142,38 +140,16 @@ public class ScanGroupedAggregatorTest {
             sourceRows.add(template.getClone());
         }
 
-        StandardIterator<ExecRow> source = StandardIterators.wrap(sourceRows);
+        SpliceGenericAggregator countAggregator = GroupedAggregatorTest.countAggregator(3,1,2,false);
 
-        SpliceGenericAggregator countAggregator = getCountAggregator(3,1,2);
-        GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(10,
-                new SpliceGenericAggregator[]{countAggregator},false,new StandardSupplier<ExecRow>() {
-            @Override
-            public ExecRow get() throws StandardException {
-                return template.getNewNullRow();
-            }
-        },new WarningCollector() {
-            @Override
-            public void addWarning(String warningState) throws StandardException {
-                Assert.fail("No warnings should be added!");
-            }
-        }, Metrics.noOpMetricFactory(), true);
+        Map<String, List<GroupedRow>> results =
+            GroupedAggregatorTest.runGroupedAggregateTest(sourceRows, countAggregator);
 
-        int[] groupColumns = new int[]{0};
-        boolean[] groupSortOrder = new boolean[]{true};
-				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(template);
-				KeyEncoder encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(groupColumns,groupSortOrder,serializers), NoOpPostfix.INSTANCE);
-        ScanGroupedAggregateIterator aggregator = new ScanGroupedAggregateIterator(buffer,
-                source,encoder,groupColumns,false);
 
-        List<GroupedRow> results = Lists.newArrayListWithExpectedSize(10);
-        GroupedRow row = aggregator.next(null);
-        while(row!=null){
-            results.add(row.deepCopy());
-            row = aggregator.next(null);
-        }
+        List<GroupedRow> scannedRows = results.get("allScannedRows");
+        Assert.assertEquals("Incorrect number of grouped rows returned!",10,scannedRows.size());
 
-        Assert.assertEquals("Incorrect number of grouped rows returned!",10,results.size());
-        Collections.sort(results,new Comparator<GroupedRow>() {
+        Collections.sort(scannedRows,new Comparator<GroupedRow>() {
             @Override
             public int compare(GroupedRow o1, GroupedRow o2) {
                 return Bytes.compareTo(o1.getGroupingKey(), o2.getGroupingKey());
@@ -181,7 +157,7 @@ public class ScanGroupedAggregatorTest {
         });
 
         for(int i=0;i<10;i++){
-            GroupedRow groupedRow = results.get(i);
+            GroupedRow groupedRow = scannedRows.get(i);
             byte[] groupKey = groupedRow.getGroupingKey();
             Assert.assertEquals("incorrect grouping key!",i,Encoding.decodeInt(groupKey));
             ExecRow dataRow = groupedRow.getRow();
@@ -190,15 +166,5 @@ public class ScanGroupedAggregatorTest {
             int count = ((ExecAggregator)dataRow.getColumn(3).getObject()).getResult().getInt();
             Assert.assertEquals("Incorrect count column!",1,count);
         }
-    }
-
-    private SpliceGenericAggregator getCountAggregator(int aggregatorColumnId, int inputColumn,int resultColumnId ) {
-        CountAggregator execAggregator = new CountAggregator();
-        execAggregator.setup(null, "COUNT(*)", null);
-        SpliceGenericAggregator aggregator = new SpliceGenericAggregator(execAggregator,aggregatorColumnId,inputColumn,resultColumnId);
-        AggregatorInfo mockInfo = mock(AggregatorInfo.class);
-        when(mockInfo.isDistinct()).thenReturn(false);
-        aggregator.setAggInfo(mockInfo);
-        return aggregator;
     }
 }
