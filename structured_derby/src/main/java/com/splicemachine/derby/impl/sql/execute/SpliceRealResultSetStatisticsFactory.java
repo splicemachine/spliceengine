@@ -21,8 +21,6 @@
 
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.i18n.MessageService;
@@ -66,6 +64,38 @@ import org.apache.derby.impl.sql.execute.rts.RealWindowResultSetStatistics;
 import org.apache.derby.impl.sql.execute.rts.RunTimeStatisticsImpl;
 import org.apache.log4j.Logger;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.AnyOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DeleteCascadeOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DeleteOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DependentOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DistinctScalarAggregateOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DistinctScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.HashJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.HashLeftOuterJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.HashScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.HashTableOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.IndexRowToBaseRowOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MergeSortJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.MergeSortLeftOuterJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopLeftOuterJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.NormalizeOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.OnceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.RowCountOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.RowOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.ScalarAggregateOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.ScrollInsensitiveOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.SortOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.UnionOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.UpdateOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.WindowOperation;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -821,7 +851,7 @@ public class SpliceRealResultSetStatisticsFactory
 											wrs.getResultSetNumber(),
 											wrs.getEstimatedRowCount(),
 											wrs.getEstimatedCost(),
-											getResultSetStatistics(wrs.source)
+											getResultSetStatistics(wrs.getSource())
 											);
 		}
 		/*else if (rs instanceof SetOpResultSet)

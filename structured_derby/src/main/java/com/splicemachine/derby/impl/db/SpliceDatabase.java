@@ -1,24 +1,14 @@
 package com.splicemachine.derby.impl.db;
 
-import java.sql.SQLException;
-import java.util.*;
-import java.util.concurrent.CancellationException;
 import javax.security.auth.login.Configuration;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.CancellationException;
+
 import com.google.common.io.Closeables;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.hbase.SpliceMasterObserver;
-import com.splicemachine.derby.impl.ast.*;
-import com.splicemachine.derby.impl.job.JobInfo;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.hbase.HBaseRegionLoads;
-import com.splicemachine.hbase.backup.Backup;
-import com.splicemachine.hbase.backup.BackupItem;
-import com.splicemachine.hbase.backup.BackupUtils;
-import com.splicemachine.hbase.backup.CreateBackupJob;
-import com.splicemachine.hbase.backup.Backup.BackupScope;
-import com.splicemachine.job.JobFuture;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -34,7 +24,31 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceMasterObserver;
+import com.splicemachine.derby.impl.ast.AssignRSNVisitor;
+import com.splicemachine.derby.impl.ast.FindHashJoinColumns;
+import com.splicemachine.derby.impl.ast.FixSubqueryColRefs;
+import com.splicemachine.derby.impl.ast.ISpliceVisitor;
+import com.splicemachine.derby.impl.ast.JoinSelector;
+import com.splicemachine.derby.impl.ast.MSJJoinConditionVisitor;
+import com.splicemachine.derby.impl.ast.PlanPrinter;
+import com.splicemachine.derby.impl.ast.RepeatedPredicateVisitor;
+import com.splicemachine.derby.impl.ast.SpliceASTWalker;
+import com.splicemachine.derby.impl.ast.UnsupportedFormsDetector;
+import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.hbase.HBaseRegionLoads;
+import com.splicemachine.hbase.backup.Backup;
+import com.splicemachine.hbase.backup.Backup.BackupScope;
+import com.splicemachine.hbase.backup.BackupItem;
+import com.splicemachine.hbase.backup.BackupUtils;
+import com.splicemachine.hbase.backup.CreateBackupJob;
+import com.splicemachine.job.JobFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 
@@ -84,7 +98,7 @@ public class SpliceDatabase extends BasicDatabase {
          */
 //        System.setProperty("derby.language.maxMemoryPerTable",Integer.toString(-1));
 	    //SanityManager.DEBUG_SET("ByteCodeGenInstr");
-        if(SpliceConstants.dumpClassFile)
+//        if(SpliceConstants.dumpClassFile)
     	    SanityManager.DEBUG_SET("DumpClassFile");
         //SanityManager.DEBUG_SET("DumpOptimizedTree");
 		try {
