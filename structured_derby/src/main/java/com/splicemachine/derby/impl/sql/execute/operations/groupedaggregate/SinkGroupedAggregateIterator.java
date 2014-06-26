@@ -81,10 +81,7 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
             return evictedRows.remove(0);
         if (completed) {
             if (buffer.size() > 0) {
-                GroupedRow r = buffer.getFinalizedRow();
-                SpliceLogUtils.error(Logger.getLogger(DistinctGroupedAggregateOperation.class), "Returning row from buffer %s", r);
-                return r;
-                //return buffer.getFinalizedRow();
+                return buffer.getFinalizedRow();
             } else return null;
         }
 
@@ -103,7 +100,6 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
         } while (shouldContinue);
 
         if (toReturn != null) {
-            SpliceLogUtils.error(Logger.getLogger(DistinctGroupedAggregateOperation.class), "Returning row from buffer %s", toReturn);
             return toReturn;
         }
         /*
@@ -114,9 +110,7 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
 
         //we've exhausted the iterator, so return an entry from the buffer
         if (buffer.size() > 0) {
-            GroupedRow r = buffer.getFinalizedRow();
-            SpliceLogUtils.error(Logger.getLogger(DistinctGroupedAggregateOperation.class), "Returning row from buffer %s", r);
-            return r;
+            return buffer.getFinalizedRow();
         }
         //return buffer.getFinalizedRow();
 
