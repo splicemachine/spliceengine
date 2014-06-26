@@ -66,7 +66,8 @@
 
     <antcall target="install_junit"/>
     <antcall target="install_joda-time"/>
-    <tstamp/>
+    <antcall target="install_log4j"/>
+  	<tstamp/>
     <mkdir dir="${out.dir}"/>
     <antcall target="make-generated-dirs"/>
     <antcall target="make-release-dirs"/>
@@ -214,6 +215,11 @@
    <target name="install_junit" depends="junit_check" unless="junit.exists" description="installs junit.jar into derby">
        <get src="${junit.url}" dest="${basedir}/tools/java/junit.jar" verbose="true" ignoreerrors="true"/>
    </target>
+	
+	<!-- ==================================================================== -->
+	<!--                     Install JODA-TIME		                          -->
+	<!-- ==================================================================== -->
+
 
    <property name="joda-time.url" value="http://search.maven.org/remotecontent?filepath=joda-time/joda-time/2.3/joda-time-2.3.jar"/>
       <target name="joda-time_check">
@@ -240,11 +246,51 @@
        </condition>
        <available file="${joda-timefile}" property="joda-time.exists"/>
    </target>
-
+	
    <target name="install_joda-time" depends="joda-time_check" unless="joda-time.exists"  description="installs joda-time.jar into derby">
        <get src="${joda-time.url}" dest="${basedir}/tools/java/joda-time.jar" verbose="true" ignoreerrors="true"/>
    </target>
 
+	
+	 <!-- ==================================================================== -->
+	 <!--                     Download log4j 1.2.15                            -->
+	 <!-- ==================================================================== -->
+	 
+	 	   <!-- You can override this property in local.properties to fetch from an alternative location -->
+	 	   <property name="log4j.url" value="http://repo1.maven.org/maven2/log4j/log4j/1.2.15/log4j-1.2.15.jar"/>
+	 	      <target name="log4j_check">
+	 	       <!-- check if log4j is set, if set, if log4j.jar is really there, if not, error out  -->
+	 	       <fail message="log4j property is set to ${log4j}, but there is no log4j.jar there.">
+	 	           <condition>
+	 	               <and>
+	 	                   <isset property="log4j"/>
+	 	                   <not>
+	 	                       <available file="${log4j}"/>
+	 	                   </not>
+	 	               </and>
+	 	           </condition>
+	 	       </fail>
+	 	       <condition property="log4jfile" value="${log4j}">
+	 	           <and>
+	 	               <isset property="log4j"/>
+	 	           </and>
+	 	       </condition>
+	 	       <condition property="log4jfile" value="${basedir}/tools/java/log4j.jar">
+	 	           <not>
+	 	               <isset property="log4j"/>
+	 	           </not>
+	 	       </condition>
+	 	       <available file="${log4jfile}" property="log4j.exists"/>
+	 	   </target>
+	 
+	 	   <target name="install_log4j" depends="log4j_check" unless="log4j.exists" description="installs log4j.jar into derby">
+	 	       <get src="${log4j.url}" dest="${basedir}/tools/java/log4j.jar" verbose="true" ignoreerrors="true"/>
+	 	   </target>
+	 
+	
+	
+	
+	
 <!-- ==================================================================== -->
 <!--                     Build version info files                         -->
 <!-- ==================================================================== -->
@@ -1388,7 +1434,7 @@
        access="private"
        breakiterator="yes"
        bootclasspath="${java16compile.classpath}"
-       classpath="${out.dir};${java16compile.classpath};${jars.javadoc};${junit};${joda-time}"
+       classpath="${out.dir};${java16compile.classpath};${jars.javadoc};${junit};${joda-time};${log4j}"
        destdir="${out.javadoc.dir}/testing"
        windowtitle="Apache Derby V${major}.${minor} Test Javadoc"
        doctitle="Apache Derby V${major}.${minor} Test Javadoc"

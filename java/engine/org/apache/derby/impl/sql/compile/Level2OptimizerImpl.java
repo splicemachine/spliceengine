@@ -22,9 +22,7 @@
 package org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.sql.compile.JoinStrategy;
 import org.apache.derby.iapi.sql.compile.Optimizable;
 import org.apache.derby.iapi.sql.compile.OptimizableList;
@@ -35,21 +33,17 @@ import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.sql.compile.RequiredRowOrdering;
 import org.apache.derby.iapi.sql.compile.RowOrdering;
 import org.apache.derby.iapi.sql.compile.AccessPath;
-
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-
 import org.apache.derby.iapi.reference.SQLState;
-
 import org.apache.derby.iapi.util.JBitSet;
-
 import org.apache.derby.impl.sql.compile.OptimizerImpl;
 import org.apache.derby.impl.sql.compile.CostEstimateImpl;
-
+import org.apache.log4j.Logger;
+import org.apache.derby.iapi.util.LogUtils;
 import java.util.Properties;
 
 /**
@@ -58,6 +52,7 @@ import java.util.Properties;
 
 public class Level2OptimizerImpl extends OptimizerImpl
 {
+    private static final Logger LOG = Logger.getLogger(Level2OptimizerImpl.class);
 	private LanguageConnectionContext lcc;
 
 	Level2OptimizerImpl(OptimizableList optimizableList, 
@@ -119,7 +114,7 @@ public class Level2OptimizerImpl extends OptimizerImpl
 		String traceString = null;
 
 		// We can get called from outside optimizer when tracing is off
-		if (!optimizerTrace)
+		if (!optimizerTrace && !LOG.isTraceEnabled())
 		{
 			return;
 		}
@@ -514,6 +509,9 @@ public class Level2OptimizerImpl extends OptimizerImpl
 					"traceString expected to be non-null");
 			}
 		}
+		if (LOG.isTraceEnabled())
+			LogUtils.trace(LOG,traceString);
+		if (optimizerTrace) 
 		lcc.appendOptimizerTraceOutput(traceString + "\n");
 	}
 
