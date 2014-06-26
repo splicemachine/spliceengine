@@ -2,7 +2,7 @@ package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.LongOpenHashSet;
-import com.splicemachine.si.api.RollForwardQueue;
+import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnAccess;
 import com.splicemachine.si.data.hbase.IHTable;
@@ -21,22 +21,23 @@ import java.io.IOException;
 public class TxnFilterState implements IFilterState{
 		private final TxnAccess transactionStore;
 		private final Txn myTxn;
-		private final RollForwardQueue rollForwardQueue;
 		private final DataStore<Mutation,Put,Delete,Get,Scan,IHTable> dataStore;
+		private final ReadResolver readResolver;
 
 		//per row fields
-		private final LongOpenHashSet visitedCommitTimestampCols = new LongOpenHashSet();
+		private final LongOpenHashSet visitedTxnIds = new LongOpenHashSet();
 		private final LongArrayList tombstonedTxnRows = new LongArrayList(1); //usually, there are very few deletes
 		private final LongArrayList antiTombstonedTxnRows = new LongArrayList(1);
-		private final ByteSlice row = new ByteSlice();
+		private final ByteSlice rowKey = new ByteSlice();
 
+		@SuppressWarnings("unchecked")
 		public TxnFilterState(TxnAccess transactionStore,
 													Txn myTxn,
-													RollForwardQueue rollForwardQueue,
+													ReadResolver readResolver,
 													DataStore dataStore) {
 				this.transactionStore = transactionStore;
 				this.myTxn = myTxn;
-				this.rollForwardQueue = rollForwardQueue;
+				this.readResolver = readResolver;
 				this.dataStore = dataStore;
 		}
 
@@ -53,7 +54,7 @@ public class TxnFilterState implements IFilterState{
 						return Filter.ReturnCode.SKIP;
 				}
 
-				addToRollForwardIfNeeded(keyValue);
+				readResolve(keyValue);
 				switch(dataStore.getKeyValueType(keyValue)){
 						case TOMBSTONE:
 								addToTombstoneCache(keyValue);
@@ -71,38 +72,62 @@ public class TxnFilterState implements IFilterState{
 
 		@Override
 		public void nextRow() {
-				//roll over any entries which need to be rolled forward
-				int commitSize = visitedCommitTimestampCols.size();
-				if(commitSize >0){
-						long[] keys = visitedCommitTimestampCols.keys;
-						boolean[] present = visitedCommitTimestampCols.allocated;
-						for(int i=0;i<commitSize;i++){
-								if(!present[i])continue;
-								long txnId = keys[i];
-								dataStore.recordRollForward(rollForwardQueue,txnId,row.getByteCopy(),false);
-						}
-				}
-
 				//clear row-specific fields
-				visitedCommitTimestampCols.clear();
+				visitedTxnIds.clear();
 				tombstonedTxnRows.clear();
 				antiTombstonedTxnRows.clear();
-				row.reset();
+				rowKey.reset();
 		}
 
 		@Override public KeyValue produceAccumulatedKeyValue() { return null; }
 		@Override public boolean getExcludeRow() { return false; }
 
 
-		private void addToRollForwardIfNeeded(KeyValue keyValue) throws IOException {
-				long toRollForward = keyValue.getTimestamp();
-				Txn t = transactionStore.getTransaction(toRollForward);
-				if(t.getState()!= Txn.State.ACTIVE){
-						//we can roll this row forward
-						visitedCommitTimestampCols.add(toRollForward);
-						if(row.length()<=0){
-								row.set(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength());
-						}
+		private void readResolve(KeyValue keyValue) throws IOException {
+				/*
+				 * We want to resolve the transaction related
+				 * to this version of the data.
+				 *
+				 * The point of the commit timestamp column (and thus the read resolution)
+				 * is that the transaction is known to be committed, and requires NO FURTHER
+				 * information to ensure its visibility (e.g. that all we need to ensure visibility
+				 * is the commit timestamp itself).
+				 *
+				 * We only enter this method if we DO NOT have a commit timestamp for this version
+				 * of the data. In this case, we want to determine if we can or cannot resolve
+				 * this column as committed (and thus add a commit timestamp entry). If the data
+				 * was written by a dependent child transaction, the proper commit timestamp is
+				 * NOT the commit timestamp of the child, it is the commit timestamp of the parent,
+				 * which means that we'll need to use the effective commit timestamp and the effective
+				 * state to determine whether or not to read-resolve the entry.
+				 *
+				 * This means that we will NOT writes from dependent child transactions until their
+				 * parent transaction has been committed.
+				 */
+				long ts = keyValue.getTimestamp();
+				if(visitedTxnIds.contains(ts)){
+						/*
+						 * We've already visited this version of the row data, so there's no
+						 * point in read-resolving this entry. This saves us from a
+						 * potentially expensive transactionStore read.
+						 */
+					return;
+				}
+				visitedTxnIds.add(ts); //prevent future columns from performing read-resolution on the same row
+				Txn t = transactionStore.getTransaction(ts);
+				//get the row data. This will allow efficient movement of the row key without copying byte[]s
+				rowKey.set(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength());
+
+				if(t.getEffectiveState()==Txn.State.COMMITTED){
+						/*
+						 * This entry has definitely FOR SURE been committed, and all we need
+						 * is the effective commit timestamp for the transaction--thus,
+						 * we can perform a read-resolution on it.
+						 */
+						readResolver.resolveCommitted(rowKey, ts, t.getEffectiveCommitTimestamp());
+				}else if(t.getEffectiveState()==Txn.State.ROLLEDBACK){
+						//this entry has been rolled back, and can be removed from physical storage
+						readResolver.resolveRolledback(rowKey,ts);
 				}
 		}
 
@@ -181,12 +206,18 @@ public class TxnFilterState implements IFilterState{
 						 * In case #1, we only care about the txnId, which we already have,
 						 * and in case #2, we only care about the commit timestamp (none of the read
 						 * isolation levels require information about the begin timestamp).
+						 *
+						 * This version of SI will physically remove entries associated
+						 * with rolled-back values, so case #1 isn't likely to happen--however,
+						 * older installations of SpliceMachine used the commit timestamp to indicate
+						 * a failure, so we have to check for it.
 						 */
 						if(dataStore.isSIFail(keyValue)){
 								transactionStore.cache(new RolledBackTxn(txnId));
 						}else{
 								long commitTs = Bytes.toLong(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());
 								transactionStore.cache(new CommittedTxn(txnId,commitTs)); //since we don't care about the begin timestamp, just use the TxnId
+								visitedTxnIds.add(txnId);
 						}
 				}
 		}

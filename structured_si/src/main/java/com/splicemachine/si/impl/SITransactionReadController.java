@@ -95,7 +95,7 @@ public class SITransactionReadController<
 
 		@Override
 		public IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId) throws IOException {
-				return new TxnFilterState(txnAccess, txnAccess.getTransaction(transactionId.getId()),rollForwardQueue,
+				return new TxnFilterState(txnAccess, txnAccess.getTransaction(transactionId.getId()),NoOpReadResolver.INSTANCE,
 								dataStore);
 //				return new FilterState(dataLib, dataStore, transactionStore, rollForwardQueue,
 //								transactionStore.getImmutableTransaction(transactionId));
@@ -103,7 +103,7 @@ public class SITransactionReadController<
 
 		@Override
 		public IFilterState newFilterState(RollForwardQueue rollForwardQueue, Txn txn) throws IOException {
-				return new TxnFilterState(txnAccess, txn,rollForwardQueue, dataStore);
+				return new TxnFilterState(txnAccess, txn,NoOpReadResolver.INSTANCE, dataStore);
 		}
 
 		@Override
