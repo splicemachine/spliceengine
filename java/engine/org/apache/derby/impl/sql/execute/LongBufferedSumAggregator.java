@@ -9,6 +9,7 @@ import org.apache.derby.iapi.types.SQLLongint;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 
 /**
  * @author Scott Fines
@@ -44,7 +45,11 @@ public class LongBufferedSumAggregator extends SumAggregator {
 		public void merge(ExecAggregator addend) throws StandardException {
 				if(addend==null) return; //treat null entries as zero
 				//In Splice, we should never see a different type of an ExecAggregator
-				long otherSum = ((LongBufferedSumAggregator)addend).sum;
+            LongBufferedSumAggregator other = (LongBufferedSumAggregator)addend;
+            if (other.isNull){
+               return;
+            }
+				long otherSum = other.sum;
 				buffer[position] = otherSum;
 				incrementPosition();
 		}
@@ -158,4 +163,12 @@ public class LongBufferedSumAggregator extends SumAggregator {
 						sum(buffer.length);
 				}
 		}
+
+      public String toString() {
+         String bufferInfo = isNull ? null : (position < 25 && position > 0 ? 
+                                                Arrays.toString(Arrays.copyOfRange(buffer, 0, position))
+                                                : String.format("%s buffered", position));
+         return "LongBufferedSumAggregator: " + (isNull ? "NULL" : 
+                                                   String.format("{ sum=%s buffer=%s }", sum, bufferInfo));
+      }
 }

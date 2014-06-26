@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.math.BigDecimal;
+import java.util.Arrays;
 
 /**
  * @author Scott Fines
@@ -49,7 +50,11 @@ public class DoubleBufferedSumAggregator extends SumAggregator{
 		public void merge(ExecAggregator addend) throws StandardException {
 				if(addend==null) return; //treat null entries as zero
 				//In Splice, we should never see a different type of an ExecAggregator
-				double otherSum = ((DoubleBufferedSumAggregator)addend).sum;
+				DoubleBufferedSumAggregator other = (DoubleBufferedSumAggregator)addend;
+            if (other.isNull){
+               return;
+            }
+				double otherSum = other.sum;
 				buffer[position] = otherSum;
 				incrementPosition();
 		}
@@ -141,4 +146,13 @@ public class DoubleBufferedSumAggregator extends SumAggregator{
 				}
 				return agg;
 		}
+
+      public String toString() {
+         String bufferInfo = isNull ? null : (position < 25 && position > 0 ? 
+                                                Arrays.toString(Arrays.copyOfRange(buffer, 0, position))
+                                                : String.format("%s buffered", position));
+         return "DoubleBufferedSumAggregator: " + (isNull ? "NULL" : 
+                                                   String.format("{ sum=%s buffer=%s }", sum, bufferInfo));
+      }
+
 }
