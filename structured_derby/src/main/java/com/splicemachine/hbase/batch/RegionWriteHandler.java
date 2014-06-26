@@ -230,7 +230,7 @@ public class RegionWriteHandler implements WriteHandler {
         final String tableName = region.getTableDesc().getNameAsString();
         if(queue==null)
             queue =  RollForwardQueueMap.lookupRollForwardQueue(tableName);
-				return transactor.processKvBatch(new HbRegion(region),queue,
+		return transactor.processKvBatch(new HbRegion(region),(toProcess != null && toProcess.size() > SpliceConstants.siDelayRollForwardMaxSize)?null:queue,
 								SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,
 								toProcess,ctx.getTransactionId(),constraintChecker);
     }

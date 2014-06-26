@@ -29,6 +29,10 @@ public class SpliceConstants {
 		@DefaultValue(SEQUENTIAL_IMPORT_FILESIZE_THREASHOLD) public static final long DEFAULT_SEQUENTIAL_FILESIZE_IMPORT_THRESHOLD = 5*1024*1024*1024; //defaults to 5GB
 		public static long sequentialImportFileSizeThreshold;
 
+		@Parameter public static final String SI_DELAY_ROLL_FORWARD_MAX_SIZE = "splice.si.delayRollForwardMaxSize";
+		@DefaultValue(SI_DELAY_ROLL_FORWARD_MAX_SIZE) public static final int DEFAULT_SI_DELAY_ROLL_FORWARD_MAX_SIZE = 100;
+		public static int siDelayRollForwardMaxSize;
+		
 		@SpliceConstants.Parameter public static final String CONSTRAINTS_ENABLED ="splice.constraints.enabled";
 		@DefaultValue(CONSTRAINTS_ENABLED) public static final boolean DEFAULT_CONSTRAINTS_ENABLED = true;
 		public static volatile boolean constraintsEnabled;
@@ -844,6 +848,7 @@ public class SpliceConstants {
 				maxBufferEntries = config.getInt(BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
 				maxThreads = config.getInt(WRITE_THREADS_MAX,DEFAULT_WRITE_THREADS_MAX);
 				maxTreeThreads = config.getInt(MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
+				siDelayRollForwardMaxSize = config.getInt(SI_DELAY_ROLL_FORWARD_MAX_SIZE, DEFAULT_SI_DELAY_ROLL_FORWARD_MAX_SIZE);
 				ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
 				if(ipcThreads < maxThreads){
             /*
