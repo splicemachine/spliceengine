@@ -118,9 +118,7 @@ public abstract class AbstractAggregateBuffer extends AbstractAggregateBufferCon
 				} else {
 						merges++;
 						mergeCounter.add(1);
-                    LOG.error(String.format("Merging %s with agg row %s", nextRow, aggregate));
 						aggregate.merge(nextRow);
-                    LOG.error(String.format("Post-merge: %s", aggregate));
 				}
 				return evicted;
 		}
@@ -145,14 +143,6 @@ public abstract class AbstractAggregateBuffer extends AbstractAggregateBufferCon
 		public long getRowsMerged(){ return merges; }
 		public long getRowsMissed(){ return misCounter.getTotal(); }		
 		public double getMaxFillRatio(){ return maxFillRatio.getValue(); }
-
-    public String toString() {
-        StringBuilder sb = new StringBuilder("AggregateBuffer: \n");
-        for (int i = 0; i < currentSize; i++){
-            sb.append(String.format("%s: %s\n", Arrays.toString(keys[i]), values[i]));
-        }
-        return sb.toString();
-    }
 
 /*********************************************************************************************************************/
     /*private helper functions*/

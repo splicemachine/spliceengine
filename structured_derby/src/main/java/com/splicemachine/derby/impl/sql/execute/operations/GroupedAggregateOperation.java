@@ -336,7 +336,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				ExecRow execRow = row.getRow();
 				setCurrentRow(execRow);
 				timer.tick(1);
-            LOG.error(String.format("Sink row for GAO: %s (key %s)", execRow, currentKey));
 				return execRow;
 		}
 
@@ -364,7 +363,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						KeyEncoder encoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(groupingKeys,groupingKeyOrder,serializers),NoOpPostfix.INSTANCE);
 						aggregator = new ScanGroupedAggregateIterator(buffer,sourceIterator,encoder,groupingKeys,false);
 						aggregator.open();
-						LOG.info("nextRow being called on thread "+Thread.currentThread().getName());
 						timer = spliceRuntimeContext.newTimer();
 						timer.startTiming();
 				}
@@ -382,10 +380,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						currentKey = row.getGroupingKey();
 						isCurrentDistinct = row.isDistinct();
 						ExecRow execRow = row.getRow();
-                    /*
-                        LOG.error(String.format("Produced row from GAO: %s (isD: %s, key: %s)",
-                                                   execRow, isCurrentDistinct, BytesUtil.toHex(currentKey)));
-                                                   */
 						setCurrentRow(execRow);
 
 						return execRow;
