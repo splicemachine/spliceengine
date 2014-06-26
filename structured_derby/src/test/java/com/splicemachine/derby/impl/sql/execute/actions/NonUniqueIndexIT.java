@@ -36,6 +36,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
     public static final String TABLE_NAME_7 = "G";
     public static final String TABLE_NAME_8 = "H";
     public static final String TABLE_NAME_9 = "I";
+    public static final String TABLE_NAME_10 = "TEST_DELETE_TABLE";
 	public static final String INDEX_11 = "IDX_A1";
 	public static final String INDEX_21 = "IDX_B1";
 	public static final String INDEX_31 = "IDX_C1";
@@ -274,7 +275,6 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
         int count=0;
         while(resultSet.next()){
             count++;
-        	System.out.println(count + " results exist");
             String retName = resultSet.getString(1);
             int val = resultSet.getInt(2);
             Assert.assertEquals("Incorrect name returned!", name, retName);
@@ -293,9 +293,9 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
 
     @Test(timeout=10000)
     public void testCanDeleteEverything() throws Exception {
-        methodWatcher.getStatement().execute(format("delete from %s",spliceTableWatcher5.toString()));
-    	new SpliceIndexWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,INDEX_51,spliceSchemaWatcher.schemaName,"(name)").starting(null);
+        new SpliceIndexWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,INDEX_51,spliceSchemaWatcher.schemaName,"(name)").starting(null);
         methodWatcher.getStatement().execute(format("insert into %s.%s (name,val) values ('sfines',2)",spliceSchemaWatcher.schemaName,TABLE_NAME_5));
+        ResultSet resultSet1 = methodWatcher.executeQuery("select * from "+spliceTableWatcher5.toString());
         methodWatcher.getStatement().execute(format("delete from %s",spliceTableWatcher5.toString()));
         ResultSet resultSet = methodWatcher.executeQuery("select * from "+spliceTableWatcher5.toString());
         Assert.assertTrue("Results returned!",!resultSet.next());

@@ -532,11 +532,17 @@ public class UniqueIndexIT extends SpliceUnitTest {
         String name = "sfines";
         int value = 2;
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",spliceTableWatcher7,name,value));
- 
+        ResultSet rs1 = methodWatcher.executeQuery(format("select * from %s where name = '%s'",spliceTableWatcher7,name));
+        while(rs1.next()){
+        	System.out.println("The result set before update is "+ rs1.getString(1)+" and "+rs1.getInt(2));
+        }
         String newName = "jzhang";
         methodWatcher.getStatement().execute(format("update %s set name = '%s' where name = '%s'", spliceTableWatcher7,newName,name));
-
+        	
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'",spliceTableWatcher7,name));
+        while(rs.next()){
+        	System.out.println("The result set after update is "+ rs.getString(1)+" and "+rs.getInt(2));
+        }
         Assert.assertTrue("Rows are returned incorrectly",!rs.next());
 
         rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'",spliceTableWatcher7,newName));
