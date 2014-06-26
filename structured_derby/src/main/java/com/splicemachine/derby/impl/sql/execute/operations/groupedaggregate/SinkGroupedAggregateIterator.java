@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.DistinctGroupedAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
@@ -209,24 +210,29 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
         private final SingleBuffer distinctBuffer;
         private final List<GroupedRow> evictedRows;
         private final int[] nonDistinctInputCols;
-        private final int[] distinctInputCols;
+        private final int[] nonDistinctAggCols;
+        private final SpliceGenericAggregator[] nonDistinctAggs;
+        private final boolean dontAggregateDistinct;
+        private final boolean dontAggregateNonDistinct;
+
 
         private DoubleBuffer(GroupedAggregateBuffer nonDistinctBuffer,
                              GroupedAggregateBuffer distinctBuffer,
                              KeyEncoder groupKeyEncoder,
                              KeyEncoder allKeyEncoder,
                              List<GroupedRow> evictedRows) {
-            boolean dontAggregateDistinct = !distinctBuffer.hasAggregates() && nonDistinctBuffer.hasAggregates();
-            boolean dontAggregateNonDistinct = !nonDistinctBuffer.hasAggregates() && distinctBuffer.hasAggregates();
+            dontAggregateDistinct = !distinctBuffer.hasAggregates() && nonDistinctBuffer.hasAggregates();
+            dontAggregateNonDistinct = !nonDistinctBuffer.hasAggregates() && distinctBuffer.hasAggregates();
 
             nonDistinctInputCols = new int[nonDistinctBuffer.getAggregates().length];
-            distinctInputCols = new int[distinctBuffer.getAggregates().length];
+            nonDistinctAggCols = new int[nonDistinctBuffer.getAggregates().length];
+            nonDistinctAggs = nonDistinctBuffer.getAggregates();
 
             for (int i = 0; i < nonDistinctInputCols.length; i++){
                 nonDistinctInputCols[i] = nonDistinctBuffer.getAggregates()[i].getAggregatorInfo().getInputColNum();
             }
-            for (int i = 0; i < distinctInputCols.length; i++){
-                distinctInputCols[i] = distinctBuffer.getAggregates()[i].getAggregatorInfo().getInputColNum();
+            for (int i = 0; i < nonDistinctInputCols.length; i++){
+                nonDistinctAggCols[i] = nonDistinctBuffer.getAggregates()[i].getAggregatorInfo().getAggregatorColNum();
             }
 
             this.nonDistinctBuffer = new SingleBuffer(nonDistinctBuffer, groupKeyEncoder, dontAggregateNonDistinct);
@@ -234,11 +240,18 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
             this.evictedRows = evictedRows;
         }
 
-        private ExecRow maskedDistinctRow(ExecRow row){
-            DataValueDescriptor[] cols = row.getRowArray();
-            for (int idx: nonDistinctInputCols){
-                cols[idx] = null;
-                //cols[idx - 1].setToNull();
+        private ExecRow maskedDistinctRow(ExecRow row) throws StandardException {
+            if (!dontAggregateDistinct) {
+                DataValueDescriptor[] cols = row.getRowArray();
+                // null-out input columns for non-distinct aggs
+                for (int idx : nonDistinctInputCols) {
+                    cols[idx] = null;
+                }
+                // initialize aggregator objects for non-distinct aggs
+                for (int idx = 0; idx < nonDistinctAggCols.length; idx++) {
+                    cols[nonDistinctAggCols[idx]]
+                        .setValue(nonDistinctAggs[idx].getAggregatorInstance());
+                }
             }
             return row;
         }
