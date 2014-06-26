@@ -13,9 +13,6 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableWriter;
-
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
@@ -28,7 +25,6 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.*;
@@ -284,7 +280,7 @@ public class SITransactor<Table,
 				Pair<KVPair,Integer>[] lockPairs = new Pair[mutations.size()];
 				IFilterState constraintState = null;
 				if(constraintChecker!=null)
-						constraintState = new TxnFilterState(transactionStore,txn,rollForwardQueue,dataStore);
+						constraintState = new TxnFilterState(transactionStore,txn,NoOpReadResolver.INSTANCE,dataStore);
 				@SuppressWarnings("unchecked") final Set<Long>[] conflictingChildren = new Set[mutations.size()];
 				try {
 						lockRows(table,mutations,lockPairs,finalStatus);
@@ -726,15 +722,6 @@ public class SITransactor<Table,
 				}
 		}
 
-		/**
-     * Throw an exception if this is a read-only transaction.
-     */
-    private void ensureTransactionAllowsWrites(ImmutableTransaction transaction) throws IOException {
-        if (transaction.isReadOnly()) {
-            throw new DoNotRetryIOException("transaction is read only: " + transaction.getTransactionId().getTransactionIdString());
-        }
-    }
-
 		public static class Builder<
 						Mutation extends OperationWithAttributes,
 						Put extends Mutation,Delete extends OperationWithAttributes,Get extends OperationWithAttributes,Scan extends OperationWithAttributes,
@@ -746,7 +733,6 @@ public class SITransactor<Table,
 				private DataStore<
 								Mutation, Put, Delete, Get, Scan,
 								Table> dataStore;
-				private TransactionStore transactionStore;
 				private Clock clock;
 				private int transactionTimeoutMS;
 				private TransactionManager control;

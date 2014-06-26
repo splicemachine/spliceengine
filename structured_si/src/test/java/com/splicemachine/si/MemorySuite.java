@@ -1,8 +1,7 @@
 package com.splicemachine.si;
 
 import com.splicemachine.si.api.TransactionStatusTest;
-import com.splicemachine.si.impl.CacheMapTest;
-import com.splicemachine.si.impl.TransactionIdTest;
+import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.iterator.ContiguousIteratorTest;
 import com.splicemachine.si.impl.iterator.OrderedMuxerTest;
 import com.splicemachine.si.impl.rollforward.SIRollForwardQueueTest;
@@ -24,6 +23,7 @@ import org.junit.runners.Suite;
 //				LDataLibTest.class,
 //				LStoreTest.class,
 //				SIFilterTest.class,
+				TxnFilterStateTest.class,
 				SITransactorTest.class,
 //				SITransactorPackedTest.class,
 //				JtaXAResourceTest.class,
