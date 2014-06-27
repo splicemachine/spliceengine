@@ -7,7 +7,6 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
-
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -29,9 +28,7 @@ import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
-
 import net.sf.ehcache.Cache;
-
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.db.OptimizerTrace;
 import org.apache.derby.iapi.error.StandardException;
@@ -75,8 +72,6 @@ import com.splicemachine.job.ZkTaskMonitor;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.si.impl.rollforward.DelayedRollForwardQueue;
-import com.splicemachine.si.impl.rollforward.PushForwardQueue;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.ResourcePool;
@@ -403,11 +398,7 @@ public class SpliceDriver extends SIConstants {
             writerPool.registerJMX(mbs);
 
             SpliceIndexEndpoint.registerJMX(mbs);
-            
-            DelayedRollForwardQueue.registerJMX(mbs);
 
-            PushForwardQueue.registerJMX(mbs);            
-            
             new ManifestReader().registerJMX(mbs);
             
             //registry metricsRegistry
@@ -434,6 +425,13 @@ public class SpliceDriver extends SIConstants {
             //register transaction stuff
 //            ObjectName transactorName = new ObjectName("com.splicemachine.txn:type=TransactorStatus");
 //            mbs.registerMBean(HTransactorFactory.getTransactorStatus(), transactorName);
+
+            // These two (DelayedRollForwardQueue and PushForwardQueue) fail to register
+            // when using obfuscation. They are in SI.
+            // JPC - Commenting out for now until we can figure out how to register given their obfuscation.
+//            DelayedRollForwardQueue.registerJMX(mbs);
+//            PushForwardQueue.registerJMX(mbs);
+
         } catch (MalformedObjectNameException e) {
             //we want to log the message, but this shouldn't affect startup
             SpliceLogUtils.error(LOG,"Unable to register JMX entries",e);
