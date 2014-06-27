@@ -156,8 +156,9 @@ public interface Txn {
 								return otherTxn.getEffectiveState() == State.COMMITTED
 												&& otherTxn.getEffectiveCommitTimestamp() < beginTimestamp;
 						}
+
 				};
-				private final int level;
+				protected final int level;
 
 				IsolationLevel(int level) {
 						this.level = level;
@@ -178,6 +179,10 @@ public interface Txn {
 								default:
 										return SNAPSHOT_ISOLATION;
 						}
+				}
+
+				public byte encode() {
+						return (byte)level;
 				}
 		}
 
@@ -323,6 +328,20 @@ public interface Txn {
 
 		boolean isAdditive();
 
+		/**
+		 * Return the "Global Commit timestamp".
+		 *
+		 * This is a performance improvement for dependent child transactions. When this field is
+		 * set, it refers to the commit timestamp of this transaction's ultimate parent. For example,
+		 * if Transaction P has a commit timestamp of 3, and a dependent child transaction C with
+		 * a commit timestamp of 2, then {@code C.getGlobalCommitTimestamp() = 3};
+		 *
+		 * If this transaction is a top-level transaction (e.g. an immediate child of
+		 * {@link Txn#ROOT_TRANSACTION}), then this will return the commit timestamp, or -1 if it does
+		 * not have a commit timestamp.
+		 *
+		 * @return the global commit timestamp
+		 */
 		long getGlobalCommitTimestamp();
 
 		ConflictType conflicts(Txn otherTxn);

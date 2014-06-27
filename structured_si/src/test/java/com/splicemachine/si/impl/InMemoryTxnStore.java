@@ -113,19 +113,32 @@ public class InMemoryTxnStore implements TxnStore {
 								throw new CannotCommitException(txnId, Txn.State.ROLLEDBACK);
 						if(isTimedOut(txnHolder))
 								throw new CannotCommitException(txnId, Txn.State.ROLLEDBACK);
+
 						long commitTs = commitTsGenerator.nextTimestamp();
+
+						Txn parentTransaction = txn.getParentTransaction();
+						long globalCommitTs;
+						if(parentTransaction==null||parentTransaction.equals(Txn.ROOT_TRANSACTION))
+								globalCommitTs = commitTs;
+						else{
+								//see if the parent has committed yet
+								if(parentTransaction.getEffectiveState()== Txn.State.COMMITTED){
+										globalCommitTs = parentTransaction.getEffectiveCommitTimestamp();
+								}else
+										globalCommitTs = -1l;
+						}
 						txnHolder.txn = new InheritingTxnView(txn.getParentTransaction(),txnId,txn.getBeginTimestamp(),
 										txn.getIsolationLevel(),true,txn.isDependent(),
 										true,txn.isAdditive(),
 										true,txn.allowsWrites(),
-										commitTs,commitTs, Txn.State.COMMITTED);
+										commitTs,globalCommitTs, Txn.State.COMMITTED);
 						return commitTs;
 				}finally{
 						wl.unlock();
 				}
 		}
 
-		@Override
+//		@Override
 		public void timeout(long txnId) throws IOException {
 				rollback(txnId);
 		}

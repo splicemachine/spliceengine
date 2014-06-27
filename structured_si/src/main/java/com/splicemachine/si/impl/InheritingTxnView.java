@@ -25,7 +25,7 @@ public class InheritingTxnView extends AbstractTxn {
 		private final State state;
 		private final boolean allowWrites;
 		private final boolean hasAllowWrites;
-		private final long globalCommitTimestamp;
+		private long globalCommitTimestamp;
 
 		public InheritingTxnView(Txn parentTxn,
 														 long txnId,long beginTimestamp,
@@ -85,9 +85,12 @@ public class InheritingTxnView extends AbstractTxn {
 
 		@Override
 		public long getEffectiveCommitTimestamp() {
-				if(isDependent())
-						return parentTxn.getEffectiveCommitTimestamp();
-				return commitTimestamp;
+				if(globalCommitTimestamp>=0) return globalCommitTimestamp;
+				if(isDependent()){
+						globalCommitTimestamp = parentTxn.getEffectiveCommitTimestamp();
+						return globalCommitTimestamp;
+				}
+				else return commitTimestamp;
 		}
 
 		@Override
