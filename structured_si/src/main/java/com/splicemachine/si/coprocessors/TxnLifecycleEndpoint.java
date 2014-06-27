@@ -44,4 +44,9 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 		public boolean keepAlive(long txnId) throws IOException {
 				return false;
 		}
+
+		@Override
+		public byte[] getTransaction(long txnId) throws IOException {
+				return new byte[0];
+		}
 }

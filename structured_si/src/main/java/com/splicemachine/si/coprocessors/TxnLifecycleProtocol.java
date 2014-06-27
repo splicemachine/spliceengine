@@ -122,4 +122,6 @@ public interface TxnLifecycleProtocol extends CoprocessorProtocol {
 		 * @throws IOException if something goes wrong attempting to keep it alive.
 		 */
 		boolean keepAlive(long txnId) throws IOException;
+
+		byte[] getTransaction(long txnId) throws IOException;
 }

@@ -89,8 +89,11 @@ public class WritableTxn extends AbstractTxn {
 
 		@Override
 		public long getEffectiveCommitTimestamp() {
-				if(isDependent)
-						return parent.getEffectiveCommitTimestamp();
+				if(globalCommitTimestamp>=0) return globalCommitTimestamp;
+				if(isDependent){
+						globalCommitTimestamp = parent.getEffectiveCommitTimestamp();
+						return globalCommitTimestamp;
+				}
 				else return commitTimestamp;
 		}
 

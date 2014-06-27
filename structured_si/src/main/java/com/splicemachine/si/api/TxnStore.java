@@ -20,8 +20,6 @@ public interface TxnStore extends TxnAccess{
 
 		public long commit(long txnId) throws IOException;
 
-		public void timeout(long txnId) throws IOException;
-
 		public void elevateTransaction(Txn txn, byte[] newDestinationTable) throws IOException;
 
 		/**

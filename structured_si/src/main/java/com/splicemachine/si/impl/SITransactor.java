@@ -51,8 +51,6 @@ public class SITransactor<Table,
     private final STableWriter<Table, Mutation, Put, Delete> dataWriter;
     private final DataStore<Mutation, Put, Delete, Get, Scan, Table> dataStore;
     private final TxnStore transactionStore;
-    private final Clock clock;
-    private final int transactionTimeoutMS;
 
 //		private final TransactionSource transactionSource;
 
@@ -73,8 +71,6 @@ public class SITransactor<Table,
 												 STableWriter dataWriter,
 												 DataStore dataStore,
 												 final TxnStore transactionStore,
-												 Clock clock,
-												 int transactionTimeoutMS,
 												 TransactionManager transactionManager) {
 //				transactionSource = new TransactionSource() {
 //            @Override
@@ -82,14 +78,12 @@ public class SITransactor<Table,
 //                return transactionStore.getTransaction(timestamp);
 //            }
 //        };
-        this.dataLib = dataLib;
-        this.dataWriter = dataWriter;
-        this.dataStore = dataStore;
-        this.transactionStore = transactionStore;
-        this.clock = clock;
-        this.transactionTimeoutMS = transactionTimeoutMS;
-		this.transactionManager = transactionManager;
-    }
+				this.dataLib = dataLib;
+				this.dataWriter = dataWriter;
+				this.dataStore = dataStore;
+				this.transactionStore = transactionStore;
+				this.transactionManager = transactionManager;
+		}
 
 		// Operation pre-processing. These are to be called "server-side" when we are about to process an operation.
 
@@ -114,6 +108,7 @@ public class SITransactor<Table,
 								return true;
 				}
     }
+
 
 		@Override
     public OperationStatus[] processPutBatch(Table table, RollForwardQueue rollForwardQueue, Put[] mutations)
@@ -244,6 +239,67 @@ public class SITransactor<Table,
 				return retStatuses;
     }
 
+		@Override
+		public OperationStatus[] processKvBatch(Table table,
+																						RollForward rollForward,
+																						byte[] defaultFamilyBytes,
+																						byte[] packedColumnBytes,
+																						Collection<KVPair> toProcess,
+																						long txnId,
+																						ConstraintChecker constraintChecker) throws IOException {
+				Txn txn = transactionStore.getTransaction(txnId);
+				ensureTransactionAllowsWrites(txnId,txn);
+				return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker);
+		}
+
+		@Override
+		public OperationStatus[] processKvBatch(Table table,
+																						RollForward rollForwardQueue,
+																						Txn txn,
+																						byte[] family, byte[] qualifier,
+																						Collection<KVPair> mutations,
+																						ConstraintChecker constraintChecker) throws IOException {
+				ensureTransactionAllowsWrites(txn.getTxnId(),txn);
+				return processInternal(table, rollForwardQueue, txn, family, qualifier, mutations, constraintChecker);
+		}
+
+
+
+		@Override
+		public OperationStatus[] processKvBatch(Table table,
+																						RollForwardQueue rollForwardQueue,
+																						TransactionId txnId,
+																						byte[] family, byte[] qualifier,
+																						Collection<KVPair> mutations,ConstraintChecker constraintChecker) throws IOException {
+				Txn txn = transactionStore.getTransaction(txnId.getId());
+				ensureTransactionAllowsWrites(txn!=null?txn.getTxnId():-1l,txn);
+				return processKvBatch(table,null,txn,family,qualifier,mutations,constraintChecker);
+		}
+
+		@Override
+		public OperationStatus[] processKvBatch(Table table, RollForwardQueue rollForwardQueue,
+																						byte[] family, byte[] qualifier,
+																						Collection<KVPair> mutations,
+																						String txnId) throws IOException {
+			return processKvBatch(table,rollForwardQueue,family,qualifier,mutations,txnId,null);
+		}
+
+		@Override
+		public OperationStatus[] processKvBatch(Table table,
+																						RollForwardQueue rollForwardQueue,
+																						byte[] family,
+																						byte[] qualifier,
+																						Collection<KVPair> mutations,
+																						String txnId, ConstraintChecker constraintChecker) throws IOException {
+				if(mutations.size()<=0)
+						//noinspection unchecked
+						return dataStore.writeBatch(table,new Pair[]{});
+
+				//ensure the transaction is in good shape
+				TransactionId txn = transactionManager.transactionIdFromString(txnId);
+				return processKvBatch(table,rollForwardQueue,txn,family,qualifier,mutations,constraintChecker);
+		}
+
 		private OperationStatus getCorrectStatus(OperationStatus status, OperationStatus oldStatus) {
 				switch(oldStatus.getOperationStatusCode()){
 						case SUCCESS:
@@ -257,30 +313,12 @@ public class SITransactor<Table,
 				return null;
 		}
 
-		@Override
-		public OperationStatus[] processKvBatch(Table table,
-																						RollForwardQueue rollForwardQueue,
-																						TransactionId txnId,
-																						byte[] family, byte[] qualifier,
-																						Collection<KVPair> mutations) throws IOException {
-			return processKvBatch(table,rollForwardQueue,txnId,family,qualifier,mutations,null);
-		}
-
-		@Override
-		public OperationStatus[] processKvBatch(Table table,
-																						RollForwardQueue rollForwardQueue,
-																						TransactionId txnId,
-																						byte[] family, byte[] qualifier,
-																						Collection<KVPair> mutations,ConstraintChecker constraintChecker) throws IOException {
-				Txn txn = transactionStore.getTransaction(txnId.getId());
-//				ImmutableTransaction transaction = transactionStore.getImmutableTransaction(txnId);
-				ensureTransactionAllowsWrites(txnId.getId(),txn);
-
+		protected OperationStatus[] processInternal(Table table, RollForward rollForwardQueue, Txn txn, byte[] family, byte[] qualifier, Collection<KVPair> mutations, ConstraintChecker constraintChecker) throws IOException {
 				OperationStatus[] finalStatus = new OperationStatus[mutations.size()];
 				Pair<KVPair,Integer>[] lockPairs = new Pair[mutations.size()];
 				IFilterState constraintState = null;
 				if(constraintChecker!=null)
-						constraintState = new TxnFilterState(transactionStore,txn,NoOpReadResolver.INSTANCE,dataStore);
+						constraintState = new TxnFilterState(transactionStore,txn, NoOpReadResolver.INSTANCE,dataStore);
 				@SuppressWarnings("unchecked") final Set<Long>[] conflictingChildren = new Set[mutations.size()];
 				try {
 						lockRows(table,mutations,lockPairs,finalStatus);
@@ -316,30 +354,6 @@ public class SITransactor<Table,
 				} finally {
 						releaseLocksForKvBatch(table, lockPairs);
 				}
-		}
-
-		@Override
-		public OperationStatus[] processKvBatch(Table table, RollForwardQueue rollForwardQueue,
-																						byte[] family, byte[] qualifier,
-																						Collection<KVPair> mutations,
-																						String txnId) throws IOException {
-			return processKvBatch(table,rollForwardQueue,family,qualifier,mutations,txnId,null);
-		}
-
-		@Override
-		public OperationStatus[] processKvBatch(Table table,
-																						RollForwardQueue rollForwardQueue,
-																						byte[] family,
-																						byte[] qualifier,
-																						Collection<KVPair> mutations,
-																						String txnId, ConstraintChecker constraintChecker) throws IOException {
-				if(mutations.size()<=0)
-						//noinspection unchecked
-						return dataStore.writeBatch(table,new Pair[]{});
-
-				//ensure the transaction is in good shape
-				TransactionId txn = transactionManager.transactionIdFromString(txnId);
-				return processKvBatch(table,rollForwardQueue,txn,family,qualifier,mutations,constraintChecker);
 		}
 
 		@SuppressWarnings("UnusedDeclaration")
@@ -386,7 +400,7 @@ public class SITransactor<Table,
 		}
 
 		private IntObjectOpenHashMap<Pair<Mutation, Integer>> checkConflictsForKvBatch(Table table,
-																																									 RollForwardQueue rollForwardQueue,
+																																									 RollForward rollForwardQueue,
 																															 Pair<KVPair, Integer>[] dataAndLocks,
 																															 Set<Long>[] conflictingChildren,
 																															 Txn transaction,
@@ -487,7 +501,7 @@ public class SITransactor<Table,
 		}
 
 
-		private Mutation getMutationToRun(Table table,RollForwardQueue rollForwardQueue, KVPair kvPair,
+		private Mutation getMutationToRun(Table table,RollForward rollForwardQueue, KVPair kvPair,
 																			byte[] family, byte[] column,
 																			Txn transaction, ConflictResults conflictResults) throws IOException{
 				long txnIdLong = transaction.getTxnId();
@@ -515,12 +529,13 @@ public class SITransactor<Table,
 						dataStore.setAntiTombstoneOnPut(newPut, txnIdLong);
 
 				byte[]row = kvPair.getRow();
-				dataStore.recordRollForward(rollForwardQueue,txnIdLong, row,null);
-				if(conflictResults.toRollForward!=null){
-						for(Long txnIdToRollForward : conflictResults.toRollForward){
-								dataStore.recordRollForward(rollForwardQueue,txnIdToRollForward,row,null);
-						}
-				}
+				//TODO -sf- implement!
+//				dataStore.recordRollForward(rollForwardQueue,txnIdLong, row,false);
+//				if(conflictResults.toRollForward!=null){
+//						for(Long txnIdToRollForward : conflictResults.toRollForward){
+//								dataStore.recordRollForward(rollForwardQueue,txnIdToRollForward,row,false);
+//						}
+//				}
 				return newPut;
 		}
 
@@ -793,7 +808,7 @@ public class SITransactor<Table,
 						return new SITransactor<Table,
 										Mutation, Put,Get,Scan,
 										Delete> (dataLib,dataWriter,
-										dataStore,txnStore,clock,transactionTimeoutMS, control);
+										dataStore,txnStore, control);
 				}
 
 		}
