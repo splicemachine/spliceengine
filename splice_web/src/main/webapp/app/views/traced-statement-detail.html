@@ -8,13 +8,19 @@
 </div>
 
 <div class="row marketing">
-<pre>
-{{tracedStatementString}}
--------------
-{{tracedStatement}}
-</pre>
+<script type="text/ng-template"  id="tree_item_renderer.html">
+    {{data.operationType}}
+    <!-- button ng-click="add(data)">Add node</button -->
+    <!-- button ng-click="delete(data)" ng-show="data.children.length > 0">Delete children</button -->
+    <ul>
+        <li ng-repeat="data in data.children" ng-include="'tree_item_renderer.html'"></li>
+    </ul>
+</script>
+
+<ul>
+    <li ng-repeat="data in tree" ng-include="'tree_item_renderer.html'"></li>
+</ul>
 </div>
-1 + 1 = {{1 + 1}}
 
 <div class="footer">
   <p><span class="glyphicon glyphicon-heart"></span> from the Splice Machine team</p>
