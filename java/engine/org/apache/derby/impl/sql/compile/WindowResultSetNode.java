@@ -886,7 +886,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		 *  arg2: isInSortedOrder - true if source result set in sorted order
 		 *  arg3: aggInfoItem - entry in saved objects for the aggregates,
 		 *  arg4: orderingItem - entry in saved objects for the ordering
-\		 *  arg5: Activation
+		 *  arg5: Activation
 		 *  arg6: rowAllocator - method to construct rows for fetching
 		 *			from the sort
 		 *  arg7: row size
