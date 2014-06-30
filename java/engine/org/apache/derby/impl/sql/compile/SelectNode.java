@@ -660,7 +660,7 @@ public class SelectNode extends ResultSetNode
 			checkNoWindowFunctions(groupByList, "GROUP BY");
 		}
 
-        /* Bind the window partition */
+        /* Bind the window node - partition and orderby */
         if (hasWindows()) {
             for (int i=0; i<windows.size(); ++i) {
                 WindowDefinitionNode wdn = (WindowDefinitionNode) windows.elementAt(i);

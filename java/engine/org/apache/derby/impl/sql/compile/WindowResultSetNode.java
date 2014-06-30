@@ -206,9 +206,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 isInSortedOrder = childResult.isOrderedOn(crs, true, (Vector) null);
             }
         }
-
-        // TODO: OrderBy?
-        addOrderby();
     }
 
     /**
@@ -242,50 +239,20 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     }
 
     private void addOrderby() throws StandardException {
+        // FIXME: the change below removes the Window node - ordering added in generate
         /* Generate the OrderByNode if a sort is still required for
 		 * the order by.
 		 */
         OrderByList windowOrderBy = wdn.getOrderByList();
-
         if (windowOrderBy != null && windowOrderBy.getSortNeeded()) {
-            ResultSetNode prnRSN = parent;
-            prnRSN = (ResultSetNode) getNodeFactory().getNode(
-                C_NodeTypes.ORDER_BY_NODE,
-                prnRSN,
-                windowOrderBy,
-                null,
-                getContextManager());
-
-            // There may be columns added to the select projection list
-            // a query like:
-            // select a, b from t group by a,b order by a+b
-            // the expr a+b is added to the select list.
-            // TODO: probably no orderbyselect in this context
-            int orderBySelect = this.getResultColumns().getOrderBySelect();
-            if (orderBySelect > 0)  {
-                // Keep the same RCL on top, since there may be references to
-                // its result columns above us, i.e. in this query:
-                //
-                // select sum(j),i from t group by i having i
-                //             in (select i from t order by j)
-                //
-                ResultColumnList topList = prnRSN.getResultColumns();
-                ResultColumnList newSelectList = topList.copyListAndObjects();
-                prnRSN.setResultColumns(newSelectList);
-
-                topList.removeOrderByColumns();
-                topList.genVirtualColumnNodes(prnRSN, newSelectList);
+            ResultSetNode prnRSN = this.childResult;
                 prnRSN = (ResultSetNode) getNodeFactory().getNode(
-                    C_NodeTypes.PROJECT_RESTRICT_NODE,
+                    C_NodeTypes.ORDER_BY_NODE,
                     prnRSN,
-                    topList,
-                    null,
-                    null,
-                    null,
-                    null,
+                    windowOrderBy,
                     null,
                     getContextManager());
-            }
+                parent = (FromTable) prnRSN;
         }
     }
 
@@ -375,8 +342,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     }
 
     /**
-     * In the query rewrite for group by, add the columns on which we are doing
-     * the group by.
+     * In the query rewrite for partition, add the columns on which we are doing
+     * the partition.
      *
      * @see #addNewColumnsForAggregation
      */
@@ -390,7 +357,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             GroupByColumn gbc = (GroupByColumn) partition.elementAt(i);
             ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##UnaggColumn",
+                "##PartitionColumn",
                 gbc.getColumnExpression(),
                 getContextManager());
 
@@ -403,7 +370,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             // now add this column to the groupbylist
             ResultColumn gbRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##UnaggColumn",
+                "##PartitionColumn",
                 gbc.getColumnExpression(),
                 getContextManager());
             groupByRCL.addElement(gbRC);
@@ -614,7 +581,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			*/
             newRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##window result",
+                "##WindowResult",
                 aggregate.getNewNullResultExpression(),
                 getContextManager());
             newRC.markGenerated();
@@ -624,7 +591,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             aggResultVColId = newRC.getVirtualColumnId();
 
 			/*
-			** Set the GB aggregrate result column to
+			** Set the GB aggregate result column to
 			** point to this.  The GB aggregate result
 			** was created when we called
 			** ReplaceAggregatesWithCRVisitor()
@@ -667,7 +634,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             aggInputVColId = newRC.getVirtualColumnId();
             aggResultRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##window expression",
+                "##WindowExpression",
                 aggregate.getNewNullResultExpression(),
                 getContextManager());
 
@@ -978,7 +945,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                     s.append(" ");
                 }
                 s.append(")");
-                SanityManager.DEBUG("AggregateTrace", s.toString());
+                SanityManager.DEBUG("WindowTrace", s.toString());
             }
         }
 
@@ -1000,14 +967,13 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		/* Generate the WindowResultSet:
 		 *	arg1: childExpress - Expression for childResult
 		 *  arg2: isInSortedOrder - true if source result set in sorted order
-		 *  arg3: aggregateItem - entry in saved objects for the aggregates,
-		 *  arg4: orderItem - entry in saved objects for the ordering
+		 *  arg3: aggInfoItem - entry in saved objects for the aggregates,
+		 *  arg4: orderingItem - entry in saved objects for the ordering
 		 *  arg5: Activation
 		 *  arg6: rowAllocator - method to construct rows for fetching
 		 *			from the sort
 		 *  arg7: row size
 		 *  arg8: resultSetNumber
-		 *  arg9: isRollup
 		 */
         // Generate the child ResultSet
         childResult.generate(acb, mb);
