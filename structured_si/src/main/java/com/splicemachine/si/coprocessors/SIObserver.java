@@ -116,14 +116,15 @@ public class SIObserver extends BaseRegionObserver {
     }
 
     private void addSIFilterToGet(Get get) throws IOException {
-
-        final Filter newFilter = makeSIFilter(HTransactorFactory.getClientTransactor().transactionIdFromGet(get), get.getFilter(),
+				Txn txn = HTransactorFactory.getClientTransactor().txnFromOp(get,true);
+        final Filter newFilter = makeSIFilter(txn, get.getFilter(),
 								getPredicateFilter(get),false);
         get.setFilter(newFilter);
     }
 
     private void addSIFilterToScan(Scan scan) throws IOException {
-        final Filter newFilter = makeSIFilter(HTransactorFactory.getClientTransactor().transactionIdFromScan(scan), scan.getFilter(),
+				Txn txn = HTransactorFactory.getClientTransactor().txnFromOp(scan,true);
+        final Filter newFilter = makeSIFilter(txn, scan.getFilter(),
 								getPredicateFilter(scan),scan.getAttribute(SIConstants.SI_COUNT_STAR) != null);
         scan.setFilter(newFilter);
     }
@@ -133,10 +134,11 @@ public class SIObserver extends BaseRegionObserver {
         return EntryPredicateFilter.fromBytes(serializedPredicateFilter);
     }
 
-    private Filter makeSIFilter(TransactionId transactionId, Filter currentFilter, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
-        final SIFilterPacked siFilter = new SIFilterPacked(tableName,
-								transactionId, HTransactorFactory.getTransactionManager(),
-								rollForwardQueue, predicateFilter,HTransactorFactory.getTransactionReadController(), countStar);
+    private Filter makeSIFilter(Txn txn, Filter currentFilter, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
+        final SIFilterPacked siFilter = new SIFilterPacked(txn,
+								rollForwardQueue,
+								predicateFilter,
+								HTransactorFactory.getTransactionReadController(),countStar);
         if (needsCompositeFilter(currentFilter)) {
             return composeFilters(orderFilters(currentFilter, siFilter));
         } else {

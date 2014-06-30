@@ -40,4 +40,6 @@ public interface TxnStore extends TxnAccess{
 		 */
 		long[] getActiveTransactions(Txn txn,byte[] table) throws IOException;
 
+		long[] getActiveTransactions(long minTxnId,long maxTxnId,byte[] table) throws IOException;
+
 }

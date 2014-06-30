@@ -19,15 +19,20 @@ import java.io.IOException;
 public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 
 		@ThreadSafe private final TimestampSource timestampSource;
-		@ThreadSafe private final TxnStore store;
-		@ThreadSafe private final KeepAliveScheduler keepAliveScheduler;
+		@ThreadSafe private TxnStore store;
+		@ThreadSafe private KeepAliveScheduler keepAliveScheduler;
 
-		public ClientTxnLifecycleManager(@ThreadSafe TimestampSource timestampSource,
-																		 @ThreadSafe TxnStore store,
-																		 @ThreadSafe KeepAliveScheduler keepAliveScheduler) {
+		public ClientTxnLifecycleManager(@ThreadSafe TimestampSource timestampSource) {
 				this.timestampSource = timestampSource;
+		}
+
+		public void setStore(TxnStore store) {
 				this.store = store;
-				this.keepAliveScheduler = keepAliveScheduler;
+		}
+
+
+		public void setKeepAliveScheduler(KeepAliveScheduler scheduler){
+				this.keepAliveScheduler = scheduler;
 		}
 
 		@Override
@@ -115,14 +120,15 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 
 		@Override
 		public Txn elevateTransaction(Txn txn, byte[] destinationTable) throws IOException {
-				store.elevateTransaction(txn,destinationTable);
 				if(!txn.allowsWrites()){
 						//we've elevated from a read-only to a writable, so make sure that we add
 						//it to the keep alive
 						Txn writableTxn = new WritableTxn(txn,this,destinationTable);
+						store.recordNewTransaction(writableTxn);
 						keepAliveScheduler.scheduleKeepAlive(writableTxn);
 						txn = writableTxn;
-				}
+				}else
+						store.elevateTransaction(txn,destinationTable);
 				return txn;
 		}
 

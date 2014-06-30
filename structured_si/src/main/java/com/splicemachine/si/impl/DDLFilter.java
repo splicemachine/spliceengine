@@ -3,6 +3,9 @@ package com.splicemachine.si.impl;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.si.api.TransactionStatus;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnStore;
+
 import java.util.HashMap;
 import java.io.IOException;
 import java.util.Map;
@@ -11,14 +14,15 @@ import java.util.concurrent.*;
 public class DDLFilter implements Comparable<DDLFilter> {
     private final Transaction myTransaction;
 	private final Transaction myParentTransaction;
-    private final TransactionStore transactionStore;
+//    private final TransactionStore transactionStore;
+		private final TxnStore transactionStore;
 		private Cache<String,Boolean> visibilityMap;
 //    private ConcurrentMap<String, Boolean> visibilityMap;
 
 		public DDLFilter(
 						Transaction myTransaction,
 						Transaction myParentTransaction,
-						TransactionStore transactionStore) {
+						TxnStore transactionStore) {
 				super();
 				this.myTransaction = myTransaction;
 				this.transactionStore = transactionStore;
@@ -39,7 +43,9 @@ public class DDLFilter implements Comparable<DDLFilter> {
 						return visibilityMap.get(transactionId,new Callable<Boolean>() {
 								@Override
 								public Boolean call() throws Exception {
-										Transaction transaction = transactionStore.getTransaction(new TransactionId(transactionId));
+										throw new UnsupportedOperationException("IMPLEMENT");
+//										Txn transaction  = transactionStore.getTransaction(Long.parseLong(transactionId));
+//										Transaction transaction = transactionStore.getTransaction(new TransactionId(transactionId));
 										/*
 										 * For the purposes of DDL, we intercept any writes which occur AFTER us, regardless of
 										 * my status.
@@ -49,9 +55,9 @@ public class DDLFilter implements Comparable<DDLFilter> {
 										 * then it shouldn't matter to the other operation (except for performance), and if we commit,
 										 * then we should see properly constructed data.
 										 */
-										long otherTxnId = transaction.getLongTransactionId();
-										visibilityMap.put(transactionId, myTransaction.getLongTransactionId() <= otherTxnId);
-										return myTransaction.getLongTransactionId()<=otherTxnId;
+//										long otherTxnId = transaction.getLongTransactionId();
+//										visibilityMap.put(transactionId, myTransaction.getLongTransactionId() <= otherTxnId);
+//										return myTransaction.getLongTransactionId()<=otherTxnId;
 								}
 						});
 				} catch (ExecutionException e) {

@@ -42,11 +42,16 @@ public class ActiveTxnCacheAccess implements TxnAccess {
 
 		@Override
 		public Txn getTransaction(long txnId) throws IOException {
+				return getTransaction(txnId,false);
+		}
+
+		@Override
+		public Txn getTransaction(long txnId, boolean getDestinationTables) throws IOException {
 				int hash = MurmurHash.murmur3_32(txnId,0);
 				Txn txn = getFromCache(hash,txnId);
 				if(txn!=null) return txn;
 				//bummer, not cached. try delegate
-				txn = delegate.getTransaction(txnId);
+				txn = delegate.getTransaction(txnId,getDestinationTables);
 
 				if(txn.getState()== Txn.State.ACTIVE)
 						addToCache(hash, txn);

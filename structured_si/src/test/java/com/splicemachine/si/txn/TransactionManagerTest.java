@@ -8,11 +8,9 @@ import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.api.TransactionStatus;
-import org.junit.Assert;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
+@Ignore("TransactionManager is not used any more. It has been replaced by the TxnLifecycleManager")
 public class TransactionManagerTest {
     protected static Transactor transactor;
 		protected static TransactionManager control;
@@ -22,7 +20,7 @@ public class TransactionManagerTest {
 
     static void baseSetUp() {
         transactor = transactorSetup.transactor;
-				control = transactorSetup.control;
+//				control = transactorSetup.control;
     }
 
     @BeforeClass
@@ -40,29 +38,29 @@ public class TransactionManagerTest {
     public void beginTransactionTest() throws Exception {
         TransactionId transactionId = control.beginTransaction();
         Assert.assertNotNull(transactionId);
-        Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
-        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
-        Assert.assertTrue(transaction.getEffectiveStatus().isActive());
+//        Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
+//        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
+//        Assert.assertTrue(transaction.getEffectiveStatus().isActive());
     }
 
     @Test
     public void doCommitTest() throws Exception {
         TransactionId transactionId = control.beginTransaction();
         control.commit(transactionId);
-        Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
-        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
-        Assert.assertTrue(transaction.commitTimestamp != null);
-        Assert.assertTrue(transaction.getBeginTimestamp() < transaction.getEffectiveCommitTimestamp());
+//        Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
+//        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
+//        Assert.assertTrue(transaction.commitTimestamp != null);
+//        Assert.assertTrue(transaction.getBeginTimestamp() < transaction.getEffectiveCommitTimestamp());
     }
 
     @Test
     public void rollbackTest() throws Exception {
         TransactionId transactionId = control.beginTransaction();
         control.rollback(transactionId);
-        Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
-        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
-        Assert.assertTrue(transaction.status.equals(TransactionStatus.ROLLED_BACK));
-        Assert.assertNull(transaction.getEffectiveCommitTimestamp());
+//        Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
+//        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
+//        Assert.assertTrue(transaction.status.equals(TransactionStatus.ROLLED_BACK));
+//        Assert.assertNull(transaction.getEffectiveCommitTimestamp());
     }
 
 }

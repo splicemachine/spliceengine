@@ -26,28 +26,18 @@ public class SITransactionReadController<
 				implements TransactionReadController<Get,Scan>{
 		private final DataStore dataStore;
 		private final SDataLib dataLib;
-//		private final TransactionStore transactionStore;
-		private final TransactionManager control;
-		private final TxnStore txnAccess;
+		private final TxnAccess txnAccess;
+		private final TxnLifecycleManager tc;
+
 
 		public SITransactionReadController(DataStore dataStore,
 																			 SDataLib dataLib,
-																			 TransactionStore transactionStore,
-																			 TransactionManager control ) {
-				this(dataStore, dataLib, transactionStore, control,null);
-				throw new UnsupportedOperationException("Implement!");
-		}
-
-		public SITransactionReadController(DataStore dataStore,
-																			 SDataLib dataLib,
-																			 TransactionStore transactionStore,
-																			 TransactionManager control,
-																			 TxnStore txnAccess) {
+																			 TxnAccess txnAccess,
+																			 TxnLifecycleManager tc) {
 				this.dataStore = dataStore;
 				this.dataLib = dataLib;
-//				this.transactionStore = transactionStore;
-				this.control = control;
 				this.txnAccess = txnAccess;
+				this.tc = tc;
 		}
 
 		@Override
@@ -97,8 +87,6 @@ public class SITransactionReadController<
 		public IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId) throws IOException {
 				return new TxnFilterState(txnAccess, txnAccess.getTransaction(transactionId.getId()),NoOpReadResolver.INSTANCE,
 								dataStore);
-//				return new FilterState(dataLib, dataStore, transactionStore, rollForwardQueue,
-//								transactionStore.getImmutableTransaction(transactionId));
 		}
 
 		@Override
@@ -108,10 +96,20 @@ public class SITransactionReadController<
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public IFilterState newFilterStatePacked(String tableName, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter, TransactionId transactionId, boolean countStar) throws IOException {
+		public IFilterState newFilterStatePacked(String tableName,
+																						 RollForwardQueue rollForwardQueue,
+																						 EntryPredicateFilter predicateFilter,
+																						 TransactionId transactionId, boolean countStar) throws IOException {
 				return new FilterStatePacked(
-								(FilterState) newFilterState(rollForwardQueue, transactionId),
+								newFilterState(rollForwardQueue, transactionId),
 								new HRowAccumulator(predicateFilter, new EntryDecoder(), countStar ));
+		}
+
+		@Override
+		public IFilterState newFilterStatePacked(ReadResolver readResolver,
+																						 EntryPredicateFilter predicateFilter, Txn txn, boolean countStar) throws IOException {
+				return new FilterStatePacked(newFilterState(txn),
+								new HRowAccumulator(predicateFilter,new EntryDecoder(),countStar));
 		}
 
 		@Override
@@ -133,7 +131,7 @@ public class SITransactionReadController<
 				final List<KeyValue> filteredCells = Lists.newArrayList();
 				final List<KeyValue> KVs = dataLib.listResult(result);
 				if (KVs != null) {
-						byte[] currentRowKey = null;
+//						byte[] currentRowKey = null;
 						for (KeyValue kv : KVs) {
 							filterKeyValue(filterState, kv);
 						}

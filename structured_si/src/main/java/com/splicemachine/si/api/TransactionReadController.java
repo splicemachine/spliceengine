@@ -47,6 +47,10 @@ public interface TransactionReadController<Get,Scan> {
 		IFilterState newFilterStatePacked(String tableName, RollForwardQueue rollForwardQueue,
 																			EntryPredicateFilter predicateFilter, TransactionId transactionId, boolean countStar) throws IOException;
 
+		IFilterState newFilterStatePacked(ReadResolver readResolver,
+																			EntryPredicateFilter predicateFilter,
+																			Txn txn, boolean countStar) throws IOException;
+
 		/**
 		 * Consider whether to use a key value in light of a given filterState.
 		 */

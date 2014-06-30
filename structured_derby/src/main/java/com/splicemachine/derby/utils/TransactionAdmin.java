@@ -111,7 +111,8 @@ public class TransactionAdmin {
 
 	public static void SYSCS_DUMP_TRANSACTIONS(ResultSet[] resultSet) throws SQLException {
 				try {
-						TransactionStore store = HTransactorFactory.getTransactionStore();
+						throw new UnsupportedOperationException("IMPLEMENT");
+//						TransactionStore store = HTransactorFactory.getTransactionStore();
 						//noinspection unchecked
 						List<Transaction> transactions =store.getAllTransactions();
 						ExecRow template = new ValueRow(15);

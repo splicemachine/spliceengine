@@ -131,6 +131,25 @@ public interface Txn {
 				public boolean isFinal() {
 						return this != ACTIVE;
 				}
+
+				public static State fromByte(byte b) {
+						switch(b){
+								case 0:
+										return ACTIVE;
+								case 2:
+										TXN_LOGGER.warn("Seen the vestigial COMMITTING transaction state. " +
+														"Treating it as ROLLED BACK, " +
+														"since COMMITTING transactions are either stuck (e.g. timedout) or will be soon");
+								case 1:
+								case 4:
+										return ROLLEDBACK;
+								case 3:
+										return COMMITTED;
+								default:
+										throw new IllegalArgumentException("Unknown transaction state! "+ b);
+
+						}
+				}
 		}
 
 		public enum IsolationLevel{

@@ -28,18 +28,18 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler {
 
 		private volatile boolean shutdown = false;
 
-		private final ConcurrentSkipListSet<Txn> activeTxns = new ConcurrentSkipListSet<Txn>(new Comparator<Txn>() {
-				@Override
-				public int compare(Txn o1, Txn o2) {
-						if(o1==null) {
-								if(o2==null) return 0;
-								return -1;
-						}else if (o2==null) return 1;
-						long t1 = o1.getTxnId();
-						long t2 = o2.getTxnId();
-						return t1 > t2 ? 1: t1 == t2 ? 0:-1;
-				}
-		});
+//		private final ConcurrentSkipListSet<Txn> activeTxns = new ConcurrentSkipListSet<Txn>(new Comparator<Txn>() {
+//				@Override
+//				public int compare(Txn o1, Txn o2) {
+//						if(o1==null) {
+//								if(o2==null) return 0;
+//								return -1;
+//						}else if (o2==null) return 1;
+//						long t1 = o1.getTxnId();
+//						long t2 = o2.getTxnId();
+//						return t1 > t2 ? 1: t1 == t2 ? 0:-1;
+//				}
+//		});
 
 		public QueuedKeepAliveScheduler(long maxWaitIntervalMs, long maxKeepAliveIntervalMs,
 																		int numKeepers, TxnLifecycleProtocol lifecycleProtocol) {
@@ -56,7 +56,7 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler {
 		public void scheduleKeepAlive(Txn txn) {
 				if(shutdown) return;
 
-				activeTxns.add(txn);
+//				activeTxns.add(txn);
 				threadPool.schedule(new KeepAlive(txn), random.nextLong(maxWaitIntervalMs), TimeUnit.MILLISECONDS);
 		}
 

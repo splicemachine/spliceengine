@@ -63,7 +63,8 @@ public class SIConstants extends SpliceConstants {
 
 		@Parameter public static final String TRANSACTION_KEEP_ALIVE_INTERVAL = "splice.txn.keepAliveIntervalMs";
 		@DefaultValue(TRANSACTION_KEEP_ALIVE_INTERVAL) public static final int DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL=60000;
-    public static int transactionKeepAliveInterval;
+		public static final String SI_TRANSACTION_KEY = "T";
+		public static int transactionKeepAliveInterval;
 
 		@Parameter public static final String TRANSACTION_TIMEOUT = "splice.txn.timeout";
 		@DefaultValue(TRANSACTION_TIMEOUT) public static final int DEFAULT_TRANSACTION_TIMEOUT = 100 * DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL; //100 minutes

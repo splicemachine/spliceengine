@@ -21,6 +21,7 @@ public class LazyTxnAccess implements TxnAccess {
 
 		@Override
 		public Txn getTransaction(long txnId) throws IOException {
+				if(txnId<0) return Txn.ROOT_TRANSACTION;
 				/*
 				 * When the delegate contains the transaction in it's local cache,
 				 * it should be very inexpensive to perform a direct lookup. Therefore,
@@ -31,9 +32,15 @@ public class LazyTxnAccess implements TxnAccess {
 				 * in case it's not needed (e.g. in case all values are present in the
 				 * child or whatever, so defaults are never needed).
 				 */
-				if(delegate.transactionCached(txnId))
+				if(delegate.transactionCached(txnId)){
 						return delegate.getTransaction(txnId);
+				}
 				return new LazyTxn(txnId,delegate);
+		}
+
+		@Override
+		public Txn getTransaction(long txnId, boolean getDestinationTables) throws IOException {
+				return getTransaction(txnId);
 		}
 
 		@Override

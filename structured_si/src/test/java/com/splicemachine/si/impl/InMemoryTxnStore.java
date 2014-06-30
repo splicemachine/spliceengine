@@ -53,6 +53,10 @@ public class InMemoryTxnStore implements TxnStore {
 				}
 		}
 
+		@Override
+		public Txn getTransaction(long txnId, boolean getDestinationTables) throws IOException {
+				return getTransaction(txnId);
+		}
 
 
 		@Override public boolean transactionCached(long txnId) { return false; }
@@ -165,9 +169,16 @@ public class InMemoryTxnStore implements TxnStore {
 
 		@Override
 		public long[] getActiveTransactions(Txn txn, byte[] table) throws IOException {
+				long minTs = this.commitTsGenerator.retrieveTimestamp();
+				return getActiveTransactions(minTs,txn.getTxnId(),table);
+		}
+
+		@Override
+		public long[] getActiveTransactions(long minTxnId, long maxTxnId, byte[] table) throws IOException {
 				if(table==null)
-						return getAllActiveTransactions(txn);
-				else return findActiveTransactions(txn, table);
+						return getAllActiveTransactions(minTxnId,maxTxnId);
+				else
+						return findActiveTransactions(minTxnId, maxTxnId, table);
 		}
 
 		public boolean keepAlive(Txn txn) throws TransactionTimeoutException {
@@ -192,12 +203,7 @@ public class InMemoryTxnStore implements TxnStore {
 								(System.currentTimeMillis() - txn.keepAliveTs) > txnTimeOutIntervalMs;
 		}
 
-		private long[] getAllActiveTransactions(Txn txn) throws IOException {
-				long minTimestamp = commitTsGenerator.retrieveTimestamp();
-				long maxId;
-				if(txn==null)
-						maxId = Long.MAX_VALUE;
-				else maxId = txn.getTxnId();
+		private long[] getAllActiveTransactions(long minTimestamp,long maxId) throws IOException {
 
 				LongArrayList activeTxns = new LongArrayList(txnMap.size());
 				for(Map.Entry<Long,TxnHolder> txnEntry:txnMap.entrySet()){
@@ -211,12 +217,7 @@ public class InMemoryTxnStore implements TxnStore {
 				return activeTxns.toArray();
 		}
 
-		private long[] findActiveTransactions(Txn txn, byte[] table) {
-				long minTimestamp = commitTsGenerator.retrieveTimestamp();
-				long maxId;
-				if(txn==null)
-						maxId = Long.MAX_VALUE;
-				else maxId = txn.getTxnId();
+		private long[] findActiveTransactions(long minTimestamp, long maxId, byte[] table) {
 				LongArrayList activeTxns = new LongArrayList(txnMap.size());
 				for(Map.Entry<Long,TxnHolder> txnEntry:txnMap.entrySet()){
 						if(isTimedOut(txnEntry.getValue())) continue;
