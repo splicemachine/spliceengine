@@ -67,6 +67,7 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 	protected LockingPolicy record_level_policy[];
 	protected ConglomerateFactory conglom_map[];
 	private CacheManager    conglom_cache;
+    private ConglomerateDescriptorCache conglomerateDescriptorCache = ConglomerateDescriptorCache.INSTANCE;
     private volatile DDLFilter ddlDemarcationPoint = null;
     private volatile boolean cacheDisabled = false;
     private ConcurrentMap<String, DDLChange> ongoingDDLChanges = new ConcurrentHashMap<String, DDLChange>();
@@ -269,7 +270,7 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
     }
 
     /**
-	 * Invalide the current Conglomerate Cache.
+	 * Invalide the current Conglomerate Cache and conglomerate descriptor cache.
 	 * <p>
 	 * Abort of certain operations will invalidate the contents of the 
 	 * cache.  Longer term we could just invalidate those entries, but
@@ -278,11 +279,11 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 	 *
 	 * @exception  StandardException  Standard exception policy.
 	 **/
-	/* package */ protected void conglomCacheInvalidate() {
+	protected void conglomCacheInvalidate() {
+        conglomerateDescriptorCache.invalidateAll();
 		synchronized (conglom_cache) {
 			conglom_cache.discard(null);
 		}
-		return;
 	}
 
 	/**
