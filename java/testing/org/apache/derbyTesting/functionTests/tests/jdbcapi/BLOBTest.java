@@ -587,7 +587,7 @@ final public class BLOBTest extends BaseJDBCTestCase
         assertTrue(i != -1);
 
         // Open a second connection and delete the BLOB.
-        Connection secondCon = openUserConnection("APP");
+        Connection secondCon = openUserConnection("SPLICE");
         Statement secondStmt = secondCon.createStatement();
         assertEquals(1, secondStmt.executeUpdate("delete from " + TBL));
         secondCon.close();

@@ -102,7 +102,7 @@ public class DataSourceReferenceTest
         BASE_CLIENT_DS.addProperty("securityMechanism", "1851", "4");
         BASE_CLIENT_DS.addProperty("serverName", "tmpHostName", "localhost");
         BASE_CLIENT_DS.addProperty("ssl", "basic", "off");
-        BASE_CLIENT_DS.addProperty("user", "XX_user_447", "APP");
+        BASE_CLIENT_DS.addProperty("user", "XX_user_447", "SPLICE");
         // Properties without default values.
         BASE_CLIENT_DS.addProperty("connectionAttributes",
                                    "XX_connectionAttributes_2135");

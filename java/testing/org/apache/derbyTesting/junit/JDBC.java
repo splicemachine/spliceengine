@@ -232,7 +232,7 @@ public class JDBC {
 	/**
 	 * Drop a database schema by dropping all objects in it
 	 * and then executing DROP SCHEMA. If the schema is
-	 * APP it is cleaned but DROP SCHEMA is not executed.
+	 * SPLICE it is cleaned but DROP SCHEMA is not executed.
 	 * 
 	 * TODO: Handle dependencies by looping in some intelligent
 	 * way until everything can be dropped.
@@ -350,8 +350,8 @@ public class JDBC {
             psf.close();
         }
 
-		// Finally drop the schema if it is not APP
-		if (!schema.equals("APP")) {
+		// Finally drop the schema if it is not SPLICE
+		if (!schema.equals("SPLICE")) {
 			s.executeUpdate("DROP SCHEMA " + JDBC.escape(schema) + " RESTRICT");
 		}
 		conn.commit();

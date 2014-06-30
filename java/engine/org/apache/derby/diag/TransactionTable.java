@@ -63,7 +63,7 @@ import java.sql.Types;
 	with the LockTable virtual table's XID.</LI>
 	<LI>GLOBAL_XID varchar(140) - nullable.  The global transaction id, only
 	set if this transaction is a participant in a distributed transaction.</LI>
-	<LI>USERNAME varchar(128) - nullable.  The user name, or APP by default.
+	<LI>USERNAME varchar(128) - nullable.  The user name, or SPLICE by default.
 	May appear null if the transaction is started by Derby.</LI>
 	<LI>TYPE varchar(30) - not nullable. UserTransaction or an internal
 	transaction spawned by Derby.</LI>

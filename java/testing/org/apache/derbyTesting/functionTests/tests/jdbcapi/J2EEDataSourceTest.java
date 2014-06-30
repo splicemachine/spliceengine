@@ -2086,14 +2086,14 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         JDBC.assertCurrentUser(con1, userSchema);
         Statement stmt1 = con1.createStatement();
         // Change the schema.
-        stmt1.execute("set schema APP");
+        stmt1.execute("set schema SPLICE");
         stmt1.close();
-        JDBC.assertCurrentSchema(con1, "APP");
+        JDBC.assertCurrentSchema(con1, "SPLICE");
         JDBC.assertCurrentUser(con1, userSchema);
         // Close the logical connection and get a new one.
         con1.close();
         Connection con2 = pc.getConnection();
-        // Make sure the schema has been reset from APP to the user name.
+        // Make sure the schema has been reset from SPLICE to the user name.
         JDBC.assertCurrentSchema(con2, userSchema);
         JDBC.assertCurrentUser(con2, userSchema);
         con2.close();
@@ -2827,7 +2827,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // Enable Authentication;
 
         setDatabaseProperty("derby.user.fred", "wilma");
-        setDatabaseProperty("derby.user.APP", "APP");
+        setDatabaseProperty("derby.user.SPLICE", "SPLICE");
         setDatabaseProperty("derby.authentication.provider", "BUILTIN");
         setDatabaseProperty("derby.connection.requireAuthentication", "true");
         
@@ -3092,7 +3092,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
     throws SQLException
     {
         try {
-            conn.createStatement().executeQuery("SELECT * FROM APP.NOTTHERE");
+            conn.createStatement().executeQuery("SELECT * FROM SPLICE.NOTTHERE");
             fail("SQLException of 42X05 should be thrown!");
         }
         catch (SQLException e)

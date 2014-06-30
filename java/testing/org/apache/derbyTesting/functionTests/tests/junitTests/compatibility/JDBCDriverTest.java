@@ -496,7 +496,7 @@ public	class	JDBCDriverTest	extends	CompatibilitySuite
                      priceClassName,
                      15,
                      java.sql.Types.JAVA_OBJECT,
-                     "\"APP\".\"PRICE\"",
+                     "\"SPLICE\".\"PRICE\"",
                      0,
                      0
                      );
@@ -530,7 +530,7 @@ public	class	JDBCDriverTest	extends	CompatibilitySuite
                      query,
                      "org.apache.derbyTesting.functionTests.tests.lang.Price",
                      java.sql.Types.JAVA_OBJECT,
-                     "\"APP\".\"PRICE\"",
+                     "\"SPLICE\".\"PRICE\"",
                      0,
                      0
                      );

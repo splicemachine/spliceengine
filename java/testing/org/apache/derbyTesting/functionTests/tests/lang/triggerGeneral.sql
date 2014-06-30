@@ -590,7 +590,7 @@ select * from t32TriggerTest;
 
 
 -- DERBY-630 
--- NPE in CREATE TRIGGER when compilation schema is other than APP.
+-- NPE in CREATE TRIGGER when compilation schema is other than SPLICE.
 connect 'jdbc:derby:wombat;create=true;user=user1;password=pwd' as user1;
 create table ippo.t1 (i int);
 create table ippo.t2 (i int);
@@ -712,16 +712,16 @@ insert into app.t1 values (1,10);
 create trigger app.tr1 after update of i on app.t1 referencing old as old for each row update t1 set j = old.j+1;
 update app.t1 set i=i+1;
 select * from app.t1;
-call sqlj.install_jar('file:dcl_emc1.jar', 'APP.dcl_emc1', 0);
+call sqlj.install_jar('file:dcl_emc1.jar', 'SPLICE.dcl_emc1', 0);
 
 connect 'jdbc:derby:wombat' user 'user2' as user2;
 -- ok
 update app.t1 set i=i+1;
 select * from app.t1;
-call sqlj.replace_jar('file:dcl_emc1.jar', 'APP.dcl_emc1');
+call sqlj.replace_jar('file:dcl_emc1.jar', 'SPLICE.dcl_emc1');
 update app.t1 set i=i+1;
 select * from app.t1;
-call sqlj.remove_jar('APP.dcl_emc1', 0);
+call sqlj.remove_jar('SPLICE.dcl_emc1', 0);
 update app.t1 set i=i+1;
 select * from app.t1;
 drop trigger app.tr1;
@@ -738,16 +738,16 @@ for each row update t1 set t1.j = CASE WHEN (oldt.j < 100) THEN (oldt.j + 1) ELS
 ((newt.j is null) OR (oldt.j = newt.j)) AND newt.id = t1.id;
 update app.t1 set i=i+1;
 select * from app.t1;
-call sqlj.install_jar('file:dcl_emc1.jar', 'APP.dcl_emc1', 0);
+call sqlj.install_jar('file:dcl_emc1.jar', 'SPLICE.dcl_emc1', 0);
 
 set connection user2;
 -- ok
 update app.t1 set i=i+1;
 select * from app.t1;
-call sqlj.replace_jar('file:dcl_emc1.jar', 'APP.dcl_emc1');
+call sqlj.replace_jar('file:dcl_emc1.jar', 'SPLICE.dcl_emc1');
 update app.t1 set i=i+1;
 select * from app.t1;
-call sqlj.remove_jar('APP.dcl_emc1', 0);
+call sqlj.remove_jar('SPLICE.dcl_emc1', 0);
 update app.t1 set i=i+1;
 select * from app.t1;
 drop trigger app.tr1;

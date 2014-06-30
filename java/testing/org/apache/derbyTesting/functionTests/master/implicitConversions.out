@@ -2547,7 +2547,7 @@ splice> insert into t values (CHAR('2000-1-06'),
 		      CHAR('20:06:57'), 
 		      CHAR('2000-01-7 20:06:58.8000'));
 1 row inserted/updated/deleted
-splice> VALUES SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T');
+splice> VALUES SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T');
 1          
 -----------
 1          

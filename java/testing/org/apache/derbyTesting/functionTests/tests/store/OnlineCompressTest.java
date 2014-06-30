@@ -495,9 +495,9 @@ public class OnlineCompressTest extends BaseTest
             testProgress("Calling compress.");
 
         // compress with no deletes should not affect size
-        int[] ret_before = getSpaceInfo(conn, "APP", table_name, true);
-        callCompress(conn, "APP", table_name, true, true, true, true);
-        int[] ret_after  = getSpaceInfo(conn, "APP", table_name, true);
+        int[] ret_before = getSpaceInfo(conn, "SPLICE", table_name, true);
+        callCompress(conn, "SPLICE", table_name, true, true, true, true);
+        int[] ret_after  = getSpaceInfo(conn, "SPLICE", table_name, true);
 
         if (ret_after[SPACE_INFO_NUM_ALLOC] != ret_before[SPACE_INFO_NUM_ALLOC])
         {
@@ -520,14 +520,14 @@ public class OnlineCompressTest extends BaseTest
         testProgress("no delete case complete.");
 
         // delete all the rows.
-        ret_before = getSpaceInfo(conn, "APP", table_name, true);
+        ret_before = getSpaceInfo(conn, "SPLICE", table_name, true);
         executeQuery(conn, "delete from " + table_name, true);
 
         if (verbose)
             testProgress("deleted all rows, now calling compress.");
 
-        callCompress(conn, "APP", table_name, true, true, true, true);
-        ret_after  = getSpaceInfo(conn, "APP", table_name, true);
+        callCompress(conn, "SPLICE", table_name, true, true, true, true);
+        ret_after  = getSpaceInfo(conn, "SPLICE", table_name, true);
 
         // An empty table has 2 pages, one allocation page and the 1st page
         // which will have a system row in it.  The space vti only reports
@@ -578,9 +578,9 @@ public class OnlineCompressTest extends BaseTest
             testProgress("Calling compress.");
 
         // compress with no deletes should not affect size
-        int[] ret_before = getSpaceInfo(conn, "APP", table_name, true);
-        callCompress(conn, "APP", table_name, true, true, true, true);
-        int[] ret_after  = getSpaceInfo(conn, "APP", table_name, true);
+        int[] ret_before = getSpaceInfo(conn, "SPLICE", table_name, true);
+        callCompress(conn, "SPLICE", table_name, true, true, true, true);
+        int[] ret_after  = getSpaceInfo(conn, "SPLICE", table_name, true);
 
         if (ret_after[SPACE_INFO_NUM_ALLOC] != ret_before[SPACE_INFO_NUM_ALLOC])
         {
@@ -595,14 +595,14 @@ public class OnlineCompressTest extends BaseTest
         testProgress("no delete case complete.");
 
         // delete all the rows.
-        ret_before = getSpaceInfo(conn, "APP", table_name, true);
+        ret_before = getSpaceInfo(conn, "SPLICE", table_name, true);
         executeQuery(conn, "delete from " + table_name, true);
 
         if (verbose)
             testProgress("deleted all rows, now calling compress.");
 
-        callCompress(conn, "APP", table_name, true, true, true, true);
-        ret_after  = getSpaceInfo(conn, "APP", table_name, true);
+        callCompress(conn, "SPLICE", table_name, true, true, true, true);
+        ret_after  = getSpaceInfo(conn, "SPLICE", table_name, true);
 
         // An empty table has 2 pages, one allocation page and the 1st page
         // which will have a system row in it.  The space vti only reports
@@ -653,7 +653,7 @@ public class OnlineCompressTest extends BaseTest
         // dump_table(conn, schemaName, table_name, false);
 
         // delete all the rows, but don't commit the delete
-        int[] ret_before = getSpaceInfo(conn, "APP", table_name, false);
+        int[] ret_before = getSpaceInfo(conn, "SPLICE", table_name, false);
         executeQuery(conn, "delete from " + table_name, false);
 
 
@@ -664,9 +664,9 @@ public class OnlineCompressTest extends BaseTest
         // System.out.println("lock info before compress call:\n " + get_lock_info(conn, true));
 
         // Calling compress with just the "purge" pass option, no commit called.
-        callCompress(conn, "APP", table_name, true, false, false, false);
+        callCompress(conn, "SPLICE", table_name, true, false, false, false);
 
-        int[] ret_after  = getSpaceInfo(conn, "APP", table_name, false);
+        int[] ret_after  = getSpaceInfo(conn, "SPLICE", table_name, false);
 
         // expect no change in the number of allocated pages!
         if (ret_after[SPACE_INFO_NUM_ALLOC] != ret_before[SPACE_INFO_NUM_ALLOC])
@@ -694,8 +694,8 @@ public class OnlineCompressTest extends BaseTest
         // Test that it is ok to call multiple purge passes in single xact.
 
         // Calling compress with just the "purge" pass option, no commit called.
-        callCompress(conn, "APP", table_name, true, false, false, false);
-        ret_after  = getSpaceInfo(conn, "APP", table_name, false);
+        callCompress(conn, "SPLICE", table_name, true, false, false, false);
+        ret_after  = getSpaceInfo(conn, "SPLICE", table_name, false);
 
         // expect no change in the number of allocated pages!
         if (ret_after[SPACE_INFO_NUM_ALLOC] != ret_before[SPACE_INFO_NUM_ALLOC])
@@ -731,7 +731,7 @@ public class OnlineCompressTest extends BaseTest
 
         try
         {
-            callCompress(conn, "APP", table_name, false, true, false, false);
+            callCompress(conn, "SPLICE", table_name, false, true, false, false);
             
             logError("Defragment pass did not get a lock timeout.");
         }
@@ -740,7 +740,7 @@ public class OnlineCompressTest extends BaseTest
             // ignore exception.
         }
 
-        ret_after  = getSpaceInfo(conn, "APP", table_name, false);
+        ret_after  = getSpaceInfo(conn, "SPLICE", table_name, false);
 
         if (ret_after[SPACE_INFO_NUM_ALLOC] != ret_before[SPACE_INFO_NUM_ALLOC])
         {
@@ -769,7 +769,7 @@ public class OnlineCompressTest extends BaseTest
         executeQuery(conn, "delete from " + table_name, true);
 
         // compress all space and commit.
-        callCompress(conn, "APP", table_name, true, true, true, true);
+        callCompress(conn, "SPLICE", table_name, true, true, true, true);
 
         // add back all rows and commit.
         if (long_table)
@@ -795,9 +795,9 @@ public class OnlineCompressTest extends BaseTest
         // lock timeout.
 
 
-        ret_before = getSpaceInfo(conn, "APP", table_name, false);
-        callCompress(conn, "APP", table_name, false, false, true, false);
-        ret_after  = getSpaceInfo(conn, "APP", table_name, false);
+        ret_before = getSpaceInfo(conn, "SPLICE", table_name, false);
+        callCompress(conn, "SPLICE", table_name, false, false, true, false);
+        ret_after  = getSpaceInfo(conn, "SPLICE", table_name, false);
 
         // expect no change in the number of allocated pages!
         if (ret_after[SPACE_INFO_NUM_ALLOC] != ret_before[SPACE_INFO_NUM_ALLOC])
@@ -835,10 +835,10 @@ public class OnlineCompressTest extends BaseTest
         }
 
         // test running each phase in order.
-        callCompress(conn, "APP", table_name, true,  false, false, false);
-        callCompress(conn, "APP", table_name, false, true,  false, false);
-        callCompress(conn, "APP", table_name, false, false, true , false);
-        ret_after  = getSpaceInfo(conn, "APP", table_name, false);
+        callCompress(conn, "SPLICE", table_name, true,  false, false, false);
+        callCompress(conn, "SPLICE", table_name, false, true,  false, false);
+        callCompress(conn, "SPLICE", table_name, false, false, true , false);
+        ret_after  = getSpaceInfo(conn, "SPLICE", table_name, false);
 
         // An empty table has 2 pages, one allocation page and the 1st page
         // which will have a system row in it.  The space vti only reports
@@ -904,15 +904,15 @@ public class OnlineCompressTest extends BaseTest
         {
             // first create new table and run the tests.
             deleteAllRows(
-                conn, true, false, "APP", table_name, test_cases[i]);
+                conn, true, false, "SPLICE", table_name, test_cases[i]);
 
             // now rerun tests on existing table, which had all rows deleted
             // and truncated.
             deleteAllRows(
-                conn, false, false, "APP", table_name, test_cases[i]);
+                conn, false, false, "SPLICE", table_name, test_cases[i]);
 
             checkPurgePhase(
-                conn, false, false, "APP", table_name, test_cases[i]);
+                conn, false, false, "SPLICE", table_name, test_cases[i]);
 
             executeQuery(conn, "drop table " + table_name, true);
         }
@@ -942,7 +942,7 @@ public class OnlineCompressTest extends BaseTest
         {
             // first create new table and run the tests.
             simpleDeleteAllRows(
-                conn, true, false, "APP", table_name, test_cases[i]);
+                conn, true, false, "SPLICE", table_name, test_cases[i]);
 
             for (int j = 0; j < 100; j++)
             {
@@ -950,7 +950,7 @@ public class OnlineCompressTest extends BaseTest
                 // now rerun tests on existing table, which had all rows deleted
                 // and truncated.
                 deleteAllRows(
-                    conn, false, false, "APP", table_name, test_cases[i]);
+                    conn, false, false, "SPLICE", table_name, test_cases[i]);
             }
 
             executeQuery(conn, "drop table " + table_name, true);
@@ -997,15 +997,15 @@ public class OnlineCompressTest extends BaseTest
         {
             // first create new table and run the tests.
             deleteAllRows(
-                conn, true, true, "APP", table_name, test_cases[i]);
+                conn, true, true, "SPLICE", table_name, test_cases[i]);
 
             // now rerun tests on existing table, which had all rows deleted
             // and truncated.
             deleteAllRows(
-                conn, false, true, "APP", table_name, test_cases[i]);
+                conn, false, true, "SPLICE", table_name, test_cases[i]);
 
             checkPurgePhase(
-                conn, false, true, "APP", table_name, test_cases[i]);
+                conn, false, true, "SPLICE", table_name, test_cases[i]);
 
             executeQuery(conn, "drop table " + table_name, true);
         }
@@ -1038,12 +1038,12 @@ public class OnlineCompressTest extends BaseTest
             {
                 // first create new table and run the tests.
                 simpleDeleteAllRows(
-                    conn, true, false, "APP", table_name, test_cases[i]);
+                    conn, true, false, "SPLICE", table_name, test_cases[i]);
 
                 // now rerun tests on existing table, which had all rows deleted
                 // and truncated.
                 deleteAllRows(
-                    conn, false, false, "APP", table_name, test_cases[i]);
+                    conn, false, false, "SPLICE", table_name, test_cases[i]);
 
                 executeQuery(conn, "drop table " + table_name, true);
             }
@@ -1130,9 +1130,9 @@ public class OnlineCompressTest extends BaseTest
             testProgress("Calling compress.");
 
         // compress with no deletes should not affect size
-        int[] ret_before = getSpaceInfo(conn, "APP", table_name, true);
-        callCompress(conn, "APP", table_name, true, true, true, true);
-        int[] ret_after  = getSpaceInfo(conn, "APP", table_name, true);
+        int[] ret_before = getSpaceInfo(conn, "SPLICE", table_name, true);
+        callCompress(conn, "SPLICE", table_name, true, true, true, true);
+        int[] ret_after  = getSpaceInfo(conn, "SPLICE", table_name, true);
 
         if (ret_after[SPACE_INFO_NUM_ALLOC] != ret_before[SPACE_INFO_NUM_ALLOC])
         {
@@ -1157,15 +1157,15 @@ public class OnlineCompressTest extends BaseTest
         //
 
         // delete all the rows every other row.
-        ret_before = getSpaceInfo(conn, "APP", table_name, true);
+        ret_before = getSpaceInfo(conn, "SPLICE", table_name, true);
         executeQuery(
             conn, "delete from " + table_name + " where onehalf = 0", true);
 
         if (verbose)
             testProgress("deleted every other row, now calling compress.");
 
-        callCompress(conn, "APP", table_name, true, true, true, true);
-        ret_after  = getSpaceInfo(conn, "APP", table_name, true);
+        callCompress(conn, "SPLICE", table_name, true, true, true, true);
+        ret_after  = getSpaceInfo(conn, "SPLICE", table_name, true);
 
         if (total_pages(ret_after) != total_pages(ret_before))
         {
@@ -1191,15 +1191,15 @@ public class OnlineCompressTest extends BaseTest
         //
 
         // delete every third row
-        ret_before = getSpaceInfo(conn, "APP", table_name, true);
+        ret_before = getSpaceInfo(conn, "SPLICE", table_name, true);
         executeQuery(
             conn, "delete from " + table_name + " where onethird = 0", true);
 
         if (verbose)
             testProgress("deleted every third row, now calling compress.");
 
-        callCompress(conn, "APP", table_name, true, true, true, true);
-        ret_after  = getSpaceInfo(conn, "APP", table_name, true);
+        callCompress(conn, "SPLICE", table_name, true, true, true, true);
+        ret_after  = getSpaceInfo(conn, "SPLICE", table_name, true);
 
         if (total_pages(ret_after) != total_pages(ret_before))
         {
@@ -1224,7 +1224,7 @@ public class OnlineCompressTest extends BaseTest
         //
 
         // delete top "half" of the rows in the original dataset.
-        ret_before = getSpaceInfo(conn, "APP", table_name, true);
+        ret_before = getSpaceInfo(conn, "SPLICE", table_name, true);
         executeQuery(
             conn, "delete from " + table_name + " where keycol > " + 
             (num_rows / 2), true);
@@ -1232,8 +1232,8 @@ public class OnlineCompressTest extends BaseTest
         if (verbose)
             testProgress("deleted top half of the rows, now calling compress.");
 
-        callCompress(conn, "APP", table_name, true, true, true, true);
-        ret_after  = getSpaceInfo(conn, "APP", table_name, true);
+        callCompress(conn, "SPLICE", table_name, true, true, true, true);
+        ret_after  = getSpaceInfo(conn, "SPLICE", table_name, true);
 
         // compress should be able to clean up about 1/2 of the pages.
         if (verbose)
@@ -1269,15 +1269,15 @@ public class OnlineCompressTest extends BaseTest
         //
 
         // delete keys less than 500
-        ret_before = getSpaceInfo(conn, "APP", table_name, true);
+        ret_before = getSpaceInfo(conn, "SPLICE", table_name, true);
         executeQuery(
             conn, "delete from " + table_name + " where keycol < 500 ", true);
 
         if (verbose)
             testProgress("deleted keys < 500, now calling compress.");
 
-        callCompress(conn, "APP", table_name, true, true, true, true);
-        ret_after  = getSpaceInfo(conn, "APP", table_name, true);
+        callCompress(conn, "SPLICE", table_name, true, true, true, true);
+        ret_after  = getSpaceInfo(conn, "SPLICE", table_name, true);
 
         if (verbose)
         {
@@ -1349,9 +1349,9 @@ public class OnlineCompressTest extends BaseTest
 
         for (int i = 0; i < test_cases.length; i++)
         {
-            test5_load(conn, "APP", table_name, test_cases[i]);
-            test5_run(conn, "APP", table_name, test_cases[i]);
-            test5_cleanup(conn, "APP", table_name, test_cases[i]);
+            test5_load(conn, "SPLICE", table_name, test_cases[i]);
+            test5_run(conn, "SPLICE", table_name, test_cases[i]);
+            test5_cleanup(conn, "SPLICE", table_name, test_cases[i]);
         }
 
         endTest(conn, test_name);
@@ -1386,9 +1386,9 @@ public class OnlineCompressTest extends BaseTest
             testProgress("Calling compress.");
 
         // compress with no deletes should not affect size
-        int[] ret_before = getSpaceInfo(conn, "APP", table_name, true);
-        callCompress(conn, "APP", table_name, true, true, true, true);
-        int[] ret_after  = getSpaceInfo(conn, "APP", table_name, true);
+        int[] ret_before = getSpaceInfo(conn, "SPLICE", table_name, true);
+        callCompress(conn, "SPLICE", table_name, true, true, true, true);
+        int[] ret_after  = getSpaceInfo(conn, "SPLICE", table_name, true);
 
         if (ret_after[SPACE_INFO_NUM_ALLOC] != ret_before[SPACE_INFO_NUM_ALLOC])
         {
@@ -1403,15 +1403,15 @@ public class OnlineCompressTest extends BaseTest
         testProgress("no delete case complete.");
 
         // delete all the rows.
-        ret_before = getSpaceInfo(conn, "APP", table_name, true);
+        ret_before = getSpaceInfo(conn, "SPLICE", table_name, true);
         executeQuery(conn, "delete from " + table_name, true);
         conn.commit();
 
         if (verbose)
             testProgress("deleted all rows, now calling compress.");
 
-        callCompress(conn, "APP", table_name, true, true, true, true);
-        ret_after  = getSpaceInfo(conn, "APP", table_name, true);
+        callCompress(conn, "SPLICE", table_name, true, true, true, true);
+        ret_after  = getSpaceInfo(conn, "SPLICE", table_name, true);
 
         // An empty table has 2 pages, one allocation page and the 1st page
         // which will have a system row in it.  The space vti only reports
@@ -1483,7 +1483,7 @@ public class OnlineCompressTest extends BaseTest
         if (verbose)
             testProgress("deleted first 1000 rows, now calling compress.");
 
-        callCompress(conn, "APP", table_name, true, true, true, true);
+        callCompress(conn, "SPLICE", table_name, true, true, true, true);
 
         testProgress("delete rows case succeeded.");
 

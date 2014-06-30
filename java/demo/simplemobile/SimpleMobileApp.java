@@ -138,7 +138,7 @@ public class SimpleMobileApp {
         PreparedStatement ps = null;
         ResultSet rs = null;    // used for retreiving the results of a query
         try {
-            /* By default, the schema APP will be used when no username is 
+            /* By default, the schema SPLICE will be used when no username is
              * provided.
              * Otherwise, the schema name is the same as the user name.
              * If you want to use a different schema, or provide a username and

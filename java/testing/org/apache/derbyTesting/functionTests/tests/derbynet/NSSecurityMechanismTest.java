@@ -325,7 +325,7 @@ public class NSSecurityMechanismTest extends BaseJDBCTestCase
                     "CLEAR_TEXT_PASSWORD_SECURITY"))
                     secmeccode=SECMEC_USRIDPWD;
                 assertConnectionUsingDriverManager(getJDBCUrl(
-                    "user=APP;password=APP;shutdown=true;securityMechanism=" +
+                    "user=SPLICE;password=SPLICE;shutdown=true;securityMechanism=" +
                     secmeccode)," BUILTIN (T5):",
                     "08006");
             }
@@ -502,7 +502,7 @@ public class NSSecurityMechanismTest extends BaseJDBCTestCase
                 // with null user id there's a difference between errors coming
                 // from driver manager vs. datasource, because the datasource
                 // getconnection call had to be specify user/password or the 
-                // junit framework pads it with 'APP'.
+                // junit framework pads it with 'SPLICE'.
                 if (user == null)
                     assertSQLState08001("08001.C.7", sqle);
                 else
@@ -613,7 +613,7 @@ public class NSSecurityMechanismTest extends BaseJDBCTestCase
      * -- the client behavior. For the derby client, the table below 
      * represents what security mechanism the client will send to server. 
      * -- Note: in case of derby client, if no user  is specified, user 
-     * defaults to APP.
+     * defaults to SPLICE.
      * -- Will depend on if the server has been started with property 
      * derby.drda.securityMechanism and to the value it is set to.  See method
      * (fixture) testNetworkServerSecurityMechanism() to check if server is 
@@ -638,7 +638,7 @@ public class NSSecurityMechanismTest extends BaseJDBCTestCase
 	 Explanation of columns in table. 
 
 	 a) Connection request specifies a user or not.
-	 Note: if no user is specified, client defaults to APP
+	 Note: if no user is specified, client defaults to SPLICE
 	 b) Connection request specifies a password or not
 	 c) Connection request specifies securityMechanism or not. the valid
 	 values are 4(USRIDONL), 3(USRIDPWD), 9(EUSRIDPWD) and 8(USRSSBPWD).
@@ -867,7 +867,7 @@ public class NSSecurityMechanismTest extends BaseJDBCTestCase
         try {
             // get connection via datasource without setting securityMechanism
             // cannot use ds.getConnection, because junit framework will
-            // substitute 'null' with 'APP'.
+            // substitute 'null' with 'SPLICE'.
             conn = ds.getConnection(user, password);
             conn.close();
         }
@@ -1067,12 +1067,12 @@ public class NSSecurityMechanismTest extends BaseJDBCTestCase
         cs.setString(2, "lee");
         cs.execute();
 
-        cs.setString(1, "derby.user.APP");
-        cs.setString(2, "APP");
+        cs.setString(1, "derby.user.SPLICE");
+        cs.setString(2, "SPLICE");
         cs.execute();
 
         cs.setString(1, "derby.database.fullAccessUsers");
-        cs.setString(2, "neelima,APP");
+        cs.setString(2, "neelima,SPLICE");
         cs.execute();
 
         cs.setString(1, "derby.connection.requireAuthentication");
@@ -1089,7 +1089,7 @@ public class NSSecurityMechanismTest extends BaseJDBCTestCase
         // booted - derby.connection.requireAuthentication is a
         // static property.
         assertConnectionUsingDriverManager(getJDBCUrl(
-            "user=APP;password=APP;shutdown=true;securityMechanism=" +
+            "user=SPLICE;password=SPLICE;shutdown=true;securityMechanism=" +
             SECMEC_USRSSBPWD),"USRSSBPWD (T0):", expectedValues[1]);
 
         // Now test some connection(s) with SECMEC_USRSSBPWD
@@ -1127,7 +1127,7 @@ public class NSSecurityMechanismTest extends BaseJDBCTestCase
         // Shutdown 'wombat' database for BUILTIN authentication
         // to take effect the next time it is booted
         assertConnectionUsingDriverManager(getJDBCUrl(
-            "user=APP;password=APP;shutdown=true;securityMechanism=" +
+            "user=SPLICE;password=SPLICE;shutdown=true;securityMechanism=" +
             SECMEC_USRSSBPWD),"USRSSBPWD + BUILTIN (T5):", expectedValues[4]);
     }
     

@@ -135,12 +135,12 @@ public class Changes10_4 extends UpgradeChange {
         	//metadata query to make sure that it runs fine. If it does (which
         	//is the expected behavior), then it will mean that the metadata
         	//query is getting run with SYS as the compilation schema rather
-        	//than the current schema which is APP.
+        	//than the current schema which is SPLICE.
             Statement s = con.createStatement();
-            s.execute("SET SCHEMA APP");
+            s.execute("SET SCHEMA SPLICE");
 
             DatabaseMetaData dmd = con.getMetaData();
-            ResultSet rs = dmd.getTables(null,"APP",null,null);
+            ResultSet rs = dmd.getTables(null,"SPLICE",null,null);
             JDBC.assertDrainResults(rs);
             s.close();
             break;

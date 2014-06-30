@@ -153,7 +153,7 @@ public class mtTestCase
                 if (newURLPrefix != null)
                 {
                     updateURLProperties(p,newURLPrefix);
-                    p.setProperty("ij.user","APP");
+                    p.setProperty("ij.user","SPLICE");
                     p.setProperty("ij.password","PWD");
                 }
 			}

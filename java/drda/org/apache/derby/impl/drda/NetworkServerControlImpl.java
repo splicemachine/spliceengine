@@ -227,7 +227,7 @@ public final class NetworkServerControlImpl {
 	private Vector commandArgs = new Vector();
 	private String databaseArg;
 	// DERBY-2109: Note that derby JDBC clients have a default user name
-    // "APP" (= Property.DEFAULT_USER_NAME) assigned if they don't provide
+    // "SPLICE" (= Property.DEFAULT_USER_NAME) assigned if they don't provide
     // credentials.  We could do the same for NetworkServerControl clients
     // here, but this class is robust enough to allow for null as default.
 	private String userArg = null;

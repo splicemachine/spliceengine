@@ -120,8 +120,8 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
     public void testImportTableExportTable()  
         throws SQLException, IOException
     {
-        doExportTable("APP", "BIN_TAB", fileName, null, null , null);
-	    doImportTable("APP", "BIN_TAB_IMP", fileName, null, null, null, 0);
+        doExportTable("SPLICE", "BIN_TAB", fileName, null, null , null);
+	    doImportTable("SPLICE", "BIN_TAB_IMP", fileName, null, null, null, 0);
         verifyData(" * ");
     }
     
@@ -144,10 +144,10 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
         stmt.executeUpdate("INSERT INTO TABLE1 VALUES(1,11,111)");
         String dataFileName =
             (SupportFilesSetup.getReadWrite("data_file.dat")).getPath();
-        doExportTable("APP", "TABLE1", dataFileName, null, null, "UTF-16");
+        doExportTable("SPLICE", "TABLE1", dataFileName, null, null, "UTF-16");
         stmt.executeUpdate("DELETE FROM TABLE1");
         commit();
-        doImportTable("APP", "TABLE1", dataFileName, null, null, "UTF-16",0);
+        doImportTable("SPLICE", "TABLE1", dataFileName, null, null, "UTF-16",0);
         //following should run into problem because of constraint on name1
         assertStatementError("23505", stmt,
         		"INSERT INTO TABLE1 VALUES(1,22,222)");
@@ -181,9 +181,9 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
             (SupportFilesSetup.getReadWrite("empty_file.dat")).getPath();
         //there is no data in TABLE1 so empty_file.dat will be empty 
         //after export. Using following to just create an empty file
-        doExportTable("APP", "TABLE1", emptyFileName, null, null, "UTF-16");
+        doExportTable("SPLICE", "TABLE1", emptyFileName, null, null, "UTF-16");
         commit();
-        doImportTable("APP", "TABLE1", emptyFileName, null, null, "UTF-16",1);
+        doImportTable("SPLICE", "TABLE1", emptyFileName, null, null, "UTF-16",1);
         stmt.executeUpdate("INSERT INTO TABLE1 VALUES(1,11,111)");
         //following should run into problem because of constraint on name1
         assertStatementError("23505", stmt,
@@ -266,7 +266,7 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
          throws SQLException, IOException   
     {
         try {
-            doExportTable("APP", "BIN_TAB", fileName, null, "9" , null);
+            doExportTable("SPLICE", "BIN_TAB", fileName, null, "9" , null);
             fail();
         } catch (SQLException e) {
             assertSQLState("XIE0J", e);
@@ -281,16 +281,16 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
         }
 	SupportFilesSetup.deleteFile(fileName);
         try {
-            doExportTable("APP", "BIN_TAB", fileName, "B", null , null);
+            doExportTable("SPLICE", "BIN_TAB", fileName, "B", null , null);
             fail();
         } catch (SQLException e) {
             assertSQLState("XIE0J", e);
         }
 	SupportFilesSetup.deleteFile(fileName);
-        doExportTable("APP", "BIN_TAB", fileName, null, null , null);
+        doExportTable("SPLICE", "BIN_TAB", fileName, null, null , null);
 
         try {
-            doImportTable("APP", "BIN_TAB_IMP", fileName, "2", null, null, 0);
+            doImportTable("SPLICE", "BIN_TAB_IMP", fileName, "2", null, null, 0);
             fail();
         } catch (SQLException e) {
              assertSQLState("XIE0J", e);
@@ -335,7 +335,7 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
         s.close();
 
         // export the invalid hex strings from the table to a file. 
-        doExportTable("APP", "HEX_TAB", fileName, null, null , null);
+        doExportTable("SPLICE", "HEX_TAB", fileName, null, null , null);
 
 
         // attempt to import the invalid hex string data into a table 
@@ -343,7 +343,7 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
  
         try {
             // import should fail because of invalied hex string length
-            doImportTable("APP", "BIN_TAB_IMP", fileName, null, null, null, 0);
+            doImportTable("SPLICE", "BIN_TAB_IMP", fileName, null, null, null, 0);
             fail("import did not fail on data with invalid hex string");
         } catch (SQLException e) {
              assertSQLState("XIE0N", e);
@@ -377,10 +377,10 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
     public void testDerby2925ExportTable()
         throws SQLException
     {
-	doExportTable("APP", "DERBY_2925_TAB", fileName, null, null , null);
+	doExportTable("SPLICE", "DERBY_2925_TAB", fileName, null, null , null);
 	
 	try {
-	    doExportTable("APP", "DERBY_2925_TAB", fileName, null, null , null);
+	    doExportTable("SPLICE", "DERBY_2925_TAB", fileName, null, null , null);
 	    fail("export should have failed on existing data file.");
 	}
 	catch (SQLException e) {
@@ -389,7 +389,7 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
 
     // should not be able to subvert the check by turning the file name into an url
 	try {
-	    doExportTable("APP", "DERBY_2925_TAB", "file:" + fileName, null, null , null);
+	    doExportTable("SPLICE", "DERBY_2925_TAB", "file:" + fileName, null, null , null);
 	    fail("export should have failed on existing data file.");
 	}
 	catch (SQLException e) {

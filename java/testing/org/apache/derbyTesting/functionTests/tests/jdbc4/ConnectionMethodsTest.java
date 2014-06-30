@@ -580,7 +580,7 @@ public class ConnectionMethodsTest extends Wrapper41Test
         println( "Testing get/setSchema() on a " + conn.getClass().getName() );
         Wrapper41Conn   wrapper = new Wrapper41Conn( conn );
 
-        assertEquals( "APP", wrapper.getSchema() );
+        assertEquals( "SPLICE", wrapper.getSchema() );
         try {
             prepareStatement( "select * from set_schema_table" );
         }
@@ -606,7 +606,7 @@ public class ConnectionMethodsTest extends Wrapper41Test
         conn.close();
         
         try {
-            wrapper.setSchema( "APP" );
+            wrapper.setSchema( "SPLICE" );
             fail( "Should fail on a closed connection." );
         }
         catch (SQLException se)

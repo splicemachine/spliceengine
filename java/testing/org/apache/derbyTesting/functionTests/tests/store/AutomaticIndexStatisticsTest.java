@@ -254,7 +254,7 @@ public class AutomaticIndexStatisticsTest
         Utilities.sleep(150);
         println("compressing table...");
         Statement stmt = con.createStatement();
-        stmt.executeUpdate("call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', '" +
+        stmt.executeUpdate("call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', '" +
                 TAB1 + "', 0)");
         stmt.close();
         // There should still be a statistics object written during the

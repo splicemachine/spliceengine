@@ -82,7 +82,7 @@ values getScanCols(SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS());
 
 -- confirm the table is ok
 select ccharForBitData, ctime, cdec, cint, cchar from basic;
-values (SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'BASIC'));
+values (SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'BASIC'));
 
 update basic set cint = cint where cint = 11;
 values getScanCols(SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS());
@@ -104,7 +104,7 @@ values getScanCols(SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS());
 
 -- confirm the table is ok
 select ccharForBitData, ctime, cdec, cint, cchar from basic;
-values (SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'BASIC'));
+values (SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'BASIC'));
 
 update basic set cint = cint where ccharForBitData = x'11';
 values getScanCols(SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS());
@@ -123,7 +123,7 @@ values getScanCols(SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS());
 
 -- confirm the table is ok
 select ccharForBitData, ctime, cdec, cint, cchar from basic;
-values (SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'BASIC'));
+values (SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'BASIC'));
 
 autocommit off;
 
@@ -132,7 +132,7 @@ values getScanCols(SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS());
 
 -- confirm the table is ok
 select ccharForBitData, ctime, cdec, cint, cchar from basic;
-values (SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'BASIC'));
+values (SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'BASIC'));
 
 rollback;
 
@@ -144,7 +144,7 @@ values getScanCols(SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS());
 
 -- confirm the table is ok
 select ccharForBitData, ctime, cdec, cint, cchar from basic;
-values (SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'BASIC'));
+values (SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'BASIC'));
 
 --------------------------------------------------------------------------
 -- deletes

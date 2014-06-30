@@ -37,12 +37,12 @@ commit;
 -- ERROR: connot commit/rollback an xa connection
 rollback;
 
-drop table APP.negative;
-create table APP.negative (a char(10), b int);
-create unique index negativei on APP.negative(b);
+drop table SPLICE.negative;
+create table SPLICE.negative (a char(10), b int);
+create unique index negativei on SPLICE.negative(b);
 run resource '/org/apache/derbyTesting/functionTests/tests/store/global_xactTable.view';
-insert into APP.negative values ('xyz', 1);
-select * from APP.negative;
+insert into SPLICE.negative values ('xyz', 1);
+select * from SPLICE.negative;
 
 -- ERROR: cannot commit/prepare/rollback without end
 xa_commit xa_1phase 0;
@@ -77,10 +77,10 @@ xa_start xa_noflags 0;
 xa_start xa_noflags 0;
 
 -- ERROR: duplicate key exception, statement level rollback
-insert into APP.negative values ('rollback', 1);
+insert into SPLICE.negative values ('rollback', 1);
 
-select * from APP.negative;
-insert into APP.negative values ('ok', 2);
+select * from SPLICE.negative;
+insert into SPLICE.negative values ('ok', 2);
 
 select * from global_xactTable order by gxid, status, username, type;
 
@@ -90,7 +90,7 @@ xa_end xa_fail 0;
 xa_start xa_noflags 2;
 xa_getconnection;
 
-insert into APP.negative values ('ok', 3);
+insert into SPLICE.negative values ('ok', 3);
 
 -- ERROR: cannot suspend some other xid
 xa_end xa_suspend 3;
@@ -123,7 +123,7 @@ xa_start xa_join 2;
 xa_getconnection;
 
 -- ERROR: another dup 
-insert into APP.negative values ('rollback', 3);
+insert into SPLICE.negative values ('rollback', 3);
 
 xa_end xa_suspend 2;
 xa_end xa_success 2;
@@ -145,7 +145,7 @@ xa_start xa_noflags 1;
 -- ERROR: can only forget heuristically completed transaction
 xa_forget 1;
 
-delete from APP.negative;
+delete from SPLICE.negative;
 
 xa_end xa_success 1;
 
@@ -162,10 +162,10 @@ xa_forget 1;
 xa_start xa_noflags 2;
 
 -- ERROR: deadlock, transaction trashed
-select * from APP.negative;
+select * from SPLICE.negative;
 
 -- ERROR: should have no connection underneath
-select * from APP.negative;
+select * from SPLICE.negative;
 
 -- ERROR: should have no connection underneath and xid 2 is gone
 xa_end xa_suspend 2;
@@ -198,7 +198,7 @@ xa_start xa_noflags 3;
 xa_start xa_resume 3;
 
 -- now that 1 is rolled back, this should succeed
-select * from APP.negative;
+select * from SPLICE.negative;
 select * from global_xactTable order by gxid, status, username, type;
 
 -- ERROR: bad flag

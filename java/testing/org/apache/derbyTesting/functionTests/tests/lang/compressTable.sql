@@ -47,7 +47,7 @@ select conglomeratenumber, conglomeratename
 from sys.systables t, sys.sysconglomerates c
 where t.tablename = 'NOINDEXES' and t.tableid = c.tableid;
 select count(*) from oldconglom;
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'NOINDEXES', 0);
 insert into newconglom
 select conglomeratenumber, conglomeratename 
 from sys.systables t, sys.sysconglomerates c
@@ -62,15 +62,15 @@ rollback;
 -- test with various sizes as we use bulk fetch
 insert into noindexes values (1, '1', 1.1), (2, '2', 2.2), (3, '3', 3.3),
      (4, '4', 4.4), (5, '5', 5.5), (6, '6', 6.6), (7, '7', 7.7);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'NOINDEXES', 0);
 select * from noindexes;
 insert into noindexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
      (10, '10', 10.10), (11, '11', 11.11), (12, '12', 12.12), (13, '13', 13.13),
      (14, '14', 14.14), (15, '15', 15.15), (16, '16', 16.16);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'NOINDEXES', 0);
 select * from noindexes;
 insert into noindexes values (17, '17', 17.17), (18, '18', 18.18);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'NOINDEXES', 0);
 select * from noindexes;
 -- do consistency check on scans, etc.
 values ConsistencyChecker();
@@ -83,7 +83,7 @@ select conglomeratenumber, conglomeratename
 from sys.systables t, sys.sysconglomerates c
 where t.tablename = 'INDEXES' and t.tableid = c.tableid;
 select count(*) from oldconglom;
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 0);
 insert into newconglom
 select conglomeratenumber, conglomeratename 
 from sys.systables t, sys.sysconglomerates c
@@ -98,15 +98,15 @@ rollback;
 -- test with various sizes as we use bulk fetch
 insert into indexes values (1, '1', 1.1), (2, '2', 2.2), (3, '3', 3.3),
      (4, '4', 4.4), (5, '5', 5.5), (6, '6', 6.6), (7, '7', 7.7);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 0);
 select * from indexes;
 insert into indexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
      (10, '10', 10.10), (11, '11', 11.11), (12, '12', 12.12), (13, '13', 13.13),
      (14, '14', 14.14), (15, '15', 15.15), (16, '16', 16.16);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 0);
 select * from indexes;
 insert into indexes values (17, '17', 17.17), (18, '18', 18.18);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 0);
 select * from indexes;
 -- do consistency check on scans, etc.
 values ConsistencyChecker();
@@ -117,8 +117,8 @@ create table p (c1 char(1), y int not null, c2 char(1) not null, x int not null,
 create table f (x int, t int, y int, constraint fk foreign key (x,y) references p);
 insert into p values ('1', 1, '1', 1);
 insert into f values (1, 1, 1), (1, 1, null);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'P', 0);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'F', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'P', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'F', 0);
 insert into f values (1, 1, 1);
 insert into f values (2, 2, 2);
 insert into p values ('2', 2, '2', 2);
@@ -130,7 +130,7 @@ rollback;
 -- self referencing table
 create table pf (x int not null constraint p primary key, y int constraint f references pf);
 insert into pf values (1,1), (2, 2);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'PF', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'PF', 0);
 insert into pf values (3,1), (4, 2);
 insert into pf values (3,1);
 insert into pf values (5,6);
@@ -144,7 +144,7 @@ create table t (i int, s varchar(1500));
 create index t_s on t(s);
 create index t_si on t(s, i);
 insert into t values (1, '1'), (2, '2');
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T', 0);
 select * from t;
 -- do consistency check on scans, etc.
 values ConsistencyChecker();
@@ -157,7 +157,7 @@ prepare p1 as 'select * from t where c2 = 4';
 execute p1;
 prepare s as 'select * from t where c2 = 6';
 execute s;
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T', 0);
 execute p1;
 execute s;
 remove p1;
@@ -174,7 +174,7 @@ insert into t values (1,PADSTRING('1', 1500)), (2,PADSTRING('2', 1500)), (3,PADS
 create table oldinfo (cname varchar(128), nap bigint);
 insert into oldinfo select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('T') t;
 delete from t where c1 in (1, 3, 5, 7);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T', 0);
 create table newinfo (cname varchar(128), nap bigint);
 insert into newinfo select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('T') t;
 -- verify space reclaimed, this query should return 'compressed!'
@@ -185,20 +185,20 @@ rollback;
 -- sequential
 -- no indexes
 -- empty table
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'NOINDEXES', 1);
 select * from v_noindexes;
 -- full table
 insert into noindexes values (1, '1', 1.1), (2, '2', 2.2), (3, '3', 3.3),
      (4, '4', 4.4), (5, '5', 5.5), (6, '6', 6.6), (7, '7', 7.7);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'NOINDEXES', 1);
 select * from v_noindexes;
 insert into noindexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
      (10, '10', 10.10), (11, '11', 11.11), (12, '12', 12.12), (13, '13', 13.13),
      (14, '14', 14.14), (15, '15', 15.15), (16, '16', 16.16);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'NOINDEXES', 1);
 select * from v_noindexes;
 insert into noindexes values (17, '17', 17.17), (18, '18', 18.18);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'NOINDEXES', 1);
 select * from v_noindexes;
 rollback;
 
@@ -208,39 +208,39 @@ drop index i_c3;
 drop index i_c2c1;
 drop index i_c3c1;
 -- empty table
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 1);
 select * from indexes;
 -- full table
 insert into indexes values (1, '1', 1.1), (2, '2', 2.2), (3, '3', 3.3),
      (4, '4', 4.4), (5, '5', 5.5), (6, '6', 6.6), (7, '7', 7.7);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 1);
 select * from indexes;
 insert into indexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
      (10, '10', 10.10), (11, '11', 11.11), (12, '12', 12.12), (13, '13', 13.13),
      (14, '14', 14.14), (15, '15', 15.15), (16, '16', 16.16);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 1);
 select * from indexes;
 insert into indexes values (17, '17', 17.17), (18, '18', 18.18);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 1);
 select * from indexes;
 rollback;
 
 -- multiple indexes
 -- empty table
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 1);
 select * from indexes;
 -- full table
 insert into indexes values (1, '1', 1.1), (2, '2', 2.2), (3, '3', 3.3),
      (4, '4', 4.4), (5, '5', 5.5), (6, '6', 6.6), (7, '7', 7.7);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 1);
 select * from indexes;
 insert into indexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
      (10, '10', 10.10), (11, '11', 11.11), (12, '12', 12.12), (13, '13', 13.13),
      (14, '14', 14.14), (15, '15', 15.15), (16, '16', 16.16);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 1);
 select * from indexes;
 insert into indexes values (17, '17', 17.17), (18, '18', 18.18);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 1);
 select * from indexes;
 rollback;
 
@@ -256,7 +256,7 @@ insert into tab values (1, 1, 'abc'), (2, 2,  'bcd');
 insert into tab values (3, 3, 'abc'), (4, 4,  'bcd');
 insert into tab values (5, 5, 'abc'), (6, 6,  'bcd');
 insert into tab values (7, 7, 'abc'), (8, 8,  'bcd');
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'TAB', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'TAB', 1);
 select * from tab;
 -- do consistency check on scans, etc.
 values ConsistencyChecker();
@@ -273,7 +273,7 @@ insert into tab values (7, 7, 'abc'), (8, 8,  'bcd');
 select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
 delete from tab;
 select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'TAB', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'TAB', 0);
 -- verify space reclaimed
 select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
 -- do consistency check on scans, etc.
@@ -286,7 +286,7 @@ insert into newstat select count(*) from tab;
 select o.rowCount, n.rowCount from oldstat o, newstat n where o.rowCount = n.rowCount;
 --show old space usage
 select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'TAB', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'TAB', 0);
 --show new space usage
 select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
 rollback;
@@ -318,7 +318,7 @@ commit;
 
 delete from xena where b = 1;
 
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
@@ -335,7 +335,7 @@ select
      cast (numfreepages as char(4))      as free, 
      cast (estimspacesaving as char(10)) as est
         from new org.apache.derby.diag.SpaceTable('XENA') t order by name;
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
@@ -352,7 +352,7 @@ select
      cast (numfreepages as char(4))      as free, 
      cast (estimspacesaving as char(10)) as est
         from new org.apache.derby.diag.SpaceTable('XENA') t order by name;
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
@@ -369,7 +369,7 @@ select
      cast (numfreepages as char(4))      as free, 
      cast (estimspacesaving as char(10)) as est
         from new org.apache.derby.diag.SpaceTable('XENA') t order by name;
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 select 
      cast (conglomeratename as char(10)) as name, 
      cast (numallocatedpages as char(4)) as aloc, 
@@ -406,7 +406,7 @@ select
      cast (numfreepages as char(4))      as free, 
      cast (estimspacesaving as char(10)) as est
         from new org.apache.derby.diag.SpaceTable('XENA') t order by name;
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 
 select 
      cast (conglomeratename as char(10)) as name, 
@@ -435,16 +435,16 @@ insert into xena values (3, 3, 'x_comma', 'x_horse');
 insert into xena values (4, 4, 'x_delta', 'x_goat');
 autocommit off;
 
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 commit;
 call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize','4000');
 create unique index xena1 on xena (a, c);
 call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize','20000');
 create unique index xena2 on xena (a, d);
 create unique index xena3 on xena (c, d);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 select * from xena;
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 select * from xena;
 rollback;
 
@@ -523,10 +523,10 @@ create table admins (
  
 insert into users (user_login) values('test1');
 insert into admins values (values identity_val_local());
-call syscs_util.syscs_compress_table('APP', 'ADMINS', 0);
+call syscs_util.syscs_compress_table('SPLICE', 'ADMINS', 0);
 -- do consistency check on the tables.
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'USERS');
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'ADMINS');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'USERS');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'ADMINS');
 select * from admins; 
 select * from users;
 insert into users (user_login) values('test2');
@@ -548,7 +548,7 @@ insert into derby737table1 values(1,1);
 select * from sys.sysstatistics;
 -- now compress the table and as part of the compress, Derby should generate
 --  statistics for all the indexes provided the table is not empty
-call syscs_util.syscs_compress_table('APP','DERBY737TABLE1',1);
+call syscs_util.syscs_compress_table('SPLICE','DERBY737TABLE1',1);
 -- Will find statistics for index t1i1 on derby737table1 because compress
 --  table created it.
 select * from sys.sysstatistics;
@@ -581,7 +581,7 @@ select * from sys.sysstatistics;
 -- now compress the table and as part of the compress, Derby should drop
 --  statistics for all the indexes and should not recreate them if the
 --  user table is empty
-call syscs_util.syscs_compress_table('APP','DERBY737TABLE2',1);
+call syscs_util.syscs_compress_table('SPLICE','DERBY737TABLE2',1);
 select * from sys.sysstatistics;
 
 --end derby-737 related test cases.
@@ -601,6 +601,6 @@ delete from t1;
 
 -- select conglomeratename, numallocatedpages, numfreepages from new org.apache.derby.diag.SpaceTable('T1') tab;
 
-call syscs_util.syscs_inplace_compress_table('APP','T1',2,2,2);
+call syscs_util.syscs_inplace_compress_table('SPLICE','T1',2,2,2);
 select conglomeratename, numallocatedpages, numfreepages from new org.apache.derby.diag.SpaceTable('T1') tab;
 drop table t1;

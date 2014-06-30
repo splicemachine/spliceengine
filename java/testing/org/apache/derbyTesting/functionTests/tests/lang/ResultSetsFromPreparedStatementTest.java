@@ -472,17 +472,17 @@ public class ResultSetsFromPreparedStatementTest extends BaseJDBCTestCase
         c3 = null;
 
         try { s.executeUpdate(
-                "drop table APP.FILECHANGES"); } catch (SQLException e) {}
+                "drop table SPLICE.FILECHANGES"); } catch (SQLException e) {}
         try { s.executeUpdate(
-                "drop table APP.CHANGESETS"); } catch (SQLException e) {}
+                "drop table SPLICE.CHANGESETS"); } catch (SQLException e) {}
         try { s.executeUpdate(
-                "drop table APP.AUTHORS"); } catch (SQLException e) {}
+                "drop table SPLICE.AUTHORS"); } catch (SQLException e) {}
         try { s.executeUpdate(
-                "drop table APP.FILES"); } catch (SQLException e) {}
+                "drop table SPLICE.FILES"); } catch (SQLException e) {}
         try { s.executeUpdate(
-                "drop table APP.REPOSITORIES"); } catch (SQLException e) {}
+                "drop table SPLICE.REPOSITORIES"); } catch (SQLException e) {}
         try { s.executeUpdate(
-                "drop table APP.FILECHANGES_2"); } catch (SQLException e) {}
+                "drop table SPLICE.FILECHANGES_2"); } catch (SQLException e) {}
 
         try { setTimeout(DERBY_DEFAULT_TIMEOUT); } catch (SQLException e) {}
 
@@ -2279,7 +2279,7 @@ public class ResultSetsFromPreparedStatementTest extends BaseJDBCTestCase
 
     public void testDerby4330_JoinResultSet()  throws SQLException {
         setTimeout(1);
-        setSchema("APP");
+        setSchema("SPLICE");
         createDerby4330_join_tables();
 
         PreparedStatement ps = prepareStatement(
@@ -2325,7 +2325,7 @@ public class ResultSetsFromPreparedStatementTest extends BaseJDBCTestCase
 
     public void testDerby4330_UnionResultSet()  throws SQLException {
         setTimeout(1);
-        setSchema("APP");
+        setSchema("SPLICE");
         createDerby4330_union_tables();
 
         PreparedStatement ps = prepareStatement(
@@ -2375,7 +2375,7 @@ public class ResultSetsFromPreparedStatementTest extends BaseJDBCTestCase
 
     public void testDerby4330_SetOpResultSet()  throws SQLException {
         setTimeout(1);
-        setSchema("APP");
+        setSchema("SPLICE");
         createDerby4330_union_tables();
 
         String[] ops = {"EXCEPT", "INTERSECT"};
@@ -2443,7 +2443,7 @@ public class ResultSetsFromPreparedStatementTest extends BaseJDBCTestCase
 
     public void testDerby4330_GroupedAggregateResultSet()  throws SQLException {
         setTimeout(1);
-        setSchema("APP");
+        setSchema("SPLICE");
         createDerby4330_union_tables();
 
         PreparedStatement ps = prepareStatement(
@@ -2477,7 +2477,7 @@ public class ResultSetsFromPreparedStatementTest extends BaseJDBCTestCase
             throws SQLException
     {
         setTimeout(1);
-        setSchema("APP");
+        setSchema("SPLICE");
         createDerby4330_union_tables();
 
         PreparedStatement ps = prepareStatement(
@@ -2511,7 +2511,7 @@ public class ResultSetsFromPreparedStatementTest extends BaseJDBCTestCase
             throws SQLException
     {
         setTimeout(1);
-        setSchema("APP");
+        setSchema("SPLICE");
         createDerby4330_union_tables();
 
         PreparedStatement ps = prepareStatement(

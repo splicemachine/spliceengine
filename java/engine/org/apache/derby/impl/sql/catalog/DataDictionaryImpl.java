@@ -550,7 +550,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 			DataDescriptorGenerator ddg = getDataDescriptorGenerator();
 
 			//We should set the user schema collation type here now because
-			//later on, we are going to create user schema APP. By the time any
+			//later on, we are going to create user schema SPLICE. By the time any
 			//user schema gets created, we should have the correct collation
 			//type set for such schemas to use. For this reason, don't remove
 			//the following if else statement and don't move it later in this 
@@ -1526,7 +1526,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 		throws StandardException
 	{
 		/*
-		** Check for APP and SYS schemas before going any
+		** Check for SPLICE and SYS schemas before going any
 		** further.
 		*/
 	
@@ -1762,7 +1762,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
         }
 
 		/*
-		** Check for APP and SYS schemas before going any
+		** Check for SPLICE and SYS schemas before going any
 		** further.
 		*/
 		if (schemaId != null)
@@ -8206,7 +8206,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
             SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,
             SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID, tc);
 
-  		//Add the APP schema
+  		//Add the SPLICE schema
   		SchemaDescriptor appSchemaDesc = new SchemaDescriptor(this,
                                         SchemaDescriptor.STD_DEFAULT_SCHEMA_NAME,
                                         SchemaDescriptor.DEFAULT_USER_NAME,

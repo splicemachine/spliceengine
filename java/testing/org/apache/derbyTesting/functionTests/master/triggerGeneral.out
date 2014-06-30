@@ -34,10 +34,10 @@ create trigger t1 NO CASCADE before update of x,y on x for each row values 1;
 0 rows inserted/updated/deleted
 splice> -- trigger already exists
 create trigger t1 NO CASCADE before update of x,y on x for each row values 1;
-ERROR X0Y32: Trigger 'T1' already exists in Schema 'APP'.
+ERROR X0Y32: Trigger 'T1' already exists in Schema 'SPLICE'.
 splice> -- trigger already exists
 create trigger app.t1 NO CASCADE before update of x,y on x for each row values 1;
-ERROR X0Y32: Trigger 'T1' already exists in Schema 'APP'.
+ERROR X0Y32: Trigger 'T1' already exists in Schema 'SPLICE'.
 splice> -- make sure system tables look as we expect
 select cast(triggername as char(10)), event, firingtime, type, state, referencedcolumns from sys.systriggers;
 1         |&|&|&|&|REFERENCEDCOLU&
@@ -79,7 +79,7 @@ create trigger tr NO CASCADE before update of doesnotexist on x for each row val
 ERROR 42X14: 'DOESNOTEXIST' is not a column in table or VTI 'X'.
 splice> -- not on view
 create trigger tr NO CASCADE before insert on v for each row values 1;
-ERROR 42Y62: 'CREATE TRIGGER' is not allowed on '"APP"."V"' because it is a view.
+ERROR 42Y62: 'CREATE TRIGGER' is not allowed on '"SPLICE"."V"' because it is a view.
 splice> -- error to use table qualifier
 create trigger tr NO CASCADE before update of x.x on x for each row values 1;
 ERROR 42X01: Syntax error: Encountered "." at line 2, column 48.
@@ -1076,7 +1076,7 @@ C321
 -----------
 1          
 splice> -- DERBY-630 
--- NPE in CREATE TRIGGER when compilation schema is other than APP.
+-- NPE in CREATE TRIGGER when compilation schema is other than SPLICE.
 connect 'jdbc:derby:wombat;create=true;user=user1;password=pwd' as user1;
 WARNING 01J01: Database 'wombat' not created, connection made to existing database instead.
 splice(USER1)> create table ippo.t1 (i int);
@@ -1324,7 +1324,7 @@ splice> connect 'jdbc:derby:wombat' user 'user1' as user1;
 splice(USER1)> set schema app;
 0 rows inserted/updated/deleted
 splice(USER1)> drop trigger app.tr1;
-ERROR 42X94: TRIGGER 'APP.TR1' does not exist.
+ERROR 42X94: TRIGGER 'SPLICE.TR1' does not exist.
 splice(USER1)> drop table app.t1;
 0 rows inserted/updated/deleted
 splice(USER1)> create table app.t1 (i int, j int);
@@ -1339,7 +1339,7 @@ splice(USER1)> select * from app.t1;
 I          |J          
 -----------------------
 2          |11         
-splice(USER1)> call sqlj.install_jar('file:dcl_emc1.jar', 'APP.dcl_emc1', 0);
+splice(USER1)> call sqlj.install_jar('file:dcl_emc1.jar', 'SPLICE.dcl_emc1', 0);
 0 rows inserted/updated/deleted
 splice(USER1)> connect 'jdbc:derby:wombat' user 'user2' as user2;
 splice(USER2)> -- ok
@@ -1349,7 +1349,7 @@ splice(USER2)> select * from app.t1;
 I          |J          
 -----------------------
 3          |12         
-splice(USER2)> call sqlj.replace_jar('file:dcl_emc1.jar', 'APP.dcl_emc1');
+splice(USER2)> call sqlj.replace_jar('file:dcl_emc1.jar', 'SPLICE.dcl_emc1');
 0 rows inserted/updated/deleted
 splice(USER2)> update app.t1 set i=i+1;
 1 row inserted/updated/deleted
@@ -1357,7 +1357,7 @@ splice(USER2)> select * from app.t1;
 I          |J          
 -----------------------
 4          |13         
-splice(USER2)> call sqlj.remove_jar('APP.dcl_emc1', 0);
+splice(USER2)> call sqlj.remove_jar('SPLICE.dcl_emc1', 0);
 0 rows inserted/updated/deleted
 splice(USER2)> update app.t1 set i=i+1;
 1 row inserted/updated/deleted
@@ -1392,7 +1392,7 @@ ID         |I          |J
 1          |11         |1          
 2          |21         |1          
 3          |31         |1          
-splice(USER1)> call sqlj.install_jar('file:dcl_emc1.jar', 'APP.dcl_emc1', 0);
+splice(USER1)> call sqlj.install_jar('file:dcl_emc1.jar', 'SPLICE.dcl_emc1', 0);
 0 rows inserted/updated/deleted
 splice(USER1)> set connection user2;
 splice(USER2)> -- ok
@@ -1404,7 +1404,7 @@ ID         |I          |J
 1          |12         |2          
 2          |22         |2          
 3          |32         |2          
-splice(USER2)> call sqlj.replace_jar('file:dcl_emc1.jar', 'APP.dcl_emc1');
+splice(USER2)> call sqlj.replace_jar('file:dcl_emc1.jar', 'SPLICE.dcl_emc1');
 0 rows inserted/updated/deleted
 splice(USER2)> update app.t1 set i=i+1;
 3 rows inserted/updated/deleted
@@ -1414,7 +1414,7 @@ ID         |I          |J
 1          |13         |3          
 2          |23         |3          
 3          |33         |3          
-splice(USER2)> call sqlj.remove_jar('APP.dcl_emc1', 0);
+splice(USER2)> call sqlj.remove_jar('SPLICE.dcl_emc1', 0);
 0 rows inserted/updated/deleted
 splice(USER2)> update app.t1 set i=i+1;
 3 rows inserted/updated/deleted

@@ -801,7 +801,7 @@ splice> insert into U(SNAME, TNAME, C1) select distinct SCHEMANAME, TABLENAME, 2
 splice> select * from U;
 SNAME                                                                                                                           |TNAME                                                                                                                           |C1                  
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             |U                                                                                                                               |2                   
+SPLICE                                                                                                                             |U                                                                                                                               |2
 splice> drop table  U;
 0 rows inserted/updated/deleted
 splice> create table d3310 (x bigint);

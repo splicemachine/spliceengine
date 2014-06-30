@@ -3493,19 +3493,19 @@ drop table colls;
 ERROR 42Y55: 'DROP TABLE' cannot be performed on 'COLLS' because it does not exist.
 splice> drop table docs;
 ERROR 42Y55: 'DROP TABLE' cannot be performed on 'DOCS' because it does not exist.
-splice> CREATE TABLE "APP"."COLLS" ("ID" VARCHAR(128) NOT NULL, "COLLID" SMALLINT NOT NULL);
+splice> CREATE TABLE "SPLICE"."COLLS" ("ID" VARCHAR(128) NOT NULL, "COLLID" SMALLINT NOT NULL);
 0 rows inserted/updated/deleted
-splice> CREATE INDEX "APP"."NEW_INDEX3" ON "APP"."COLLS" ("COLLID");
+splice> CREATE INDEX "SPLICE"."NEW_INDEX3" ON "SPLICE"."COLLS" ("COLLID");
 0 rows inserted/updated/deleted
-splice> CREATE INDEX "APP"."NEW_INDEX2" ON "APP"."COLLS" ("ID");
+splice> CREATE INDEX "SPLICE"."NEW_INDEX2" ON "SPLICE"."COLLS" ("ID");
 0 rows inserted/updated/deleted
-splice> ALTER TABLE "APP"."COLLS" ADD CONSTRAINT "NEW_KEY2" UNIQUE ("ID", "COLLID");
+splice> ALTER TABLE "SPLICE"."COLLS" ADD CONSTRAINT "NEW_KEY2" UNIQUE ("ID", "COLLID");
 0 rows inserted/updated/deleted
-splice> CREATE TABLE "APP"."DOCS" ("ID" VARCHAR(128) NOT NULL);
+splice> CREATE TABLE "SPLICE"."DOCS" ("ID" VARCHAR(128) NOT NULL);
 0 rows inserted/updated/deleted
-splice> CREATE INDEX "APP"."NEW_INDEX1" ON "APP"."DOCS" ("ID");
+splice> CREATE INDEX "SPLICE"."NEW_INDEX1" ON "SPLICE"."DOCS" ("ID");
 0 rows inserted/updated/deleted
-splice> ALTER TABLE "APP"."DOCS" ADD CONSTRAINT "NEW_KEY1" PRIMARY KEY ("ID");
+splice> ALTER TABLE "SPLICE"."DOCS" ADD CONSTRAINT "NEW_KEY1" PRIMARY KEY ("ID");
 0 rows inserted/updated/deleted
 splice> insert into colls values ('123', 2);
 1 row inserted/updated/deleted
@@ -4839,11 +4839,11 @@ splice> -- Now test nullable correlated columns
 drop table colls;
 0 rows inserted/updated/deleted
 splice> -- the only change is ID is now nullable
-CREATE TABLE "APP"."COLLS" ("ID" VARCHAR(128), "COLLID" SMALLINT NOT NULL);
+CREATE TABLE "SPLICE"."COLLS" ("ID" VARCHAR(128), "COLLID" SMALLINT NOT NULL);
 0 rows inserted/updated/deleted
-splice> CREATE INDEX "APP"."NEW_INDEX3" ON "APP"."COLLS" ("COLLID");
+splice> CREATE INDEX "SPLICE"."NEW_INDEX3" ON "SPLICE"."COLLS" ("COLLID");
 0 rows inserted/updated/deleted
-splice> CREATE INDEX "APP"."NEW_INDEX2" ON "APP"."COLLS" ("ID");
+splice> CREATE INDEX "SPLICE"."NEW_INDEX2" ON "SPLICE"."COLLS" ("ID");
 0 rows inserted/updated/deleted
 splice> insert into colls values ('123', 2);
 1 row inserted/updated/deleted
@@ -5656,9 +5656,9 @@ Source result set:
 splice> -- Now we make the other correlated column also nullable
 drop table docs;
 0 rows inserted/updated/deleted
-splice> CREATE TABLE "APP"."DOCS" ("ID" VARCHAR(128));
+splice> CREATE TABLE "SPLICE"."DOCS" ("ID" VARCHAR(128));
 0 rows inserted/updated/deleted
-splice> CREATE INDEX "APP"."NEW_INDEX1" ON "APP"."DOCS" ("ID");
+splice> CREATE INDEX "SPLICE"."NEW_INDEX1" ON "SPLICE"."DOCS" ("ID");
 0 rows inserted/updated/deleted
 splice> insert into docs values '24', '25', '36', '27', '124', '567';
 6 rows inserted/updated/deleted

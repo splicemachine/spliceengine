@@ -499,9 +499,9 @@ ERROR 42X04: Column 'SYS.T1.C1' is either not in any table in the FROM list or a
 splice> select c1 from app.t1 order by sys.t1.c1;
 ERROR 42X04: Column 'SYS.T1.C1' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'SYS.T1.C1' is not a column in the target table.
 splice> select c1 from t1 c order by app.c.c1;
-ERROR 42X10: 'APP.C' is not an exposed table name in the scope in which it appears.
+ERROR 42X10: 'SPLICE.C' is not an exposed table name in the scope in which it appears.
 splice> select c1 from app.t1 c order by app.t1.c1;
-ERROR 42X04: Column 'APP.T1.C1' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'APP.T1.C1' is not a column in the target table.
+ERROR 42X04: Column 'SPLICE.T1.C1' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'SPLICE.T1.C1' is not a column in the target table.
 splice> -- a is not a column in t1
 select 1 as a from t1 order by t1.a;
 ERROR 42X04: Column 'T1.A' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'T1.A' is not a column in the target table.

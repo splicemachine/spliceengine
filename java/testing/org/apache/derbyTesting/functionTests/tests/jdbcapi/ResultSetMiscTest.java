@@ -80,7 +80,7 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
         assertEquals("I", met.getColumnName(1));
         // beetle 5323
         assertEquals("T", met.getTableName(1));
-        assertEquals("APP", met.getSchemaName(1));
+        assertEquals("SPLICE", met.getSchemaName(1));
         assertEquals("", met.getCatalogName(1));
         assertEquals(java.sql.Types.INTEGER, met.getColumnType(1));
         assertEquals(10, met.getPrecision(1));
@@ -105,7 +105,7 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
         assertEquals("S", met.getColumnName(2));
         // beetle 5323
         assertEquals("T", met.getTableName(2));
-        assertEquals("APP", met.getSchemaName(2));
+        assertEquals("SPLICE", met.getSchemaName(2));
         assertEquals("", met.getCatalogName(2));
         assertEquals(java.sql.Types.SMALLINT, met.getColumnType(2));
         assertEquals(5, met.getPrecision(2));
@@ -130,7 +130,7 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
         assertEquals("R", met.getColumnName(3));
         // beetle 5323
         assertEquals("T", met.getTableName(3));
-        assertEquals("APP", met.getSchemaName(3));
+        assertEquals("SPLICE", met.getSchemaName(3));
         assertEquals("", met.getCatalogName(3));
         assertEquals(java.sql.Types.REAL, met.getColumnType(3));
         assertEquals(7, met.getPrecision(3));
@@ -155,7 +155,7 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
         assertEquals("D", met.getColumnName(4));
         // beetle 5323
         assertEquals("T", met.getTableName(4));
-        assertEquals("APP", met.getSchemaName(4));
+        assertEquals("SPLICE", met.getSchemaName(4));
         assertEquals("", met.getCatalogName(4));
         assertEquals(java.sql.Types.DOUBLE, met.getColumnType(4));
         assertEquals(15, met.getPrecision(4));
@@ -180,7 +180,7 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
         assertEquals("DT", met.getColumnName(5));
         // beetle 5323
         assertEquals("T", met.getTableName(5));
-        assertEquals("APP", met.getSchemaName(5));
+        assertEquals("SPLICE", met.getSchemaName(5));
         assertEquals("", met.getCatalogName(5));
         assertEquals(java.sql.Types.DATE, met.getColumnType(5));
         assertEquals(10, met.getPrecision(5));
@@ -205,7 +205,7 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
         assertEquals("TS", met.getColumnName(7));
         // beetle 5323
         assertEquals("T", met.getTableName(7));
-        assertEquals("APP", met.getSchemaName(7));
+        assertEquals("SPLICE", met.getSchemaName(7));
         assertEquals("", met.getCatalogName(7));
         assertEquals(java.sql.Types.TIMESTAMP, met.getColumnType(7));
         assertEquals(29, met.getPrecision(7));
@@ -230,7 +230,7 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
         assertEquals("C", met.getColumnName(8));
         // beetle 5323
         assertEquals("T", met.getTableName(8));
-        assertEquals("APP", met.getSchemaName(8));
+        assertEquals("SPLICE", met.getSchemaName(8));
         assertEquals("", met.getCatalogName(8));
         assertEquals(java.sql.Types.CHAR, met.getColumnType(8));
         assertEquals(10, met.getPrecision(8));
@@ -255,7 +255,7 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
         assertEquals("V", met.getColumnName(9));
         // beetle 5323
         assertEquals("T", met.getTableName(9));
-        assertEquals("APP", met.getSchemaName(9));
+        assertEquals("SPLICE", met.getSchemaName(9));
         assertEquals("", met.getCatalogName(9));
         assertEquals(java.sql.Types.VARCHAR, met.getColumnType(9));
         assertEquals(40, met.getPrecision(9));
@@ -284,7 +284,7 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
         assertEquals("DC", met.getColumnName(10));
         // beetle 5323
         assertEquals("T", met.getTableName(10));
-        assertEquals("APP", met.getSchemaName(10));
+        assertEquals("SPLICE", met.getSchemaName(10));
         assertEquals("", met.getCatalogName(10));
         assertEquals(java.sql.Types.DECIMAL, met.getColumnType(10));
         assertEquals(10, met.getPrecision(10));
@@ -309,7 +309,7 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
         assertEquals("BI", met.getColumnName(11));
         // beetle 5323
         assertEquals("T", met.getTableName(11));
-        assertEquals("APP", met.getSchemaName(11));
+        assertEquals("SPLICE", met.getSchemaName(11));
         assertEquals("", met.getCatalogName(11));
         assertEquals(java.sql.Types.BIGINT, met.getColumnType(11));
         assertEquals(19, met.getPrecision(11));
@@ -334,7 +334,7 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
         assertEquals("CBD", met.getColumnName(12));
         // beetle 5323
         assertEquals("T", met.getTableName(12));
-        assertEquals("APP", met.getSchemaName(12));
+        assertEquals("SPLICE", met.getSchemaName(12));
         assertEquals("", met.getCatalogName(12));
         assertEquals(java.sql.Types.BINARY, met.getColumnType(12));
         assertEquals(10, met.getPrecision(12));
@@ -363,7 +363,7 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
         assertEquals("VBD", met.getColumnName(13));
         // beetle 5323
         assertEquals("T", met.getTableName(13));
-        assertEquals("APP", met.getSchemaName(13));
+        assertEquals("SPLICE", met.getSchemaName(13));
         assertEquals("", met.getCatalogName(13));
         assertEquals(java.sql.Types.VARBINARY, met.getColumnType(13));
         assertEquals(10, met.getPrecision(13));
@@ -392,7 +392,7 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
         assertEquals("LVBD", met.getColumnName(14));
         // beetle 5323
         assertEquals("T", met.getTableName(14));
-        assertEquals("APP", met.getSchemaName(14));
+        assertEquals("SPLICE", met.getSchemaName(14));
         assertEquals("", met.getCatalogName(14));
         assertEquals(java.sql.Types.LONGVARBINARY, met.getColumnType(14));
         assertEquals(32700, met.getPrecision(14));
@@ -417,7 +417,7 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
         assertEquals("CL", met.getColumnName(15));
         // beetle 5323
         assertEquals("T", met.getTableName(15));
-        assertEquals("APP", met.getSchemaName(15));
+        assertEquals("SPLICE", met.getSchemaName(15));
         assertEquals("", met.getCatalogName(15));
         assertEquals(java.sql.Types.CLOB, met.getColumnType(15));
         assertEquals(2147483647, met.getPrecision(15));
@@ -442,7 +442,7 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
         assertEquals("BL", met.getColumnName(16));
         // beetle 5323
         assertEquals("T", met.getTableName(16));
-        assertEquals("APP", met.getSchemaName(16));
+        assertEquals("SPLICE", met.getSchemaName(16));
         assertEquals("", met.getCatalogName(16));
         assertEquals(java.sql.Types.BLOB, met.getColumnType(16));
         assertEquals(1073741824, met.getPrecision(16));
@@ -524,14 +524,14 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
         rs.next();
         ResultSetMetaData met = rs.getMetaData();
         assertEquals("S", met.getTableName(1));
-        assertEquals("APP", met.getSchemaName(1));
+        assertEquals("SPLICE", met.getSchemaName(1));
         // System.out.println("Run select * from (select * from s) a and then
         // try getTableName and getSchemaName on columns");
         rs = stmt.executeQuery("select * from (select * from s) a");
         rs.next();
         met = rs.getMetaData();
         assertEquals("S", met.getTableName(1));
-        assertEquals("APP", met.getSchemaName(1));
+        assertEquals("SPLICE", met.getSchemaName(1));
         stmt.executeUpdate("create schema s1");
         stmt.executeUpdate("create table s1.t1 (c11 int, c12 int)");
         stmt.executeUpdate("insert into s1.t1 values (11, 12), (21, 22)");
@@ -556,7 +556,7 @@ public class ResultSetMiscTest extends BaseJDBCTestCase {
                 .executeQuery("select bcd.a, abc.c11 from s1.t1 as abc, s as bcd");
         met = rs.getMetaData();
         assertEquals("S", met.getTableName(1));
-        assertEquals("APP", met.getSchemaName(1));
+        assertEquals("SPLICE", met.getSchemaName(1));
         assertEquals("T1", met.getTableName(2));
         assertEquals("S1", met.getSchemaName(2));
 

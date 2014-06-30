@@ -62,7 +62,7 @@ public class DropSchemaNode extends DDLStatementNode
 	{
 		/* 
 		** Users are not permitted to drop
-		** the SYS or APP schemas.
+		** the SYS or SPLICE schemas.
 		*/
         if (getDataDictionary().isSystemSchemaName(schemaName))
 		{

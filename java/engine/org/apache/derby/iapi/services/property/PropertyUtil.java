@@ -40,7 +40,7 @@ import java.util.Enumeration;
 	There are 5 property objects within a JBMS system.
 
 	1) JVM - JVM set - those in System.getProperties
-	2) APP - Application set - derby.properties file
+	2) SPLICE - Application set - derby.properties file
 	3) SRV - Persistent Service set - Those stored in service.properties
 	4) TRAN - Persistent Transactional set - Those stored via the AccessManager interface
 	5) BOOT - Set by a boot method (rare)
@@ -51,7 +51,7 @@ import java.util.Enumeration;
 	getSystem*() methods use the search order.
 	<OL>
 	<LI> JVM
-	<LI> APP
+	<LI> SPLICE
 	</OL>
 	<BR>
 	getService* methods use the search order
@@ -59,7 +59,7 @@ import java.util.Enumeration;
 	<LI> JVM
 	<LI> TRAN
 	<LI> SRV
-	<LI> APP
+	<LI> SPLICE
 	</OL>
 
 */

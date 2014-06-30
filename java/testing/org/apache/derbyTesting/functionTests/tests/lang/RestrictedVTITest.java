@@ -1014,7 +1014,7 @@ public class RestrictedVTITest  extends GeneratedColumnsHelper
         assertResults
             (
              conn,
-             "select " + columnName + " from table( restricted5370( 'APP', 'T_5370' ) ) s\n" +
+             "select " + columnName + " from table( restricted5370( 'SPLICE', 'T_5370' ) ) s\n" +
              "where " + columnName + " = " + columnValue,
              new String[][] { new String[] { expectedValue } },
              false
@@ -1029,7 +1029,7 @@ public class RestrictedVTITest  extends GeneratedColumnsHelper
                  new String[]
                  {
                      "select " + doubleQuote( columnName ) + "\n" +
-                     "from " + doubleQuote( "APP" ) + "." + doubleQuote( "T_5370" ) + "\n" +
+                     "from " + doubleQuote( "SPLICE" ) + "." + doubleQuote( "T_5370" ) + "\n" +
                      "where " + doubleQuote( columnName ) + " = " + columnValue
                  }
              },
@@ -1039,7 +1039,7 @@ public class RestrictedVTITest  extends GeneratedColumnsHelper
         assertResults
             (
              conn,
-             "select " + columnName + " from table( restricted5370( 'APP', 'T_5370' ) ) s\n" +
+             "select " + columnName + " from table( restricted5370( 'SPLICE', 'T_5370' ) ) s\n" +
              "where " + columnName + " != " + columnValue,
              new String[][] { new String[] { negatedValue } },
              false
@@ -1054,7 +1054,7 @@ public class RestrictedVTITest  extends GeneratedColumnsHelper
                  new String[]
                  {
                      "select " + doubleQuote( columnName ) + "\n" +
-                     "from " + doubleQuote( "APP" ) + "." + doubleQuote( "T_5370" ) + "\n" +
+                     "from " + doubleQuote( "SPLICE" ) + "." + doubleQuote( "T_5370" ) + "\n" +
                      "where " + doubleQuote( columnName ) + " != " + columnValue
                  }
              },
@@ -1072,7 +1072,7 @@ public class RestrictedVTITest  extends GeneratedColumnsHelper
         expectCompilationError
             (
              "42818",
-             "select " + columnName + " from table( restricted5370( 'APP', 'T_5370' ) ) s\n" +
+             "select " + columnName + " from table( restricted5370( 'SPLICE', 'T_5370' ) ) s\n" +
              "where " + columnName + " = " + columnValue
              );
 

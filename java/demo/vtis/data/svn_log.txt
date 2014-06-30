@@ -9404,7 +9404,7 @@ version info will hopefully go away with my next patch to allow
 running the test as part of harness. Still there are few diffs because
 of the diffs in the generated SQL id which look like this line:
 
-,APP,REFACTION1,A,,APP,REFACTNONE,A,1,3,3,SQL060329093642910,SQL060329093642450,7 
+,SPLICE,REFACTION1,A,,SPLICE,REFACTNONE,A,1,3,3,SQL060329093642910,SQL060329093642450,7
 
 This will also go away once the test can be run with the harness,
 which filters out the generated ids.

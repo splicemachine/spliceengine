@@ -257,7 +257,7 @@ public final class AccessTest extends BaseJDBCTestCase {
 
         // Check the consistency of the indexes
         rs = st.executeQuery(
-            "VALUES SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'FOO')");
+            "VALUES SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'FOO')");
         expColNames = new String [] {"1"};
         JDBC.assertColumnNames(rs, expColNames);
         expRS = new String [][] {{"1"}};
@@ -341,7 +341,7 @@ public final class AccessTest extends BaseJDBCTestCase {
         runQueriesWithIndex(st);
         // drop the index...
         st.executeUpdate("drop index foo_cover");
-        st.execute("call SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','FOO',null)");
+        st.execute("call SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','FOO',null)");
         
         // check deleted row feature
         st.executeUpdate("insert into foo values (100, 2, 3, 4, 5)");
@@ -354,7 +354,7 @@ public final class AccessTest extends BaseJDBCTestCase {
         // recreate the index to make sure it does an index scan.
         st.execute("create index foo_cover on foo (e, d, c, b, a)");
         // of course, we'll have to update statistics now before it looks good
-        st.execute("call SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','FOO',null)");
+        st.execute("call SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','FOO',null)");
         // and then we have to re-delete the rows because update statistics would've
         // reset the info about deleted rows.
         st.executeUpdate("insert into foo values (100, 2, 3, 4, 5)");
@@ -1173,7 +1173,7 @@ public final class AccessTest extends BaseJDBCTestCase {
         st.executeUpdate("create index a on b2241 (b, a)");
 
         // Check the consistency of the indexes
-        rs = st.executeQuery("VALUES SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'B2241')");
+        rs = st.executeQuery("VALUES SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'B2241')");
 
         expColNames = new String [] {"1"};
         JDBC.assertColumnNames(rs, expColNames);
@@ -1581,7 +1581,7 @@ public final class AccessTest extends BaseJDBCTestCase {
         String [][] expRS;
         
         rs = st.executeQuery("select numallocatedpages from TABLE" +
-                "(SYSCS_DIAG.SPACE_TABLE('APP', 'A')) a");
+                "(SYSCS_DIAG.SPACE_TABLE('SPLICE', 'A')) a");
         expRS = new String [][]{{expValue}};
         JDBC.assertFullResultSet(rs, expRS, true);        
     }

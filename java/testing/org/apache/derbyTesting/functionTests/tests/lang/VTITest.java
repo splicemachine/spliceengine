@@ -91,7 +91,7 @@ import org.apache.derbyTesting.junit.JDBC;
 
         CallableStatement cs =
                 prepareCall("CALL SYSCS_UTIL.SYSCS_BULK_INSERT(?, ?, ?, ?)");
-        cs.setString(1, "APP");
+        cs.setString(1, "SPLICE");
         cs.setString(2, tableName);
         cs.setString(3, WarehouseVTI.class.getName());
         cs.setInt(4, expectedRows);

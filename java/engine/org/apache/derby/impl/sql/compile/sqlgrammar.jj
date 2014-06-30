@@ -7918,13 +7918,13 @@ newInvocation() throws StandardException :
  *
  * An example query where this might occur is as follows:
  *
- *   SELECT * FROM TABLE(SYSCS_DIAG.SPACE_TABLE('APP', 'T1')) x
+ *   SELECT * FROM TABLE(SYSCS_DIAG.SPACE_TABLE('SPLICE', 'T1')) x
  *
  * in which case SYSCS_DIAG.SPACE_TABLE will be mapped (internally)
  * to the "org.apache.derby.diag.SpaceTable" diagnostic VTI.  Thus
  * the equivalent call prior to DERBY-2152 would have been:
  *
- *   SELECT * FROM NEW org.apache.derby.diag.SpaceTable('APP', 'T1')) x
+ *   SELECT * FROM NEW org.apache.derby.diag.SpaceTable('SPLICE', 'T1')) x
  *
  * Note that this latter syntax is still supported.
  */

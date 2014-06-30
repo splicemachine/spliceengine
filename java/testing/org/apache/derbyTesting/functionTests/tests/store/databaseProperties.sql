@@ -44,7 +44,7 @@ values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('key2');
 
 -- See what the default is first
 create table T (i int);
-values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.pageSize');
+values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.pageSize');
 drop table T;
 
 -- set the per-database value
@@ -52,7 +52,7 @@ call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', '16384');
 
 -- this create table should pick up the per-database
 create table T (i int);
-values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.pageSize');
+values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.pageSize');
 drop table T;
 
 
@@ -60,7 +60,7 @@ drop table T;
 
 -- See what the default is first
 create table T (i int);
-values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.minimumRecordSize');
+values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.minimumRecordSize');
 drop table T;
 
 -- set the per-database value
@@ -68,7 +68,7 @@ call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.minimumRecordSize', '
 
 -- this create table should pick up the per-database
 create table T (i int);
-values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.minimumRecordSize');
+values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.minimumRecordSize');
 drop table T;
 
 
@@ -76,7 +76,7 @@ drop table T;
 
 -- See what the default is first
 create table T (i int);
-values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.pageReservedSpace');
+values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.pageReservedSpace');
 drop table T;
 
 -- set the per-database value
@@ -84,7 +84,7 @@ call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageReservedSpace', '
 
 -- this create table should pick up the per-database
 create table T (i int);
-values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.pageReservedSpace');
+values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.pageReservedSpace');
 drop table T;
 
 
@@ -112,7 +112,7 @@ values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.database.noAutoBoot');
 
 -- See is currently set, should be 16384
 create table T (i int);
-values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.pageSize');
+values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.pageSize');
 
 drop table T;
 
@@ -121,7 +121,7 @@ CALL TESTROUTINE.SET_SYSTEM_PROPERTY('derby.storage.pageSize', '8192');
 
 -- this create table should pick up the system value - 8192
 create table T (i int);
-values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.pageSize');
+values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.pageSize');
 drop table T;
 
 -- 
@@ -130,7 +130,7 @@ call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.propertiesOnly', 'tr
 
 -- this create table should pick up the database value - 16384
 create table T (i int);
-values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.pageSize');
+values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.pageSize');
 drop table T;
 
 -- verify that creation time only properties may not be set.

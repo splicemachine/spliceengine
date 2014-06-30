@@ -600,7 +600,7 @@ public class HoldabilityTest extends SURBaseTest {
         
         final PreparedStatement ps2 = con2.prepareStatement
             ("call SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE(?,?,?,?,?)");
-        ps2.setString(1, "APP"); // schema
+        ps2.setString(1, "SPLICE"); // schema
         ps2.setString(2, "T1");  // table name
         ps2.setBoolean(3, purge);
         ps2.setBoolean(4, defragment);

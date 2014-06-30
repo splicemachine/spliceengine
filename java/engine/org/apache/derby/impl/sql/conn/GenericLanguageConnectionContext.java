@@ -442,7 +442,7 @@ public class GenericLanguageConnectionContext
         ** create schema already) the database will set the users
         ** default schema to the the schema with the same name as the
         ** user.
-        ** - Else Set the default schema to APP.
+        ** - Else Set the default schema to SPLICE.
         */
         if (cachedInitialDefaultSchemaDescr == null) {
             DataDictionary dd = getDataDictionary();

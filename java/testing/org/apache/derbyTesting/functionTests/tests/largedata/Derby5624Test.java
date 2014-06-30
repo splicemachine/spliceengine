@@ -124,7 +124,7 @@ public class Derby5624Test extends BaseJDBCTestCase
 
         // see if compress succeeeds 
         stmt.executeUpdate(
-            "call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'TESTBIGTABLE', 0)");
+            "call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'TESTBIGTABLE', 0)");
 
         commit();
 

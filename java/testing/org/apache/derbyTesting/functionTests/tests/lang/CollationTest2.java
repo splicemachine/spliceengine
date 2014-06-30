@@ -889,7 +889,7 @@ public class CollationTest2 extends BaseJDBCTestCase
         setUpTable();
 
         ResultSet rs = 
-            getConnection().getMetaData().getColumns(null, "APP", "CUSTOMER", "%");
+            getConnection().getMetaData().getColumns(null, "SPLICE", "CUSTOMER", "%");
         
         int rowCount = JDBC.assertDrainResults(rs);
 
@@ -1418,7 +1418,7 @@ public class CollationTest2 extends BaseJDBCTestCase
         // base conglomerates, verify collation info correctly gets into new
         // entities.
         CallableStatement call_stmt = prepareCall(
-            " call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'CUSTOMER', 1)");
+            " call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'CUSTOMER', 1)");
         assertUpdateCount(call_stmt, 0);
  
         commit();
@@ -1529,12 +1529,12 @@ public class CollationTest2 extends BaseJDBCTestCase
         s.execute("DELETE FROM EMPTY_TABLE");
         //there is no data in EMPTY_TABLE so empty_file.dat will be empty 
         //after export
-        doExportTable("APP", "EMPTY_TABLE", emptyFileName, null, null, "UTF-16");
+        doExportTable("SPLICE", "EMPTY_TABLE", emptyFileName, null, null, "UTF-16");
         commit();
         // bulk insert with replace to empty table/one index from an empty file 
         // import empty_file.dat into EMPTY_TABLE 
         doImportTable(
-                "APP", "EMPTY_TABLE", emptyFileName, "|", "`", null, 1);
+                "SPLICE", "EMPTY_TABLE", emptyFileName, "|", "`", null, 1);
 
         commit();
 
@@ -1542,7 +1542,7 @@ public class CollationTest2 extends BaseJDBCTestCase
         String fileName =
             (SupportFilesSetup.getReadWrite("names.dat")).getPath();
 
-        doExportTable("APP", "CUSTOMER", fileName, null, null, "UTF-16");
+        doExportTable("SPLICE", "CUSTOMER", fileName, null, null, "UTF-16");
 
         commit();
 
@@ -1554,7 +1554,7 @@ public class CollationTest2 extends BaseJDBCTestCase
         // checkGetColumn(conn);
 
         doImportTable(
-            "APP", "CUSTOMER", fileName, null, null, "UTF-16", 0);
+            "SPLICE", "CUSTOMER", fileName, null, null, "UTF-16", 0);
         runQueries(db_index, null, null);
 
         // bulk insert to empty table, with indexes without replace 
@@ -1566,7 +1566,7 @@ public class CollationTest2 extends BaseJDBCTestCase
         s.execute("CREATE INDEX IDX4 ON CUSTOMER (ID)");
         s.execute("CREATE INDEX IDX5 ON CUSTOMER (ID, NAME, D1, D2, D3)");
         doImportTable(
-            "APP", "CUSTOMER", fileName, null, null, "UTF-16", 0);
+            "SPLICE", "CUSTOMER", fileName, null, null, "UTF-16", 0);
         runQueries(db_index, null, null);
         s.execute("DROP INDEX IDX1 ");
         s.execute("DROP INDEX IDX2 ");
@@ -1578,9 +1578,9 @@ public class CollationTest2 extends BaseJDBCTestCase
         // import first to double the rows in the table.
         // (last arg to Import 1 = replace).
         doImportTable(
-            "APP", "CUSTOMER", fileName, null, null, "UTF-16", 0);
+            "SPLICE", "CUSTOMER", fileName, null, null, "UTF-16", 0);
         doImportTable(
-            "APP", "CUSTOMER", fileName, null, null, "UTF-16", 1);
+            "SPLICE", "CUSTOMER", fileName, null, null, "UTF-16", 1);
         runQueries(db_index, null, null);
 
         // bulk insert to non-empty table, indexes with replace, call 
@@ -1592,9 +1592,9 @@ public class CollationTest2 extends BaseJDBCTestCase
         s.execute("CREATE INDEX IDX4 ON CUSTOMER (ID)");
         s.execute("CREATE INDEX IDX5 ON CUSTOMER (ID, NAME, D1, D2, D3)");
         doImportTable(
-            "APP", "CUSTOMER", fileName, null, null, "UTF-16", 0);
+            "SPLICE", "CUSTOMER", fileName, null, null, "UTF-16", 0);
         doImportTable(
-            "APP", "CUSTOMER", fileName, null, null, "UTF-16", 1);
+            "SPLICE", "CUSTOMER", fileName, null, null, "UTF-16", 1);
         runQueries(db_index, null, null);
         s.execute("DROP INDEX IDX1 ");
         s.execute("DROP INDEX IDX2 ");

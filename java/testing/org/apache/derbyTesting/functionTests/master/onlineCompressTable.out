@@ -2,10 +2,10 @@ splice> autocommit off;
 splice> -- start with simple test, does the call work?
 create table test1 (a int);
 0 rows inserted/updated/deleted
-splice> -- call SYSCS_UTIL.SYSCS_ONLINE_COMPRESS_TABLE('APP', 'TEST1');
+splice> -- call SYSCS_UTIL.SYSCS_ONLINE_COMPRESS_TABLE('SPLICE', 'TEST1');
 -- expect failures schema/table does not exist
 -- call SYSCS_UTIL.SYSCS_ONLINE_COMPRESS_TABLE(null, 'test2');
--- call SYSCS_UTIL.SYSCS_ONLINE_COMPRESS_TABLE('APP', 'test2');
+-- call SYSCS_UTIL.SYSCS_ONLINE_COMPRESS_TABLE('SPLICE', 'test2');
 -- non existent schema
 -- call SYSCS_UTIL.SYSCS_ONLINE_COMPRESS_TABLE('doesnotexist', 'a');
 -- cleanup
@@ -52,7 +52,7 @@ splice> commit;
 splice> delete from test1 where keycol < 100;
 99 rows inserted/updated/deleted
 splice> commit;
-splice> call SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE('APP', 'TEST1', 1, 0, 0);
+splice> call SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE('SPLICE', 'TEST1', 1, 0, 0);
 0 rows inserted/updated/deleted
 splice> select 
     conglomeratename, isindex, numallocatedpages, numfreepages, pagesize, 
@@ -64,7 +64,7 @@ CONGLOMERATENAME                                                                
 TEST1                                                                                                                           |0     |68                  |103                 |4096       |421888              
 TEST1_IDX                                                                                                                       |1     |4                   |0                   |4096       |0                   
 splice> commit;
-splice> -- call SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE('APP', 'TEST1', 0, 1, 0);
+splice> -- call SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE('SPLICE', 'TEST1', 0, 1, 0);
 select 
     conglomeratename, isindex, numallocatedpages, numfreepages, pagesize, 
     estimspacesaving
@@ -74,7 +74,7 @@ CONGLOMERATENAME                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 TEST1                                                                                                                           |0     |68                  |103                 |4096       |421888              
 TEST1_IDX                                                                                                                       |1     |4                   |0                   |4096       |0                   
-splice> call SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE('APP', 'TEST1', 0, 0, 1);
+splice> call SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE('SPLICE', 'TEST1', 0, 0, 1);
 0 rows inserted/updated/deleted
 splice> select 
     conglomeratename, isindex, numallocatedpages, numfreepages, pagesize, 

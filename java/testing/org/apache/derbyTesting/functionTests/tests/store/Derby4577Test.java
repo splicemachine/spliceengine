@@ -237,7 +237,7 @@ public class Derby4577Test extends StoreBaseTest
 
         // Check the consistency of the indexes
         ResultSet rs = stmt.executeQuery(
-            "VALUES SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'TESTSMALLROW1')");
+            "VALUES SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'TESTSMALLROW1')");
         String [][] expRS = new String [][] {{"1"}};
         JDBC.assertFullResultSet(rs, expRS, true);
 
@@ -261,7 +261,7 @@ public class Derby4577Test extends StoreBaseTest
 
         // Check the consistency of the indexes
         rs = stmt.executeQuery(
-            "VALUES SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'TESTSMALLROW2')");
+            "VALUES SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'TESTSMALLROW2')");
         expRS = new String [][] {{"1"}};
         JDBC.assertFullResultSet(rs, expRS, true);
 
@@ -303,7 +303,7 @@ public class Derby4577Test extends StoreBaseTest
 
         // Check the consistency of the indexes
         rs = stmt.executeQuery(
-            "VALUES SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'TESTSMALLROW3')");
+            "VALUES SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'TESTSMALLROW3')");
         expRS = new String [][] {{"1"}};
         JDBC.assertFullResultSet(rs, expRS, true);
 

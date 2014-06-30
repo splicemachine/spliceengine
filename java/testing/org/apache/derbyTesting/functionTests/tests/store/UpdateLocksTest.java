@@ -138,7 +138,7 @@ public class UpdateLocksTest extends BaseJDBCTestCase {
     private final static int NO_IDX_2 = 3;
     private final static String _g = "GRANT";
     private final static String _a = "ACTIVE";
-    private final static String _app = "APP";
+    private final static String _app = "SPLICE";
     private final static String _ut = "UserTran";
     private final static String _t = "TABLE";
     private final static String _r = "ROW";

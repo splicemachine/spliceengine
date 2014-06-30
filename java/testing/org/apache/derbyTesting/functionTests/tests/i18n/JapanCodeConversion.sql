@@ -31,12 +31,12 @@ call SYSCS_UTIL.SYSCS_IMPORT_TABLE(null, 'T1_EUC_JP' ,
 SELECT jnum, jtime, { fn length(jstring) } AS JLEN from T1_EUC_JP;
 
 -- export to file with EUC_JP encoding 
-call SYSCS_UTIL.SYSCS_EXPORT_TABLE('APP', 'T1_EUC_JP' ,
+call SYSCS_UTIL.SYSCS_EXPORT_TABLE('SPLICE', 'T1_EUC_JP' ,
 	 		          'extinout/jap_EUC_JP.dump' , 
 				  null, null, 'EUC_JP') ;
 
 -- export to file with SJIS encoding	
-call SYSCS_UTIL.SYSCS_EXPORT_TABLE('APP', 'T1_EUC_JP' ,
+call SYSCS_UTIL.SYSCS_EXPORT_TABLE('SPLICE', 'T1_EUC_JP' ,
 	 		          'extinout/jap_SJIS.dump' , 
 				  null, null, 'SJIS') ;
 

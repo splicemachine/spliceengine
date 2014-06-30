@@ -92,6 +92,6 @@
   </xs:complexType>
  </xs:element>
 
- <xs:notation name='gif' public='-//APP/Photoshop/4.0' system='photoshop.exe'/>
+ <xs:notation name='gif' public='-//SPLICE/Photoshop/4.0' system='photoshop.exe'/>
 
 </xs:schema>

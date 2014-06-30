@@ -24,10 +24,10 @@
 -- create some tables and indexes
 CREATE TABLE t1 (i int, d DECIMAL(5,2), test VARCHAR(20));
 CREATE TABLE t2 (pk int primary key, v VARCHAR(20));
-CREATE INDEX idx1 ON APP.t1 (test ASC);
-CREATE INDEX idx2 ON APP.t2 (v);
+CREATE INDEX idx1 ON SPLICE.t1 (test ASC);
+CREATE INDEX idx2 ON SPLICE.t2 (v);
 
 -- show all the indexes in the schema 
-SHOW INDEXES IN APP;
+SHOW INDEXES IN SPLICE;
 -- show only indexes in table t1
-SHOW INDEXES FROM APP.t1;
+SHOW INDEXES FROM SPLICE.t1;

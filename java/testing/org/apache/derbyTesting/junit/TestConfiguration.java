@@ -67,8 +67,8 @@ public final class TestConfiguration {
     private final static String DEFAULT_DBNAME = "wombat";
     private final static String DEFAULT_DBNAME_SQL = "dbsqlauth";
     
-    private final static String DEFAULT_USER_NAME = "APP";
-    private final static String DEFAULT_USER_PASSWORD = "APP";
+    private final static String DEFAULT_USER_NAME = "SPLICE";
+    private final static String DEFAULT_USER_PASSWORD = "SPLICE";
     private final static int    DEFAULT_PORT = 1527;
     private final static String DEFAULT_FRAMEWORK = "embedded";
     private final static String DEFAULT_HOSTNAME = "localhost";

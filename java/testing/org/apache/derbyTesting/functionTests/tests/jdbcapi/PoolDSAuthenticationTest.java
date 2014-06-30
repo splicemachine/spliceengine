@@ -260,7 +260,7 @@ public class PoolDSAuthenticationTest extends AuthenticationTest {
         // Reset to no user/password though client requires
         // a valid name, so reset to the default
         if (usingDerbyNetClient())
-            JDBCDataSource.setBeanProperty(pds, "user", "APP");
+            JDBCDataSource.setBeanProperty(pds, "user", "SPLICE");
         else
             JDBCDataSource.clearStringBeanProperty(pds, "user");
         JDBCDataSource.clearStringBeanProperty(pds, "password");

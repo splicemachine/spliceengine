@@ -245,7 +245,7 @@ public class dbManagerLimits
 			}
 			//just some basic sanity check 
 			DatabaseMetaData met = conn.getMetaData();
-			getCount(met.getColumns("", "APP", "T1", null));
+			getCount(met.getColumns("", "SPLICE", "T1", null));
 			s.executeUpdate("insert into t1(c1, c2) values (1,1)");
 			s.executeUpdate("drop table t1");
 
@@ -313,7 +313,7 @@ public class dbManagerLimits
 			s.executeUpdate(tempString);
 			//just some basic sanity check 
 			DatabaseMetaData met = conn.getMetaData();
-			getCount(met.getColumns("", "APP", "V1", null));
+			getCount(met.getColumns("", "SPLICE", "V1", null));
 			s.executeUpdate("drop view v1");
 
 			System.out.println("Next create a view with one column more than that maximum allowed number of columns");
@@ -550,7 +550,7 @@ public class dbManagerLimits
 			s.executeUpdate(tempString);
 			//just some basic sanity check 
 			DatabaseMetaData met = conn.getMetaData();
-			getCount(met.getProcedureColumns("", "APP", "P2", null));
+			getCount(met.getProcedureColumns("", "SPLICE", "P2", null));
 
 			System.out.println("And finally create a procedure with more parameters that maximum allowed number of parameters");
 			tempString = "create procedure P3(" + sbCreateProcParams.toString() + "i" + i +

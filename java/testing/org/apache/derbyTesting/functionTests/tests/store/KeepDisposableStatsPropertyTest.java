@@ -91,7 +91,7 @@ public class KeepDisposableStatsPropertyTest
                 "create unique index UNIQ_IDX_" + TAB + " ON " + TAB + "(val)");
         stats.assertTableStats(TAB, keepDisposable ? 2  : 0);
         PreparedStatement ps = prepareStatement(
-                "call SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP', ?, ?)");
+                "call SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE', ?, ?)");
         // Update stats for all indexes.
         ps.setString(1, TAB);
         ps.setNull(2, Types.VARCHAR);
@@ -105,7 +105,7 @@ public class KeepDisposableStatsPropertyTest
 
         // Drop statistics.
         stmt.execute("call SYSCS_UTIL.SYSCS_DROP_STATISTICS(" +
-                "'APP', '" + TAB + "', null)");
+                "'SPLICE', '" + TAB + "', null)");
         stats.assertNoStatsTable(TAB);
 
         // Update and assert again, this time in the reverse order.

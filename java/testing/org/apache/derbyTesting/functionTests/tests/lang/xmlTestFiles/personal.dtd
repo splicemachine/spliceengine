@@ -41,4 +41,4 @@
 <!ATTLIST link manager IDREF #IMPLIED>
 <!ATTLIST link subordinates IDREFS #IMPLIED>
 
-<!NOTATION gif PUBLIC '-//APP/Photoshop/4.0' 'photoshop.exe'>
+<!NOTATION gif PUBLIC '-//SPLICE/Photoshop/4.0' 'photoshop.exe'>

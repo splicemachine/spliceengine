@@ -127,10 +127,10 @@ public void testDefaultCollation() throws SQLException {
       //For non-collated databases, COMPARISONS OF USER PERSISTENT CHARACTER 
       //COLUMN AND CHARACTER CONSTANT WILL not FAIL IN SYSTEM SCHEMA.
       s.executeUpdate("set schema SYS");
-      checkLangBasedQuery(s, "SELECT ID, NAME FROM APP.CUSTOMER WHERE NAME <= 'Smith' ",
+      checkLangBasedQuery(s, "SELECT ID, NAME FROM SPLICE.CUSTOMER WHERE NAME <= 'Smith' ",
       		new String[][] {{"0","Smith"}, {"4","Acorn"} });   
 
-      s.executeUpdate("set schema APP");
+      s.executeUpdate("set schema SPLICE");
       //Following sql will not fail in a database which uses UCS_BASIC for
       //user schemas. Since the collation of user schemas match that of system
       //schema, the following comparison will not fail. It will fail in a 
@@ -198,7 +198,7 @@ public void testDefaultCollation() throws SQLException {
 
       //Test USER/CURRENT_USER/SESSION_USER
       checkLangBasedQuery(s, "SELECT count(*) FROM CUSTOMER WHERE "+ 
-      		"CURRENT_USER = 'APP'",
+      		"CURRENT_USER = 'SPLICE'",
       		new String[][] {{"7"}});   
       
       //Do some testing with MAX/MIN operators
@@ -209,10 +209,10 @@ public void testDefaultCollation() throws SQLException {
 
       //Do some testing with CHAR/VARCHAR functions
       s.executeUpdate("set schema SYS");
-      checkLangBasedQuery(s, "SELECT CHAR(ID) FROM APP.CUSTOMER WHERE " +
+      checkLangBasedQuery(s, "SELECT CHAR(ID) FROM SPLICE.CUSTOMER WHERE " +
       		" CHAR(ID)='0'", new String[] [] {{"0"}});
       
-      s.executeUpdate("set schema APP");
+      s.executeUpdate("set schema SPLICE");
       if (XML.classpathMeetsXMLReqs())
       	checkLangBasedQuery(s, "SELECT XMLSERIALIZE(x as CHAR(10)) " +
       			" FROM xmlTable, SYS.SYSTABLES WHERE " +
@@ -222,7 +222,7 @@ public void testDefaultCollation() throws SQLException {
       //Start with simple ? param in a string comparison
       //Since all schemas (ie user and system) have the same collation, the 
       //following test won't fail.
-      s.executeUpdate("set schema APP");
+      s.executeUpdate("set schema SPLICE");
       ps = prepareStatement("SELECT TABLENAME FROM SYS.SYSTABLES WHERE " +
       		" ? = TABLENAME");
       ps.setString(1, "SYSCOLUMNS");
@@ -395,10 +395,10 @@ public void testPolishCollation() throws SQLException {
       //For collated databases, COMPARISONS OF USER PERSISTENT CHARACTER 
       //COLUMN AND CHARACTER CONSTANT WILL FAIL IN SYSTEM SCHEMA.
       s.executeUpdate("set schema SYS");
-      assertStatementError("42818", s, "SELECT ID, NAME FROM APP.CUSTOMER WHERE NAME <= 'Smith' ");
+      assertStatementError("42818", s, "SELECT ID, NAME FROM SPLICE.CUSTOMER WHERE NAME <= 'Smith' ");
 
       //Do some testing with MAX/MIN operators
-      s.executeUpdate("set schema APP");
+      s.executeUpdate("set schema SPLICE");
       checkLangBasedQuery(s, "SELECT MAX(NAME) maxName FROM CUSTOMER ORDER BY maxName ",
       		new String[][] {{"\u017Bebra"}});   
       checkLangBasedQuery(s, "SELECT MIN(NAME) minName FROM CUSTOMER ORDER BY minName ",
@@ -465,10 +465,10 @@ public void testNorwayCollation() throws SQLException {
       //For collated databases, COMPARISONS OF USER PERSISTENT CHARACTER 
       //COLUMN AND CHARACTER CONSTANT WILL FAIL IN SYSTEM SCHEMA.
       s.executeUpdate("set schema SYS");
-      assertStatementError("42818", s, "SELECT ID, NAME FROM APP.CUSTOMER WHERE NAME <= 'Smith' ");
+      assertStatementError("42818", s, "SELECT ID, NAME FROM SPLICE.CUSTOMER WHERE NAME <= 'Smith' ");
 
       //Do some testing with MAX/MIN operators
-      s.executeUpdate("set schema APP");
+      s.executeUpdate("set schema SPLICE");
       checkLangBasedQuery(s, "SELECT MAX(NAME) maxName FROM CUSTOMER ORDER BY maxName ",
       		new String[][] {{"aacorn"}});   
       checkLangBasedQuery(s, "SELECT MIN(NAME) minName FROM CUSTOMER ORDER BY minName ",
@@ -1212,10 +1212,10 @@ public void testEnglishCollation() throws SQLException {
       //For collated databases, COMPARISONS OF USER PERSISTENT CHARACTER
       //COLUMN AND CHARACTER CONSTANT WILL FAIL IN SYSTEM SCHEMA.
       s.executeUpdate("set schema SYS");
-      assertStatementError("42818", s, "SELECT ID, NAME FROM APP.CUSTOMER WHERE NAME <= 'Smith' ");
+      assertStatementError("42818", s, "SELECT ID, NAME FROM SPLICE.CUSTOMER WHERE NAME <= 'Smith' ");
 
       //Do some testing with MAX/MIN operators
-      s.executeUpdate("set schema APP");
+      s.executeUpdate("set schema SPLICE");
       checkLangBasedQuery(s, "SELECT MAX(NAME) maxName FROM CUSTOMER ORDER BY maxName ",
       		new String[][] {{"\u017Bebra"}});
       checkLangBasedQuery(s, "SELECT MIN(NAME) minName FROM CUSTOMER ORDER BY minName ",
@@ -1270,10 +1270,10 @@ public void testSwedishCaseInsensitiveCollation() throws SQLException {
 	  //For collated databases, COMPARISONS OF USER PERSISTENT CHARACTER
       //COLUMN AND CHARACTER CONSTANT WILL FAIL IN SYSTEM SCHEMA.
       s.executeUpdate("set schema SYS");
-      assertStatementError("42818", s, "SELECT ID, NAME FROM APP.CUSTOMER WHERE NAME <= 'Smith' ");
+      assertStatementError("42818", s, "SELECT ID, NAME FROM SPLICE.CUSTOMER WHERE NAME <= 'Smith' ");
 
       //Do some testing with MAX/MIN operators
-      s.executeUpdate("set schema APP");
+      s.executeUpdate("set schema SPLICE");
       checkLangBasedQuery(s, "SELECT MAX(NAME) maxName FROM CUSTOMER ORDER BY maxName ",
       		new String[][] {{"\u017Bebra"}});
       checkLangBasedQuery(s, "SELECT MIN(NAME) minName FROM CUSTOMER ORDER BY minName ",
@@ -1290,7 +1290,7 @@ private void commonTestingForTerritoryBasedDB(Statement s) throws SQLException{
     
     Connection conn = s.getConnection();
 
-    s.executeUpdate("set schema APP");
+    s.executeUpdate("set schema SPLICE");
     //Following sql will fail because the compilation schema is user schema
     //and hence the character constant "CUSTOMER" will pickup the collation
     //of user schema, which is territory based for this database. But the
@@ -1427,14 +1427,14 @@ private void commonTestingForTerritoryBasedDB(Statement s) throws SQLException{
     s.executeUpdate("set schema SYS");
     //Following will work because both operands are = have the collation type
     //of UCS_BASIC
-    checkLangBasedQuery(s, "SELECT CHAR(ID) FROM APP.CUSTOMER WHERE " +
+    checkLangBasedQuery(s, "SELECT CHAR(ID) FROM SPLICE.CUSTOMER WHERE " +
     		" CHAR(ID)='0'", new String[] [] {{"0"}});
     //Derby does not allow VARCHAR function on numeric columns and hence 
     //this VARCHAR test looks little different than the CHAR test above.
-    checkLangBasedQuery(s, "SELECT ID FROM APP.CUSTOMER WHERE " +
+    checkLangBasedQuery(s, "SELECT ID FROM SPLICE.CUSTOMER WHERE " +
     		" VARCHAR(NAME)='Smith'", new String[] [] {{"0"}});
     //Now try a negative test
-    s.executeUpdate("set schema APP");
+    s.executeUpdate("set schema SPLICE");
     //following will fail because CHAR(TABLENAME)= TABLENAME is causing compare
     //between 2 character string types with different collation types. The lhs
     //operand has collation of territory based but rhs operand has collation of
@@ -1450,15 +1450,15 @@ private void commonTestingForTerritoryBasedDB(Statement s) throws SQLException{
 
     //Test USER/CURRENT_USER/SESSION_USER/CURRENT SCHMEA/ CURRENT ISOLATION
     //following will fail because we are trying to compare UCS_BASIC 
-    //(CURRENT_USER) with territory based ("APP" taking it's collation from
+    //(CURRENT_USER) with territory based ("SPLICE" taking it's collation from
     //compilation schema which is user schema at this time). 
     assertStatementError("42818", s, "SELECT count(*) FROM CUSTOMER WHERE "+
-    		"CURRENT_USER = 'APP'");  
+    		"CURRENT_USER = 'SPLICE'");
     //The problem above can be fixed by CASTing CURRENT_USER so that the 
     //collation type will be picked up from compilation schema which is user
     //schema at this point.
     checkLangBasedQuery(s, "SELECT count(*) FROM CUSTOMER WHERE "+ 
-    		"CAST(CURRENT_USER AS CHAR(12)) = 'APP'",
+    		"CAST(CURRENT_USER AS CHAR(12)) = 'SPLICE'",
     		new String[][] {{"7"}});   
     //following comparison will not cause compilation error because both the
     //operands around = have collation type of UCS_BASIC
@@ -1476,13 +1476,13 @@ private void commonTestingForTerritoryBasedDB(Statement s) throws SQLException{
     		new String[][] {{"7"}});   
     //Following will not cause compilation error because both the operands
     //around the = have collation type of UCS_BASIC. We are in the SYS
-    //schema and hence character string constant 'APP' has picked the collation
+    //schema and hence character string constant 'SPLICE' has picked the collation
     //type of SYS schema which is UCS_BASIC
     s.executeUpdate("set schema SYS");
-    checkLangBasedQuery(s, "SELECT count(*) FROM APP.CUSTOMER WHERE "+ 
+    checkLangBasedQuery(s, "SELECT count(*) FROM SPLICE.CUSTOMER WHERE "+
     		"CURRENT SCHEMA = 'SYS'", new String[][] {{"7"}});   
     
-    s.executeUpdate("set schema APP");
+    s.executeUpdate("set schema SPLICE");
     if (XML.classpathMeetsXMLReqs()) {
         assertStatementError("42818", s, "SELECT XMLSERIALIZE(x as CHAR(10)) " +
         		" FROM xmlTable, SYS.SYSTABLES WHERE " + 
@@ -1505,7 +1505,7 @@ private void commonTestingForTerritoryBasedDB(Statement s) throws SQLException{
     //At this point, just create a function which involves character strings
     //in it's definition. In subsequent checkin, there will be collation 
     //related testing using this function's return value
-    s.executeUpdate("set schema APP");
+    s.executeUpdate("set schema SPLICE");
     s.executeUpdate("CREATE FUNCTION CONCAT_NOCALL(VARCHAR(10), VARCHAR(10)) "+
     		" RETURNS VARCHAR(20) RETURNS NULL ON NULL INPUT EXTERNAL NAME " + 
 			"'org.apache.derbyTesting.functionTests.tests.lang.RoutineTest.concat' "+
@@ -1523,7 +1523,7 @@ private void commonTestingForTerritoryBasedDB(Statement s) throws SQLException{
     //Following will work fine because ? is supposed to take it's collation 
     //from the context which in this case is from TABLENAME and TABLENAME
     //has collation type of UCS_BASIC
-    s.executeUpdate("set schema APP");
+    s.executeUpdate("set schema SPLICE");
     ps = prepareStatement("SELECT TABLENAME FROM SYS.SYSTABLES WHERE " +
     		" ? = TABLENAME");
     ps.setString(1, "SYSCOLUMNS");
@@ -1569,7 +1569,7 @@ private void commonTestingForTerritoryBasedDB(Statement s) throws SQLException{
     s.executeUpdate("set schema SYS");
     ps = prepareStatement("SELECT TABLENAME FROM SYS.SYSTABLES " +
     		" WHERE TABLENAME || ? LIKE 'SYSCOLUMNS'");   
-    s.executeUpdate("set schema APP");
+    s.executeUpdate("set schema SPLICE");
     //The following will fail because the left hand side of LIKE has collation
     //derivation of NONE where as the right hand side has collation derivation
     //of IMPLICIT
@@ -1732,8 +1732,8 @@ private void commonTestingForTerritoryBasedDB(Statement s) throws SQLException{
     rs = ps.executeQuery();
     JDBC.assertFullResultSet(rs,new String[][] {{"SYSCOLUMNS"}});
     //2)The other way to fix the query would be to do a CAST on TABLENAME so
-    //it will have the collation of current schema which is APP 
-    s.executeUpdate("set schema APP");
+    //it will have the collation of current schema which is SPLICE
+    s.executeUpdate("set schema SPLICE");
     ps = prepareStatement("SELECT TABLENAME FROM SYS.SYSTABLES WHERE " + 
 	" CAST(TABLENAME AS CHAR(10)) NOT IN (?, ' SYSCOLUMNS ') AND " +
 	" CAST(TABLENAME AS CHAR(10)) = 'SYSCOLUMNS' ");
@@ -1744,29 +1744,29 @@ private void commonTestingForTerritoryBasedDB(Statement s) throws SQLException{
     //Following will not fail because collation of ? here does not matter 
     //since we are not doing a collation related method 
     s.executeUpdate("set schema SYS");
-    ps = prepareStatement("INSERT INTO APP.CUSTOMER(NAME) VALUES(?)");
+    ps = prepareStatement("INSERT INTO SPLICE.CUSTOMER(NAME) VALUES(?)");
     ps.setString(1, "SYSCOLUMNS");
     ps.executeUpdate();
     ps.close();
-    s.executeUpdate("INSERT INTO APP.CUSTOMER(NAME) VALUES('abc')");
-    rs = s.executeQuery("SELECT COUNT(*) FROM APP.CUSTOMER ");
+    s.executeUpdate("INSERT INTO SPLICE.CUSTOMER(NAME) VALUES('abc')");
+    rs = s.executeQuery("SELECT COUNT(*) FROM SPLICE.CUSTOMER ");
     JDBC.assertFullResultSet(rs,new String[][] {{"9"}});
     //following will fail because NAME has collation type of territory based
     //but 'abc' has collation type of UCS_BASIC
-    assertStatementError("42818", s, "DELETE FROM APP.CUSTOMER WHERE NAME = 'abc'");
-    //changing to APP schema will fix the problem
-    s.executeUpdate("set schema APP");
-    s.executeUpdate("DELETE FROM APP.CUSTOMER WHERE NAME = 'abc'");
-    rs = s.executeQuery("SELECT COUNT(*) FROM APP.CUSTOMER ");
+    assertStatementError("42818", s, "DELETE FROM SPLICE.CUSTOMER WHERE NAME = 'abc'");
+    //changing to SPLICE schema will fix the problem
+    s.executeUpdate("set schema SPLICE");
+    s.executeUpdate("DELETE FROM SPLICE.CUSTOMER WHERE NAME = 'abc'");
+    rs = s.executeQuery("SELECT COUNT(*) FROM SPLICE.CUSTOMER ");
     JDBC.assertFullResultSet(rs,new String[][] {{"8"}});
     //End of parameter testing
     
     //The user table has to adhere to the collation type of the schema in which
     //it resides. If the table creation breaks that rule, then an exception 
     //will be thrown. DERBY-2879
-    s.executeUpdate("set schema APP");
+    s.executeUpdate("set schema SPLICE");
     //following fails as expected because otherwise character types in T will
-    //have collation type of UCS_BASIC but the APP schema has collation of
+    //have collation type of UCS_BASIC but the SPLICE schema has collation of
     //territory based
     assertStatementError("42ZA3", s, "CREATE TABLE T AS SELECT TABLENAME " +
     		" FROM SYS.SYSTABLES WITH NO DATA");
@@ -1835,7 +1835,7 @@ private void commonTestingForTerritoryBasedDB(Statement s) throws SQLException{
     //like V AS CLOB insdie XMLSERIALIZE as shown below 
     //SELECT ID, XMLSERIALIZE(V AS CLOB), XMLSERIALIZE(V AS CLOB) FROM 
     //    DERBY_2961 ORDER BY 1
-    s.executeUpdate("set schema APP");
+    s.executeUpdate("set schema SPLICE");
     if (XML.classpathMeetsXMLReqs()) {
         checkLangBasedQuery(s, "SELECT ID, XMLSERIALIZE(V AS CLOB) " +
         		" FROM DERBY_2961 ORDER BY 1",
@@ -1984,7 +1984,7 @@ private void setUpTable(Statement s) throws SQLException {
 
 private void dropTable(Statement s) throws SQLException {
 	
-    s.execute("DROP TABLE APP.CUSTOMER");     
+    s.execute("DROP TABLE SPLICE.CUSTOMER");
     s.getConnection().commit();
 }
 

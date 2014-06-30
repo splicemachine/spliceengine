@@ -75,7 +75,7 @@ splice> select count(*) from oldconglom;
 1          
 -----------
 1          
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'NOINDEXES', 0);
 0 rows inserted/updated/deleted
 splice> insert into newconglom
 select conglomeratenumber, conglomeratename 
@@ -103,7 +103,7 @@ splice> -- test with various sizes as we use bulk fetch
 insert into noindexes values (1, '1', 1.1), (2, '2', 2.2), (3, '3', 3.3),
      (4, '4', 4.4), (5, '5', 5.5), (6, '6', 6.6), (7, '7', 7.7);
 7 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'NOINDEXES', 0);
 0 rows inserted/updated/deleted
 splice> select * from noindexes;
 C1         |C2                            |C3     
@@ -119,7 +119,7 @@ splice> insert into noindexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9)
      (10, '10', 10.10), (11, '11', 11.11), (12, '12', 12.12), (13, '13', 13.13),
      (14, '14', 14.14), (15, '15', 15.15), (16, '16', 16.16);
 10 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'NOINDEXES', 0);
 0 rows inserted/updated/deleted
 splice> select * from noindexes;
 C1         |C2                            |C3     
@@ -143,7 +143,7 @@ C1         |C2                            |C3
 16         |16                            |16.16  
 splice> insert into noindexes values (17, '17', 17.17), (18, '18', 18.18);
 2 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'NOINDEXES', 0);
 0 rows inserted/updated/deleted
 splice> select * from noindexes;
 C1         |C2                            |C3     
@@ -185,7 +185,7 @@ splice> select count(*) from oldconglom;
 1          
 -----------
 6          
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 0);
 0 rows inserted/updated/deleted
 splice> insert into newconglom
 select conglomeratenumber, conglomeratename 
@@ -213,7 +213,7 @@ splice> -- test with various sizes as we use bulk fetch
 insert into indexes values (1, '1', 1.1), (2, '2', 2.2), (3, '3', 3.3),
      (4, '4', 4.4), (5, '5', 5.5), (6, '6', 6.6), (7, '7', 7.7);
 7 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 0);
 0 rows inserted/updated/deleted
 splice> select * from indexes;
 C1         |C2                            |C3     
@@ -229,7 +229,7 @@ splice> insert into indexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
      (10, '10', 10.10), (11, '11', 11.11), (12, '12', 12.12), (13, '13', 13.13),
      (14, '14', 14.14), (15, '15', 15.15), (16, '16', 16.16);
 10 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 0);
 0 rows inserted/updated/deleted
 splice> select * from indexes;
 C1         |C2                            |C3     
@@ -253,7 +253,7 @@ C1         |C2                            |C3
 16         |16                            |16.16  
 splice> insert into indexes values (17, '17', 17.17), (18, '18', 18.18);
 2 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 0);
 0 rows inserted/updated/deleted
 splice> select * from indexes;
 C1         |C2                            |C3     
@@ -293,9 +293,9 @@ splice> insert into p values ('1', 1, '1', 1);
 1 row inserted/updated/deleted
 splice> insert into f values (1, 1, 1), (1, 1, null);
 2 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'P', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'P', 0);
 0 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'F', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'F', 0);
 0 rows inserted/updated/deleted
 splice> insert into f values (1, 1, 1);
 1 row inserted/updated/deleted
@@ -317,7 +317,7 @@ create table pf (x int not null constraint p primary key, y int constraint f ref
 0 rows inserted/updated/deleted
 splice> insert into pf values (1,1), (2, 2);
 2 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'PF', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'PF', 0);
 0 rows inserted/updated/deleted
 splice> insert into pf values (3,1), (4, 2);
 2 rows inserted/updated/deleted
@@ -343,7 +343,7 @@ splice> create index t_si on t(s, i);
 0 rows inserted/updated/deleted
 splice> insert into t values (1, '1'), (2, '2');
 2 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T', 0);
 0 rows inserted/updated/deleted
 splice> select * from t;
 I          |S                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
@@ -372,7 +372,7 @@ splice> execute s;
 C1         |C2         
 -----------------------
 5          |6          
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T', 0);
 0 rows inserted/updated/deleted
 splice> execute p1;
 C1         |C2         
@@ -405,7 +405,7 @@ splice> insert into oldinfo select conglomeratename, numallocatedpages from new 
 1 row inserted/updated/deleted
 splice> delete from t where c1 in (1, 3, 5, 7);
 4 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T', 0);
 0 rows inserted/updated/deleted
 splice> create table newinfo (cname varchar(128), nap bigint);
 0 rows inserted/updated/deleted
@@ -421,7 +421,7 @@ splice> rollback;
 splice> -- sequential
 -- no indexes
 -- empty table
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'NOINDEXES', 1);
 0 rows inserted/updated/deleted
 splice> select * from v_noindexes;
 C1         |C2                            |C3     
@@ -430,7 +430,7 @@ splice> -- full table
 insert into noindexes values (1, '1', 1.1), (2, '2', 2.2), (3, '3', 3.3),
      (4, '4', 4.4), (5, '5', 5.5), (6, '6', 6.6), (7, '7', 7.7);
 7 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'NOINDEXES', 1);
 0 rows inserted/updated/deleted
 splice> select * from v_noindexes;
 C1         |C2                            |C3     
@@ -446,7 +446,7 @@ splice> insert into noindexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9)
      (10, '10', 10.10), (11, '11', 11.11), (12, '12', 12.12), (13, '13', 13.13),
      (14, '14', 14.14), (15, '15', 15.15), (16, '16', 16.16);
 10 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'NOINDEXES', 1);
 0 rows inserted/updated/deleted
 splice> select * from v_noindexes;
 C1         |C2                            |C3     
@@ -470,7 +470,7 @@ C1         |C2                            |C3
 16         |16                            |16.16  
 splice> insert into noindexes values (17, '17', 17.17), (18, '18', 18.18);
 2 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'NOINDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'NOINDEXES', 1);
 0 rows inserted/updated/deleted
 splice> select * from v_noindexes;
 C1         |C2                            |C3     
@@ -505,7 +505,7 @@ splice> drop index i_c2c1;
 splice> drop index i_c3c1;
 0 rows inserted/updated/deleted
 splice> -- empty table
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 1);
 0 rows inserted/updated/deleted
 splice> select * from indexes;
 C1         |C2                            |C3     
@@ -514,7 +514,7 @@ splice> -- full table
 insert into indexes values (1, '1', 1.1), (2, '2', 2.2), (3, '3', 3.3),
      (4, '4', 4.4), (5, '5', 5.5), (6, '6', 6.6), (7, '7', 7.7);
 7 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 1);
 0 rows inserted/updated/deleted
 splice> select * from indexes;
 C1         |C2                            |C3     
@@ -530,7 +530,7 @@ splice> insert into indexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
      (10, '10', 10.10), (11, '11', 11.11), (12, '12', 12.12), (13, '13', 13.13),
      (14, '14', 14.14), (15, '15', 15.15), (16, '16', 16.16);
 10 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 1);
 0 rows inserted/updated/deleted
 splice> select * from indexes;
 C1         |C2                            |C3     
@@ -554,7 +554,7 @@ C1         |C2                            |C3
 16         |16                            |16.16  
 splice> insert into indexes values (17, '17', 17.17), (18, '18', 18.18);
 2 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 1);
 0 rows inserted/updated/deleted
 splice> select * from indexes;
 C1         |C2                            |C3     
@@ -581,7 +581,7 @@ C1         |C2                            |C3
 splice> rollback;
 splice> -- multiple indexes
 -- empty table
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 1);
 0 rows inserted/updated/deleted
 splice> select * from indexes;
 C1         |C2                            |C3     
@@ -590,7 +590,7 @@ splice> -- full table
 insert into indexes values (1, '1', 1.1), (2, '2', 2.2), (3, '3', 3.3),
      (4, '4', 4.4), (5, '5', 5.5), (6, '6', 6.6), (7, '7', 7.7);
 7 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 1);
 0 rows inserted/updated/deleted
 splice> select * from indexes;
 C1         |C2                            |C3     
@@ -606,7 +606,7 @@ splice> insert into indexes values (8, '8', 8.8), (8, '8', 8.8), (9, '9', 9.9),
      (10, '10', 10.10), (11, '11', 11.11), (12, '12', 12.12), (13, '13', 13.13),
      (14, '14', 14.14), (15, '15', 15.15), (16, '16', 16.16);
 10 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 1);
 0 rows inserted/updated/deleted
 splice> select * from indexes;
 C1         |C2                            |C3     
@@ -630,7 +630,7 @@ C1         |C2                            |C3
 16         |16                            |16.16  
 splice> insert into indexes values (17, '17', 17.17), (18, '18', 18.18);
 2 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'INDEXES', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'INDEXES', 1);
 0 rows inserted/updated/deleted
 splice> select * from indexes;
 C1         |C2                            |C3     
@@ -676,7 +676,7 @@ splice> insert into tab values (5, 5, 'abc'), (6, 6,  'bcd');
 2 rows inserted/updated/deleted
 splice> insert into tab values (7, 7, 'abc'), (8, 8,  'bcd');
 2 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'TAB', 1);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'TAB', 1);
 0 rows inserted/updated/deleted
 splice> select * from tab;
 A          |B          |S                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
@@ -733,7 +733,7 @@ TAB                                                                             
 I_A                                                                                                                             |1                   
 I_S                                                                                                                             |1                   
 I_AB                                                                                                                            |1                   
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'TAB', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'TAB', 0);
 0 rows inserted/updated/deleted
 splice> -- verify space reclaimed
 select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
@@ -768,7 +768,7 @@ TAB                                                                             
 I_A                                                                                                                             |1                   
 I_S                                                                                                                             |1                   
 I_AB                                                                                                                            |1                   
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'TAB', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'TAB', 0);
 0 rows inserted/updated/deleted
 splice> --show new space usage
 select conglomeratename, numallocatedpages from new org.apache.derby.diag.SpaceTable('TAB') tab;
@@ -820,7 +820,7 @@ XENA_IDX2                                                                       
 splice> commit;
 splice> delete from xena where b = 1;
 1 row inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 0 rows inserted/updated/deleted
 splice> select 
      cast (conglomeratename as char(10)) as name, 
@@ -848,7 +848,7 @@ NAME      |ALOC|FREE|EST
 XENA      |2   |0   |0         
 XENA_IDX1 |1   |0   |0         
 XENA_IDX2 |1   |0   |0         
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 0 rows inserted/updated/deleted
 splice> select 
      cast (conglomeratename as char(10)) as name, 
@@ -876,7 +876,7 @@ NAME      |ALOC|FREE|EST
 XENA      |2   |0   |0         
 XENA_IDX1 |1   |0   |0         
 XENA_IDX2 |1   |0   |0         
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 0 rows inserted/updated/deleted
 splice> select 
      cast (conglomeratename as char(10)) as name, 
@@ -904,7 +904,7 @@ NAME      |ALOC|FREE|EST
 XENA      |2   |0   |0         
 XENA_IDX1 |1   |0   |0         
 XENA_IDX2 |1   |0   |0         
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 0 rows inserted/updated/deleted
 splice> select 
      cast (conglomeratename as char(10)) as name, 
@@ -968,7 +968,7 @@ NAME      |ALOC|FREE|EST
 XENA      |1   |0   |0         
 XENA_IDX1 |1   |0   |0         
 XENA_IDX2 |1   |0   |0         
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 0 rows inserted/updated/deleted
 splice> select 
      cast (conglomeratename as char(10)) as name, 
@@ -1016,7 +1016,7 @@ splice> insert into xena values (3, 3, 'x_comma', 'x_horse');
 splice> insert into xena values (4, 4, 'x_delta', 'x_goat');
 1 row inserted/updated/deleted
 splice> autocommit off;
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 0 rows inserted/updated/deleted
 splice> commit;
 splice> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize','4000');
@@ -1029,7 +1029,7 @@ splice> create unique index xena2 on xena (a, d);
 0 rows inserted/updated/deleted
 splice> create unique index xena3 on xena (c, d);
 0 rows inserted/updated/deleted
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 0 rows inserted/updated/deleted
 splice> select * from xena;
 A          |B          |C                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |D                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
@@ -1042,7 +1042,7 @@ A          |B          |C                                                       
 2          |2          |x_beta                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |x_mule                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
 3          |3          |x_comma                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |x_horse                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
 4          |4          |x_delta                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |x_goat                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
-splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'XENA', 0);
+splice> call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'XENA', 0);
 0 rows inserted/updated/deleted
 splice> select * from xena;
 A          |B          |C                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |D                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
@@ -1071,12 +1071,12 @@ SYSCS_UTIL.SYSCS_CHECK_TABLE(schemaname, tablename)
 order by schemaname, tablename;
 SCHEMANAME                                                                                                                      |TABLENAME                                                                                                                       |3          
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             |INDEXES                                                                                                                         |1          
-APP                                                                                                                             |NEWCONGLOM                                                                                                                      |1          
-APP                                                                                                                             |NOINDEXES                                                                                                                       |1          
-APP                                                                                                                             |OLDCONGLOM                                                                                                                      |1          
-APP                                                                                                                             |V_NOINDEXES                                                                                                                     |1          
-APP                                                                                                                             |XENA                                                                                                                            |1          
+SPLICE                                                                                                                             |INDEXES                                                                                                                         |1
+SPLICE                                                                                                                             |NEWCONGLOM                                                                                                                      |1
+SPLICE                                                                                                                             |NOINDEXES                                                                                                                       |1
+SPLICE                                                                                                                             |OLDCONGLOM                                                                                                                      |1
+SPLICE                                                                                                                             |V_NOINDEXES                                                                                                                     |1
+SPLICE                                                                                                                             |XENA                                                                                                                            |1
 SYS                                                                                                                             |SYSALIASES                                                                                                                      |1          
 SYS                                                                                                                             |SYSCHECKS                                                                                                                       |1          
 SYS                                                                                                                             |SYSCOLPERMS                                                                                                                     |1          
@@ -1199,14 +1199,14 @@ splice> insert into users (user_login) values('test1');
 1 row inserted/updated/deleted
 splice> insert into admins values (values identity_val_local());
 1 row inserted/updated/deleted
-splice> call syscs_util.syscs_compress_table('APP', 'ADMINS', 0);
+splice> call syscs_util.syscs_compress_table('SPLICE', 'ADMINS', 0);
 0 rows inserted/updated/deleted
 splice> -- do consistency check on the tables.
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'USERS');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'USERS');
 1          
 -----------
 1          
-splice> values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'ADMINS');
+splice> values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'ADMINS');
 1          
 -----------
 1          
@@ -1249,7 +1249,7 @@ STATID                              |REFERENCEID                         |TABLEI
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 splice> -- now compress the table and as part of the compress, Derby should generate
 --  statistics for all the indexes provided the table is not empty
-call syscs_util.syscs_compress_table('APP','DERBY737TABLE1',1);
+call syscs_util.syscs_compress_table('SPLICE','DERBY737TABLE1',1);
 0 rows inserted/updated/deleted
 splice> -- Will find statistics for index t1i1 on derby737table1 because compress
 --  table created it.
@@ -1313,7 +1313,7 @@ xxxxFILTERED-UUIDxxxx|xxxxFILTERED-UUIDxxxx|xxxxFILTERED-UUIDxxxx|xxxxxxFILTERED
 splice> -- now compress the table and as part of the compress, Derby should drop
 --  statistics for all the indexes and should not recreate them if the
 --  user table is empty
-call syscs_util.syscs_compress_table('APP','DERBY737TABLE2',1);
+call syscs_util.syscs_compress_table('SPLICE','DERBY737TABLE2',1);
 0 rows inserted/updated/deleted
 splice> select * from sys.sysstatistics;
 STATID                              |REFERENCEID                         |TABLEID                             |CREATIONTIMESTAMP            |&|VALID|COLCOUNT   |STATISTICS     
@@ -1339,7 +1339,7 @@ splice> -- don't check result from delete as the number of free pages is system
 -- performance dependent.  It depends on how quickly post commit can run and
 -- reclaim the space, the result will not be reproducible across all platforms.
 -- select conglomeratename, numallocatedpages, numfreepages from new org.apache.derby.diag.SpaceTable('T1') tab;
-call syscs_util.syscs_inplace_compress_table('APP','T1',2,2,2);
+call syscs_util.syscs_inplace_compress_table('SPLICE','T1',2,2,2);
 0 rows inserted/updated/deleted
 splice> select conglomeratename, numallocatedpages, numfreepages from new org.apache.derby.diag.SpaceTable('T1') tab;
 CONGLOMERATENAME                                                                                                                |NUMALLOCATEDPAGES   |NUMFREEPAGES        

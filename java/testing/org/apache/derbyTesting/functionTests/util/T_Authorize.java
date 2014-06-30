@@ -90,22 +90,22 @@ public class T_Authorize
 	 	verifyExecute(c,sText,1,args,shouldBeReadOnly,1);
 		verifyResult(c,qText,1,qArgs,false,null);
 
-		sText = "call sqlj.install_jar(AUTH_TEST.resourcefile('org.apache.derbyTesting.functionTests.testData.v1','j1v1.jar', 'extinout/j1v1.jar'), 'APP.J1', 0)";
+		sText = "call sqlj.install_jar(AUTH_TEST.resourcefile('org.apache.derbyTesting.functionTests.testData.v1','j1v1.jar', 'extinout/j1v1.jar'), 'SPLICE.J1', 0)";
 	 	verifyExecute(c,sText,0,args,shouldBeReadOnly,0);
 		qText = "select filename from sys.sysfiles where filename = 'J1'";
 		verifyResult(c,qText,0,qArgs,!shouldBeReadOnly,"J1");
 
 		if (shouldBeReadOnly)
-			sText = "call sqlj.replace_jar(AUTH_TEST.resourcefile('org.apache.derbyTesting.functionTests.testData.v2','j1v2.jar', 'extinout/j1v2.jar'), 'APP.IMMUTABLE')";
+			sText = "call sqlj.replace_jar(AUTH_TEST.resourcefile('org.apache.derbyTesting.functionTests.testData.v2','j1v2.jar', 'extinout/j1v2.jar'), 'SPLICE.IMMUTABLE')";
 		else
-			sText = "call sqlj.replace_jar(AUTH_TEST.resourcefile('org.apache.derbyTesting.functionTests.testData.v2','j1v2.jar', 'extinout/j1v2.jar'), 'APP.J1')";
+			sText = "call sqlj.replace_jar(AUTH_TEST.resourcefile('org.apache.derbyTesting.functionTests.testData.v2','j1v2.jar', 'extinout/j1v2.jar'), 'SPLICE.J1')";
 	 	verifyExecute(c,sText,0,args,shouldBeReadOnly,0);
 		verifyResult(c,qText,0,qArgs,!shouldBeReadOnly,"J1"); //RESOLVE: verify jar content
 
 		if (shouldBeReadOnly)
-			sText = "call sqlj.remove_jar('APP.IMMUTABLE', 0)";
+			sText = "call sqlj.remove_jar('SPLICE.IMMUTABLE', 0)";
 		else
-			sText = "call sqlj.remove_jar('APP.J1', 0)";
+			sText = "call sqlj.remove_jar('SPLICE.J1', 0)";
 	 	verifyExecute(c,sText,0,args,shouldBeReadOnly,0);
 		verifyResult(c,qText,0,qArgs,false,null); 
 

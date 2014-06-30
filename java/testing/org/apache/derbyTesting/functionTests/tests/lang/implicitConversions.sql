@@ -1149,7 +1149,7 @@ insert into t values (CHAR('2000-01-07'),
 insert into t values (CHAR('2000-1-06'), 
 		      CHAR('20:06:57'), 
 		      CHAR('2000-01-7 20:06:58.8000'));
-VALUES SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T');
+VALUES SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T');
 
 -- bug 2247, make sure that constant retyping
 -- (avoiding unnecessary normalization at execution)

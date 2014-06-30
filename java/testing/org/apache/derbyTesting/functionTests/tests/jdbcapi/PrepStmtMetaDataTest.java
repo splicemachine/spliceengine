@@ -199,7 +199,7 @@ public class PrepStmtMetaDataTest extends BaseJDBCTestCase {
         assertEquals("SMALLINT", rsmd.getColumnTypeName(1));
         assertEquals(5,rsmd.getPrecision(1));
         assertEquals(0, rsmd.getScale(1));
-        assertEquals("APP", rsmd.getSchemaName(1));
+        assertEquals("SPLICE", rsmd.getSchemaName(1));
         assertEquals("ALLDATATYPESTABLE",rsmd.getTableName(1));
         assertFalse(rsmd.isAutoIncrement(1));
         assertFalse(rsmd.isCurrency(1));

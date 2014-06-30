@@ -88,7 +88,7 @@ select max(c2) from tab1 where c1 = 34;
 values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
 
 -- test if bulk insert rebuilds desc index right
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'TAB1', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'TAB1', 0);
 select * from tab1 order by c1 desc;
 
 -- this tests multiple indexes share one conglomerate if they essentially
@@ -123,10 +123,10 @@ select count(distinct conglomeratenumber) from sys.sysconglomerates
 
 select * from tab2;
 
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'TAB2');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'TAB2');
 
 -- see if rebuild indexes correctly
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'TAB2', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'TAB2', 0);
 
 select count(distinct conglomeratenumber) from sys.sysconglomerates
 	where tableid = (select tableid from sys.systables
@@ -140,7 +140,7 @@ select * from tab2;
 delete from tab2 where c2 > 10 and c2 < 12;
 select * from tab2;
 
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'TAB2');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'TAB2');
 
 -- drop indexes
 drop index i22;
@@ -153,10 +153,10 @@ select count(distinct conglomeratenumber) from sys.sysconglomerates
 	where tableid = (select tableid from sys.systables
 						where tablename = 'TAB2');
 
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'TAB2', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'TAB2', 0);
 select * from tab2;
 
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'TAB2');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'TAB2');
 
 drop index i21;
 drop index i23;
@@ -168,7 +168,7 @@ select count(distinct conglomeratenumber) from sys.sysconglomerates
 	where tableid = (select tableid from sys.systables
 						where tablename = 'TAB2');
 
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'TAB2');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'TAB2');
 
 -- beetle 4974
 

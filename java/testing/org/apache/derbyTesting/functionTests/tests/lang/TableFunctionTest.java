@@ -303,14 +303,14 @@ public class TableFunctionTest extends BaseJDBCTestCase
 
     /** Expected rows from getFunctions() for  SIMPLEFUNCTIONTABLE */
     private static final Object[][]  GF_SFT= {
-        { NO_CATALOG, "APP", "SIMPLEFUNCTIONTABLE", "com.scores.proc.Functions.weighQuestion", FUNCTION_RETURNS_TABLE,  GENERIC_NAME }
+        { NO_CATALOG, "SPLICE", "SIMPLEFUNCTIONTABLE", "com.scores.proc.Functions.weighQuestion", FUNCTION_RETURNS_TABLE,  GENERIC_NAME }
     };
 
     /** Expected rows from getFunctionColumns() for  SIMPLEFUNCTIONTABLE */
     private static final Object[][]  GFC_SFT= {
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "SIMPLEFUNCTIONTABLE",
             "INTCOL",
             FUNCTION_RESULT_COLUMN,
@@ -331,7 +331,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "SIMPLEFUNCTIONTABLE",
             "VARCHARCOL",
             FUNCTION_RESULT_COLUMN,
@@ -354,14 +354,14 @@ public class TableFunctionTest extends BaseJDBCTestCase
 
     /** Expected rows from getFunctions() for  returnsAllLegalDatatypes */
     private static final Object[][]  GF_RADT= {
-        { NO_CATALOG, "APP", "RETURNSALLLEGALDATATYPES", "org.apache.derbyTesting.functionTests.tests.lang.TableFunctionTest.returnsAllLegalDatatypes", FUNCTION_RETURNS_TABLE,  GENERIC_NAME }
+        { NO_CATALOG, "SPLICE", "RETURNSALLLEGALDATATYPES", "org.apache.derbyTesting.functionTests.tests.lang.TableFunctionTest.returnsAllLegalDatatypes", FUNCTION_RETURNS_TABLE,  GENERIC_NAME }
     };
 
     /** Expected rows from getFunctionColumns() for  returnsAllLegalDatatypes */
     private static final Object[][]  GFC_RADT= {
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "INTARGUMENT",
             FUNCTION_COLUMN_IN,
@@ -382,7 +382,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "VARCHARARGUMENT",
             FUNCTION_COLUMN_IN,
@@ -404,7 +404,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
 
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN0",
             FUNCTION_RESULT_COLUMN,
@@ -425,7 +425,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN1",
             FUNCTION_RESULT_COLUMN,
@@ -446,7 +446,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN2",
             FUNCTION_RESULT_COLUMN,
@@ -467,7 +467,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN3",
             FUNCTION_RESULT_COLUMN,
@@ -488,7 +488,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN4",
             FUNCTION_RESULT_COLUMN,
@@ -509,7 +509,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN5",
             FUNCTION_RESULT_COLUMN,
@@ -530,7 +530,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN6",
             FUNCTION_RESULT_COLUMN,
@@ -551,7 +551,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN7",
             FUNCTION_RESULT_COLUMN,
@@ -572,7 +572,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN8",
             FUNCTION_RESULT_COLUMN,
@@ -593,7 +593,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN9",
             FUNCTION_RESULT_COLUMN,
@@ -614,7 +614,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN10",
             FUNCTION_RESULT_COLUMN,
@@ -635,7 +635,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN11",
             FUNCTION_RESULT_COLUMN,
@@ -656,7 +656,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN12",
             FUNCTION_RESULT_COLUMN,
@@ -677,7 +677,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN13",
             FUNCTION_RESULT_COLUMN,
@@ -698,7 +698,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN14",
             FUNCTION_RESULT_COLUMN,
@@ -719,7 +719,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN15",
             FUNCTION_RESULT_COLUMN,
@@ -740,7 +740,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN16",
             FUNCTION_RESULT_COLUMN,
@@ -761,7 +761,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN17",
             FUNCTION_RESULT_COLUMN,
@@ -782,7 +782,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN18",
             FUNCTION_RESULT_COLUMN,
@@ -803,7 +803,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN19",
             FUNCTION_RESULT_COLUMN,
@@ -824,7 +824,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN20",
             FUNCTION_RESULT_COLUMN,
@@ -845,7 +845,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
         },
         {
             NO_CATALOG,
-            "APP",
+            "SPLICE",
             "RETURNSALLLEGALDATATYPES",
             "COLUMN21",
             FUNCTION_RESULT_COLUMN,
@@ -2200,13 +2200,13 @@ public class TableFunctionTest extends BaseJDBCTestCase
         throws Exception
     {
         println( "\nExpecting correct function metadata from " + functionName );
-        ResultSet                   rs = getFunctions(  null, "APP", functionName );
+        ResultSet                   rs = getFunctions(  null, "SPLICE", functionName );
         JDBC.assertFullResultSet( rs, expectedGetFunctionsResult, false );
         rs.close();
         
         println( "\nExpecting correct function column metadata from " + functionName );
-        rs = getFunctionColumns(  null, "APP", functionName, "%" );
-        //prettyPrint( getConnection(), getFunctionColumns(  null, "APP", functionName, "%" ) );
+        rs = getFunctionColumns(  null, "SPLICE", functionName, "%" );
+        //prettyPrint( getConnection(), getFunctionColumns(  null, "SPLICE", functionName, "%" ) );
         JDBC.assertFullResultSet( rs, expectedGetFunctionColumnsResult, false );
         rs.close();
     }

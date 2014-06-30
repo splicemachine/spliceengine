@@ -145,10 +145,10 @@ public class DboPowersTest extends BaseJDBCTestCase
      * Users used by both dboShutdownSuite and dboEncryptionSuite
      */
     final static String[][] users = {
-        /* authLevel == AUTHENTICATION: dbo is APP/APP for db 'wombat',
+        /* authLevel == AUTHENTICATION: dbo is SPLICE/SPLICE for db 'wombat',
          * so use that as first user.
          */
-        {"APP", "U1"},
+        {"SPLICE", "U1"},
         /* authLevel == SQLAUTHORIZATION: sqlAuthorizationDecorator
          * decorator presumes TEST_DBO as dbo, so add it to set of
          * valid users. Uses a fresh db 'dbsqlauth', not 'wombat'.

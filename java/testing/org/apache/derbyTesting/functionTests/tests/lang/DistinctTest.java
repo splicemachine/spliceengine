@@ -69,10 +69,10 @@ public class DistinctTest extends BaseJDBCTestCase {
 				s.execute("create unique index three_c1 on three(c1)");
 				s.execute("create table four(c1 int, c2 int, c3 int, c4 int, c5 int)");
 				s.execute("create unique index four_c1c3 on four(c1, c3)");
-				s.execute("CREATE TABLE \"APP\".\"IDEPT\" (\"DISCRIM_DEPT\" VARCHAR(32), \"NO1\" INTEGER NOT NULL, " +
+				s.execute("CREATE TABLE \"SPLICE\".\"IDEPT\" (\"DISCRIM_DEPT\" VARCHAR(32), \"NO1\" INTEGER NOT NULL, " +
 						"\"NAME\" VARCHAR(50), \"AUDITOR_NO\" INTEGER, \"REPORTTO_NO\" INTEGER, \"HARDWAREASSET\"" +
 						" VARCHAR(15), \"SOFTWAREASSET\" VARCHAR(15))");
-				s.execute("ALTER TABLE \"APP\".\"IDEPT\" ADD CONSTRAINT \"PK_IDEPT\" PRIMARY KEY (\"NO1\")");
+				s.execute("ALTER TABLE \"SPLICE\".\"IDEPT\" ADD CONSTRAINT \"PK_IDEPT\" PRIMARY KEY (\"NO1\")");
 
 				s.execute("insert into one values (1, 1, 1, 1, 1)");
 				s.execute("insert into one values (2, 1, 1, 1, 1)");

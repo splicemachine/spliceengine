@@ -355,7 +355,7 @@ splice(ISO_READ_UNCOMMITTED)> autocommit off;
 splice(ISO_READ_UNCOMMITTED)> set isolation read uncommitted;
 0 rows inserted/updated/deleted
 splice(ISO_READ_UNCOMMITTED)> create table test_0 (a int);
-ERROR X0Y32: Table/View 'TEST_0' already exists in Schema 'APP'.
+ERROR X0Y32: Table/View 'TEST_0' already exists in Schema 'SPLICE'.
 splice(ISO_READ_UNCOMMITTED)> insert into test_0 values (1);
 1 row inserted/updated/deleted
 splice(ISO_READ_UNCOMMITTED)> commit;
@@ -640,7 +640,7 @@ splice(ISO_READ_UNCOMMITTED)> autocommit off;
 splice(ISO_READ_UNCOMMITTED)> set isolation read uncommitted;
 0 rows inserted/updated/deleted
 splice(ISO_READ_UNCOMMITTED)> create table test_0 (a int);
-ERROR X0Y32: Table/View 'TEST_0' already exists in Schema 'APP'.
+ERROR X0Y32: Table/View 'TEST_0' already exists in Schema 'SPLICE'.
 splice(ISO_READ_UNCOMMITTED)> insert into test_0 values (1);
 1 row inserted/updated/deleted
 splice(ISO_READ_UNCOMMITTED)> commit;
@@ -932,7 +932,7 @@ splice(ISO_READ_UNCOMMITTED)> autocommit off;
 splice(ISO_READ_UNCOMMITTED)> set isolation read uncommitted;
 0 rows inserted/updated/deleted
 splice(ISO_READ_UNCOMMITTED)> create table test_0 (a int);
-ERROR X0Y32: Table/View 'TEST_0' already exists in Schema 'APP'.
+ERROR X0Y32: Table/View 'TEST_0' already exists in Schema 'SPLICE'.
 splice(ISO_READ_UNCOMMITTED)> insert into test_0 values (1);
 1 row inserted/updated/deleted
 splice(ISO_READ_UNCOMMITTED)> commit;

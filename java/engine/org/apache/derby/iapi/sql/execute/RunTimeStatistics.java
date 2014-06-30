@@ -152,7 +152,7 @@ public interface RunTimeStatistics
 	 * otherwise, returns null.
 	 * <p>
 	 * Note that the name is returned in the schema.name
-	 * format (e.g. APP.MYSTMT).
+	 * format (e.g. SPLICE.MYSTMT).
 	 *
 	 * @return	The Stored Prepared Statement name of 
 	 * the associated statement, or null if it is not an EXECUTE 

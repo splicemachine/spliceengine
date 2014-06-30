@@ -253,7 +253,7 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
     // to a file in clear-text, care must taken by the user to prevent security breaches.
     // Derby-406 fix
     private String user = propertyDefault_user;
-    public final static String propertyDefault_user = "APP";
+    public final static String propertyDefault_user = "SPLICE";
 
     public static String getUser(Properties properties) {
         String userString = properties.getProperty(Attribute.USERNAME_ATTR);

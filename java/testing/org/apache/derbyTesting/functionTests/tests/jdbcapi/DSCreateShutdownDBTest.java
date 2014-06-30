@@ -151,7 +151,7 @@ public class DSCreateShutdownDBTest extends BaseJDBCTestCase {
         String dbName = 
             TestConfiguration.getCurrent().getDefaultDatabaseName();
         // just check that we really access the database
-        assertUpdateCount(createStatement(), 0, "set schema APP");
+        assertUpdateCount(createStatement(), 0, "set schema SPLICE");
    
         // check that first the value is null
         assertGetNull(dbName);
@@ -321,7 +321,7 @@ public class DSCreateShutdownDBTest extends BaseJDBCTestCase {
         JDBCDataSource.setBeanProperty(
                 ds, "ConnectionAttributes", "create=true");
         assertUpdateCount(
-            ds.getConnection().createStatement(), 0, "set schema APP");
+            ds.getConnection().createStatement(), 0, "set schema SPLICE");
         JDBCDataSource.clearStringBeanProperty(ds, "ConnectionAttributes");
         assertShutdownUsingSetOK(dbName, false);
     }
@@ -363,7 +363,7 @@ public class DSCreateShutdownDBTest extends BaseJDBCTestCase {
         JDBCDataSource.setBeanProperty(ds, "CreateDatabase", "create");
         // check that the db exists; execute an unnecessary, but harmless, stmt
         assertUpdateCount(
-            ds.getConnection().createStatement(), 0, "set schema APP");
+            ds.getConnection().createStatement(), 0, "set schema SPLICE");
         JDBCDataSource.clearStringBeanProperty(ds, "CreateDatabase");
         assertShutdownUsingSetOK(dbName, false);
     }
@@ -375,7 +375,7 @@ public class DSCreateShutdownDBTest extends BaseJDBCTestCase {
             ds, "ConnectionAttributes", "create=true");
         // check that the db exists; execute an unnecessary, but harmless, stmt
         assertUpdateCount(
-            ds.getConnection().createStatement(), 0, "set schema APP");
+            ds.getConnection().createStatement(), 0, "set schema SPLICE");
         JDBCDataSource.clearStringBeanProperty(ds, "CreateDatabase");
         JDBCDataSource.clearStringBeanProperty(ds, "ConnectionAttributes");
         assertShutdownUsingSetOK(dbName, true);

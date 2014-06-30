@@ -829,9 +829,9 @@ public final class ViewsTest extends BaseJDBCTestCase {
         s.executeUpdate("create view V (data, num) as select data, data2 + 2 from A group by data, data2");
         DatabaseMetaData dmd = getConnection().getMetaData();
         ResultSet columns = dmd.getColumns(null, null, "V", null);
-        String[][] expectedDBMetaRows = new String[][] {{"","APP","V","DATA","12","VARCHAR","20",null,null,null,"1","",null,null,null
+        String[][] expectedDBMetaRows = new String[][] {{"","SPLICE","V","DATA","12","VARCHAR","20",null,null,null,"1","",null,null,null
             ,"40","1","YES",null,null,null,null,"NO","NO",null},
-            {"","APP","V","NUM","4","INTEGER","10",null,"0","10","1","",null,null,null,null,"2","YES",null,null,null,null,"NO","NO",null}};  
+            {"","SPLICE","V","NUM","4","INTEGER","10",null,"0","10","1","",null,null,null,null,"2","YES",null,null,null,null,"NO","NO",null}};
         JDBC.assertFullResultSet(columns,expectedDBMetaRows);
         // Make sure ResultSetMetaData is right when selecting from view.
         // This wasn't a problem with DERBY-4230, but checking for good measure.
@@ -875,19 +875,19 @@ public final class ViewsTest extends BaseJDBCTestCase {
         ResultSet columns = dmd.getColumns(null, null, "V1", null);
 
         String[][] expectedDBMetaRows = new String[][]
-            {{"","APP","V1","J","4","INTEGER","10",null,"0","10","1","",
+            {{"","SPLICE","V1","J","4","INTEGER","10",null,"0","10","1","",
               null,null,null,null,"1","YES",null,null,null,null,"NO","NO",null},
-             {"","APP","V1","I","4","INTEGER","10",null,"0","10","1","",
+             {"","SPLICE","V1","I","4","INTEGER","10",null,"0","10","1","",
               null,null,null,null,"2","YES",null,null,null,null,"NO","NO",null}};
 
         JDBC.assertFullResultSet(columns,expectedDBMetaRows);
 
         expectedDBMetaRows = new String[][]
-            {{"","APP","V2","X","4","INTEGER","10",null,"0","10","1","",
+            {{"","SPLICE","V2","X","4","INTEGER","10",null,"0","10","1","",
               null,null,null,null,"1","YES",null,null,null,null,"NO","NO",null},
-             {"","APP","V2","Y","4","INTEGER","10",null,"0","10","1","",
+             {"","SPLICE","V2","Y","4","INTEGER","10",null,"0","10","1","",
               null,null,null,null,"2","YES",null,null,null,null,"NO","NO",null},
-             {"","APP","V2","Z","4","INTEGER","10",null,"0","10","1","",
+             {"","SPLICE","V2","Z","4","INTEGER","10",null,"0","10","1","",
               null,null,null,null,"3","YES",null,null,null,null,"NO","NO",null}};
 
         columns = dmd.getColumns(null, null, "V2", null);

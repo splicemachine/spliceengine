@@ -124,19 +124,19 @@ public class Changes10_9 extends UpgradeChange
         {
         case PH_CREATE: // create with old version
             s.execute("CREATE TABLE dropStatsT1 (c11 int, c12 int) ");
-            vetProcs(s, "call syscs_util.syscs_drop_statistics( 'APP', 'DROPSTATST1', null )", false);
+            vetProcs(s, "call syscs_util.syscs_drop_statistics( 'SPLICE', 'DROPSTATST1', null )", false);
             break;
             
         case PH_SOFT_UPGRADE: // boot with new version and soft-upgrade
-            vetProcs(s, "call syscs_util.syscs_drop_statistics( 'APP', 'DROPSTATST1', null )", false);
+            vetProcs(s, "call syscs_util.syscs_drop_statistics( 'SPLICE', 'DROPSTATST1', null )", false);
             break;
             
         case PH_POST_SOFT_UPGRADE: // soft-downgrade: boot with old version after soft-upgrade
-            vetProcs(s, "call syscs_util.syscs_drop_statistics( 'APP', 'DROPSTATST1', null )", false);
+            vetProcs(s, "call syscs_util.syscs_drop_statistics( 'SPLICE', 'DROPSTATST1', null )", false);
             break;
 
         case PH_HARD_UPGRADE: // boot with new version and hard-upgrade
-            vetProcs(s, "call syscs_util.syscs_drop_statistics( 'APP', 'DROPSTATST1', null )", true);
+            vetProcs(s, "call syscs_util.syscs_drop_statistics( 'SPLICE', 'DROPSTATST1', null )", true);
             s.execute("DROP TABLE dropStatsT1");
             break;
         }
@@ -919,8 +919,8 @@ public class Changes10_9 extends UpgradeChange
             // key constraint. Update statisitcs procedure is only available
             // in 10.5 and upwards and hence can't use that procedure here
             // since we are testing older releases too.
-            s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','TEST_TAB_2', null)");
-            //s.execute("CALL SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP','TEST_TAB_2',1)");
+            s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','TEST_TAB_2', null)");
+            //s.execute("CALL SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE','TEST_TAB_2',1)");
             stats.assertTableStats("TEST_TAB_2",2);
             s.executeUpdate("ALTER TABLE TEST_TAB_2 "+
                     "DROP CONSTRAINT TEST_TAB_2_FK_1");
@@ -928,26 +928,26 @@ public class Changes10_9 extends UpgradeChange
             // statistics row because of DERBY-5681.
             stats.assertTableStats("TEST_TAB_2",2);
             assertStatementError("42Y03", s,
-            "CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('APP','TEST_TAB_2', null)");
+            "CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','TEST_TAB_2', null)");
             break;
 
         case PH_SOFT_UPGRADE:
         case PH_POST_SOFT_UPGRADE:
             assertStatementError("42Y03", s,
-                       "CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('APP','TEST_TAB_2', null)");
+                       "CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','TEST_TAB_2', null)");
             break;
 
         case PH_HARD_UPGRADE:
             stats.assertTableStats("TEST_TAB_2",2);
-            s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('APP','TEST_TAB_2', null)");
+            s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','TEST_TAB_2', null)");
             stats.assertNoStatsTable("TEST_TAB_2");
-            s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','TEST_TAB_2', null)");
+            s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','TEST_TAB_2', null)");
             stats.assertNoStatsTable("TEST_TAB_2");
             break;
 
         case PH_POST_HARD_UPGRADE:
             //Make sure that the new procedure is still available
-            s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('APP','TEST_TAB_2', null)");
+            s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','TEST_TAB_2', null)");
             s.executeUpdate("DROP TABLE TEST_TAB_1");
             s.executeUpdate("DROP TABLE TEST_TAB_2");
             break;
@@ -986,7 +986,7 @@ public class Changes10_9 extends UpgradeChange
 
         final String TBL = "ISTAT_DISPOSABLE_STATS";
         String updateStatsSQL = "call syscs_util.syscs_update_statistics(" +
-                "'APP', ?, null)";
+                "'SPLICE', ?, null)";
         DisposableIndexStatistics dis =
                 new DisposableIndexStatistics(getConnection(), TBL);
 

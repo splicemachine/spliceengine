@@ -118,8 +118,8 @@ class xaHelper implements xaAbstractHelper
 			  
 			  String user;
 			  String password;
-			  user = "APP";
-			  password = "APP";
+			  user = "SPLICE";
+			  password = "SPLICE";
 			  xaHelper.setDataSourceProperty(currentXADataSource,
 											 "user", user);
 			  xaHelper.setDataSourceProperty(currentXADataSource,

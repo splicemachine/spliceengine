@@ -169,7 +169,7 @@ public class PoolXADSCreateShutdownDBTest extends BaseJDBCTestCase {
         String dbName = 
             TestConfiguration.getCurrent().getDefaultDatabaseName();
         // just check that we really access the database
-        assertUpdateCount(createStatement(), 0, "set schema APP");
+        assertUpdateCount(createStatement(), 0, "set schema SPLICE");
    
         // check that first the value is null
         assertGetNull(ds, dbName);
@@ -482,10 +482,10 @@ public class PoolXADSCreateShutdownDBTest extends BaseJDBCTestCase {
     protected void assertUpdateCount(Object ds) throws SQLException {        
         if (ds instanceof javax.sql.ConnectionPoolDataSource)
             assertUpdateCount(
-                ((ConnectionPoolDataSource)ds).getPooledConnection().getConnection().createStatement(), 0, "set schema APP");
+                ((ConnectionPoolDataSource)ds).getPooledConnection().getConnection().createStatement(), 0, "set schema SPLICE");
         else
             assertUpdateCount(
-                ((XADataSource)ds).getXAConnection().getConnection().createStatement(), 0, "set schema APP");
+                ((XADataSource)ds).getXAConnection().getConnection().createStatement(), 0, "set schema SPLICE");
     }
     
     

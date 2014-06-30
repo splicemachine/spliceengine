@@ -152,8 +152,8 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
                 " select * from lock_table order by tabname, type "
                 + "desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "1", "IX", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "X", "A", "(1,7)", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "1", "IX", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "X", "A", "(1,7)", "GRANT", "ACTIVE"}
         });
         commit();
         
@@ -163,8 +163,8 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
                 " select * from lock_table order by tabname, type "
                 + "desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "1", "IX", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "X", "A", "(1,8)", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "1", "IX", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "X", "A", "(1,8)", "GRANT", "ACTIVE"}
         });
         commit();
         
@@ -173,7 +173,7 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
                 " select * from lock_table order by tabname, type "
                 + "desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "3", "X", "*** TRANSIEN", "Tablelock", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "3", "X", "*** TRANSIEN", "Tablelock", "GRANT", "ACTIVE"}
         });
         commit();    
                 
@@ -188,7 +188,7 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
                 " select * from lock_table order by tabname, type "
                 + "desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "1", "X", "A", "Tablelock", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "1", "X", "A", "Tablelock", "GRANT", "ACTIVE"}
         });
         commit();
 
@@ -197,9 +197,9 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
                 " select * from lock_table order by tabname, type "
                 + "desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "4", "S", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "TABLE", "1", "X", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "TABLE", "1", "X", "A", "Tablelock", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "4", "S", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "TABLE", "1", "X", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "TABLE", "1", "X", "A", "Tablelock", "GRANT", "ACTIVE"}
         });
         commit();
  
@@ -210,8 +210,8 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
                 " select * from lock_table order by tabname, type "
                 + "desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "2", "IX", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "X", "A", "(1,7)", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "2", "IX", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "X", "A", "(1,7)", "GRANT", "ACTIVE"}
         });
         commit();
         
@@ -222,8 +222,8 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
                 " select * from lock_table order by tabname, type "
                 + "desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "2", "IX", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "X", "A", "(1,8)", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "2", "IX", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "X", "A", "(1,8)", "GRANT", "ACTIVE"}
         });
         commit();
 
@@ -246,9 +246,9 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
                 " select * from lock_table order by tabname, type "
                 + "desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "2", "IX", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "X", "A", "(1,10)", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "X", "A", "(2,6)", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "2", "IX", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "X", "A", "(1,10)", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "X", "A", "(2,6)", "GRANT", "ACTIVE"}
         });
         commit();
     
@@ -292,9 +292,9 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
         rs = st.executeQuery(
                 "select * from lock_table order by tabname, type desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "2", "IX", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "X", "A", "(1,9)", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "X", "A", "(2,7)", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "2", "IX", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "X", "A", "(1,9)", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "X", "A", "(2,7)", "GRANT", "ACTIVE"}
         });
 
         st.close();
@@ -317,7 +317,7 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
         
         rs = st.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "1", "S", "A", "Tablelock", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "1", "S", "A", "Tablelock", "GRANT", "ACTIVE"}
         });
         commit();
         
@@ -349,8 +349,8 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
         
         rs = st.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "1", "IS", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "S", "A", "(1,7)", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "1", "IS", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "S", "A", "(1,7)", "GRANT", "ACTIVE"}
         });
         commit();
         
@@ -371,8 +371,8 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
         
         rs = st.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "1", "IS", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "S", "A", "(1,10)", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "1", "IS", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "S", "A", "(1,10)", "GRANT", "ACTIVE"}
         });
         commit();
         
@@ -393,9 +393,9 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
         
         rs = st.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "1", "IS", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "S", "A", "(1,3)", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "S", "A", "(1,7)", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "1", "IS", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "S", "A", "(1,3)", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "S", "A", "(1,7)", "GRANT", "ACTIVE"}
         });
         
         commit();
@@ -408,8 +408,8 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
         
         rs = st.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "1", "IS", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "S", "A", "(1,8)", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "1", "IS", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "S", "A", "(1,8)", "GRANT", "ACTIVE"}
         });
         
         commit();
@@ -422,9 +422,9 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
         
         rs = st.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "1", "IS", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "S", "A", "(1,10)", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "S", "A", "(1,9)", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "1", "IS", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "S", "A", "(1,10)", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "S", "A", "(1,9)", "GRANT", "ACTIVE"}
         });
         
         commit();
@@ -444,8 +444,8 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
         
         rs = st.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "1", "IS", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "S", "A", "(1,3)", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "1", "IS", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "S", "A", "(1,3)", "GRANT", "ACTIVE"}
         });
         
         commit();
@@ -456,8 +456,8 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
         
         rs = st.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "1", "IS", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "S", "A", "(1,10)", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "1", "IS", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "S", "A", "(1,10)", "GRANT", "ACTIVE"}
         });
         
         commit();
@@ -468,8 +468,8 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
         
         rs = st.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "1", "IS", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "ROW", "1", "S", "A", "(1,8)", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "1", "IS", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "ROW", "1", "S", "A", "(1,8)", "GRANT", "ACTIVE"}
         });
         
         commit();
@@ -495,9 +495,9 @@ public class RowLockBasicTest extends BaseJDBCTestCase {
         ResultSet rs = st.executeQuery("select * from lock_table "
                 + "order by tabname, type desc, mode, cnt, lockname");
         JDBC.assertFullResultSet(rs, new String[][]{
-                {"APP", "UserTran", "TABLE", "4", "S", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "TABLE", "1", "X", "A", "Tablelock", "GRANT", "ACTIVE"},
-                {"APP", "UserTran", "TABLE", "1", "X", "A", "Tablelock", "GRANT", "ACTIVE"}
+                {"SPLICE", "UserTran", "TABLE", "4", "S", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "TABLE", "1", "X", "A", "Tablelock", "GRANT", "ACTIVE"},
+                {"SPLICE", "UserTran", "TABLE", "1", "X", "A", "Tablelock", "GRANT", "ACTIVE"}
         });
         commit();
 

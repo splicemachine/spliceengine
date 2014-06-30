@@ -89,11 +89,11 @@ ERROR 42Y07: Schema 'GOSH' does not exist
 splice> -- tests for qualified names in select, relative to method invocations
 create table mytab (i int);
 0 rows inserted/updated/deleted
-splice> create table APP.mytab2 (i int);
+splice> create table SPLICE.mytab2 (i int);
 0 rows inserted/updated/deleted
 splice> insert into mytab values 1,2,3;
 3 rows inserted/updated/deleted
-splice> insert into APP.mytab2 values 1,2,3;
+splice> insert into SPLICE.mytab2 values 1,2,3;
 3 rows inserted/updated/deleted
 splice> -- plain and just table names match up fine
 select i, mytab.i from mytab;
@@ -103,37 +103,37 @@ I          |I
 2          |2          
 3          |3          
 splice> -- schema names on columns
-select APP.mytab2.i from APP.mytab2;
+select SPLICE.mytab2.i from SPLICE.mytab2;
 I          
 -----------
 1          
 2          
 3          
-splice> select APP.mytab2.i from mytab2;
+splice> select SPLICE.mytab2.i from mytab2;
 I          
 -----------
 1          
 2          
 3          
-splice> select mytab2.i from APP.mytab2;
+splice> select mytab2.i from SPLICE.mytab2;
 I          
 -----------
 1          
 2          
 3          
 splice> -- schema names correlation names:
-select m.i from APP.mytab2 m;
+select m.i from SPLICE.mytab2 m;
 I          
 -----------
 1          
 2          
 3          
 splice> -- syntax errors on catalog names
-select nocatalogs.APP.mytab.i from mytab2;
-ERROR 42X04: Column 'NOCATALOGS.APP.MYTAB' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'NOCATALOGS.APP.MYTAB' is not a column in the target table.
+select nocatalogs.SPLICE.mytab.i from mytab2;
+ERROR 42X04: Column 'NOCATALOGS.SPLICE.MYTAB' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'NOCATALOGS.SPLICE.MYTAB' is not a column in the target table.
 splice> drop table mytab;
 0 rows inserted/updated/deleted
-splice> drop table APP.mytab2;
+splice> drop table SPLICE.mytab2;
 0 rows inserted/updated/deleted
 splice> ------------------------------------------------
 --
@@ -141,7 +141,7 @@ splice> ------------------------------------------------
 --
 ------------------------------------------------
 create schema app;
-ERROR X0Y68: Schema 'APP' already exists.
+ERROR X0Y68: Schema 'SPLICE' already exists.
 splice> create schema sys;
 ERROR 42939: An object cannot be created with the schema name 'SYS'.
 splice> -- negative drop test
@@ -149,9 +149,9 @@ drop schema does_not_exist RESTRICT;
 ERROR 42Y07: Schema 'DOES_NOT_EXIST' does not exist
 splice> -- negative create test - should not be able to create existing system schemas;
 create schema app;
-ERROR X0Y68: Schema 'APP' already exists.
-splice> create schema APP;
-ERROR X0Y68: Schema 'APP' already exists.
+ERROR X0Y68: Schema 'SPLICE' already exists.
+splice> create schema SPLICE;
+ERROR X0Y68: Schema 'SPLICE' already exists.
 splice> create schema sys;
 ERROR 42939: An object cannot be created with the schema name 'SYS'.
 splice> create schema SYS;
@@ -230,8 +230,8 @@ ERROR 42X62: 'CREATE TABLE' is not allowed in the 'SYSCS_UTIL' schema.
 splice> -- negative drop test - should not be able to drop system schema's
 drop schema app RESTRICT;
 0 rows inserted/updated/deleted
-splice> drop schema APP RESTRICT;
-ERROR 42Y07: Schema 'APP' does not exist
+splice> drop schema SPLICE RESTRICT;
+ERROR 42Y07: Schema 'SPLICE' does not exist
 splice> drop schema sys RESTRICT;
 ERROR 42Y67: Schema 'SYS' cannot be dropped.
 splice> drop schema SYS RESTRICT;
@@ -424,7 +424,7 @@ select schemaname, authorizationid
 	where CAST(schemaname AS VARCHAR(128)) = 'TEST';
 SCHEMANAME                                                                                                                      |AUTHORIZATIONID                                                                                                                 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-TEST                                                                                                                            |APP                                                                                                                             
+TEST                                                                                                                            |SPLICE
 splice> -- create a table in test
 set schema test;
 0 rows inserted/updated/deleted
@@ -456,12 +456,12 @@ splice> create view v2sampletab as select * from test.sampletab;
 splice> alter table sampletab add column c3 int;
 0 rows inserted/updated/deleted
 splice> -- switch schemas
-set schema APP;
+set schema SPLICE;
 0 rows inserted/updated/deleted
-splice> -- create table with same name in APP
+splice> -- create table with same name in SPLICE
 create table sampletab (c1 int constraint st_c1 check(c1 > 1), c2 char(20));
 0 rows inserted/updated/deleted
-splice> insert into sampletab values (2,'in schema: APP');
+splice> insert into sampletab values (2,'in schema: SPLICE');
 1 row inserted/updated/deleted
 splice> -- verify it
 --
@@ -473,14 +473,14 @@ where CAST(t.tablename AS VARCHAR(128)) = 'SAMPLETAB'
 order by schemaname, tablename;
 SCHEMANAME                                                                                                                      |TABLENAME                                                                                                                       |DESCR          
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             |SAMPLETAB                                                                                                                       |NULL           
+SPLICE                                                                                                                             |SAMPLETAB                                                                                                                       |NULL
 TEST                                                                                                                            |SAMPLETAB                                                                                                                       |BTREE (1)      
 TEST                                                                                                                            |SAMPLETAB                                                                                                                       |NULL           
 splice> -- select from both the tables
 select * from sampletab;
 C1         |C2                  
 --------------------------------
-2          |in schema: APP      
+2          |in schema: SPLICE
 splice> select * from test.sampletab;
 C1         |C2                  |C3         
 --------------------------------------------
@@ -495,7 +495,7 @@ C1         |C2                  |C3
 splice> select * from app.sampletab;
 C1         |C2                  
 --------------------------------
-2          |in schema: APP      
+2          |in schema: SPLICE
 splice> -- try a drop, should fail since we haven't
 -- cleaned out everything in the schema
 drop schema test RESTRICT;

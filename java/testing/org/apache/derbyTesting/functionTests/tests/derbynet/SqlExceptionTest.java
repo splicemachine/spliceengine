@@ -109,7 +109,7 @@ public class SqlExceptionTest extends BaseJDBCTestCase
     public void testSerializedException() throws Exception {
         // DERBY-62; verify an exception using table name can be serialized.
         try {
-            createStatement().execute("DROP TABLE APP.DERBY62_DAIN_SUNDSTROM");
+            createStatement().execute("DROP TABLE SPLICE.DERBY62_DAIN_SUNDSTROM");
             fail("should've received an error");
         } catch (SQLException sqle) {
             SQLException se_ser = recreateSQLException(sqle);

@@ -187,7 +187,7 @@ public class Derby5234Test extends BaseJDBCTestCase
         goodStatement
             (
              conn,
-             "call syscs_util.syscs_inplace_compress_table( 'APP', 'T5234', 0, 0, 1 )"
+             "call syscs_util.syscs_inplace_compress_table( 'SPLICE', 'T5234', 0, 0, 1 )"
              );
 
         conn.commit();

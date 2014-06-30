@@ -187,7 +187,7 @@ public class ImportExportTest extends BaseJDBCTestCase {
         // toSchema must be null to trigger the bug. The bug is not exposed if
         // the schema is explicit.
         doImport("T1", null, "T2", null, null, null, 0);
-        // Check that the rows were imported to the correct table (APP.T2)
+        // Check that the rows were imported to the correct table (SPLICE.T2)
         JDBC.assertSingleValueResultSet(
                 s.executeQuery("select count(*) from app.t2"), "4");
         setAutoCommit(false); // requirement for dropSchema()

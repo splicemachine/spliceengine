@@ -109,7 +109,7 @@ public class XATest extends BaseJDBCTestCase {
         ResultSet rs = s.executeQuery("select * from foo");
         JDBC.assertDrainResults(rs, 1);
 
-        String[][] expectedRows = { { "(0", "ACTIVE", "false", "APP",
+        String[][] expectedRows = { { "(0", "ACTIVE", "false", "SPLICE",
                 "UserTransaction" } };
 
         XATestUtil.checkXATransactionView(conn, expectedRows);
@@ -132,24 +132,24 @@ public class XATest extends BaseJDBCTestCase {
      * 
      * <code> xa_datasource 'wombat'; xa_connect user 'sku' password 'testxa' ;
      * 
-     * xa_start xa_noflags 1; xa_getconnection; insert into APP.foo values (1);
+     * xa_start xa_noflags 1; xa_getconnection; insert into SPLICE.foo values (1);
      * xa_end xa_suspend 1;
      * 
-     * xa_start xa_noflags 2; insert into APP.foo values (2); xa_end xa_suspend
+     * xa_start xa_noflags 2; insert into SPLICE.foo values (2); xa_end xa_suspend
      * 2;
      * 
-     * xa_start xa_resume 1; insert into APP.foo values (3); xa_end xa_suspend
+     * xa_start xa_resume 1; insert into SPLICE.foo values (3); xa_end xa_suspend
      * 1;
      * 
-     * xa_start xa_resume 2; insert into APP.foo values (4); select * from
-     * APP.global_xactTable where gxid is not null order by gxid; -- this
+     * xa_start xa_resume 2; insert into SPLICE.foo values (4); select * from
+     * SPLICE.global_xactTable where gxid is not null order by gxid; -- this
      * prepare won't work since transaction 1 has been suspended - XA_PROTO
      * xa_prepare 1;
      * 
-     * select * from APP.global_xactTable where gxid is not null order by gxid;
+     * select * from SPLICE.global_xactTable where gxid is not null order by gxid;
      * xa_end xa_success 2; -- this assumes a resume xa_end xa_success 1;
      * xa_prepare 1; xa_prepare 2; -- both transactions should be prepared
-     * select * from APP.global_xactTable where gxid is not null order by gxid; --
+     * select * from SPLICE.global_xactTable where gxid is not null order by gxid; --
      * NOTE: The following call to "xa_recover xa_startrscan" is apt to --
      * return the result set rows in reverse order when changes to -- the Derby
      * engine affect the number of transactions that it takes -- to create a
@@ -166,8 +166,8 @@ public class XATest extends BaseJDBCTestCase {
      * xa_recover xa_startrscan; xa_recover xa_noflags;
      * 
      * xa_commit xa_2Phase 1; xa_rollback 2; -- check results xa_start
-     * xa_noflags 3; select * from APP.global_xactTable where gxid is not null
-     * order by gxid; select * from APP.foo; xa_end xa_success 3;
+     * xa_noflags 3; select * from SPLICE.global_xactTable where gxid is not null
+     * order by gxid; select * from SPLICE.foo; xa_end xa_success 3;
      * 
      * xa_prepare 3; -- should fail with XA_NOTA because we prepared a read only
      * transaction xa_commit xa_1Phase 3; disconnect; </code>
@@ -191,19 +191,19 @@ public class XATest extends BaseJDBCTestCase {
         Connection conn = xac.getConnection();
 
         Statement s = conn.createStatement();
-        s.executeUpdate("insert into APP.fooInterleaving values (1)");
+        s.executeUpdate("insert into SPLICE.fooInterleaving values (1)");
         xar.end(xid1, XAResource.TMSUSPEND);
 
         xar.start(xid2, XAResource.TMNOFLAGS);
-        s.executeUpdate("insert into APP.fooInterleaving values (2)");
+        s.executeUpdate("insert into SPLICE.fooInterleaving values (2)");
         xar.end(xid2, XAResource.TMSUSPEND);
 
         xar.start(xid1, XAResource.TMRESUME);
-        s.executeUpdate("insert into APP.fooInterleaving values (3)");
+        s.executeUpdate("insert into SPLICE.fooInterleaving values (3)");
         xar.end(xid1, XAResource.TMSUSPEND);
 
         xar.start(xid2, XAResource.TMRESUME);
-        s.executeUpdate("insert into APP.fooInterleaving values (4)");
+        s.executeUpdate("insert into SPLICE.fooInterleaving values (4)");
 
         String[][] expectedRows = {
                 { "(1", "ACTIVE", "false", "SKU", "UserTransaction" },
@@ -266,7 +266,7 @@ public class XATest extends BaseJDBCTestCase {
         expectedRows = new String[][] { { "(3", "IDLE", "NULL", "SKU",
                 "UserTransaction" } };
         XATestUtil.checkXATransactionView(conn, expectedRows);
-        ResultSet rs = s.executeQuery("select * from APP.fooInterleaving");
+        ResultSet rs = s.executeQuery("select * from SPLICE.fooInterleaving");
         expectedRows = new String[][] { { "0" }, { "1" }, { "3" } };
         JDBC.assertFullResultSet(rs, expectedRows);
 
@@ -395,11 +395,11 @@ public class XATest extends BaseJDBCTestCase {
     public void testMorph() throws SQLException, XAException {
         Statement preStatement = getConnection().createStatement();
         preStatement.execute("create table fooMorph (a int)");
-        preStatement.executeUpdate("insert into APP.fooMorph values (0)");
-        preStatement.executeUpdate("insert into APP.fooMorph values (1)");
-        preStatement.executeUpdate("insert into APP.fooMorph values (2)");
-        preStatement.executeUpdate("insert into APP.fooMorph values (3)");
-        preStatement.executeUpdate("insert into APP.fooMorph values (4)");
+        preStatement.executeUpdate("insert into SPLICE.fooMorph values (0)");
+        preStatement.executeUpdate("insert into SPLICE.fooMorph values (1)");
+        preStatement.executeUpdate("insert into SPLICE.fooMorph values (2)");
+        preStatement.executeUpdate("insert into SPLICE.fooMorph values (3)");
+        preStatement.executeUpdate("insert into SPLICE.fooMorph values (4)");
         preStatement.close();
         
         XADataSource xads = J2EEDataSource.getXADataSource();
@@ -416,7 +416,7 @@ public class XATest extends BaseJDBCTestCase {
          */
         conn.setAutoCommit(false);
         Statement s = conn.createStatement();
-        s.executeUpdate("insert into APP.fooMorph values (2001)");
+        s.executeUpdate("insert into SPLICE.fooMorph values (2001)");
         // no rows expected
         XATestUtil.checkXATransactionView(conn, null);
         conn.commit();
@@ -428,7 +428,7 @@ public class XATest extends BaseJDBCTestCase {
          */
 
         conn.setAutoCommit(true);
-        s.executeUpdate("insert into APP.fooMorph values (2002)");
+        s.executeUpdate("insert into SPLICE.fooMorph values (2002)");
         XATestUtil.checkXATransactionView(conn, null);
 
         /*
@@ -439,10 +439,10 @@ public class XATest extends BaseJDBCTestCase {
 
         Xid xid = XATestUtil.getXid(1001, 66, 13);
         xar.start(xid, XAResource.TMNOFLAGS);
-        String[][] expectedRows = { { "(1", "IDLE", "NULL", "APP",
+        String[][] expectedRows = { { "(1", "IDLE", "NULL", "SPLICE",
                 "UserTransaction" } };
         XATestUtil.checkXATransactionView(conn, expectedRows);
-        s.executeUpdate("insert into APP.fooMorph values (2003)");
+        s.executeUpdate("insert into SPLICE.fooMorph values (2003)");
 
         /*
          * -- disallowed commit; -- disallowed rollback; -- disallowed
@@ -481,7 +481,7 @@ public class XATest extends BaseJDBCTestCase {
         // set, will execute but ResultSet will have close on commit
 
         // DERBY-1158 query with holdable statement
-        s.executeQuery("select * from APP.fooMorph where A >= 2000").close();
+        s.executeQuery("select * from SPLICE.fooMorph where A >= 2000").close();
         s.close();
 
         // statement created in global xact is CLOSE_CURSORS_AT_COMMIT
@@ -492,7 +492,7 @@ public class XATest extends BaseJDBCTestCase {
         /*
          * select * from foo; xa_end xa_success 1; xa_prepare 1;
          */
-        ResultSet rs = s.executeQuery("select * from APP.fooMorph where A >= 2000");
+        ResultSet rs = s.executeQuery("select * from SPLICE.fooMorph where A >= 2000");
         expectedRows = new String[][] { { "2001" }, { "2002" }, { "2003" } };
 
         rs.close();
@@ -552,17 +552,17 @@ public class XATest extends BaseJDBCTestCase {
          */
         conn = xac.getConnection();
         s = conn.createStatement();
-        s.executeUpdate("insert into APP.fooMorph values (2005)");
+        s.executeUpdate("insert into SPLICE.fooMorph values (2005)");
         conn.commit();
         conn.setAutoCommit(false);
-        s.executeUpdate("insert into APP.fooMorph values (2006)");
+        s.executeUpdate("insert into SPLICE.fooMorph values (2006)");
         conn.rollback();
-        s.executeUpdate("insert into APP.fooMorph values (2007)");
+        s.executeUpdate("insert into SPLICE.fooMorph values (2007)");
         conn.commit();
 
         expectedRows = new String[][] {
-                { "(1", "PREPARED", "false", "APP", "UserTransaction" },
-                { "(1", "IDLE", "NULL", "APP", "UserTransaction" } };
+                { "(1", "PREPARED", "false", "SPLICE", "UserTransaction" },
+                { "(1", "IDLE", "NULL", "SPLICE", "UserTransaction" } };
         XATestUtil.checkXATransactionView(conn, expectedRows);
         /*
          * -- I am still able to commit other global transactions while I am
@@ -574,7 +574,7 @@ public class XATest extends BaseJDBCTestCase {
         xar.rollback(xid2);
 
         XATestUtil.checkXATransactionView(conn, null);
-        rs = s.executeQuery("select * from APP.fooMorph where A >= 2000");
+        rs = s.executeQuery("select * from SPLICE.fooMorph where A >= 2000");
         expectedRows = new String[][] { { "2001" }, { "2002" }, { "2003" },
                 { "2005" }, { "2007" } };
         JDBC.assertFullResultSet(rs, expectedRows);
@@ -591,7 +591,7 @@ public class XATest extends BaseJDBCTestCase {
         conn.setAutoCommit(false);
         s = conn.createStatement();
         s.executeUpdate("delete from app.fooMorph");
-        rs = s.executeQuery("select * from APP.fooMorph");
+        rs = s.executeQuery("select * from SPLICE.fooMorph");
         JDBC.assertEmpty(rs);
         rs.close();
 
@@ -601,7 +601,7 @@ public class XATest extends BaseJDBCTestCase {
         conn = xac.getConnection();
         conn.setAutoCommit(false);
         s = conn.createStatement();
-        rs = s.executeQuery("select * from APP.fooMorph where A >= 2000");
+        rs = s.executeQuery("select * from SPLICE.fooMorph where A >= 2000");
         expectedRows = new String[][] { { "2001" }, { "2002" }, { "2003" },
                 { "2005" }, { "2007" } };
         JDBC.assertFullResultSet(rs, expectedRows);
@@ -642,8 +642,8 @@ public class XATest extends BaseJDBCTestCase {
          * null order by gxid,username; select * from foo;
          */
         s = conn.createStatement();
-        s.executeUpdate("delete from APP.fooMorph");
-        rs = s.executeQuery("select * from APP.fooMorph where A >= 2000");
+        s.executeUpdate("delete from SPLICE.fooMorph");
+        rs = s.executeQuery("select * from SPLICE.fooMorph where A >= 2000");
         JDBC.assertEmpty(rs);
 
         rs.close();
@@ -657,7 +657,7 @@ public class XATest extends BaseJDBCTestCase {
 
         conn = xac.getConnection();
         s = conn.createStatement();
-        rs = s.executeQuery("select * from APP.fooMorph where A >= 2000");
+        rs = s.executeQuery("select * from SPLICE.fooMorph where A >= 2000");
         expectedRows = new String[][] { { "2001" }, { "2002" }, { "2003" },
                 { "2005" }, { "2007" } };
         JDBC.assertFullResultSet(rs, expectedRows);
@@ -686,13 +686,13 @@ public class XATest extends BaseJDBCTestCase {
         Statement s = conn.createStatement();
         s.executeUpdate("CREATE TABLE foo4310_PS (I INT)");
 
-        conn.createStatement().executeUpdate("insert into APP.foo4310_PS values (0)");
-        conn.createStatement().executeUpdate("insert into APP.foo4310_PS values (1)");
-        conn.createStatement().executeUpdate("insert into APP.foo4310_PS values (2)");
+        conn.createStatement().executeUpdate("insert into SPLICE.foo4310_PS values (0)");
+        conn.createStatement().executeUpdate("insert into SPLICE.foo4310_PS values (1)");
+        conn.createStatement().executeUpdate("insert into SPLICE.foo4310_PS values (2)");
         conn.commit();
         
         /* Prepare and execute the statement to be tested */
-        PreparedStatement ps = conn.prepareStatement("SELECT * FROM APP.foo4310_PS");
+        PreparedStatement ps = conn.prepareStatement("SELECT * FROM SPLICE.foo4310_PS");
         ps.executeQuery().close();
 
         /* Start and end a transaction on the XAResource object */
@@ -775,16 +775,16 @@ public class XATest extends BaseJDBCTestCase {
     public void testDerby966() throws SQLException, XAException {
         Statement preStatement = getConnection().createStatement();
         preStatement.execute("create table foo966 (a int)");
-        preStatement.executeUpdate("insert into APP.foo966 values (0)");
-        preStatement.executeUpdate("insert into APP.foo966 values (1)");
-        preStatement.executeUpdate("insert into APP.foo966 values (2)");
-        preStatement.executeUpdate("insert into APP.foo966 values (3)");
-        preStatement.executeUpdate("insert into APP.foo966 values (4)");
-        preStatement.executeUpdate("insert into APP.foo966 values (2001)");
-        preStatement.executeUpdate("insert into APP.foo966 values (2002)");
-        preStatement.executeUpdate("insert into APP.foo966 values (2003)");
-        preStatement.executeUpdate("insert into APP.foo966 values (2005)");
-        preStatement.executeUpdate("insert into APP.foo966 values (2007)");
+        preStatement.executeUpdate("insert into SPLICE.foo966 values (0)");
+        preStatement.executeUpdate("insert into SPLICE.foo966 values (1)");
+        preStatement.executeUpdate("insert into SPLICE.foo966 values (2)");
+        preStatement.executeUpdate("insert into SPLICE.foo966 values (3)");
+        preStatement.executeUpdate("insert into SPLICE.foo966 values (4)");
+        preStatement.executeUpdate("insert into SPLICE.foo966 values (2001)");
+        preStatement.executeUpdate("insert into SPLICE.foo966 values (2002)");
+        preStatement.executeUpdate("insert into SPLICE.foo966 values (2003)");
+        preStatement.executeUpdate("insert into SPLICE.foo966 values (2005)");
+        preStatement.executeUpdate("insert into SPLICE.foo966 values (2007)");
         preStatement.close();
         
         XADataSource xads = J2EEDataSource.getXADataSource();
@@ -804,9 +804,9 @@ public class XATest extends BaseJDBCTestCase {
                 .getResultSetHoldability());
 
         checkHeldRS(conn, sdh, sdh.executeQuery("select * from app.foo966"));
-        PreparedStatement psdh = conn.prepareStatement("SELECT * FROM APP.foo966");
+        PreparedStatement psdh = conn.prepareStatement("SELECT * FROM SPLICE.foo966");
         PreparedStatement psdh_d = conn
-                .prepareStatement("DELETE FROM APP.foo966 WHERE A < -99");
+                .prepareStatement("DELETE FROM SPLICE.foo966 WHERE A < -99");
         assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, psdh
                 .getResultSetHoldability());
         checkHeldRS(conn, psdh, psdh.executeQuery());
@@ -816,11 +816,11 @@ public class XATest extends BaseJDBCTestCase {
         assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, shh
                 .getResultSetHoldability());
         checkHeldRS(conn, shh, shh.executeQuery("select * from app.foo966"));
-        PreparedStatement pshh = conn.prepareStatement("SELECT * FROM APP.foo966",
+        PreparedStatement pshh = conn.prepareStatement("SELECT * FROM SPLICE.foo966",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
                 ResultSet.HOLD_CURSORS_OVER_COMMIT);
         PreparedStatement pshh_d = conn.prepareStatement(
-                "DELETE FROM APP.foo966 WHERE A < -99",
+                "DELETE FROM SPLICE.foo966 WHERE A < -99",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
                 ResultSet.HOLD_CURSORS_OVER_COMMIT);
         assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, shh
@@ -833,11 +833,11 @@ public class XATest extends BaseJDBCTestCase {
                 .getResultSetHoldability());
 
         checkHeldRS(conn, sch, sch.executeQuery("select * from app.foo966"));
-        PreparedStatement psch = conn.prepareStatement("SELECT * FROM APP.foo966",
+        PreparedStatement psch = conn.prepareStatement("SELECT * FROM SPLICE.foo966",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
                 ResultSet.CLOSE_CURSORS_AT_COMMIT);
         PreparedStatement psch_d = conn.prepareStatement(
-                "DELETE FROM APP.foo966 WHERE A < -99",
+                "DELETE FROM SPLICE.foo966 WHERE A < -99",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
                 ResultSet.CLOSE_CURSORS_AT_COMMIT);
         assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, psch_d
@@ -851,9 +851,9 @@ public class XATest extends BaseJDBCTestCase {
         assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, sdc
                 .getResultSetHoldability());
         checkHeldRS(conn, sdc, sdc.executeQuery("select * from app.foo966"));
-        PreparedStatement psdc = conn.prepareStatement("SELECT * FROM APP.foo966");
+        PreparedStatement psdc = conn.prepareStatement("SELECT * FROM SPLICE.foo966");
         PreparedStatement psdc_d = conn
-                .prepareStatement("DELETE FROM APP.foo966 WHERE A < -99");
+                .prepareStatement("DELETE FROM SPLICE.foo966 WHERE A < -99");
         assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, psdc
                 .getResultSetHoldability());
         checkHeldRS(conn, psdc, psdc.executeQuery());
@@ -863,11 +863,11 @@ public class XATest extends BaseJDBCTestCase {
         assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, psdc
                 .getResultSetHoldability());
         checkHeldRS(conn, shc, shc.executeQuery("select * from app.foo966"));
-        PreparedStatement pshc = conn.prepareStatement("SELECT * FROM APP.foo966",
+        PreparedStatement pshc = conn.prepareStatement("SELECT * FROM SPLICE.foo966",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
                 ResultSet.HOLD_CURSORS_OVER_COMMIT);
         PreparedStatement pshc_d = conn.prepareStatement(
-                "DELETE FROM APP.foo966 WHERE A < -99",
+                "DELETE FROM SPLICE.foo966 WHERE A < -99",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
                 ResultSet.HOLD_CURSORS_OVER_COMMIT);
         assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, pshc
@@ -880,11 +880,11 @@ public class XATest extends BaseJDBCTestCase {
         assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, scc
                 .getResultSetHoldability());
         checkHeldRS(conn, scc, scc.executeQuery("select * from app.foo966"));
-        PreparedStatement pscc = conn.prepareStatement("SELECT * FROM APP.foo966",
+        PreparedStatement pscc = conn.prepareStatement("SELECT * FROM SPLICE.foo966",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
                 ResultSet.CLOSE_CURSORS_AT_COMMIT);
         PreparedStatement pscc_d = conn.prepareStatement(
-                "DELETE FROM APP.foo966 WHERE A < -99",
+                "DELETE FROM SPLICE.foo966 WHERE A < -99",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
                 ResultSet.CLOSE_CURSORS_AT_COMMIT);
         assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, pscc
@@ -895,7 +895,7 @@ public class XATest extends BaseJDBCTestCase {
         // Revert back to holdable
         conn.setHoldability(ResultSet.HOLD_CURSORS_OVER_COMMIT);
 
-        ResultSet rs = sdh.executeQuery("SELECT * FROM APP.foo966");
+        ResultSet rs = sdh.executeQuery("SELECT * FROM SPLICE.foo966");
         rs.next();
         // before commit
         assertEquals(0, +rs.getInt(1));
@@ -906,7 +906,7 @@ public class XATest extends BaseJDBCTestCase {
         rs.close();
 
         // ensure a transaction is active to test DERBY-1025
-        rs = sdh.executeQuery("SELECT * FROM APP.foo966");
+        rs = sdh.executeQuery("SELECT * FROM SPLICE.foo966");
 
         // This switch to global is ok because conn
         // is in auto-commit mode, thus the start performs
@@ -916,18 +916,18 @@ public class XATest extends BaseJDBCTestCase {
         xar.start(xid, XAResource.TMNOFLAGS);
 
         // Statements not returning ResultSet's should be ok
-        sdh.executeUpdate("DELETE FROM APP.foo966 where A < -99");
-        shh.executeUpdate("DELETE FROM APP.foo966 where A < -99");
-        sch.executeUpdate("DELETE FROM APP.foo966 where A < -99");
+        sdh.executeUpdate("DELETE FROM SPLICE.foo966 where A < -99");
+        shh.executeUpdate("DELETE FROM SPLICE.foo966 where A < -99");
+        sch.executeUpdate("DELETE FROM SPLICE.foo966 where A < -99");
 
         ArrayList openRS = new ArrayList();
 
         // Statements obtained while default was hold.
         // All should work, holability will be downgraded
         // to close on commit for those Statements with hold set.
-        openRS.add(sdh.executeQuery("SELECT * FROM APP.foo966"));
-        openRS.add(shh.executeQuery("SELECT * FROM APP.foo966"));
-        openRS.add(sch.executeQuery("SELECT * FROM APP.foo966"));
+        openRS.add(sdh.executeQuery("SELECT * FROM SPLICE.foo966"));
+        openRS.add(shh.executeQuery("SELECT * FROM SPLICE.foo966"));
+        openRS.add(sch.executeQuery("SELECT * FROM SPLICE.foo966"));
 
         // PreparedStatements obtained while default was hold.
         // Holdability should be downgraded.
@@ -941,15 +941,15 @@ public class XATest extends BaseJDBCTestCase {
         psch_d.executeUpdate();
 
         // Statements not returning ResultSet's should be ok
-        sdc.executeUpdate("DELETE FROM APP.foo966 where A < -99");
-        shc.executeUpdate("DELETE FROM APP.foo966 where A < -99");
-        scc.executeUpdate("DELETE FROM APP.foo966 where A < -99");
+        sdc.executeUpdate("DELETE FROM SPLICE.foo966 where A < -99");
+        shc.executeUpdate("DELETE FROM SPLICE.foo966 where A < -99");
+        scc.executeUpdate("DELETE FROM SPLICE.foo966 where A < -99");
 
         // Statements obtained while default was close.
         // all should return close on commit ResultSets
-        openRS.add(sdc.executeQuery("SELECT * FROM APP.foo966"));
-        openRS.add(shc.executeQuery("SELECT * FROM APP.foo966"));
-        openRS.add(scc.executeQuery("SELECT * FROM APP.foo966"));
+        openRS.add(sdc.executeQuery("SELECT * FROM SPLICE.foo966"));
+        openRS.add(shc.executeQuery("SELECT * FROM SPLICE.foo966"));
+        openRS.add(scc.executeQuery("SELECT * FROM SPLICE.foo966"));
 
         // PreparedStatements obtained while default was close.
         openRS.add(psdc.executeQuery());
@@ -996,7 +996,7 @@ public class XATest extends BaseJDBCTestCase {
         // DERBY2481 Client does not downgrade PreparedStatement holdability
         if (!usingDerbyNetClient()) {
             PreparedStatement psglobalhold = conn.prepareStatement(
-                    "SELECT * FROM APP.foo966", ResultSet.TYPE_FORWARD_ONLY,
+                    "SELECT * FROM SPLICE.foo966", ResultSet.TYPE_FORWARD_ONLY,
                     ResultSet.CONCUR_READ_ONLY,
                     ResultSet.HOLD_CURSORS_OVER_COMMIT);
             assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, psglobalhold

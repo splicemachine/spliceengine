@@ -82,7 +82,7 @@ public class CompressTable {
 			conn.setAutoCommit(true);
 			CallableStatement cs = conn
 				.prepareCall("CALL SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE(?, ?, ?, ?, ?)");
-			cs.setString(1, "APP");
+			cs.setString(1, "SPLICE");
 			cs.setString(2, "DATATYPES");
 			cs.setShort(3, (short) 1);
 			cs.setShort(4, (short) 1);

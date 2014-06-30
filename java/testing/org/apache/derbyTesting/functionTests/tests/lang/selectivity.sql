@@ -926,7 +926,7 @@ create index t3_xy on t3(x,y);
 select * from showstats order by indexname, stats, createtime, ncols;
 
 delete from t3 where z is null;
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T3', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T3', 0);
 
 select * from showstats order by indexname, stats, createtime, ncols; -- all should be hunky dory.
 

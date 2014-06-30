@@ -226,8 +226,8 @@ jdbc:derby:myDB;create=true;user=me;password=mine
 <h3>About Schema Names</h3>
 <p>
 If a database is created in Derby using the embedded driver and no user
-name is specified, the default schema used becomes <b>APP</b>.  Therefore
-any tables created in the database have a schema name of <b>APP</b>.
+name is specified, the default schema used becomes <b>SPLICE</b>.  Therefore
+any tables created in the database have a schema name of <b>SPLICE</b>.
 However, when creating a Derby database using the Network Server, the value
 for the schema becomes the value of the username used to connect with as
 part of the database URL.  In our example we first created the <b>myDB</b> 
@@ -235,7 +235,7 @@ database using the user <b>me</b>.
 </p>
 <p>
 When we change the application to connect using the embedded driver, the 
-schema will default to <b>APP</b> unless we explicitly specify a schema, 
+schema will default to <b>SPLICE</b> unless we explicitly specify a schema,
 or pass the username as part of the Database connection URL. To access the 
 table without passing the username as part of the embedded driver Database 
 URL we would refer to the table as <b>ME.restaurants</b>.

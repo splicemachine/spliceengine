@@ -24,10 +24,10 @@ xa_datasource 'wombat';
 xa_connect ;
 xa_start xa_noflags 0;
 xa_getconnection;
-drop table APP.foo;
-create table APP.foo (a int);
-insert into APP.foo values (0);
-select * from APP.foo;
+drop table SPLICE.foo;
+create table SPLICE.foo (a int);
+insert into SPLICE.foo values (0);
+select * from SPLICE.foo;
 run resource '/org/apache/derbyTesting/functionTests/tests/store/global_xactTable.view';
 select * from global_xactTable where gxid is not null order by gxid, username, status;
 xa_end xa_success 0;
@@ -44,47 +44,47 @@ xa_connect user 'mamta' password 'mamta' ;
 -- global connection 1
 xa_start xa_noflags 1;
 xa_getconnection;
-insert into APP.foo values (1);
+insert into SPLICE.foo values (1);
 xa_end xa_suspend 1;
 
 -- global connection 2
 xa_start xa_noflags 2;
-insert into APP.foo values (2);
+insert into SPLICE.foo values (2);
 xa_end xa_suspend 2;
 
 -- global connection 3
 xa_start xa_noflags 3;
-insert into APP.foo values (3);
+insert into SPLICE.foo values (3);
 xa_end xa_suspend 3;
 
 -- global connection 4
 xa_start xa_noflags 4;
-insert into APP.foo values (4);
+insert into SPLICE.foo values (4);
 xa_end xa_suspend 4;
 
 -- global connection 5
 xa_start xa_noflags 5;
-insert into APP.foo values (5);
+insert into SPLICE.foo values (5);
 xa_end xa_suspend 5;
 
 xa_start xa_resume 1;
-insert into APP.foo values (11);
+insert into SPLICE.foo values (11);
 xa_end xa_suspend 1;
 
 xa_start xa_resume 5;
-insert into APP.foo values (55);
+insert into SPLICE.foo values (55);
 xa_end xa_suspend 5;
 
 xa_start xa_resume 2;
-insert into APP.foo values (22);
+insert into SPLICE.foo values (22);
 xa_end xa_suspend 2;
 
 xa_start xa_resume 4;
-insert into APP.foo values (44);
+insert into SPLICE.foo values (44);
 xa_end xa_suspend 4;
 
 xa_start xa_resume 3;
-insert into APP.foo values (33);
+insert into SPLICE.foo values (33);
 xa_end xa_suspend 3;
 
 -- prepare all the global connections except the first one. This way, we will see all
@@ -118,9 +118,9 @@ xa_connect user 'mamta1' password 'mamta1';
 
 connect 'wombat' as local2;
 autocommit off;
--- this will time out because there are locks on the table APP.foo from the global
+-- this will time out because there are locks on the table SPLICE.foo from the global
 -- transactions
-select * from APP.foo;
+select * from SPLICE.foo;
 -- should see 4 global transactions and a local connection
 select * from global_xactTable where gxid is not null order by gxid, username, status;
 
@@ -132,15 +132,15 @@ xa_commit xa_2Phase 4;
 -- add couple more global transactions
 xa_start xa_noflags 6;
 xa_getconnection;
-insert into APP.foo values (6);
+insert into SPLICE.foo values (6);
 xa_end xa_suspend 6;
 
 xa_start xa_noflags 7;
-insert into APP.foo values (7);
+insert into SPLICE.foo values (7);
 xa_end xa_suspend 7;
 
 xa_start xa_noflags 8;
-insert into APP.foo values (8);
+insert into SPLICE.foo values (8);
 xa_end xa_suspend 8;
 
 -- once a transaction is in prepare mode, can't resume it. Can only commit/rollback
@@ -148,15 +148,15 @@ xa_end xa_suspend 8;
 xa_start xa_resume 5;
 
 xa_start xa_resume 6;
-insert into APP.foo values (66);
+insert into SPLICE.foo values (66);
 xa_end xa_suspend 6;
 
 xa_start xa_resume 8;
-insert into APP.foo values (88);
+insert into SPLICE.foo values (88);
 xa_end xa_suspend 8;
 
 xa_start xa_resume 7;
-insert into APP.foo values (77);
+insert into SPLICE.foo values (77);
 xa_end xa_suspend 7;
 
 -- prepare the global transactions added after the database boot
@@ -182,7 +182,7 @@ xa_connect user 'mamta2' password 'mamta2';
 connect 'wombat' as local4;
 autocommit off;
 -- this will time out as expected
-select * from APP.foo;
+select * from SPLICE.foo;
 -- will see 4 global transactions and 1 local transaction
 select * from global_xactTable where gxid is not null order by gxid, username, status;
 
@@ -194,11 +194,11 @@ xa_connect user 'mamta3' password 'mamta3';
 
 connect 'wombat' as local5;
 autocommit off;
-insert into APP.foo values(90);
+insert into SPLICE.foo values(90);
 
 connect 'wombat' as local6;
 autocommit off;
-insert into APP.foo values(101);
+insert into SPLICE.foo values(101);
 
 -- 4 global transactions and 2 local transactions
 select * from global_xactTable where gxid is not null order by gxid, username, status;
@@ -210,8 +210,8 @@ xa_commit xa_2Phase 7;
 xa_rollback 8;
 
 -- at this point, still time out because there are 2 local transactions
--- holding locks on table APP.foo
-select * from APP.foo;
+-- holding locks on table SPLICE.foo
+select * from SPLICE.foo;
 select * from global_xactTable where gxid is not null order by gxid, username, status;
 
 xa_datasource 'wombat' shutdown;
@@ -222,8 +222,8 @@ xa_connect user 'mamta4' password 'mamta4';
 
 connect 'wombat' as local7;
 autocommit off;
--- no more locks on table APP.foo and hence select won't time out.
-select * from APP.foo;
+-- no more locks on table SPLICE.foo and hence select won't time out.
+select * from SPLICE.foo;
 -- no more global transactions, just one local transaction
 select * from global_xactTable where gxid is not null order by gxid, username, status;
 

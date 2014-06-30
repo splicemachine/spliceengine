@@ -60,7 +60,7 @@ splice> -- negative testing for an insert
 -- "c1 " is not in success1
 insert into success1 (c1, "c1 ", " C1", " C1 ", "  C1  ") 
 values (11, 12, 13, 14, 15);
-ERROR 42X14: 'c1 ' is not a column in table or VTI 'APP.SUCCESS1'.
+ERROR 42X14: 'c1 ' is not a column in table or VTI 'SPLICE.SUCCESS1'.
 splice> -- C1 appears twice in the column list - C1 and "C1"
 insert into success1 (C1, "C1", " C1", " C1 ", "  C1  ") 
 values (16, 17, 18, 19, 20);

@@ -79,7 +79,7 @@ splice> -- Now check some explicit properties
 -- See what the default is first
 create table T (i int);
 0 rows inserted/updated/deleted
-splice> values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.pageSize');
+splice> values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.pageSize');
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 4096                                                                                                                            
@@ -91,7 +91,7 @@ call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', '16384');
 splice> -- this create table should pick up the per-database
 create table T (i int);
 0 rows inserted/updated/deleted
-splice> values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.pageSize');
+splice> values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.pageSize');
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 16384                                                                                                                           
@@ -101,7 +101,7 @@ splice> -- ************ derby.storage.minimumRecordSize
 -- See what the default is first
 create table T (i int);
 0 rows inserted/updated/deleted
-splice> values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.minimumRecordSize');
+splice> values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.minimumRecordSize');
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 12                                                                                                                              
@@ -113,7 +113,7 @@ call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.minimumRecordSize', '
 splice> -- this create table should pick up the per-database
 create table T (i int);
 0 rows inserted/updated/deleted
-splice> values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.minimumRecordSize');
+splice> values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.minimumRecordSize');
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 42                                                                                                                              
@@ -123,7 +123,7 @@ splice> -- ************ derby.storage.pageReservedSpace
 -- See what the default is first
 create table T (i int);
 0 rows inserted/updated/deleted
-splice> values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.pageReservedSpace');
+splice> values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.pageReservedSpace');
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 20                                                                                                                              
@@ -135,7 +135,7 @@ call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageReservedSpace', '
 splice> -- this create table should pick up the per-database
 create table T (i int);
 0 rows inserted/updated/deleted
-splice> values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.pageReservedSpace');
+splice> values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.pageReservedSpace');
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 17                                                                                                                              
@@ -171,7 +171,7 @@ splice> -- Now check some explicit properties
 -- See is currently set, should be 16384
 create table T (i int);
 0 rows inserted/updated/deleted
-splice> values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.pageSize');
+splice> values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.pageSize');
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 16384                                                                                                                           
@@ -183,7 +183,7 @@ CALL TESTROUTINE.SET_SYSTEM_PROPERTY('derby.storage.pageSize', '8192');
 splice> -- this create table should pick up the system value - 8192
 create table T (i int);
 0 rows inserted/updated/deleted
-splice> values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.pageSize');
+splice> values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.pageSize');
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 8192                                                                                                                            
@@ -195,7 +195,7 @@ call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.propertiesOnly', 'tr
 splice> -- this create table should pick up the database value - 16384
 create table T (i int);
 0 rows inserted/updated/deleted
-splice> values GET_TABLE_PROPERTY('APP', 'T', 'derby.storage.pageSize');
+splice> values GET_TABLE_PROPERTY('SPLICE', 'T', 'derby.storage.pageSize');
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
 16384                                                                                                                           

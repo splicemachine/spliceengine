@@ -2708,7 +2708,7 @@ public class XplainStatisticsTest extends BaseJDBCTestCase {
             try {
                 PreparedStatement ps = con.prepareStatement(
                         "call SYSCS_UTIL.SYSCS_UPDATE_STATISTICS(?, ?, ?)");
-                ps.setString(1, "APP");
+                ps.setString(1, "SPLICE");
                 ps.setString(2, "COUNTRIES");
                 ps.setNull(3, Types.VARCHAR);
                 while (System.currentTimeMillis() - start < runTime) {

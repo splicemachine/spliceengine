@@ -33,23 +33,23 @@ splice> --
 -- case sql0632-01
 create table t1(a int not null primary key , b int references t1(a) ON DELETE SET NULL, 
                 c int references t1(a) ON DELETE CASCADE);
-ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table APP.T1 because of delete rule restrictions. (The relationship is self-referencing and a self-referencing relationship already exists with the SET NULL delete rule.) '. 
+ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table SPLICE.T1 because of delete rule restrictions. (The relationship is self-referencing and a self-referencing relationship already exists with the SET NULL delete rule.) '.
 splice> create table tself( a int not null primary key, b int not null  unique,
                   x int references tself(a) ON DELETE SET NULL, 
                   z int references tself(b) ON DELETE SET NULL);
-ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table APP.TSELF because of delete rule restrictions. (The relationship is self-referencing and a self-referencing relationship already exists with the SET NULL delete rule.) '. 
+ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table SPLICE.TSELF because of delete rule restrictions. (The relationship is self-referencing and a self-referencing relationship already exists with the SET NULL delete rule.) '.
 splice> create table tself( a int not null primary key, b int not null  unique,
                   x int references tself(a) ON DELETE SET NULL, 
                   z int references tself(b) ON DELETE CASCADE);
-ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table APP.TSELF because of delete rule restrictions. (The relationship is self-referencing and a self-referencing relationship already exists with the SET NULL delete rule.) '. 
+ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table SPLICE.TSELF because of delete rule restrictions. (The relationship is self-referencing and a self-referencing relationship already exists with the SET NULL delete rule.) '.
 splice> create table tself( a int not null primary key, b int not null  unique,
                   x int references tself(a) ON DELETE SET NULL, 
                   z int references tself(b) ON DELETE RESTRICT);
-ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table APP.TSELF because of delete rule restrictions. (The relationship is self-referencing and a self-referencing relationship already exists with the SET NULL delete rule.) '. 
+ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table SPLICE.TSELF because of delete rule restrictions. (The relationship is self-referencing and a self-referencing relationship already exists with the SET NULL delete rule.) '.
 splice> create table tself( a int not null primary key, b int not null  unique,
                   x int references tself(a) ON DELETE SET NULL, 
                   z int references tself(b) ON DELETE NO ACTION);
-ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table APP.TSELF because of delete rule restrictions. (The relationship is self-referencing and a self-referencing relationship already exists with the SET NULL delete rule.) '. 
+ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table SPLICE.TSELF because of delete rule restrictions. (The relationship is self-referencing and a self-referencing relationship already exists with the SET NULL delete rule.) '.
 splice> -- case sql0632 -02 (c2 fails)
 create table t1(a int not null primary key, b int not null unique);
 0 rows inserted/updated/deleted
@@ -60,7 +60,7 @@ splice> alter table t1 add constraint c1 foreign key (b)
 0 rows inserted/updated/deleted
 splice> alter table t2 add constraint c2 foreign key (y)
                               references t1(b) on delete set null;
-ERROR 42915: Foreign  Key 'C2' is invalid because 'The table cannot be defined as a dependent of table APP.T1 because of delete rule restrictions. (The relationship forms a cycle of two or more tables that cause the table to be delete-connected to itself (all other delete rules in the cycle would be CASCADE)).  '. 
+ERROR 42915: Foreign  Key 'C2' is invalid because 'The table cannot be defined as a dependent of table SPLICE.T1 because of delete rule restrictions. (The relationship forms a cycle of two or more tables that cause the table to be delete-connected to itself (all other delete rules in the cycle would be CASCADE)).  '.
 splice> drop table t1;
 0 rows inserted/updated/deleted
 splice> drop table t2;
@@ -128,7 +128,7 @@ splice> alter table t2 add constraint c2 foreign key (x)
 0 rows inserted/updated/deleted
 splice> alter table t3 add constraint c6 foreign key (k)
                               references t2(y) on delete SET NULL;
-ERROR 42915: Foreign  Key 'C6' is invalid because 'The table cannot be defined as a dependent of table APP.T2 because of delete rule restrictions. (The relationship forms a cycle of two or more tables that cause the table to be delete-connected to itself (all other delete rules in the cycle would be CASCADE)).  '. 
+ERROR 42915: Foreign  Key 'C6' is invalid because 'The table cannot be defined as a dependent of table SPLICE.T2 because of delete rule restrictions. (The relationship forms a cycle of two or more tables that cause the table to be delete-connected to itself (all other delete rules in the cycle would be CASCADE)).  '.
 splice> alter table t1 drop constraint c1;
 0 rows inserted/updated/deleted
 splice> alter table t2 drop constraint c2;
@@ -166,7 +166,7 @@ splice> alter table t3 add constraint c2 foreign key (l)
 0 rows inserted/updated/deleted
 splice> alter table t3 add constraint c3 foreign key (m) 
                               references t2(y) on delete set null;
-ERROR 42915: Foreign  Key 'C3' is invalid because 'The table cannot be defined as a dependent of table APP.T2 because of delete rule restrictions. (The relationship causes the table to be delete-connected to the indicated table through multiple relationships and the delete rule of the existing relationship is SET NULL.).  '. 
+ERROR 42915: Foreign  Key 'C3' is invalid because 'The table cannot be defined as a dependent of table SPLICE.T2 because of delete rule restrictions. (The relationship causes the table to be delete-connected to the indicated table through multiple relationships and the delete rule of the existing relationship is SET NULL.).  '.
 splice> alter table t2 drop constraint c1;
 0 rows inserted/updated/deleted
 splice> alter table t3 drop constraint c2;
@@ -380,7 +380,7 @@ splice> -- SQL0634N The delete rule of FOREIGN KEY "<name>" must not be CASCADE 
 --  multiple paths with different delete rules or with delete rule equal to SET NULL. 
 -- case sql0634 - 01
 create table t1( a int not null primary key, b int , c int );
-ERROR X0Y32: Table/View 'T1' already exists in Schema 'APP'.
+ERROR X0Y32: Table/View 'T1' already exists in Schema 'SPLICE'.
 splice> create table t2(x int, y int not null unique);
 0 rows inserted/updated/deleted
 splice> alter table t1 add constraint c1 foreign key (b) 
@@ -804,7 +804,7 @@ splice> alter table t2 drop constraint c1;
 splice> alter table t3 drop constraint c2;
 0 rows inserted/updated/deleted
 splice> alter table t3 drop constraint c3;
-ERROR 42X86: ALTER TABLE failed. There is no constraint 'APP.C3' on table '"APP"."T3"'. 
+ERROR 42X86: ALTER TABLE failed. There is no constraint 'SPLICE.C3' on table '"SPLICE"."T3"'.
 splice> -- c3 fails; sql0632N - 3 
 alter table t2 add constraint c1 foreign key (x) 
                              references t1(a) on delete CASCADE;
@@ -814,13 +814,13 @@ splice> alter table t3 add constraint c2 foreign key (l)
 0 rows inserted/updated/deleted
 splice> alter table t3 add constraint c3 foreign key (m) 
                               references t2(y) on delete cascade;
-ERROR 42915: Foreign  Key 'C3' is invalid because 'The table cannot be defined as a dependent of table APP.T2 because of delete rule restrictions. (The relationship causes the table to be delete-connected to the indicated table through multiple relationships and the delete rule of the existing relationship is SET NULL.).  '. 
+ERROR 42915: Foreign  Key 'C3' is invalid because 'The table cannot be defined as a dependent of table SPLICE.T2 because of delete rule restrictions. (The relationship causes the table to be delete-connected to the indicated table through multiple relationships and the delete rule of the existing relationship is SET NULL.).  '.
 splice> alter table t2 drop constraint c1;
 0 rows inserted/updated/deleted
 splice> alter table t3 drop constraint c2;
 0 rows inserted/updated/deleted
 splice> alter table t3 drop constraint c3;
-ERROR 42X86: ALTER TABLE failed. There is no constraint 'APP.C3' on table '"APP"."T3"'. 
+ERROR 42X86: ALTER TABLE failed. There is no constraint 'SPLICE.C3' on table '"SPLICE"."T3"'.
 splice> -- passes
 alter table t2 add constraint c1 foreign key (x) 
                              references t1(a) on delete set null;
@@ -894,13 +894,13 @@ splice> alter table t3 add constraint c2 foreign key (l)
 0 rows inserted/updated/deleted
 splice> alter table t3 add constraint c3 foreign key (m) 
                               references t2(y) on delete set null;
-ERROR 42915: Foreign  Key 'C3' is invalid because 'The table cannot be defined as a dependent of table APP.T2 because of delete rule restrictions. (The relationship causes the table to be delete-connected to the indicated table through multiple relationships and the delete rule of the existing relationship is SET NULL.).  '. 
+ERROR 42915: Foreign  Key 'C3' is invalid because 'The table cannot be defined as a dependent of table SPLICE.T2 because of delete rule restrictions. (The relationship causes the table to be delete-connected to the indicated table through multiple relationships and the delete rule of the existing relationship is SET NULL.).  '.
 splice> alter table t2 drop constraint c1;
 0 rows inserted/updated/deleted
 splice> alter table t3 drop constraint c2;
 0 rows inserted/updated/deleted
 splice> alter table t3 drop constraint c3;
-ERROR 42X86: ALTER TABLE failed. There is no constraint 'APP.C3' on table '"APP"."T3"'. 
+ERROR 42X86: ALTER TABLE failed. There is no constraint 'SPLICE.C3' on table '"SPLICE"."T3"'.
 splice> drop table t1;
 0 rows inserted/updated/deleted
 splice> drop table t2;
@@ -932,18 +932,18 @@ ERROR 42915: Foreign  Key 'C2' is invalid because 'The delete rule of foreign ke
 splice> alter table t1 drop constraint c1;
 0 rows inserted/updated/deleted
 splice> alter table t2 drop constraint c2;
-ERROR 42X86: ALTER TABLE failed. There is no constraint 'APP.C2' on table '"APP"."T2"'. 
+ERROR 42X86: ALTER TABLE failed. There is no constraint 'SPLICE.C2' on table '"SPLICE"."T2"'.
 splice> --c2 fails - sql0632N - reason code 2
 alter table t1 add constraint c1 foreign key (b)
                              references t2(x) on delete cascade;
 0 rows inserted/updated/deleted
 splice> alter table t2 add constraint c2 foreign key (y)
                               references t1(b) on delete set null;
-ERROR 42915: Foreign  Key 'C2' is invalid because 'The table cannot be defined as a dependent of table APP.T1 because of delete rule restrictions. (The relationship forms a cycle of two or more tables that cause the table to be delete-connected to itself (all other delete rules in the cycle would be CASCADE)).  '. 
+ERROR 42915: Foreign  Key 'C2' is invalid because 'The table cannot be defined as a dependent of table SPLICE.T1 because of delete rule restrictions. (The relationship forms a cycle of two or more tables that cause the table to be delete-connected to itself (all other delete rules in the cycle would be CASCADE)).  '.
 splice> alter table t1 drop constraint c1;
 0 rows inserted/updated/deleted
 splice> alter table t2 drop constraint c2;
-ERROR 42X86: ALTER TABLE failed. There is no constraint 'APP.C2' on table '"APP"."T2"'. 
+ERROR 42X86: ALTER TABLE failed. There is no constraint 'SPLICE.C2' on table '"SPLICE"."T2"'.
 splice> --c1 fails - sql0634N - reason code 2
 alter table t2 add constraint c2 foreign key (y)
                               references t1(b) on delete set null;
@@ -952,7 +952,7 @@ splice> alter table t1 add constraint c1 foreign key (b)
                              references t2(x) on delete cascade;
 ERROR 42915: Foreign  Key 'C1' is invalid because 'The delete rule of foreign key cannot be CASCADE. (The relationship would form a cycle that would cause a table to be delete-connected to itself. One of the existing delete rules in the cycle is not CASCADE, so this relationship may be definable if the delete rule is not CASCADE.) '. 
 splice> alter table t1 drop constraint c1;
-ERROR 42X86: ALTER TABLE failed. There is no constraint 'APP.C1' on table '"APP"."T1"'. 
+ERROR 42X86: ALTER TABLE failed. There is no constraint 'SPLICE.C1' on table '"SPLICE"."T1"'.
 splice> alter table t2 drop constraint c2;
 0 rows inserted/updated/deleted
 splice> -- c1 fails : column b can not contain null values
@@ -1039,13 +1039,13 @@ splice> alter table t2 add constraint c2 foreign key (x)
 0 rows inserted/updated/deleted
 splice> alter table t3 add constraint c3 foreign key (k)
                               references t2(y) on delete set null;
-ERROR 42915: Foreign  Key 'C3' is invalid because 'The table cannot be defined as a dependent of table APP.T2 because of delete rule restrictions. (The relationship forms a cycle of two or more tables that cause the table to be delete-connected to itself (all other delete rules in the cycle would be CASCADE)).  '. 
+ERROR 42915: Foreign  Key 'C3' is invalid because 'The table cannot be defined as a dependent of table SPLICE.T2 because of delete rule restrictions. (The relationship forms a cycle of two or more tables that cause the table to be delete-connected to itself (all other delete rules in the cycle would be CASCADE)).  '.
 splice> alter table t1 drop constraint c1;
 0 rows inserted/updated/deleted
 splice> alter table t2 drop constraint c2;
 0 rows inserted/updated/deleted
 splice> alter table t3 drop constraint c3;
-ERROR 42X86: ALTER TABLE failed. There is no constraint 'APP.C3' on table '"APP"."T3"'. 
+ERROR 42X86: ALTER TABLE failed. There is no constraint 'SPLICE.C3' on table '"SPLICE"."T3"'.
 splice> --c3 should fail SQL0634N - 2 -- PROBLEMATIC CASE
 -- DELETE CONNECTED CYCLE
 alter table t1 add constraint c1 foreign key (b)
@@ -1062,7 +1062,7 @@ splice> alter table t1 drop constraint c1;
 splice> alter table t2 drop constraint c2;
 0 rows inserted/updated/deleted
 splice> alter table t3 drop constraint c3;
-ERROR 42X86: ALTER TABLE failed. There is no constraint 'APP.C3' on table '"APP"."T3"'. 
+ERROR 42X86: ALTER TABLE failed. There is no constraint 'SPLICE.C3' on table '"SPLICE"."T3"'.
 splice> --c3 should fail - SQL0634N - 2
 --DELETE CONNECTED CYCLE
 alter table t1 add constraint c1 foreign key (b)
@@ -1079,7 +1079,7 @@ splice> alter table t1 drop constraint c1;
 splice> alter table t2 drop constraint c2;
 0 rows inserted/updated/deleted
 splice> alter table t3 drop constraint c3;
-ERROR 42X86: ALTER TABLE failed. There is no constraint 'APP.C3' on table '"APP"."T3"'. 
+ERROR 42X86: ALTER TABLE failed. There is no constraint 'SPLICE.C3' on table '"SPLICE"."T3"'.
 splice> -- passes
 alter table t1 add constraint c1 foreign key (b)
                               references t3(m) on delete set null;
@@ -1138,7 +1138,7 @@ splice> -- self referencing errors
 create table tself(a int not null primary key , 
                b int references tself(a) ON DELETE SET NULL,  
                c int references tself(a) ON DELETE SET NULL);
-ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table APP.TSELF because of delete rule restrictions. (The relationship is self-referencing and a self-referencing relationship already exists with the SET NULL delete rule.) '. 
+ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table SPLICE.TSELF because of delete rule restrictions. (The relationship is self-referencing and a self-referencing relationship already exists with the SET NULL delete rule.) '.
 splice> create table tself(a int not null primary key , 
                b int references tself(a) ON DELETE CASCADE,  
                c int references tself(a) ON DELETE SET NULL);
@@ -1146,7 +1146,7 @@ ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The delete 
 splice> create table tself(a int not null primary key , 
                b int references tself(a) ON DELETE SET NULL,  
                c int references tself(a) ON DELETE CASCADE);
-ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table APP.TSELF because of delete rule restrictions. (The relationship is self-referencing and a self-referencing relationship already exists with the SET NULL delete rule.) '. 
+ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table SPLICE.TSELF because of delete rule restrictions. (The relationship is self-referencing and a self-referencing relationship already exists with the SET NULL delete rule.) '.
 splice> create table tself(a int not null primary key , 
                b int references tself(a) ,  
                c int references tself(a) ON DELETE CASCADE);
@@ -1247,7 +1247,7 @@ splice> alter table t4 add constraint c3 foreign key (s)
 0 rows inserted/updated/deleted
 splice> alter table t4 add constraint c4 foreign key (y)
                               references t3(m) on delete cascade;
-ERROR 42915: Foreign  Key 'C4' is invalid because 'The table cannot be defined as a dependent of table APP.T3 because of delete rule restrictions. (The relationship causes the table to be delete-connected to the indicated table through multiple relationships and the delete rule of the existing relationship is SET NULL.).  '. 
+ERROR 42915: Foreign  Key 'C4' is invalid because 'The table cannot be defined as a dependent of table SPLICE.T3 because of delete rule restrictions. (The relationship causes the table to be delete-connected to the indicated table through multiple relationships and the delete rule of the existing relationship is SET NULL.).  '.
 splice> alter table t3 drop constraint c1;
 0 rows inserted/updated/deleted
 splice> alter table t2 drop constraint c2;
@@ -1274,21 +1274,21 @@ splice> create table  t1(a int not null unique , b int not null unique);
 0 rows inserted/updated/deleted
 splice> create table  t2(x int references t1(a) ON DELETE SET NULL ,
 y int references t1(b) ON DELETE CASCADE);
-ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table APP.T1 because of delete rule restrictions. (The relationship causes the table to be delete-connected to the indicated table through multiple relationships and the delete rule of the existing relationship is SET NULL.).  '. 
+ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table SPLICE.T1 because of delete rule restrictions. (The relationship causes the table to be delete-connected to the indicated table through multiple relationships and the delete rule of the existing relationship is SET NULL.).  '.
 splice> drop table t1;
 0 rows inserted/updated/deleted
 splice> create table  t1(a int not null unique , b int not null unique);
 0 rows inserted/updated/deleted
 splice> create table  t2(x int references t1(a) ON DELETE SET NULL ,
 y int references t1(b) ON DELETE SET NULL);
-ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table APP.T1 because of delete rule restrictions. (The relationship causes the table to be delete-connected to the indicated table through multiple relationships and the delete rule of the existing relationship is SET NULL.).  '. 
+ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table SPLICE.T1 because of delete rule restrictions. (The relationship causes the table to be delete-connected to the indicated table through multiple relationships and the delete rule of the existing relationship is SET NULL.).  '.
 splice> drop table t1;
 0 rows inserted/updated/deleted
 splice> create table  t1(a int not null unique , b int not null unique);
 0 rows inserted/updated/deleted
 splice> create table  t2(x int references t1(a) ON DELETE SET NULL ,
 y int references t1(b));
-ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table APP.T1 because of delete rule restrictions. (The relationship causes the table to be delete-connected to the indicated table through multiple relationships and the delete rule of the existing relationship is SET NULL.).  '. 
+ERROR 42915: Foreign  Key 'xxxxGENERATED-IDxxxx' is invalid because 'The table cannot be defined as a dependent of table SPLICE.T1 because of delete rule restrictions. (The relationship causes the table to be delete-connected to the indicated table through multiple relationships and the delete rule of the existing relationship is SET NULL.).  '.
 splice> drop table t1;
 0 rows inserted/updated/deleted
 splice> 

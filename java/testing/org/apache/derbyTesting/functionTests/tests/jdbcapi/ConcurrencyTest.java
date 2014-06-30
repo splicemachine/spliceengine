@@ -276,7 +276,7 @@ public class ConcurrencyTest extends SURBaseTest {
             println("T2: commit");
             ps2 = con2.prepareStatement
                 ("call SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE(?,?,?,?,?)");
-            ps2.setString(1, "APP"); // schema
+            ps2.setString(1, "SPLICE"); // schema
             ps2.setString(2, "T1");  // table name
             ps2.setInt(3, 1); // purge
             ps2.setInt(4, 0); // defragment rows
@@ -411,7 +411,7 @@ public class ConcurrencyTest extends SURBaseTest {
             // Now purge the table
             ps2 = con2.prepareStatement
                 ("call SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE(?,?,?,?,?)");
-            ps2.setString(1, "APP"); // schema
+            ps2.setString(1, "SPLICE"); // schema
             ps2.setString(2, "T1");  // table name
             ps2.setInt(3, 1); // purge
             ps2.setInt(4, 0); // defragment rows
@@ -494,7 +494,7 @@ public class ConcurrencyTest extends SURBaseTest {
             // Now purge the table
             ps2 = con2.prepareStatement
                 ("call SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE(?,?,?,?,?)");
-            ps2.setString(1, "APP"); // schema
+            ps2.setString(1, "SPLICE"); // schema
             ps2.setString(2, "T1");  // table name
             ps2.setInt(3, 1); // purge
             ps2.setInt(4, 0); // defragment rows
@@ -676,10 +676,10 @@ public class ConcurrencyTest extends SURBaseTest {
         con2.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
         PreparedStatement ps2 = con2.prepareStatement
             ("call SYSCS_UTIL.SYSCS_COMPRESS_TABLE(?, ?, ?)");
-        ps2.setString(1, "APP");
+        ps2.setString(1, "SPLICE");
         ps2.setString(2, "T1");
         ps2.setInt(3, 0);
-        println("T2: call SYSCS_UTIL.SYSCS_COMPRESS_TABLE(APP, T1, 0)");
+        println("T2: call SYSCS_UTIL.SYSCS_COMPRESS_TABLE(SPLICE, T1, 0)");
         try {
             ps2.executeUpdate(); // This will hang
             fail("Expected T2 to hang");
@@ -792,7 +792,7 @@ public class ConcurrencyTest extends SURBaseTest {
         con2.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
         final PreparedStatement ps2 = con2.prepareStatement
             ("call SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE(?,?,?,?,?)");
-        ps2.setString(1, "APP"); // schema
+        ps2.setString(1, "SPLICE"); // schema
         ps2.setString(2, "T1");  // table name
         ps2.setInt(3, 0); // purge
         int defragment = testDefragment ? 1 : 0;

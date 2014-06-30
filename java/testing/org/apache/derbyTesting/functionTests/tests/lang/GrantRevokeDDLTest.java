@@ -388,7 +388,7 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         {
             {"NULLID", "TEST_DBO"},
             {"SQLJ", "TEST_DBO"},
-            {"APP", "APP"},
+            {"SPLICE", "SPLICE"},
             {"SATHEESH", "SATHEESH"},
             {"MYDODO", "DODO"},
             {"DERBY", "DERBY"}
@@ -864,7 +864,7 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
             {"SQLJ", "TEST_DBO"},
             {"SYSCS_DIAG", "TEST_DBO"},
             {"SYSCS_UTIL", "TEST_DBO"},
-            {"APP", "APP"},
+            {"SPLICE", "SPLICE"},
             {"SATHEESH", "SATHEESH"},
             {"MYDODO", "DODO"},
             {"DERBY", "DERBY"},

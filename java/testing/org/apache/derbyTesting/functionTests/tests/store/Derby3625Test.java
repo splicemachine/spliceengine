@@ -181,7 +181,7 @@ public class Derby3625Test extends StoreBaseTest
 
         commit();
 
-        int space_info[] = getSpaceInfo("APP", "TESTCOMPRESS", true);
+        int space_info[] = getSpaceInfo("SPLICE", "TESTCOMPRESS", true);
 
         // space after initial insert setup should be 4 pages
         // 0 - container info - not reflected in allocated page count, 
@@ -212,13 +212,13 @@ public class Derby3625Test extends StoreBaseTest
             prepareCall(
                 "CALL SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE(?, ?, 1, 1, 1)");
 
-        call_compress.setString(1, "APP");
+        call_compress.setString(1, "SPLICE");
         call_compress.setString(2, "TESTCOMPRESS");
         call_compress.executeUpdate();
 
         commit();
 
-        space_info = getSpaceInfo("APP", "TESTCOMPRESS", true);
+        space_info = getSpaceInfo("SPLICE", "TESTCOMPRESS", true);
 
         // space after the test should be 3 pages: 
         // 0 - container info - not reflected in allocated page count, 

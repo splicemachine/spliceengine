@@ -87,7 +87,7 @@ update t1 set int_col = 1, int_col = 2;
 ERROR 42X16: Column name 'INT_COL' appears multiple times in the SET clause of an UPDATE statement.
 splice> -- Negative test - non-existent column in SET clause
 update t1 set notacolumn = int_col + 1;
-ERROR 42X14: 'NOTACOLUMN' is not a column in table or VTI 'APP.T1'.
+ERROR 42X14: 'NOTACOLUMN' is not a column in table or VTI 'SPLICE.T1'.
 splice> -- target table in source - deferred update
 --
 -- first, populate table

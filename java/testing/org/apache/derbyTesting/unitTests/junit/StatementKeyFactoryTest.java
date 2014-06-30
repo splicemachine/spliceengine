@@ -72,10 +72,10 @@ public class StatementKeyFactoryTest
     }
 
     public void testCreationBasic() {
-        StatementKey stdKey = StatementKeyFactory.newPrepared("values 1", "APP", 
+        StatementKey stdKey = StatementKeyFactory.newPrepared("values 1", "SPLICE",
                                             ResultSet.HOLD_CURSORS_OVER_COMMIT);
         StatementKey key = StatementKeyFactory.newPrepared(
-                "select * from sys.systables", "APP", 
+                "select * from sys.systables", "SPLICE",
                                             ResultSet.HOLD_CURSORS_OVER_COMMIT);
         assertFalse(key.equals(stdKey));
         assertFalse(stdKey.equals(key));
@@ -83,13 +83,13 @@ public class StatementKeyFactoryTest
 
     public void testEqualityBasic() {
         StatementKey key1 = StatementKeyFactory.newPrepared(
-                "select * from sys.systables", "APP", 
+                "select * from sys.systables", "SPLICE",
                                             ResultSet.HOLD_CURSORS_OVER_COMMIT);
         StatementKey key2 = StatementKeyFactory.newPrepared(
-                "select * from sys.systables", "APP", 
+                "select * from sys.systables", "SPLICE",
                                             ResultSet.HOLD_CURSORS_OVER_COMMIT);
         StatementKey key3 = StatementKeyFactory.newPrepared(
-                "select * from sys.systables", "APP", 
+                "select * from sys.systables", "SPLICE",
                                             ResultSet.HOLD_CURSORS_OVER_COMMIT);
         assertTrue(key1.equals(key2));
         assertTrue(key2.equals(key1));
@@ -100,9 +100,9 @@ public class StatementKeyFactoryTest
     public void testEqualityDefaultNoAutoGenKey() {
         int holdability = ResultSet.HOLD_CURSORS_OVER_COMMIT;
         StatementKey basicKey = StatementKeyFactory.newPrepared(
-                "values 2", "APP", holdability);
+                "values 2", "SPLICE", holdability);
         StatementKey simplifiedKey = StatementKeyFactory.newPrepared(
-                "values 2", "APP", holdability, Statement.NO_GENERATED_KEYS);
+                "values 2", "SPLICE", holdability, Statement.NO_GENERATED_KEYS);
         assertTrue(basicKey.equals(simplifiedKey));
         assertTrue(simplifiedKey.equals(basicKey));
     }
@@ -110,16 +110,16 @@ public class StatementKeyFactoryTest
     public void testEqualityNoAutoVsAutoGenKey() {
         int holdability = ResultSet.HOLD_CURSORS_OVER_COMMIT;
         StatementKey basicKey = StatementKeyFactory.newPrepared(
-                "values 2", "APP", holdability);
+                "values 2", "SPLICE", holdability);
         StatementKey autoKey = StatementKeyFactory.newPrepared(
-                "values 2", "APP", holdability, Statement.RETURN_GENERATED_KEYS);
+                "values 2", "SPLICE", holdability, Statement.RETURN_GENERATED_KEYS);
         assertFalse(basicKey.equals(autoKey));
         assertFalse(autoKey.equals(basicKey));
     }
 
     public void testUnequalityVarious() {
         String sql = "select * from sys.systables";
-        String schema = "APP";
+        String schema = "SPLICE";
         int rsh = ResultSet.HOLD_CURSORS_OVER_COMMIT;
         int rst = ResultSet.TYPE_SCROLL_INSENSITIVE;
         int rsc = ResultSet.CONCUR_UPDATABLE;

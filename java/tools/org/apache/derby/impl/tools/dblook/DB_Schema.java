@@ -59,7 +59,7 @@ public class DB_Schema {
 			if (tablesOnly || dblook.isIgnorableSchema(sName))
 				continue;
 
-			if (sName.equals("\"APP\""))
+			if (sName.equals("\"SPLICE\""))
 			// don't have to create this one.
 				continue;
 

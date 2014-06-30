@@ -61,27 +61,27 @@ drop table gosh.s;
 
 -- tests for qualified names in select, relative to method invocations
 create table mytab (i int);
-create table APP.mytab2 (i int);
+create table SPLICE.mytab2 (i int);
 
 insert into mytab values 1,2,3;
-insert into APP.mytab2 values 1,2,3;
+insert into SPLICE.mytab2 values 1,2,3;
 
 -- plain and just table names match up fine
 select i, mytab.i from mytab;
 
 -- schema names on columns
-select APP.mytab2.i from APP.mytab2;
-select APP.mytab2.i from mytab2;
-select mytab2.i from APP.mytab2;
+select SPLICE.mytab2.i from SPLICE.mytab2;
+select SPLICE.mytab2.i from mytab2;
+select mytab2.i from SPLICE.mytab2;
 
 -- schema names correlation names:
-select m.i from APP.mytab2 m;
+select m.i from SPLICE.mytab2 m;
 
 -- syntax errors on catalog names
-select nocatalogs.APP.mytab.i from mytab2;
+select nocatalogs.SPLICE.mytab.i from mytab2;
 
 drop table mytab;
-drop table APP.mytab2;
+drop table SPLICE.mytab2;
 
 ------------------------------------------------
 --
@@ -96,7 +96,7 @@ drop schema does_not_exist RESTRICT;
 
 -- negative create test - should not be able to create existing system schemas;
 create schema app;
-create schema APP;
+create schema SPLICE;
 create schema sys;
 create schema SYS;
 create schema sysibm;
@@ -139,7 +139,7 @@ create table SYSCS_UTIL.foo9 (a int);
 
 -- negative drop test - should not be able to drop system schema's
 drop schema app RESTRICT;
-drop schema APP RESTRICT;
+drop schema SPLICE RESTRICT;
 drop schema sys RESTRICT;
 drop schema SYS RESTRICT;
 drop schema sysibm RESTRICT;
@@ -267,11 +267,11 @@ create view v2sampletab as select * from test.sampletab;
 alter table sampletab add column c3 int;
 
 -- switch schemas
-set schema APP;
+set schema SPLICE;
 
--- create table with same name in APP
+-- create table with same name in SPLICE
 create table sampletab (c1 int constraint st_c1 check(c1 > 1), c2 char(20));
-insert into sampletab values (2,'in schema: APP');
+insert into sampletab values (2,'in schema: SPLICE');
 
 -- verify it
 --

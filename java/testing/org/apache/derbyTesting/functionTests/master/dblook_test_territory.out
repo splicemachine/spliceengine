@@ -7,7 +7,7 @@ System Tables for: wombat
 ========== SYSALIASES ==========
 <systemid>
 "proc "In Quotes with spaces"
-APP
+SPLICE
 org.apache.derbyTesting.functionTests.util.ProcedureTest
 P
 P
@@ -17,7 +17,7 @@ inoutparams3(INOUT "A" CHAR(10),IN "B" INTEGER) LANGUAGE JAVA PARAMETER STYLE JA
 ----
 <systemid>
 F_DEFINERS_RIGHTS
-APP
+SPLICE
 foo.bar
 F
 F
@@ -27,7 +27,7 @@ wibble() RETURNS INTEGER LANGUAGE JAVA PARAMETER STYLE JAVA  EXTERNAL SECURITY D
 ----
 <systemid>
 F_DETERMINISTIC
-APP
+SPLICE
 foo.bar
 F
 F
@@ -37,7 +37,7 @@ wibble() RETURNS INTEGER LANGUAGE JAVA PARAMETER STYLE JAVA  DETERMINISTIC NO SQ
 ----
 <systemid>
 F_NOT_DETERMINISTIC
-APP
+SPLICE
 foo.bar
 F
 F
@@ -57,7 +57,7 @@ getAllTableProperties("SCH" VARCHAR(128),"TBL" VARCHAR(128)) RETURNS VARCHAR(100
 ----
 <systemid>
 GATP
-APP
+SPLICE
 org.apache.derbyTesting.functionTests.util.TestPropertyInfo
 F
 F
@@ -77,7 +77,7 @@ inoutparams4(OUT "A" DECIMAL(4,2),IN "B" VARCHAR(255)) LANGUAGE JAVA PARAMETER S
 ----
 <systemid>
 PROC1
-APP
+SPLICE
 org.apache.derbyTesting.functionTests.util.ProcedureTest
 P
 P
@@ -97,7 +97,7 @@ sqlControl(OUT "E1" VARCHAR(128),OUT "E2" VARCHAR(128),OUT "E3" VARCHAR(128),OUT
 ----
 <systemid>
 P_DEFINERS_RIGHTS
-APP
+SPLICE
 foo.bar
 P
 P
@@ -107,7 +107,7 @@ wibble() LANGUAGE JAVA PARAMETER STYLE JAVA  EXTERNAL SECURITY DEFINER MODIFIES 
 ----
 <systemid>
 P_DETERMINISTIC
-APP
+SPLICE
 foo.bar
 P
 P
@@ -117,7 +117,7 @@ wibble() LANGUAGE JAVA PARAMETER STYLE JAVA  DETERMINISTIC MODIFIES SQL DATA
 ----
 <systemid>
 P_NOT_DETERMINISTIC
-APP
+SPLICE
 foo.bar
 P
 P
@@ -137,12 +137,12 @@ sqlControl(OUT "E1" VARCHAR(128),OUT "E2" VARCHAR(128),OUT "E3" VARCHAR(128),OUT
 ----
 <systemid>
 SYNONYM1
-APP
+SPLICE
 null
 S
 S
 false
-"APP"."T1"
+"SPLICE"."T1"
 <systemname>
 ----
 <systemid>
@@ -162,7 +162,7 @@ null
 S
 S
 false
-"APP"."T11"
+"SPLICE"."T11"
 <systemname>
 ----
 <systemid>
@@ -187,7 +187,7 @@ sleep(IN "col with quotes ""'" BIGINT) LANGUAGE JAVA PARAMETER STYLE JAVA MODIFI
 ----
 <systemid>
 procTwo
-APP
+SPLICE
 org.apache.derbyTesting.functionTests.util.ProcedureTest
 P
 P
@@ -960,7 +960,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 "tquoteTwo
 <systemnumber>
 <systemname>
@@ -969,7 +969,7 @@ BTREE (1)
 true
 <systemid>
 ----
-APP
+SPLICE
 "tquoteTwo
 <systemnumber>
 "tquoteTwo
@@ -978,7 +978,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 REMOVED
 <systemnumber>
 REMOVED
@@ -987,7 +987,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 T11
 <systemnumber>
 <systemname>
@@ -996,7 +996,7 @@ BTREE (1, 2)
 true
 <systemid>
 ----
-APP
+SPLICE
 T11
 <systemnumber>
 T11
@@ -1005,7 +1005,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 T1
 <systemnumber>
 IX1
@@ -1014,7 +1014,7 @@ BTREE (4, 1)
 false
 <systemid>
 ----
-APP
+SPLICE
 T1
 <systemnumber>
 T1
@@ -1023,7 +1023,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 T2
 <systemnumber>
 T2
@@ -1032,7 +1032,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 T8T1T4
 <systemnumber>
 T8T1T4
@@ -1041,7 +1041,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 T_GENCOL_1
 <systemnumber>
 T_GENCOL_1
@@ -1050,7 +1050,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 T_GENCOL_2
 <systemnumber>
 T_GENCOL_2
@@ -1059,7 +1059,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 T_GENCOL_3
 <systemnumber>
 T_GENCOL_3
@@ -1068,7 +1068,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 X
 <systemnumber>
 X
@@ -1077,7 +1077,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 tquote"One
 <systemnumber>
 <systemname>
@@ -1086,7 +1086,7 @@ UNIQUE BTREE (1)
 true
 <systemid>
 ----
-APP
+SPLICE
 tquote"One
 <systemnumber>
 tquote"One
@@ -1095,7 +1095,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 tquoteThree"
 <systemnumber>
 <systemname>
@@ -1104,7 +1104,7 @@ UNIQUE BTREE (1)
 true
 <systemid>
 ----
-APP
+SPLICE
 tquoteThree"
 <systemnumber>
 tquoteThree"
@@ -1343,7 +1343,7 @@ false
 "tquoteTwo
 "ck2
 C
-APP
+SPLICE
 E
 0
 ----
@@ -1351,7 +1351,7 @@ E
 "tquoteTwo
 "effkay1
 F
-APP
+SPLICE
 E
 0
 ----
@@ -1415,7 +1415,7 @@ E
 T11
 <systemname>
 F
-APP
+SPLICE
 E
 0
 ----
@@ -1431,7 +1431,7 @@ c"k1
 tquote"One
 c"k1
 C
-APP
+SPLICE
 E
 0
 ----
@@ -1447,7 +1447,7 @@ ck2"
 tquoteThree"
 ck2"
 C
-APP
+SPLICE
 E
 0
 ----
@@ -1463,7 +1463,7 @@ pee"kay1
 tquote"One
 pee"kay1
 P
-APP
+SPLICE
 E
 1
 ----
@@ -1487,19 +1487,19 @@ unqkay1"
 tquoteThree"
 unqkay1"
 U
-APP
+SPLICE
 E
 0
 ----
 ========== SYSDEPENDS ==========
 "effkay1
-<Constraint>APP."effkay1 -> <Constraint>APP.pee"kay1
+<Constraint>SPLICE."effkay1 -> <Constraint>SPLICE.pee"kay1
 Constraint
 pee"kay1
 Constraint
 ----
 <systemname>
-<Constraint>APP.<sysname> -> <Constraint>FOO.pkTwo
+<Constraint>SPLICE.<sysname> -> <Constraint>FOO.pkTwo
 Constraint
 pkTwo
 Constraint
@@ -1523,43 +1523,43 @@ tee""Hee
 Table
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <ColumnsInTable>BAR.T4
+<StoredPreparedStatement>SPLICE.<sysname> -> <ColumnsInTable>BAR.T4
 StoredPreparedStatement
 T4
 ColumnsInTable
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <ColumnsInTable>BAR.tWithKeys
+<StoredPreparedStatement>SPLICE.<sysname> -> <ColumnsInTable>BAR.tWithKeys
 StoredPreparedStatement
 tWithKeys
 ColumnsInTable
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <Conglomerate>APP.<sysname>
+<StoredPreparedStatement>SPLICE.<sysname> -> <Conglomerate>SPLICE.<sysname>
 StoredPreparedStatement
 <systemid>
 Conglomerate
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <Table>APP.REMOVED
+<StoredPreparedStatement>SPLICE.<sysname> -> <Table>SPLICE.REMOVED
 StoredPreparedStatement
 REMOVED
 Table
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <Table>APP.X
+<StoredPreparedStatement>SPLICE.<sysname> -> <Table>SPLICE.X
 StoredPreparedStatement
 X
 Table
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <Table>BAR.T3
+<StoredPreparedStatement>SPLICE.<sysname> -> <Table>BAR.T3
 StoredPreparedStatement
 T3
 Table
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <Table>BAR.tWithKeys
+<StoredPreparedStatement>SPLICE.<sysname> -> <Table>BAR.tWithKeys
 StoredPreparedStatement
 tWithKeys
 Table
@@ -1589,37 +1589,37 @@ tee""Hee
 Table
 ----
 <systemid>
-<Trigger>APP.TRIGFOUR -> <StoredPreparedStatement>APP.<sysname>
+<Trigger>SPLICE.TRIGFOUR -> <StoredPreparedStatement>SPLICE.<sysname>
 Trigger
 <systemid>
 StoredPreparedStatement
 ----
 <systemid>
-<Trigger>APP.TRIGFOUR -> <Table>APP.X
+<Trigger>SPLICE.TRIGFOUR -> <Table>SPLICE.X
 Trigger
 X
 Table
 ----
 <systemid>
-<Trigger>APP.TRIGONE -> <StoredPreparedStatement>APP.<sysname>
+<Trigger>SPLICE.TRIGONE -> <StoredPreparedStatement>SPLICE.<sysname>
 Trigger
 <systemid>
 StoredPreparedStatement
 ----
 <systemid>
-<Trigger>APP.TRIGONE -> <Table>BAR.T3
+<Trigger>SPLICE.TRIGONE -> <Table>BAR.T3
 Trigger
 T3
 Table
 ----
 <systemid>
-<Trigger>APP.TrigThree -> <StoredPreparedStatement>APP.<sysname>
+<Trigger>SPLICE.TrigThree -> <StoredPreparedStatement>SPLICE.<sysname>
 Trigger
 <systemid>
 StoredPreparedStatement
 ----
 <systemid>
-<Trigger>APP.TrigThree -> <Table>BAR.tWithKeys
+<Trigger>SPLICE.TrigThree -> <Table>BAR.tWithKeys
 Trigger
 tWithKeys
 Table
@@ -1649,25 +1649,25 @@ T1
 Table
 ----
 V1
-<View>APP.V1 -> <ColumnsInTable>APP.T1
+<View>SPLICE.V1 -> <ColumnsInTable>SPLICE.T1
 View
 T1
 ColumnsInTable
 ----
 V1
-<View>APP.V1 -> <ColumnsInTable>BAR.T3
+<View>SPLICE.V1 -> <ColumnsInTable>BAR.T3
 View
 T3
 ColumnsInTable
 ----
 V2
-<View>APP.V2 -> <ColumnsInTable>BAR.T1
+<View>SPLICE.V2 -> <ColumnsInTable>BAR.T1
 View
 T1
 ColumnsInTable
 ----
 viewTwo
-<View>BAR.viewTwo -> <ColumnsInTable>APP.T11
+<View>BAR.viewTwo -> <ColumnsInTable>SPLICE.T11
 View
 T11
 ColumnsInTable
@@ -1679,19 +1679,19 @@ T6
 ColumnsInTable
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <Conglomerate>BAR.<sysname>
+<StoredPreparedStatement>SPLICE.<sysname> -> <Conglomerate>BAR.<sysname>
 StoredPreparedStatement
 <systemid>
 Conglomerate
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <Conglomerate>BAR.<sysname>
+<StoredPreparedStatement>SPLICE.<sysname> -> <Conglomerate>BAR.<sysname>
 StoredPreparedStatement
 <systemid>
 Conglomerate
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <Conglomerate>BAR.<sysname>
+<StoredPreparedStatement>SPLICE.<sysname> -> <Conglomerate>BAR.<sysname>
 StoredPreparedStatement
 <systemid>
 Conglomerate
@@ -1758,61 +1758,61 @@ unqkay1"
 ========== SYSSCHEMAS ==========
 "Quoted"Schema"
 "Quoted"Schema"
-APP
+SPLICE
 ----
 'Single' and "double" quoted schema name
 'Single' and "double" quoted schema name
-APP
+SPLICE
 ----
-APP
-APP
-APP
+SPLICE
+SPLICE
+SPLICE
 ----
 BAR
 BAR
-APP
+SPLICE
 ----
 FOO
 FOO
-APP
+SPLICE
 ----
 Foo Bar
 Foo Bar
-APP
+SPLICE
 ----
 schema "'
 schema "'
-APP
+SPLICE
 ----
 ========== SYSSTATEMENTS ==========
 <systemid>
 <systemname>
-APP
+SPLICE
 T
 <validityflag>
 insert into removed select * from new org.apache.derby.catalog.TriggerOldTransitionRows() OLD  where x not in (select x from new org.apache.derby.catalog.TriggerNewTransitionRows() NEW  where x < 10)
 <systemid>
-APP
+SPLICE
 null
 ----
 <systemid>
 <systemname>
-APP
+SPLICE
 T
 <validityflag>
 select c from bar."tWithKeys"
 <systemid>
-APP
+SPLICE
 null
 ----
 <systemid>
 <systemname>
-APP
+SPLICE
 T
 <validityflag>
 update bar.t4 set j=8 where i=2
 <systemid>
-APP
+SPLICE
 null
 ----
 <systemid>
@@ -1822,7 +1822,7 @@ T
 <validityflag>
 values(8)
 <systemid>
-APP
+SPLICE
 null
 ----
 <systemid>
@@ -1832,7 +1832,7 @@ T
 <validityflag>
 select * from new org.apache.derby.catalog.TriggerOldTransitionRows() OLDTABLE 
 <systemid>
-APP
+SPLICE
 null
 ----
 <systemid>
@@ -1842,14 +1842,14 @@ T
 <validityflag>
 values (1), (2)
 <systemid>
-APP
+SPLICE
 null
 ----
 ========== SYSTABLES ==========
 "tquoteTwo
 "tquoteTwo
 T
-APP
+SPLICE
 R
 ----
 'Single' and "double" quoted table name
@@ -1867,13 +1867,13 @@ R
 REMOVED
 REMOVED
 T
-APP
+SPLICE
 R
 ----
 SYNONYM1
 SYNONYM1
 A
-APP
+SPLICE
 R
 ----
 SYNONYM2
@@ -1897,13 +1897,13 @@ R
 T11
 T11
 T
-APP
+SPLICE
 R
 ----
 T1
 T1
 T
-APP
+SPLICE
 R
 ----
 T1
@@ -1915,7 +1915,7 @@ R
 T2
 T2
 T
-APP
+SPLICE
 R
 ----
 T3
@@ -1963,7 +1963,7 @@ R
 T8T1T4
 T8T1T4
 T
-APP
+SPLICE
 R
 ----
 T8
@@ -1981,31 +1981,31 @@ R
 T_GENCOL_1
 T_GENCOL_1
 T
-APP
+SPLICE
 R
 ----
 T_GENCOL_2
 T_GENCOL_2
 T
-APP
+SPLICE
 R
 ----
 T_GENCOL_3
 T_GENCOL_3
 T
-APP
+SPLICE
 R
 ----
 V"3
 V"3
 V
-APP
+SPLICE
 R
 ----
 V1
 V1
 V
-APP
+SPLICE
 R
 ----
 V1
@@ -2017,13 +2017,13 @@ R
 V2
 V2
 V
-APP
+SPLICE
 R
 ----
 X
 X
 T
-APP
+SPLICE
 R
 ----
 tWithKeys
@@ -2041,13 +2041,13 @@ R
 tquote"One
 tquote"One
 T
-APP
+SPLICE
 R
 ----
 tquoteThree"
 tquoteThree"
 T
-APP
+SPLICE
 R
 ----
 viewTwo
@@ -2113,7 +2113,7 @@ null
 ----
 <systemid>
 TRIGFOUR
-APP
+SPLICE
 <systemid>
 U
 A
@@ -2131,7 +2131,7 @@ NEW
 ----
 <systemid>
 TRIGONE
-APP
+SPLICE
 <systemid>
 I
 A
@@ -2149,7 +2149,7 @@ null
 ----
 <systemid>
 TrigThree
-APP
+SPLICE
 <systemid>
 U
 A
@@ -2169,12 +2169,12 @@ null
 V"3
 create view "V""3"(i) as values (8), (28), (78)
 N
-APP
+SPLICE
 ----
 V1
 create view v1 (dum, dee, dokie) as select a.d, a.c, b.p1 from t1 as a, bar.t3 as b
 N
-APP
+SPLICE
 ----
 V1
 create view v1 (doo, dwa) as select num, letter from "Foo Bar".t6
@@ -2184,47 +2184,47 @@ FOO
 V2
 create view v2 as select * from bar.t1
 N
-APP
+SPLICE
 ----
 viewTwo
 create view bar."viewTwo" as select * from app.t11
 N
-APP
+SPLICE
 ----
 ========== SYSROLES ==========
 "eve"
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 "eve"
 B
-APP
+SPLICE
 N
 N
 ----
 A
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 A
 B
-APP
+SPLICE
 N
 N
 ----
 B
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 B
 WHOMEVER
-APP
+SPLICE
 N
 N
 ----
@@ -2242,7 +2242,7 @@ System Tables for: wombat_new
 ========== SYSALIASES ==========
 <systemid>
 "proc "In Quotes with spaces"
-APP
+SPLICE
 org.apache.derbyTesting.functionTests.util.ProcedureTest
 P
 P
@@ -2252,7 +2252,7 @@ inoutparams3(INOUT "A" CHAR(10),IN "B" INTEGER) LANGUAGE JAVA PARAMETER STYLE JA
 ----
 <systemid>
 F_DEFINERS_RIGHTS
-APP
+SPLICE
 foo.bar
 F
 F
@@ -2262,7 +2262,7 @@ wibble() RETURNS INTEGER LANGUAGE JAVA PARAMETER STYLE JAVA  EXTERNAL SECURITY D
 ----
 <systemid>
 F_DETERMINISTIC
-APP
+SPLICE
 foo.bar
 F
 F
@@ -2272,7 +2272,7 @@ wibble() RETURNS INTEGER LANGUAGE JAVA PARAMETER STYLE JAVA  DETERMINISTIC NO SQ
 ----
 <systemid>
 F_NOT_DETERMINISTIC
-APP
+SPLICE
 foo.bar
 F
 F
@@ -2292,7 +2292,7 @@ getAllTableProperties("SCH" VARCHAR(128),"TBL" VARCHAR(128)) RETURNS VARCHAR(100
 ----
 <systemid>
 GATP
-APP
+SPLICE
 org.apache.derbyTesting.functionTests.util.TestPropertyInfo
 F
 F
@@ -2312,7 +2312,7 @@ inoutparams4(OUT "A" DECIMAL(4,2),IN "B" VARCHAR(255)) LANGUAGE JAVA PARAMETER S
 ----
 <systemid>
 PROC1
-APP
+SPLICE
 org.apache.derbyTesting.functionTests.util.ProcedureTest
 P
 P
@@ -2332,7 +2332,7 @@ sqlControl(OUT "E1" VARCHAR(128),OUT "E2" VARCHAR(128),OUT "E3" VARCHAR(128),OUT
 ----
 <systemid>
 P_DEFINERS_RIGHTS
-APP
+SPLICE
 foo.bar
 P
 P
@@ -2342,7 +2342,7 @@ wibble() LANGUAGE JAVA PARAMETER STYLE JAVA  EXTERNAL SECURITY DEFINER MODIFIES 
 ----
 <systemid>
 P_DETERMINISTIC
-APP
+SPLICE
 foo.bar
 P
 P
@@ -2352,7 +2352,7 @@ wibble() LANGUAGE JAVA PARAMETER STYLE JAVA  DETERMINISTIC MODIFIES SQL DATA
 ----
 <systemid>
 P_NOT_DETERMINISTIC
-APP
+SPLICE
 foo.bar
 P
 P
@@ -2372,12 +2372,12 @@ sqlControl(OUT "E1" VARCHAR(128),OUT "E2" VARCHAR(128),OUT "E3" VARCHAR(128),OUT
 ----
 <systemid>
 SYNONYM1
-APP
+SPLICE
 null
 S
 S
 false
-"APP"."T1"
+"SPLICE"."T1"
 <systemname>
 ----
 <systemid>
@@ -2397,7 +2397,7 @@ null
 S
 S
 false
-"APP"."T11"
+"SPLICE"."T11"
 <systemname>
 ----
 <systemid>
@@ -2422,7 +2422,7 @@ sleep(IN "col with quotes ""'" BIGINT) LANGUAGE JAVA PARAMETER STYLE JAVA MODIFI
 ----
 <systemid>
 procTwo
-APP
+SPLICE
 org.apache.derbyTesting.functionTests.util.ProcedureTest
 P
 P
@@ -3195,7 +3195,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 "tquoteTwo
 <systemnumber>
 <systemname>
@@ -3204,7 +3204,7 @@ BTREE (1)
 true
 <systemid>
 ----
-APP
+SPLICE
 "tquoteTwo
 <systemnumber>
 "tquoteTwo
@@ -3213,7 +3213,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 REMOVED
 <systemnumber>
 REMOVED
@@ -3222,7 +3222,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 T11
 <systemnumber>
 <systemname>
@@ -3231,7 +3231,7 @@ BTREE (1, 2)
 true
 <systemid>
 ----
-APP
+SPLICE
 T11
 <systemnumber>
 T11
@@ -3240,7 +3240,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 T1
 <systemnumber>
 IX1
@@ -3249,7 +3249,7 @@ BTREE (4, 1)
 false
 <systemid>
 ----
-APP
+SPLICE
 T1
 <systemnumber>
 T1
@@ -3258,7 +3258,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 T2
 <systemnumber>
 T2
@@ -3267,7 +3267,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 T8T1T4
 <systemnumber>
 T8T1T4
@@ -3276,7 +3276,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 T_GENCOL_1
 <systemnumber>
 T_GENCOL_1
@@ -3285,7 +3285,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 T_GENCOL_2
 <systemnumber>
 T_GENCOL_2
@@ -3294,7 +3294,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 T_GENCOL_3
 <systemnumber>
 T_GENCOL_3
@@ -3303,7 +3303,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 X
 <systemnumber>
 X
@@ -3312,7 +3312,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 tquote"One
 <systemnumber>
 <systemname>
@@ -3321,7 +3321,7 @@ UNIQUE BTREE (1)
 true
 <systemid>
 ----
-APP
+SPLICE
 tquote"One
 <systemnumber>
 tquote"One
@@ -3330,7 +3330,7 @@ null
 false
 <systemid>
 ----
-APP
+SPLICE
 tquoteThree"
 <systemnumber>
 <systemname>
@@ -3339,7 +3339,7 @@ UNIQUE BTREE (1)
 true
 <systemid>
 ----
-APP
+SPLICE
 tquoteThree"
 <systemnumber>
 tquoteThree"
@@ -3578,7 +3578,7 @@ false
 "tquoteTwo
 "ck2
 C
-APP
+SPLICE
 E
 0
 ----
@@ -3586,7 +3586,7 @@ E
 "tquoteTwo
 "effkay1
 F
-APP
+SPLICE
 E
 0
 ----
@@ -3650,7 +3650,7 @@ E
 T11
 <systemname>
 F
-APP
+SPLICE
 E
 0
 ----
@@ -3666,7 +3666,7 @@ c"k1
 tquote"One
 c"k1
 C
-APP
+SPLICE
 E
 0
 ----
@@ -3682,7 +3682,7 @@ ck2"
 tquoteThree"
 ck2"
 C
-APP
+SPLICE
 E
 0
 ----
@@ -3698,7 +3698,7 @@ pee"kay1
 tquote"One
 pee"kay1
 P
-APP
+SPLICE
 E
 1
 ----
@@ -3722,19 +3722,19 @@ unqkay1"
 tquoteThree"
 unqkay1"
 U
-APP
+SPLICE
 E
 0
 ----
 ========== SYSDEPENDS ==========
 "effkay1
-<Constraint>APP."effkay1 -> <Constraint>APP.pee"kay1
+<Constraint>SPLICE."effkay1 -> <Constraint>SPLICE.pee"kay1
 Constraint
 pee"kay1
 Constraint
 ----
 <systemname>
-<Constraint>APP.<sysname> -> <Constraint>FOO.pkTwo
+<Constraint>SPLICE.<sysname> -> <Constraint>FOO.pkTwo
 Constraint
 pkTwo
 Constraint
@@ -3758,49 +3758,49 @@ tee""Hee
 Table
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <ColumnsInTable>BAR.T4
+<StoredPreparedStatement>SPLICE.<sysname> -> <ColumnsInTable>BAR.T4
 StoredPreparedStatement
 T4
 ColumnsInTable
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <ColumnsInTable>BAR.tWithKeys
+<StoredPreparedStatement>SPLICE.<sysname> -> <ColumnsInTable>BAR.tWithKeys
 StoredPreparedStatement
 tWithKeys
 ColumnsInTable
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <Conglomerate>APP.<sysname>
+<StoredPreparedStatement>SPLICE.<sysname> -> <Conglomerate>SPLICE.<sysname>
 StoredPreparedStatement
 <systemid>
 Conglomerate
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <Conglomerate>BAR.IX3
+<StoredPreparedStatement>SPLICE.<sysname> -> <Conglomerate>BAR.IX3
 StoredPreparedStatement
 <systemid>
 Conglomerate
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <Table>APP.REMOVED
+<StoredPreparedStatement>SPLICE.<sysname> -> <Table>SPLICE.REMOVED
 StoredPreparedStatement
 REMOVED
 Table
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <Table>APP.X
+<StoredPreparedStatement>SPLICE.<sysname> -> <Table>SPLICE.X
 StoredPreparedStatement
 X
 Table
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <Table>BAR.T3
+<StoredPreparedStatement>SPLICE.<sysname> -> <Table>BAR.T3
 StoredPreparedStatement
 T3
 Table
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <Table>BAR.tWithKeys
+<StoredPreparedStatement>SPLICE.<sysname> -> <Table>BAR.tWithKeys
 StoredPreparedStatement
 tWithKeys
 Table
@@ -3830,37 +3830,37 @@ tee""Hee
 Table
 ----
 <systemid>
-<Trigger>APP.TRIGFOUR -> <StoredPreparedStatement>APP.<sysname>
+<Trigger>SPLICE.TRIGFOUR -> <StoredPreparedStatement>SPLICE.<sysname>
 Trigger
 <systemid>
 StoredPreparedStatement
 ----
 <systemid>
-<Trigger>APP.TRIGFOUR -> <Table>APP.X
+<Trigger>SPLICE.TRIGFOUR -> <Table>SPLICE.X
 Trigger
 X
 Table
 ----
 <systemid>
-<Trigger>APP.TRIGONE -> <StoredPreparedStatement>APP.<sysname>
+<Trigger>SPLICE.TRIGONE -> <StoredPreparedStatement>SPLICE.<sysname>
 Trigger
 <systemid>
 StoredPreparedStatement
 ----
 <systemid>
-<Trigger>APP.TRIGONE -> <Table>BAR.T3
+<Trigger>SPLICE.TRIGONE -> <Table>BAR.T3
 Trigger
 T3
 Table
 ----
 <systemid>
-<Trigger>APP.TrigThree -> <StoredPreparedStatement>APP.<sysname>
+<Trigger>SPLICE.TrigThree -> <StoredPreparedStatement>SPLICE.<sysname>
 Trigger
 <systemid>
 StoredPreparedStatement
 ----
 <systemid>
-<Trigger>APP.TrigThree -> <Table>BAR.tWithKeys
+<Trigger>SPLICE.TrigThree -> <Table>BAR.tWithKeys
 Trigger
 tWithKeys
 Table
@@ -3890,25 +3890,25 @@ T1
 Table
 ----
 V1
-<View>APP.V1 -> <ColumnsInTable>APP.T1
+<View>SPLICE.V1 -> <ColumnsInTable>SPLICE.T1
 View
 T1
 ColumnsInTable
 ----
 V1
-<View>APP.V1 -> <ColumnsInTable>BAR.T3
+<View>SPLICE.V1 -> <ColumnsInTable>BAR.T3
 View
 T3
 ColumnsInTable
 ----
 V2
-<View>APP.V2 -> <ColumnsInTable>BAR.T1
+<View>SPLICE.V2 -> <ColumnsInTable>BAR.T1
 View
 T1
 ColumnsInTable
 ----
 viewTwo
-<View>BAR.viewTwo -> <ColumnsInTable>APP.T11
+<View>BAR.viewTwo -> <ColumnsInTable>SPLICE.T11
 View
 T11
 ColumnsInTable
@@ -3920,13 +3920,13 @@ T6
 ColumnsInTable
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <Conglomerate>BAR.<sysname>
+<StoredPreparedStatement>SPLICE.<sysname> -> <Conglomerate>BAR.<sysname>
 StoredPreparedStatement
 <systemid>
 Conglomerate
 ----
 <systemid>
-<StoredPreparedStatement>APP.<sysname> -> <Conglomerate>BAR.<sysname>
+<StoredPreparedStatement>SPLICE.<sysname> -> <Conglomerate>BAR.<sysname>
 StoredPreparedStatement
 <systemid>
 Conglomerate
@@ -3993,61 +3993,61 @@ unqkay1"
 ========== SYSSCHEMAS ==========
 "Quoted"Schema"
 "Quoted"Schema"
-APP
+SPLICE
 ----
 'Single' and "double" quoted schema name
 'Single' and "double" quoted schema name
-APP
+SPLICE
 ----
-APP
-APP
-APP
+SPLICE
+SPLICE
+SPLICE
 ----
 BAR
 BAR
-APP
+SPLICE
 ----
 FOO
 FOO
-APP
+SPLICE
 ----
 Foo Bar
 Foo Bar
-APP
+SPLICE
 ----
 schema "'
 schema "'
-APP
+SPLICE
 ----
 ========== SYSSTATEMENTS ==========
 <systemid>
 <systemname>
-APP
+SPLICE
 T
 <validityflag>
 insert into removed select * from new org.apache.derby.catalog.TriggerOldTransitionRows() OLD  where x not in (select x from new org.apache.derby.catalog.TriggerNewTransitionRows() NEW  where x < 10)
 <systemid>
-APP
+SPLICE
 null
 ----
 <systemid>
 <systemname>
-APP
+SPLICE
 T
 <validityflag>
 select c from bar."tWithKeys"
 <systemid>
-APP
+SPLICE
 null
 ----
 <systemid>
 <systemname>
-APP
+SPLICE
 T
 <validityflag>
 update bar.t4 set j=8 where i=2
 <systemid>
-APP
+SPLICE
 null
 ----
 <systemid>
@@ -4057,7 +4057,7 @@ T
 <validityflag>
 values(8)
 <systemid>
-APP
+SPLICE
 null
 ----
 <systemid>
@@ -4067,7 +4067,7 @@ T
 <validityflag>
 select * from new org.apache.derby.catalog.TriggerOldTransitionRows() OLDTABLE 
 <systemid>
-APP
+SPLICE
 null
 ----
 <systemid>
@@ -4077,14 +4077,14 @@ T
 <validityflag>
 values (1), (2)
 <systemid>
-APP
+SPLICE
 null
 ----
 ========== SYSTABLES ==========
 "tquoteTwo
 "tquoteTwo
 T
-APP
+SPLICE
 R
 ----
 'Single' and "double" quoted table name
@@ -4102,13 +4102,13 @@ R
 REMOVED
 REMOVED
 T
-APP
+SPLICE
 R
 ----
 SYNONYM1
 SYNONYM1
 A
-APP
+SPLICE
 R
 ----
 SYNONYM2
@@ -4132,13 +4132,13 @@ R
 T11
 T11
 T
-APP
+SPLICE
 R
 ----
 T1
 T1
 T
-APP
+SPLICE
 R
 ----
 T1
@@ -4150,7 +4150,7 @@ R
 T2
 T2
 T
-APP
+SPLICE
 R
 ----
 T3
@@ -4198,7 +4198,7 @@ R
 T8T1T4
 T8T1T4
 T
-APP
+SPLICE
 R
 ----
 T8
@@ -4216,31 +4216,31 @@ R
 T_GENCOL_1
 T_GENCOL_1
 T
-APP
+SPLICE
 R
 ----
 T_GENCOL_2
 T_GENCOL_2
 T
-APP
+SPLICE
 R
 ----
 T_GENCOL_3
 T_GENCOL_3
 T
-APP
+SPLICE
 R
 ----
 V"3
 V"3
 V
-APP
+SPLICE
 R
 ----
 V1
 V1
 V
-APP
+SPLICE
 R
 ----
 V1
@@ -4252,13 +4252,13 @@ R
 V2
 V2
 V
-APP
+SPLICE
 R
 ----
 X
 X
 T
-APP
+SPLICE
 R
 ----
 tWithKeys
@@ -4276,13 +4276,13 @@ R
 tquote"One
 tquote"One
 T
-APP
+SPLICE
 R
 ----
 tquoteThree"
 tquoteThree"
 T
-APP
+SPLICE
 R
 ----
 viewTwo
@@ -4348,7 +4348,7 @@ null
 ----
 <systemid>
 TRIGFOUR
-APP
+SPLICE
 <systemid>
 U
 A
@@ -4366,7 +4366,7 @@ NEW
 ----
 <systemid>
 TRIGONE
-APP
+SPLICE
 <systemid>
 I
 A
@@ -4384,7 +4384,7 @@ null
 ----
 <systemid>
 TrigThree
-APP
+SPLICE
 <systemid>
 U
 A
@@ -4404,12 +4404,12 @@ null
 V"3
 create view "V""3"(i) as values (8), (28), (78)
 N
-APP
+SPLICE
 ----
 V1
 create view v1 (dum, dee, dokie) as select a.d, a.c, b.p1 from t1 as a, bar.t3 as b
 N
-APP
+SPLICE
 ----
 V1
 create view v1 (doo, dwa) as select num, letter from "Foo Bar".t6
@@ -4419,47 +4419,47 @@ FOO
 V2
 create view v2 as select * from bar.t1
 N
-APP
+SPLICE
 ----
 viewTwo
 create view bar."viewTwo" as select * from app.t11
 N
-APP
+SPLICE
 ----
 ========== SYSROLES ==========
 "eve"
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 "eve"
 B
-APP
+SPLICE
 N
 N
 ----
 A
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 A
 B
-APP
+SPLICE
 N
 N
 ----
 B
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 B
 WHOMEVER
-APP
+SPLICE
 N
 N
 ----
@@ -4503,7 +4503,7 @@ null
 S
 S
 false
-"APP"."T11"
+"SPLICE"."T11"
 <systemname>
 ----
 ========== SYSCHECKS ==========
@@ -4947,13 +4947,13 @@ UNQ
 <systemid>
 ----
 ========== SYSSCHEMAS ==========
-APP
-APP
-APP
+SPLICE
+SPLICE
+SPLICE
 ----
 BAR
 BAR
-APP
+SPLICE
 ----
 ========== SYSSTATEMENTS ==========
 <systemid>
@@ -4963,7 +4963,7 @@ T
 <validityflag>
 select * from new org.apache.derby.catalog.TriggerOldTransitionRows() OLDTABLE 
 <systemid>
-APP
+SPLICE
 null
 ----
 ========== SYSTABLES ==========
@@ -5049,38 +5049,38 @@ null
 ========== SYSVIEWS ==========
 ========== SYSROLES ==========
 "eve"
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 "eve"
 B
-APP
+SPLICE
 N
 N
 ----
 A
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 A
 B
-APP
+SPLICE
 N
 N
 ----
 B
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 B
 WHOMEVER
-APP
+SPLICE
 N
 N
 ----
@@ -5115,7 +5115,7 @@ null
 S
 S
 false
-"APP"."T11"
+"SPLICE"."T11"
 <systemname>
 ----
 ========== SYSCHECKS ==========
@@ -5288,13 +5288,13 @@ E
 <systemid>
 ----
 ========== SYSSCHEMAS ==========
-APP
-APP
-APP
+SPLICE
+SPLICE
+SPLICE
 ----
 BAR
 BAR
-APP
+SPLICE
 ----
 ========== SYSSTATEMENTS ==========
 ========== SYSTABLES ==========
@@ -5332,38 +5332,38 @@ R
 ========== SYSVIEWS ==========
 ========== SYSROLES ==========
 "eve"
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 "eve"
 B
-APP
+SPLICE
 N
 N
 ----
 A
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 A
 B
-APP
+SPLICE
 N
 N
 ----
 B
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 B
 WHOMEVER
-APP
+SPLICE
 N
 N
 ----
@@ -5388,12 +5388,12 @@ System Tables for: wombat_new
 ========== SYSALIASES ==========
 <systemid>
 SYNONYM1
-APP
+SPLICE
 null
 S
 S
 false
-"APP"."T1"
+"SPLICE"."T1"
 <systemname>
 ----
 <systemid>
@@ -5413,7 +5413,7 @@ null
 S
 S
 false
-"APP"."T11"
+"SPLICE"."T11"
 <systemname>
 ----
 ========== SYSCHECKS ==========
@@ -5501,7 +5501,7 @@ null
 ----
 --- Columns for Statements ---
 ========== SYSCONGLOMERATES ==========
-APP
+SPLICE
 T1
 <systemnumber>
 IX1
@@ -5510,7 +5510,7 @@ BTREE (4, 1)
 false
 <systemid>
 ----
-APP
+SPLICE
 T1
 <systemnumber>
 T1
@@ -5566,7 +5566,7 @@ T1
 Table
 ----
 V2
-<View>APP.V2 -> <ColumnsInTable>BAR.T1
+<View>SPLICE.V2 -> <ColumnsInTable>BAR.T1
 View
 T1
 ColumnsInTable
@@ -5578,17 +5578,17 @@ UNQ
 <systemid>
 ----
 ========== SYSSCHEMAS ==========
-APP
-APP
-APP
+SPLICE
+SPLICE
+SPLICE
 ----
 BAR
 BAR
-APP
+SPLICE
 ----
 Foo Bar
 Foo Bar
-APP
+SPLICE
 ----
 ========== SYSSTATEMENTS ==========
 <systemid>
@@ -5598,14 +5598,14 @@ T
 <validityflag>
 values (1), (2)
 <systemid>
-APP
+SPLICE
 null
 ----
 ========== SYSTABLES ==========
 SYNONYM1
 SYNONYM1
 A
-APP
+SPLICE
 R
 ----
 SYNONYM2
@@ -5623,7 +5623,7 @@ R
 T1
 T1
 T
-APP
+SPLICE
 R
 ----
 T1
@@ -5635,7 +5635,7 @@ R
 V2
 V2
 V
-APP
+SPLICE
 R
 ----
 ========== SYSTRIGGERS ==========
@@ -5661,42 +5661,42 @@ null
 V2
 create view v2 as select * from bar.t1
 N
-APP
+SPLICE
 ----
 ========== SYSROLES ==========
 "eve"
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 "eve"
 B
-APP
+SPLICE
 N
 N
 ----
 A
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 A
 B
-APP
+SPLICE
 N
 N
 ----
 B
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 B
 WHOMEVER
-APP
+SPLICE
 N
 N
 ----
@@ -5792,11 +5792,11 @@ Table
 ========== SYSSCHEMAS ==========
 "Quoted"Schema"
 "Quoted"Schema"
-APP
+SPLICE
 ----
-APP
-APP
-APP
+SPLICE
+SPLICE
+SPLICE
 ----
 ========== SYSSTATEMENTS ==========
 <systemid>
@@ -5806,7 +5806,7 @@ T
 <validityflag>
 values(8)
 <systemid>
-APP
+SPLICE
 null
 ----
 ========== SYSTABLES ==========
@@ -5838,38 +5838,38 @@ null
 ========== SYSVIEWS ==========
 ========== SYSROLES ==========
 "eve"
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 "eve"
 B
-APP
+SPLICE
 N
 N
 ----
 A
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 A
 B
-APP
+SPLICE
 N
 N
 ----
 B
-APP
+SPLICE
 _SYSTEM
 Y
 Y
 ----
 B
 WHOMEVER
-APP
+SPLICE
 N
 N
 ----
@@ -5901,9 +5901,9 @@ System Tables for: wombat_new
 ========== SYSFOREIGNKEYS ==========
 ========== SYSKEYS ==========
 ========== SYSSCHEMAS ==========
-APP
-APP
-APP
+SPLICE
+SPLICE
+SPLICE
 ----
 ========== SYSSTATEMENTS ==========
 ========== SYSTABLES ==========
@@ -5937,7 +5937,7 @@ CREATE SCHEMA "BAR"
 -- ----------------------------------------------
 -- DDL Statements for sequences
 -- ----------------------------------------------
-CREATE SEQUENCE "APP"."SEQUENCE_1"
+CREATE SEQUENCE "SPLICE"."SEQUENCE_1"
     AS INTEGER
     START WITH -2147483648
     INCREMENT BY 1
@@ -5960,20 +5960,20 @@ CALL SQLJ.INSTALL_JAR(<maskedOutJarDesc>)
 -- ----------------------------------------------
 -- DDL Statements for user defined types
 -- ----------------------------------------------
-CREATE TYPE "APP"."PRICE" EXTERNAL NAME 'org.apache.derbyTesting.functionTests.tests.lang.Price' LANGUAGE JAVA
+CREATE TYPE "SPLICE"."PRICE" EXTERNAL NAME 'org.apache.derbyTesting.functionTests.tests.lang.Price' LANGUAGE JAVA
 -- ----------------------------------------------
 -- DDL Statements for stored procedures
 -- ----------------------------------------------
-CREATE PROCEDURE "APP"."PROC1" (INOUT "A" CHAR(10),IN "B" INTEGER) LANGUAGE JAVA PARAMETER STYLE JAVA CONTAINS SQL DYNAMIC RESULT SETS 4 EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.ProcedureTest.inoutparams3' 
+CREATE PROCEDURE "SPLICE"."PROC1" (INOUT "A" CHAR(10),IN "B" INTEGER) LANGUAGE JAVA PARAMETER STYLE JAVA CONTAINS SQL DYNAMIC RESULT SETS 4 EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.ProcedureTest.inoutparams3'
 -- ----------------------------------------------
 -- DDL Statements for functions
 -- ----------------------------------------------
-CREATE FUNCTION "APP"."GATP" ("SCH" VARCHAR(128),"TBL" VARCHAR(128)) RETURNS VARCHAR(1000) LANGUAGE JAVA PARAMETER STYLE JAVA CONTAINS SQL CALLED ON NULL INPUT EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.TestPropertyInfo.getAllTableProperties' 
+CREATE FUNCTION "SPLICE"."GATP" ("SCH" VARCHAR(128),"TBL" VARCHAR(128)) RETURNS VARCHAR(1000) LANGUAGE JAVA PARAMETER STYLE JAVA CONTAINS SQL CALLED ON NULL INPUT EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.TestPropertyInfo.getAllTableProperties'
 -- ----------------------------------------------
 -- DDL Statements for aggregates
 -- ----------------------------------------------
-CREATE DERBY AGGREGATE "APP"."MODE" FOR INTEGER RETURNS INTEGER EXTERNAL NAME 'foo.bar.Wibble' 
-CREATE DERBY AGGREGATE "APP"."MODE2" FOR BIGINT RETURNS DOUBLE EXTERNAL NAME 'foo.bar.Wibble' 
+CREATE DERBY AGGREGATE "SPLICE"."MODE" FOR INTEGER RETURNS INTEGER EXTERNAL NAME 'foo.bar.Wibble'
+CREATE DERBY AGGREGATE "SPLICE"."MODE2" FOR BIGINT RETURNS DOUBLE EXTERNAL NAME 'foo.bar.Wibble'
 -- ----------------------------------------------
 -- DDL Statements for tables
 -- ----------------------------------------------
@@ -5985,7 +5985,7 @@ CREATE INDEX "BAR"."IX1" ON "BAR"."T1" ("I" DESC)
 -- ----------------------------------------------
 -- DDL Statements for Synonyms
 -- ----------------------------------------------
-CREATE SYNONYM "APP"."SYN1" FOR "BAR"."T1"
+CREATE SYNONYM "SPLICE"."SYN1" FOR "BAR"."T1"
 -- ----------------------------------------------
 -- DDL Statements for keys
 -- ----------------------------------------------
@@ -6000,14 +6000,14 @@ ALTER TABLE "BAR"."T1" ADD CONSTRAINT "NOTEVIL" CHECK (vc != 'evil')
 -- ----------------------------------------------
 -- DDL Statements for views
 -- ----------------------------------------------
-SET SCHEMA "APP"
+SET SCHEMA "SPLICE"
 create view v1 (dum, dee, dokie) as select a.c, a.i, a.vc from bar.t1 as a
--- Reverting back to default schema 'APP'
-SET SCHEMA "APP"
+-- Reverting back to default schema 'SPLICE'
+SET SCHEMA "SPLICE"
 -- ----------------------------------------------
 -- DDL Statements for triggers
 -- ----------------------------------------------
-CREATE TRIGGER "APP"."TRIGONE" AFTER INSERT ON "BAR"."T1" FOR EACH ROW update bar.t1 set i = 4 where i = 2
+CREATE TRIGGER "SPLICE"."TRIGONE" AFTER INSERT ON "BAR"."T1" FOR EACH ROW update bar.t1 set i = 4 where i = 2
 ############## End File Contents ################
 File dblook.log was empty.
 ************
@@ -6030,7 +6030,7 @@ CREATE SCHEMA "BAR";
 -- ----------------------------------------------
 -- DDL Statements for sequences
 -- ----------------------------------------------
-CREATE SEQUENCE "APP"."SEQUENCE_1"
+CREATE SEQUENCE "SPLICE"."SEQUENCE_1"
     AS INTEGER
     START WITH -2147483648
     INCREMENT BY 1
@@ -6098,7 +6098,7 @@ CREATE SCHEMA "BAR" #
 -- ----------------------------------------------
 -- DDL Statements for sequences
 -- ----------------------------------------------
-CREATE SEQUENCE "APP"."SEQUENCE_1"
+CREATE SEQUENCE "SPLICE"."SEQUENCE_1"
     AS INTEGER
     START WITH -2147483648
     INCREMENT BY 1
@@ -6122,20 +6122,20 @@ CALL SQLJ.INSTALL_JAR(<maskedOutJarDesc>)
 -- ----------------------------------------------
 -- DDL Statements for user defined types
 -- ----------------------------------------------
-CREATE TYPE "APP"."PRICE" EXTERNAL NAME 'org.apache.derbyTesting.functionTests.tests.lang.Price' LANGUAGE JAVA #
+CREATE TYPE "SPLICE"."PRICE" EXTERNAL NAME 'org.apache.derbyTesting.functionTests.tests.lang.Price' LANGUAGE JAVA #
 -- ----------------------------------------------
 -- DDL Statements for stored procedures
 -- ----------------------------------------------
-CREATE PROCEDURE "APP"."PROC1" (INOUT "A" CHAR(10),IN "B" INTEGER) LANGUAGE JAVA PARAMETER STYLE JAVA CONTAINS SQL DYNAMIC RESULT SETS 4 EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.ProcedureTest.inoutparams3'  #
+CREATE PROCEDURE "SPLICE"."PROC1" (INOUT "A" CHAR(10),IN "B" INTEGER) LANGUAGE JAVA PARAMETER STYLE JAVA CONTAINS SQL DYNAMIC RESULT SETS 4 EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.ProcedureTest.inoutparams3'  #
 -- ----------------------------------------------
 -- DDL Statements for functions
 -- ----------------------------------------------
-CREATE FUNCTION "APP"."GATP" ("SCH" VARCHAR(128),"TBL" VARCHAR(128)) RETURNS VARCHAR(1000) LANGUAGE JAVA PARAMETER STYLE JAVA CONTAINS SQL CALLED ON NULL INPUT EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.TestPropertyInfo.getAllTableProperties'  #
+CREATE FUNCTION "SPLICE"."GATP" ("SCH" VARCHAR(128),"TBL" VARCHAR(128)) RETURNS VARCHAR(1000) LANGUAGE JAVA PARAMETER STYLE JAVA CONTAINS SQL CALLED ON NULL INPUT EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.TestPropertyInfo.getAllTableProperties'  #
 -- ----------------------------------------------
 -- DDL Statements for aggregates
 -- ----------------------------------------------
-CREATE DERBY AGGREGATE "APP"."MODE" FOR INTEGER RETURNS INTEGER EXTERNAL NAME 'foo.bar.Wibble'  #
-CREATE DERBY AGGREGATE "APP"."MODE2" FOR BIGINT RETURNS DOUBLE EXTERNAL NAME 'foo.bar.Wibble'  #
+CREATE DERBY AGGREGATE "SPLICE"."MODE" FOR INTEGER RETURNS INTEGER EXTERNAL NAME 'foo.bar.Wibble'  #
+CREATE DERBY AGGREGATE "SPLICE"."MODE2" FOR BIGINT RETURNS DOUBLE EXTERNAL NAME 'foo.bar.Wibble'  #
 -- ----------------------------------------------
 -- DDL Statements for tables
 -- ----------------------------------------------
@@ -6147,7 +6147,7 @@ CREATE INDEX "BAR"."IX1" ON "BAR"."T1" ("I" DESC) #
 -- ----------------------------------------------
 -- DDL Statements for Synonyms
 -- ----------------------------------------------
-CREATE SYNONYM "APP"."SYN1" FOR "BAR"."T1" #
+CREATE SYNONYM "SPLICE"."SYN1" FOR "BAR"."T1" #
 -- ----------------------------------------------
 -- DDL Statements for keys
 -- ----------------------------------------------
@@ -6162,14 +6162,14 @@ ALTER TABLE "BAR"."T1" ADD CONSTRAINT "NOTEVIL" CHECK (vc != 'evil') #
 -- ----------------------------------------------
 -- DDL Statements for views
 -- ----------------------------------------------
-SET SCHEMA "APP" #
+SET SCHEMA "SPLICE" #
 create view v1 (dum, dee, dokie) as select a.c, a.i, a.vc from bar.t1 as a #
--- Reverting back to default schema 'APP'
-SET SCHEMA "APP" #
+-- Reverting back to default schema 'SPLICE'
+SET SCHEMA "SPLICE" #
 -- ----------------------------------------------
 -- DDL Statements for triggers
 -- ----------------------------------------------
-CREATE TRIGGER "APP"."TRIGONE" AFTER INSERT ON "BAR"."T1" FOR EACH ROW update bar.t1 set i = 4 where i = 2 #
+CREATE TRIGGER "SPLICE"."TRIGONE" AFTER INSERT ON "BAR"."T1" FOR EACH ROW update bar.t1 set i = 4 where i = 2 #
 ************
 Msg Test 5
 ************

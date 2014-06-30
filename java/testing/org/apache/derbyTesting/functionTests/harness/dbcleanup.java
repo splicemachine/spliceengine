@@ -207,13 +207,13 @@ public class dbcleanup {
 			}
 			}
 		}
-		// drop every user schema except APP
+		// drop every user schema except SPLICE
 		if (schemavec.size() > 1) {
 		System.out.println("dropping extra user schemas: ");
 		schemalist = null;
 		for (schemalist = schemavec.elements(); schemalist.hasMoreElements();) {
 			schema = (String)schemalist.nextElement();
-			if (schema.equals("APP")) continue;
+			if (schema.equals("SPLICE")) continue;
 			if (schema == null) {
 				System.out.println("null schema in schemalist");
 				continue;

@@ -489,7 +489,7 @@ public final class ColumnDefaultsTest extends BaseJDBCTestCase {
         JDBC.assertColumnNames(rs, expColNames);
         
         String[][] expRS = {
-            {"APP", "APP", "APP", "APP"}
+            {"SPLICE", "SPLICE", "SPLICE", "SPLICE"}
         };
         
         JDBC.assertFullResultSet(rs, expRS, true);

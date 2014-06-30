@@ -117,7 +117,7 @@ select conglomeratename, isindex, numallocatedpages, numfreepages, pagesize, est
          SYS.SYSTABLES t,
          new org.apache.derby.diag.SpaceTable(SCHEMANAME,TABLENAME) v
     where s.SCHEMAID = t.SCHEMAID
-    and s.SCHEMANAME = 'APP'
+    and s.SCHEMANAME = 'SPLICE'
     order by conglomeratename;
 
 drop table platypus;

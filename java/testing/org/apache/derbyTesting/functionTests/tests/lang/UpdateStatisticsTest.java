@@ -89,18 +89,18 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         s.executeUpdate("ALTER TABLE t1 DROP statistics");
         //Should still be able to call update/drop statistics on index 
         // STATISTICS
-        s.executeUpdate("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','T1','STATISTICS')");
+        s.executeUpdate("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','T1','STATISTICS')");
         stats.assertTableStats(tbl, 1);
-        s.executeUpdate("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('APP','T1','STATISTICS')");
+        s.executeUpdate("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','T1','STATISTICS')");
         stats.assertNoStatsTable(tbl);
         //Add the column named STATISTICS back
         s.executeUpdate("ALTER TABLE t1 ADD COLUMN statistics int");
         stats.assertNoStatsTable(tbl);
         //Update or drop statistics for index named STATISTICS. Note that there
         // is also a column named STATISTICS in the table
-        s.executeUpdate("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('APP','T1','STATISTICS')");
+        s.executeUpdate("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','T1','STATISTICS')");
         stats.assertNoStatsTable(tbl);
-        s.executeUpdate("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','T1','STATISTICS')");
+        s.executeUpdate("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','T1','STATISTICS')");
         stats.assertTableStats(tbl, 1);
         s.executeUpdate("DROP TABLE t1");
 
@@ -118,28 +118,28 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         Statement s = createStatement();
 
         //Calls to update and drop statistics below should fail because 
-        // table APP.T1 does not exist
+        // table SPLICE.T1 does not exist
         dropTable("T1");
         assertStatementError("42Y55", s, 
-            "CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('APP','T1',null)");
+            "CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','T1',null)");
         assertStatementError("42Y55", s, 
-            "CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','T1',null)");
+            "CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','T1',null)");
 
         s.executeUpdate("CREATE TABLE t1 (c11 int, c12 varchar(128))");
-        //following will pass now because we have created APP.T1
-        s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('APP','T1',null)");
-        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','T1',null)");
+        //following will pass now because we have created SPLICE.T1
+        s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','T1',null)");
+        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','T1',null)");
         
-        //following should fail because index I1 does not exist on table APP.T1
+        //following should fail because index I1 does not exist on table SPLICE.T1
         assertStatementError("42X65", s, 
-                "CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('APP','T1','I1')");
+                "CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','T1','I1')");
         assertStatementError("42X65", s, 
-                "CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','T1','I1')");
+                "CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','T1','I1')");
         
         s.executeUpdate("CREATE INDEX i1 on t1(c12)");
-        //following will pass now because we have created index I1 on APP.T1
-        s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('APP','T1','I1')");
-        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','T1','I1')");
+        //following will pass now because we have created index I1 on SPLICE.T1
+        s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','T1','I1')");
+        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','T1','I1')");
 
         //The following set of subtest will ensure that when an index is
         //created on a table when there is no data in the table, then Derby
@@ -161,28 +161,28 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         stats.assertTableStats(tbl1, 1);
         //Drop the statistics on index I2 and then add it back by calling 
         // update statistics
-        s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('APP','T1','I2')");
+        s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','T1','I2')");
         //Since we dropped the only statistics that existed for table T1, there
         // will no stats found at this point
         stats.assertNoStatsTable(tbl1);
-        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','T1','I2')");
+        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','T1','I2')");
         //The statistics for index I2 has been added back
         stats.assertTableStats(tbl1, 1);
         //Now update the statistics for the old index I1 using the new stored
         //procedure. Doing this should add a row for it in sysstatistics table
-        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','T1','I1')");
+        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','T1','I1')");
         stats.assertTableStats(tbl1, 2);
         //Drop the statistics on index I1 and then add it back by calling 
         // update statistics
-        s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('APP','T1','I1')");
+        s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','T1','I1')");
         stats.assertTableStats(tbl1, 1);
-        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','T1','I1')");
+        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','T1','I1')");
         stats.assertTableStats(tbl1, 2);
         //Drop all the statistics on table T1 and then recreate all the 
         // statisitcs back again
-        s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('APP','T1',null)");
+        s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','T1',null)");
         stats.assertNoStatsTable(tbl1);
-        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','T1',null)");
+        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','T1',null)");
         stats.assertTableStats(tbl1, 2);
         //Dropping the index should get rid of it's statistics
         s.executeUpdate("DROP INDEX I1");
@@ -193,13 +193,13 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         // sql format is not available to end user to issue directly. Write a 
         // test case for these internal sql syntaxes
         assertStatementError("42X01", s, 
-            "ALTER TABLE APP.T1 ALL UPDATE STATISTICS");
+            "ALTER TABLE SPLICE.T1 ALL UPDATE STATISTICS");
         assertStatementError("42X01", s, 
-            "ALTER TABLE APP.T1 UPDATE STATISTICS I1");
+            "ALTER TABLE SPLICE.T1 UPDATE STATISTICS I1");
         assertStatementError("42X01", s, 
-                "ALTER TABLE APP.T1 ALL DROP STATISTICS");
+                "ALTER TABLE SPLICE.T1 ALL DROP STATISTICS");
         assertStatementError("42X01", s, 
-                "ALTER TABLE APP.T1 STATISTICS DROP I1");
+                "ALTER TABLE SPLICE.T1 STATISTICS DROP I1");
         //cleanup
         s.executeUpdate("DROP TABLE t1");
 
@@ -261,7 +261,7 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
 		assertTrue(rtsp.usedSpecificIndexForIndexScan("T2","T2I1"));
 
 		//Running the update statistics below will create statistics for T2I2
-		s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','T2','T2I2')");
+		s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','T2','T2I2')");
         stats.assertIndexStats("T2I2", 1);
 
         //Rerunning the query "SELECT * FROM t2 WHERE c21=? AND c22=?" and
@@ -273,7 +273,7 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
 
 		//Drop statistics for T2I2 and we should see that we go back to using
 		// T2I1 rather than T2I2
-		s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('APP','T2','T2I2')");
+		s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','T2','T2I2')");
         stats.assertIndexStats("T2I2", 0);
 
         //Rerunning the query "SELECT * FROM t2 WHERE c21=? AND c22=?" and
@@ -308,7 +308,7 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         Statement s2 = c2.createStatement();
         // This call used to time out because SYSCS_UPDATE_STATISTICS tried
         // to lock T exclusively.
-        s2.execute("call syscs_util.syscs_update_statistics('APP', 'T', null)");
+        s2.execute("call syscs_util.syscs_update_statistics('SPLICE', 'T', null)");
         s2.close();
         c2.close();
 
@@ -339,7 +339,7 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         // Start a thread that repeatedly updates the statistics for IDX.
         Connection updateConn = openDefaultConnection();
         IndexUpdateThread t =
-                new IndexUpdateThread(updateConn, "APP", "DERBY5153", "IDX");
+                new IndexUpdateThread(updateConn, "SPLICE", "DERBY5153", "IDX");
         t.start();
 
         try {
@@ -392,7 +392,7 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         //Insert data into table with no constraint and there will be no stat
         // for that table at this point
         s.executeUpdate("INSERT INTO TEST_TAB_1 VALUES(1,1,1),(2,2,2)");
-        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','TEST_TAB_1', null)");
+        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','TEST_TAB_1', null)");
         stats.assertNoStatsTable("TEST_TAB_1");
         // Add primary key constraint to the table. With DERBY-3790 this won't
         // create a statistics entry, since the key consist of single column.
@@ -403,7 +403,7 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         s.executeUpdate("ALTER TABLE TEST_TAB_1 "+
                 "DROP CONSTRAINT TEST_TAB_1_PK_1");
         stats.assertNoStatsTable("TEST_TAB_1");
-        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','TEST_TAB_1', null)");
+        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','TEST_TAB_1', null)");
         stats.assertNoStatsTable("TEST_TAB_1");
         //Add the primary key constraint back since it will be used by the next
         // test to create foreign key constraint
@@ -484,7 +484,7 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         // didn't automatically add a statistics row for it. Have to run update
         // statistics manually to get a row added for it's stat
         stats.assertNoStatsTable("TEST_TAB_2");
-        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','TEST_TAB_2', null)");
+        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','TEST_TAB_2', null)");
         stats.assertTableStats("TEST_TAB_2",1);
         //Number of statistics row for TEST_TAB_1 will remain unchanged since
         // it has only primary key defined on it
@@ -494,9 +494,9 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         //Dropping the foreign key constraint should cause the statistics row
         // for TEST_TAB_2 to be dropped as well.
         stats.assertNoStatsTable("TEST_TAB_2");
-        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','TEST_TAB_2', null)");
+        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','TEST_TAB_2', null)");
         stats.assertNoStatsTable("TEST_TAB_2");
-        s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('APP','TEST_TAB_2', null)");
+        s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','TEST_TAB_2', null)");
         //After DERBY-4115 is implemented, we will see no statistics 
         // for TEST_TAB_2 after calling SYSCS_DROP_STATISTICS on it.
         stats.assertNoStatsTable("TEST_TAB_2");
@@ -564,7 +564,7 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         // Sleep at least one tick to ensure the timestamps differ.
         sleepAtLeastOneTick();
         ps = prepareStatement(
-                "call syscs_util.syscs_update_statistics('APP', ?, ?)");
+                "call syscs_util.syscs_update_statistics('SPLICE', ?, ?)");
         ps.setNull(2, Types.VARCHAR);
         ps.setString(1, tbl);
         ps.execute();

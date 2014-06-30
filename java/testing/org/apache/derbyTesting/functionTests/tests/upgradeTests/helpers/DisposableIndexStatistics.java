@@ -132,7 +132,7 @@ public class DisposableIndexStatistics {
                 "fk_on_pk foreign key (id) " +
                 "references " + fktbl + "(id)");
         stmt.executeUpdate("call syscs_util.syscs_update_statistics(" +
-                "'APP', '" + tbl + "', null)");
+                "'SPLICE', '" + tbl + "', null)");
         Assert.assertTrue(stats.getStatsTable(tbl).length == preFkAddition +1);
         stmt.executeUpdate("alter table " + tbl + " drop constraint " +
                 "fk_on_pk");

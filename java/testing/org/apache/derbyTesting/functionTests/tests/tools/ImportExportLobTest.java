@@ -125,8 +125,8 @@ public class ImportExportLobTest extends ImportExportBaseTest
     public void testImportTableExportTable()  
         throws SQLException, IOException
     {
-        doExportTable("APP", "BOOKS", fileName, null, null , null);
-	    doImportTable("APP", "BOOKS_IMP", fileName, null, null, null, 0);
+        doExportTable("SPLICE", "BOOKS", fileName, null, null , null);
+	    doImportTable("SPLICE", "BOOKS_IMP", fileName, null, null, null, 0);
         verifyData(" * ");
     }
 
@@ -222,7 +222,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
         s.close();
 
         // export the invalid hex strings from the table to a file. 
-        doExportTable("APP", "HEX_TAB", fileName, null, null , null);
+        doExportTable("SPLICE", "HEX_TAB", fileName, null, null , null);
 
 	//DERBY-2925: need to delete export files first
         SupportFilesSetup.deleteFile(fileName);
@@ -235,7 +235,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
             doExportQuery("select * from hex_tab where id <= 2",  
                           fileName,  null, null, null);
             // import should fail because of invalied hex string length
-            doImportTable("APP", "BOOKS_IMP", fileName, null, null, null, 0);
+            doImportTable("SPLICE", "BOOKS_IMP", fileName, null, null, null, 0);
             fail("import did not fail on data with invalid hex string");
         } catch (SQLException e) {
              assertSQLState("XIE0N", e);
@@ -281,9 +281,9 @@ public class ImportExportLobTest extends ImportExportBaseTest
     public void testImportTableExportTableLobsInExtFile()  
         throws SQLException, IOException
     {
-        doExportTableLobsToExtFile("APP", "BOOKS", fileName, 
+        doExportTableLobsToExtFile("SPLICE", "BOOKS", fileName,
                                    null, null , null, lobsFileName);
-	    doImportTableLobsFromExtFile("APP", "BOOKS_IMP", fileName, 
+	    doImportTableLobsFromExtFile("SPLICE", "BOOKS_IMP", fileName,
                                      null, null, null, 0);
         verifyData(" * ");
     }
@@ -306,13 +306,13 @@ public class ImportExportLobTest extends ImportExportBaseTest
 	// delete the export files.
         SupportFilesSetup.deleteFile(lobsFileName2);
  
-        doExportTableLobsToExtFile("APP", "BOOKS", fileName, 
+        doExportTableLobsToExtFile("SPLICE", "BOOKS", fileName,
                                     "\t", "|", "UTF-16", 
                                    lobsFileName2);
         // DERBY-2546 - with JSR this hits a JVM issue
         if (JDBC.vmSupportsJDBC3()) 
         {
-            doImportTableLobsFromExtFile("APP", "BOOKS_IMP", fileName, 
+            doImportTableLobsFromExtFile("SPLICE", "BOOKS_IMP", fileName,
                 "\t", "|", "UTF-16", 0);
             verifyData(" * ");
         }
@@ -393,7 +393,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
          throws SQLException, IOException   
     {
         try {
-            doExportTableLobsToExtFile("APP", "BOOKS", fileName, 
+            doExportTableLobsToExtFile("SPLICE", "BOOKS", fileName,
                                        null, "9" , null, lobsFileName);
             fail();
         } catch (SQLException e) {
@@ -420,7 +420,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
                                    fileName, null, null, null, lobsFileName);
 
         try {
-            doImportTableLobsFromExtFile("APP", "BOOKS_IMP", fileName, "2", 
+            doImportTableLobsFromExtFile("SPLICE", "BOOKS_IMP", fileName, "2",
                                          null, null, 0);
             fail();
         } catch (SQLException e) {
@@ -450,7 +450,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
         // test export of lob data with lob file name parameter 
         // value as null,  it should fail.
         try {
-            doExportTableLobsToExtFile("APP", "BOOKS", fileName, 
+            doExportTableLobsToExtFile("SPLICE", "BOOKS", fileName,
                                        null, null , null, 
                                        null);
             fail();
@@ -462,7 +462,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
         SupportFilesSetup.deleteFile(fileName);
 
         // export of lob data into an external file.
-        doExportTableLobsToExtFile("APP", "BOOKS", fileName, 
+        doExportTableLobsToExtFile("SPLICE", "BOOKS", fileName,
                                    null, null , null, 
                                    lobsFileName);
         // delete the lob data file, and then perfom the import.
@@ -470,7 +470,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
         SupportFilesSetup.deleteFile(lobsFileName);
         try {
             // missing lob file, refered by the main import file.
-            doImportTableLobsFromExtFile("APP", "BOOKS_IMP", fileName, 
+            doImportTableLobsFromExtFile("SPLICE", "BOOKS_IMP", fileName,
                                          null, null, null, 0);
             fail();
         }catch (SQLException e) {
@@ -481,11 +481,11 @@ public class ImportExportLobTest extends ImportExportBaseTest
     public void testDerby2955ExportQueryLobs()
 	throws SQLException
     {
-	doExportTableLobsToExtFile("APP", "DERBY_2925_LOB", fileName,
+	doExportTableLobsToExtFile("SPLICE", "DERBY_2925_LOB", fileName,
                                    "\t", "|", "UTF-16",
                                    lobsFileName);
 	try {
-       	    doExportTableLobsToExtFile("APP", "DERBY_2925_LOB", fileName,
+       	    doExportTableLobsToExtFile("SPLICE", "DERBY_2925_LOB", fileName,
                                    "\t", "|", "UTF-16",
                                    lobsFileName);
 	    fail("export should have failed as the data file exists.");
@@ -498,7 +498,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
         SupportFilesSetup.deleteFile(fileName);
         SupportFilesSetup.deleteFile(lobsFileName);
 
-	doExportTableLobsToExtFile("APP", "DERBY_2925_LOB", fileName,
+	doExportTableLobsToExtFile("SPLICE", "DERBY_2925_LOB", fileName,
                                    "\t", "|", "UTF-16",
                                    lobsFileName);
         // delete the data file, and then perform export
@@ -506,7 +506,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
 	SupportFilesSetup.deleteFile(fileName);
 
         try {
-            doExportTableLobsToExtFile("APP", "DERBY_2925_LOB", fileName,
+            doExportTableLobsToExtFile("SPLICE", "DERBY_2925_LOB", fileName,
                                    "\t", "|", "UTF-16",
                                    lobsFileName);
             fail("export should have failed as the data file exists.");

@@ -45,7 +45,7 @@ SYS                 |SYSTRIGGERS                   |
 SYS                 |SYSUSERS                      |                    
 SYS                 |SYSVIEWS                      |                    
 SYSIBM              |SYSDUMMY1                     |                    
-splice> SET SCHEMA APP;
+splice> SET SCHEMA SPLICE;
 0 rows inserted/updated/deleted
 splice> CREATE TABLE t1 (i int generated always as identity, d DECIMAL(5,2), test VARCHAR(20));
 0 rows inserted/updated/deleted
@@ -59,13 +59,13 @@ splice> CREATE SYNONYM USER1.T3 FOR USER1.T2;
 0 rows inserted/updated/deleted
 splice> CREATE VIEW v1 AS SELECT * from app.t1;
 0 rows inserted/updated/deleted
-splice> CREATE INDEX idx1 ON APP.t1 (test ASC);
+splice> CREATE INDEX idx1 ON SPLICE.t1 (test ASC);
 0 rows inserted/updated/deleted
-splice> CREATE PROCEDURE APP.PROCTEST(IN A INTEGER, OUT B DECIMAL(10,2))
+splice> CREATE PROCEDURE SPLICE.PROCTEST(IN A INTEGER, OUT B DECIMAL(10,2))
 PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA 
 EXTERNAL NAME 'a.b.c.d.e';
 0 rows inserted/updated/deleted
-splice> CREATE FUNCTION APP.FUNCTTEST(A INTEGER)
+splice> CREATE FUNCTION SPLICE.FUNCTTEST(A INTEGER)
 RETURNS INTEGER
 PARAMETER STYLE JAVA
 LANGUAGE JAVA
@@ -99,20 +99,20 @@ SYS                 |SYSTRIGGERS                   |
 SYS                 |SYSUSERS                      |                    
 SYS                 |SYSVIEWS                      |                    
 SYSIBM              |SYSDUMMY1                     |                    
-APP                 |T1                            |                    
+SPLICE                 |T1                            |
 USER1               |T2                            |                    
-splice> SHOW TABLES IN APP;
+splice> SHOW TABLES IN SPLICE;
 TABLE_SCHEM         |TABLE_NAME                    |REMARKS             
 ------------------------------------------------------------------------
-APP                 |T1                            |                    
+SPLICE                 |T1                            |
 splice> SHOW TABLES IN app;
 TABLE_SCHEM         |TABLE_NAME                    |REMARKS             
 ------------------------------------------------------------------------
-APP                 |T1                            |                    
+SPLICE                 |T1                            |
 splice> -- 'describe t1' will give error, as not in current schema
 DESCRIBE t1;
 Splice ERROR: No table exists with the name T1
-splice> DESCRIBE APP.t1;
+splice> DESCRIBE SPLICE.t1;
 COLUMN_NAME         |TYPE_NAME|DEC&|NUM&|COLUM&|COLUMN_DEF|CHAR_OCTE&|IS_NULL&
 ------------------------------------------------------------------------------
 I                   |INTEGER  |0   |10  |10    |AUTOINCRE&|NULL      |NO      
@@ -133,7 +133,7 @@ TEST                |VARCHAR  |NULL|NULL|20    |NULL      |40        |YES
 splice> SHOW SCHEMAS;
 TABLE_SCHEM                   
 ------------------------------
-APP                           
+SPLICE
 NULLID                        
 SQLJ                          
 SYS                           
@@ -149,18 +149,18 @@ splice> SHOW VIEWS IN USER1;
 TABLE_SCHEM         |TABLE_NAME                    |REMARKS             
 ------------------------------------------------------------------------
 USER1               |V1                            |                    
-splice> SHOW PROCEDURES IN APP;
+splice> SHOW PROCEDURES IN SPLICE;
 PROCEDURE_SCHEM     |PROCEDURE_NAME                |REMARKS             
 ------------------------------------------------------------------------
-APP                 |PROCTEST                      |a.b.c.d.e           
-splice> SHOW FUNCTIONS IN APP;
+SPLICE                 |PROCTEST                      |a.b.c.d.e
+splice> SHOW FUNCTIONS IN SPLICE;
 FUNCTION_SCHEM|FUNCTION_NAME               |REMARKS                            
 -------------------------------------------------------------------------------
-APP           |FUNCTTEST                   |a.b.c.d.e.f                        
+SPLICE           |FUNCTTEST                   |a.b.c.d.e.f
 splice> SHOW FUNCTIONS;
 FUNCTION_SCHEM|FUNCTION_NAME               |REMARKS                            
 -------------------------------------------------------------------------------
-APP           |FUNCTTEST                   |a.b.c.d.e.f                        
+SPLICE           |FUNCTTEST                   |a.b.c.d.e.f
 SYSCS_UTIL    |SYSCS_CHECK_TABLE           |org.apache.derby.catalog.SystemPro&
 SYSCS_UTIL    |SYSCS_GET_DATABASE_PROPERTY |org.apache.derby.catalog.SystemPro&
 SYSCS_UTIL    |SYSCS_GET_RUNTIMESTATISTICS |org.apache.derby.catalog.SystemPro&
@@ -185,19 +185,19 @@ USER1               |T3                            |
 splice> --
 -- DERBY-4553
 --
-GET SCROLL INSENSITIVE CURSOR CURS AS 'SELECT * FROM APP.T1';
+GET SCROLL INSENSITIVE CURSOR CURS AS 'SELECT * FROM SPLICE.T1';
 splice> GETCURRENTROWNUMBER CURS;
 0
 splice> CLOSE CURS;
 splice> -- DERBY-2019: ensure that tables with mixed-case names can be described:
-SET SCHEMA APP;
+SET SCHEMA SPLICE;
 0 rows inserted/updated/deleted
 splice> create table "CamelCaseTable" (c1 int, c2 varchar(20));
 0 rows inserted/updated/deleted
 splice> -- should fail, as unquoted stirng is treated as case-insensitive upper case:
 describe CamelCaseTable;
 Splice ERROR: No table exists with the name CAMELCASETABLE
-splice> describe APP.CamelCaseTable;
+splice> describe SPLICE.CamelCaseTable;
 Splice ERROR: No table exists with the name CAMELCASETABLE
 splice> -- should find the table, as quoted string case is preserved.
 describe 'CamelCaseTable';
@@ -209,7 +209,7 @@ splice> -- should fail, as case is wrong:
 describe 'CAMELCaseTable';
 Splice ERROR: No table exists with the name CAMELCaseTable
 splice> -- should work, note that schema name must be upper case:
-describe 'APP.CamelCaseTable';
+describe 'SPLICE.CamelCaseTable';
 COLUMN_NAME         |TYPE_NAME|DEC&|NUM&|COLUM&|COLUMN_DEF|CHAR_OCTE&|IS_NULL&
 ------------------------------------------------------------------------------
 C1                  |INTEGER  |0   |10  |10    |NULL      |NULL      |YES     
@@ -217,7 +217,7 @@ C2                  |VARCHAR  |NULL|NULL|20    |NULL      |40        |YES
 splice> set SCHEMA USER1;
 0 rows inserted/updated/deleted
 splice> -- should work, even after changing default schema, so long as schema is right
-describe 'APP.CamelCaseTable';
+describe 'SPLICE.CamelCaseTable';
 COLUMN_NAME         |TYPE_NAME|DEC&|NUM&|COLUM&|COLUMN_DEF|CHAR_OCTE&|IS_NULL&
 ------------------------------------------------------------------------------
 C1                  |INTEGER  |0   |10  |10    |NULL      |NULL      |YES     
@@ -233,14 +233,14 @@ USER1               |T2                  |I                   |INTEGER  |0   |10
 USER1               |V1                  |I                   |INTEGER  |0   |10  |10    |NULL      |NULL      |NO      
 USER1               |V1                  |D                   |DECIMAL  |2   |10  |5     |NULL      |NULL      |YES     
 USER1               |V1                  |TEST                |VARCHAR  |NULL|NULL|20    |NULL      |40        |YES     
-splice> describe 'APP.*';
+splice> describe 'SPLICE.*';
 TABLE_SCHEM         |TABLE_NAME          |COLUMN_NAME         |TYPE_NAME|DEC&|NUM&|COLUM&|COLUMN_DEF|CHAR_OCTE&|IS_NULL&
 ------------------------------------------------------------------------------------------------------------------------
-APP                 |CamelCaseTable      |C1                  |INTEGER  |0   |10  |10    |NULL      |NULL      |YES     
-APP                 |CamelCaseTable      |C2                  |VARCHAR  |NULL|NULL|20    |NULL      |40        |YES     
-APP                 |T1                  |I                   |INTEGER  |0   |10  |10    |AUTOINCRE&|NULL      |NO      
-APP                 |T1                  |D                   |DECIMAL  |2   |10  |5     |NULL      |NULL      |YES     
-APP                 |T1                  |TEST                |VARCHAR  |NULL|NULL|20    |NULL      |40        |YES     
+SPLICE                 |CamelCaseTable      |C1                  |INTEGER  |0   |10  |10    |NULL      |NULL      |YES
+SPLICE                 |CamelCaseTable      |C2                  |VARCHAR  |NULL|NULL|20    |NULL      |40        |YES
+SPLICE                 |T1                  |I                   |INTEGER  |0   |10  |10    |AUTOINCRE&|NULL      |NO
+SPLICE                 |T1                  |D                   |DECIMAL  |2   |10  |5     |NULL      |NULL      |YES
+SPLICE                 |T1                  |TEST                |VARCHAR  |NULL|NULL|20    |NULL      |40        |YES
 splice> -- Observe behavior with empty string:
 describe '';
 Splice ERROR: No table exists with the name (missing)

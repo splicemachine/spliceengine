@@ -340,10 +340,10 @@ public class AutoIncrementTest extends BaseJDBCTestCase {
 		s.executeUpdate("create table tab2schema (i int, a2 bigint generated always as identity (start with 100, increment by -1))");
 		s.executeUpdate("create table tab3schema (i int, a1 int generated always as identity (start with 100, increment by 2))");
 		s.executeUpdate("create table tab4schema (i int, a2 smallint generated always as identity (start with 100, increment by -2))");
-		s.executeUpdate("insert into APP.tab1schema (i) values (1)");
-		s.executeUpdate("insert into APP.tab2schema (i) values (1)");
-		s.executeUpdate("insert into APP.tab3schema (i) values (1)");
-		s.executeUpdate("insert into APP.tab4schema (i) values (1)");
+		s.executeUpdate("insert into SPLICE.tab1schema (i) values (1)");
+		s.executeUpdate("insert into SPLICE.tab2schema (i) values (1)");
+		s.executeUpdate("insert into SPLICE.tab3schema (i) values (1)");
+		s.executeUpdate("insert into SPLICE.tab4schema (i) values (1)");
 		s.executeUpdate("insert into tab1schema (i) values (1)");
 		s.executeUpdate("insert into tab1schema (i) values (2)");
 		s.executeUpdate("insert into tab2schema (i) values (1)");
@@ -367,7 +367,7 @@ public class AutoIncrementTest extends BaseJDBCTestCase {
 		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
 		expectedRows=new String[][]{{"98"}};
 		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("set schema APP");
+		s.executeUpdate("set schema SPLICE");
 		s.executeUpdate("drop table BPP.tab1schema");
 		s.executeUpdate("drop table BPP.tab2schema");
 		s.executeUpdate("drop table BPP.tab3schema");
@@ -475,7 +475,7 @@ public class AutoIncrementTest extends BaseJDBCTestCase {
 		JDBC.assertFullResultSet(rs,expectedRows);
 		rs=s.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt");
 		//Utilities.showResultSet(rs);
-		expectedRows=new String[][]{{"APP   ","UserTran","TABLE   ","2  ","IX","LOCKT1      ","GRANT","ACTIVE"},{"APP   ","UserTran","ROW     ","1  ","X","LOCKT1      ","GRANT","ACTIVE"},{"APP   ","UserTran","ROW     ","1  ","X","LOCKT1      ","GRANT","ACTIVE"}};
+		expectedRows=new String[][]{{"SPLICE   ","UserTran","TABLE   ","2  ","IX","LOCKT1      ","GRANT","ACTIVE"},{"SPLICE   ","UserTran","ROW     ","1  ","X","LOCKT1      ","GRANT","ACTIVE"},{"SPLICE   ","UserTran","ROW     ","1  ","X","LOCKT1      ","GRANT","ACTIVE"}};
 		JDBC.assertFullResultSet(rs,expectedRows);
 		s.execute("delete from lockt1");
 		commit();
@@ -484,13 +484,13 @@ public class AutoIncrementTest extends BaseJDBCTestCase {
 		JDBC.assertFullResultSet(rs,expectedRows);
 		s.execute("set isolation serializable");
 		rs=s.executeQuery("select columnname, autoincrementvalue from sys.syscolumns where columnname = 'YYYY'");
-		expectedRows=new String[][]{{"APP     ","UserTran","TABLE   ","1   ","S   ","SYSCOLUMNS  ","GRANT","ACTIVE"}};
+		expectedRows=new String[][]{{"SPLICE     ","UserTran","TABLE   ","1   ","S   ","SYSCOLUMNS  ","GRANT","ACTIVE"}};
 		rs=s.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt");
-		expectedRows=new String[][]{{"APP     ","UserTran","TABLE   ","1  ","S","SYSCOLUMNS  ","GRANT","ACTIVE"}};
+		expectedRows=new String[][]{{"SPLICE     ","UserTran","TABLE   ","1  ","S","SYSCOLUMNS  ","GRANT","ACTIVE"}};
 		JDBC.assertFullResultSet(rs,expectedRows);
 		s.execute("insert into lockt1 (x) values (3)");
 		rs=s.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt");
-		expectedRows=new String[][]{{"APP     ","UserTran","TABLE   ","1  ","IX","LOCKT1      ","GRANT","ACTIVE"},{"APP     ","UserTran","ROW     ","1  ","X","LOCKT1      ","GRANT","ACTIVE"},{"APP     ","UserTran","TABLE   ","1  ","IX","SYSCOLUMNS  ","GRANT","ACTIVE"},{"APP     ","UserTran","TABLE   ","1  ","S","SYSCOLUMNS  ","GRANT","ACTIVE"},{"APP     ","UserTran","ROW     ","2  ","X","SYSCOLUMNS  ","GRANT","ACTIVE"}};
+		expectedRows=new String[][]{{"SPLICE     ","UserTran","TABLE   ","1  ","IX","LOCKT1      ","GRANT","ACTIVE"},{"SPLICE     ","UserTran","ROW     ","1  ","X","LOCKT1      ","GRANT","ACTIVE"},{"SPLICE     ","UserTran","TABLE   ","1  ","IX","SYSCOLUMNS  ","GRANT","ACTIVE"},{"SPLICE     ","UserTran","TABLE   ","1  ","S","SYSCOLUMNS  ","GRANT","ACTIVE"},{"SPLICE     ","UserTran","ROW     ","2  ","X","SYSCOLUMNS  ","GRANT","ACTIVE"}};
 		JDBC.assertFullResultSet(rs,expectedRows);
 		commit();
 		

@@ -96,10 +96,10 @@ public class Changes10_5 extends UpgradeChange {
             s = createStatement();
             assertStatementError("42Y03", s,
                     "call SYSCS_UTIL.SYSCS_UPDATE_STATISTICS" +
-                    "('APP', 'DERBY_269', null)");
+                    "('SPLICE', 'DERBY_269', null)");
             assertStatementError("42Y03", s,
                     "call SYSCS_UTIL.SYSCS_UPDATE_STATISTICS" +
-                    "('APP', 'DERBY_269', 'I1')");
+                    "('SPLICE', 'DERBY_269', 'I1')");
             s.close();
             break;
 
@@ -108,9 +108,9 @@ public class Changes10_5 extends UpgradeChange {
         	//update statistics procedure
             s = createStatement();
             s.execute("call SYSCS_UTIL.SYSCS_UPDATE_STATISTICS" +
-            		"('APP', 'DERBY_269', null)");
+            		"('SPLICE', 'DERBY_269', null)");
             s.execute("call SYSCS_UTIL.SYSCS_UPDATE_STATISTICS" +
-            		"('APP', 'DERBY_269', 'I1')");
+            		"('SPLICE', 'DERBY_269', 'I1')");
             s.close();
             break;
         }

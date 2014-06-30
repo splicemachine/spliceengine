@@ -497,7 +497,7 @@ get cursor update_cursor as
 splice(T6UPDATER)> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE
 splice(T6UPDATER)> next update_cursor;
 B          
 -----------
@@ -505,9 +505,9 @@ B
 splice(T6UPDATER)> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,3)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,7)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,3)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,7)     |GRANT|ACTIVE
 splice(T6UPDATER)> set connection t6scanner;
 splice(T6SCANNER)> autocommit off;
 splice(T6SCANNER)> --
@@ -519,9 +519,9 @@ ERROR 40XL1: A lock could not be obtained within the time requested
 splice(T6SCANNER)> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,3)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,7)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,3)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,7)     |GRANT|ACTIVE
 splice(T6SCANNER)> --
 --------------------------------------------------
 -- try to update the table, should timeout
@@ -543,19 +543,19 @@ update test_6 set b=99 where a = 8;
 splice(T6SCANNER)> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|TABLE   |2   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,3)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,7)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |X   |TEST_6      |(1,8)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |3   |X   |TEST_6      |(1,9)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|TABLE   |2   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,3)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,7)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |X   |TEST_6      |(1,8)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |3   |X   |TEST_6      |(1,9)     |GRANT|ACTIVE
 splice(T6SCANNER)> commit;
 splice(T6SCANNER)> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,3)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,7)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,3)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,7)     |GRANT|ACTIVE
 splice(T6SCANNER)> --
 --------------------------------------------------
 -- try to get an update lock
@@ -565,10 +565,10 @@ get cursor update_cursor2 as
 splice(T6SCANNER)> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,3)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,7)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,3)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,7)     |GRANT|ACTIVE
 splice(T6SCANNER)> --
 --------------------------------------------------
 -- should timeout (other transaction has a shared lock on this row)
@@ -578,9 +578,9 @@ ERROR 40XL1: A lock could not be obtained within the time requested
 splice(T6SCANNER)> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,3)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,7)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,3)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,7)     |GRANT|ACTIVE
 splice(T6SCANNER)> --
 --------------------------------------------------
 -- should succeed (no other transaction has a shared lock on this row)
@@ -601,12 +601,12 @@ B
 splice(T6SCANNER)> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,3)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,7)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,8)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,9)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,3)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,7)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,8)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,9)     |GRANT|ACTIVE
 splice(T6SCANNER)> commit;
 splice(T6SCANNER)> close update_cursor2;
 splice(T6SCANNER)> close update_cursor3;
@@ -628,9 +628,9 @@ B
 splice(T6SCANNER)> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |TEST_6      |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |S   |TEST_6      |(1,3)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |S   |TEST_6      |(1,7)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |TEST_6      |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |S   |TEST_6      |(1,3)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |S   |TEST_6      |(1,7)     |GRANT|ACTIVE
 splice(T6SCANNER)> --
 --------------------------------------------------
 -- should succeed (can get an update lock if there is already a shared lock)
@@ -645,12 +645,12 @@ B
 splice(T6UPDATER)> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |TEST_6      |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |S   |TEST_6      |(1,3)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |S   |TEST_6      |(1,7)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,3)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,7)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |TEST_6      |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |S   |TEST_6      |(1,3)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |S   |TEST_6      |(1,7)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,3)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |TEST_6      |(1,7)     |GRANT|ACTIVE
 splice(T6UPDATER)> commit;
 splice(T6UPDATER)> close update_cursor;
 splice(T6UPDATER)> set connection t6scanner;
@@ -666,19 +666,19 @@ splice(T6WRITER)> update test_6 set b=77 where a=2;
 splice(T6WRITER)> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |2   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |X   |TEST_6      |(1,7)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |3   |X   |TEST_6      |(1,8)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |2   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |X   |TEST_6      |(1,7)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |3   |X   |TEST_6      |(1,8)     |GRANT|ACTIVE
 splice(T6WRITER)> set connection t6updater;
 splice(T6UPDATER)> get cursor update_cursor as
     'select b from test_6 where a=2 for update of b';
 splice(T6UPDATER)> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|TABLE   |2   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |X   |TEST_6      |(1,7)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |3   |X   |TEST_6      |(1,8)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|TABLE   |2   |IX  |TEST_6      |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |X   |TEST_6      |(1,7)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |3   |X   |TEST_6      |(1,8)     |GRANT|ACTIVE
 splice(T6UPDATER)> --
 ----------------------------------------------------
 -- should timeout

@@ -965,7 +965,7 @@ public class NativeAuthenticationServiceTest extends GeneratedColumnsHelper
         vetEmptyCredentials( "foo", null );
         vetEmptyCredentials( "foo", "" );
 
-        if ( isEmbedded() ) { vetEmptyCredentials( null, "bar" ); } // the network server fabricates a username of APP
+        if ( isEmbedded() ) { vetEmptyCredentials( null, "bar" ); } // the network server fabricates a username of SPLICE
         vetEmptyCredentials( "", "bar" );
     }
     private void    vetEmptyCredentials( String user, String password ) throws Exception

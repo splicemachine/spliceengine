@@ -321,10 +321,10 @@ public class LogicalStatementEntityTest
                             String sql) throws SQLException {
         StatementKey key;
         if (ps instanceof java.sql.CallableStatement) {
-            key = StatementKeyFactory.newCallable(sql, "APP",
+            key = StatementKeyFactory.newCallable(sql, "SPLICE",
                     getConnection().getHoldability());
         } else {
-            key = StatementKeyFactory.newPrepared(sql, "APP",
+            key = StatementKeyFactory.newPrepared(sql, "SPLICE",
                     getConnection().getHoldability());
         }
         assertTrue(cache.cacheStatement(key, ps));

@@ -145,7 +145,7 @@ public final class TransactionResourceImpl
 		// the driver manager will push a user name
 		// into the properties if its getConnection(url, string, string)
 		// interface is used.  Thus, we look there first.
-		// Default to APP.
+		// Default to SPLICE.
 		username = IdUtil.getUserNameFromURLProps(info);
 
 		drdaID = info.getProperty(Attribute.DRDAID_ATTR, null);

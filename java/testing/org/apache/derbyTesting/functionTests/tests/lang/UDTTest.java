@@ -714,7 +714,7 @@ public class UDTTest  extends GeneratedColumnsHelper
              "org.apache.derbyTesting.functionTests.tests.lang.Price",
              15,
              java.sql.Types.JAVA_OBJECT,
-             "\"APP\".\"PRICE_09_A\"",
+             "\"SPLICE\".\"PRICE_09_A\"",
              0,
              0
              );
@@ -759,7 +759,7 @@ public class UDTTest  extends GeneratedColumnsHelper
              "insert into t_10_a( a ) values ( ? )\n",
              "org.apache.derbyTesting.functionTests.tests.lang.Price",
              java.sql.Types.JAVA_OBJECT,
-             "\"APP\".\"PRICE_10_A\"",
+             "\"SPLICE\".\"PRICE_10_A\"",
              0,
              0
              );

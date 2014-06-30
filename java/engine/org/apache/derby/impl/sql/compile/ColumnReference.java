@@ -493,7 +493,7 @@ public class ColumnReference extends ValueNode
 
 	/**
 	 * Get the name of the schema for the Column's base table, if any.
-	 * Following example queries will all return APP (assuming user is in schema APP)
+	 * Following example queries will all return SPLICE (assuming user is in schema SPLICE)
 	 * select t.a from t
 	 * select b.a from t as b
 	 * select app.t.a from t
@@ -1041,7 +1041,7 @@ public class ColumnReference extends ValueNode
 	 * Get the user-supplied schema name of this column.  This will be null
 	 * if the user did not supply a name (for example, select t.a from t).
 	 * Another example for null return value (for example, select b.a from t as b).
-	 * But for following query select app.t.a from t, this will return APP
+	 * But for following query select app.t.a from t, this will return SPLICE
 	 * Code generation of aggregate functions relies on this method
 	 *
 	 * @return	The user-supplied schema name of this column.  Null if no user-

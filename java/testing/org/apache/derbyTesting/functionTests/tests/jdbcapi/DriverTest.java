@@ -112,7 +112,7 @@ public class DriverTest extends BaseJDBCTestCase {
         // Note, that authentication is not switched on.
         dbprops.setProperty("derby.infolog.append", "true");
         dbprops.setProperty("derby.debug.true", "AuthenticationTrace");
-        dbprops.setProperty("derby.user.APP", "xxxx");
+        dbprops.setProperty("derby.user.SPLICE", "xxxx");
         dbprops.setProperty("derby.user.testuser", "testpass");
         test = new DatabasePropertyTestSetup (test, dbprops, true);
         suite.addTest(test);
@@ -317,7 +317,7 @@ public class DriverTest extends BaseJDBCTestCase {
         
         // user/password in properties
         info.clear();
-        info.setProperty("user","APP");
+        info.setProperty("user","SPLICE");
         info.setProperty("password", "xxxx");
         if (usingEmbedded())
             assertConnect(true, url, info);
@@ -335,7 +335,7 @@ public class DriverTest extends BaseJDBCTestCase {
 
         // different users in url and in properties. URL is the winner
         info.clear();
-        info.setProperty("user","APP");
+        info.setProperty("user","SPLICE");
         info.setProperty("password","xxxx");
         assertConnect(false, 
             url + ";user=testuser;password=testpass", null);

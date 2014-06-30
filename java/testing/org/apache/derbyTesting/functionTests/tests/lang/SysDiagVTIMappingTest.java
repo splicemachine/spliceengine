@@ -114,16 +114,16 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
     public void testSpaceTable() throws Exception
     {
         Statement st = createStatement();
-        st.executeUpdate("set schema APP");
+        st.executeUpdate("set schema SPLICE");
         
-        // Should fail because SPACE_TABLE is not defined in APP 
+        // Should fail because SPACE_TABLE is not defined in SPLICE
         // schema.
         
         assertStatementError("42ZB4", st,
-            "select * from TABLE(SPACE_TABLE('APP')) x");
+            "select * from TABLE(SPACE_TABLE('SPLICE')) x");
         
         assertStatementError("42ZB4", st,
-            "select * from TABLE(APP.SPACE_TABLE('APP', 'T1')) x");
+            "select * from TABLE(SPLICE.SPACE_TABLE('SPLICE', 'T1')) x");
         
         // Should fail due to extra "TABLE" keyword.
         
@@ -136,39 +136,39 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
         // Should fail because the specified schema does not exist.
         
         assertStatementError("42Y07", st,
-            "select * from TABLE(SYSCS_DIAG.SPACE_TABLE('T1', 'APP')) x");
+            "select * from TABLE(SYSCS_DIAG.SPACE_TABLE('T1', 'SPLICE')) x");
         
         assertStatementError("42Y07", st,
             "select * from "
             + "TABLE(SYSCS_DIAG.SPACE_TABLE('NOTTHERE', 'T1')) x");
         
-        // Should fail because SPACE_TABLE is not defined in APP schema.
+        // Should fail because SPACE_TABLE is not defined in SPLICE schema.
         
         st.executeUpdate("set schema SYSCS_DIAG");
         assertStatementError("42ZB4", st,
-            "select * from TABLE(APP.SPACE_TABLE('APP', 'T1')) x");
+            "select * from TABLE(SPLICE.SPACE_TABLE('SPLICE', 'T1')) x");
         
         // All remaining test cases in this method should succeed.
         
-        st.executeUpdate("set schema APP");
+        st.executeUpdate("set schema SPLICE");
 
         // get table id
         ResultSet   rs1 = st.executeQuery
             (
              "select t.tableid from sys.systables t, sys.sysschemas s\n" +
              "where t.schemaid = s.schemaid\n" +
-             "and s.schemaname = 'APP'\n" +
+             "and s.schemaname = 'SPLICE'\n" +
              "and t.tablename = 'T1'"
              );
         rs1.next();
         String      tableID = rs1.getString( 1 );
         rs1.close();
 
-        // These should all return 1 row for APP.T1.
+        // These should all return 1 row for SPLICE.T1.
         
         // Two-argument direct call.
         ResultSet rs = st.executeQuery(
-            "select * from TABLE(SYSCS_DIAG.SPACE_TABLE('APP', 'T1')) x");
+            "select * from TABLE(SYSCS_DIAG.SPACE_TABLE('SPLICE', 'T1')) x");
         
         String [] expColNames = ALL_SPACE_TABLE_COLUMNS;
         JDBC.assertColumnNames(rs, expColNames);
@@ -197,7 +197,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
         PreparedStatement pSt = prepareStatement(
             "select * from TABLE(SYSCS_DIAG.SPACE_TABLE(?, ?)) x");
 
-        pSt.setString(1, "APP");
+        pSt.setString(1, "SPLICE");
         pSt.setString(2, "T1");
 
         rs = pSt.executeQuery();
@@ -230,13 +230,13 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
         // because the tables do not exist.
         
         rs = st.executeQuery(
-            "select * from TABLE(SYSCS_DIAG.SPACE_TABLE('APP')) x");
+            "select * from TABLE(SYSCS_DIAG.SPACE_TABLE('SPLICE')) x");
         
         JDBC.assertColumnNames(rs, expColNames);
         JDBC.assertDrainResults(rs, 0);
         
         rs = st.executeQuery(
-            "select * from TABLE(SYSCS_DIAG.SPACE_TABLE('APP', "
+            "select * from TABLE(SYSCS_DIAG.SPACE_TABLE('SPLICE', "
             + "'NOTTHERE')) x");
         
         JDBC.assertColumnNames(rs, expColNames);
@@ -264,12 +264,12 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
         
         st.executeUpdate("set schema syscs_diag");
         
-        // Should see 1 row for APP.T1.
+        // Should see 1 row for SPLICE.T1.
         
         pSt = prepareStatement(
             "select * from TABLE(SPACE_TABLE(?, ?)) x");
         
-        pSt.setString(1, "APP");
+        pSt.setString(1, "SPLICE");
         pSt.setString(2, "T1");
 
         rs = pSt.executeQuery();
@@ -306,7 +306,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
         st.executeUpdate("set schema app");
         rs = st.executeQuery(
             "select cast (conglomeratename as varchar(30)), t1.* from"
-            + "  TABLE(SYSCS_DIAG.SPACE_TABLE('APP', 'T1')) x,"
+            + "  TABLE(SYSCS_DIAG.SPACE_TABLE('SPLICE', 'T1')) x,"
             + "  t1"
             + " where x.conglomeratename is not null");
         
@@ -325,7 +325,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
         // Make sure old way of calling still works until it is 
         // deprecated.
         
-        st.executeUpdate("set schema APP");
+        st.executeUpdate("set schema SPLICE");
         rs = st.executeQuery(
             "SELECT * FROM NEW org.apache.derby.diag.SpaceTable('T1') as x");
         
@@ -340,7 +340,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
         
         rs = st.executeQuery(
             "SELECT * FROM NEW "
-            + "org.apache.derby.diag.SpaceTable('APP', 'T1') as x");
+            + "org.apache.derby.diag.SpaceTable('SPLICE', 'T1') as x");
         
         JDBC.assertColumnNames(rs, ALL_SPACE_TABLE_COLUMNS);
         
@@ -371,7 +371,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
         // used in any illegal ways.        
 
         checkIllegalUses(st, "space_table", "SpaceTable",
-            "('APP', 'T1')", "conglomeratename");
+            "('SPLICE', 'T1')", "conglomeratename");
 
         // Clean-up.
         getConnection().rollback();
@@ -484,7 +484,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
     public void testStatementDuration() throws Exception
     {
         Statement st = createStatement();
-        st.executeUpdate("set schema APP");
+        st.executeUpdate("set schema SPLICE");
 
         // Do a simple check to make sure the VTI mapping works.
         
@@ -541,7 +541,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
     public void testErrorLogReader() throws Exception
     {
         Statement st = createStatement();
-        st.executeUpdate("set schema APP");
+        st.executeUpdate("set schema SPLICE");
 
         // Do a simple check to make sure the VTI mapping works.
         
@@ -603,7 +603,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
         // Sanity check: make sure SELECT and VALUES clauses still  work.
         
         Statement st = createStatement();
-        st.executeUpdate("set schema APP");
+        st.executeUpdate("set schema SPLICE");
 
         ResultSet rs = st.executeQuery(
             "select * from table (select * from t1) x");
@@ -678,7 +678,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
     public void testOrderBy() throws SQLException
     {
         Statement st = createStatement();
-        st.executeUpdate("set schema APP");
+        st.executeUpdate("set schema SPLICE");
 
         // Create a single testing table for this fixture only.
 

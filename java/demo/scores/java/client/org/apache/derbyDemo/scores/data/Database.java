@@ -212,7 +212,7 @@ public  class   Database
              "call sqlj.install_jar\n" +
              "(\n" +
              "    '" + serverJar + "',\n" +
-             "    'APP.SCORES_SERVER',\n" +
+             "    'SPLICE.SCORES_SERVER',\n" +
              "    0\n" +
              ")\n"
              );
@@ -222,7 +222,7 @@ public  class   Database
              "call sqlj.install_jar\n" +
              "(\n" +
              "    '" + mathJar +"',\n" +
-             "    'APP.APACHE_COMMONS_MATH',\n" +
+             "    'SPLICE.APACHE_COMMONS_MATH',\n" +
              "    0\n" +
              ")\n"
              );
@@ -232,7 +232,7 @@ public  class   Database
              "call syscs_util.syscs_set_database_property\n" +
              "(\n" +
              "    'derby.database.classpath',\n" +
-             "    'APP.SCORES_SERVER:APP.APACHE_COMMONS_MATH'\n" +
+             "    'SPLICE.SCORES_SERVER:SPLICE.APACHE_COMMONS_MATH'\n" +
              ")\n"
              );
 

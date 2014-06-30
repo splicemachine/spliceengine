@@ -144,11 +144,11 @@ public class TestDbMetaData extends BaseJDBCTestCase {
 
     /** Expected rows from getFunctions() when all functions match. */
     private static final Object[][] ALL_FUNCTIONS = {
-        { null, "APP", "DUMMY1", "java.some.func", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
-        { null, "APP", "DUMMY2", "java.some.func", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
-        { null, "APP", "DUMMY3", "java.some.func", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
-        { null, "APP", "DUMMY4", "java.some.func", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
-        { null, "APP", "DUMMY5", "java.some.func", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
+        { null, "SPLICE", "DUMMY1", "java.some.func", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
+        { null, "SPLICE", "DUMMY2", "java.some.func", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
+        { null, "SPLICE", "DUMMY3", "java.some.func", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
+        { null, "SPLICE", "DUMMY4", "java.some.func", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
+        { null, "SPLICE", "DUMMY5", "java.some.func", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSCS_UTIL", "SYSCS_CHECK_TABLE",
           "org.apache.derby.catalog.SystemProcedures.SYSCS_CHECK_TABLE",
           FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
@@ -315,56 +315,56 @@ public class TestDbMetaData extends BaseJDBCTestCase {
         ResultSet rs = meta.getFunctionColumns(null, null, "DUMMY%", null);
         assertGetFunctionColumnsRs(rs);
         Object[][] expectedRows = {
-            { null, "APP", "DUMMY1", "", new Integer(4), new Integer(5),
+            { null, "SPLICE", "DUMMY1", "", new Integer(4), new Integer(5),
               "SMALLINT", new Integer(5), new Integer(2), new Integer(0),
               new Integer(10), new Integer(1), null, null, new Integer(0),
               "YES", GENERIC_NAME, new Integer(1), new Integer(-1) },
-            { null, "APP", "DUMMY1", "X", new Integer(1), new Integer(5),
+            { null, "SPLICE", "DUMMY1", "X", new Integer(1), new Integer(5),
               "SMALLINT", new Integer(5), new Integer(2), new Integer(0),
               new Integer(10), new Integer(1), null, null, new Integer(1),
               "YES", GENERIC_NAME, new Integer(1), new Integer(0) },
-            { null, "APP", "DUMMY2", "", new Integer(4), new Integer(4),
+            { null, "SPLICE", "DUMMY2", "", new Integer(4), new Integer(4),
               "INTEGER", new Integer(10), new Integer(4), new Integer(0),
               new Integer(10), new Integer(1), null, null, new Integer(0),
               "YES", GENERIC_NAME, new Integer(2), new Integer(-1) },
-            { null, "APP", "DUMMY2", "X", new Integer(1), new Integer(4),
+            { null, "SPLICE", "DUMMY2", "X", new Integer(1), new Integer(4),
               "INTEGER", new Integer(10), new Integer(4), new Integer(0),
               new Integer(10), new Integer(1), null, null, new Integer(1),
               "YES", GENERIC_NAME, new Integer(2), new Integer(0) },
-            { null, "APP", "DUMMY2", "Y", new Integer(1), new Integer(5),
+            { null, "SPLICE", "DUMMY2", "Y", new Integer(1), new Integer(5),
               "SMALLINT", new Integer(5), new Integer(2), new Integer(0),
               new Integer(10), new Integer(1), null, null, new Integer(2),
               "YES", GENERIC_NAME, new Integer(2), new Integer(1) },
-            { null, "APP", "DUMMY3", "", new Integer(4), new Integer(12),
+            { null, "SPLICE", "DUMMY3", "", new Integer(4), new Integer(12),
               "VARCHAR", new Integer(16), new Integer(32), null, null,
               new Integer(1), null, 32, new Integer(0), "YES",
               GENERIC_NAME, new Integer(2), new Integer(-1) },
-            { null, "APP", "DUMMY3", "X", new Integer(1), new Integer(12),
+            { null, "SPLICE", "DUMMY3", "X", new Integer(1), new Integer(12),
               "VARCHAR", new Integer(16), new Integer(32), null, null,
               new Integer(1), null, 32, new Integer(1), "YES",
               GENERIC_NAME, new Integer(2), new Integer(0) },
-            { null, "APP", "DUMMY3", "Y", new Integer(1), new Integer(4),
+            { null, "SPLICE", "DUMMY3", "Y", new Integer(1), new Integer(4),
               "INTEGER", new Integer(10), new Integer(4), new Integer(0),
               new Integer(10), new Integer(1), null, null, new Integer(2),
               "YES", GENERIC_NAME, new Integer(2), new Integer(1) },
-            { null, "APP", "DUMMY4", "", new Integer(4), new Integer(4),
+            { null, "SPLICE", "DUMMY4", "", new Integer(4), new Integer(4),
               "INTEGER", new Integer(10), new Integer(4), new Integer(0),
               new Integer(10), new Integer(1), null, null, new Integer(0),
               "YES", GENERIC_NAME, new Integer(2), new Integer(-1) },
-            { null, "APP", "DUMMY4", "X", new Integer(1), new Integer(12),
+            { null, "SPLICE", "DUMMY4", "X", new Integer(1), new Integer(12),
               "VARCHAR", new Integer(128), new Integer(256),
               null, null, new Integer(1), null, 256, new Integer(1), "YES",
               GENERIC_NAME,
               new Integer(2), new Integer(0) },
-            { null, "APP", "DUMMY4", "Y", new Integer(1), new Integer(4),
+            { null, "SPLICE", "DUMMY4", "Y", new Integer(1), new Integer(4),
               "INTEGER", new Integer(10), new Integer(4), new Integer(0),
               new Integer(10), new Integer(1), null, null, new Integer(2),
               "YES", GENERIC_NAME, new Integer(2), new Integer(1) },
-            { null, "APP", "DUMMY5", "", new Integer(4), new Integer(16),
+            { null, "SPLICE", "DUMMY5", "", new Integer(4), new Integer(16),
               "BOOLEAN", new Integer(1), new Integer(1), null,
               null, new Integer(1), null, null, new Integer(0),
               "YES", GENERIC_NAME, new Integer(1), new Integer(-1) },
-            { null, "APP", "DUMMY5", "X", new Integer(1), new Integer(16),
+            { null, "SPLICE", "DUMMY5", "X", new Integer(1), new Integer(16),
               "BOOLEAN", new Integer(1), new Integer(1), null,
               null, new Integer(1), null, null, new Integer(1),
               "YES", GENERIC_NAME, new Integer(1), new Integer(0) },
@@ -377,24 +377,24 @@ public class TestDbMetaData extends BaseJDBCTestCase {
         ResultSet rs = meta.getFunctionColumns(null, null, "DUMMY%", "");
         assertGetFunctionColumnsRs(rs);
         Object[][] expectedRows = {
-            { null, "APP", "DUMMY1", "", new Integer(4), new Integer(5),
+            { null, "SPLICE", "DUMMY1", "", new Integer(4), new Integer(5),
               "SMALLINT", new Integer(5), new Integer(2), new Integer(0),
               new Integer(10), new Integer(1), null, null, new Integer(0),
               "YES", GENERIC_NAME, new Integer(1), new Integer(-1) },
-            { null, "APP", "DUMMY2", "", new Integer(4), new Integer(4),
+            { null, "SPLICE", "DUMMY2", "", new Integer(4), new Integer(4),
               "INTEGER", new Integer(10), new Integer(4), new Integer(0),
               new Integer(10), new Integer(1), null, null, new Integer(0),
               "YES", GENERIC_NAME, new Integer(2), new Integer(-1) },
-            { null, "APP", "DUMMY3", "", new Integer(4), new Integer(12),
+            { null, "SPLICE", "DUMMY3", "", new Integer(4), new Integer(12),
               "VARCHAR", new Integer(16), new Integer(32),
               null, null, new Integer(1), null, 32, new Integer(0), "YES",
               GENERIC_NAME,
               new Integer(2), new Integer(-1) },
-            { null, "APP", "DUMMY4", "", new Integer(4), new Integer(4),
+            { null, "SPLICE", "DUMMY4", "", new Integer(4), new Integer(4),
               "INTEGER", new Integer(10), new Integer(4), new Integer(0),
               new Integer(10), new Integer(1), null, null, new Integer(0),
               "YES", GENERIC_NAME, new Integer(2), new Integer(-1) },
-            { null, "APP", "DUMMY5", "", new Integer(4), new Integer(16),
+            { null, "SPLICE", "DUMMY5", "", new Integer(4), new Integer(16),
               "BOOLEAN", new Integer(1), new Integer(1), null,
               null, new Integer(1), null, null, new Integer(0),
               "YES", GENERIC_NAME, new Integer(1), new Integer(-1) },
@@ -413,7 +413,7 @@ public class TestDbMetaData extends BaseJDBCTestCase {
         ResultSet rs = meta.getSchemas(null, null);
         assertGetSchemasRs(rs);
         Object[][] expectedRows = {
-            { "APP", null },
+            { "SPLICE", null },
             { "NULLID", null },
             { "SQLJ", null },
             { "SYS", null },
@@ -447,10 +447,10 @@ public class TestDbMetaData extends BaseJDBCTestCase {
 
     public void testGetSchemasMatchingAPP() throws SQLException {
         // Test the new getSchemas() with an exact match
-        ResultSet rs = meta.getSchemas(null, "APP");
+        ResultSet rs = meta.getSchemas(null, "SPLICE");
         assertGetSchemasRs(rs);
         Object[][] expectedRows = {
-            { "APP", null },
+            { "SPLICE", null },
         };
         JDBC.assertFullResultSet(rs, expectedRows, false);
     }

@@ -158,7 +158,7 @@ public class NullableUniqueConstraintTest extends BaseJDBCTestCase {
         Statement stmt = con.createStatement();
         stmt.executeUpdate("CREATE TABLE TABLE1(NAME1 INT UNIQUE, "+
         		"name2 int unique not null, name3 int primary key)");
-        stmt.execute("call syscs_util.syscs_compress_table('APP','TABLE1',1)");
+        stmt.execute("call syscs_util.syscs_compress_table('SPLICE','TABLE1',1)");
         stmt.executeUpdate("INSERT INTO TABLE1 VALUES(1,11,111)");
         //following should run into problem because of constraint on name1
         assertStatementError("23505", stmt,

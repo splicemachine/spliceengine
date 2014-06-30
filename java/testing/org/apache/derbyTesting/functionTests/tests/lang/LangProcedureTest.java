@@ -185,7 +185,7 @@ public class LangProcedureTest extends BaseJDBCTestCase {
         s.execute("drop procedure DUP_POK");
 
         // procedure not found with explicit schema name
-        assertStatementError("42Y03", s, "CALL APP.NSP(?, ?)");
+        assertStatementError("42Y03", s, "CALL SPLICE.NSP(?, ?)");
 
         // Long ago this caused a null pointer exception.
         assertStatementError("42X15", s,
@@ -209,7 +209,7 @@ public class LangProcedureTest extends BaseJDBCTestCase {
                 + "LANGUAGE JAVA PARAMETER STYLE JAVA "
                 + "EXTERNAL NAME 'java.lang.System.load(java.lang.String)'");
         assertStatementError("22005", s,
-                "CALL APP.SIGNATURE_BUG_DERBY_258_A(4)");
+                "CALL SPLICE.SIGNATURE_BUG_DERBY_258_A(4)");
         s.execute("DROP PROCEDURE SIGNATURE_BUG_DERBY_258_A");
 
         // Signature with too many arguments.
@@ -217,7 +217,7 @@ public class LangProcedureTest extends BaseJDBCTestCase {
                 + "RETURNS VARCHAR(128) LANGUAGE JAVA PARAMETER STYLE JAVA "
                 + "EXTERNAL NAME 'java.lang.Integer.toString(int, int)'");
         assertStatementError("46J02", s,
-                "VALUES APP.SIGNATURE_BUG_DERBY_258_B(4)");
+                "VALUES SPLICE.SIGNATURE_BUG_DERBY_258_B(4)");
         s.execute("DROP FUNCTION SIGNATURE_BUG_DERBY_258_B");
 
         // Signature with too few arguments.
@@ -225,7 +225,7 @@ public class LangProcedureTest extends BaseJDBCTestCase {
                 + "LANGUAGE JAVA PARAMETER STYLE JAVA "
                 + "EXTERNAL NAME 'java.lang.System.gc()'");
         assertStatementError("46J02", s,
-                "CALL APP.SIGNATURE_BUG_DERBY_258_C(4)");
+                "CALL SPLICE.SIGNATURE_BUG_DERBY_258_C(4)");
         s.execute("DROP PROCEDURE SIGNATURE_BUG_DERBY_258_C");
 
         // Java method signature has only a leading parenthesis.
@@ -233,7 +233,7 @@ public class LangProcedureTest extends BaseJDBCTestCase {
                 + "LANGUAGE JAVA PARAMETER STYLE JAVA "
                 + "EXTERNAL NAME 'java.lang.System.gc('");
         assertStatementError("46J01", s,
-                "CALL APP.SIGNATURE_BUG_DERBY_258_F(4)");
+                "CALL SPLICE.SIGNATURE_BUG_DERBY_258_F(4)");
         s.execute("DROP PROCEDURE SIGNATURE_BUG_DERBY_258_F");
 
         // Java method signature of (,,)
@@ -241,7 +241,7 @@ public class LangProcedureTest extends BaseJDBCTestCase {
                 + "LANGUAGE JAVA PARAMETER STYLE JAVA "
                 + "EXTERNAL NAME 'java.lang.System.gc(,,)'");
         assertStatementError("46J01", s,
-                "CALL APP.SIGNATURE_BUG_DERBY_258_G(4)");
+                "CALL SPLICE.SIGNATURE_BUG_DERBY_258_G(4)");
         s.execute("DROP PROCEDURE SIGNATURE_BUG_DERBY_258_G");
 
         // Java method signature of (, ,)
@@ -249,7 +249,7 @@ public class LangProcedureTest extends BaseJDBCTestCase {
                 + "LANGUAGE JAVA PARAMETER STYLE JAVA "
                 + "EXTERNAL NAME 'java.lang.System.gc(, ,)'");
         assertStatementError("46J01", s,
-                "CALL APP.SIGNATURE_BUG_DERBY_258_H(4)");
+                "CALL SPLICE.SIGNATURE_BUG_DERBY_258_H(4)");
         s.execute("DROP PROCEDURE SIGNATURE_BUG_DERBY_258_H");
 
         // Java method signature of (int,)
@@ -257,15 +257,15 @@ public class LangProcedureTest extends BaseJDBCTestCase {
                 + "LANGUAGE JAVA PARAMETER STYLE JAVA "
                 + "EXTERNAL NAME 'java.lang.System.gc(int ,)'");
         assertStatementError("46J01", s,
-                "CALL APP.SIGNATURE_BUG_DERBY_258_I(4)");
+                "CALL SPLICE.SIGNATURE_BUG_DERBY_258_I(4)");
         s.execute("DROP PROCEDURE SIGNATURE_BUG_DERBY_258_I");
 
         s.execute("CREATE PROCEDURE DERBY_3304() "
                 + " DYNAMIC RESULT SETS 1 LANGUAGE JAVA PARAMETER STYLE JAVA " 
                 + " EXTERNAL NAME 'org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.DERBY_3304'"
                 + " MODIFIES SQL DATA");               
-        String[][] t1Results = { { "APP"} };
-        ResultSet rs = s.executeQuery("CALL APP.DERBY_3304()");
+        String[][] t1Results = { { "SPLICE"} };
+        ResultSet rs = s.executeQuery("CALL SPLICE.DERBY_3304()");
         JDBC.assertFullResultSet(rs, t1Results);
         s.execute("DROP PROCEDURE DERBY_3304");
 
@@ -354,11 +354,11 @@ public class LangProcedureTest extends BaseJDBCTestCase {
                 s,
                 "create procedure s2.PROCDUP() language java external name 'fails2.fail0' parameter style java");
         String[] sysAliasDefinition = {
-                "APP.PROCDUP AS okAPP.ok0() LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA",
+                "SPLICE.PROCDUP AS okAPP.ok0() LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA",
                 "S1.PROCDUP AS oks1.ok0() LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA",
                 "S2.PROCDUP AS oks2.ok0() LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA" };
         String[] DBMetaDefinition = {
-                "APP.PROCDUP AS okAPP.ok0 type procedureNoResult",
+                "SPLICE.PROCDUP AS okAPP.ok0 type procedureNoResult",
                 "S1.PROCDUP AS oks1.ok0 type procedureNoResult",
                 "S2.PROCDUP AS oks2.ok0 type procedureNoResult" };
         checkMatchingProcedures(conn, "PROCDUP", sysAliasDefinition,
@@ -493,8 +493,8 @@ public class LangProcedureTest extends BaseJDBCTestCase {
         cs.execute();
         assertUpdateCountForProcedureWithNoResults(cs);
         cs.close();
-        String[] sysAliasDefinition = { "APP.ZA AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.zeroArg() LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA" };
-        String[] dbMetadataDefinition = { "APP.ZA AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.zeroArg type procedureNoResult" };
+        String[] sysAliasDefinition = { "SPLICE.ZA AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.zeroArg() LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA" };
+        String[] dbMetadataDefinition = { "SPLICE.ZA AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.zeroArg type procedureNoResult" };
         checkMatchingProcedures(conn, "ZA", sysAliasDefinition,
                 dbMetadataDefinition, null);
         s.execute("drop procedure za");
@@ -514,14 +514,14 @@ public class LangProcedureTest extends BaseJDBCTestCase {
         s
                 .execute("create procedure ir2(p1 int, p2 char(10)) language java external name 'org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.insertRow' MODIFIES SQL DATA parameter style java");
 
-        String[] sysaliasDefinition = { "APP.IR AS org.apache.derbyTesting.functionTeststs.tests.lang.LangProcedureTest.insertRow(IN P1 INTEGER) LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA" };
-        String[] dbMetadataDefinition = { "APP.IR AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.insertRow type procedureNoResult" };
+        String[] sysaliasDefinition = { "SPLICE.IR AS org.apache.derbyTesting.functionTeststs.tests.lang.LangProcedureTest.insertRow(IN P1 INTEGER) LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA" };
+        String[] dbMetadataDefinition = { "SPLICE.IR AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.insertRow type procedureNoResult" };
         String[] columnDefinition = { "procedureColumnIn P1 INTEGER" };
         checkMatchingProcedures(conn, "IR1", sysaliasDefinition,
                 dbMetadataDefinition, columnDefinition);
 
-        sysaliasDefinition = new String[] { "APP.IR2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.insertRow(IN P1 INTEGER,IN P2 CHAR(10)) LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA" };
-        dbMetadataDefinition = new String[] { "APP.IR2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.insertRow type procedureNoResult" };
+        sysaliasDefinition = new String[] { "SPLICE.IR2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.insertRow(IN P1 INTEGER,IN P2 CHAR(10)) LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA" };
+        dbMetadataDefinition = new String[] { "SPLICE.IR2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.insertRow type procedureNoResult" };
         columnDefinition = new String[] { "procedureColumnIn P1 INTEGER",
                 "procedureColumnIn P2 CHAR" };
         checkMatchingProcedures(conn, "IR2", sysaliasDefinition,
@@ -547,7 +547,7 @@ public class LangProcedureTest extends BaseJDBCTestCase {
 
         ir1.close();
 
-        ir1 = conn.prepareCall("CALL APP.IR(?)");
+        ir1 = conn.prepareCall("CALL SPLICE.IR(?)");
         ir1.setInt(1, 7);
         ir1.execute();
 
@@ -608,8 +608,8 @@ public class LangProcedureTest extends BaseJDBCTestCase {
         s
                 .execute("create procedure DRS(p1 int) parameter style JAVA READS SQL DATA dynamic result sets 1 language java external name 'org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.selectRows'");
 
-        String[] sysaliasDefinition = { "APP.DRS AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.selectRows(IN P1 INTEGER) LANGUAGE JAVA PARAMETER STYLE JAVA READS SQL DATA DYNAMIC RESULT SETS 1" };
-        String[] dbMetadataDefinition = { "APP.DRS AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.selectRows type procedureNoResult" };
+        String[] sysaliasDefinition = { "SPLICE.DRS AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.selectRows(IN P1 INTEGER) LANGUAGE JAVA PARAMETER STYLE JAVA READS SQL DATA DYNAMIC RESULT SETS 1" };
+        String[] dbMetadataDefinition = { "SPLICE.DRS AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.selectRows type procedureNoResult" };
         String[] columnDefinition = { "procedureColumnIn P1 INTEGER" };
 
         checkMatchingProcedures(conn, "DRS", sysaliasDefinition,
@@ -628,8 +628,8 @@ public class LangProcedureTest extends BaseJDBCTestCase {
 
         s
                 .execute("create procedure DRS2(p1 int, p2 int) parameter style JAVA READS SQL DATA dynamic result sets 2 language java external name 'org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.selectRows'");
-        sysaliasDefinition = new String[] { "APP.DRS2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.selectRows(IN P1 INTEGER,IN P2 INTEGER) LANGUAGE JAVA PARAMETER STYLE JAVA READS SQL DATA DYNAMIC RESULT SETS 2" };
-        dbMetadataDefinition = new String[] { "APP.DRS2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.selectRows type procedureNoResult" };
+        sysaliasDefinition = new String[] { "SPLICE.DRS2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.selectRows(IN P1 INTEGER,IN P2 INTEGER) LANGUAGE JAVA PARAMETER STYLE JAVA READS SQL DATA DYNAMIC RESULT SETS 2" };
+        dbMetadataDefinition = new String[] { "SPLICE.DRS2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.selectRows type procedureNoResult" };
         columnDefinition = new String[] { "procedureColumnIn P1 INTEGER",
                 "procedureColumnIn P2 INTEGER" };
         checkMatchingProcedures(conn, "DRS2", sysaliasDefinition,
@@ -1306,8 +1306,8 @@ public class LangProcedureTest extends BaseJDBCTestCase {
         s
                 .execute("create procedure PT1(IN a int, IN b char(10), c varchar(20)) parameter style java dynamic result sets 1 language java external name 'org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.parameter1' MODIFIES SQL DATA");
 
-        String[] sysaliasDefinition = { "APP.PT1 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.parameter1(IN A INTEGER,IN B CHAR(10),IN C VARCHAR(20)) LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA DYNAMIC RESULT SETS 1" };
-        String[] dbMetadataDefinition = { "APP.PT1 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.parameter1 type procedureNoResult" };
+        String[] sysaliasDefinition = { "SPLICE.PT1 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.parameter1(IN A INTEGER,IN B CHAR(10),IN C VARCHAR(20)) LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA DYNAMIC RESULT SETS 1" };
+        String[] dbMetadataDefinition = { "SPLICE.PT1 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.parameter1 type procedureNoResult" };
         String[] columnDefinition = { "procedureColumnIn A INTEGER",
                 "procedureColumnIn B CHAR", "procedureColumnIn C VARCHAR" };
 
@@ -1356,8 +1356,8 @@ public class LangProcedureTest extends BaseJDBCTestCase {
         s
                 .execute("create procedure PT2(IN a int, IN b DECIMAL(4), c DECIMAL(7,3)) parameter style java dynamic result sets 1 language java external name 'org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.parameter2' MODIFIES SQL DATA");
 
-        sysaliasDefinition = new String[] { "APP.PT2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.parameter2(IN A INTEGER,IN B DECIMAL(4,0),IN C DECIMAL(7,3)) LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA DYNAMIC RESULT SETS 1" };
-        dbMetadataDefinition = new String[] { "APP.PT2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.parameter2 type procedureNoResult" };
+        sysaliasDefinition = new String[] { "SPLICE.PT2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.parameter2(IN A INTEGER,IN B DECIMAL(4,0),IN C DECIMAL(7,3)) LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA DYNAMIC RESULT SETS 1" };
+        dbMetadataDefinition = new String[] { "SPLICE.PT2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.parameter2 type procedureNoResult" };
         columnDefinition = new String[] { "procedureColumnIn A INTEGER",
                 "procedureColumnIn B DECIMAL", "procedureColumnIn C DECIMAL" };
 
@@ -1405,8 +1405,8 @@ public class LangProcedureTest extends BaseJDBCTestCase {
 
         s
                 .execute("create procedure PTSMALLINT2(IN p_in SMALLINT, INOUT p_inout SMALLINT, OUT p_out SMALLINT) parameter style java dynamic result sets 0 language java external name 'org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.pSMALLINT' NO SQL");
-        sysaliasDefinition = new String[] { "APP.PTSMALLINT2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.pSMALLINT(IN P_IN SMALLINT,INOUT P_INOUT SMALLINT,OUT P_OUT SMALLINT) LANGUAGE JAVA PARAMETER STYLE JAVA NO SQL" };
-        dbMetadataDefinition = new String[] { "APP.PTSMALLINT2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.pSMALLINT type procedureNoResult" };
+        sysaliasDefinition = new String[] { "SPLICE.PTSMALLINT2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.pSMALLINT(IN P_IN SMALLINT,INOUT P_INOUT SMALLINT,OUT P_OUT SMALLINT) LANGUAGE JAVA PARAMETER STYLE JAVA NO SQL" };
+        dbMetadataDefinition = new String[] { "SPLICE.PTSMALLINT2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.pSMALLINT type procedureNoResult" };
         columnDefinition = new String[] { "procedureColumnIn P_IN SMALLINT",
                 "procedureColumnInOut P_INOUT SMALLINT",
                 "procedureColumnOut P_OUT SMALLINT" };
@@ -1475,8 +1475,8 @@ public class LangProcedureTest extends BaseJDBCTestCase {
         s
                 .execute("create procedure OP1(OUT a int, IN b int) parameter style java language java external name 'org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.outparams1'");
 
-        String[] sysaliasDefinition = { "APP.OP1 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.outparams1(OUT A INTEGER,IN B INTEGER) LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA" };
-        String[] dbMetadataDefinition = { "APP.OP1 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.outparams1 type procedureNoResult" };
+        String[] sysaliasDefinition = { "SPLICE.OP1 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.outparams1(OUT A INTEGER,IN B INTEGER) LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA" };
+        String[] dbMetadataDefinition = { "SPLICE.OP1 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.outparams1 type procedureNoResult" };
         String[] columnDefinition = { "procedureColumnOut A INTEGER",
                 "procedureColumnIn B INTEGER" };
 
@@ -1521,8 +1521,8 @@ public class LangProcedureTest extends BaseJDBCTestCase {
 
         s
                 .execute("create procedure OP2(INOUT a int, IN b int) parameter style java language java external name 'org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.inoutparams2'");
-        sysaliasDefinition = new String[] { "APP.OP2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.inoutparams2(INOUT A INTEGER,IN B INTEGER) LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA" };
-        dbMetadataDefinition = new String[] { "APP.OP2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.inoutparams2 type procedureNoResult" };
+        sysaliasDefinition = new String[] { "SPLICE.OP2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.inoutparams2(INOUT A INTEGER,IN B INTEGER) LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA" };
+        dbMetadataDefinition = new String[] { "SPLICE.OP2 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.inoutparams2 type procedureNoResult" };
         columnDefinition = new String[] { "procedureColumnInOut A INTEGER",
                 "procedureColumnIn B INTEGER" };
 
@@ -1579,8 +1579,8 @@ public class LangProcedureTest extends BaseJDBCTestCase {
         // INOUT & OUT DECIMAL procedures with variable length
         s
                 .execute("create procedure OP4(OUT a DECIMAL(4,2), IN b VARCHAR(255)) parameter style java language java external name 'org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.inoutparams4'");
-        sysaliasDefinition = new String[] { "APP.OP4 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.inoutparams4(OUT A DECIMAL(4,2),IN B VARCHAR(255)) LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA" };
-        dbMetadataDefinition = new String[] { "APP.OP4 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.inoutparams4 type procedureNoResult" };
+        sysaliasDefinition = new String[] { "SPLICE.OP4 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.inoutparams4(OUT A DECIMAL(4,2),IN B VARCHAR(255)) LANGUAGE JAVA PARAMETER STYLE JAVA MODIFIES SQL DATA" };
+        dbMetadataDefinition = new String[] { "SPLICE.OP4 AS org.apache.derbyTesting.functionTests.tests.lang.LangProcedureTest.inoutparams4 type procedureNoResult" };
         columnDefinition = new String[] { "procedureColumnOut A DECIMAL",
                 "procedureColumnIn B VARCHAR", };
 
@@ -2174,7 +2174,7 @@ public class LangProcedureTest extends BaseJDBCTestCase {
             s.execute("DROP PROCEDURE SQLCONTROL4_" + i);
         }
         s.execute("DROP TABLE SQLC.SQLCONTROL_DDL");
-        s.execute("SET SCHEMA APP");
+        s.execute("SET SCHEMA SPLICE");
         s.execute("DROP SCHEMA SQLC RESTRICT");
 
         s.close();

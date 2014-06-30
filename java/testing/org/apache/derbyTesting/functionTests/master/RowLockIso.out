@@ -143,8 +143,8 @@ insert into a values (1, -1, PADSTRING('one',1900));
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |X   |A           |(1,7)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |X   |A           |(1,7)     |GRANT|ACTIVE
 splice> commit;
 splice> select a, b from a;
 A          |B          
@@ -183,18 +183,18 @@ splice> insert into a values (5, -5, PADSTRING('two',1900));
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |3   |IX  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |X   |A           |(2,6)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |X   |A           |(2,7)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |X   |A           |(3,6)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |3   |IX  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |X   |A           |(2,6)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |X   |A           |(2,7)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |X   |A           |(3,6)     |GRANT|ACTIVE
 splice> commit;
 splice> delete from a where a.a = 3;
 1 row inserted/updated/deleted
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |2   |IX  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |X   |A           |(2,6)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |2   |IX  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |X   |A           |(2,6)     |GRANT|ACTIVE
 splice> commit;
 splice> select a,b from a;
 A          |B          
@@ -227,7 +227,7 @@ splice> call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDef
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -235,8 +235,8 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |S   |A           |(1,7)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |S   |A           |(1,7)     |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -244,8 +244,8 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |S   |A           |(1,8)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |S   |A           |(1,8)     |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -253,8 +253,8 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |S   |A           |(2,7)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |S   |A           |(2,7)     |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -262,14 +262,14 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |S   |A           |(3,6)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |S   |A           |(3,6)     |GRANT|ACTIVE
 splice> next scan_cursor;
 No current row
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> close scan_cursor;
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
@@ -300,7 +300,7 @@ splice> CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDef
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -308,7 +308,7 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -316,7 +316,7 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -324,7 +324,7 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -332,13 +332,13 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 No current row
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> close scan_cursor;
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
@@ -352,7 +352,7 @@ get cursor scan_cursor as
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -360,7 +360,7 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -368,7 +368,7 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -376,7 +376,7 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -384,13 +384,13 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 No current row
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> close scan_cursor;
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
@@ -405,7 +405,7 @@ get cursor scan_cursor as
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -413,8 +413,8 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |A           |(1,7)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |A           |(1,7)     |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -422,8 +422,8 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |A           |(1,8)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |A           |(1,8)     |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -431,8 +431,8 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |A           |(2,7)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |A           |(2,7)     |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -440,19 +440,19 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |U   |A           |(3,6)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |U   |A           |(3,6)     |GRANT|ACTIVE
 splice> next scan_cursor;
 No current row
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |A           |Tablelock |GRANT|ACTIVE
 splice> close scan_cursor;
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |A           |Tablelock |GRANT|ACTIVE
 splice> commit;
 splice> --------------------------------------------------------------------------------
 -- Test full read cursor scan on a join over all the rows in the btree, 
@@ -496,8 +496,8 @@ insert into a values (5, -5, PADSTRING('five',1900), 5, PADSTRING('negative five
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |2   |IX  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |X   |A           |(1,7)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |2   |IX  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |X   |A           |(1,7)     |GRANT|ACTIVE
 splice> commit;
 splice> select a, b from a;
 A          |B          
@@ -536,18 +536,18 @@ splice> insert into a values (1, -1, PADSTRING('one',1900),   1, PADSTRING('negt
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |6   |IX  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |X   |A           |(3,6)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |X   |A           |(4,6)     |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |X   |A           |(5,6)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |6   |IX  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |X   |A           |(3,6)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |X   |A           |(4,6)     |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |X   |A           |(5,6)     |GRANT|ACTIVE
 splice> commit;
 splice> delete from a where a.a = 3;
 1 row inserted/updated/deleted
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |2   |IX  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |2   |X   |A           |(3,6)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |2   |IX  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |2   |X   |A           |(3,6)     |GRANT|ACTIVE
 splice> commit;
 splice> select a,b from a;
 A          |B          
@@ -582,7 +582,7 @@ splice> CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDef
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -590,8 +590,8 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |S   |A           |(5,6)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |S   |A           |(5,6)     |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -599,8 +599,8 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |S   |A           |(4,6)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |S   |A           |(4,6)     |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -608,8 +608,8 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |S   |A           |(2,6)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |S   |A           |(2,6)     |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -617,14 +617,14 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |S   |A           |(1,7)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |S   |A           |(1,7)     |GRANT|ACTIVE
 splice> next scan_cursor;
 No current row
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> close scan_cursor;
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
@@ -653,7 +653,7 @@ splice> CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.language.bulkFetchDef
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -661,7 +661,7 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -669,7 +669,7 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -677,7 +677,7 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -685,13 +685,13 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 No current row
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> close scan_cursor;
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
@@ -714,7 +714,7 @@ splice> get cursor scan_cursor as
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -722,7 +722,7 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -730,7 +730,7 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -738,7 +738,7 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 A          |B          
 -----------------------
@@ -746,13 +746,13 @@ A          |B
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> next scan_cursor;
 No current row
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IS  |A           |Tablelock |GRANT|ACTIVE
 splice> close scan_cursor;
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
@@ -776,9 +776,9 @@ splice> drop index a2;
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |X   |*** TRANSIEN|Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |X   |*** TRANSIEN|Tablelock |GRANT|ACTIVE
 WARNING 01004: Data truncation
-APP     |UserTransaction|TABLE   |3   |X   |A           |Tablelock |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |3   |X   |A           |Tablelock |GRANT|ACTIVE
 splice> commit;
 splice> drop table a;
 0 rows inserted/updated/deleted

@@ -34,7 +34,7 @@ database shutdown properly
 Restored From the Backup
 No of rows in table t1: 7
 No of rows in table customer: 2
-ERROR 42X96: The database class path contains an unknown jar file '"APP"."MATH_ROUTINES"'.
+ERROR 42X96: The database class path contains an unknown jar file '"SPLICE"."MATH_ROUTINES"'.
 database shutdown properly
 End Of Remove Jar Test.
 End Online Backup Test3

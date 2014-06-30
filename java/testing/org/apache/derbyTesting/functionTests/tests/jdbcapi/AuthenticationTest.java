@@ -55,7 +55,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
 
     private static final String PASSWORD_SUFFIX = "suf2ix";
     private static final String USERS[] = 
-        {"APP","dan","kreg","jeff","ames","jerry","francois","jamie","howardR",
+        {"SPLICE","dan","kreg","jeff","ames","jerry","francois","jamie","howardR",
         "\"eVe\"","\"fred@derby.com\"", "\"123\"" };
 
     private static final String zeus = "\u0396\u0395\u03A5\u03A3";
@@ -456,7 +456,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         assertShutdownWOUPOK(dbName, "system", "admin");
         assertConnectionOK(dbName, "system", ("admin"));
         // try shutdown as owner
-        assertShutdownUsingConnAttrsOK(dbName, "APP", ("APP" + PASSWORD_SUFFIX));
+        assertShutdownUsingConnAttrsOK(dbName, "SPLICE", ("SPLICE" + PASSWORD_SUFFIX));
         
         // ensure that a password is encrypted
         Connection conn1 = openDefaultConnection(
@@ -473,7 +473,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         conn1 = openDefaultConnection("dan", ("dan" + PASSWORD_SUFFIX));
         setDatabaseProperty(
             "derby.database.fullAccessUsers", 
-            "APP,system,nomen,francois,jeff", conn1);
+            "SPLICE,system,nomen,francois,jeff", conn1);
         setDatabaseProperty(
             "derby.database.defaultConnectionMode","NoAccess", conn1);
         conn1.commit();
@@ -488,7 +488,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         assertShutdownOK(dbName, "francois", ("francois" + PASSWORD_SUFFIX));
         // attempt shutdown as db owner
         assertConnectionOK(dbName, "system", "admin");
-        assertShutdownWOUPOK(dbName, "APP", ("APP" + PASSWORD_SUFFIX));
+        assertShutdownWOUPOK(dbName, "SPLICE", ("SPLICE" + PASSWORD_SUFFIX));
         // check simple connect ok as another allowed user, also revive db
         assertConnectionOK(dbName, "jeff", ("jeff" + PASSWORD_SUFFIX));
         // but dan wasn't on the list
@@ -506,14 +506,14 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         assertShutdownOK(dbName, "dan", ("dan" + PASSWORD_SUFFIX));
         assertConnectionOK(dbName, "dan", ("dan" + PASSWORD_SUFFIX)); 
          // but dbo was not on list...
-        assertShutdownFail("08004", dbName, "APP", ("APP" + PASSWORD_SUFFIX));
+        assertShutdownFail("08004", dbName, "SPLICE", ("SPLICE" + PASSWORD_SUFFIX));
         // now add dbo back in...
         conn1 = openDefaultConnection("francois", ("francois" + PASSWORD_SUFFIX));
         setDatabaseProperty(
             "derby.database.defaultConnectionMode","NoAccess", conn1);
         setDatabaseProperty(
             "derby.database.fullAccessUsers", 
-            "APP,jeff,dan,francois,jamie", conn1);
+            "SPLICE,jeff,dan,francois,jamie", conn1);
         conn1.commit();
         conn1.close();
 
@@ -542,13 +542,13 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         assertSystemShutdownOK("", "dan", ("jeff" + PASSWORD_SUFFIX));
         openDefaultConnection("dan", ("dan" + PASSWORD_SUFFIX)).close(); // revive
         // dbo, but bad pwd - will succeed
-        assertSystemShutdownOK("", "APP", ("POO"));
+        assertSystemShutdownOK("", "SPLICE", ("POO"));
         openDefaultConnection("dan", ("dan" + PASSWORD_SUFFIX)).close(); // revive
         // allowed user but not dbo - will also succeed
         assertSystemShutdownOK("", "dan", ("dan" + PASSWORD_SUFFIX));
         openDefaultConnection("dan", ("dan" + PASSWORD_SUFFIX)).close(); // revive
         // expect Derby system shutdown, which gives XJ015 error.
-        assertSystemShutdownOK("", "APP", ("APP" + PASSWORD_SUFFIX));
+        assertSystemShutdownOK("", "SPLICE", ("SPLICE" + PASSWORD_SUFFIX));
 
         // so far so good. set back security properties
         conn1 = openDefaultConnection("dan", ("dan" + PASSWORD_SUFFIX));
@@ -578,39 +578,39 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         // we should still be connected as dan
         Statement stmt = conn1.createStatement();
         assertUpdateCount(stmt, 0, 
-            "create table APP.t1(c1 varchar(30) check (UPPER(c1) <> 'JAMIE'))");
-        assertUpdateCount(stmt, 1, "insert into APP.t1 values USER");
+            "create table SPLICE.t1(c1 varchar(30) check (UPPER(c1) <> 'JAMIE'))");
+        assertUpdateCount(stmt, 1, "insert into SPLICE.t1 values USER");
       
         conn1.commit();
         stmt.close();
         conn1.close();
 
-        useUserValue(1, "jeff", "insert into APP.t1 values CURRENT_USER");
-        useUserValue(1, "ames", "insert into APP.t1 values SESSION_USER");
-        useUserValue(1, "jerry", "insert into APP.t1 values {fn user()}");
+        useUserValue(1, "jeff", "insert into SPLICE.t1 values CURRENT_USER");
+        useUserValue(1, "ames", "insert into SPLICE.t1 values SESSION_USER");
+        useUserValue(1, "jerry", "insert into SPLICE.t1 values {fn user()}");
         assertUserValue(new String[] {"DAN","JEFF","AMES","JERRY"},
-            "dan", "select * from APP.t1");
+            "dan", "select * from SPLICE.t1");
         // attempt some usage in where clause
         useUserValue(1,
-            "dan", "update APP.t1 set c1 = 'edward' where c1 = USER");
+            "dan", "update SPLICE.t1 set c1 = 'edward' where c1 = USER");
         assertUserValue(new String[] {"JEFF"},"jeff",
-            "select * from APP.t1 where c1 like CURRENT_USER");
+            "select * from SPLICE.t1 where c1 like CURRENT_USER");
         useUserValue(1, "ames", 
-            "update APP.t1 set c1 = 'sema' where SESSION_USER = c1");
+            "update SPLICE.t1 set c1 = 'sema' where SESSION_USER = c1");
         useUserValue(1, "jerry", 
-            "update APP.t1 set c1 = 'yrrej' where c1 like {fn user()}");
+            "update SPLICE.t1 set c1 = 'yrrej' where c1 like {fn user()}");
         assertUserValue(new String[] {"edward","JEFF","sema","yrrej"},
-            "dan", "select * from APP.t1");
-        useUserValue(4, "francois", "update APP.T1 set c1 = USER");
+            "dan", "select * from SPLICE.t1");
+        useUserValue(4, "francois", "update SPLICE.T1 set c1 = USER");
         assertUserValue(
             new String[] {"FRANCOIS","FRANCOIS","FRANCOIS","FRANCOIS"},
-            "dan", "select * from APP.t1");
+            "dan", "select * from SPLICE.t1");
 
         // check that attempt to insert 'jamie' gives a check violation
         conn1 = openDefaultConnection("jamie", ("jamie" + PASSWORD_SUFFIX));
         stmt = conn1.createStatement();
         try {
-            stmt.execute("insert into APP.t1 values CURRENT_USER");
+            stmt.execute("insert into SPLICE.t1 values CURRENT_USER");
         } catch (SQLException sqle) {
             assertSQLState("23513", sqle);
         }
@@ -628,7 +628,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         setDatabaseProperty(
             "derby.connection.requireAuthentication","false", conn1);
         stmt = conn1.createStatement();
-        assertUpdateCount(stmt, 0, "drop table APP.t1");
+        assertUpdateCount(stmt, 0, "drop table SPLICE.t1");
         conn1.commit();
         stmt.close();
         conn1.close();
@@ -882,8 +882,8 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         // we should still be connected as dan
         Statement stmt = conn1.createStatement();
         assertUpdateCount(stmt, 0, 
-            "create table APP.t1(c1 varchar(30) check (UPPER(c1) <> 'JAMIE'))");
-        assertUpdateCount(stmt, 1, "insert into APP.t1 values USER");
+            "create table SPLICE.t1(c1 varchar(30) check (UPPER(c1) <> 'JAMIE'))");
+        assertUpdateCount(stmt, 1, "insert into SPLICE.t1 values USER");
       
         conn1.commit();
         stmt.close();
@@ -892,14 +892,14 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         // check full access system level user can update
         conn1 = openDefaultConnection("system", "admin");
         stmt = conn1.createStatement();
-        assertUpdateCount(stmt, 1, "update APP.t1 set c1 = USER");
+        assertUpdateCount(stmt, 1, "update SPLICE.t1 set c1 = USER");
         conn1.commit();
         stmt.close();
         conn1.close();
         
         // read only users
         assertUserValue(new String[] {"SYSTEM"},"ames", 
-            "select * from APP.t1"); // should succeed
+            "select * from SPLICE.t1"); // should succeed
         conn1 = openDefaultConnection("ames", ("ames"+PASSWORD_SUFFIX));
         
         // DERBY-2738 (network client always returns false for isReadOnly)
@@ -907,11 +907,11 @@ public class AuthenticationTest extends BaseJDBCTestCase {
             assertTrue(conn1.isReadOnly());
         stmt = conn1.createStatement();
         assertStatementError(
-            "25502", stmt, "delete from APP.t1 where c1 = 'SYSTEM'");
-        assertStatementError("25502", stmt, "insert into APP.t1 values USER");
+            "25502", stmt, "delete from SPLICE.t1 where c1 = 'SYSTEM'");
+        assertStatementError("25502", stmt, "insert into SPLICE.t1 values USER");
         assertStatementError(
-            "25502", stmt, "update APP.t1 set c1 = USER where c1 = 'SYSTEM'");
-        assertStatementError("25503", stmt, "create table APP.t2 (c1 int)");
+            "25502", stmt, "update SPLICE.t1 set c1 = USER where c1 = 'SYSTEM'");
+        assertStatementError("25503", stmt, "create table SPLICE.t2 (c1 int)");
         conn1.commit();
         stmt.close();
         conn1.close();
@@ -923,7 +923,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
             assertTrue(conn1.isReadOnly());
         stmt = conn1.createStatement();
         assertStatementError(
-            "25502", stmt, "delete from APP.t1 where c1 = 'SYSTEM'");
+            "25502", stmt, "delete from SPLICE.t1 where c1 = 'SYSTEM'");
         conn1.rollback();
         conn1.close();
 
@@ -934,7 +934,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         setDatabaseProperty(
             "derby.connection.requireAuthentication","false", conn1);
         stmt = conn1.createStatement();
-        assertUpdateCount(stmt, 0, "drop table APP.t1");
+        assertUpdateCount(stmt, 0, "drop table SPLICE.t1");
         conn1.commit();
         stmt.close();
         conn1.close();
@@ -1005,7 +1005,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         // add a database level user
         setDatabaseProperty(("derby.user." + zeus), apollo, conn1);
         setDatabaseProperty("derby.database.fullAccessUsers", 
-                ("dan,system,APP" + zeus + "," + apollo) , conn1);
+                ("dan,system,SPLICE" + zeus + "," + apollo) , conn1);
         conn1.commit();
         conn1.close();
         
@@ -1022,16 +1022,16 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         assertConnectionOK(dbName, apollo, zeus);
         // shutdown as dbo
         assertShutdownUsingSetShutdownOK(
-            dbName, "APP", ("APP" + PASSWORD_SUFFIX));
+            dbName, "SPLICE", ("SPLICE" + PASSWORD_SUFFIX));
 
         conn1 = openDefaultConnection(zeus, apollo);
         Statement stmt = conn1.createStatement();
         assertUpdateCount(stmt, 0, 
-        "create table APP.t1(c1 varchar(30))");
-        assertUpdateCount(stmt, 1, "insert into APP.t1 values USER");
+        "create table SPLICE.t1(c1 varchar(30))");
+        assertUpdateCount(stmt, 1, "insert into SPLICE.t1 values USER");
         conn1.commit();
         assertUserValue(new String[] {zeus}, zeus, apollo,
-        "select * from APP.t1 where c1 like CURRENT_USER");
+        "select * from SPLICE.t1 where c1 like CURRENT_USER");
         stmt.close();
         conn1.close();
         
@@ -1043,7 +1043,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
             "derby.connection.requireAuthentication","false", conn1);
         stmt = conn1.createStatement();
         if (usingEmbedded())
-            assertUpdateCount(stmt, 0, "drop table APP.t1");
+            assertUpdateCount(stmt, 0, "drop table SPLICE.t1");
         conn1.commit();
         stmt.close();
         conn1.close();
@@ -1067,7 +1067,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
 
         // bring down the database
         assertShutdownUsingSetShutdownOK(
-            dbName, "APP", "APP" + PASSWORD_SUFFIX);
+            dbName, "SPLICE", "SPLICE" + PASSWORD_SUFFIX);
         // recheck
         assertConnectionOK(dbName, "system", "admin");
         assertConnectionOK(dbName, "dan", ("dan" + PASSWORD_SUFFIX));
@@ -1079,8 +1079,8 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         assertSystemShutdownFail("08004", "", "badUser", ("dan" + PASSWORD_SUFFIX));
         // with 'allowed' user but bad pwd
         assertSystemShutdownFail("08004", "", "dan", ("jeff" + PASSWORD_SUFFIX));
-        // APP, but bad pwd
-        assertSystemShutdownFail("08004", "", "APP", ("POO"));
+        // SPLICE, but bad pwd
+        assertSystemShutdownFail("08004", "", "SPLICE", ("POO"));
         // note: we don't have a database, so no point checking for dbo.
         // expect Derby system shutdown, which gives XJ015 error.
         assertSystemShutdownOK("", "system", "admin");
@@ -1098,7 +1098,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         conn1.close();
         openDefaultConnection("system", "admin").close();
         assertShutdownUsingSetShutdownOK(
-            dbName, "APP", "APP" + PASSWORD_SUFFIX);
+            dbName, "SPLICE", "SPLICE" + PASSWORD_SUFFIX);
         assertSystemShutdownOK("", "system", "admin");
         openDefaultConnection("system", "admin").close(); // just so teardown works.
     }
@@ -1570,7 +1570,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         // Reset to no user/password though client requires
         // a valid name, so reset to the default
         if (usingDerbyNetClient())
-            JDBCDataSource.setBeanProperty(ds, "user", "APP");
+            JDBCDataSource.setBeanProperty(ds, "user", "SPLICE");
         else
             JDBCDataSource.clearStringBeanProperty(ds, "user");
         JDBCDataSource.clearStringBeanProperty(ds, "password");

@@ -57,8 +57,8 @@ public class CompressTableTest extends BaseJDBCTestCase {
     public void testCompressTableWithDoubleQuoteInName() throws SQLException {
         Statement s = createStatement();
         s.execute("create table app.\"abc\"\"def\" (x int)");
-        s.execute("call syscs_util.syscs_compress_table('APP','abc\"def',1)");
-        s.execute("call syscs_util.syscs_inplace_compress_table('APP'," +
+        s.execute("call syscs_util.syscs_compress_table('SPLICE','abc\"def',1)");
+        s.execute("call syscs_util.syscs_inplace_compress_table('SPLICE'," +
                   "'abc\"def', 1, 1, 1)");
         s.execute("drop table app.\"abc\"\"def\"");
     }
@@ -106,7 +106,7 @@ public class CompressTableTest extends BaseJDBCTestCase {
         try {
             for (int i = 0; i < 100; i++) {
                 s.execute(
-                    "call syscs_util.syscs_compress_table('APP', 'D4275', 1)");
+                    "call syscs_util.syscs_compress_table('SPLICE', 'D4275', 1)");
             }
         } finally {
             // We're done, so tell the helper thread to stop.

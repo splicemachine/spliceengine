@@ -107,9 +107,9 @@ public class SelectivityTest extends BaseJDBCTestCase {
                         {"TEMPLATE_TWENTY","numunique= 20 numrows= 4000","1"},
                         {"TEMPLATE_TWO","numunique= 2 numrows= 4000","1"}});               
                 s
-                        .executeUpdate("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','TEMPLATE',null)");
+                        .executeUpdate("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','TEMPLATE',null)");
                 s
-                        .executeUpdate("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('APP','TEST',null)");
+                        .executeUpdate("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','TEST',null)");
                 statsrs = s
                         .executeQuery("select  indexname, stats, ncols from showstats order by indexname, stats, createtime, ncols");
                 JDBC.assertFullResultSet(statsrs, new String[][] {

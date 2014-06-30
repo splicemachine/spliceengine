@@ -169,7 +169,7 @@ public class OnlineBackupTest1 {
 	void runConsistencyChecker(String dbName) throws SQLException {
         Connection conn = TestUtil.getConnection(dbName, null);
 		Statement stmt = conn.createStatement();
-		stmt.execute("values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP',  'EMP')");
+		stmt.execute("values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE',  'EMP')");
         //check the data in the EMP table.
         DatabaseActions dbActions = new DatabaseActions(conn);
         dbActions.select(TEST_TABLE_NAME);

@@ -197,7 +197,7 @@ public class Changes10_2 extends UpgradeChange {
             if (runCompress) {
                 PreparedStatement ps = prepareStatement
                     ("call SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE(?,?,?,?,?)");
-                ps.setString(1, "APP"); // schema
+                ps.setString(1, "SPLICE"); // schema
                 ps.setString(2, "CT1");  // table name
                 ps.setInt(3, 1); // purge
                 ps.setInt(4, 1); // defragment rows

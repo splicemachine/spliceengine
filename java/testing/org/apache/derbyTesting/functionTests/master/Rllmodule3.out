@@ -100,7 +100,7 @@ insert into heap_only values (1);
 splice> select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 USERNAME|TRANTYPE       |TYPE    |CNT |MODE|TABNAME     |LOCKNAME  |STATE|STATUS  
 ----------------------------------------------------------------------------------
-APP     |UserTransaction|TABLE   |1   |IX  |HEAP_ONLY   |Tablelock |GRANT|ACTIVE  
-APP     |UserTransaction|ROW     |1   |X   |HEAP_ONLY   |(1,7)     |GRANT|ACTIVE  
+SPLICE     |UserTransaction|TABLE   |1   |IX  |HEAP_ONLY   |Tablelock |GRANT|ACTIVE
+SPLICE     |UserTransaction|ROW     |1   |X   |HEAP_ONLY   |(1,7)     |GRANT|ACTIVE
 splice> commit;
 splice> 

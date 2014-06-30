@@ -699,7 +699,7 @@ I          |V         |D                     |T
 3          |1111111111|1.1E12                |11:11:11
 splice> -- negative test - try to update a non-existant column
 update t1 set notacolumn = i + 1 where current of c12;
-ERROR 42X14: 'NOTACOLUMN' is not a column in table or VTI 'APP.T1'.
+ERROR 42X14: 'NOTACOLUMN' is not a column in table or VTI 'SPLICE.T1'.
 splice> close c12;
 splice> -- restore t1
 delete from t1;

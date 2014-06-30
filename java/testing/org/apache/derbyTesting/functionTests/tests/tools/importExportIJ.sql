@@ -53,7 +53,7 @@ call SYSCS_UTIL.SYSCS_IMPORT_TABLE (null, 'T1' , 'extin/TwoLineBadEOF.dat' ,
 call SYSCS_UTIL.SYSCS_IMPORT_TABLE (null, 'T1' , 'extin/AccountData_defaultformat.dat' , 
                                     null, null, null, 0) ;
 
-values (SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1'));
+values (SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1'));
 
 -- Delimited with a different char but using default import format
 drop table T2;
@@ -88,7 +88,7 @@ commit;
 call SYSCS_UTIL.SYSCS_IMPORT_TABLE (null, 'T2' , 'extin/AccountData_format1.dat' , 
                                     null, null, null, 0) ;
 
-values (SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T2'));
+values (SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T2'));
 -- so following should only commit an empty table
 commit;
 
@@ -96,7 +96,7 @@ commit;
 call SYSCS_UTIL.SYSCS_IMPORT_TABLE (null, 'T2' , 'extin/AccountData_format1.dat' , 
 				   'q', '"', 'ASCII', 0) ;
 
-values (SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T2'));
+values (SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T2'));
 select count(*) from T2;
 rollback;
 
@@ -134,7 +134,7 @@ call SYSCS_UTIL.SYSCS_IMPORT_DATA(null, 'T4' ,
                                   null , '16, 15, 1, 4, 19, 20' ,
 				  'extin/AccountData_defaultformat.dat' ,
 				   null, null, null, 0) ;
-values (SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T4'));
+values (SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T4'));
 commit;
 
 -- now check results
@@ -438,7 +438,7 @@ call syscs_util.syscs_import_table( null, 'ADMINS',
 select * from admins; 
 select * from users;
 -- do consistency check on the table.
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'ADMINS');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'ADMINS');
 drop table admins;
 drop table users;
 -- end derby-1854/derby-1641 test case. 

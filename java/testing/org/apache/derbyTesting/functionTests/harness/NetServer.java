@@ -134,7 +134,7 @@ public class NetServer
 	this.framework = framework;
 
 	    // if authentication is required to shutdown server we need password
-	    // for user APP (the dbo).
+	    // for user SPLICE (the dbo).
     	this.appsRequiredPassword = appsRequiredPassword;
 	frameworkInfo =  (Object[]) m.get(framework);
 	

@@ -4,7 +4,7 @@ org.apache.derby.drda.NetworkServerControl runtimeinfo
 ----- Session Information ---------------
 Session # :2
 Database :wombat;create=true
-User :APP
+User :SPLICE
 # Statements:0
 Prepared Statement Information: 
 	Stmt ID		SQLText
@@ -22,7 +22,7 @@ Testing Runtimeinfo (locale)
 ----- Session Information ---------------
 Session # :2
 Database :wombat;create=true
-User :APP
+User :SPLICE
 # Statements:2
 Prepared Statement Information: 
 	Stmt ID		SQLText
@@ -31,7 +31,7 @@ Prepared Statement Information:
 	SYSLH0001	SELECT count(*) from sys.systables
 Session # :4
 Database :wombat;create=true
-User :APP
+User :SPLICE
 # Statements:2
 Prepared Statement Information: 
 	Stmt ID		SQLText
@@ -40,7 +40,7 @@ Prepared Statement Information:
 	SYSLH0001	SELECT count(*) from sys.systables
 Session # :5
 Database :wombat;create=true
-User :APP
+User :SPLICE
 # Statements:0
 Prepared Statement Information: 
 	Stmt ID		SQLText

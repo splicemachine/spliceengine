@@ -20,7 +20,7 @@
 SET SCHEMA SYS;
 SHOW TABLES;
 
-SET SCHEMA APP;
+SET SCHEMA SPLICE;
 CREATE TABLE t1 (i int generated always as identity, d DECIMAL(5,2), test VARCHAR(20));
 
 CREATE SCHEMA USER1;
@@ -29,11 +29,11 @@ CREATE TABLE t2 (i int);
 
 CREATE SYNONYM USER1.T3 FOR USER1.T2;
 CREATE VIEW v1 AS SELECT * from app.t1;
-CREATE INDEX idx1 ON APP.t1 (test ASC);
-CREATE PROCEDURE APP.PROCTEST(IN A INTEGER, OUT B DECIMAL(10,2))
+CREATE INDEX idx1 ON SPLICE.t1 (test ASC);
+CREATE PROCEDURE SPLICE.PROCTEST(IN A INTEGER, OUT B DECIMAL(10,2))
 PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA 
 EXTERNAL NAME 'a.b.c.d.e';
-CREATE FUNCTION APP.FUNCTTEST(A INTEGER)
+CREATE FUNCTION SPLICE.FUNCTTEST(A INTEGER)
 RETURNS INTEGER
 PARAMETER STYLE JAVA
 LANGUAGE JAVA
@@ -43,49 +43,49 @@ EXTERNAL NAME 'a.b.c.d.e.f';
 
 -- first display all tables, then display tables in one schema
 SHOW TABLES;
-SHOW TABLES IN APP;
+SHOW TABLES IN SPLICE;
 SHOW TABLES IN app;
 
 -- 'describe t1' will give error, as not in current schema
 DESCRIBE t1;
-DESCRIBE APP.t1;
+DESCRIBE SPLICE.t1;
 DESCRIBE app.t1;
 DESCRIBE v1;
 
 SHOW SCHEMAS;
 SHOW VIEWS IN USER1;
-SHOW PROCEDURES IN APP;
-SHOW FUNCTIONS IN APP;
+SHOW PROCEDURES IN SPLICE;
+SHOW FUNCTIONS IN SPLICE;
 SHOW FUNCTIONS;
 SHOW SYNONYMS IN USER1;
 
 --
 -- DERBY-4553
 --
-GET SCROLL INSENSITIVE CURSOR CURS AS 'SELECT * FROM APP.T1';
+GET SCROLL INSENSITIVE CURSOR CURS AS 'SELECT * FROM SPLICE.T1';
 GETCURRENTROWNUMBER CURS;
 CLOSE CURS;
 
 -- DERBY-2019: ensure that tables with mixed-case names can be described:
-SET SCHEMA APP;
+SET SCHEMA SPLICE;
 create table "CamelCaseTable" (c1 int, c2 varchar(20));
 -- should fail, as unquoted stirng is treated as case-insensitive upper case:
 describe CamelCaseTable;
-describe APP.CamelCaseTable;
+describe SPLICE.CamelCaseTable;
 -- should find the table, as quoted string case is preserved.
 describe 'CamelCaseTable';
 -- should fail, as case is wrong:
 describe 'CAMELCaseTable';
 -- should work, note that schema name must be upper case:
-describe 'APP.CamelCaseTable';
+describe 'SPLICE.CamelCaseTable';
 set SCHEMA USER1;
 -- should work, even after changing default schema, so long as schema is right
-describe 'APP.CamelCaseTable';
+describe 'SPLICE.CamelCaseTable';
 -- should fail, since table is in the other schema
 describe 'CamelCaseTable';
 -- Can use * as a wildcard for table name:
 describe '*';
-describe 'APP.*';
+describe 'SPLICE.*';
 -- Observe behavior with empty string:
 describe '';
 

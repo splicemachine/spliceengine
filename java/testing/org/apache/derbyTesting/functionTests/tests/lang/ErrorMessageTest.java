@@ -181,7 +181,7 @@ public class ErrorMessageTest extends BaseJDBCTestCase {
 
         Pattern[] patterns = new Pattern[] {
             Pattern.compile("Lock : ROW, T, \\(\\d+,\\d+\\)"),
-            Pattern.compile(" *Waiting XID : \\{\\d+, S\\} , APP, " +
+            Pattern.compile(" *Waiting XID : \\{\\d+, S\\} , SPLICE, " +
                             "select \\* from t where id=(1|2)"),
             Pattern.compile(" *Granted XID : \\{\\d+, X\\} *"),
         };

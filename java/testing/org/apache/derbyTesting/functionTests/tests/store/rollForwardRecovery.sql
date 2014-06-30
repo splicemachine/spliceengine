@@ -73,7 +73,7 @@ insert into t2 values(999);
 
 ---REGULAR UNLOGGED CASES , BUT LOGGED WHEN ARCHIVE MODE IS ENABLED.
 --compress table 
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T1', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T1', 0);
 select * from t1;
 create table t3(c1 int not null);
 create table t4(c1 int not null);

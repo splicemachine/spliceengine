@@ -97,19 +97,19 @@ public final class PredicatePushdownTest extends BaseJDBCTestCase {
         // tables/views for DERBY-805 testing.
 
         st
-                .executeUpdate("CREATE TABLE \"APP\".\"T1\" (\"I\" INTEGER, \"J\" INTEGER)");
+                .executeUpdate("CREATE TABLE \"SPLICE\".\"T1\" (\"I\" INTEGER, \"J\" INTEGER)");
 
         st.executeUpdate(" insert into t1 values (1, 2), (2, 4), (3, 6), (4, "
                 + "8), (5, 10)");
 
         st
-                .executeUpdate(" CREATE TABLE \"APP\".\"T2\" (\"I\" INTEGER, \"J\" INTEGER)");
+                .executeUpdate(" CREATE TABLE \"SPLICE\".\"T2\" (\"I\" INTEGER, \"J\" INTEGER)");
 
         st.executeUpdate(" insert into t2 values (1, 2), (2, -4), (3, 6), (4, "
                 + "-8), (5, 10)");
 
         st
-                .executeUpdate(" CREATE TABLE \"APP\".\"T3\" (\"A\" INTEGER, \"B\" INTEGER)");
+                .executeUpdate(" CREATE TABLE \"SPLICE\".\"T3\" (\"A\" INTEGER, \"B\" INTEGER)");
 
         st.executeUpdate(" insert into T3 values (1,1), (2,2), (3,3), (4,4), "
                 + "(6, 24), (7, 28), (8, 32), (9, 36), (10, 40)");
@@ -120,7 +120,7 @@ public final class PredicatePushdownTest extends BaseJDBCTestCase {
         assertUpdateCount(st, 10, " update t3 set b = 2 * a where a > 10");
 
         st
-                .executeUpdate(" CREATE TABLE \"APP\".\"T4\" (\"A\" INTEGER, \"B\" INTEGER)");
+                .executeUpdate(" CREATE TABLE \"SPLICE\".\"T4\" (\"A\" INTEGER, \"B\" INTEGER)");
 
         st.executeUpdate(" insert into t4 values (3, 12), (4, 16)");
 
@@ -139,16 +139,16 @@ public final class PredicatePushdownTest extends BaseJDBCTestCase {
         // consistent set of row count stats for the tables
         // (DERBY-1902, DERBY-3479).
 
-        cSt = prepareCall("call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T1', 1)");
+        cSt = prepareCall("call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T1', 1)");
         assertUpdateCount(cSt, 0);
 
-        cSt = prepareCall(" call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T2', 1)");
+        cSt = prepareCall(" call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T2', 1)");
         assertUpdateCount(cSt, 0);
 
-        cSt = prepareCall(" call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T3', 1)");
+        cSt = prepareCall(" call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T3', 1)");
         assertUpdateCount(cSt, 0);
 
-        cSt = prepareCall(" call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T4', 1)");
+        cSt = prepareCall(" call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T4', 1)");
         assertUpdateCount(cSt, 0);
 
         // Now that we have the basic tables and views for the
@@ -1005,41 +1005,41 @@ public final class PredicatePushdownTest extends BaseJDBCTestCase {
         // join predicates where possible).
 
         st
-                .executeUpdate("CREATE INDEX \"APP\".\"T3_IX1\" ON \"APP\".\"T3\" (\"A\")");
+                .executeUpdate("CREATE INDEX \"SPLICE\".\"T3_IX1\" ON \"SPLICE\".\"T3\" (\"A\")");
 
         st
-                .executeUpdate(" CREATE INDEX \"APP\".\"T3_IX2\" ON \"APP\".\"T3\" (\"B\")");
+                .executeUpdate(" CREATE INDEX \"SPLICE\".\"T3_IX2\" ON \"SPLICE\".\"T3\" (\"B\")");
 
         st
-                .executeUpdate(" CREATE INDEX \"APP\".\"T4_IX1\" ON \"APP\".\"T4\" (\"A\")");
+                .executeUpdate(" CREATE INDEX \"SPLICE\".\"T4_IX1\" ON \"SPLICE\".\"T4\" (\"A\")");
 
         st
-                .executeUpdate(" CREATE INDEX \"APP\".\"T4_IX2\" ON \"APP\".\"T4\" (\"B\")");
+                .executeUpdate(" CREATE INDEX \"SPLICE\".\"T4_IX2\" ON \"SPLICE\".\"T4\" (\"B\")");
 
         // Create the rest of objects used in this test.
 
         st
-                .executeUpdate("CREATE TABLE \"APP\".\"T5\" (\"I\" INTEGER, \"J\" INTEGER)");
+                .executeUpdate("CREATE TABLE \"SPLICE\".\"T5\" (\"I\" INTEGER, \"J\" INTEGER)");
 
         st.executeUpdate(" insert into t5 values (5, 10)");
 
         st
-                .executeUpdate(" CREATE TABLE \"APP\".\"T6\" (\"P\" INTEGER, \"Q\" INTEGER)");
+                .executeUpdate(" CREATE TABLE \"SPLICE\".\"T6\" (\"P\" INTEGER, \"Q\" INTEGER)");
 
         st.executeUpdate(" insert into t5 values (2, 4), (4, 8)");
 
-        st.executeUpdate(" CREATE TABLE \"APP\".\"XX1\" (\"II\" INTEGER NOT "
+        st.executeUpdate(" CREATE TABLE \"SPLICE\".\"XX1\" (\"II\" INTEGER NOT "
                 + "NULL, \"JJ\" CHAR(10), \"MM\" INTEGER, \"OO\" "
                 + "DOUBLE, \"KK\" BIGINT)");
 
-        st.executeUpdate(" CREATE TABLE \"APP\".\"YY1\" (\"II\" INTEGER NOT "
+        st.executeUpdate(" CREATE TABLE \"SPLICE\".\"YY1\" (\"II\" INTEGER NOT "
                 + "NULL, \"JJ\" CHAR(10), \"AA\" INTEGER, \"OO\" "
                 + "DOUBLE, \"KK\" BIGINT)");
 
-        st.executeUpdate(" ALTER TABLE \"APP\".\"YY1\" ADD CONSTRAINT "
+        st.executeUpdate(" ALTER TABLE \"SPLICE\".\"YY1\" ADD CONSTRAINT "
                 + "\"PK_YY1\" PRIMARY KEY (\"II\")");
 
-        st.executeUpdate(" ALTER TABLE \"APP\".\"XX1\" ADD CONSTRAINT "
+        st.executeUpdate(" ALTER TABLE \"SPLICE\".\"XX1\" ADD CONSTRAINT "
                 + "\"PK_XX1\" PRIMARY KEY (\"II\")");
 
         st.executeUpdate(" create view xxunion as select all ii, jj, kk, mm "
@@ -1090,22 +1090,22 @@ public final class PredicatePushdownTest extends BaseJDBCTestCase {
         // consistent set of row count stats for the tables
         // (DERBY-1902, DERBY-3479).
 
-        cSt = prepareCall("call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T1', 1)");
+        cSt = prepareCall("call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T1', 1)");
         assertUpdateCount(cSt, 0);
 
-        cSt = prepareCall(" call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T2', 1)");
+        cSt = prepareCall(" call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T2', 1)");
         assertUpdateCount(cSt, 0);
 
-        cSt = prepareCall(" call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T3', 1)");
+        cSt = prepareCall(" call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T3', 1)");
         assertUpdateCount(cSt, 0);
 
-        cSt = prepareCall(" call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T4', 1)");
+        cSt = prepareCall(" call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T4', 1)");
         assertUpdateCount(cSt, 0);
 
-        cSt = prepareCall(" call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T5', 1)");
+        cSt = prepareCall(" call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T5', 1)");
         assertUpdateCount(cSt, 0);
 
-        cSt = prepareCall(" call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'T6', 1)");
+        cSt = prepareCall(" call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'T6', 1)");
         assertUpdateCount(cSt, 0);
 
         // And finally, run more extensive tests using the larger
@@ -2019,13 +2019,13 @@ public final class PredicatePushdownTest extends BaseJDBCTestCase {
         // to be flattened and Derby doesn't flatten select queries
         // with DISTINCT in them.
 
-        st.executeUpdate("CREATE TABLE \"APP\".\"T1\" (\"I\" INTEGER, \"D\" "
+        st.executeUpdate("CREATE TABLE \"SPLICE\".\"T1\" (\"I\" INTEGER, \"D\" "
                 + "DOUBLE, \"C\" CHAR(10))");
 
-        st.executeUpdate(" CREATE TABLE \"APP\".\"T2\" (\"I2\" INTEGER, "
+        st.executeUpdate(" CREATE TABLE \"SPLICE\".\"T2\" (\"I2\" INTEGER, "
                 + "\"D2\" DOUBLE, \"C2\" CHAR(10))");
 
-        st.executeUpdate(" CREATE TABLE \"APP\".\"T3\" (\"I3\" INTEGER, "
+        st.executeUpdate(" CREATE TABLE \"SPLICE\".\"T3\" (\"I3\" INTEGER, "
                 + "\"D3\" DOUBLE, \"C3\" CHAR(10))");
 
         st.executeUpdate(" insert into t1 values (1, -1, '1'), (2, -2, '2')");
@@ -2036,7 +2036,7 @@ public final class PredicatePushdownTest extends BaseJDBCTestCase {
         st.executeUpdate(" insert into t3 values (3, -3, '3'), (6, -6, '6'), "
                 + "(9, -9, '9')");
 
-        st.executeUpdate(" CREATE TABLE \"APP\".\"T4\" (\"C4\" CHAR(10))");
+        st.executeUpdate(" CREATE TABLE \"SPLICE\".\"T4\" (\"C4\" CHAR(10))");
 
         st.executeUpdate(" insert into t4 values '1', '2', '3', '4', '5', "
                 + "'6', '7', '8', '9'");
@@ -2044,10 +2044,10 @@ public final class PredicatePushdownTest extends BaseJDBCTestCase {
         st
                 .executeUpdate(" insert into t4 select rtrim(c4) || rtrim(c4) from t4");
 
-        st.executeUpdate(" CREATE TABLE \"APP\".\"T5\" (\"I5\" INTEGER, "
+        st.executeUpdate(" CREATE TABLE \"SPLICE\".\"T5\" (\"I5\" INTEGER, "
                 + "\"D5\" DOUBLE, \"C5\" CHAR(10))");
 
-        st.executeUpdate(" CREATE TABLE \"APP\".\"T6\" (\"I6\" INTEGER, "
+        st.executeUpdate(" CREATE TABLE \"SPLICE\".\"T6\" (\"I6\" INTEGER, "
                 + "\"D6\" DOUBLE, \"C6\" CHAR(10))");
 
         st.executeUpdate(" insert into t5 values (100, 100.0, '100'), (200, "

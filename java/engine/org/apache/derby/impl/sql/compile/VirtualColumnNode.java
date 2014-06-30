@@ -139,7 +139,7 @@ public class VirtualColumnNode extends ValueNode
 	 * The return value will be null if the user did not supply a schema name
 	 * (for example, select t.a from t).
 	 * Another example for null return value (for example, select b.a from t as b).
-	 * But for following query select app.t.a from t, this will return APP
+	 * But for following query select app.t.a from t, this will return SPLICE
 	 *
 	 * @return	A String containing the name of the schema for the Column's table.
 	 *		If the column is not in a schema (i.e. derived column), it returns NULL.

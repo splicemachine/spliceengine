@@ -81,10 +81,10 @@ public class DB_View {
 
 		}
 
-		// Set schema back to default ("APP").
+		// Set schema back to default ("SPLICE").
 		if (!firstTime) {
 			Logs.reportMessage("DBLOOK_DefaultSchema");
-			Logs.writeToNewDDL("SET SCHEMA \"APP\"");
+			Logs.writeToNewDDL("SET SCHEMA \"SPLICE\"");
 			Logs.writeStmtEndToNewDDL();
 			Logs.writeNewlineToNewDDL();
 		}

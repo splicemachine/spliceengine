@@ -38,17 +38,17 @@ call SYSCS_BACKUP_DATABASE_AND_ENABLE_LOG_ARCHIVE_MODE('extinout/mybackup2', 1);
 call SYSCS_DISABLE_LOG_ARCHIVE_MODE(0);
 call SYSCS_DISABLE_LOG_ARCHIVE_MODE(1);
 
-call SYSCS_COMPRESS_TABLE('APP', 'FOO', 0);
-call SYSCS_COMPRESS_TABLE('APP', 'FOO', 1);
+call SYSCS_COMPRESS_TABLE('SPLICE', 'FOO', 0);
+call SYSCS_COMPRESS_TABLE('SPLICE', 'FOO', 1);
 
 -- system funtions
 set schema SYSCS_UTIL;
 values SYSCS_GET_DATABASE_PROPERTY('foo');
-values SYSCS_CHECK_TABLE('APP', 'FOO');
+values SYSCS_CHECK_TABLE('SPLICE', 'FOO');
 
 call SYSCS_SET_RUNTIMESTATISTICS(1);
 call SYSCS_SET_STATISTICS_TIMING(1);
-select * from APP.foo;
+select * from SPLICE.foo;
 -- TODO, figure out how to test with a master file, that timings are non-zero,
 -- without having them diff everytime.  Ran this once and hand checked that
 -- it was working.
@@ -56,16 +56,16 @@ select * from APP.foo;
 -- values SYSCS_GET_RUNTIMESTATISTICS();
 
 call SYSCS_SET_STATISTICS_TIMING(0);
-select * from APP.foo;
+select * from SPLICE.foo;
 values SYSCS_GET_RUNTIMESTATISTICS();
 
 call SYSCS_SET_RUNTIMESTATISTICS(0);
 call SYSCS_SET_STATISTICS_TIMING(0);
-select * from APP.foo;
+select * from SPLICE.foo;
 values SYSCS_GET_RUNTIMESTATISTICS();
 
 -- check if qualified schema call works.
-set schema APP;
+set schema SPLICE;
 
 call SYSCS_UTIL.SYSCS_FREEZE_DATABASE();
 call SYSCS_UTIL.SYSCS_UNFREEZE_DATABASE();
@@ -79,16 +79,16 @@ call SYSCS_UTIL.SYSCS_BACKUP_DATABASE_AND_ENABLE_LOG_ARCHIVE_MODE('extinout/myba
 call SYSCS_UTIL.SYSCS_DISABLE_LOG_ARCHIVE_MODE(0);
 call SYSCS_UTIL.SYSCS_DISABLE_LOG_ARCHIVE_MODE(1);
 
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'FOO', 0);
-call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('APP', 'FOO', 1);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'FOO', 0);
+call SYSCS_UTIL.SYSCS_COMPRESS_TABLE('SPLICE', 'FOO', 1);
 
 -- the following does not work yet.
 values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('foo');
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'FOO');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'FOO');
 
 call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);
 call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1);
-select * from APP.foo;
+select * from SPLICE.foo;
 
 -- TODO, figure out how to test with a master file, that timings are non-zero,
 -- without having them diff everytime.  Ran this once and hand checked that
@@ -97,12 +97,12 @@ select * from APP.foo;
 -- values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
 
 call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0);
-select * from APP.foo;
+select * from SPLICE.foo;
 values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
 
 call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0);
 call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0);
-select * from APP.foo;
+select * from SPLICE.foo;
 values SYSCS_UTIL.SYSCS_GET_RUNTIMESTATISTICS();
 
 drop table foo;

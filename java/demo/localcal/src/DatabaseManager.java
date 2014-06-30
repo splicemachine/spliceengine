@@ -29,8 +29,8 @@ public class DatabaseManager {
     
     private static EmbeddedDataSource ds;
     
-    public static String REQUESTS_TABLE = "APP.REQUESTS";
-    public static String EVENTS_TABLE   = "APP.EVENTS";
+    public static String REQUESTS_TABLE = "SPLICE.REQUESTS";
+    public static String EVENTS_TABLE   = "SPLICE.EVENTS";
     
     // We want to keep the same connection for a given thread
     // as long as we're in the same transaction
@@ -118,7 +118,7 @@ public class DatabaseManager {
         try {
             DatabaseMetaData md = conn.getMetaData();
         
-            rs = md.getTables(null, "APP", tablename, null);
+            rs = md.getTables(null, "SPLICE", tablename, null);
             exists = rs.next();
         } finally {
             releaseConnection(conn);

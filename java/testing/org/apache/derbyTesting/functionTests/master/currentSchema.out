@@ -23,7 +23,7 @@ splice> --
 values current schema;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 splice> set schema sys;
 0 rows inserted/updated/deleted
 splice> values current schema;
@@ -31,13 +31,13 @@ splice> values current schema;
 --------------------------------------------------------------------------------------------------------------------------------
 SYS                                                                                                                             
 splice> create schema app;
-ERROR X0Y68: Schema 'APP' already exists.
+ERROR X0Y68: Schema 'SPLICE' already exists.
 splice> set current schema app;
 0 rows inserted/updated/deleted
 splice> values current schema;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 splice> set schema =  sys;
 0 rows inserted/updated/deleted
 splice> values current schema;
@@ -49,7 +49,7 @@ splice> set current schema = app;
 splice> values current schema;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 splice> set schema sys;
 0 rows inserted/updated/deleted
 splice> -- user should use default schema if no user set
@@ -58,7 +58,7 @@ set schema user;
 splice> values current schema;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 splice> -- see what user does when there is a user
 create schema judy;
 0 rows inserted/updated/deleted
@@ -68,7 +68,7 @@ splice(JUDY)> set schema app;
 splice(JUDY)> values current schema;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 splice(JUDY)> set schema user;
 0 rows inserted/updated/deleted
 splice(JUDY)> values current schema;
@@ -81,12 +81,12 @@ splice> -- check for default
 values current schema;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 splice> -- check that current sqlid works as a synonym
 values current sqlid;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 splice> -- check that sqlid still works as an identifer
 create table sqlid(sqlid int);
 0 rows inserted/updated/deleted
@@ -167,7 +167,7 @@ insert into t1 values (current schema);
 splice> select * from t1;
 A                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 splice> set schema judy;
 0 rows inserted/updated/deleted
 splice> insert into app.t1 values (current schema);
@@ -175,7 +175,7 @@ splice> insert into app.t1 values (current schema);
 splice> select * from app.t1;
 A                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 JUDY                                                                                                                            
 splice> -- delete where clause
 delete from app.t1 where a = current schema;
@@ -183,19 +183,19 @@ delete from app.t1 where a = current schema;
 splice> select * from app.t1;
 A                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 splice> set current schema app;
 0 rows inserted/updated/deleted
 splice> -- target list
 select current schema from t1;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 splice> -- where clause
 select * from t1 where a = current schema;
 A                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 splice> -- update statement
 delete from t1;
 1 row inserted/updated/deleted
@@ -210,7 +210,7 @@ splice> update t1 set a = current schema;
 splice> select * from t1;
 A                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 splice> set schema judy;
 0 rows inserted/updated/deleted
 splice> update app.t1 set a = current schema;
@@ -224,7 +224,7 @@ splice> set schema app;
 splice> drop table t1;
 0 rows inserted/updated/deleted
 splice> -- default
-set schema APP;
+set schema SPLICE;
 0 rows inserted/updated/deleted
 splice> create table t1 ( a int, b varchar(128) default current schema);
 0 rows inserted/updated/deleted
@@ -238,12 +238,12 @@ splice> set schema judy;
 0 rows inserted/updated/deleted
 splice> insert into app.t1 (a) values (1);
 1 row inserted/updated/deleted
-splice> set schema APP;
+splice> set schema SPLICE;
 0 rows inserted/updated/deleted
 splice> select * from t1;
 A          |B                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------------------
-1          |APP                                                                                                                             
+1          |SPLICE
 1          |SYS                                                                                                                             
 1          |JUDY                                                                                                                            
 splice> drop table t1;
@@ -267,7 +267,7 @@ splice> set schema app;
 splice> values current schema;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 splice> set schema 'MiXCase';
 0 rows inserted/updated/deleted
 splice> values current schema;
@@ -291,7 +291,7 @@ splice> set schema app;
 splice> values current schema;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 splice> set schema t23456789012345678901234567890;
 0 rows inserted/updated/deleted
 splice> values current schema;
@@ -303,7 +303,7 @@ splice> set schema app;
 splice> values current schema;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 splice> set schema 'T23456789012345678901234567890';
 0 rows inserted/updated/deleted
 splice> values current schema;
@@ -315,7 +315,7 @@ splice> set schema app;
 splice> values current schema;
 1                                                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------
-APP                                                                                                                             
+SPLICE
 splice> autocommit off;
 splice> prepare p1 as 'set schema ?';
 splice> execute p1 using 'values(''T23456789012345678901234567890'')';

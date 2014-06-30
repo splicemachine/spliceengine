@@ -140,9 +140,9 @@ select s1.t1.* from "S1.T1";
 
 select "S1.T1".* from s1.t1;
 
-select * from "S1.T1" , APP."S1.T1";
+select * from "S1.T1" , SPLICE."S1.T1";
 
-select "S1.T1".d1 from "S1.T1", APP."S1.T1";
+select "S1.T1".d1 from "S1.T1", SPLICE."S1.T1";
 
 select SYS."S1.T1".d1 from "S1.T1";
 

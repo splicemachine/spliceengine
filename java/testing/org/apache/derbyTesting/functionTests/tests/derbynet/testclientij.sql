@@ -27,7 +27,7 @@ values(1);
 -- Try some URL attributes
 disconnect all;
 connect 'testij2;create=true' USER 'dbadmin' PASSWORD 'dbadbmin';
-select * from APP.notthere;
+select * from SPLICE.notthere;
 
 
 -- examples from the docs
@@ -40,7 +40,7 @@ connect 'toursDB';
 
 connect 'toursDB' USER 'dbadmin' PASSWORD 'dbadbmin';
 
-connect 'wombat' USER 'APP' PASSWORD 'APP';
+connect 'wombat' USER 'SPLICE' PASSWORD 'SPLICE';
 
 connect  'testij2;create=true;user=usr;password=pwd';
 
@@ -62,16 +62,16 @@ connect 'testij2;shutdown=true;user=usr;password=pwd';
 connect 'testij2;create=true;user=usr;password=pwd;retrieveMessageText=false';
 
 -- Should not get message text
-select * from APP.notthere;
+select * from SPLICE.notthere;
 
 connect 'testij2;create=true;user=usr;password=pwd;retrieveMessageText=true';
 
 -- Should see message text
-select * from APP.notthere;
+select * from SPLICE.notthere;
 
 -- just user security mechanism
 connect 'testij2;create=true;user=usr;retrieveMessageText=true';
 
-connect 'wombat' USER 'APP';
+connect 'wombat' USER 'SPLICE';
 
 disconnect all;

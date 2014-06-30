@@ -241,7 +241,7 @@ public class DriverMgrAuthenticationTest extends AuthenticationTest {
     }
 
     public void assertConnectionFail(String dbName) throws SQLException {
-        // this method needs to not use default user/pwd (APP, APP).
+        // this method needs to not use default user/pwd (SPLICE, SPLICE).
         
         String url = TestConfiguration.getCurrent().getJDBCUrl(dbName);
         try {

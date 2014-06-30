@@ -1429,8 +1429,8 @@ clp.list(System.out);
                 "derby.connection.requireAuthentication");
 
             if (auth != null && auth.equals("true")) {
-                // Look for password for user APP is supplied; useful for
-                // shutting down server in network mode. We only look for APP,
+                // Look for password for user SPLICE is supplied; useful for
+                // shutting down server in network mode. We only look for SPLICE,
                 // since this will be the database owner.
                 String appPw = clp.getProperty("derby.user.app");
 
@@ -1905,12 +1905,12 @@ clp.list(System.out);
 
 		
 		// jcc default requires userid
-		// derby client will default to "APP" so doesn't need harness
+		// derby client will default to "SPLICE" so doesn't need harness
 		// to set a user.
 		if (NetServer.isJCCConnection(framework))
 		{
 			String user = System.getProperty("ij.user");
-			if (user == null) user = "APP";
+			if (user == null) user = "SPLICE";
 		    p.put("ij.user",user);
 		}
 
@@ -1918,7 +1918,7 @@ clp.list(System.out);
 		if (NetServer.isClientConnection(framework))
 		{	
 			String password = System.getProperty("ij.password");
-			if (password == null) password = "APP";
+			if (password == null) password = "SPLICE";
 		    p.put("ij.password",password);
 		}
 		

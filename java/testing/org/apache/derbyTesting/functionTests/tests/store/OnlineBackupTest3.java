@@ -198,7 +198,7 @@ public class OnlineBackupTest3 {
         // set the database class with both the jars  installed above.
         conn1_stmt.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY( " + 
                            "'derby.database.classpath', " + 
-                           "'APP.math_routines') " ) ;
+                           "'SPLICE.math_routines') " ) ;
 
         //commit the transaction with jar opearation that is blocking the backup.
         conn1.commit();
@@ -264,7 +264,7 @@ public class OnlineBackupTest3 {
         // set the database class with both the jars  installed above.
         conn1_stmt.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY( " + 
                            "'derby.database.classpath', " + 
-                           "'APP.customer_app:APP.math_routines') " ) ;
+                           "'SPLICE.customer_app:SPLICE.math_routines') " ) ;
         
         conn1.commit();
 
@@ -301,7 +301,7 @@ public class OnlineBackupTest3 {
             // set the database class with both the jars  installed above.
             stmt.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY( " + 
                            "'derby.database.classpath', " + 
-                           "'APP.customer_app:APP.math_routines') " ) ;
+                           "'SPLICE.customer_app:SPLICE.math_routines') " ) ;
             stmt.execute("call addCustomer(3 , 'John')"); 
         }catch(SQLException se) {
             //ignore for now. No sure way to 
@@ -344,7 +344,7 @@ public class OnlineBackupTest3 {
         conn1.commit();
 
         conn1_stmt.execute(
-           "call sqlj.remove_jar('APP.math_routines', 0)");
+           "call sqlj.remove_jar('SPLICE.math_routines', 0)");
         
         // Case 0: backup call that is not waiting for unlogged 
         // opereation to complete should fail when a remove jar 
@@ -431,7 +431,7 @@ public class OnlineBackupTest3 {
 
         AsyncStatementThread asyncJarActionThread = 
             new AsyncStatementThread(conn2, 
-          "call sqlj.remove_jar('APP.customer_app', 0)");
+          "call sqlj.remove_jar('SPLICE.customer_app', 0)");
         asyncJarActionThread.start();
         logMessage("Started obtest_customer.jar remove in seperate thread");
 
@@ -476,13 +476,13 @@ public class OnlineBackupTest3 {
                    countRows(conn, "customer"));
 
         // check if the jar removal was successful.
-        // APP.math_routines should not be in backup.
+        // SPLICE.math_routines should not be in backup.
         try {
             // set the database class path with the jar removed above, 
             // it should fail.
             stmt.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY( " + 
                            "'derby.database.classpath', " + 
-                           "'APP.math_routines') " ) ;
+                           "'SPLICE.math_routines') " ) ;
         }catch (SQLException sqle) {
             //above statement should have failed. 
             org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);

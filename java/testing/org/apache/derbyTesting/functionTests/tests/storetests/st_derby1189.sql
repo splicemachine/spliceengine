@@ -30,17 +30,17 @@ insert into t1 (select t1.i + 1024, t1.j + 1024, t1.c from t1);
 
 delete from t1 where j=1;
 
-CALL SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE('APP', 'T1', 1, 1, 1);
+CALL SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE('SPLICE', 'T1', 1, 1, 1);
 
 delete from t1 where j=2;
 
-CALL SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE('APP', 'T1', 1, 1, 1);
+CALL SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE('SPLICE', 'T1', 1, 1, 1);
 
 delete from t1 where i > 1024;
 
-CALL SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE('APP', 'T1', 1, 1, 1);
+CALL SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE('SPLICE', 'T1', 1, 1, 1);
 
 delete from t1 where i < 512;
 
 -- prior to the fix the following compress would result in a deadlock
-CALL SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE('APP', 'T1', 1, 1, 1);
+CALL SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE('SPLICE', 'T1', 1, 1, 1);

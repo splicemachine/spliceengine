@@ -229,11 +229,11 @@ public class Changes10_6 extends UpgradeChange {
     /**
      * Vet the permissions on SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE.
      * There should be only one permissions tuple for this system procedure and
-     * the grantor should be APP.
+     * the grantor should be SPLICE.
      */
     private void vetDERBY_4215( Statement s ) throws Exception
     {
-        String    expectedGrantor = "APP";
+        String    expectedGrantor = "SPLICE";
         ResultSet rs = s.executeQuery( QUERY_4215 );
 
         assertTrue( rs.next() );

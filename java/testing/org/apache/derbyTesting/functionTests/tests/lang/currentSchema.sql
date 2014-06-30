@@ -136,14 +136,14 @@ set schema app;
 drop table t1;
 
 -- default
-set schema APP;
+set schema SPLICE;
 create table t1 ( a int, b varchar(128) default current schema);
 insert into t1 (a) values (1);
 set schema SYS;
 insert into app.t1 (a) values (1);
 set schema judy;
 insert into app.t1 (a) values (1);
-set schema APP;
+set schema SPLICE;
 select * from t1;
 drop table t1;
 

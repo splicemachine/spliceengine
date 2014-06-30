@@ -34,7 +34,7 @@ insert into t1 values (3, 33, '3 3', '3 3 3 ', 333.33);
 insert into t1 values (4, 44, '4 4', '4 4 4 ', 444.44);
 
 -- verify that everything is alright
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 
 CREATE PROCEDURE RFHR(P1 VARCHAR(128), P2 VARCHAR(128))
 LANGUAGE JAVA EXTERNAL NAME 'org.apache.derbyTesting.functionTests.util.T_ConsistencyChecker.reinsertFirstHeapRow'
@@ -50,76 +50,76 @@ PARAMETER STYLE JAVA;
 autocommit off;
 
 -- differing row counts
-call RFHR('APP', 'T1');
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+call RFHR('SPLICE', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 -- drop and recreate each index to see differing count move to next index
 drop index t1_i;
 create index t1_i on t1(i);
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 drop index t1_s;
 create index t1_s on t1(s);
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 drop index t1_c10;
 create index t1_c10 on t1(c10);
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 drop index t1_vc10;
 create index t1_vc10 on t1(vc10);
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 drop index t1_dc;
 create index t1_dc on t1(dc);
 -- everything should be back to normal
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 
 -- delete 1st row from heap
-call DFHR('APP', 'T1');
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+call DFHR('SPLICE', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 -- drop and recreate each index to see differing count move to next index
 drop index t1_i;
 create index t1_i on t1(i);
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 drop index t1_s;
 create index t1_s on t1(s);
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 drop index t1_c10;
 create index t1_c10 on t1(c10);
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 drop index t1_vc10;
 create index t1_vc10 on t1(vc10);
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 drop index t1_dc;
 create index t1_dc on t1(dc);
 -- everything should be back to normal
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 
 -- set 1st row from heap to all nulls
 select * from t1;
-call NFHR('APP', 'T1');
+call NFHR('SPLICE', 'T1');
 select * from t1;
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 -- drop and recreate each index to see differing count move to next index
 drop index t1_i;
 create index t1_i on t1(i);
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 drop index t1_s;
 create index t1_s on t1(s);
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 drop index t1_c10;
 create index t1_c10 on t1(c10);
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 drop index t1_vc10;
 create index t1_vc10 on t1(vc10);
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 drop index t1_dc;
 create index t1_dc on t1(dc);
 -- everything should be back to normal
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 
 -- RESOLVE - Next test commented out due to inconsistency in store error
 -- message (sane vs. insane).  Check every index once store returns
 -- consistent error.
 -- insert a row with a bad row location into index
--- call org.apache.derbyTesting.functionTests.util.T_ConsistencyChecker::insertBadRowLocation('APP', 'T1', 'T1_I');
--- values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1');
+-- call org.apache.derbyTesting.functionTests.util.T_ConsistencyChecker::insertBadRowLocation('SPLICE', 'T1', 'T1_I');
+-- values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1');
 
 -- cleanup
 drop table t1;

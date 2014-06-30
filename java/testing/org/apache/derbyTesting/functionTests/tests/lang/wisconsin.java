@@ -185,25 +185,25 @@ public class wisconsin {
 
 		PreparedStatement ps2 = conn.prepareStatement
 			("call SYSCS_UTIL.SYSCS_COMPRESS_TABLE(?, ?, ?)");
-		ps2.setString(1, "APP");
+		ps2.setString(1, "SPLICE");
 		ps2.setString(2, "BPRIME");
 		ps2.setInt(3, 0);
 		ps2.executeUpdate();
 		conn.commit();
 
-		ps2.setString(1, "APP");
+		ps2.setString(1, "SPLICE");
 		ps2.setString(2, "TENKTUP1");
 		ps2.setInt(3, 0);
 		ps2.executeUpdate();
 		conn.commit();
 		
-		ps2.setString(1, "APP");
+		ps2.setString(1, "SPLICE");
 		ps2.setString(2, "TENKTUP2");
 		ps2.setInt(3, 0);
 		ps2.executeUpdate();
 		conn.commit();
 
-		ps2.setString(1, "APP");
+		ps2.setString(1, "SPLICE");
 		ps2.setString(2, "ONEKTUP");
 		ps2.setInt(3, 0);
 		ps2.executeUpdate();

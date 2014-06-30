@@ -163,7 +163,7 @@ public class st_reclaim_longcol extends BaseTest
         }
 
         // get total pages = allocated pages + free pages
-        int[] sp_info = getSpaceInfo(conn, "APP", "LONGCOL", true);
+        int[] sp_info = getSpaceInfo(conn, "SPLICE", "LONGCOL", true);
 
         int total_pages = 
             sp_info[SPACE_INFO_NUM_ALLOC] + sp_info[SPACE_INFO_NUM_FREE];
@@ -306,7 +306,7 @@ public class st_reclaim_longcol extends BaseTest
         // item in work size and add 5 pages for misc overhead.
         wait_for_max_allocated(conn, "test2", (10 * work_size) + 5);
 
-        int[] sp_info = getSpaceInfo(conn, "APP", "LONGCOL", true);
+        int[] sp_info = getSpaceInfo(conn, "SPLICE", "LONGCOL", true);
 
         int total_pages = 
             sp_info[SPACE_INFO_NUM_ALLOC] + sp_info[SPACE_INFO_NUM_FREE];
@@ -349,7 +349,7 @@ public class st_reclaim_longcol extends BaseTest
         wait_for_max_allocated(conn, "test2_2", (10 * work_size) + 5);
 
 
-        int[] second_sp_info = getSpaceInfo(conn, "APP", "LONGCOL", true);
+        int[] second_sp_info = getSpaceInfo(conn, "SPLICE", "LONGCOL", true);
 
         int second_total_pages = 
             sp_info[SPACE_INFO_NUM_ALLOC] + sp_info[SPACE_INFO_NUM_FREE];
@@ -415,7 +415,7 @@ public class st_reclaim_longcol extends BaseTest
         }
 
         // get number of allocated pages
-        int[] sp_info     = getSpaceInfo(conn, "APP", "LONGCOL", true);
+        int[] sp_info     = getSpaceInfo(conn, "SPLICE", "LONGCOL", true);
         int   total_alloc = sp_info[SPACE_INFO_NUM_ALLOC];
         int   save_total_alloc = total_alloc;
 
@@ -444,7 +444,7 @@ public class st_reclaim_longcol extends BaseTest
                 }
 
                 // get number of allocated pages
-                sp_info     = getSpaceInfo(conn, "APP", "LONGCOL", true);
+                sp_info     = getSpaceInfo(conn, "SPLICE", "LONGCOL", true);
                 total_alloc = sp_info[SPACE_INFO_NUM_ALLOC];
 
             }

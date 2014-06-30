@@ -87,7 +87,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         // This used to cause NullPointerException before.
         assertUpdateCount(s, 0, "create table DERBY1706(c11 int)");
  	assertUpdateCount(s, 0, "drop table DERBY1706");
-        assertUpdateCount(s, 0, "set schema APP");
+        assertUpdateCount(s, 0, "set schema SPLICE");
  	assertUpdateCount(s, 0, "drop schema SESSION restrict");
     }
 
@@ -102,12 +102,12 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
      */
     public void testGTTSchemaName() throws SQLException {
         Statement s = createStatement();
-        assertUpdateCount(s , 0 , "set schema APP");
+        assertUpdateCount(s , 0 , "set schema SPLICE");
         // Global Temporary Tables can only be created in SESSION schema
-        assertStatementError("428EK",s,"DECLARE GLOBAL TEMPORARY TABLE APP.t2(c21 int) on commit delete rows not logged");
+        assertStatementError("428EK",s,"DECLARE GLOBAL TEMPORARY TABLE SPLICE.t2(c21 int) on commit delete rows not logged");
         s.executeUpdate("DECLARE GLOBAL TEMPORARY TABLE t2(c21 int) on commit delete rows not logged");
-        // temp table t2 is not in APP schema
-        assertStatementError("42X05", s, "insert into APP.t2 values(7)");
+        // temp table t2 is not in SPLICE schema
+        assertStatementError("42X05", s, "insert into SPLICE.t2 values(7)");
         // temp table should be referred as SESSIO.t2
         assertStatementError("42X05", s, "insert into t2 values(7)");
         assertUpdateCount(s , 1 , "insert into SESSION.t2 values(7)");
@@ -628,7 +628,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         rs1 = s.executeQuery("select count(*) from t2");
         JDBC.assertSingleValueResultSet(rs1 , "2");
         assertUpdateCount(s , 0 , "DROP TABLE t2");
-        assertUpdateCount(s , 0 , "SET SCHEMA APP");
+        assertUpdateCount(s , 0 , "SET SCHEMA SPLICE");
         assertUpdateCount(s , 0 , "drop schema SESSION restrict");
     }
     /**

@@ -34,11 +34,11 @@ ERROR XJ057: Cannot commit a global transaction using the Connection, commit pro
 splice(XA)> -- ERROR: connot commit/rollback an xa connection
 rollback;
 ERROR XJ058: Cannot rollback a global transaction using the Connection, commit processing must go thru XAResource interface.
-splice(XA)> drop table APP.negative;
-ERROR 42Y55: 'DROP TABLE' cannot be performed on 'APP.NEGATIVE' because it does not exist.
-splice(XA)> create table APP.negative (a char(10), b int);
+splice(XA)> drop table SPLICE.negative;
+ERROR 42Y55: 'DROP TABLE' cannot be performed on 'SPLICE.NEGATIVE' because it does not exist.
+splice(XA)> create table SPLICE.negative (a char(10), b int);
 0 rows inserted/updated/deleted
-splice(XA)> create unique index negativei on APP.negative(b);
+splice(XA)> create unique index negativei on SPLICE.negative(b);
 0 rows inserted/updated/deleted
 splice(XA)> run resource '/org/apache/derbyTesting/functionTests/tests/store/global_xactTable.view';
 splice(XA)> --
@@ -66,9 +66,9 @@ select
     type 
 from syscs_diag.transaction_table;
 0 rows inserted/updated/deleted
-splice(XA)> insert into APP.negative values ('xyz', 1);
+splice(XA)> insert into SPLICE.negative values ('xyz', 1);
 1 row inserted/updated/deleted
-splice(XA)> select * from APP.negative;
+splice(XA)> select * from SPLICE.negative;
 A         |B          
 ----------------------
 xyz       |1          
@@ -107,13 +107,13 @@ splice(XA)> -- ERROR: cannot start without end
 xa_start xa_noflags 0;
 Splice ERROR: XAER_PROTO 
 splice(XA)> -- ERROR: duplicate key exception, statement level rollback
-insert into APP.negative values ('rollback', 1);
+insert into SPLICE.negative values ('rollback', 1);
 ERROR 23505: The statement was aborted because it would have caused a duplicate key value in a unique or primary key constraint or unique index identified by 'NEGATIVEI' defined on 'NEGATIVE'.
-splice(XA)> select * from APP.negative;
+splice(XA)> select * from SPLICE.negative;
 A         |B          
 ----------------------
 xyz       |1          
-splice(XA)> insert into APP.negative values ('ok', 2);
+splice(XA)> insert into SPLICE.negative values ('ok', 2);
 1 row inserted/updated/deleted
 splice(XA)> select * from global_xactTable order by gxid, status, username, type;
 GXID|STATUS  |READ&|USERNAME  |TYPE                          
@@ -121,13 +121,13 @@ GXID|STATUS  |READ&|USERNAME  |TYPE
 (0  |ACTIVE  |false|NEGATIVETE|UserTransaction               
 WARNING 01004: Data truncation
 WARNING 01004: Data truncation
-NULL|IDLE    |NULL |APP       |UserTransaction               
+NULL|IDLE    |NULL |SPLICE       |UserTransaction
 splice(XA)> disconnect;
 splice> xa_end xa_fail 0;
 Splice ERROR: XA_RBROLLBACK 
 splice> xa_start xa_noflags 2;
 splice> xa_getconnection;
-splice(XA)> insert into APP.negative values ('ok', 3);
+splice(XA)> insert into SPLICE.negative values ('ok', 3);
 1 row inserted/updated/deleted
 splice(XA)> -- ERROR: cannot suspend some other xid
 xa_end xa_suspend 3;
@@ -152,7 +152,7 @@ GXID|STATUS  |READ&|USERNAME  |TYPE
 WARNING 01004: Data truncation
 WARNING 01004: Data truncation
 WARNING 01004: Data truncation
-NULL|IDLE    |NULL |APP       |UserTransaction               
+NULL|IDLE    |NULL |SPLICE       |UserTransaction
 NULL|IDLE    |NULL |NEGATIVETE|UserTransaction               
 splice(XA)> xa_end xa_success 2;
 splice(XA)> disconnect;
@@ -163,7 +163,7 @@ splice> -- this is OK
 xa_start xa_join 2;
 splice> xa_getconnection;
 splice(XA)> -- ERROR: another dup 
-insert into APP.negative values ('rollback', 3);
+insert into SPLICE.negative values ('rollback', 3);
 ERROR 23505: The statement was aborted because it would have caused a duplicate key value in a unique or primary key constraint or unique index identified by 'NEGATIVEI' defined on 'NEGATIVE'.
 splice(XA)> xa_end xa_suspend 2;
 splice(XA)> xa_end xa_success 2;
@@ -183,7 +183,7 @@ xa_start xa_noflags 1;
 splice(XA)> -- ERROR: can only forget heuristically completed transaction
 xa_forget 1;
 Splice ERROR: XAER_PROTO 
-splice(XA)> delete from APP.negative;
+splice(XA)> delete from SPLICE.negative;
 1 row inserted/updated/deleted
 splice(XA)> xa_end xa_success 1;
 splice(XA)> -- ERROR: now try some bad flag 
@@ -198,12 +198,12 @@ xa_forget 1;
 Splice ERROR: XAER_PROTO 
 splice(XA)> xa_start xa_noflags 2;
 splice(XA)> -- ERROR: deadlock, transaction trashed
-select * from APP.negative;
+select * from SPLICE.negative;
 A         |B          
 ----------------------
 ERROR 40XL1: A lock could not be obtained within the time requested
 splice(XA)> -- ERROR: should have no connection underneath
-select * from APP.negative;
+select * from SPLICE.negative;
 A         |B          
 ----------------------
 ERROR 40XL1: A lock could not be obtained within the time requested
@@ -226,7 +226,7 @@ WARNING 01004: Data truncation
 WARNING 01004: Data truncation
 WARNING 01004: Data truncation
 (3  |IDLE    |NULL |NEGATIVETE|UserTransaction               
-NULL|IDLE    |NULL |APP       |UserTransaction               
+NULL|IDLE    |NULL |SPLICE       |UserTransaction
 splice(XA)> drop table foo;
 ERROR 42Y55: 'DROP TABLE' cannot be performed on 'FOO' because it does not exist.
 splice(XA)> create table foo (a int);
@@ -251,7 +251,7 @@ xa_start xa_noflags 3;
 Splice ERROR: XAER_DUPID 
 splice(XA)> xa_start xa_resume 3;
 splice(XA)> -- now that 1 is rolled back, this should succeed
-select * from APP.negative;
+select * from SPLICE.negative;
 A         |B          
 ----------------------
 xyz       |1          
@@ -261,7 +261,7 @@ GXID|STATUS  |READ&|USERNAME  |TYPE
 (3  |ACTIVE  |false|NEGATIVETE|UserTransaction               
 WARNING 01004: Data truncation
 WARNING 01004: Data truncation
-NULL|IDLE    |NULL |APP       |UserTransaction               
+NULL|IDLE    |NULL |SPLICE       |UserTransaction
 splice(XA)> -- ERROR: bad flag
 xa_end xa_noflags 3;
 Splice ERROR: XAER_INVAL 

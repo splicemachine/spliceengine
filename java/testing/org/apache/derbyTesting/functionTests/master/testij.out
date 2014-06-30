@@ -34,8 +34,8 @@ values(1);
 splice(CONNECTION1)> -- Try some URL attributes
 disconnect all;
 splice> connect 'jdbc:derby:net://xxxFILTERED_HOSTNAMExxx:1527/junk;create=true:retrieveMessagesFromServerOnGetMessage=true;' USER 'dbadmin' PASSWORD 'dbadbmin';
-splice> select * from APP.notthere;
-ERROR 42X05: Table/View 'APP.NOTTHERE' does not exist.
+splice> select * from SPLICE.notthere;
+ERROR 42X05: Table/View 'SPLICE.NOTTHERE' does not exist.
 splice> -- examples from the docs
 connect 'jdbc:derby:net://xxxFILTERED_HOSTNAMExxx:1527/wombat;create=true:user=judy;password=judy;retrieveMessagesFromServerOnGetMessage=true;';
 splice(CONNECTION1)> connect 'jdbc:derby:net://xxxFILTERED_HOSTNAMExxx:1527/"./wombat":user=judy;password=judy;retrieveMessagesFromServerOnGetMessage=true;';
@@ -43,7 +43,7 @@ splice(CONNECTION2)> connect 'jdbc:derby:net://xxxFILTERED_HOSTNAMExxx:1527/tour
 ERROR (no SQLState): null userid not supported
 splice(CONNECTION2)> connect 'jdbc:derby:net://xxxFILTERED_HOSTNAMExxx:1527/toursDB:retrieveMessagesFromServerOnGetMessage=true;' USER 'dbadmin' PASSWORD 'dbadbmin';
 ERROR 08004: The application server rejected establishment of the connection.  An attempt was made to access a database, toursDB, which was not found.
-splice(CONNECTION2)> connect 'jdbc:derby:net://xxxFILTERED_HOSTNAMExxx:1527/wombat' USER 'APP' PASSWORD 'APP';
+splice(CONNECTION2)> connect 'jdbc:derby:net://xxxFILTERED_HOSTNAMExxx:1527/wombat' USER 'SPLICE' PASSWORD 'SPLICE';
 splice(CONNECTION3)> connect  'jdbc:derby:net://xxxFILTERED_HOSTNAMExxx:1527/my-db-name;create=true:user=usr;password=pwd;retrieveMessagesFromServerOnGetMessage=true;';
 splice(CONNECTION4)> connect 'jdbc:derby:net://xxxFILTERED_HOSTNAMExxx:1527/my-db-name;upgrade=true:user=usr;password=pwd;retrieveMessagesFromServerOnGetMessage=true;';
 splice(CONNECTION5)> connect 'jdbc:derby:net://xxxFILTERED_HOSTNAMExxx:1527/my-db-name;shutdown=true:user=usr;password=pwd;'

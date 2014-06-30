@@ -80,10 +80,10 @@ public class IndexSplitDeadlockTest extends BaseJDBCTestCase {
         threads = null;
 
         // All the other threads have finished. Now, remove everything from
-        // the APP schema so that we don't leave anything around for subsequent
+        // the SPLICE schema so that we don't leave anything around for subsequent
         // tests.
         setAutoCommit(false); // required by JDBC.dropSchema()
-        JDBC.dropSchema(getConnection().getMetaData(), "APP");
+        JDBC.dropSchema(getConnection().getMetaData(), "SPLICE");
 
         super.tearDown();
     }
@@ -283,7 +283,7 @@ public class IndexSplitDeadlockTest extends BaseJDBCTestCase {
         // thread to perform post-commit work?)
         Thread.sleep(1000);
         s2.execute("call syscs_util.syscs_inplace_compress_table" +
-                   "('APP','T',1,1,1)");
+                   "('SPLICE','T',1,1,1)");
         commit();
 
         // Check that we are able to reposition. We may or may not see more

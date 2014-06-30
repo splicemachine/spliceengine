@@ -83,7 +83,7 @@ public class JitTest {
 			// start with value.
 			for (int i = 0; (i < 200) && (numBadStartWith == 0); i++)
 			{
-				String tableName = "APP.MYTABLE" + i;
+				String tableName = "SPLICE.MYTABLE" + i;
 			    createTableSQL = "CREATE TABLE " + tableName + 
 				"  (ROLEID INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY ("+
 				"START WITH 2, INCREMENT BY 1), INSTANCEID INTEGER, STATUS"+
@@ -128,7 +128,7 @@ public class JitTest {
   		Statement stmt = conn.createStatement();
   		ResultSet rs =stmt.executeQuery("select count(autoincrementstart) from"+
   				" sys.syscolumns c, sys.systables t, sys.sysschemas s WHERE"+
-				" t.schemaid =  s.schemaid and CAST(s.schemaname AS VARCHAR(128))= 'APP' and"+
+				" t.schemaid =  s.schemaid and CAST(s.schemaname AS VARCHAR(128))= 'SPLICE' and"+
 				" autoincrementstart > " +  maxautoincrementstart);
 
   		rs.next();
@@ -142,7 +142,7 @@ public class JitTest {
   			rs =stmt.executeQuery("select tablename, columnname,"+
   					" autoincrementstart from sys.syscolumns c, sys.systables t,"+
 					" CAST(sys.sysschemas AS VARCHAR(128)) s WHERE t.schemaid = s.schemaid and"+
-					" CAST(s.schemaname AS VARCHAR(128)) = 'APP' and autoincrementstart > 2 ORDER"+
+					" CAST(s.schemaname AS VARCHAR(128)) = 'SPLICE' and autoincrementstart > 2 ORDER"+
 					" BY tablename");
   			while (rs.next())
   			{
@@ -158,7 +158,7 @@ public class JitTest {
   	}
 
   	/**
-       * Drop all tables in schema APP
+       * Drop all tables in schema SPLICE
   	 * @param conn
   	 * @throws SQLException
   	 */
@@ -166,10 +166,10 @@ public class JitTest {
   	{
   		Statement stmt1 = conn.createStatement();
   		Statement stmt2 = conn.createStatement();
-  		System.out.println("Drop all tables in APP schema");
+  		System.out.println("Drop all tables in SPLICE schema");
   		ResultSet rs = stmt1.executeQuery("SELECT tablename from sys.systables"+
   				" t, sys.sysschemas s where t.schemaid = s.schemaid and"+
-				" CAST(s.schemaname AS VARCHAR(128)) = 'APP'");
+				" CAST(s.schemaname AS VARCHAR(128)) = 'SPLICE'");
 
   		while (rs.next())
   		{

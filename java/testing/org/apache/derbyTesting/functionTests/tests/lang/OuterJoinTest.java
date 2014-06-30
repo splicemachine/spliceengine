@@ -2346,24 +2346,24 @@ public final class OuterJoinTest extends BaseJDBCTestCase
         createTestObjects(st);
         
         st.executeUpdate(
-            "CREATE TABLE \"APP\".\"GOVT_AGCY\" (\"GVA_ID\" "
+            "CREATE TABLE \"SPLICE\".\"GOVT_AGCY\" (\"GVA_ID\" "
             + "NUMERIC(20,0) NOT NULL, \"GVA_ORL_ID\" "
             + "NUMERIC(20,0) NOT NULL, \"GVA_GAC_ID\" NUMERIC(20,0))");
         
         st.executeUpdate(
-            " CREATE TABLE \"APP\".\"GEO_STRC_ELMT\" (\"GSE_ID\" "
+            " CREATE TABLE \"SPLICE\".\"GEO_STRC_ELMT\" (\"GSE_ID\" "
             + "NUMERIC(20,0) NOT NULL, \"GSE_GSET_ID\" "
             + "NUMERIC(20,0) NOT NULL, \"GSE_GA_ID_PRNT\" "
             + "NUMERIC(20,0) NOT NULL, \"GSE_GA_ID_CHLD\" "
             + "NUMERIC(20,0) NOT NULL)");
         
         st.executeUpdate(
-            " CREATE TABLE \"APP\".\"GEO_AREA\" (\"GA_ID\" "
+            " CREATE TABLE \"SPLICE\".\"GEO_AREA\" (\"GA_ID\" "
             + "NUMERIC(20,0) NOT NULL, \"GA_GAT_ID\" NUMERIC(20,0) "
             + "NOT NULL, \"GA_NM\" VARCHAR(30) NOT NULL, "
             + "\"GA_ABRV_NM\" VARCHAR(5))");
 
-        st.executeUpdate("CREATE TABLE \"APP\".\"REG\" "
+        st.executeUpdate("CREATE TABLE \"SPLICE\".\"REG\" "
                 +"(\"REG_ID\" NUMERIC(20,0) NOT NULL, \"REG_NM\" "
                 +"VARCHAR(60) NOT NULL, \"REG_DESC\" VARCHAR(240), "
                 +"\"REG_ABRV_NM\" VARCHAR(15), \"REG_CD\" "

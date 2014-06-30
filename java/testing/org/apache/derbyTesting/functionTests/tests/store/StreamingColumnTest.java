@@ -1067,7 +1067,7 @@ public class StreamingColumnTest extends BaseJDBCTestCase {
 
         // execute the compress command
         CallableStatement cs = prepareCall("CALL SYSCS_UTIL.SYSCS_COMPRESS_TABLE(?, ?, ?)");
-        cs.setString(1, "APP");
+        cs.setString(1, "SPLICE");
         cs.setString(2, "TESTLONGVARCHAR1");
         cs.setInt(3, 0);
         cs.execute();

@@ -457,7 +457,7 @@ public class DataSourceTest extends BaseJDBCTestCase {
     throws SQLException
     {
         try {
-            conn.createStatement().executeQuery("SELECT * FROM APP.NOTTHERE");
+            conn.createStatement().executeQuery("SELECT * FROM SPLICE.NOTTHERE");
         }
         catch (SQLException e)
         {

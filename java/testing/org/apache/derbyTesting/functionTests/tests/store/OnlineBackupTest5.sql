@@ -46,7 +46,7 @@ async bthread
 -- start compress in seperate thread. 
 set connection c1;
 async cthread 
- 'call SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE(''APP'' , 
+ 'call SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE(''SPLICE'' ,
                                          ''CTEST'' , 1, 1, 1)';
 set connection c2;
 -- wait for backup thread to finish the work.

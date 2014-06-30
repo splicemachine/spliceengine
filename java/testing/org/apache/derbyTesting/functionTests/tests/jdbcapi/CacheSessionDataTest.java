@@ -223,18 +223,18 @@ public class CacheSessionDataTest extends BaseJDBCTestCase {
                 String unicodeschema = "\u00bbMY\u20ac\u00ab";
                 s.execute("CREATE SCHEMA \"" + unicodeschema + "\"");
 
-                s.execute("CREATE PROCEDURE APP.SET_SCHEMA (SCHEMANAME " +
+                s.execute("CREATE PROCEDURE SPLICE.SET_SCHEMA (SCHEMANAME " +
                         "VARCHAR(128)) MODIFIES SQL DATA LANGUAGE JAVA " +
                         "PARAMETER STYLE JAVA EXTERNAL NAME '" +
                         CacheSessionDataTest.class.getName() + ".setSchema'");
 
-                s.execute("CREATE FUNCTION APP.GET_SCHEMA_TRANSITION " +
+                s.execute("CREATE FUNCTION SPLICE.GET_SCHEMA_TRANSITION " +
                         "(SCHEMANAME VARCHAR(128)) RETURNS VARCHAR(128) READS " +
                         "SQL DATA LANGUAGE JAVA PARAMETER STYLE JAVA EXTERNAL " +
                         "NAME '" + CacheSessionDataTest.class.getName() +
                         ".getSchemaTransition'");
 
-                s.execute("CREATE TABLE APP.LARGE(X VARCHAR(32000), " +
+                s.execute("CREATE TABLE SPLICE.LARGE(X VARCHAR(32000), " +
                         "SCHEMANAME VARCHAR(128), Y VARCHAR(32000))");
 
                 char[] carray = new char[32000];
@@ -243,7 +243,7 @@ public class CacheSessionDataTest extends BaseJDBCTestCase {
                 Arrays.fill(carray, 'y');
                 String ys = new String(carray);
 
-                s.execute("INSERT INTO APP.LARGE (SELECT '" + xs + "', " +
+                s.execute("INSERT INTO SPLICE.LARGE (SELECT '" + xs + "', " +
                         "SCHEMANAME, " + " '" + ys + "' FROM SYS.SYSSCHEMAS)");
             }
         };
@@ -280,13 +280,13 @@ public class CacheSessionDataTest extends BaseJDBCTestCase {
         assertNotNull(isoLevels[3]);
     }
     /**
-     * Removes all tables in schema APP which has the prefix 'T', before calling
+     * Removes all tables in schema SPLICE which has the prefix 'T', before calling
      * super.tearDown().
      * @throws java.lang.Exception
      */
     public void tearDown() throws Exception {
         DatabaseMetaData meta = getConnection().getMetaData();
-        ResultSet tables = meta.getTables(null, "APP", "T%", null);
+        ResultSet tables = meta.getTables(null, "SPLICE", "T%", null);
         Statement s = createStatement();
         while (tables.next()) {
             s.execute("DROP TABLE " + tables.getString("TABLE_NAME"));
@@ -846,13 +846,13 @@ public class CacheSessionDataTest extends BaseJDBCTestCase {
     }
     public void testSetSchemaProcedure() throws SQLException {
         Statement s = createStatement();
-        s.execute("CALL APP.SET_SCHEMA('FOO')");
+        s.execute("CALL SPLICE.SET_SCHEMA('FOO')");
         verifyCachedSchema(getConnection());
-        s.execute("CALL APP.SET_SCHEMA('\"\u00bbMY\u20ac\u00ab\"')");
+        s.execute("CALL SPLICE.SET_SCHEMA('\"\u00bbMY\u20ac\u00ab\"')");
         verifyCachedSchema(getConnection());
     }
     public void testPreparedSetSchemaProcedure() throws SQLException {
-        CallableStatement cs = prepareCall("CALL APP.SET_SCHEMA(?)");
+        CallableStatement cs = prepareCall("CALL SPLICE.SET_SCHEMA(?)");
         cs.setString(1, "FOO");
         cs.execute();
         verifyCachedSchema(getConnection());
@@ -864,7 +864,7 @@ public class CacheSessionDataTest extends BaseJDBCTestCase {
     public void testSetSchemaFunction() throws SQLException {
         Statement s = createStatement();
         ResultSet rs = s.executeQuery("SELECT " +
-                "APP.GET_SCHEMA_TRANSITION(SCHEMANAME) FROM SYS.SYSSCHEMAS");
+                "SPLICE.GET_SCHEMA_TRANSITION(SCHEMANAME) FROM SYS.SYSSCHEMAS");
         while (rs.next()) {
             assertTrue(rs.getString(1).length() > 2);
             verifyCachedSchema(getConnection());
@@ -873,7 +873,7 @@ public class CacheSessionDataTest extends BaseJDBCTestCase {
 
     public void testPreparedSetSchemaFunction() throws SQLException {
         PreparedStatement ps = prepareStatement("SELECT " +
-                "APP.GET_SCHEMA_TRANSITION(SCHEMANAME) FROM SYS.SYSSCHEMAS");
+                "SPLICE.GET_SCHEMA_TRANSITION(SCHEMANAME) FROM SYS.SYSSCHEMAS");
         ResultSet rs = ps.executeQuery();
         while (rs.next()) {
             assertTrue(rs.getString(1).length() > 2);
@@ -884,8 +884,8 @@ public class CacheSessionDataTest extends BaseJDBCTestCase {
     public void testSetSchemaFunctionLarge() throws SQLException {
         Statement s = createStatement();
         ResultSet rs = s.executeQuery("SELECT X, " +
-                "APP.GET_SCHEMA_TRANSITION(SCHEMANAME), " +
-                "Y FROM APP.LARGE");
+                "SPLICE.GET_SCHEMA_TRANSITION(SCHEMANAME), " +
+                "Y FROM SPLICE.LARGE");
         while (rs.next()) {
             assertTrue(rs.getString(2).length() > 2);
             verifyCachedSchema(getConnection());
@@ -894,8 +894,8 @@ public class CacheSessionDataTest extends BaseJDBCTestCase {
 
     public void testPreparedSetSchemaFunctionLarge() throws SQLException {
         PreparedStatement ps = prepareStatement("SELECT X, " +
-                "APP.GET_SCHEMA_TRANSITION(SCHEMANAME), " +
-                "Y FROM APP.LARGE");
+                "SPLICE.GET_SCHEMA_TRANSITION(SCHEMANAME), " +
+                "Y FROM SPLICE.LARGE");
         ResultSet rs = ps.executeQuery();
         while (rs.next()) {
             assertTrue(rs.getString(2).length() > 2);

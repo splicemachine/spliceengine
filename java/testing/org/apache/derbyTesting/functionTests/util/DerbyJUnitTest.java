@@ -50,8 +50,8 @@ public	class	DerbyJUnitTest	extends	TestCase
 	public	static	final			int		SUCCESS_EXIT = 0;
 	public	static	final			int		FAILURE_EXIT = 1;
 
-	public	static	final	String	DEFAULT_USER_NAME = "APP";
-	public	static	final	String	DEFAULT_PASSWORD = "APP";
+	public	static	final	String	DEFAULT_USER_NAME = "SPLICE";
+	public	static	final	String	DEFAULT_PASSWORD = "SPLICE";
 	public	static	final	String	DEFAULT_DATABASE_NAME = "wombat";
 
 	// because java.sql.Types.BOOLEAN doesn't exist in jdbc 2.0

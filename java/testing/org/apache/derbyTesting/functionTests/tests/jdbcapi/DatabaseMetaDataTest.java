@@ -1088,7 +1088,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
      * All the builtin schemas.
      */
     private static final String[] BUILTIN_SCHEMAS = {
-            "APP", "NULLID", "SQLJ", "SYS", "SYSCAT", "SYSCS_DIAG",
+            "SPLICE", "NULLID", "SQLJ", "SYS", "SYSCAT", "SYSCS_DIAG",
             "SYSCS_UTIL", "SYSFUN", "SYSIBM", "SYSPROC", "SYSSTAT"};
     
     public static String getStoredIdentifier(String sqlIdentifier)

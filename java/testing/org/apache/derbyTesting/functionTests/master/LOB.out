@@ -80,7 +80,7 @@ splice> create table b(blob blob(3K), clob clob(2M));
 splice> insert into b values(cast(X'0031' as blob(3K)),cast('2' as clob(2M)));
 1 row inserted/updated/deleted
 splice> insert into b(blob, clob, nclob) values(cast(X'0031' as blob(3K)),cast('2' as clob(2M)));
-ERROR 42X14: 'NCLOB' is not a column in table or VTI 'APP.B'.
+ERROR 42X14: 'NCLOB' is not a column in table or VTI 'SPLICE.B'.
 splice> select b.blob, b.clob, b.nclob from b;
 ERROR 42X04: Column 'B.NCLOB' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'B.NCLOB' is not a column in the target table.
 splice> -- equal tests are not allowed

@@ -57,7 +57,7 @@ splice> -- should work, default format (i.e. field sep , column delimiter ".)
 call SYSCS_UTIL.SYSCS_IMPORT_TABLE (null, 'T1' , 'extin/AccountData_defaultformat.dat' , 
                                     null, null, null, 0) ;
 0 rows inserted/updated/deleted
-splice> values (SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T1'));
+splice> values (SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T1'));
 1          
 -----------
 1          
@@ -98,7 +98,7 @@ call SYSCS_UTIL.SYSCS_IMPORT_TABLE (null, 'T2' , 'extin/AccountData_format1.dat'
                                     null, null, null, 0) ;
 ERROR 38000: The exception 'java.sql.SQLException: Column 'COLUMN2' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'COLUMN2' is not a column in the target table.' was thrown while evaluating an expression.
 ERROR 42X04: Column 'COLUMN2' is either not in any table in the FROM list or appears within a join specification and is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or ALTER TABLE  statement then 'COLUMN2' is not a column in the target table.
-splice> values (SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T2'));
+splice> values (SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T2'));
 1          
 -----------
 1          
@@ -108,7 +108,7 @@ splice> -- But if we use correct specification?
 call SYSCS_UTIL.SYSCS_IMPORT_TABLE (null, 'T2' , 'extin/AccountData_format1.dat' , 
 				   'q', '"', 'ASCII', 0) ;
 0 rows inserted/updated/deleted
-splice> values (SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T2'));
+splice> values (SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T2'));
 1          
 -----------
 1          
@@ -159,7 +159,7 @@ call SYSCS_UTIL.SYSCS_IMPORT_DATA(null, 'T4' ,
 				  'extin/AccountData_defaultformat.dat' ,
 				   null, null, null, 0) ;
 0 rows inserted/updated/deleted
-splice> values (SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'T4'));
+splice> values (SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'T4'));
 1          
 -----------
 1          
@@ -723,7 +723,7 @@ USER_ID    |USER_LOGIN
 1          |test1                                                                                                                           
 2          |test2                                                                                                                           
 splice> -- do consistency check on the table.
-values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP', 'ADMINS');
+values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE', 'ADMINS');
 1          
 -----------
 1          

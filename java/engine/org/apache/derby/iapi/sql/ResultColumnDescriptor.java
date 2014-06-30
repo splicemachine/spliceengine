@@ -48,7 +48,7 @@ public interface ResultColumnDescriptor
 
 	/**
 	 * Get the name of the schema for the Column's base table, if any.
-	 * Following example queries will all return APP (assuming user is in schema APP)
+	 * Following example queries will all return SPLICE (assuming user is in schema SPLICE)
 	 * select t.a from t
 	 * select b.a from t as b
 	 * select app.t.a from t

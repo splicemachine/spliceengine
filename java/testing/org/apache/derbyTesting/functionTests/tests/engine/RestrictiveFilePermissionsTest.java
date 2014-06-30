@@ -307,7 +307,7 @@ public class RestrictiveFilePermissionsTest extends BaseJDBCTestCase {
         // compress
         setAutoCommit(true);
         s.executeUpdate("call SYSCS_UTIL.SYSCS_COMPRESS_TABLE(" +
-                        "'APP', 'COMPTABLE', 0)");
+                        "'SPLICE', 'COMPTABLE', 0)");
 
         // easiest: just check all conglomerates over again..
         File seg0 = new File(home, dbName + "/" + "seg0");

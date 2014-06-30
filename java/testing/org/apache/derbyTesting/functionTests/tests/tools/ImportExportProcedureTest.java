@@ -500,7 +500,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         SupportFilesSetup.deleteFile("extinout/noncast.dat");
  
         cSt = prepareCall(
-            " call SYSCS_UTIL.SYSCS_EXPORT_TABLE ('APP' , "
+            " call SYSCS_UTIL.SYSCS_EXPORT_TABLE ('SPLICE' , "
             + "'NONCAST' , 'extinout/noncast.dat'  , null , null , null) ");
         assertUpdateCount(cSt, 0);
         
@@ -1357,7 +1357,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "web_flag varchar(1) )");
         
         cSt = prepareCall(
-            " CALL SYSCS_UTIL.SYSCS_IMPORT_TABLE ('APP', "
+            " CALL SYSCS_UTIL.SYSCS_IMPORT_TABLE ('SPLICE', "
             + "'POSITION_INFO', 'extin/position_info.del', null, "
             + "null, 'US-ASCII', 1)");
         assertUpdateCount(cSt, 0);
@@ -1390,7 +1390,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         SupportFilesSetup.deleteFile("extinout/pinfo.del");
 
         cSt = prepareCall(
-            " CALL SYSCS_UTIL.SYSCS_EXPORT_TABLE ('APP', "
+            " CALL SYSCS_UTIL.SYSCS_EXPORT_TABLE ('SPLICE', "
             + "'POSITION_INFO', 'extinout/pinfo.del', null, null, null)");
         assertUpdateCount(cSt, 0);
         
@@ -1398,7 +1398,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             " delete from position_info");
         
         cSt = prepareCall(
-            " CALL SYSCS_UTIL.SYSCS_IMPORT_TABLE ('APP', "
+            " CALL SYSCS_UTIL.SYSCS_IMPORT_TABLE ('SPLICE', "
             + "'POSITION_INFO', 'extinout/pinfo.del', null, null, null, 1)");
         assertUpdateCount(cSt, 0);
         
@@ -1447,7 +1447,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         
         cSt = prepareCall(
             " CALL "
-            + "SYSCS_UTIL.SYSCS_IMPORT_TABLE('APP','DEST_ALWAYS','e"
+            + "SYSCS_UTIL.SYSCS_IMPORT_TABLE('SPLICE','DEST_ALWAYS','e"
             + "xtinout/autoinc.dat',null,null,null,0)");
         assertStatementError("38000", cSt);
         
@@ -1460,7 +1460,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         
         cSt = prepareCall(
             " CALL "
-            + "SYSCS_UTIL.SYSCS_IMPORT_TABLE('APP','DEST_BY_DEFAULT"
+            + "SYSCS_UTIL.SYSCS_IMPORT_TABLE('SPLICE','DEST_BY_DEFAULT"
             + "','extinout/autoinc.dat',null,null,null,0)");
         assertUpdateCount(cSt, 0);
         
@@ -1495,7 +1495,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         
         cSt = prepareCall(
             " CALL "
-            + "SYSCS_UTIL.SYSCS_IMPORT_TABLE('APP','DEST_ALWAYS','e"
+            + "SYSCS_UTIL.SYSCS_IMPORT_TABLE('SPLICE','DEST_ALWAYS','e"
             + "xtinout/autoinc.dat',null,null,null,1)");
         assertStatementError("38000", cSt);
         
@@ -1508,7 +1508,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         
         cSt = prepareCall(
             " CALL "
-            + "SYSCS_UTIL.SYSCS_IMPORT_TABLE('APP','DEST_BY_DEFAULT"
+            + "SYSCS_UTIL.SYSCS_IMPORT_TABLE('SPLICE','DEST_BY_DEFAULT"
             + "','extinout/autoinc.dat',null,null,null,1)");
         assertUpdateCount(cSt, 0);
         

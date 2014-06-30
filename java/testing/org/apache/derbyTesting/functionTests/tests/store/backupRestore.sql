@@ -18,7 +18,7 @@
 create table x (x double precision, y int);
 insert into x values (1,1),(10,1),(20,1);
 call sqlj.install_jar('extin/brtestjar.jar', 'aggjar', 0);
-call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', 'APP.aggjar');
+call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', 'SPLICE.aggjar');
 create function dv(P1 INT) RETURNS INT NO SQL external name 'dbytesting.CodeInAJar.doubleMe' language java parameter style java;
 select cast (dv(x) as dec(5,2)) from x;
 ----take a backup.

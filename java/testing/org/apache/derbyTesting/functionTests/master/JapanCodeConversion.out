@@ -73,12 +73,12 @@ JNUM       |JTIME   |JLEN
 15         |15:35:35|26         
 16         |15:39:10|27         
 splice> -- export to file with EUC_JP encoding 
-call SYSCS_UTIL.SYSCS_EXPORT_TABLE('APP', 'T1_EUC_JP' ,
+call SYSCS_UTIL.SYSCS_EXPORT_TABLE('SPLICE', 'T1_EUC_JP' ,
  EnC:>9<   EnC:>9<  EnC:>9<           'extinout/jap_EUC_JP.dump' , 
  EnC:>9<  EnC:>9<  EnC:>9<  EnC:>9<   null, null, 'EUC_JP') ;
 0 rows inserted/updated/deleted
 splice> -- export to file with SJIS encoding EnC:>9< 
-call SYSCS_UTIL.SYSCS_EXPORT_TABLE('APP', 'T1_EUC_JP' ,
+call SYSCS_UTIL.SYSCS_EXPORT_TABLE('SPLICE', 'T1_EUC_JP' ,
  EnC:>9<   EnC:>9<  EnC:>9<           'extinout/jap_SJIS.dump' , 
  EnC:>9<  EnC:>9<  EnC:>9<  EnC:>9<   null, null, 'SJIS') ;
 0 rows inserted/updated/deleted

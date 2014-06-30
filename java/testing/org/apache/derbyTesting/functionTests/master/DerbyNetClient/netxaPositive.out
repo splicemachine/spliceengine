@@ -34,7 +34,7 @@ from syscs_diag.transaction_table;
 ij(XA)> select * from global_xactTable where gxid is not null order by gxid;
 GXID |STATUS |READ& |USERNAME |TYPE                          
 -----
-(0 |ACTIVE |false |APP |UserTransaction               
+(0 |ACTIVE |false |SPLICE |UserTransaction
 ij(XA)> xa_end xa_success 0;
 ij(XA)> xa_commit xa_1phase 0;
 ij(XA)> xa_datasource 'wombat' shutdown;
@@ -52,34 +52,34 @@ ij(XA)> -- Global transactions can not have hold cursor over commit. And hence w
 ----- NoHoldForConnection uses setHoldability api on Connection to set the holdability to false. But this api exists only for jdk14 and higher
 ----- And that is why, in jkd13 master, we see an exception nosuchmethod 
 NoHoldForConnection;
-ij(XA)> insert into APP.foo values (1);
+ij(XA)> insert into SPLICE.foo values (1);
 1 row inserted/updated/deleted
 ij(XA)> xa_end xa_suspend 1;
 ij(XA)> xa_start xa_noflags 2;
-ij(XA)> insert into APP.foo values (2);
+ij(XA)> insert into SPLICE.foo values (2);
 1 row inserted/updated/deleted
 ij(XA)> xa_end xa_suspend 2;
 ij(XA)> xa_start xa_resume 1;
-ij(XA)> insert into APP.foo values (3);
+ij(XA)> insert into SPLICE.foo values (3);
 1 row inserted/updated/deleted
 ij(XA)> xa_end xa_suspend 1;
 ij(XA)> xa_start xa_resume 2;
-ij(XA)> insert into APP.foo values (4);
+ij(XA)> insert into SPLICE.foo values (4);
 1 row inserted/updated/deleted
-ij(XA)> select * from APP.global_xactTable where gxid is not null order by gxid;
+ij(XA)> select * from SPLICE.global_xactTable where gxid is not null order by gxid;
 GXID |STATUS |READ& |USERNAME |TYPE                          
 -----
 (1 |ACTIVE |false |SKU |UserTransaction               
 (2 |ACTIVE |false |SKU |UserTransaction               
 ij(XA)> xa_end xa_success 2;
 ij(XA)> xa_start xa_resume 1;
-ij(XA)> insert into APP.foo values(5);
+ij(XA)> insert into SPLICE.foo values(5);
 1 row inserted/updated/deleted
 ij(XA)> xa_end xa_success 1;
 ij(XA)> xa_prepare 1;
 ij(XA)> xa_prepare 2;
 ij(XA)> -- both transactions should be prepared
-select * from APP.global_xactTable where gxid is not null order by gxid;
+select * from SPLICE.global_xactTable where gxid is not null order by gxid;
 GXID |STATUS |READ& |USERNAME |TYPE                          
 -----
 (1 |PREPARED |false |SKU |UserTransaction               
@@ -94,11 +94,11 @@ ij(XA)> xa_commit xa_2Phase 1;
 ij(XA)> xa_rollback 2;
 ij(XA)> -- check results
 xa_start xa_noflags 3;
-ij(XA)> select * from APP.global_xactTable where gxid is not null order by gxid;
+ij(XA)> select * from SPLICE.global_xactTable where gxid is not null order by gxid;
 GXID |STATUS |READ& |USERNAME |TYPE                          
 -----
 (3 |IDLE |NULL |SKU |UserTransaction               
-ij(XA)> select * from APP.foo;
+ij(XA)> select * from SPLICE.foo;
 A          
 -----
 0          
@@ -114,13 +114,13 @@ ij(XA)> -- DERBY-246 xa_end after connection close should be ok.
 ----- Also to reuse xaconnection in the same global transaction
 xa_getconnection;
 ij(XA)> xa_start xa_noflags 4;
-ij(XA)> create table APP.derby246  (i int);
+ij(XA)> create table SPLICE.derby246  (i int);
 0 rows inserted/updated/deleted
-ij(XA)> insert into APP.derby246 values(1);
+ij(XA)> insert into SPLICE.derby246 values(1);
 1 row inserted/updated/deleted
 ij(XA)> disconnect;
 ij> xa_getconnection;
-ij(XA)> insert into APP.derby246 values(2);
+ij(XA)> insert into SPLICE.derby246 values(2);
 1 row inserted/updated/deleted
 ij(XA)> disconnect;
 ij> xa_end xa_success 4;
@@ -129,7 +129,7 @@ ij> xa_commit xa_2phase 4;
 ij> -- now connect with a local connection to make sure locks are released 
 ----- and our values are there. Should see two rows
 connect 'wombat';
-ij(CONNECTION1)> select * from APP.derby246;
+ij(CONNECTION1)> select * from SPLICE.derby246;
 I          
 -----
 1          

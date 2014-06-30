@@ -267,14 +267,14 @@ public class ProcedureInTriggerTest extends BaseJDBCTestCase {
        JDBC.assertFullResultSet(rs, expectedRows);
        s.execute("drop trigger delete_trig");
        //--- Procedures with schema name
-       s.execute("create trigger call_proc_in_default_schema AFTER insert on t2 for each STATEMENT call APP.proc_no_sql()");
+       s.execute("create trigger call_proc_in_default_schema AFTER insert on t2 for each STATEMENT call SPLICE.proc_no_sql()");
        //--- insert 2 rows. check that trigger is fired - procedure should be called once
        s.execute("insert into t2 values (1,2), (2,4)");
        //--- check inserts are successful
        rs = s.executeQuery("select * from t2");
        JDBC.assertFullResultSet(rs, new String[][] { {"1","2"}, {"2","4"}});
        s.execute("drop trigger call_proc_in_default_schema");
-       s.execute("create trigger call_proc_in_default_schema no cascade BEFORE delete on t2 for each ROW call APP.proc_no_sql()");
+       s.execute("create trigger call_proc_in_default_schema no cascade BEFORE delete on t2 for each ROW call SPLICE.proc_no_sql()");
        //--- delete 2 rows. check that trigger is fired - procedure should be called twice
        s.execute("delete from t2");
        //--- check delete is successful

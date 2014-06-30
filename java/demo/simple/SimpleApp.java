@@ -148,7 +148,7 @@ public class SimpleApp
             props.put("user", "user1");
             props.put("password", "user1");
 
-            /* By default, the schema APP will be used when no username is
+            /* By default, the schema SPLICE will be used when no username is
              * provided.
              * Otherwise, the schema name is the same as the user name (in this
              * case "user1" or USER1.)

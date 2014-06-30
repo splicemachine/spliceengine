@@ -79,16 +79,16 @@ public class ConsistencyChecker
 	 * <p>To check the consistency of a single table:
 	 * <p><code>
 	 * VALUES ConsistencyChecker::checkTable(<i>SchemaName</i>, <i>TableName</i>)</code></p>
-	 * <P>For example, to check the consistency of the table <i>APP.Flights</i>:
+	 * <P>For example, to check the consistency of the table <i>SPLICE.Flights</i>:
 	 * <p><code>
-	 * VALUES ConsistencyChecker::checkTable('APP', 'FLIGHTS')</code></p>
-	 * <p>To check the consistency of all of the tables in the 'APP' schema,
+	 * VALUES ConsistencyChecker::checkTable('SPLICE', 'FLIGHTS')</code></p>
+	 * <p>To check the consistency of all of the tables in the 'SPLICE' schema,
 	 * stopping at the first failure: 
 	 *
 	 * <P><code>SELECT tablename, ConsistencyChecker::checkTable(<br>
-	 * 'APP', tablename)<br>
+	 * 'SPLICE', tablename)<br>
 	 * FROM sys.sysschemas s, sys.systables t
-	 * WHERE s.schemaname = 'APP' AND s.schemaid = t.schemaid</code>
+	 * WHERE s.schemaname = 'SPLICE' AND s.schemaid = t.schemaid</code>
 	 *
 	 * <p> To check the consistency of an entire database, stopping at the first failure:
 	 *

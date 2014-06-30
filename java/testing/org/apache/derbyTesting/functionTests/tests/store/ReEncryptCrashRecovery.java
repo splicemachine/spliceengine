@@ -429,7 +429,7 @@ public class ReEncryptCrashRecovery
 	void runConsistencyChecker(Connection conn, 
                                String tableName) throws SQLException {
 		Statement stmt = conn.createStatement();
-		stmt.execute("values SYSCS_UTIL.SYSCS_CHECK_TABLE('APP',  'EMP')");
+		stmt.execute("values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE',  'EMP')");
         // check the data in the EMP table.
         select(conn, tableName);
 	}

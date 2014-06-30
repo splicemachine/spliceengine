@@ -72,7 +72,7 @@ public class DBInJarTest extends BaseJDBCTestCase {
         
         // Try dbmetadata call. DERBY-3546
        rs = jarconn.getMetaData().getSchemas();
-       String[][] expectedRows = {{"APP",null},
+       String[][] expectedRows = {{"SPLICE",null},
                {"NULLID",null},
                {"SQLJ",null},
                {"SYS",null},

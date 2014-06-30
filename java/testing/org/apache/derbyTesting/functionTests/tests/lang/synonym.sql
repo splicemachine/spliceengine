@@ -18,13 +18,13 @@
 -- When we decide to convert this test to junit test, the converted tests can 
 -- go in existing SynonymTest.java
 
-set schema APP;
+set schema SPLICE;
 -- negative tests
 -- Create a synonym to itself. Error.
 create synonym syn for syn;
-create synonym syn for APP.syn;
-create synonym APP.syn for syn;
-create synonym APP.syn for APP.syn;
+create synonym syn for SPLICE.syn;
+create synonym SPLICE.syn for syn;
+create synonym SPLICE.syn for SPLICE.syn;
 
 -- Create a simple synonym loop. Error.
 create synonym synonym1 for synonym;
@@ -40,7 +40,7 @@ create synonym ts5 for ts4;
 create synonym ts6 for ts5;
 create synonym ts for ts6;
 drop synonym App.ts1;
-drop synonym "APP".ts2;
+drop synonym "SPLICE".ts2;
 drop synonym TS3;
 drop synonym ts4;
 drop synonym ts5;
@@ -52,11 +52,11 @@ insert into table1 values (1,1), (2,2);
 create view view1 as select i, j from table1;
 
 create synonym table1 for t1;
-create synonym APP.Table1 for t1;
-create synonym app.TABLE1 for "APP"."T";
+create synonym SPLICE.Table1 for t1;
+create synonym app.TABLE1 for "SPLICE"."T";
 
-create synonym APP.VIEW1 for v1;
-create synonym "APP"."VIEW1" for app.v;
+create synonym SPLICE.VIEW1 for v1;
+create synonym "SPLICE"."VIEW1" for app.v;
 
 -- Synonyms can't be created on temporary tables
 declare global temporary table session.t1 (c1 int) not logged;
@@ -64,7 +64,7 @@ create synonym synForTemp for session.t1;
 create synonym synForTemp for session."T1";
 
 -- Synonyms can't be created in session schemas
-create synonym session.table1 for APP.table1;
+create synonym session.table1 for SPLICE.table1;
 
 -- Creating a table or a view when a synonym of that name is present. Error.
 create synonym myTable for table1;
@@ -90,8 +90,8 @@ select * from table1;
 
 delete from myTable where i> 2;
 
-select * from "APP"."MYTABLE";
-select * from APP.table1;
+select * from "SPLICE"."MYTABLE";
+select * from SPLICE.table1;
 
 -- Try some cursors
 get cursor c1 as 'select * from myTable';
@@ -167,7 +167,7 @@ select * from junkSchema.syn1;
 set schema junkSchema;
 create table table2(c char(10));
 select * from syn1;
-set schema APP;
+set schema SPLICE;
 
 -- Should resolve to junkSchema.table2
 select * from junkSchema.syn1;
@@ -193,8 +193,8 @@ drop synonym mySynonym;
 
 create schema synonymSchema;
 
-create synonym synonymSchema.mySynonym1 for APP.table1;
-create synonym APP.mySynonym2 for "SYNONYMSCHEMA"."MYSYNONYM1";
+create synonym synonymSchema.mySynonym1 for SPLICE.table1;
+create synonym SPLICE.mySynonym2 for "SYNONYMSCHEMA"."MYSYNONYM1";
 create synonym mySynonym for mySynonym2;
 
 

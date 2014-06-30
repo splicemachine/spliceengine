@@ -258,7 +258,7 @@ public class XADSAuthenticationTest extends AuthenticationTest {
         // Reset to no user/password though client requires
         // a valid name, so reset to the default
         if (usingDerbyNetClient())
-            JDBCDataSource.setBeanProperty(xads, "user", "APP");
+            JDBCDataSource.setBeanProperty(xads, "user", "SPLICE");
         else
             JDBCDataSource.clearStringBeanProperty(xads, "user");
         JDBCDataSource.clearStringBeanProperty(xads, "password");

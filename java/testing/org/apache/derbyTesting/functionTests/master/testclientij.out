@@ -30,8 +30,8 @@ values(1);
 splice(CONNECTION2)> -- Try some URL attributes
 disconnect all;
 splice> connect 'testsplice2;create=true' USER 'dbadmin' PASSWORD 'dbadbmin';
-splice> select * from APP.notthere;
-ERROR 42X05: Table/View 'APP.NOTTHERE' does not exist.
+splice> select * from SPLICE.notthere;
+ERROR 42X05: Table/View 'SPLICE.NOTTHERE' does not exist.
 splice> -- examples from the docs
 
 connect 'testsplice2;create=true;user=judy;password=judy';
@@ -40,7 +40,7 @@ splice(CONNECTION2)> connect 'toursDB';
 ERROR 08004: The connection was refused because the database toursDB was not found.
 splice(CONNECTION2)> connect 'toursDB' USER 'dbadmin' PASSWORD 'dbadbmin';
 ERROR 08004: The connection was refused because the database toursDB was not found.
-splice(CONNECTION2)> connect 'wombat' USER 'APP' PASSWORD 'APP';
+splice(CONNECTION2)> connect 'wombat' USER 'SPLICE' PASSWORD 'SPLICE';
 splice(CONNECTION3)> connect  'testsplice2;create=true;user=usr;password=pwd';
 splice(CONNECTION4)> connect 'testsplice2;upgrade=true;user=usr;password=pwd';
 splice(CONNECTION5)> connect 'testsplice2;shutdown=true;user=usr;password=pwd';
@@ -54,14 +54,14 @@ ERROR 08006: DERBY SQL error: SQLCODE: -1, SQLSTATE: 08006, SQLERRMC: Database '
 splice(CONNECTION9)> -- retrieveMessageText Testing
 connect 'testsplice2;create=true;user=usr;password=pwd;retrieveMessageText=false';
 splice(CONNECTION10)> -- Should not get message text
-select * from APP.notthere;
-ERROR 42X05: DERBY SQL error: SQLCODE: -1, SQLSTATE: 42X05, SQLERRMC: APP.NOTTHERE42X05
+select * from SPLICE.notthere;
+ERROR 42X05: DERBY SQL error: SQLCODE: -1, SQLSTATE: 42X05, SQLERRMC: SPLICE.NOTTHERE42X05
 splice(CONNECTION10)> connect 'testsplice2;create=true;user=usr;password=pwd;retrieveMessageText=true';
 splice(CONNECTION11)> -- Should see message text
-select * from APP.notthere;
-ERROR 42X05: Table/View 'APP.NOTTHERE' does not exist.
+select * from SPLICE.notthere;
+ERROR 42X05: Table/View 'SPLICE.NOTTHERE' does not exist.
 splice(CONNECTION11)> -- just user security mechanism
 connect 'testsplice2;create=true;user=usr;retrieveMessageText=true';
-splice(CONNECTION12)> connect 'wombat' USER 'APP';
+splice(CONNECTION12)> connect 'wombat' USER 'SPLICE';
 splice(CONNECTION13)> disconnect all;
 splice> 

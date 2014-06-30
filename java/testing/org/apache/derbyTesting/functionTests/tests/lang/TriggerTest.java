@@ -1484,30 +1484,30 @@ public class TriggerTest extends BaseJDBCTestCase {
     public void testDerby4095OldTriggerRows() throws SQLException {
         Statement s = createStatement();
         
-        s.executeUpdate("CREATE TABLE APP.TAB (I INT)");
-        s.executeUpdate("CREATE TABLE APP.LOG (I INT, NAME VARCHAR(30), DELTIME TIMESTAMP)");
-        s.executeUpdate("CREATE TABLE APP.NAMES(ID INT, NAME VARCHAR(30))");
+        s.executeUpdate("CREATE TABLE SPLICE.TAB (I INT)");
+        s.executeUpdate("CREATE TABLE SPLICE.LOG (I INT, NAME VARCHAR(30), DELTIME TIMESTAMP)");
+        s.executeUpdate("CREATE TABLE SPLICE.NAMES(ID INT, NAME VARCHAR(30))");
 
         
-        s.executeUpdate("CREATE TRIGGER  APP.MYTRIG AFTER DELETE ON APP.TAB REFERENCING OLD_TABLE AS OLDROWS FOR EACH STATEMENT INSERT INTO APP.LOG(i,name,deltime) SELECT OLDROWS.I, NAMES.NAME, CURRENT_TIMESTAMP FROM --DERBY-PROPERTIES joinOrder=FIXED\n NAMES, OLDROWS --DERBY-PROPERTIES joinStrategy = NESTEDLOOP\n WHERE (OLDROWS.i = NAMES.ID) AND (1 = 1)");
+        s.executeUpdate("CREATE TRIGGER  SPLICE.MYTRIG AFTER DELETE ON SPLICE.TAB REFERENCING OLD_TABLE AS OLDROWS FOR EACH STATEMENT INSERT INTO SPLICE.LOG(i,name,deltime) SELECT OLDROWS.I, NAMES.NAME, CURRENT_TIMESTAMP FROM --DERBY-PROPERTIES joinOrder=FIXED\n NAMES, OLDROWS --DERBY-PROPERTIES joinStrategy = NESTEDLOOP\n WHERE (OLDROWS.i = NAMES.ID) AND (1 = 1)");
         
-        s.executeUpdate("insert into APP.tab values(1)");
-        s.executeUpdate("insert into APP.tab values(2)");
-        s.executeUpdate("insert into APP.tab values(3)");
+        s.executeUpdate("insert into SPLICE.tab values(1)");
+        s.executeUpdate("insert into SPLICE.tab values(2)");
+        s.executeUpdate("insert into SPLICE.tab values(3)");
 
-        s.executeUpdate("insert into APP.names values(1,'Charlie')");
-        s.executeUpdate("insert into APP.names values(2,'Hugh')");
-        s.executeUpdate("insert into APP.names values(3,'Alex')");
+        s.executeUpdate("insert into SPLICE.names values(1,'Charlie')");
+        s.executeUpdate("insert into SPLICE.names values(2,'Hugh')");
+        s.executeUpdate("insert into SPLICE.names values(3,'Alex')");
 
         // Now delete a row so we fire the trigger.
         s.executeUpdate("delete from tab where i = 1");
         // Check the log to make sure the trigger fired ok
-        ResultSet loggedDeletes = s.executeQuery("SELECT * FROM APP.LOG");
+        ResultSet loggedDeletes = s.executeQuery("SELECT * FROM SPLICE.LOG");
         JDBC.assertDrainResults(loggedDeletes, 1);
                  
-        s.executeUpdate("DROP TABLE APP.TAB");
-        s.executeUpdate("DROP TABLE APP.LOG");
-        s.executeUpdate("DROP TABLE APP.NAMES");
+        s.executeUpdate("DROP TABLE SPLICE.TAB");
+        s.executeUpdate("DROP TABLE SPLICE.LOG");
+        s.executeUpdate("DROP TABLE SPLICE.NAMES");
         
     }
     
@@ -1519,12 +1519,12 @@ public class TriggerTest extends BaseJDBCTestCase {
      */
     public void testDerby4095NewTriggerRows() throws SQLException {
         Statement s = createStatement();
-        s.executeUpdate("CREATE TABLE APP.TAB (I INT)");
-        s.executeUpdate("CREATE TABLE APP.LOG (I INT, NAME VARCHAR(30), UPDTIME TIMESTAMP, NEWVALUE INT)");
-        s.executeUpdate("CREATE TABLE APP.NAMES(ID INT, NAME VARCHAR(30))");
+        s.executeUpdate("CREATE TABLE SPLICE.TAB (I INT)");
+        s.executeUpdate("CREATE TABLE SPLICE.LOG (I INT, NAME VARCHAR(30), UPDTIME TIMESTAMP, NEWVALUE INT)");
+        s.executeUpdate("CREATE TABLE SPLICE.NAMES(ID INT, NAME VARCHAR(30))");
 
         
-        s.executeUpdate("CREATE TRIGGER  APP.MYTRIG AFTER UPDATE ON APP.TAB REFERENCING OLD_TABLE AS OLDROWS NEW_TABLE AS NEWROWS FOR EACH STATEMENT INSERT INTO APP.LOG(i,name,updtime,newvalue) SELECT OLDROWS.I, NAMES.NAME, CURRENT_TIMESTAMP, NEWROWS.I  FROM --DERBY-PROPERTIES joinOrder=FIXED\n NAMES, NEWROWS --DERBY-PROPERTIES joinStrategy = NESTEDLOOP\n ,OLDROWS WHERE (NEWROWS.i = NAMES.ID) AND (1 = 1)");
+        s.executeUpdate("CREATE TRIGGER  SPLICE.MYTRIG AFTER UPDATE ON SPLICE.TAB REFERENCING OLD_TABLE AS OLDROWS NEW_TABLE AS NEWROWS FOR EACH STATEMENT INSERT INTO SPLICE.LOG(i,name,updtime,newvalue) SELECT OLDROWS.I, NAMES.NAME, CURRENT_TIMESTAMP, NEWROWS.I  FROM --DERBY-PROPERTIES joinOrder=FIXED\n NAMES, NEWROWS --DERBY-PROPERTIES joinStrategy = NESTEDLOOP\n ,OLDROWS WHERE (NEWROWS.i = NAMES.ID) AND (1 = 1)");
         
         s.executeUpdate("insert into tab values(1)");
         s.executeUpdate("insert into tab values(2)");
@@ -1538,13 +1538,13 @@ public class TriggerTest extends BaseJDBCTestCase {
         s.executeUpdate("update tab set i=1 where i = 1");
 
         // Check the log to make sure the trigger fired ok
-        ResultSet loggedUpdates = s.executeQuery("SELECT * FROM APP.LOG");
+        ResultSet loggedUpdates = s.executeQuery("SELECT * FROM SPLICE.LOG");
         JDBC.assertDrainResults(loggedUpdates, 1);
         
         
-        s.executeUpdate("DROP TABLE APP.TAB");
-        s.executeUpdate("DROP TABLE APP.LOG");
-        s.executeUpdate("DROP TABLE APP.NAMES");
+        s.executeUpdate("DROP TABLE SPLICE.TAB");
+        s.executeUpdate("DROP TABLE SPLICE.LOG");
+        s.executeUpdate("DROP TABLE SPLICE.NAMES");
     }
 
     /**
