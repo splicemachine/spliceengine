@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
+import com.splicemachine.derby.impl.store.access.ConglomerateDescriptorCache;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
@@ -24,19 +25,21 @@ import java.io.ObjectOutput;
  *         Created on: 10/4/13
  */
 public class DerbyDMLWriteInfo implements DMLWriteInfo {
-    private transient Activation activation;
-		private String tableVersion;
 
-		@Override
+    private static final ConglomerateDescriptorCache CONGLOMERATE_DESCRIPTOR_CACHE = ConglomerateDescriptorCache.INSTANCE;
+
+    private transient Activation activation;
+    private String tableVersion;
+
+    @Override
     public void initialize(SpliceOperationContext opCtx) throws StandardException {
         this.activation = opCtx.getActivation();
-
-				LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-				DataDictionary dataDictionary = lcc.getDataDictionary();
-				ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(getConglomerateId());
-				TableDescriptor tableDescriptor = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
-				this.tableVersion = tableDescriptor.getVersion();
-		}
+        ConglomerateDescriptor conglomerateDescriptor = CONGLOMERATE_DESCRIPTOR_CACHE.get(activation);
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dataDictionary = lcc.getDataDictionary();
+        TableDescriptor tableDescriptor = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
+        this.tableVersion = tableDescriptor.getVersion();
+    }
 
     @Override
     public ConstantAction getConstantAction() {
