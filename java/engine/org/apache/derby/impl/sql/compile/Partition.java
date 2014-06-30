@@ -36,4 +36,10 @@ public class Partition extends GroupByList {
         }
         return true;
     }
+
+    @Override
+    public boolean isRollup() {
+        // Window partitions differ from GroupBy in that we don't have rollups
+        return false;
+    }
 }

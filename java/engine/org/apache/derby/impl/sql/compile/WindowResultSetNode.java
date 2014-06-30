@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Vector;
 
-import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.ClassName;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
@@ -34,7 +33,6 @@ import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.LanguageFactory;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
-import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
 import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.sql.compile.Optimizable;
@@ -50,7 +48,7 @@ import org.apache.derby.impl.sql.execute.AggregatorInfoList;
 
 
 /**
- * A GroupByNode represents a result set for a grouping operation
+ * A WindowResultSetNode represents a result set for a window partitioning operation
  * on a select.  Note that this includes a SELECT with aggregates
  * and no grouping columns (in which case the select list is null)
  * It has the same description as its input result set.
@@ -59,30 +57,21 @@ import org.apache.derby.impl.sql.execute.AggregatorInfoList;
  * which is currently expected to be a ProjectRestrictResultSet generated
  * for a SelectNode.
  * <p/>
- * NOTE: A GroupByNode extends FromTable since it can exist in a FromList.
+ * NOTE: A WindowResultSetNode extends FromTable since it can exist in a FromList.
  * <p/>
- * There is a lot of room for optimizations here: <UL>
- * <LI> agg(distinct x) group by x => agg(x) group by x (for min and max) </LI>
- * <LI> min()/max() use index scans if possible, no sort may
- * be needed. </LI>
- * </UL>
- * <p/>
- * <p/>
- * <p/>
- * A WindowResultSetNode represents a result set for a window partitioning on a
- * select. Modelled on the code in GroupByNode.
+ * Modelled on the code in GroupByNode.
  */
 public class WindowResultSetNode extends SingleChildResultSetNode {
 
     WindowDefinitionNode wdn;
     /**
-     * The GROUP BY list
+     * The Partition clause
      */
     Partition partition;
 
     /**
-     * The list of all aggregates in the query block
-     * that contains this group by.
+     * The list of all window functions in the query block
+     * that contains this partition.
      */
     Vector windowFunctions;
 
@@ -104,16 +93,11 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      */
     FromTable parent;
 
-    // TODO: still need dist agg?
-    private boolean addDistinctAggregate;
-    private boolean singleInputRowOptimization;
-    private int addDistinctAggregateColumnNum;
-
     // Is the source in sorted order
     private boolean isInSortedOrder;
 
     /**
-     * Intializer for a GroupByNode.
+     * Intializer for a WindowResultSetNode.
      *
      * @param bottomPR        The child FromTable
      * @param windowDef       The window definition
@@ -137,10 +121,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         setLevel(((Integer) nestingLevel).intValue());
         /* Group by without aggregates gets xformed into distinct */
         if (SanityManager.DEBUG) {
-//			Aggregage vector can be null if we have a having clause.
-//          select c1 from t1 group by c1 having c1 > 1;
-//			SanityManager.ASSERT(((Vector) windowFunctions).size() > 0,
-//			"windowFunctions expected to be non-empty");
+			SanityManager.ASSERT(((Vector) windowFunctions).size() > 0,
+			"windowFunctions expected to be non-empty");
             if (!(childResult instanceof Optimizable)) {
                 SanityManager.THROWASSERT("childResult, " + childResult.getClass().getName() +
                                               ", expected to be instanceof Optimizable");
@@ -175,16 +157,12 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		*/
         addAggregates();
 
-        if (this.partition != null && this.partition.isRollup()) {
-            resultColumns.setNullability(true);
-            parent.getResultColumns().setNullability(true);
-        }
-		/* We say that the source is never in sorted order if there is a distinct aggregate.
-		 * (Not sure what happens if it is, so just skip it for now.)
-		 * Otherwise, we check to see if the source is in sorted order on any permutation
-		 * of the grouping columns.)
+
+		/*
+		 * Check to see if the source is in sorted order on any permutation
+		 * of the grouping columns.
 		 */
-        if (!addDistinctAggregate && partition != null) {
+        if (partition != null) {
             ColumnReference[] crs =
                 new ColumnReference[this.partition.size()];
 
@@ -192,8 +170,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             int glSize = this.partition.size();
             int index;
             for (index = 0; index < glSize; index++) {
-                GroupByColumn gc =
-                    (GroupByColumn) this.partition.elementAt(index);
+                GroupByColumn gc = (GroupByColumn) this.partition.elementAt(index);
                 if (gc.getColumnExpression() instanceof ColumnReference) {
                     crs[index] = (ColumnReference) gc.getColumnExpression();
                 } else {
@@ -235,55 +212,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     private void addAggregates() throws StandardException {
         addNewPRNode();
         addNewColumnsForAggregation();
-        addDistinctAggregatesToOrderBy();
-    }
-
-    private void addOrderby() throws StandardException {
-        // FIXME: the change below removes the Window node - ordering added in generate
-        /* Generate the OrderByNode if a sort is still required for
-		 * the order by.
-		 */
-        OrderByList windowOrderBy = wdn.getOrderByList();
-        if (windowOrderBy != null && windowOrderBy.getSortNeeded()) {
-            ResultSetNode prnRSN = this.childResult;
-                prnRSN = (ResultSetNode) getNodeFactory().getNode(
-                    C_NodeTypes.ORDER_BY_NODE,
-                    prnRSN,
-                    windowOrderBy,
-                    null,
-                    getContextManager());
-                parent = (FromTable) prnRSN;
-        }
-    }
-
-    /**
-     * Add any distinct aggregates to the order by list.
-     * Asserts that there are 0 or more distincts.
-     */
-    private void addDistinctAggregatesToOrderBy() {
-        int numDistinct = numDistinctAggregates(windowFunctions);
-        if (numDistinct != 0) {
-            if (SanityManager.DEBUG) {
-                SanityManager.ASSERT(partition != null || numDistinct == 1,
-                                     "Should not have more than 1 distinct aggregate per Group By node");
-            }
-
-            AggregatorInfo agg = null;
-            int count = aggInfo.size();
-            for (int i = 0; i < count; i++) {
-                agg = (AggregatorInfo) aggInfo.elementAt(i);
-                if (agg.isDistinct()) {
-                    break;
-                }
-            }
-
-            if (SanityManager.DEBUG) {
-                SanityManager.ASSERT(agg != null && agg.isDistinct());
-            }
-
-            addDistinctAggregate = true;
-            addDistinctAggregateColumnNum = agg.getInputColNum();
-        }
     }
 
     /**
@@ -783,8 +711,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
     public String toString() {
         if (SanityManager.DEBUG) {
-            return "singleInputRowOptimization: " + singleInputRowOptimization + "\n" +
-                super.toString();
+            return wdn.toString()+ "\n" + super.toString();
         } else {
             return "";
         }
@@ -826,12 +753,12 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @return boolean    Whether or not the FromSubquery is flattenable.
      */
     public boolean flattenableInFromSubquery(FromList fromList) {
-		/* Can't flatten a GroupByNode */
+		/* Can't flatten a WindowResultSetNode */
         return false;
     }
 
     /**
-     * Optimize this GroupByNode.
+     * Optimize this WindowResultSetNode.
      *
      * @param dataDictionary The DataDictionary to use for optimization
      * @param predicates     The PredicateList to optimize.  This should
@@ -913,20 +840,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         costEstimate = childResult.getFinalCostEstimate();
 
 		/*
-		** Get the column ordering for the sort.  Note that
-		** for a scalar aggegate we may not have any ordering
-		** columns (if there are no distinct aggregates).
-		** WARNING: if a distinct aggregate is passed to
-		** SortResultSet it assumes that the last column
-		** is the distinct one.  If this assumption changes
-		** then SortResultSet will have to change.
+		** Get the column ordering for the sort from orderby list.
+		* getColumnOrdering does the right thing if orderby list is null empty.
 		*/
         orderingHolder = acb.getColumnOrdering(wdn.getOrderByList());
-        if (addDistinctAggregate) {
-            orderingHolder = acb.addColumnToOrdering(
-                orderingHolder,
-                addDistinctAggregateColumnNum);
-        }
 
         if (SanityManager.DEBUG) {
             if (SanityManager.DEBUG_ON("WindowTrace")) {
@@ -1030,122 +947,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         newRC.markGenerated();
         newRC.bindResultColumnToExpression();
         return newRC;
-    }
-
-    /**
-     * Consider any optimizations after the optimizer has chosen a plan.
-     * Optimizations include:
-     * o  min optimization for scalar aggregates
-     * o  max optimization for scalar aggregates
-     *
-     * @param selectHasPredicates true if SELECT containing this
-     *                            vector/scalar aggregate has a restriction
-     * @throws StandardException on error
-     */
-    void considerPostOptimizeOptimizations(boolean selectHasPredicates)
-        throws StandardException {
-		/* Consider the optimization for min with asc index on that column or
-		 * max with desc index on that column:
-		 *	o  No group by
-		 *  o  One of:
-		 *		o  min/max(ColumnReference) is only aggregate && source is
-		 *		   ordered on the ColumnReference
-		 *		o  min/max(ConstantNode)
-		 * The optimization of the other way around (min with desc index or
-		 * max with asc index) has the same restrictions with the additional
-		 * temporary restriction of no qualifications at all (because
-		 * we don't have true backward scans).
-		 */
-        if (partition == null && windowFunctions.size() == 1) {
-            // TODO: Again enforcing window functions limited to 1, why?
-            AggregateNode an = (AggregateNode) windowFunctions.get(0);
-            AggregateDefinition ad = an.getAggregateDefinition();
-            if (ad instanceof MaxMinAggregateDefinition) {
-                if (an.getOperand() instanceof ColumnReference) {
-                    /* See if the underlying ResultSet tree
-                     * is ordered on the ColumnReference.
-                     */
-                    ColumnReference[] crs = new ColumnReference[1];
-                    crs[0] = (ColumnReference) an.getOperand();
-
-                    Vector tableVector = new Vector();
-                    boolean minMaxOptimizationPossible = isOrderedOn(crs, false, tableVector);
-                    if (SanityManager.DEBUG) {
-                        SanityManager.ASSERT(tableVector.size() <= 1, "bad number of FromBaseTables returned by " +
-                            "isOrderedOn() -- " + tableVector.size());
-                    }
-
-                    if (minMaxOptimizationPossible) {
-                        boolean ascIndex = true;
-                        int colNum = crs[0].getColumnNumber();
-
-                        /* Check if we have an access path, this will be
-                         * null in a join case (See Beetle 4423,DERBY-3904)
-                         */
-                        AccessPath accessPath = getTrulyTheBestAccessPath();
-                        if (accessPath == null ||
-                            accessPath.getConglomerateDescriptor() == null ||
-                            accessPath.getConglomerateDescriptor().
-                                getIndexDescriptor() == null)
-                            return;
-                        IndexDescriptor id = accessPath.
-                                                           getConglomerateDescriptor().
-                                                           getIndexDescriptor();
-                        int[] keyColumns = id.baseColumnPositions();
-                        boolean[] isAscending = id.isAscending();
-                        for (int i = 0; i < keyColumns.length; i++) {
-                            /* in such a query: select min(c3) from
-                             * tab1 where c1 = 2 and c2 = 5, if prefix keys
-                             * have equality operator, then we can still use
-                             * the index.  The checking of equality operator
-                             * has been done in isStrictlyOrderedOn.
-                             */
-                            if (colNum == keyColumns[i]) {
-                                if (!isAscending[i])
-                                    ascIndex = false;
-                                break;
-                            }
-                        }
-                        FromBaseTable fbt = (FromBaseTable) tableVector.firstElement();
-                        MaxMinAggregateDefinition temp = (MaxMinAggregateDefinition) ad;
-
-                        /*  MAX   ASC      NULLABLE
-                         *  ----  ----------
-                         *  TRUE  TRUE      TRUE/FALSE  =  Special Last Key Scan (ASC Index Last key with null
-                         *  skips)
-                         *  TRUE  FALSE     TRUE/FALSE  =  JustDisableBulk(DESC index 1st key with null skips)
-                         *  FALSE TRUE      TRUE/FALSE  = JustDisableBulk(ASC index 1st key)
-                         *  FALSE FALSE     TRUE/FALSE  = Special Last Key Scan(Desc Index Last Key)
-                         */
-
-                        if (((!temp.isMax()) && ascIndex) ||
-                            ((temp.isMax()) && !ascIndex)) {
-                            fbt.disableBulkFetch();
-                            singleInputRowOptimization = true;
-                        }
-                        /*
-                        ** Max optimization with asc index or min with
-                        ** desc index is currently more
-                        ** restrictive than otherwise.
-                        ** We are getting the store to return the last
-                        ** row from an index (for the time being, the
-                        ** store cannot do real backward scans).  SO
-                        ** we cannot do this optimization if we have
-                        ** any predicates at all.
-                        */
-                        else if (!selectHasPredicates &&
-                            ((temp.isMax() && ascIndex) ||
-                                (!temp.isMax() && !ascIndex))) {
-                            fbt.disableBulkFetch();
-                            fbt.doSpecialMaxScan();
-                            singleInputRowOptimization = true;
-                        }
-                    }
-                } else if (an.getOperand() instanceof ConstantNode) {
-                    singleInputRowOptimization = true;
-                }
-            }
-        }
     }
 
     /**
