@@ -20,7 +20,7 @@ public class XPlainTreeNode {
     private static final String TABLESCAN = "TableScan";
 
     private long parentOperationId;
-    private String operationType;
+    @Expose private String operationType;
     private boolean isRightChildOp;
     private int sequenceId;
     private int rightChild;
