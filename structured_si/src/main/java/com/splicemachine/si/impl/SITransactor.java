@@ -50,28 +50,14 @@ public class SITransactor<Table,
 		private final SDataLib<Put, Delete, Get, Scan> dataLib;
     private final STableWriter<Table, Mutation, Put, Delete> dataWriter;
     private final DataStore<Mutation, Put, Delete, Get, Scan, Table> dataStore;
-    private final TxnStore transactionStore;
+    private final TxnAccess transactionStore;
 
 //		private final TransactionSource transactionSource;
 
-		private final TransactionManager transactionManager;
-
 		private SITransactor(SDataLib dataLib,
 												 STableWriter dataWriter,
 												 DataStore dataStore,
-												 final TransactionStore transactionStore,
-												 Clock clock,
-												 int transactionTimeoutMS,
-												 TransactionManager transactionManager) {
-				throw new UnsupportedOperationException("Replace with proper constructor");
-
-		}
-
-		private SITransactor(SDataLib dataLib,
-												 STableWriter dataWriter,
-												 DataStore dataStore,
-												 final TxnStore transactionStore,
-												 TransactionManager transactionManager) {
+												 final TxnAccess transactionStore) {
 //				transactionSource = new TransactionSource() {
 //            @Override
 //            public Transaction getTransaction(long timestamp) throws IOException {
@@ -82,7 +68,6 @@ public class SITransactor<Table,
 				this.dataWriter = dataWriter;
 				this.dataStore = dataStore;
 				this.transactionStore = transactionStore;
-				this.transactionManager = transactionManager;
 		}
 
 		// Operation pre-processing. These are to be called "server-side" when we are about to process an operation.
@@ -143,9 +128,9 @@ public class SITransactor<Table,
 				 * To be frank, this is only here to support legacy code without needing to rewrite everything under
 				 * the sun. You should almost certainly NOT use it.
 				 */
-				Map<String,Map<byte[],Map<byte[],List<KVPair>>>> kvPairMap = Maps.newHashMap();
+				Map<Long,Map<byte[],Map<byte[],List<KVPair>>>> kvPairMap = Maps.newHashMap();
 				for(Put mutation:mutations){
-						String txnId = dataStore.getTransactionid(mutation);
+						long txnId = dataStore.getTxn(mutation,false).getTxnId();
 						boolean isDelete = dataStore.getDeletePutAttribute(mutation);
 						byte[] row = dataLib.getPutKey(mutation);
 						Iterable<KeyValue> keyValues = dataLib.listPut(mutation);
@@ -203,8 +188,8 @@ public class SITransactor<Table,
 						}
 				}
 				final Map<byte[],OperationStatus> statusMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
-				for(Map.Entry<String,Map<byte[],Map<byte[],List<KVPair>>>> entry:kvPairMap.entrySet()){
-						String txnId = entry.getKey();
+				for(Map.Entry<Long,Map<byte[],Map<byte[],List<KVPair>>>> entry:kvPairMap.entrySet()){
+						long txnId = entry.getKey();
 						Map<byte[],Map<byte[],List<KVPair>>> familyMap = entry.getValue();
 						for(Map.Entry<byte[],Map<byte[],List<KVPair>>> familyEntry:familyMap.entrySet()){
 								byte[] family = familyEntry.getKey();
@@ -218,7 +203,7 @@ public class SITransactor<Table,
 														return !statusMap.containsKey(input.getRow()) || statusMap.get(input.getRow()).getOperationStatusCode() == HConstants.OperationStatusCode.SUCCESS;
 												}
 										}));										
-										OperationStatus[] statuses = processKvBatch(table,rollForwardQueue,family,qualifier,kvPairs,txnId);
+										OperationStatus[] statuses = processKvBatch(table,null,family,qualifier,kvPairs,txnId,null);
 										for(int i=0;i<statuses.length;i++){
 												byte[] row = kvPairs.get(i).getRow();
 												OperationStatus status = statuses[i];
@@ -263,42 +248,6 @@ public class SITransactor<Table,
 				return processInternal(table, rollForwardQueue, txn, family, qualifier, mutations, constraintChecker);
 		}
 
-
-
-		@Override
-		public OperationStatus[] processKvBatch(Table table,
-																						RollForwardQueue rollForwardQueue,
-																						TransactionId txnId,
-																						byte[] family, byte[] qualifier,
-																						Collection<KVPair> mutations,ConstraintChecker constraintChecker) throws IOException {
-				Txn txn = transactionStore.getTransaction(txnId.getId());
-				ensureTransactionAllowsWrites(txn!=null?txn.getTxnId():-1l,txn);
-				return processKvBatch(table,null,txn,family,qualifier,mutations,constraintChecker);
-		}
-
-		@Override
-		public OperationStatus[] processKvBatch(Table table, RollForwardQueue rollForwardQueue,
-																						byte[] family, byte[] qualifier,
-																						Collection<KVPair> mutations,
-																						String txnId) throws IOException {
-			return processKvBatch(table,rollForwardQueue,family,qualifier,mutations,txnId,null);
-		}
-
-		@Override
-		public OperationStatus[] processKvBatch(Table table,
-																						RollForwardQueue rollForwardQueue,
-																						byte[] family,
-																						byte[] qualifier,
-																						Collection<KVPair> mutations,
-																						String txnId, ConstraintChecker constraintChecker) throws IOException {
-				if(mutations.size()<=0)
-						//noinspection unchecked
-						return dataStore.writeBatch(table,new Pair[]{});
-
-				//ensure the transaction is in good shape
-				TransactionId txn = transactionManager.transactionIdFromString(txnId);
-				return processKvBatch(table,rollForwardQueue,txn,family,qualifier,mutations,constraintChecker);
-		}
 
 		private OperationStatus getCorrectStatus(OperationStatus status, OperationStatus oldStatus) {
 				switch(oldStatus.getOperationStatusCode()){
@@ -719,7 +668,7 @@ public class SITransactor<Table,
 
     @Override
     public SICompactionState newCompactionState() {
-        return new SICompactionState(dataLib, dataStore, transactionStore);
+				return new SICompactionState(dataLib,dataStore,transactionStore);
     }
 
 // Helpers
@@ -751,7 +700,7 @@ public class SITransactor<Table,
 				private Clock clock;
 				private int transactionTimeoutMS;
 				private TransactionManager control;
-				private TxnStore txnStore;
+				private TxnAccess txnStore;
 
 				public Builder() {
 				}
@@ -780,13 +729,7 @@ public class SITransactor<Table,
 						return this;
 				}
 
-				public Builder transactionStore(TransactionStore transactionStore) {
-						throw new UnsupportedOperationException("Move to TxnStore implementation!");
-//						this.transactionStore = transactionStore;
-//						return this;
-				}
-
-				public Builder txnStore(TxnStore transactionStore) {
+				public Builder txnStore(TxnAccess transactionStore) {
 						this.txnStore = transactionStore;
 						return this;
 				}
@@ -808,7 +751,7 @@ public class SITransactor<Table,
 						return new SITransactor<Table,
 										Mutation, Put,Get,Scan,
 										Delete> (dataLib,dataWriter,
-										dataStore,txnStore, control);
+										dataStore,txnStore);
 				}
 
 		}

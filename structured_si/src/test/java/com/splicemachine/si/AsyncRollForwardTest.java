@@ -19,10 +19,7 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -37,6 +34,7 @@ import static com.splicemachine.constants.SIConstants.SNAPSHOT_ISOLATION_COMMIT_
  * @author Scott Fines
  * Date: 2/17/14
  */
+@Ignore("RollForwards don't work this way any longer")
 public class AsyncRollForwardTest {
 		boolean useSimple = true;
 		StoreSetup storeSetup;
@@ -51,17 +49,17 @@ public class AsyncRollForwardTest {
 		void baseSetUp() throws IOException {
 				transactor = transactorSetup.transactor;
 				control = transactorSetup.txnLifecycleManager;
-				transactorSetup.rollForwardQueue = new SynchronousRollForwardQueue(
-								new RollForwardAction() {
-										@Override
-										public Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException {
-												final STableReader reader = storeSetup.getReader();
-												Object testSTable = reader.open(storeSetup.getPersonTableName());
-												return new RegionRollForwardAction(testSTable,
-																Providers.basicProvider(transactorSetup.transactionStore),
-																Providers.basicProvider(transactorSetup.dataStore)).rollForward(transactionId,rowList);
-										}
-								}, 1, 100, 1000, "test");
+//				transactorSetup.rollForwardQueue = new SynchronousRollForwardQueue(
+//								new RollForwardAction() {
+//										@Override
+//										public Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException {
+//												final STableReader reader = storeSetup.getReader();
+//												Object testSTable = reader.open(storeSetup.getPersonTableName());
+//												return new RegionRollForwardAction(testSTable,
+//																Providers.basicProvider(transactorSetup.transactionStore),
+//																Providers.basicProvider(transactorSetup.dataStore)).rollForward(transactionId,rowList);
+//										}
+//								}, 1, 100, 1000, "test");
 				testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup,transactor,control);
 		}
 

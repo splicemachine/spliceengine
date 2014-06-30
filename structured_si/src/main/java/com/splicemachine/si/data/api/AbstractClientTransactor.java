@@ -1,22 +1,23 @@
 package com.splicemachine.si.data.api;
 
-import java.io.IOException;
-
-import com.splicemachine.si.api.Txn;
-import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import com.splicemachine.si.api.ClientTransactor;
-import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.TransactionId;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+
+import java.io.IOException;
 
 public abstract class AbstractClientTransactor<Put extends OperationWithAttributes,Get extends OperationWithAttributes,
 				Scan extends OperationWithAttributes,Mutation extends OperationWithAttributes>implements ClientTransactor<Put,Get,Scan,Mutation> {
 		protected final DataStore dataStore;
-		protected final TransactionManager control;
+//		protected final TransactionManager control;
+		protected final TxnLifecycleManager control;
 		protected final SDataLib dataLib;
 
 		public AbstractClientTransactor(DataStore dataStore,
-																		TransactionManager control,
+																		TxnLifecycleManager control,
 																		SDataLib dataLib) {
 				this.dataStore = dataStore;
 				this.control = control;
@@ -26,6 +27,11 @@ public abstract class AbstractClientTransactor<Put extends OperationWithAttribut
 		@Override
 		public TransactionId transactionIdFromGet(Get get) {
 				return dataStore.getTransactionIdFromOperation(get);
+		}
+
+		@Override
+		public Txn txnFromOp(OperationWithAttributes op, boolean readOnly) throws IOException {
+				return dataStore.getTxn(op,readOnly);
 		}
 
 		@Override
@@ -39,18 +45,8 @@ public abstract class AbstractClientTransactor<Put extends OperationWithAttribut
 		}
 
 		@Override
-		public long txnIdFromPut(Put put) {
-				return dataStore.getTxnIdFromOp(put);
-		}
-
-		@Override
 		public void initializeGet(String transactionId, Get get) throws IOException {
 				initializeOperation(transactionId,get);
-		}
-
-		@Override
-		public void initializeGet(long txnId, Get get) throws IOException {
-				initializeOperation(txnId,get);
 		}
 
 		@Override
@@ -59,28 +55,19 @@ public abstract class AbstractClientTransactor<Put extends OperationWithAttribut
 		}
 
 		@Override
-		public void initializeScan(Txn txn, Scan scan) {
-				initializeOperation(txn,scan);
-		}
-
-		@Override
 		public void initializePut(String transactionId, Put put) {
 				initializeOperation(transactionId, put);
 		}
 
 		@Override
-		public void initializePut(long txnId, Put put) {
-				initializeOperation(txnId,put);
-		}
-
-		@Override
 		public Put createDeletePut(TransactionId transactionId, byte[] rowKey) {
-				return createDeletePutDirect(transactionId.getId(),rowKey);
+				throw new UnsupportedOperationException("REMOVE");
+//				return createDeletePutDirect(transactionId.getId(),rowKey);
 		}
 
 		@Override
 		public Put createDeletePut(Txn txn, byte[] rowKey) {
-				return createDeletePutDirect(txn.getTxnId(),rowKey);
+				return createDeletePutDirect(txn,rowKey);
 		}
 
 		@Override
@@ -94,28 +81,27 @@ public abstract class AbstractClientTransactor<Put extends OperationWithAttribut
 				return dataStore.getSINeededAttribute(put)!=null;
 		}
 
+
 		protected void initializeOperation(String transactionId, OperationWithAttributes operation) {
-				flagForSITreatment(control.transactionIdFromString(transactionId).getId(), operation);
+				throw new UnsupportedOperationException("IMPLEMENT");
+//				flagForSITreatment(control.transactionIdFromString(transactionId).getId(), operation);
 		}
 
-		protected void initializeOperation(Txn txn, OperationWithAttributes operation) {
-				flagForSITreatment(txn.getTxnId(), operation);
+		public void initializeOperation(Txn txn, OperationWithAttributes operation) {
+				flagForSITreatment(txn, operation);
 		}
 
-		protected void initializeOperation(long txnId, OperationWithAttributes operation) {
-				flagForSITreatment(txnId, operation);
-		}
-
-		protected void flagForSITreatment(long transactionId, OperationWithAttributes operation) {
+		protected void flagForSITreatment(Txn txn, OperationWithAttributes operation) {
 				dataStore.setSINeededAttribute(operation);
-				dataStore.setTransactionId(transactionId, operation);
+				dataStore.setTransaction(txn, operation);
 		}
 
-		protected Put createDeletePutDirect(long transactionId, byte[] rowKey) {
+		protected Put createDeletePutDirect(Txn txn, byte[] rowKey) {
 				final Put deletePut = (Put) dataLib.newPut(rowKey);
-				flagForSITreatment(transactionId, deletePut);
-				dataStore.setTombstoneOnPut(deletePut, transactionId);
+				flagForSITreatment(txn, deletePut);
+				dataStore.setTombstoneOnPut(deletePut, txn.getTxnId());
 				dataStore.setDeletePutAttribute(deletePut);
 				return deletePut;
 		}
+
 }

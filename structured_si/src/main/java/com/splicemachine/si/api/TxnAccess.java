@@ -11,9 +11,21 @@ public interface TxnAccess {
 		/**
 		 * Get the transaction associated with {@code txnId}.
 		 *
+		 * Functionally equivalent to {@link #getTransaction(long, boolean)} with
+		 * {@code getDestinationTables = false}.
+		 *
 		 * @param txnId the transaction id to fetch.
 		 */
 		Txn getTransaction(long txnId) throws IOException;
+
+		/**
+		 * Get the transaction associated with {@code txnId}.
+		 *
+		 * @param txnId the transaction id to fetch.
+		 * @param getDestinationTables whether or not to fetch destination table
+		 *                              information
+		 */
+		Txn getTransaction(long txnId,boolean getDestinationTables) throws IOException;
 
 		/**
 		 * Determines whether this Store has the transaction in its local cache

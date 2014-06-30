@@ -5,7 +5,6 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
@@ -14,10 +13,8 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.light.LTuple;
-import com.splicemachine.si.impl.FilterState;
 import com.splicemachine.si.impl.FilterStatePacked;
 import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -34,8 +31,12 @@ import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
+
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * @author Scott Fines
@@ -107,7 +108,7 @@ public class TransactorTestUtility {
 				final STableReader reader = storeSetup.getReader();
 				byte[] key = dataLib.newRowKey(new Object[]{name});
 				Object scan = makeScan(dataLib, key, null, key);
-				transactorSetup.clientTransactor.initializeScan(txn, scan);
+				transactorSetup.clientTransactor.initializeOperation(txn, (OperationWithAttributes) scan);
 				Object testSTable = reader.open(storeSetup.getPersonTableName());
 				try {
 						Iterator<Result> results = reader.scan(testSTable, scan);
@@ -143,7 +144,7 @@ public class TransactorTestUtility {
 						filter.setFilterIfMissing(true);
 						scan.setFilter(filter);
 				}
-				transactorSetup.clientTransactor.initializeScan(txn, get);
+				transactorSetup.clientTransactor.initializeOperation(txn, (OperationWithAttributes) get);
 				Object testSTable = reader.open(storeSetup.getPersonTableName());
 				try {
 						Iterator<Result> results = reader.scan(testSTable, get);
@@ -194,7 +195,7 @@ public class TransactorTestUtility {
 				} finally {
 					entryEncoder.close();
 				}
-				transactorSetup.clientTransactor.initializePut(txn.getTxnId(), put);
+				transactorSetup.clientTransactor.initializeOperation(txn, put);
 				return put;
 		}
 
@@ -272,7 +273,7 @@ public class TransactorTestUtility {
 
 				byte[] key = dataLib.newRowKey(new Object[]{name});
 				Object get = makeGet(dataLib, key);
-				transactorSetup.clientTransactor.initializeGet(txn.getTxnId(), get);
+				transactorSetup.clientTransactor.initializeOperation(txn, (OperationWithAttributes)get);
 				Object testSTable = reader.open(storeSetup.getPersonTableName());
 				try {
 						Result rawTuple = reader.get(testSTable, get);
@@ -290,7 +291,7 @@ public class TransactorTestUtility {
 				byte[] endKey = dataLib.newRowKey(new Object[]{name});
 				final ArrayList families = new ArrayList();
 				Object scan = makeScan(dataLib, endKey, families, endKey);
-				transactorSetup.clientTransactor.initializeScan(txn, scan);
+				transactorSetup.clientTransactor.initializeOperation(txn, (OperationWithAttributes) scan);
 				transactorSetup.readController.preProcessScan(scan);
 				Object testSTable = reader.open(storeSetup.getPersonTableName());
 				try {

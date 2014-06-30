@@ -3,6 +3,8 @@ package com.splicemachine.si.impl;
 import com.splicemachine.si.api.Txn;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Transaction which is partially constructed, but which looks up values in order
@@ -27,11 +29,17 @@ public class InheritingTxnView extends AbstractTxn {
 		private final boolean hasAllowWrites;
 		private long globalCommitTimestamp;
 
+		private final Collection<byte[]> destinationTables;
+
 		public InheritingTxnView(Txn parentTxn,
 														 long txnId,long beginTimestamp,
 														 IsolationLevel isolationLevel,
 														 State state){
-				this(parentTxn, txnId, beginTimestamp, isolationLevel,false,false,false,false,false,false,-1l,-1l,state);
+				this(parentTxn,
+								txnId,
+								beginTimestamp,
+								isolationLevel,
+								false,false,false,false,false,false,-1l,-1l,state);
 		}
 
 		public InheritingTxnView(Txn parentTxn,
@@ -42,6 +50,23 @@ public class InheritingTxnView extends AbstractTxn {
 														 boolean hasAllowWrites,boolean allowWrites,
 														 long commitTimestamp,long globalCommitTimestamp,
 														 State state) {
+			this(parentTxn, txnId, beginTimestamp, isolationLevel,
+							hasDependent, isDependent,
+							hasAdditive, isAdditive,
+							hasAllowWrites, allowWrites,
+							commitTimestamp, globalCommitTimestamp,
+							state, Collections.<byte[]>emptyList());
+		}
+
+		public InheritingTxnView(Txn parentTxn,
+														 long txnId, long beginTimestamp,
+														 IsolationLevel isolationLevel,
+														 boolean hasDependent, boolean isDependent,
+														 boolean hasAdditive, boolean isAdditive,
+														 boolean hasAllowWrites,boolean allowWrites,
+														 long commitTimestamp,long globalCommitTimestamp,
+														 State state,
+														 Collection<byte[]> destinationTables) {
 				super(txnId, beginTimestamp, isolationLevel);
 				this.hasDependent = hasDependent;
 				this.isDependent = isDependent;
@@ -53,6 +78,12 @@ public class InheritingTxnView extends AbstractTxn {
 				this.allowWrites = allowWrites;
 				this.hasAllowWrites = hasAllowWrites;
 				this.globalCommitTimestamp = globalCommitTimestamp;
+				this.destinationTables = destinationTables;
+		}
+
+		@Override
+		public Collection<byte[]> getDestinationTables() {
+				return destinationTables;
 		}
 
 		@Override

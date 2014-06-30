@@ -3,7 +3,9 @@ package com.splicemachine.si;
 import com.google.common.base.Function;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.si.api.Clock;
+import com.splicemachine.hbase.table.SpliceHTableFactory;
+import com.splicemachine.si.api.*;
+import com.splicemachine.si.coprocessors.TxnLifecycleEndpoint;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
@@ -11,9 +13,8 @@ import com.splicemachine.si.data.hbase.HDataLib;
 import com.splicemachine.si.data.hbase.HTableReader;
 import com.splicemachine.si.data.hbase.HTableWriter;
 import com.splicemachine.si.data.hbase.IHTable;
-import com.splicemachine.si.impl.STableReaderDelegate;
-import com.splicemachine.si.impl.SystemClock;
-import com.splicemachine.si.impl.Tracer;
+import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
@@ -45,6 +46,9 @@ public class HStoreSetup implements StoreSetup {
 
 		private TestHTableSource tableSource;
 
+		private TxnStore baseStore;
+		private TimestampSource timestampSource;
+
 		public HStoreSetup(boolean usePacked) {
         try {
             setupHBaseHarness(usePacked);
@@ -67,7 +71,10 @@ public class HStoreSetup implements StoreSetup {
                     return null;
                 }
             });
+						this.timestampSource = new SimpleTimestampSource();
+						HTransactorFactory.setTimestampSource(timestampSource);
 						Configuration configuration = testCluster.getConfiguration();
+						configuration.set("hbase.coprocessor.region.classes", TxnLifecycleEndpoint.class.getName());
 						SpliceConstants.config = configuration;
             setTestingUtilityPorts(testCluster, basePort);
 
@@ -79,6 +86,12 @@ public class HStoreSetup implements StoreSetup {
             tableSource.addTable(testCluster, SpliceConstants.TRANSACTION_TABLE, new String[]{
 										SIConstants.DEFAULT_FAMILY, SIConstants.SI_PERMISSION_FAMILY});
 						tableSource.addPackedTable(getPersonTableName());
+
+						CoprocessorTxnStore txnS = new CoprocessorTxnStore(new SpliceHTableFactory(true),timestampSource,null);
+						txnS.setCache(new CompletedTxnCacheAccess(new LazyTxnAccess(txnS),SIConstants.activeTransactionCacheSize,16));
+						baseStore = txnS;
+						HTransactorFactory.setTxnStore(baseStore);
+						//TODO -sf- add CompletedTxnCache to it
             return tableSource;
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -135,6 +148,16 @@ public class HStoreSetup implements StoreSetup {
     public Clock getClock() {
         return clock;
     }
+
+		@Override
+		public TxnStore getTxnStore(TxnLifecycleManager txnLifecycleManager) {
+				return baseStore;
+		}
+
+		@Override
+		public TimestampSource getTimestampSource() {
+				return timestampSource;
+		}
 
 		public void shutdown() throws Exception {
 				ZkUtils.getZkManager().close();

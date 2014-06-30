@@ -48,13 +48,19 @@ public class CompactionTest {
 		@SuppressWarnings("unchecked")
 		void baseSetUp() throws IOException {
 				transactor = transactorSetup.transactor;
-				control = transactorSetup.control;
-				final STableReader reader = storeSetup.getReader();
-				Object testSTable = reader.open(storeSetup.getPersonTableName());
-				transactorSetup.rollForwardQueue = new SIRollForwardQueue(new DelayedRollForwardAction(testSTable, Suppliers.ofInstance(transactorSetup.transactionStore),
-						Suppliers.ofInstance(transactorSetup.dataStore)),
-						new PushForwardAction(testSTable,Suppliers.ofInstance(transactorSetup.transactionStore),
-								Suppliers.ofInstance(transactorSetup.dataStore)));
+				control = transactorSetup.txnLifecycleManager;
+//				transactorSetup.rollForwardQueue = new SynchronousRollForwardQueue(
+//								new RollForwardAction() {
+//										@Override
+//										public Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException {
+//												final STableReader reader = storeSetup.getReader();
+//												Object testSTable = reader.open(storeSetup.getPersonTableName());
+//												new RegionRollForwardAction(testSTable,
+//																Providers.basicProvider(transactorSetup.transactionStore),
+//																Providers.basicProvider(transactorSetup.dataStore)).rollForward(transactionId,rowList);
+//												return true;
+//										}
+//								}, 10, 100, 1000, "test");
 				testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup,transactor,control);
 		}
 

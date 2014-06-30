@@ -1,6 +1,7 @@
 package com.splicemachine.encoding;
 
 import com.google.common.base.Preconditions;
+import com.splicemachine.utils.ByteSlice;
 
 import java.math.BigDecimal;
 
@@ -330,5 +331,9 @@ public class MultiFieldEncoder {
 
 		public int getNumFields() {
 				return fields.length;
+		}
+
+		public MultiFieldEncoder setRawBytes(ByteSlice slice) {
+				return setRawBytes(slice.array(),slice.offset(),slice.length());
 		}
 }

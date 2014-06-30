@@ -2,6 +2,7 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.TransactionTimeoutException;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnStore;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,9 +17,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ManualKeepAliveScheduler implements KeepAliveScheduler {
 		private final Map<Long,Txn> txnMap = new ConcurrentHashMap<Long, Txn>();
 
-		private final InMemoryTxnStore  inMemoryStore;
+		private final TxnStore inMemoryStore;
 
-		public ManualKeepAliveScheduler(InMemoryTxnStore inMemoryStore) {
+		public ManualKeepAliveScheduler(TxnStore inMemoryStore) {
 				this.inMemoryStore = inMemoryStore;
 		}
 
@@ -31,7 +32,8 @@ public class ManualKeepAliveScheduler implements KeepAliveScheduler {
 				Txn txn = txnMap.get(txnId);
 				if(txn==null) return;
 				if(txn.getEffectiveState()!= Txn.State.ACTIVE) return; //do nothing if we are already terminated
-				inMemoryStore.keepAlive(txn);
+
+				((InMemoryTxnStore)inMemoryStore).keepAlive(txn);
 		}
 
 		@Override

@@ -4,6 +4,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.SpliceReusableHashmap;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnAccess;
 import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.data.api.SDataLib;
 import org.apache.hadoop.hbase.KeyValue;
@@ -28,23 +29,14 @@ public class SICompactionState<Result,  Mutation,
         Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock, OperationStatus> {
     private final SDataLib<Put, Delete, Get, Scan> dataLib;
     private final DataStore<Mutation, Put, Delete, Get, Scan, IHTable> dataStore;
-    private final TxnStore transactionStore;
+    private final TxnAccess transactionStore;
     private SpliceReusableHashmap<ByteBuffer,KeyValue> evaluatedTransactions;
     public SortedSet<KeyValue> dataToReturn;
 
-    /**
-     * Cache of transactions that have been read during the execution of this compaction.
-     */
-    private final Map<Long, Transaction> transactionCache = new HashMap<Long, Transaction>();
-
-		public SICompactionState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore) {
-			throw new UnsupportedOperationException("MOVE TO CORRECT CONSTRUCTOR");
-		}
-
-    public SICompactionState(SDataLib dataLib, DataStore dataStore, TxnStore transactionStore) {
+		public SICompactionState(SDataLib dataLib, DataStore dataStore, TxnAccess transactionStore) {
         this.dataLib = dataLib;
         this.dataStore = dataStore;
-        this.transactionStore = transactionStore;
+        this.transactionStore = new ActiveTxnCacheAccess(transactionStore,SIConstants.activeTransactionCacheSize); //cache active transactions during our scan
         this.dataToReturn  = new TreeSet<KeyValue>(new Comparator<KeyValue>(){
     		@Override
     		public int compare(KeyValue first, KeyValue second) {

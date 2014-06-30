@@ -22,7 +22,7 @@ public interface TxnLifecycleProtocol extends CoprocessorProtocol {
 		 *                  <em>must</em> be present.
 		 * @throws IOException if something goes wrong in creating the transaction
 		 */
-		void beginTransaction(long txnId,byte[] packedTxn) throws IOException;
+		void recordTransaction(long txnId, byte[] packedTxn) throws IOException;
 
 		/**
 		 * Elevate a top-level transaction from read-only to writable.
@@ -32,32 +32,6 @@ public interface TxnLifecycleProtocol extends CoprocessorProtocol {
 		 * @throws IOException if something goes wrong when elevating the transaction
 		 */
 		void elevateTransaction(long txnId, byte[] newDestinationTable) throws IOException;
-
-		/**
-		 * Create a <em>writable</em> child transaction.
-		 *
-		 * Because the Transaction table consists of multiple regions spread across multiple nodes, the semantics
-		 * of this call depend greatly on what row this is called against(in particular, which region it's called against).
-		 * In particular, if this method is called against the <em>parent transaction's</em> row, then
-		 * <em>creating</em> the child transaction record will incur a remote call--as a result, this should only be done
-		 * when the child transaction id is to be generated.
-		 *
-		 * When the child transaction id(and begin timestamp) are known <em>before</em> the network call, then this
-		 * method may be called against the child transaction's region, which will incur a possible network <em>read</em>
-		 * of the parent transaction information if additional information is needed (i.e. if it inherits from
-		 * the parent
-		 *
-		 * @param parentTxnId the id of the parent transaction
-		 * @param packedChildTxn a packed representation of the child transaction to be created. This may be a partially
-		 *                       constructed transaction--in particular, the call to
-		 *                       {@link com.splicemachine.si.api.Txn#getIsolationLevel()} may be {@code null},
-		 *                       and {@link com.splicemachine.si.api.Txn#getBeginTimestamp()} may == -1. If
-		 *                       {@code Txn#getBeginTimestamp()==-1}, then {@link com.splicemachine.si.api.Txn#getTxnId()}==-1
-		 *                       as well, or an assertion error may be thrown (as the transaction id is invalid without
-		 *                       a begin timestamp)
-		 * @return a packed byte-representation of the child transaction, with fully constructed fields.
-		 */
-		byte[] beginChildTransaction(long parentTxnId, byte[] packedChildTxn) throws IOException;
 
 		/**
 		 * Commit the transaction.
@@ -123,5 +97,24 @@ public interface TxnLifecycleProtocol extends CoprocessorProtocol {
 		 */
 		boolean keepAlive(long txnId) throws IOException;
 
-		byte[] getTransaction(long txnId) throws IOException;
+		byte[] getTransaction(long txnId,boolean getDestinationTables) throws IOException;
+
+		/**
+		 * Return an estimate of the currently active transactions. If {@code destinationTable !=null},
+		 * then this will return only transactions which directly report modifying a specific table.
+		 *
+		 * Note that this will by-pass modification locks. As such it may rely on HBase to provide accuracy
+		 * guarantees. In other words, make sure that any time this is called, you are careful about the
+		 * transactional identifiers to be used. Otherwise, a transaction which has been rolled back may
+		 * actually be considered active with respect to this operation. However, transactions which
+		 * have been successfully committed or rolled back <em>will not</em> be on this list. That is,
+		 * it is possible to have false positives, but no false negatives.
+		 *
+		 * @param destinationTable a destination table to filter against
+		 * @param beforeTs if >=0, will return only transactions whose begin timestamp occurs before this number
+		 * @param afterTs if >=0, will return only transactions whose begin timestamp occurs after this number
+		 * @return a list of transaction ids which satisfy the constraints, encoded using a packed encoding.
+		 * @throws IOException if something goes wrong.
+		 */
+		byte[] getActiveTransactions(long afterTs,long beforeTs,byte[] destinationTable) throws IOException;
 }

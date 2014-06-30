@@ -19,14 +19,25 @@ public class ReadOnlyTxn extends AbstractTxn {
 		private final boolean dependent;
 		private final boolean additive;
 
+		public static Txn createReadOnlyTransaction(long txnId,
+																								Txn parentTxn,
+																								long beginTs,
+																								IsolationLevel level,
+																								boolean isDependent,
+																								boolean additive,
+																								TxnLifecycleManager control) {
+				return new ReadOnlyTxn(txnId,beginTs,level,parentTxn,control,isDependent,additive);
+		}
+
 		public static ReadOnlyTxn createReadOnlyChildTransaction(
 						Txn parentTxn,
 						TxnLifecycleManager tc,
 						boolean dependent,
 						boolean additive){
-				return new ReadOnlyTxn(-1l,
+				//make yourself a copy of the parent transaction, for the purposes of reading
+				return new ReadOnlyTxn(parentTxn.getTxnId(),
 								parentTxn.getBeginTimestamp(),
-								parentTxn.getIsolationLevel(),parentTxn,tc,dependent,additive);
+								parentTxn.getIsolationLevel(),parentTxn.getParentTransaction(),tc,dependent,additive);
 		}
 		public static ReadOnlyTxn createReadOnlyParentTransaction(long txnId,long beginTimestamp,
 																															IsolationLevel isolationLevel,
@@ -114,7 +125,7 @@ public class ReadOnlyTxn extends AbstractTxn {
 		@Override
 		public Txn elevateToWritable(byte[] writeTable) throws IOException {
 				assert state.get()==State.ACTIVE: "Cannot elevate an inactive transaction!";
-				if(txnId==-1l && (parentTxn!=null && !ROOT_TRANSACTION.equals(parentTxn))){
+				if((parentTxn!=null && !ROOT_TRANSACTION.equals(parentTxn))){
 						/*
 						 * We are a read-only child transaction of a parent. This means that we didn't actually
 						 * create a child transaction id or a begin timestamp of our own. Instead of elevating,
@@ -125,4 +136,6 @@ public class ReadOnlyTxn extends AbstractTxn {
 						return tc.elevateTransaction(this, writeTable); //requires at least one network call
 				}
 		}
+
+
 }

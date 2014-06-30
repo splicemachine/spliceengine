@@ -40,116 +40,127 @@ public class JtaXAResourceTest {
 
     @Test
     public void startTest() throws XAException, IOException {
-        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
+				Assert.fail("IMPLEMENT");
+        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.txnLifecycleManager);
         SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
         resource.start(xid, 0);
-        TransactionId transactionId = resource.getThreadLocalTransactionState();
-        Assert.assertNotNull(transactionId);
-        Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
-        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
-        Assert.assertTrue(transaction.getEffectiveStatus().isActive());
+//        TransactionId transactionId = resource.getThreadLocalTransactionState();
+//        Assert.assertNotNull(transactionId);
+//        Transaction transaction = transactorSetup.txnStore.getTransaction(transactionId);
+//        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
+//        Assert.assertTrue(transaction.getEffectiveStatus().isActive());
     }
 
     @Test
     public void commitTest() throws XAException, IOException {
-        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
-        SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
-        resource.start(xid, 0);
-        TransactionId transactionId = resource.getThreadLocalTransactionState();
-        Assert.assertNotNull(transactionId);
-        resource.commit(xid, true);
-        Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
-        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
-        Assert.assertTrue(transaction.commitTimestamp != null);
-        Assert.assertTrue(transaction.getBeginTimestamp() < transaction.getEffectiveCommitTimestamp());
+				Assert.fail("IMPLEMENT");
+//        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
+//        SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
+//        resource.start(xid, 0);
+//        TransactionId transactionId = resource.getThreadLocalTransactionState();
+//        Assert.assertNotNull(transactionId);
+//        resource.commit(xid, true);
+//        Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
+//        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
+//        Assert.assertTrue(transaction.commitTimestamp != null);
+//        Assert.assertTrue(transaction.getBeginTimestamp() < transaction.getEffectiveCommitTimestamp());
     }
 
     @Test
     public void endTest() throws XAException {
-        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
-        SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
-        resource.start(xid, 0);
-        resource.commit(xid, true);
-        resource.end(xid, 0);
-        Assert.assertNull(resource.getThreadLocalTransactionState());
+				Assert.fail("IMPLEMENT");
+//        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
+//        SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
+//        resource.start(xid, 0);
+//        resource.commit(xid, true);
+//        resource.end(xid, 0);
+//        Assert.assertNull(resource.getThreadLocalTransactionState());
     }
 
     @Test
     public void forgetTest() throws XAException, IOException {
-        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
-        SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
-        resource.start(xid, 0);
-        TransactionId transactionId = resource.getThreadLocalTransactionState();
-        resource.forget(xid);
-        Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
-        Assert.assertNotNull(transaction);
-        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
-        Assert.assertTrue(transaction.status.equals(TransactionStatus.ROLLED_BACK));
-        Assert.assertNull(transaction.getEffectiveCommitTimestamp());
+				Assert.fail("IMPLEMENT");
+//        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
+//        SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
+//        resource.start(xid, 0);
+//        TransactionId transactionId = resource.getThreadLocalTransactionState();
+//        resource.forget(xid);
+//        Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
+//        Assert.assertNotNull(transaction);
+//        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
+//        Assert.assertTrue(transaction.status.equals(TransactionStatus.ROLLED_BACK));
+//        Assert.assertNull(transaction.getEffectiveCommitTimestamp());
     }
 
     @Test
     public void threadLocalTransactionStateTest() throws XAException {
-        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
-        SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
-        resource.start(xid, 0);
-        Assert.assertNotNull(resource.getThreadLocalTransactionState());
+				Assert.fail("IMPLEMENT");
+//        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
+//        SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
+//        resource.start(xid, 0);
+//        Assert.assertNotNull(resource.getThreadLocalTransactionState());
     }
 
     @Test
     public void getTransactionTimeoutTest() throws XAException {
-        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
-        resource.setTransactionTimeout(60);
-        Assert.assertEquals(60, resource.getTransactionTimeout());
+				Assert.fail("IMPLEMENT");
+//        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
+//        resource.setTransactionTimeout(60);
+//        Assert.assertEquals(60, resource.getTransactionTimeout());
     }
 
     @Test
     public void isSameRMTest() throws XAException {
-        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
-        JtaXAResource resource2 = new JtaXAResource(transactor,transactorSetup.control);
-        Assert.assertTrue(resource.isSameRM(resource2));
+				Assert.fail("IMPLEMENT");
+//        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
+//        JtaXAResource resource2 = new JtaXAResource(transactor,transactorSetup.control);
+//        Assert.assertTrue(resource.isSameRM(resource2));
     }
 
     @Test
     public void prepareTest() throws XAException, IOException {
-        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
-        SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
-        resource.start(xid, 0);
-        resource.prepare(xid);
-        TransactionId transactionId = resource.getThreadLocalTransactionState();
-        Assert.assertNotNull(transactionId);
-        Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
-        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
-        Assert.assertTrue(transaction.getEffectiveStatus().isActive());
+				Assert.fail("IMPLEMENT");
+//        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
+//        SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
+//        resource.start(xid, 0);
+//        resource.prepare(xid);
+//        TransactionId transactionId = resource.getThreadLocalTransactionState();
+//        Assert.assertNotNull(transactionId);
+//        Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
+//        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
+//        Assert.assertTrue(transaction.getEffectiveStatus().isActive());
     }
 
     @Test
     public void recoverTest() throws XAException {
-        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
-        resource.start(new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1)), 0);
-        resource.start(new SpliceXid(Bytes.toBytes(2), 1, Bytes.toBytes(2)), 0);
-        Assert.assertEquals(2, resource.recover(0).length);
+				Assert.fail("IMPLEMENT");
+//        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
+//        resource.start(new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1)), 0);
+//        resource.start(new SpliceXid(Bytes.toBytes(2), 1, Bytes.toBytes(2)), 0);
+//        Assert.assertEquals(2, resource.recover(0).length);
     }
 
     @Test
     public void rollbackTest() throws XAException, IOException {
-        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
-        SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
-        resource.start(xid, 0);
-        TransactionId transactionId = resource.getThreadLocalTransactionState();
-        resource.rollback(xid);
-        Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
-        Assert.assertNotNull(transaction);
-        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
-        Assert.assertTrue(transaction.status.equals(TransactionStatus.ROLLED_BACK));
-        Assert.assertNull(transaction.getEffectiveCommitTimestamp());
+				Assert.fail("IMPLEMENT");
+//        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
+//        SpliceXid xid = new SpliceXid(Bytes.toBytes(1), 1, Bytes.toBytes(1));
+//        resource.start(xid, 0);
+//        TransactionId transactionId = resource.getThreadLocalTransactionState();
+//        resource.rollback(xid);
+//        Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
+//        Assert.assertNotNull(transaction);
+//        Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
+//        Assert.assertTrue(transaction.status.equals(TransactionStatus.ROLLED_BACK));
+//        Assert.assertNull(transaction.getEffectiveCommitTimestamp());
     }
 
     @Test
     public void setTransactionTimeoutTest() throws XAException {
-        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
-        resource.setTransactionTimeout(60);
-        Assert.assertEquals(60, resource.getTransactionTimeout());
+				Assert.fail("IMPLEMENT");
+//        JtaXAResource resource = new JtaXAResource(transactor,transactorSetup.control);
+//        resource.setTransactionTimeout(60);
+//        Assert.assertEquals(60, resource.getTransactionTimeout());
     }
 
     private class SpliceXid implements Xid {

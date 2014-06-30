@@ -123,7 +123,7 @@ public class WritableTxn extends AbstractTxn {
 								case ROLLEDBACK:
 										throw new CannotCommitException(txnId,state);
 						}
-						tc.commit(txnId);
+						commitTimestamp = tc.commit(txnId);
 						state = State.COMMITTED;
 				}
 		}
@@ -163,41 +163,4 @@ public class WritableTxn extends AbstractTxn {
 				return tableWrites;
 		}
 
-		public byte[] toBytes() {
-				int fields = 9 + tableWrites.size();
-				if(!tableWrites.isEmpty())
-						fields++; //add an entry for the length
-				MultiFieldEncoder encoder = MultiFieldEncoder.create(fields);
-				encoder.encodeNext(getBeginTimestamp());
-				Txn parentTxn = getParentTransaction();
-				if(parentTxn!=null && !ROOT_TRANSACTION.equals(parentTxn))
-						encoder.encodeNext(parentTxn.getTxnId());
-				else
-						encoder.encodeEmpty();
-
-				encoder.encodeNext(isDependent())
-								.encodeNext(allowsWrites())
-								.encodeNext(isAdditive())
-								.encodeNext(getIsolationLevel().getLevel())
-								.encodeNext(getCommitTimestamp());
-				long effectiveCommitTimestamp = getEffectiveCommitTimestamp();
-				if(effectiveCommitTimestamp>0)
-						encoder.encodeNext(effectiveCommitTimestamp);
-				else
-						encoder.encodeEmpty();
-				if(!isDependent())
-						encoder.encodeNext(getCommitTimestamp()); //global commit timestamp
-				else
-						encoder.encodeEmpty();
-
-				//encode any destination tables
-				if(tableWrites.size()>0){
-						encoder.encodeNext(tableWrites.size());
-						for(byte[] bytes:tableWrites){
-								encoder.encodeNextUnsorted(bytes);
-						}
-				}
-
-				return encoder.build();
-		}
 }

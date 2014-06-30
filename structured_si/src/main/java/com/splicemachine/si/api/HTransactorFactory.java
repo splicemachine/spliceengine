@@ -11,6 +11,7 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.*;
 import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.si.jmx.TransactorStatus;
 import com.splicemachine.si.txn.SpliceTimestampSource;
@@ -39,8 +40,8 @@ public class HTransactorFactory extends SIConstants {
 		private static volatile TransactionManager transactionManager;
 		private static volatile ClientTransactor clientTransactor;
 		private static volatile SITransactionReadController< Get, Scan, Delete, Put> readController;
-		private static volatile RollForwardFactory<byte[], HbRegion> rollForwardFactory;
-		private static volatile TransactionStore transactionStore;
+		private static volatile RollForwardQueueFactory<byte[], HbRegion> rollForwardQueueFactory;
+//		private static volatile TransactionStore transactionStore;
 		private static volatile DataStore dataStore;
 
 		public static void setTransactor(ManagedTransactor managedTransactorToUse) {
@@ -68,27 +69,28 @@ public class HTransactorFactory extends SIConstants {
 				return managedTransactor.getTransactor();
     }
 
-		public static RollForwardFactory<byte[],HbRegion> getRollForwardFactory(){
-				if(rollForwardFactory!=null)
-						return rollForwardFactory;
+		public static RollForwardQueueFactory<byte[],HbRegion> getRollForwardQueueFactory(){
+				if(rollForwardQueueFactory !=null)
+						return rollForwardQueueFactory;
+				throw new UnsupportedOperationException("REPLACE WITH ROLL FORWARD");
 
-				synchronized (HTransactorFactory.class){
-						rollForwardFactory = new HBaseRollForwardFactory(new Supplier<TransactionStore>() {
-								@Override
-								public TransactionStore get() {
-										initializeIfNeeded();
-										return transactionStore;
-								}
-						},new Supplier<DataStore>() {
-								@Override
-								public DataStore get() {
-										initializeIfNeeded();
-										return dataStore;
-								}
-						});
-				}
+//				synchronized (HTransactorFactory.class){
+//						rollForwardQueueFactory = new HBaseRollForwardQueueFactory(new Provider<TransactionStore>() {
+//								@Override
+//								public TransactionStore get() {
+//										initializeIfNeeded();
+////										return transactionStore;
+//								}
+//						},new Provider<DataStore>() {
+//								@Override
+//								public DataStore get() {
+//										initializeIfNeeded();
+//										return dataStore;
+//								}
+//						});
+//				}
 
-				return rollForwardFactory;
+//				return rollForwardQueueFactory;
 		}
 
 		public static TransactionReadController<Get,Scan> getTransactionReadController(){
@@ -96,10 +98,10 @@ public class HTransactorFactory extends SIConstants {
 				return readController;
 		}
 
-		public static TransactionStore getTransactionStore() {
-				initializeIfNeeded();
-				return transactionStore;
-		}
+//		public static TransactionStore getTransactionStore() {
+//				initializeIfNeeded();
+////				return transactionStore;
+//		}
 
 		@SuppressWarnings("unchecked")
 		private static void initializeIfNeeded(){
@@ -148,8 +150,8 @@ public class HTransactorFactory extends SIConstants {
 										WRITE_TABLE_COLUMN
 						);
 						ManagedTransactor builderTransactor = new ManagedTransactor();
-						transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer,
-										immutableCache, activeCache, cache, committedCache, failedCache, permissionCache, SIConstants.committingPause, builderTransactor);
+//						transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer,
+//										immutableCache, activeCache, cache, committedCache, failedCache, permissionCache, SIConstants.committingPause, builderTransactor);
 
 						dataStore = new DataStore(dataLib, reader, writer,
 										SI_NEEDED, //siNeededAttribute
@@ -161,14 +163,18 @@ public class HTransactorFactory extends SIConstants {
 										EMPTY_BYTE_ARRAY,  //siNull
 										SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES, //siAntiTombstoneValue
 										SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,  //siFail
-										DEFAULT_FAMILY_BYTES); //user columnFamily
-						if(transactionManager ==null)
-								transactionManager = new SITransactionManager(transactionStore,timestampSource,builderTransactor);
-						if(clientTransactor==null)
-								clientTransactor = new HBaseClientTransactor(dataStore,transactionManager,dataLib);
-						if(rollForwardFactory ==null)
-								rollForwardFactory = new HBaseRollForwardFactory(Suppliers.ofInstance(transactionStore),
-												Suppliers.ofInstance(dataStore));
+										DEFAULT_FAMILY_BYTES,
+										new LazyTxnAccess(txnAccess),
+										lifecycleManager ); //user columnFamily
+//						if(transactionManager ==null)
+//								transactionManager = new SITransactionManager(transactionStore,timestampSource,builderTransactor);
+						if(clientTransactor==null){
+								//use a lazy transaction wrapper here to avoid excessive network calls when looking up parent transactions
+								clientTransactor = new HBaseClientTransactor(dataStore,lifecycleManager,dataLib);
+						}
+//						if(rollForwardQueueFactory ==null)
+//								rollForwardQueueFactory = new HBaseRollForwardQueueFactory(Providers.basicProvider(transactionStore),
+//												Providers.basicProvider(dataStore));
 
 						if(readController==null)
 								readController = new SITransactionReadController<
@@ -177,9 +183,10 @@ public class HTransactorFactory extends SIConstants {
 										.dataLib(dataLib)
 										.dataWriter(writer)
 										.dataStore(dataStore)
-										.transactionStore(transactionStore)
+//										.transactionStore(transactionStore)
 										.clock(new SystemClock())
 										.transactionTimeout(transactionTimeout)
+										.txnStore(txnAccess)
 										.control(transactionManager).build();
 						builderTransactor.setTransactor(transactor);
 						if(managedTransactor==null)
@@ -196,4 +203,7 @@ public class HTransactorFactory extends SIConstants {
 				HTransactorFactory.clientTransactor = clientTransactor;
 		}
 
+		public static TimestampSource getTimestampSource() {
+				throw new UnsupportedOperationException("IMPLEMENT");
+		}
 }

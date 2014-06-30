@@ -1,7 +1,9 @@
 package com.splicemachine.si.api;
 
 import com.splicemachine.si.impl.TransactionId;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.client.Scan;
 
 import java.io.IOException;
 
@@ -13,16 +15,19 @@ public interface ClientTransactor<Put extends OperationWithAttributes, Get, Scan
     TransactionId transactionIdFromGet(Get get);
     TransactionId transactionIdFromScan(Scan scan);
     TransactionId transactionIdFromPut(Put put);
-		long txnIdFromPut(Put put);
-    void initializeGet(String transactionId, Get get) throws IOException;
-		void initializeGet(long txnId, Get get) throws IOException;
-    void initializeScan(String transactionId, Scan scan);
-		void initializeScan(Txn txn, Scan scan);
-    void initializePut(String transactionId, Put put);
-		void initializePut(long txnId, Put put);
-    Put createDeletePut(TransactionId transactionId, byte[] rowKey);
+
+		void initializeGet(String transactionId, Get get) throws IOException;
+
+		void initializeScan(String transactionId, Scan scan);
+
+		void initializePut(String transactionId, Put put);
+
+		Put createDeletePut(TransactionId transactionId, byte[] rowKey);
 		Put createDeletePut(Txn txn, byte[] rowKey);
     boolean isDeletePut(Mutation put);
 	boolean requiresSI(Put put);
 
+		Txn txnFromOp(OperationWithAttributes op, boolean readOnly) throws IOException;
+
+		void initializeOperation(Txn txn, OperationWithAttributes op) throws IOException;
 }

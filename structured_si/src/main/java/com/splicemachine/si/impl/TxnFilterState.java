@@ -2,6 +2,7 @@ package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.LongOpenHashSet;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnAccess;
@@ -35,7 +36,7 @@ public class TxnFilterState implements IFilterState{
 													Txn myTxn,
 													ReadResolver readResolver,
 													DataStore dataStore) {
-				this.transactionStore = transactionStore;
+				this.transactionStore = new ActiveTxnCacheAccess(transactionStore, SIConstants.activeTransactionCacheSize); //cache active transactions, but only on this thread
 				this.myTxn = myTxn;
 				this.readResolver = readResolver;
 				this.dataStore = dataStore;
@@ -175,7 +176,7 @@ public class TxnFilterState implements IFilterState{
 						/*
 						 * We can see this anti-tombstone, hooray!
 						 */
-						if(!antiTombstonedTxnRows.contains(txnId))
+						if(!tombstonedTxnRows.contains(txnId))
 								antiTombstonedTxnRows.add(txnId);
 				}
 		}
@@ -188,7 +189,7 @@ public class TxnFilterState implements IFilterState{
 				 */
 				Txn transaction = transactionStore.getTransaction(txnId);
 				if(myTxn.canSee(transaction)){
-						if(!tombstonedTxnRows.contains(txnId))
+						if(!antiTombstonedTxnRows.contains(txnId))
 								tombstonedTxnRows.add(txnId);
 				}
 		}

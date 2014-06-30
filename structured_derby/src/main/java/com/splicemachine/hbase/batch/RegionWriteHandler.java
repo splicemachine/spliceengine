@@ -228,17 +228,13 @@ public class RegionWriteHandler implements WriteHandler {
 
     private OperationStatus[] doSIWrite(Collection<KVPair> toProcess,WriteContext ctx) throws IOException {
         final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
-        final String regionName = region.getRegionNameAsString();
-        if(queue==null) {
-            queue =  RollForwardQueueMap.lookupRollForward(regionName);
-            if (queue ==null)
-				SpliceLogUtils.warn(LOG, "Region Write Handler is not rolling forward, configuration issue");
-        }
-        	
-				return transactor.processKvBatch(new HbRegion(region),
-						SIConstants.siDelayRollForwardMaxSize > toProcess.size()?queue:null, // Only use queues when you have less than 300 buffered records
-								SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,
-								toProcess,ctx.getTransactionId(),constraintChecker,constraintChecker==null);
+        final String tableName = region.getTableDesc().getNameAsString();
+        if(queue==null)
+            queue =  RollForwardQueueMap.lookupRollForwardQueue(tableName);
+				throw new UnsupportedOperationException("IMPLEMENT");
+//				return transactor.processKvBatch(new HbRegion(region),queue,
+//								SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,
+//								toProcess,Long.parseLong(ctx.getTransactionId()),constraintChecker);
     }
 
 	@Override

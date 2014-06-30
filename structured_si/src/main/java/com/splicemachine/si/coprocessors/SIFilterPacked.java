@@ -1,10 +1,7 @@
 package com.splicemachine.si.coprocessors;
 
 import com.splicemachine.si.api.*;
-import com.splicemachine.si.impl.FilterStatePacked;
-import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.impl.RowAccumulator;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.impl.*;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.HasPredicateFilter;
 
@@ -24,10 +21,9 @@ import java.util.List;
  */
 public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 		private static Logger LOG = Logger.getLogger(SIFilterPacked.class);
-		private String tableName;
+		private Txn txn;
 		private TransactionReadController<Get,Scan> readController;
-		private TransactionManager transactionManager;
-		protected String transactionIdString;
+//		protected String transactionIdString;
 		protected RollForwardQueue rollForwardQueue;
 		private EntryPredicateFilter predicateFilter;
 		private IFilterState filterState = null;
@@ -36,15 +32,12 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 		public SIFilterPacked() {
 		}
 
-		public SIFilterPacked(String tableName,
-													TransactionId transactionId,
-													TransactionManager transactionManager,
+		public SIFilterPacked(Txn txn,
 													RollForwardQueue rollForwardQueue,
 													EntryPredicateFilter predicateFilter,
-													TransactionReadController<Get, Scan> readController, boolean countStar) throws IOException {
-				this.tableName = tableName;
-				this.transactionManager = transactionManager;
-				this.transactionIdString = transactionId.getTransactionIdString();
+													TransactionReadController<Get, Scan> readController,
+													boolean countStar) throws IOException {
+				this.txn = txn;
 				this.rollForwardQueue = rollForwardQueue;
 				this.predicateFilter = predicateFilter;
 				this.readController = readController;
@@ -81,8 +74,9 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 		@SuppressWarnings("unchecked")
 		private void initFilterStateIfNeeded() throws IOException {
 				if (filterState == null) {
-						filterState = readController.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
-										transactionManager.transactionIdFromString(transactionIdString), countStar);
+						filterState = readController.newFilterStatePacked(NoOpReadResolver.INSTANCE, predicateFilter, txn, countStar);
+//						filterState = readController.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
+//										Long.parseLong(transactionIdString), countStar);
 				}
 		}
 
