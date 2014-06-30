@@ -85,31 +85,20 @@ import com.splicemachine.utils.hash.HashFunctions;
  * the grouped aggregates when scanning the source during the
  * first call to next().
  *
- * The implementation is capable of computing multiple levels of grouping
- * in a single result set (this is requested using GROUP BY ROLLUP).
- *
- * This implementation has 3 variations, which it chooses according to
+ * This implementation has 2 variations, which it chooses according to
  * the following rules:
  * - If the data are guaranteed to arrive already in sorted order, we make
  *   a single pass over the data, computing the aggregates in-line as the
  *   data are read.
- * - If the statement requests either multiple ROLLUP levels, or a DISTINCT
- *   grouping, then the data are first sorted, then we make a single
- *   pass over the data as above.
  * - Otherwise, the data are sorted, and a SortObserver is used to compute
  *   the aggregations inside the sort, and the results are read back directly
  *   from the sorter.
  *
- * Note that, as of the introduction of the ROLLUP support, we no longer
- * ALWAYS compute the aggregates using a SortObserver, which is an
+ * Note that, we ALWAYS compute the aggregates using a SortObserver, which is an
  * arrangement by which the sorter calls back into the aggregates during
  * the sort process each time it consolidates two rows with the same
- * sort key. Using aggregate sort observers is an efficient technique, but
- * it was complex to extend it to the ROLLUP case, so to simplify the code
- * we just have one path for both already-sorted and un-sorted data sources
- * in the ROLLUP case.
+ * sort key. Using aggregate sort observers is an efficient technique.
  *
- * TODO: pull out rollup code. N/A in window partition context
  *
  */
 public class WindowOperation extends GenericAggregateOperation {
@@ -117,7 +106,6 @@ public class WindowOperation extends GenericAggregateOperation {
     private static Logger LOG = Logger.getLogger(WindowOperation.class);
     private static final byte[] distinctOrdinal = {0x00};
     protected boolean isInSortedOrder;
-    protected boolean isRollup;
     protected byte[] currentKey;
     private boolean isCurrentDistinct;
     private GroupedAggregateIterator aggregator;
@@ -155,7 +143,6 @@ public class WindowOperation extends GenericAggregateOperation {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
         isInSortedOrder = in.readBoolean();
-        isRollup = in.readBoolean();
         groupedAggregateContext = (GroupedAggregateContext)in.readObject();
     }
 
@@ -163,7 +150,6 @@ public class WindowOperation extends GenericAggregateOperation {
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeBoolean(isInSortedOrder);
-        out.writeBoolean(isRollup);
         out.writeObject(groupedAggregateContext);
     }
 
@@ -183,7 +169,7 @@ public class WindowOperation extends GenericAggregateOperation {
         buildReduceScan();
         if(top!=this && top instanceof SinkingOperation){
             SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
-            return new DistributedClientScanProvider("groupedAggregateReduce", SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
+            return new DistributedClientScanProvider("windowReduce", SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
 
         }else{
             startExecutionTime = System.currentTimeMillis();
@@ -309,12 +295,12 @@ public class WindowOperation extends GenericAggregateOperation {
             if(!isCurrentDistinct)
                 return super.bucket(hashBytes);
 
-						/*
-						 * If the row is distinct, then the grouping key is a combination of <actual grouping keys> <distinct column>
-						 * So to get the proper bucket, we need to hash only the grouping keys, so we have to first
-						 * strip out
-						 * the excess grouping keys
-						 */
+            /*
+             * If the row is distinct, then the grouping key is a combination of <actual grouping keys> <distinct column>
+             * So to get the proper bucket, we need to hash only the grouping keys, so we have to first
+             * strip out
+             * the excess grouping keys
+             */
             if(decoder==null)
                 decoder = MultiFieldDecoder.create();
 
@@ -357,7 +343,7 @@ public class WindowOperation extends GenericAggregateOperation {
             GroupedAggregateBuffer nonDistinctBuffer = new GroupedAggregateBuffer(SpliceConstants.ringBufferSize,
                                                                                   aggregateContext.getNonDistinctAggregators(),false,emptyRowSupplier,groupedAggregateContext,false,spliceRuntimeContext, false);
             DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(sourceExecIndexRow);
-            aggregator = SinkGroupedAggregateIterator.newInstance(nonDistinctBuffer, distinctBuffer, sourceIterator, isRollup,
+            aggregator = SinkGroupedAggregateIterator.newInstance(nonDistinctBuffer, distinctBuffer, sourceIterator, false,
                                                                   groupingKeys, groupingKeyOrder, nonGroupedUniqueColumns, serializers);
             aggregator.open();
             timer = spliceRuntimeContext.newTimer();
