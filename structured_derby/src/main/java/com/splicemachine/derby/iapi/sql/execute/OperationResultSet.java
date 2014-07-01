@@ -19,7 +19,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.ResultSet;
 import org.apache.derby.iapi.sql.execute.*;
-import org.apache.derby.iapi.tools.run;
+import com.splicemachine.metrics.IOStats;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -577,4 +577,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 		topOperation.setActivation(activation);
 	}
 
+    public IOStats getStats() {
+        return delegate.getStats();
+    }
 }

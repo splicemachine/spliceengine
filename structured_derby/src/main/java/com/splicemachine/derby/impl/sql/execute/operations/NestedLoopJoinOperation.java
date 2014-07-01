@@ -9,6 +9,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.metrics.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -314,6 +315,13 @@ public class NestedLoopJoinOperation extends JoinOperation {
 							if(region!=null)
 										probeResultSet.getDelegate().setRegionName(region.getRegionNameAsString());
 
+                            IOStats stats = probeResultSet.getStats();
+                            rowsSeenRight += stats.getRows();
+                            bytesReadRight += stats.getBytes();
+                            TimeView timer = stats.getTime();
+                            remoteScanCpuTime += timer.getCpuTime();
+                            remoteScanUserTime += timer.getUserTime();
+                            remoteScanWallTime += timer.getWallClockTime();
 						}
 						probeResultSet.close();
 						closeTime += getElapsedMillis(beginTime);

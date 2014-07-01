@@ -6,7 +6,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.utils.JoinSideExecRow;
 import com.splicemachine.derby.utils.StandardIterator;
-import com.splicemachine.derby.utils.MeasuredStandardIterator;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.encoding.Encoding;
@@ -157,9 +156,9 @@ public class MergeSortJoinerTest {
         return joinedAnswers;
     }
 
-    private MeasuredStandardIterator<JoinSideExecRow> getCollectionScanner(List<JoinSideExecRow> joinedRows) throws StandardException, IOException {
+    private StandardIterator<JoinSideExecRow> getCollectionScanner(List<JoinSideExecRow> joinedRows) throws StandardException, IOException {
         final List<JoinSideExecRow> rowsToEmit = Lists.newArrayList(joinedRows);
-        MeasuredStandardIterator<JoinSideExecRow> scanner = StandardIterators.wrap(rowsToEmit);
+        StandardIterator<JoinSideExecRow> scanner = StandardIterators.wrap(rowsToEmit);
         return scanner;
     }
 
@@ -390,7 +389,7 @@ public class MergeSortJoinerTest {
 
         //now for the actual test
 
-        MeasuredStandardIterator<JoinSideExecRow> scanner = getCollectionScanner(joinedRows);
+        StandardIterator<JoinSideExecRow> scanner = getCollectionScanner(joinedRows);
         IJoinRowsIterator<ExecRow> joinRows = new MergeSortJoinRows(scanner);
 
         Joiner joiner;

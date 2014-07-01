@@ -320,21 +320,6 @@ public class OnceOperation extends SpliceBaseOperation {
 				}
 
 				@Override public IOStats getIOStats() { return delegate.getIOStats(); }
-
-                @Override
-                public TimeView getRemoteReadTime() {
-                    return delegate.getRemoteReadTime();
-                }
-
-                @Override
-                public long getRemoteBytesRead() {
-                    return delegate.getRemoteBytesRead();
-                }
-
-                @Override
-                public long getRemoteRowsRead() {
-                    return delegate.getRemoteRowsRead();
-                }
 		}
 
 		@Override

@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.JoinSideExecRow;
-import com.splicemachine.derby.utils.MeasuredStandardIterator;
+import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.si.impl.PushBackIterator;
 
@@ -47,7 +47,7 @@ public class MergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
     private int rightRowsSeen;
 
 
-    public MergeSortJoinRows(MeasuredStandardIterator<JoinSideExecRow> source){
+    public MergeSortJoinRows(StandardIterator<JoinSideExecRow> source){
         this.source = new StandardPushBackIterator<JoinSideExecRow>(source);
     }
 
@@ -108,20 +108,5 @@ public class MergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
     @Override
     public long getRightRowsSeen() {
         return rightRowsSeen;
-    }
-
-    @Override
-    public TimeView getRemoteReadTime() {
-        return Metrics.noOpTimeView();
-    }
-
-    @Override
-    public long getRemoteBytesRead() {
-        return 0;
-    }
-
-    @Override
-    public long getRemoteRowsRead() {
-        return 0;
     }
 }

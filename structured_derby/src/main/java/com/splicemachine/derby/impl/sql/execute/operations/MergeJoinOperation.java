@@ -9,6 +9,7 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.metrics.TimeView;
+import com.splicemachine.metrics.IOStats;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.derby.utils.StandardSupplier;
@@ -24,8 +25,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.List;
-
-
 /**
  * @author P Trolard
  *         Date: 18/11/2013
@@ -164,7 +163,7 @@ public class MergeJoinOperation extends JoinOperation {
     private Joiner initJoiner(final SpliceRuntimeContext<ExecRow> spliceRuntimeContext)
             throws StandardException, IOException {
         StandardPushBackIterator<ExecRow> leftPushBack =
-            new StandardPushBackIterator<ExecRow>(StandardIterators.wrap(leftResultSet));
+                new StandardPushBackIterator<ExecRow>(StandardIterators.wrap(leftResultSet));
         ExecRow firstLeft = leftPushBack.next(spliceRuntimeContext);
         SpliceRuntimeContext<ExecRow> ctxWithOverride = spliceRuntimeContext.copy();
         ctxWithOverride.unMarkAsSink();
@@ -208,7 +207,6 @@ public class MergeJoinOperation extends JoinOperation {
         stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,rightSideStats.getRows());
         stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,rightSideStats.getBytes());
 
-        super.updateStats(stats);
         super.updateStats(stats);
     }
 
