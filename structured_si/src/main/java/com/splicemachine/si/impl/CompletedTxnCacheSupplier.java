@@ -2,6 +2,7 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.TransactionCacheManagement;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnSupplier;
 import org.cliffc.high_scale_lib.Counter;
 
 import java.io.IOException;
@@ -9,7 +10,7 @@ import java.lang.ref.SoftReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * TxnAccess which caches transaction which have "Completed"--i.e. which have entered the COMMITTED or ROLLEDBACK
+ * TxnSupplier which caches transaction which have "Completed"--i.e. which have entered the COMMITTED or ROLLEDBACK
  * state.
  *
  * This class is thread-safe, and safe to be shared between many threads.
@@ -17,7 +18,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @author Scott Fines
  * Date: 6/18/14
  */
-public class CompletedTxnCacheSupplier implements TxnSupplier,TransactionCacheManagement {
+public class CompletedTxnCacheSupplier implements TxnSupplier {
 
 		private Segment[] segments;
 		private final int maxSize;

@@ -6,7 +6,7 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnAccess;
+import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
@@ -49,7 +49,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 		private final byte[] siAntiTombstoneValue;
 		public final byte[] siFail;
 		private final byte[] userColumnFamily;
-		private final TxnAccess txnAccess;
+		private final TxnSupplier txnSupplier;
 		private TxnLifecycleManager control;
 
 		public DataStore(SDataLib<Put, Delete, Get, Scan> dataLib,
@@ -65,7 +65,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 										 byte[] siAntiTombstoneValue,
 										 byte[] siFail,
 										 byte[] userColumnFamily,
-										 TxnAccess txnAccess,
+										 TxnSupplier txnSupplier,
 										 TxnLifecycleManager control) {
 				this.dataLib = dataLib;
 				this.reader = reader;
@@ -80,7 +80,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 				this.siAntiTombstoneValue = dataLib.encode(siAntiTombstoneValue);
 				this.siFail = dataLib.encode(siFail);
 				this.userColumnFamily = dataLib.encode(userColumnFamily);
-				this.txnAccess = txnAccess;
+				this.txnSupplier = txnSupplier;
 				this.control = control;
 		}
 
@@ -304,9 +304,9 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 
 				if(readOnly)
 						return ReadOnlyTxn.createReadOnlyTransaction(txnId,
-										txnAccess.getTransaction(parentTxnId), beginTs, level, isDependent, false,control);
+										txnSupplier.getTransaction(parentTxnId), beginTs, level, isDependent, false,control);
 				else{
-						return new WritableTxn(txnId,beginTs,level,txnAccess.getTransaction(parentTxnId),control,isDependent,false);
+						return new WritableTxn(txnId,beginTs,level, txnSupplier.getTransaction(parentTxnId),control,isDependent,false);
 				}
 		}
 }

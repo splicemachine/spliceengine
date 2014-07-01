@@ -1,7 +1,6 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.api.TxnAccess;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.data.api.AbstractClientTransactor;
 import com.splicemachine.si.data.api.SDataLib;

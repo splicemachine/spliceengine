@@ -1,7 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnAccess;
+import com.splicemachine.si.api.TxnSupplier;
 
 import java.io.IOException;
 
@@ -12,10 +12,10 @@ import java.io.IOException;
  * @author Scott Fines
  * Date: 6/19/14
  */
-public class LazyTxnAccess implements TxnAccess {
-		private final TxnAccess delegate;
+public class LazyTxnSupplier implements TxnSupplier {
+		private final TxnSupplier delegate;
 
-		public LazyTxnAccess(TxnAccess delegate) {
+		public LazyTxnSupplier(TxnSupplier delegate) {
 				this.delegate = delegate;
 		}
 

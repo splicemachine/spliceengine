@@ -9,7 +9,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnAccess;
+import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.coprocessors.TxnLifecycleProtocol;
 import com.splicemachine.si.impl.InheritingTxnView;
@@ -39,12 +39,12 @@ import java.util.Map;
 @ThreadSafe
 public class CoprocessorTxnStore implements TxnStore{
 		private final HTableInterfaceFactory tableFactory;
-		private TxnAccess cache; //a transaction store which uses a global cache for us
+		private TxnSupplier cache; //a transaction store which uses a global cache for us
 		@ThreadSafe private final  TimestampSource timestampSource;
 
 		public CoprocessorTxnStore(HTableInterfaceFactory tableFactory,
 															 TimestampSource timestampSource,
-															 @ThreadSafe TxnAccess txnCache) {
+															 @ThreadSafe TxnSupplier txnCache) {
 				this.tableFactory = tableFactory;
 				if(txnCache==null)
 						this.cache = this; //set itself to be the cache--not actually a cache, but just in case
@@ -266,7 +266,7 @@ public class CoprocessorTxnStore implements TxnStore{
 				return newRowKey;
 		}
 
-		public void setCache(TxnAccess cacheStore) {
+		public void setCache(TxnSupplier cacheStore) {
 			this.cache = cacheStore;
 		}
 }

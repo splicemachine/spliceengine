@@ -5,7 +5,7 @@ import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnAccess;
+import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.KeyValue;
@@ -20,7 +20,7 @@ import java.io.IOException;
  * Date: 6/23/14
  */
 public class TxnFilterState implements IFilterState{
-		private final TxnAccess transactionStore;
+		private final TxnSupplier transactionStore;
 		private final Txn myTxn;
 		private final DataStore<Mutation,Put,Delete,Get,Scan,IHTable> dataStore;
 		private final ReadResolver readResolver;
@@ -32,11 +32,11 @@ public class TxnFilterState implements IFilterState{
 		private final ByteSlice rowKey = new ByteSlice();
 
 		@SuppressWarnings("unchecked")
-		public TxnFilterState(TxnAccess transactionStore,
+		public TxnFilterState(TxnSupplier transactionStore,
 													Txn myTxn,
 													ReadResolver readResolver,
 													DataStore dataStore) {
-				this.transactionStore = new ActiveTxnCacheAccess(transactionStore, SIConstants.activeTransactionCacheSize); //cache active transactions, but only on this thread
+				this.transactionStore = new ActiveTxnCacheSupplier(transactionStore, SIConstants.activeTransactionCacheSize); //cache active transactions, but only on this thread
 				this.myTxn = myTxn;
 				this.readResolver = readResolver;
 				this.dataStore = dataStore;

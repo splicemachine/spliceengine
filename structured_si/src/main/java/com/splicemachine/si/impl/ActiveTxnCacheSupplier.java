@@ -1,7 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnAccess;
+import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.utils.hash.MurmurHash;
 
 import java.io.IOException;
@@ -18,17 +18,17 @@ import java.lang.ref.SoftReference;
  * @author Scott Fines
  * Date: 6/18/14
  */
-public class ActiveTxnCacheAccess implements TxnAccess {
+public class ActiveTxnCacheSupplier implements TxnSupplier {
 		private final SoftReference<Txn>[] data;
 		private int size;
 		private final int maxSize;
-		private final TxnAccess delegate;
+		private final TxnSupplier delegate;
 		private boolean cacheGlobally;
 
-		public ActiveTxnCacheAccess(TxnAccess delegate, int maxSize){
+		public ActiveTxnCacheSupplier(TxnSupplier delegate, int maxSize){
 				this(delegate, maxSize,false);
 		}
-		public ActiveTxnCacheAccess(TxnAccess delegate, int maxSize, boolean cacheGlobally) {
+		public ActiveTxnCacheSupplier(TxnSupplier delegate, int maxSize, boolean cacheGlobally) {
 				int s = 1;
 				while(s<maxSize){
 						s<<=1;

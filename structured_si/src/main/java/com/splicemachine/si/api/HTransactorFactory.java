@@ -164,7 +164,7 @@ public class HTransactorFactory extends SIConstants {
 										SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES, //siAntiTombstoneValue
 										SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,  //siFail
 										DEFAULT_FAMILY_BYTES,
-										new LazyTxnAccess(txnAccess),
+										new LazyTxnSupplier(txnSupplier),
 										lifecycleManager ); //user columnFamily
 //						if(transactionManager ==null)
 //								transactionManager = new SITransactionManager(transactionStore,timestampSource,builderTransactor);
@@ -178,7 +178,7 @@ public class HTransactorFactory extends SIConstants {
 
 						if(readController==null)
 								readController = new SITransactionReadController<
-												Get,Scan,Delete,Put>(dataStore,dataLib,transactionStore,transactionManager);
+												Get,Scan,Delete,Put>(dataStore,dataLib, txnSupplier,lifecycleManager);
 						Transactor transactor = new SITransactor.Builder()
 										.dataLib(dataLib)
 										.dataWriter(writer)
@@ -186,7 +186,7 @@ public class HTransactorFactory extends SIConstants {
 //										.transactionStore(transactionStore)
 										.clock(new SystemClock())
 										.transactionTimeout(transactionTimeout)
-										.txnStore(txnAccess)
+										.txnStore(txnSupplier)
 										.control(transactionManager).build();
 						builderTransactor.setTransactor(transactor);
 						if(managedTransactor==null)

@@ -6,7 +6,7 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 6/24/14
  */
-public interface TxnStore extends TxnAccess{
+public interface TxnStore extends TxnSupplier {
 
 		/**
 		 * Write the Transaction to underlying storage.
