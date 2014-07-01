@@ -46,5 +46,4 @@ public class StandardPushBackIterator<T> implements StandardIterator<T> {
         }
         pushedBack = value;
     }
-
 }

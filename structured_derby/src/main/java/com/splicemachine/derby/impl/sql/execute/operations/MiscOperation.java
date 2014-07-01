@@ -138,7 +138,6 @@ public class MiscOperation extends NoRowsOperation
 				public IOStats getIOStats() {
 						return Metrics.noOpIOStats();
 				}
-
 		};
 
 		@Override

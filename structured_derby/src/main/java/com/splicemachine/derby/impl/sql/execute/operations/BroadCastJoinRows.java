@@ -75,19 +75,4 @@ public class BroadCastJoinRows implements IJoinRowsIterator<ExecRow> {
         leftRows.close();
         pair = null;
     }
-
-    @Override
-    public TimeView getRemoteReadTime() {
-        return Metrics.noOpTimeView();
-    }
-
-    @Override
-    public long getRemoteBytesRead() {
-        return 0;
-    }
-
-    @Override
-    public long getRemoteRowsRead() {
-        return 0;
-    }
 }
