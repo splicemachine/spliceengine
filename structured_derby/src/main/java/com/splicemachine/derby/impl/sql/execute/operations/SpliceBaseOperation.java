@@ -266,9 +266,17 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		}
 
         // Debugging utility
-        public void returning(ExecRow r) {
-            LOG.error(String.format("%s %s returning %s", this.getClass().getSimpleName(),
-                                       resultSetNumber, r));
+        public ExecRow returning(ExecRow r) {
+           return returning(r, null);
+        }
+
+        public ExecRow returning(ExecRow r, String msg) {
+            LOG.error(String.format("%s %s returning %s%s",
+                                       this.getClass().getSimpleName(),
+                                       resultSetNumber,
+                                       msg == null ? "" : msg + " ",
+                                       r));
+            return r;
         }
 
 		public static void writeNullableString(String value, DataOutput out) throws IOException {
