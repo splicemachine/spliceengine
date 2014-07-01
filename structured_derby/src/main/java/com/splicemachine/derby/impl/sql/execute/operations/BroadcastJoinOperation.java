@@ -125,7 +125,6 @@ public class BroadcastJoinOperation extends JoinOperation {
             leftCounter = ctx.newCounter();
             timer.startTiming();
             joiner = initJoiner(ctx);
-            joiner.open();
         }
 
         ExecRow next = joiner.nextRow(ctx);
