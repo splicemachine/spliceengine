@@ -2,7 +2,7 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.SimpleTimestampSource;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnAccess;
+import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnStore;
 import org.junit.Assert;
@@ -48,7 +48,7 @@ public class CompletedTxnCacheAccessTest {
 				};
 				backStore.recordNewTransaction(txn);
 
-				TxnAccess store = new CompletedTxnCacheAccess(backStore,10,16);
+				TxnSupplier store = new CompletedTxnCacheSupplier(backStore,10,16);
 
 
 				//fetch the transaction from the underlying store
@@ -85,7 +85,7 @@ public class CompletedTxnCacheAccessTest {
 				};
 				backStore.recordNewTransaction(txn);
 
-				TxnAccess store = new CompletedTxnCacheAccess(backStore,10,16);
+				TxnSupplier store = new CompletedTxnCacheSupplier(backStore,10,16);
 
 
 				//fetch the transaction from the underlying store
@@ -125,7 +125,7 @@ public class CompletedTxnCacheAccessTest {
 				};
 				backStore.recordNewTransaction(txn);
 
-				TxnAccess store = new CompletedTxnCacheAccess(backStore,10,16);
+				TxnSupplier store = new CompletedTxnCacheSupplier(backStore,10,16);
 
 
 				//fetch the transaction from the underlying store

@@ -50,14 +50,14 @@ public class SITransactor<Table,
 		private final SDataLib<Put, Delete, Get, Scan> dataLib;
     private final STableWriter<Table, Mutation, Put, Delete> dataWriter;
     private final DataStore<Mutation, Put, Delete, Get, Scan, Table> dataStore;
-    private final TxnAccess transactionStore;
+    private final TxnSupplier transactionStore;
 
 //		private final TransactionSource transactionSource;
 
 		private SITransactor(SDataLib dataLib,
 												 STableWriter dataWriter,
 												 DataStore dataStore,
-												 final TxnAccess transactionStore) {
+												 final TxnSupplier transactionStore) {
 //				transactionSource = new TransactionSource() {
 //            @Override
 //            public Transaction getTransaction(long timestamp) throws IOException {
@@ -700,7 +700,7 @@ public class SITransactor<Table,
 				private Clock clock;
 				private int transactionTimeoutMS;
 				private TransactionManager control;
-				private TxnAccess txnStore;
+				private TxnSupplier txnStore;
 
 				public Builder() {
 				}
@@ -729,7 +729,7 @@ public class SITransactor<Table,
 						return this;
 				}
 
-				public Builder txnStore(TxnAccess transactionStore) {
+				public Builder txnStore(TxnSupplier transactionStore) {
 						this.txnStore = transactionStore;
 						return this;
 				}

@@ -88,7 +88,7 @@ public class HStoreSetup implements StoreSetup {
 						tableSource.addPackedTable(getPersonTableName());
 
 						CoprocessorTxnStore txnS = new CoprocessorTxnStore(new SpliceHTableFactory(true),timestampSource,null);
-						txnS.setCache(new CompletedTxnCacheAccess(new LazyTxnAccess(txnS),SIConstants.activeTransactionCacheSize,16));
+						txnS.setCache(new CompletedTxnCacheSupplier(new LazyTxnSupplier(txnS),SIConstants.activeTransactionCacheSize,16));
 						baseStore = txnS;
 						HTransactorFactory.setTxnStore(baseStore);
 						//TODO -sf- add CompletedTxnCache to it

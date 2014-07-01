@@ -2,10 +2,8 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.SpliceReusableHashmap;
-import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnAccess;
-import com.splicemachine.si.api.TxnStore;
+import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.data.api.SDataLib;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
@@ -13,9 +11,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -29,14 +25,14 @@ public class SICompactionState<Result,  Mutation,
         Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock, OperationStatus> {
     private final SDataLib<Put, Delete, Get, Scan> dataLib;
     private final DataStore<Mutation, Put, Delete, Get, Scan, IHTable> dataStore;
-    private final TxnAccess transactionStore;
+    private final TxnSupplier transactionStore;
     private SpliceReusableHashmap<ByteBuffer,KeyValue> evaluatedTransactions;
     public SortedSet<KeyValue> dataToReturn;
 
-		public SICompactionState(SDataLib dataLib, DataStore dataStore, TxnAccess transactionStore) {
+		public SICompactionState(SDataLib dataLib, DataStore dataStore, TxnSupplier transactionStore) {
         this.dataLib = dataLib;
         this.dataStore = dataStore;
-        this.transactionStore = new ActiveTxnCacheAccess(transactionStore,SIConstants.activeTransactionCacheSize); //cache active transactions during our scan
+        this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,SIConstants.activeTransactionCacheSize); //cache active transactions during our scan
         this.dataToReturn  = new TreeSet<KeyValue>(new Comparator<KeyValue>(){
     		@Override
     		public int compare(KeyValue first, KeyValue second) {

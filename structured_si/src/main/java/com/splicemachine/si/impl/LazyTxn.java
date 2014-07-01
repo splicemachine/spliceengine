@@ -1,7 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnAccess;
+import com.splicemachine.si.api.TxnSupplier;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -14,7 +14,7 @@ public class LazyTxn implements Txn {
 		private volatile Txn delegate;
 		private volatile boolean lookedUp = false;
 
-		private final TxnAccess store;
+		private final TxnSupplier store;
 		private final long txnId;
 
 		private final boolean hasDependent;
@@ -27,7 +27,7 @@ public class LazyTxn implements Txn {
 
 		private volatile boolean inFinalState = false; //set to true if/when the lookup reveals the transaction is in the final state
 
-		public LazyTxn(long txnId, TxnAccess store) {
+		public LazyTxn(long txnId, TxnSupplier store) {
 				this.txnId = txnId;
 				this.store = store;
 				this.hasDependent = false;
@@ -38,7 +38,7 @@ public class LazyTxn implements Txn {
 				this.isolationLevel = null;
 		}
 
-		public LazyTxn(TxnAccess store,  long txnId,
+		public LazyTxn(TxnSupplier store,  long txnId,
 									 IsolationLevel isolationLevel) {
 				this.store = store;
 				this.txnId = txnId;
@@ -49,7 +49,7 @@ public class LazyTxn implements Txn {
 				this.isolationLevel = isolationLevel;
 		}
 
-		public LazyTxn(TxnAccess store,  long txnId,
+		public LazyTxn(TxnSupplier store,  long txnId,
 									 boolean hasDependent, boolean dependent,
 									 IsolationLevel isolationLevel) {
 				this.store = store;
@@ -61,7 +61,7 @@ public class LazyTxn implements Txn {
 				this.isolationLevel = isolationLevel;
 		}
 
-		public LazyTxn(long txnId,TxnAccess store,
+		public LazyTxn(long txnId,TxnSupplier store,
 									 boolean hasDependent, boolean dependent,
 									 boolean hasAdditive, boolean additive,
 									 IsolationLevel isolationLevel) {

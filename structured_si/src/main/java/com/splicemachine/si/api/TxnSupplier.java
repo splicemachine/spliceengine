@@ -6,7 +6,7 @@ import java.io.IOException;
  * @author Scott Fines
  * Date: 6/18/14
  */
-public interface TxnAccess {
+public interface TxnSupplier {
 
 		/**
 		 * Get the transaction associated with {@code txnId}.

@@ -26,17 +26,17 @@ public class SITransactionReadController<
 				implements TransactionReadController<Get,Scan>{
 		private final DataStore dataStore;
 		private final SDataLib dataLib;
-		private final TxnAccess txnAccess;
+		private final TxnSupplier txnSupplier;
 		private final TxnLifecycleManager tc;
 
 
 		public SITransactionReadController(DataStore dataStore,
 																			 SDataLib dataLib,
-																			 TxnAccess txnAccess,
+																			 TxnSupplier txnSupplier,
 																			 TxnLifecycleManager tc) {
 				this.dataStore = dataStore;
 				this.dataLib = dataLib;
-				this.txnAccess = txnAccess;
+				this.txnSupplier = txnSupplier;
 				this.tc = tc;
 		}
 
@@ -85,13 +85,13 @@ public class SITransactionReadController<
 
 		@Override
 		public IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId) throws IOException {
-				return new TxnFilterState(txnAccess, txnAccess.getTransaction(transactionId.getId()),NoOpReadResolver.INSTANCE,
+				return new TxnFilterState(txnSupplier, txnSupplier.getTransaction(transactionId.getId()),NoOpReadResolver.INSTANCE,
 								dataStore);
 		}
 
 		@Override
 		public IFilterState newFilterState(RollForwardQueue rollForwardQueue, Txn txn) throws IOException {
-				return new TxnFilterState(txnAccess, txn,NoOpReadResolver.INSTANCE, dataStore);
+				return new TxnFilterState(txnSupplier, txn,NoOpReadResolver.INSTANCE, dataStore);
 		}
 
 		@Override

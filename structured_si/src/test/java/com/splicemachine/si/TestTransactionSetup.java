@@ -57,7 +57,7 @@ public class TestTransactionSetup {
 
 		public ManualKeepAliveScheduler keepAliveScheduler;
 		public final TxnStore txnStore;
-		public final TxnAccess txnAccess;
+		public final TxnSupplier txnSupplier;
 		public  TxnLifecycleManager txnLifecycleManager;
 
     public TestTransactionSetup(StoreSetup storeSetup, boolean simple) {
@@ -83,7 +83,7 @@ public class TestTransactionSetup {
 				ClientTxnLifecycleManager lfManager = new ClientTxnLifecycleManager(timestampSource);
 
 				txnStore = storeSetup.getTxnStore(lfManager);
-				txnAccess = new CompletedTxnCacheAccess(txnStore,100,16);
+				txnSupplier = new CompletedTxnCacheSupplier(txnStore,100,16);
 				lfManager.setStore(txnStore);
 				txnLifecycleManager = lfManager;
 
@@ -99,7 +99,7 @@ public class TestTransactionSetup {
 								SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES,
 								SIConstants.SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
 								userColumnsFamilyName,
-								txnAccess,txnLifecycleManager
+								txnSupplier,txnLifecycleManager
 								);
 				SITransactor.Builder builder = new SITransactor.Builder();
 //				control = new SITransactionManager(transactionStore,timestampSource,listener);
@@ -115,7 +115,7 @@ public class TestTransactionSetup {
 								.dataLib(dataLib)
 								.dataWriter(writer)
 								.dataStore(dataStore)
-								.txnStore(txnAccess) //use the cache for completed transactions
+								.txnStore(txnSupplier) //use the cache for completed transactions
 								.clock(storeSetup.getClock())
 								.transactionTimeout(SIConstants.transactionTimeout);
 //								.control(control);
