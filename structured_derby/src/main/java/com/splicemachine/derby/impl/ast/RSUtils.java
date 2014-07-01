@@ -94,6 +94,13 @@ public class RSUtils {
 
     public static final Set<?> leafRSNs = ImmutableSet.of(FromBaseTable.class, RowResultSetNode.class);
 
+    public static List<ResultSetNode> nodesUntilBinaryNode(ResultSetNode rsn) throws StandardException {
+        return CollectNodes.collector(ResultSetNode.class)
+                   .onAxis(isRSN)
+                   .until(isBinaryRSN)
+                   .collect(rsn);
+    }
+
     /**
      * If rsn subtree contains a node with 2 children, return the node above
      * it, else return the leaf node
@@ -142,6 +149,10 @@ public class RSUtils {
 
     public static boolean isMSJ(AccessPath ap){
         return (ap != null && ap.getJoinStrategy().getClass() == MergeSortJoinStrategy.class);
+    }
+
+    public static boolean isNLJ(AccessPath ap){
+        return (ap != null && ap.getJoinStrategy().getClass() == NestedLoopJoinStrategy.class);
     }
 
     public static boolean isHashableJoin(AccessPath ap){
