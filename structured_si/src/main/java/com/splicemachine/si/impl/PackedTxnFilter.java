@@ -8,15 +8,15 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
-public class FilterStatePacked implements IFilterState,SIFilter {
-    static final Logger LOG = Logger.getLogger(FilterStatePacked.class);
-    protected final IFilterState simpleFilter;
+public class PackedTxnFilter implements TxnFilter,SIFilter {
+    static final Logger LOG = Logger.getLogger(PackedTxnFilter.class);
+    protected final TxnFilter simpleFilter;
     public final RowAccumulator accumulator;
     private KeyValue lastValidKeyValue;
     protected boolean excludeRow = false;
 
-    public FilterStatePacked(IFilterState simpleFilter,
-                             RowAccumulator accumulator) {
+    public PackedTxnFilter(TxnFilter simpleFilter,
+													 RowAccumulator accumulator) {
         this.simpleFilter = simpleFilter;
         this.accumulator = accumulator;
     }

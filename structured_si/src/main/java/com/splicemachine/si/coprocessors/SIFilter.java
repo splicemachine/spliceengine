@@ -1,10 +1,7 @@
 package com.splicemachine.si.coprocessors;
 
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.api.TransactionReadController;
-import com.splicemachine.si.api.TxnLifecycleManager;
-import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.api.RollForwardQueue;
+import com.splicemachine.si.api.*;
+import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.KeyValue;
@@ -16,8 +13,6 @@ import org.apache.log4j.Logger;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 /**
  * An HBase filter that applies SI logic when reading data values.
@@ -27,13 +22,15 @@ public class SIFilter extends FilterBase {
 	private TransactionManager transactionManager;
 //		private TxnLifecycleManager txnLifecycleManager;
     protected String transactionIdString;
-    protected RollForwardQueue rollForwardQueue;
-    private IFilterState filterState = null;
+    protected RollForward rollForwardQueue;
+    private TxnFilter filterState = null;
 	private TransactionReadController<Get,Scan> readController;
 	public SIFilter() {}
 
     public SIFilter(TransactionReadController<Get, Scan> readController,
-										TransactionId transactionId, TransactionManager transactionManager, RollForwardQueue rollForwardQueue) throws IOException {
+										TransactionId transactionId,
+										TransactionManager transactionManager,
+										RollForward rollForwardQueue) throws IOException {
 				this.transactionManager = transactionManager;
 				this.transactionIdString = transactionId.getTransactionIdString();
 				this.rollForwardQueue = rollForwardQueue;
@@ -55,9 +52,10 @@ public class SIFilter extends FilterBase {
     }
 
     private void initFilterStateIfNeeded() throws IOException {
-        if (filterState == null) {
-            filterState = readController.newFilterState(rollForwardQueue, transactionManager.transactionIdFromString(transactionIdString));
-        }
+				throw new UnsupportedOperationException("REMOVE");
+//        if (filterState == null) {
+//            filterState = readController.newFilterState(rollForwardQueue, transactionManager.transactionIdFromString(transactionIdString));
+//        }
     }
 
     @Override

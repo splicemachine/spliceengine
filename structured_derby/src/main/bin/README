@@ -407,7 +407,7 @@ com.splicemachine.si.coprocessors.SIFilterPacked
 com.splicemachine.si.coprocessors.SIObserver
 com.splicemachine.si.data.hbase.HbRegion
 com.splicemachine.si.impl.FilterState
-com.splicemachine.si.impl.FilterStatePacked
+com.splicemachine.si.impl.PackedTxnFilter
 com.splicemachine.si.impl.SITransactor
 com.splicemachine.si.impl.SynchronousRollForwardQueue
 com.splicemachine.si.impl.TransactionStore

@@ -49,7 +49,7 @@ public class TestTransactionSetup {
 //		public final TransactionManager control;
     public ManagedTransactor hTransactor;
 //    public final TransactionStore transactionStore;
-    public RollForwardQueue rollForwardQueue;
+    public RollForward rollForwardQueue;
     public DataStore dataStore;
     public TimestampSource timestampSource = new SimpleTimestampSource();
 		public TransactionReadController readController;
@@ -59,8 +59,9 @@ public class TestTransactionSetup {
 		public final TxnStore txnStore;
 		public final TxnSupplier txnSupplier;
 		public  TxnLifecycleManager txnLifecycleManager;
+		public ReadResolver readResolver;
 
-    public TestTransactionSetup(StoreSetup storeSetup, boolean simple) {
+		public TestTransactionSetup(StoreSetup storeSetup, boolean simple) {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
         final STableWriter writer = storeSetup.getWriter();

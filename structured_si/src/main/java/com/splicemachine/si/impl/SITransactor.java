@@ -75,7 +75,7 @@ public class SITransactor<Table,
 		// Process update operations
 
     @Override
-    public boolean processPut(Table table, RollForwardQueue rollForwardQueue, Put put) throws IOException {
+    public boolean processPut(Table table, RollForward rollForwardQueue, Put put) throws IOException {
     			if(!isFlaggedForSITreatment(put)) return false;
 				final Put[] mutations = (Put[])Array.newInstance(put.getClass(),1);
 				mutations[0] = put;
@@ -94,9 +94,8 @@ public class SITransactor<Table,
 				}
     }
 
-
 		@Override
-    public OperationStatus[] processPutBatch(Table table, RollForwardQueue rollForwardQueue, Put[] mutations)
+    public OperationStatus[] processPutBatch(Table table, RollForward rollForwardQueue, Put[] mutations)
             throws IOException {
         if (mutations.length == 0) {
             //short-circuit special case of empty batch
@@ -265,9 +264,9 @@ public class SITransactor<Table,
 		protected OperationStatus[] processInternal(Table table, RollForward rollForwardQueue, Txn txn, byte[] family, byte[] qualifier, Collection<KVPair> mutations, ConstraintChecker constraintChecker) throws IOException {
 				OperationStatus[] finalStatus = new OperationStatus[mutations.size()];
 				Pair<KVPair,Integer>[] lockPairs = new Pair[mutations.size()];
-				IFilterState constraintState = null;
+				TxnFilter constraintState = null;
 				if(constraintChecker!=null)
-						constraintState = new TxnFilterState(transactionStore,txn, NoOpReadResolver.INSTANCE,dataStore);
+						constraintState = new SimpleTxnFilter(transactionStore,txn, NoOpReadResolver.INSTANCE,dataStore);
 				@SuppressWarnings("unchecked") final Set<Long>[] conflictingChildren = new Set[mutations.size()];
 				try {
 						lockRows(table,mutations,lockPairs,finalStatus);
@@ -278,7 +277,7 @@ public class SITransactor<Table,
 						 * the region can't close until after this method is complete, we don't need the calls.
 						 */
 						IntObjectOpenHashMap<Pair<Mutation,Integer>> writes = checkConflictsForKvBatch(table, rollForwardQueue, lockPairs,
-												conflictingChildren, txn,family,qualifier,constraintChecker,constraintState,finalStatus);
+										conflictingChildren, txn,family,qualifier,constraintChecker,constraintState,finalStatus);
 
 						//TODO -sf- this can probably be made more efficient
 						//convert into array for usefulness
@@ -355,7 +354,7 @@ public class SITransactor<Table,
 																															 Txn transaction,
 																															 byte[] family, byte[] qualifier,
 																															 ConstraintChecker constraintChecker,
-																															 IFilterState constraintStateFilter,
+																															 TxnFilter constraintStateFilter,
 																															 OperationStatus[] finalStatus) throws IOException{
 				IntObjectOpenHashMap<Pair<Mutation,Integer>> finalMutationsToWrite = IntObjectOpenHashMap.newInstance();
 				for(int i=0;i<dataAndLocks.length;i++){
@@ -387,7 +386,7 @@ public class SITransactor<Table,
 		}
 
 		private boolean applyConstraint(ConstraintChecker constraintChecker,
-																		IFilterState constraintStateFilter,
+																		TxnFilter constraintStateFilter,
 																		int rowPosition,
 																		KVPair mutation, Result row,
 																		OperationStatus[] finalStatus) throws IOException {

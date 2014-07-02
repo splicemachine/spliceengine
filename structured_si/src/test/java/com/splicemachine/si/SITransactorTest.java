@@ -1761,7 +1761,7 @@ public class SITransactorTest extends SIConstants {
 //            transactorSetup.clientTransactor.initializeGet(t.getTxnId(), get1);
             Result result = reader.get(testSTable, get1);
             if (useSimple) {
-                result = transactorSetup.readController.filterResult(transactorSetup.readController.newFilterState(transactorSetup.rollForwardQueue, t), result);
+//                result = transactorSetup.readController.filterResult(transactorSetup.readController.newFilterState(transactorSetup.rollForwardQueue, t), result);
             }
             final int ageRead = (Integer) dataLib.decode(result.getValue(family, ageQualifier), Integer.class);
             Assert.assertEquals(27, ageRead);
@@ -1774,9 +1774,9 @@ public class SITransactorTest extends SIConstants {
         testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             final Result resultTuple = reader.get(testSTable, get);
-            final IFilterState filterState = transactorSetup.readController.newFilterState(transactorSetup.rollForwardQueue, t2);
+//            final TxnFilter filterState = transactorSetup.readController.newFilterState(transactorSetup.rollForwardQueue, t2);
             if (useSimple) {
-                transactorSetup.readController.filterResult(filterState, resultTuple);
+//                transactorSetup.readController.filterResult(filterState, resultTuple);
             }
         } finally {
             reader.close(testSTable);
@@ -2296,8 +2296,8 @@ public class SITransactorTest extends SIConstants {
 
         Txn t3 = control.beginTransaction();
         Result result = testUtility.readRaw("joe89");
-        IFilterState filterState = transactorSetup.readController.newFilterState(t3);
-        result = transactorSetup.readController.filterResult(filterState, result);
+//        TxnFilter filterState = transactorSetup.readController.newFilterState(t3);
+//        result = transactorSetup.readController.filterResult(filterState, result);
         Assert.assertEquals("joe89 age=20 job=null", testUtility.resultToString("joe89", result));
     }
 

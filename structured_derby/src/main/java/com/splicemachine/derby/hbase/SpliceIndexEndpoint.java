@@ -8,13 +8,12 @@ import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BatchProtocol;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.BulkWrite;
 import com.splicemachine.hbase.writer.BulkWriteResult;
-import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.si.api.RollForwardQueue;
-import com.splicemachine.si.coprocessors.RollForwardQueueMap;
+import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.Meter;
@@ -62,7 +61,6 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     private static volatile int maxWorkers = 10;
     private static volatile int flushQueueSizeBlock = SpliceConstants.flushQueueSizeBlock; 
     private static volatile int compactionQueueSizeBlock = SpliceConstants.compactionQueueSizeBlock;
-    private RegionServerMetrics metrics;
 
     
     public static ConcurrentMap<Long,Pair<LocalWriteContextFactory,AtomicInteger>> factoryMap = new NonBlockingHashMap<Long, Pair<LocalWriteContextFactory, AtomicInteger>>();
@@ -76,29 +74,32 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     private static MetricName rejectedMeterName = new MetricName("com.splicemachine","receiverStats","rejected");
 
     private long conglomId;
+		private TransactionalRegion region;
 
-    private RollForwardQueue queue = null;
 		private Timer timer=SpliceDriver.driver().getRegistry().newTimer(receptionName, TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
-    private Meter throughputMeter = SpliceDriver.driver().getRegistry().newMeter(throughputMeterName,"successfulRows",TimeUnit.SECONDS);
+    private Meter throughputMeter = SpliceDriver.driver().getRegistry().newMeter(throughputMeterName, "successfulRows", TimeUnit.SECONDS);
     private Meter failedMeter =SpliceDriver.driver().getRegistry().newMeter(failedMeterName,"failedRows",TimeUnit.SECONDS);
     private Meter rejectedMeter =SpliceDriver.driver().getRegistry().newMeter(rejectedMeterName,"rejectedRows",TimeUnit.SECONDS);
-    
-    @Override
-    public void start(CoprocessorEnvironment env) {
-    	RegionCoprocessorEnvironment rce = ((RegionCoprocessorEnvironment)env);
-    	HRegionServer rs = (HRegionServer) rce.getRegionServerServices();
-    	metrics = rs.getMetrics();
-        String tableName = rce.getRegion().getTableDesc().getNameAsString();
-        try{
-            conglomId = Long.parseLong(tableName);
-        }catch(NumberFormatException nfe){
-            SpliceLogUtils.debug(LOG, "Unable to parse conglomerate id for table %s, " +
-                    "index management for batch operations will be diabled",tableName);
-            conglomId=-1;
-            super.start(env);
-            return;
-        }
-        maxWorkers = env.getConfiguration().getInt("splice.task.maxWorkers",SimpleThreadedTaskScheduler.DEFAULT_MAX_WORKERS);
+
+		private RegionServerMetrics metrics;
+
+		@Override
+		public void start(CoprocessorEnvironment env) {
+				RegionCoprocessorEnvironment rce = ((RegionCoprocessorEnvironment)env);
+				HRegionServer rs = (HRegionServer) rce.getRegionServerServices();
+				metrics = rs.getMetrics();
+				region = TransactionalRegions.get(rce.getRegion());
+				String tableName = rce.getRegion().getTableDesc().getNameAsString();
+				try{
+						conglomId = Long.parseLong(tableName);
+				}catch(NumberFormatException nfe){
+						SpliceLogUtils.debug(LOG, "Unable to parse conglomerate id for table %s, " +
+										"index management for batch operations will be diabled",tableName);
+						conglomId=-1;
+						super.start(env);
+						return;
+				}
+				maxWorkers = env.getConfiguration().getInt("splice.task.maxWorkers",SimpleThreadedTaskScheduler.DEFAULT_MAX_WORKERS);
         final Pair<LocalWriteContextFactory,AtomicInteger> factoryPair = Pair.newPair(new LocalWriteContextFactory(conglomId),new AtomicInteger(1));
         Pair<LocalWriteContextFactory, AtomicInteger> originalPair = factoryMap.putIfAbsent(conglomId, factoryPair);
         if(originalPair!=null){
@@ -106,7 +107,6 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
             originalPair.getSecond().incrementAndGet();
         }else{
             SpliceDriver.Service service = new SpliceDriver.Service(){
-
                 @Override
                 public boolean start() {
                     factoryPair.getFirst().prepare();
@@ -160,15 +160,11 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 
 				try{
 						WriteContext context;
-						if(queue==null) {
-								queue = RollForwardQueueMap.lookupRollForward(((RegionCoprocessorEnvironment) this.getEnvironment()).getRegion().getRegionNameAsString());
-								if (queue == null)
-									SpliceLogUtils.warn(LOG, "Index Endpoint is not rolling forward, configuration issue");
-						}
+//						if(queue==null)
+//								queue = HTransactorFactory.getRollForward(region);
+//								queue = RollForwardQueueMap.lookupRollForwardQueue(((RegionCoprocessorEnvironment) this.getEnvironment()).getRegion().getTableDesc().getNameAsString());
 						try {
-								context = getWriteContext(bulkWrite.getTxnId(),rce,
-										SIConstants.siDelayRollForwardMaxSize > bulkWrite.getSize()?queue:null // only queue when less than bulk write max size
-												,bulkWrite.getMutations().size());
+								context = getWriteContext(bulkWrite.getTxnId(),bulkWrite.getMutations().size());
 						} catch (InterruptedException e) {
 								//was interrupted while trying to create a write context.
 								//we're done, someone else will have to write this batch
@@ -219,9 +215,9 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 		}
 
 
-		private WriteContext getWriteContext(String txnId,RegionCoprocessorEnvironment rce,RollForwardQueue queue,int writeSize) throws IOException, InterruptedException {
+		private WriteContext getWriteContext(String txnId,int writeSize) throws IOException, InterruptedException {
         Pair<LocalWriteContextFactory, AtomicInteger> ctxFactoryPair = getContextPair(conglomId);
-        return ctxFactoryPair.getFirst().create(txnId,rce,queue,writeSize);
+        return ctxFactoryPair.getFirst().create(txnId,region, writeSize);
     }
 
     @SuppressWarnings("unchecked")

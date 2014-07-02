@@ -13,8 +13,8 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.light.LTuple;
-import com.splicemachine.si.impl.FilterStatePacked;
-import com.splicemachine.si.impl.IFilterState;
+import com.splicemachine.si.impl.PackedTxnFilter;
+import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -316,14 +316,14 @@ public class TransactorTestUtility {
 				if (rawTuple != null) {
 						Result result = rawTuple;
 						if (useSimple) { // Process Results Through Filter
-								IFilterState filterState;
+								TxnFilter filterState;
 								try {
-										filterState = transactorSetup.readController.newFilterState(transactorSetup.rollForwardQueue,txn);
+										filterState = transactorSetup.readController.newFilterState(transactorSetup.readResolver,txn);
 								} catch (IOException e) {
 										throw new RuntimeException(e);
 								}
 								EntryDecoder decoder = new EntryDecoder();
-								filterState = new FilterStatePacked(filterState, new HRowAccumulator(EntryPredicateFilter.emptyPredicate(),decoder, false));
+								filterState = new PackedTxnFilter(filterState, new HRowAccumulator(EntryPredicateFilter.emptyPredicate(),decoder, false));
 								result = transactorSetup.readController.filterResult(filterState, rawTuple);
 								
 						} 	

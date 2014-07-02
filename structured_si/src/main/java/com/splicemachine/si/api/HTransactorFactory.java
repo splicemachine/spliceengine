@@ -22,27 +22,38 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+
 /**
  * Used to construct a transactor object that is bound to the HBase types and that provides SI functionality. This is
  * the main entry point for applications using SI. Keeps track of a global, static instance that is shared by all callers.
  * Also defines the various configuration options and plugins for the transactor instance.
  */
 public class HTransactorFactory extends SIConstants {
-    private final static Map<Long, ImmutableTransaction> immutableCache = CacheMap.makeCache(true);
-    private final static Map<Long, ActiveTransactionCacheEntry> activeCache = CacheMap.makeCache(true);
-    private final static Map<Long, Transaction> cache = CacheMap.makeCache(true);
-    private final static Map<Long, Transaction> committedCache = CacheMap.makeCache(true);
-    private final static Map<Long, Transaction> failedCache = CacheMap.makeCache(true);
-    private final static Map<PermissionArgs, Byte> permissionCache = CacheMap.makeCache(true);
+		//replaced with the TxnStore and TxnSupplier interfaces
+//    private final static Map<Long, ImmutableTransaction> immutableCache = CacheMap.makeCache(true);
+//    private final static Map<Long, ActiveTransactionCacheEntry> activeCache = CacheMap.makeCache(true);
+//    private final static Map<Long, Transaction> cache = CacheMap.makeCache(true);
+//    private final static Map<Long, Transaction> committedCache = CacheMap.makeCache(true);
+//    private final static Map<Long, Transaction> failedCache = CacheMap.makeCache(true);
+//    private final static Map<PermissionArgs, Byte> permissionCache = CacheMap.makeCache(true);
 
 		private static volatile boolean initialized;
     private static volatile ManagedTransactor managedTransactor;
 		private static volatile TransactionManager transactionManager;
 		private static volatile ClientTransactor clientTransactor;
 		private static volatile SITransactionReadController< Get, Scan, Delete, Put> readController;
-		private static volatile RollForwardQueueFactory<byte[], HbRegion> rollForwardQueueFactory;
+//		private static volatile RollForwardQueueFactory<byte[], HbRegion> rollForwardQueueFactory;
 //		private static volatile TransactionStore transactionStore;
 		private static volatile DataStore dataStore;
+		private static volatile TxnStore txnStore;
+		private static volatile TxnSupplier txnSupplier;
+		private static volatile AsyncReadResolver asyncReadResolver;
 
 		public static void setTransactor(ManagedTransactor managedTransactorToUse) {
         managedTransactor = managedTransactorToUse;
@@ -69,39 +80,15 @@ public class HTransactorFactory extends SIConstants {
 				return managedTransactor.getTransactor();
     }
 
-		public static RollForwardQueueFactory<byte[],HbRegion> getRollForwardQueueFactory(){
-				if(rollForwardQueueFactory !=null)
-						return rollForwardQueueFactory;
-				throw new UnsupportedOperationException("REPLACE WITH ROLL FORWARD");
-
-//				synchronized (HTransactorFactory.class){
-//						rollForwardQueueFactory = new HBaseRollForwardQueueFactory(new Provider<TransactionStore>() {
-//								@Override
-//								public TransactionStore get() {
-//										initializeIfNeeded();
-////										return transactionStore;
-//								}
-//						},new Provider<DataStore>() {
-//								@Override
-//								public DataStore get() {
-//										initializeIfNeeded();
-//										return dataStore;
-//								}
-//						});
-//				}
-
-//				return rollForwardQueueFactory;
-		}
-
 		public static TransactionReadController<Get,Scan> getTransactionReadController(){
 				initializeIfNeeded();
 				return readController;
 		}
 
-//		public static TransactionStore getTransactionStore() {
-//				initializeIfNeeded();
-////				return transactionStore;
-//		}
+		public static ReadResolver getReadResolver(HRegion region){
+				initializeIfNeeded();
+				return asyncReadResolver.getResolver(region);
+		}
 
 		@SuppressWarnings("unchecked")
 		private static void initializeIfNeeded(){
@@ -204,6 +191,35 @@ public class HTransactorFactory extends SIConstants {
 		}
 
 		public static TimestampSource getTimestampSource() {
+				TimestampSource ts = timestampSource;
+				if(ts!=null) return ts;
+				initializeIfNeeded();
+				return timestampSource;
+		}
+
+		public static void setTimestampSource(TimestampSource timestampSource) {
+				HTransactorFactory.timestampSource = timestampSource;
+		}
+
+		public static void setTxnStore(TxnStore store){
+				HTransactorFactory.txnStore = store;
+//				HTransactorFactory.txnSupplier = store;
+				HTransactorFactory.txnSupplier = new CompletedTxnCacheSupplier(store,SIConstants.activeTransactionCacheSize,16);
+		}
+
+		public static RollForward getRollForward(HRegion region) {
+				throw new UnsupportedOperationException("IMPLEMENT");
+		}
+
+		public static TxnSupplier getTxnSupplier() {
+				throw new UnsupportedOperationException("IMPLEMENT");
+		}
+
+		public static DataStore getDataStore() {
+				throw new UnsupportedOperationException("IMPLEMENT");
+		}
+
+		public static SDataLib getDataLib() {
 				throw new UnsupportedOperationException("IMPLEMENT");
 		}
 }

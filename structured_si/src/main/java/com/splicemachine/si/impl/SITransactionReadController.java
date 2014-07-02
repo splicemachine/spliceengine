@@ -74,58 +74,36 @@ public class SITransactionReadController<
 		}
 
 		@Override
-		public IFilterState newFilterState(TransactionId transactionId) throws IOException {
-				return newFilterState(null, transactionId);
-		}
-
-		@Override
-		public IFilterState newFilterState(Txn txn) throws IOException {
+		public TxnFilter newFilterState(Txn txn) throws IOException {
 				return newFilterState(null,txn);
 		}
 
 		@Override
-		public IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId) throws IOException {
-				return new TxnFilterState(txnSupplier, txnSupplier.getTransaction(transactionId.getId()),NoOpReadResolver.INSTANCE,
-								dataStore);
+		public TxnFilter newFilterState(ReadResolver readResolver, Txn txn) throws IOException {
+				return new SimpleTxnFilter(txnSupplier,txn,readResolver,dataStore);
 		}
 
 		@Override
-		public IFilterState newFilterState(RollForwardQueue rollForwardQueue, Txn txn) throws IOException {
-				return new TxnFilterState(txnSupplier, txn,NoOpReadResolver.INSTANCE, dataStore);
-		}
-
-		@Override
-		@SuppressWarnings("unchecked")
-		public IFilterState newFilterStatePacked(String tableName,
-																						 RollForwardQueue rollForwardQueue,
-																						 EntryPredicateFilter predicateFilter,
-																						 TransactionId transactionId, boolean countStar) throws IOException {
-				return new FilterStatePacked(
-								newFilterState(rollForwardQueue, transactionId),
-								new HRowAccumulator(predicateFilter, new EntryDecoder(), countStar ));
-		}
-
-		@Override
-		public IFilterState newFilterStatePacked(ReadResolver readResolver,
+		public TxnFilter newFilterStatePacked(ReadResolver readResolver,
 																						 EntryPredicateFilter predicateFilter, Txn txn, boolean countStar) throws IOException {
-				return new FilterStatePacked(newFilterState(txn),
+				return new PackedTxnFilter(newFilterState(txn),
 								new HRowAccumulator(predicateFilter,new EntryDecoder(),countStar));
 		}
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public Filter.ReturnCode filterKeyValue(IFilterState filterState, KeyValue keyValue) throws IOException {
+		public Filter.ReturnCode filterKeyValue(TxnFilter filterState, KeyValue keyValue) throws IOException {
 				return filterState.filterKeyValue(keyValue);
 		}
 
 		@Override
-		public void filterNextRow(IFilterState filterState) {
+		public void filterNextRow(TxnFilter filterState) {
 				filterState.nextRow();
 		}
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public Result filterResult(IFilterState filterState, Result result) throws IOException {
+		public Result filterResult(TxnFilter filterState, Result result) throws IOException {
 				//TODO -sf- this is only used in testing--ignore when production tuning
 				final SDataLib<Put, Delete, Get, Scan> dataLib = dataStore.dataLib;
 				final List<KeyValue> filteredCells = Lists.newArrayList();

@@ -3,7 +3,6 @@ package com.splicemachine.si;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import java.util.concurrent.Executors;
 
 /**
  * @author Scott Fines

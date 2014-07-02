@@ -16,10 +16,13 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 
 /**
+ * Transaction filter which performs basic transactional filtering (i.e. row visibility, tombstones,
+ * anti-tombstones, etc.)
+ *
  * @author Scott Fines
  * Date: 6/23/14
  */
-public class TxnFilterState implements IFilterState{
+public class SimpleTxnFilter implements TxnFilter {
 		private final TxnSupplier transactionStore;
 		private final Txn myTxn;
 		private final DataStore<Mutation,Put,Delete,Get,Scan,IHTable> dataStore;
@@ -32,10 +35,10 @@ public class TxnFilterState implements IFilterState{
 		private final ByteSlice rowKey = new ByteSlice();
 
 		@SuppressWarnings("unchecked")
-		public TxnFilterState(TxnSupplier transactionStore,
-													Txn myTxn,
-													ReadResolver readResolver,
-													DataStore dataStore) {
+		public SimpleTxnFilter(TxnSupplier transactionStore,
+													 Txn myTxn,
+													 ReadResolver readResolver,
+													 DataStore dataStore) {
 				this.transactionStore = new ActiveTxnCacheSupplier(transactionStore, SIConstants.activeTransactionCacheSize); //cache active transactions, but only on this thread
 				this.myTxn = myTxn;
 				this.readResolver = readResolver;

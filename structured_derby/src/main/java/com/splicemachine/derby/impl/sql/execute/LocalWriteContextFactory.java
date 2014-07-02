@@ -1,5 +1,32 @@
 package com.splicemachine.derby.impl.sql.execute;
 
+import com.carrotsearch.hppc.BitSet;
+import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.ddl.*;
+import com.splicemachine.derby.impl.sql.execute.AlterTable.DropColumnHandler;
+import com.splicemachine.derby.impl.sql.execute.constraint.*;
+import com.splicemachine.derby.impl.sql.execute.index.*;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
+import com.splicemachine.hbase.batch.*;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.TransactionStatus;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.impl.DDLFilter;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.tools.ResettableCountDownLatch;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.catalog.IndexDescriptor;
+import org.apache.derby.catalog.UUID;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.context.ContextManager;
+import org.apache.derby.iapi.services.context.ContextService;
+import org.apache.derby.iapi.sql.dictionary.*;
+import org.apache.derby.impl.sql.execute.ColumnInfo;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
@@ -8,45 +35,11 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
-
-import com.carrotsearch.hppc.BitSet;
-import com.google.common.collect.Lists;
-import com.splicemachine.derby.ddl.*;
-import com.splicemachine.hbase.batch.*;
-import com.splicemachine.si.api.*;
-import org.apache.derby.catalog.IndexDescriptor;
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.sql.dictionary.*;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.log4j.Logger;
-
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
-import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
-import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintHandler;
-import com.splicemachine.derby.impl.sql.execute.constraint.PrimaryKey;
-import com.splicemachine.derby.impl.sql.execute.constraint.UniqueConstraint;
-import com.splicemachine.derby.impl.sql.execute.index.IndexDeleteWriteHandler;
-import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
-import com.splicemachine.derby.impl.sql.execute.index.IndexUpsertWriteHandler;
-import com.splicemachine.derby.impl.sql.execute.index.SnapshotIsolatedWriteHandler;
-import com.splicemachine.derby.impl.sql.execute.index.UniqueIndexUpsertWriteHandler;
-import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.si.impl.DDLFilter;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.concurrent.ResettableCountDownLatch;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.impl.sql.execute.ColumnInfo;
-import com.splicemachine.derby.impl.sql.execute.AlterTable.DropColumnHandler;
 /**
  * @author Scott Fines
  * Created on: 4/30/13
  */
-public class LocalWriteContextFactory implements WriteContextFactory<RegionCoprocessorEnvironment> {
+public class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegion> {
     private static final Logger LOG = Logger.getLogger(LocalWriteContextFactory.class);
 
     private static final long STARTUP_LOCK_BACKOFF_PERIOD = SpliceConstants.startupLockWaitPeriod;
@@ -78,19 +71,19 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
     @Override
-    public WriteContext create(String txnId,RegionCoprocessorEnvironment rce) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(txnId,rce);
-        context.addLast(new RegionWriteHandler(rce.getRegion(), tableWriteLatch, writeBatchSize, null));
+    public WriteContext create(String txnId,TransactionalRegion region) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(txnId,region);
+        context.addLast(new RegionWriteHandler(region, tableWriteLatch, writeBatchSize, null));
         addIndexInformation(1000, context);
         return context;
     }
 
     @Override
-    public WriteContext create(String txnId, RegionCoprocessorEnvironment rce,
-                               RollForwardQueue queue,int expectedWrites) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(txnId,rce);
+    public WriteContext create(String txnId, TransactionalRegion region,
+															 int expectedWrites) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(txnId,region);
 				BatchConstraintChecker checker = buildConstraintChecker();
-        context.addLast(new RegionWriteHandler(rce.getRegion(), tableWriteLatch, writeBatchSize, queue,checker));
+        context.addLast(new RegionWriteHandler(region, tableWriteLatch, writeBatchSize,checker));
         addIndexInformation(expectedWrites, context);
         return context;
     }
@@ -143,8 +136,8 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
     @Override
-    public WriteContext createPassThrough(String txnId,RegionCoprocessorEnvironment key,int expectedWrites) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(txnId,key);
+    public WriteContext createPassThrough(String txnId,TransactionalRegion region,int expectedWrites) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(txnId,region);
         addIndexInformation(expectedWrites, context);
 
         return context;
@@ -266,9 +259,8 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             throw new IndexNotSetUpException("Unable to initialize index management for table "+ congomId
                     +" within a sufficient time frame. Please wait a bit and try again");
         }
-        boolean success = false;
         ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
-        SpliceTransactionResourceImpl transactionResource = null;
+        SpliceTransactionResourceImpl transactionResource;
         try {
             transactionResource = new SpliceTransactionResourceImpl();
             transactionResource.prepareContextManager();
@@ -288,7 +280,6 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                     }
                 }
                 state.set(State.RUNNING);
-                success=true;
             } catch (SQLException e) {
                 SpliceLogUtils.error(LOG,"Unable to acquire a database connection, aborting write, but backing" +
                         "off so that other writes can try again",e);
@@ -328,7 +319,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         //get primary key constraint
         //-sf- Hbase scan
         int[] columnOrdering = null;
-        int[] formatIds = null;
+        int[] formatIds;
         ColumnDescriptorList cdList = td.getColumnDescriptorList();
         int size = cdList.size();
         formatIds= new int[size];

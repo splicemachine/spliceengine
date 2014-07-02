@@ -12,8 +12,8 @@ import org.cliffc.high_scale_lib.Counter;
  * Date: 6/26/14
  */
 class RegionSegment {
-		private final byte[] startKey;
-		private final byte[] endKey;
-		private final Counter toResolve = new Counter();
-		private final ConcurrentHyperLogLogCounter txnCounter =
+//		private final byte[] startKey;
+//		private final byte[] endKey;
+//		private final Counter toResolve = new Counter();
+//		private final ConcurrentHyperLogLogCounter txnCounter =
 }

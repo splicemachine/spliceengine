@@ -17,6 +17,14 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.TxnRegion;
+import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.DataStore;
+import com.splicemachine.si.impl.NoOpReadResolver;
+import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HConstants;
@@ -62,10 +70,12 @@ public class IndexedPipelineTest {
         final ObjectArrayList<Mutation> mainTableWrites = ObjectArrayList.newInstance();
         HRegion testRegion = MockRegion.getMockRegion(MockRegion.getNotServingRegionAnswer());
 
-        RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);
-        when(rce.getRegion()).thenReturn(testRegion);
+				TxnSupplier supplier = mock(TxnSupplier.class);
+				//TODO -sf- make this simpler
+				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
+								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
 
-        final PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",rce));
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",txnRegion));
 
         //get a fake PipingWriteBuffer
         final String txnId = "1";
@@ -103,7 +113,7 @@ public class IndexedPipelineTest {
         BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns, new BitSet(), new BitSet(), new BitSet());
 
 
-        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100,null);
+        RegionWriteHandler regionHandler = new RegionWriteHandler(txnRegion,new ResettableCountDownLatch(0),100,null);
         testCtx.addLast(regionHandler);
         testCtx.addLast(writeHandler);
 
@@ -141,10 +151,11 @@ public class IndexedPipelineTest {
         final ObjectArrayList<Mutation> mainTableWrites = ObjectArrayList.newInstance();
         HRegion testRegion = MockRegion.getMockRegion(MockRegion.getNotServingRegionAnswer());
 
-        RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);
-        when(rce.getRegion()).thenReturn(testRegion);
-
-        final PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",rce));
+				TxnSupplier supplier = mock(TxnSupplier.class);
+				//TODO -sf- make this simpler
+				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
+								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",txnRegion));
 
         //get a fake PipingWriteBuffer
         final String txnId = "1";
@@ -182,7 +193,7 @@ public class IndexedPipelineTest {
         BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns, new BitSet(), new BitSet(), new BitSet());
 
 
-        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100,null);
+        RegionWriteHandler regionHandler = new RegionWriteHandler(txnRegion,new ResettableCountDownLatch(0),100,null);
         testCtx.addLast(regionHandler);
         testCtx.addLast(writeHandler);
 
@@ -235,10 +246,11 @@ public class IndexedPipelineTest {
         HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(mainTableWrites));
         when(testRegion.getRegionInfo().getEndKey()).thenReturn(Encoding.encode(10));
 
-        RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);
-        when(rce.getRegion()).thenReturn(testRegion);
-
-        final PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",rce));
+				TxnSupplier supplier = mock(TxnSupplier.class);
+				//TODO -sf- make this simpler
+				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
+								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",txnRegion));
 
         //get a fake PipingWriteBuffer
         final String txnId = "1";
@@ -276,7 +288,7 @@ public class IndexedPipelineTest {
         BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns, new BitSet(), new BitSet(), new BitSet());
 
 
-        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100,null);
+        RegionWriteHandler regionHandler = new RegionWriteHandler(txnRegion,new ResettableCountDownLatch(0),100,null);
         testCtx.addLast(regionHandler);
         testCtx.addLast(writeHandler);
 
@@ -328,10 +340,12 @@ public class IndexedPipelineTest {
         HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(mainTableWrites));
         when(testRegion.isClosed()).thenReturn(true);
 
-        RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);
-        when(rce.getRegion()).thenReturn(testRegion);
 
-        final PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",rce));
+				TxnSupplier supplier = mock(TxnSupplier.class);
+				//TODO -sf- make this simpler
+				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
+								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",txnRegion));
 
         //get a fake PipingWriteBuffer
         final String txnId = "1";
@@ -369,7 +383,7 @@ public class IndexedPipelineTest {
         BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns, new BitSet(), new BitSet(), new BitSet());
 
 
-        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100,null);
+        RegionWriteHandler regionHandler = new RegionWriteHandler(txnRegion,new ResettableCountDownLatch(0),100,null);
         testCtx.addLast(regionHandler);
         testCtx.addLast(writeHandler);
 
@@ -407,11 +421,11 @@ public class IndexedPipelineTest {
         final ObjectArrayList<Mutation> mainTableWrites = ObjectArrayList.newInstance();
         HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(mainTableWrites));
 
-
-        RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);
-        when(rce.getRegion()).thenReturn(testRegion);
-
-        PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",rce));
+				TxnSupplier supplier = mock(TxnSupplier.class);
+				//TODO -sf- make this simpler
+				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
+								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
+        PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",txnRegion));
 
         //get a fake PipingWriteBuffer
         final String txnId = "1";
@@ -449,7 +463,7 @@ public class IndexedPipelineTest {
         BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns, new BitSet(), new BitSet(), new BitSet());
 
 
-        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100,null);
+        RegionWriteHandler regionHandler = new RegionWriteHandler(txnRegion,new ResettableCountDownLatch(0),100,null);
         testCtx.addLast(regionHandler);
         testCtx.addLast(writeHandler);
 

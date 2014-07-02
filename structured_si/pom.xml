@@ -199,10 +199,8 @@
 								<option>-keep public class com.splicemachine.si.impl.WriteConflict { public *; }
 								</option>
 								<option>-keep public class com.splicemachine.si.impl.DDLFilter { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.FilterStatePacked { public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.impl.PushBackIterator { public *; }
-								</option>
+								<option>-keep public class com.splicemachine.si.impl.PackedTxnFilter { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.PushBackIterator { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.Transaction { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.TransactionStore { public *; }
 								</option>
@@ -300,7 +298,7 @@
 								<option>-keep public class com.splicemachine.si.api.RollForwardQueue { public *; }
 								</option>
 								<!-- ### Method, newFilterState, needs this as a parameter. ### -->
-								<option>-keep public class com.splicemachine.si.impl.IFilterState { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TxnFilter { public *; }</option>
 								<!-- ### Method, newFilterState, needs this as a parameter. ### -->
 								<option>-keep public class com.splicemachine.si.impl.FilterState { public *; }</option>
 								<!-- ### Needed by ij for INSERT statements. ### -->
