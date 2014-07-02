@@ -1,7 +1,8 @@
-package com.splicemachine.si.impl;
+package com.splicemachine.si.impl.store;
 
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.impl.LazyTxn;
 
 import java.io.IOException;
 

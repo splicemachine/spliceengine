@@ -1,4 +1,4 @@
-package com.splicemachine.si.impl;
+package com.splicemachine.si.impl.readresolve;
 
 import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.utils.ByteSlice;

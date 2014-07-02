@@ -10,7 +10,7 @@ import com.splicemachine.si.api.TxnRegion;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.DataStore;
-import com.splicemachine.si.impl.NoOpReadResolver;
+import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.concurrent.ResettableCountDownLatch;
 import org.apache.hadoop.hbase.HRegionInfo;

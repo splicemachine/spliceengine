@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.Encoding;
+import com.splicemachine.si.SimpleTimestampSource;
 import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
@@ -21,6 +22,7 @@ import org.mockito.stubbing.Answer;
 import java.io.IOException;
 import java.util.Map;
 
+import static com.splicemachine.si.impl.TxnTestUtils.getMockDataStore;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.*;
@@ -29,7 +31,7 @@ import static org.mockito.Mockito.*;
  * @author Scott Fines
  * Date: 6/23/14
  */
-public class TxnFilterStateTest {
+public class SimpleTxnFilterTest {
 
 		@Test
 		public void testCanSeeCommittedRowSnapshotIsolation() throws Exception {
@@ -38,7 +40,7 @@ public class TxnFilterStateTest {
 
 				//add a committed transaction to the map
 				Txn committed = new CommittedTxn(0,1);
-				txnMap.put(0l,committed);
+				txnMap.put(0l, committed);
 
 				ReadResolver noopResolver = mock(ReadResolver.class);
 				DataStore ds = getMockDataStore();
@@ -67,7 +69,7 @@ public class TxnFilterStateTest {
 
 				//add a rolledBack transaction to the map
 				Txn rolledBack = new RolledBackTxn(0l);
-				txnMap.put(0l,rolledBack);
+				txnMap.put(0l, rolledBack);
 
 				DataStore ds = getMockDataStore();
 
@@ -253,27 +255,14 @@ public class TxnFilterStateTest {
 								return txnMap.get(invocationOnMock.getArguments()[0]);
 						}
 				});
-				return baseStore;
-		}
-
-		private DataStore getMockDataStore() {
-				DataStore ds = mock(DataStore.class);
-				when(ds.getKeyValueType(any(KeyValue.class))).thenAnswer(new Answer<KeyValueType>() {
+				when(baseStore.getTransaction(anyLong(),anyBoolean())).thenAnswer(new Answer<Txn>() {
 						@Override
-						public KeyValueType answer(InvocationOnMock invocationOnMock) throws Throwable {
-								KeyValue arg = (KeyValue)invocationOnMock.getArguments()[0];
-								if(Bytes.equals(SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, arg.getQualifier()))
-										return KeyValueType.COMMIT_TIMESTAMP;
-								else if(Bytes.equals(SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,arg.getQualifier()))
-										return KeyValueType.TOMBSTONE;
-								else if(Bytes.equals(SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES,arg.getQualifier()))
-										return KeyValueType.ANTI_TOMBSTONE;
-								else if(Bytes.equals(SpliceConstants.PACKED_COLUMN_BYTES,arg.getQualifier()))
-										return KeyValueType.USER_DATA;
-								else return KeyValueType.OTHER;
+						public Txn answer(InvocationOnMock invocationOnMock) throws Throwable {
+								//noinspection SuspiciousMethodCalls
+								return txnMap.get(invocationOnMock.getArguments()[0]);
 						}
 				});
-				return ds;
+				return baseStore;
 		}
 
 		private ReadResolver getRollBackReadResolver(final Pair<ByteSlice, Long> rolledBackTs) {

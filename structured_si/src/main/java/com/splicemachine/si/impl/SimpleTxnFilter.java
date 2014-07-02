@@ -7,6 +7,7 @@ import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
@@ -119,6 +120,7 @@ public class SimpleTxnFilter implements TxnFilter {
 				}
 				visitedTxnIds.add(ts); //prevent future columns from performing read-resolution on the same row
 				Txn t = transactionStore.getTransaction(ts);
+				assert t!=null :"Could not find a transaction for id "+ ts;
 				//get the row data. This will allow efficient movement of the row key without copying byte[]s
 				rowKey.set(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength());
 
@@ -217,6 +219,9 @@ public class SimpleTxnFilter implements TxnFilter {
 						 * a failure, so we have to check for it.
 						 */
 						if(dataStore.isSIFail(keyValue)){
+								//use the current read-resolver to remove the entry
+								rowKey.set(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength());
+								readResolver.resolveRolledback(rowKey,keyValue.getTimestamp());
 								transactionStore.cache(new RolledBackTxn(txnId));
 						}else{
 								long commitTs = Bytes.toLong(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());

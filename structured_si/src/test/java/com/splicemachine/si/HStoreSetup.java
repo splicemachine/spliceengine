@@ -14,6 +14,8 @@ import com.splicemachine.si.data.hbase.HTableReader;
 import com.splicemachine.si.data.hbase.HTableWriter;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
+import com.splicemachine.si.impl.store.LazyTxnSupplier;
 import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;

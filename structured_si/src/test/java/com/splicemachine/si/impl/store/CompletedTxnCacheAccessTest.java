@@ -1,10 +1,12 @@
-package com.splicemachine.si.impl;
+package com.splicemachine.si.impl.store;
 
 import com.splicemachine.si.SimpleTimestampSource;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnStore;
+import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.impl.InMemoryTxnStore;
+import com.splicemachine.si.impl.WritableTxn;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
