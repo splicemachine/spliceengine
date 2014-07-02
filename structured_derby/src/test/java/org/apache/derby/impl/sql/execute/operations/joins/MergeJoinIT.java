@@ -181,18 +181,12 @@ public class MergeJoinIT extends SpliceUnitTest {
                                                                                pair.getFirst(),
                                                                                pair.getSecond()));
                     List<Object[]> results = TestUtils.resultSetToArrays(rs);
-                    System.out.println(String.format("Results for %s", pair));
-                    for (Object[] r: results){
-                        System.out.println(Arrays.toString(r));
-                    }
                     Assert.assertArrayEquals(String.format("%s over %s produces incorrect results",
                                                               pair.getSecond(), pair.getFirst()),
                                                 expected.toArray(),
                                                 results.toArray());
                 } catch (Exception e) {
                     Assert.fail(String.format("%s failed with exception %s", pair, e));
-                    //System.out.println(String.format("%s failed with exception %s", pair, e));
-                    //e.printStackTrace();
                 }
             }
 
