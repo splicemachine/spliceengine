@@ -149,31 +149,17 @@ public class BroadcastJoinOperation extends JoinOperation {
         return next;
     }
 
-		private static final ExecutorService rhsLookupService = SameThreadExecutorService.instance();
-    /*
-    private static final ExecutorService rhsLookupService =
-        Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-                                          .setDaemon(true)
-                                          .setNameFormat("broadcast-lookup-%d")
-                                          .build());
-                                          */
+    private static final ExecutorService rhsLookupService = SameThreadExecutorService.instance();
 
     private Joiner initJoiner(final SpliceRuntimeContext ctx)
         throws StandardException, IOException {
-                /*
-				 * When the Broadcast join is above an operation like GroupedAggregate, it may end up being
-				 * executed on the control node, instead of region locally. In that case, we won't have submitted
-				 * the right-side lookup yet, so we'll need to do that.
-				 */
+        /*
+         * When the Broadcast join is above an operation like GroupedAggregate, it may end up being
+         * executed on the control node, instead of region locally. In that case, we won't have submitted
+         * the right-side lookup yet, so we'll need to do that.
+         */
         if (rhsFuture == null)
             submitRightHandSideLookup(ctx);
-//        try {
-//            this.rightSideMap = rhsFuture.get();
-//        } catch (InterruptedException ie) {
-//            Thread.currentThread().interrupt();
-//        } catch (ExecutionException e) {
-//            throw Exceptions.parseException(e);
-//        }
         StandardPushBackIterator<ExecRow> leftRows =
             new StandardPushBackIterator<ExecRow>(StandardIterators.wrap(new Callable<ExecRow>() {
                 @Override
@@ -185,7 +171,6 @@ public class BroadcastJoinOperation extends JoinOperation {
                     return row;
                 }
             }, leftResultSet));
-        // fetch LHS rows while waiting
         leftRows.open();
         ExecRow firstLeft = leftRows.next(ctx);
         leftRows.pushBack(firstLeft == null ? null : firstLeft.getClone());
@@ -225,46 +210,7 @@ public class BroadcastJoinOperation extends JoinOperation {
 
     private void submitRightHandSideLookup(final SpliceRuntimeContext ctx) {
         if (rhsFuture != null) return;
-
         rhsFuture = rhsLookupService.submit(new RightHandLoader(ctx, rightRow.getClone()));
-//        rhsFuture = new Future<Map<ByteBuffer, List<ExecRow>>>() {
-//            @Override
-//            public boolean cancel(boolean b) {
-//                return false;
-//            }
-//
-//            @Override
-//            public boolean isCancelled() {
-//                return false;
-//            }
-//
-//            @Override
-//            public boolean isDone() {
-//                return true;
-//            }
-//
-//            @Override
-//            public Map<ByteBuffer, List<ExecRow>> get() throws InterruptedException,
-//                                                               ExecutionException {
-//                try {
-//                    return new RightHandLoader(ctx, rightRow.getClone()).call();
-//                } catch (Exception e){
-//                    throw new ExecutionException(e);
-//                }
-//            }
-//
-//            @Override
-//            public Map<ByteBuffer, List<ExecRow>> get(long l, TimeUnit timeUnit) throws
-//                                                                                 InterruptedException,
-//                                                                                 ExecutionException,
-//                                                                                 TimeoutException {
-//                try {
-//                    return new RightHandLoader(ctx, rightRow.getClone()).call();
-//                } catch (Exception e){
-//                    throw new ExecutionException(e);
-//                }
-//            }
-//        };
     }
 
     @Override
@@ -318,12 +264,16 @@ public class BroadcastJoinOperation extends JoinOperation {
         SpliceLogUtils.trace(LOG, "regionOperation=%s", opStack);
         RowProvider provider;
         PairDecoder decoder = OperationUtils.getPairDecoder(this, runtimeContext);
-        if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)) {
-            provider = regionOperation.getReduceRowProvider(this, decoder, runtimeContext, true);
-        } else {
-            provider = regionOperation.getMapRowProvider(this, decoder, runtimeContext);
+        try {
+            if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)) {
+                provider = regionOperation.getReduceRowProvider(this, decoder, runtimeContext, true);
+            } else {
+                provider = regionOperation.getMapRowProvider(this, decoder, runtimeContext);
+            }
+            return new SpliceNoPutResultSet(activation, this, provider);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
         }
-        return new SpliceNoPutResultSet(activation, this, provider);
     }
 
     @Override
