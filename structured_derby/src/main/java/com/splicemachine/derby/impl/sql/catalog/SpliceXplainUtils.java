@@ -14,38 +14,7 @@ import java.sql.*;
  *         Date: 1/21/14
  */
 public class SpliceXplainUtils {
-		/**
-		 * This procedure sets the current xplain schema.
-		 * If the schema is not set, runtime statistics are captured as a
-		 * textual stream printout. If it is set, statisitcs information is
-		 * stored in that schema in user tables.
-		 * @param schemaName May be an empty string.
-		 * @throws java.sql.SQLException
-		 */
-		@SuppressWarnings("UnusedDeclaration")
-		public static void SYSCS_SET_XPLAIN_SCHEMA(String schemaName)
-																					throws SQLException, StandardException {
-				LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
 
-				if (schemaName == null || schemaName.trim().length() == 0) {
-						lcc.setXplainSchema(null);
-						return;
-				}
-                schemaName = schemaName.toUpperCase();
-				boolean statsSave = lcc.getRunTimeStatisticsMode();
-				lcc.setRunTimeStatisticsMode(false);
-				createXplainSchema(schemaName);
-				createXplainTable(schemaName,
-								new XPLAINStatementHistoryDescriptor());
-				createXplainTable(schemaName,
-								new XPLAINOperationHistoryDescriptor());
-				createXplainTable(schemaName,
-								new XPLAINTaskDescriptor());
-
-//				createXplainView(schemaName, "SYSXPLAIN_OPERATION_DETAILS", XPLAINTaskDescriptor.getOperationDetailView(schemaName));
-				lcc.setRunTimeStatisticsMode(statsSave);
-				lcc.setXplainSchema(schemaName);
-		}
 		private static boolean hasSchema(Connection conn, String schemaName) throws SQLException {
 				ResultSet rs = conn.getMetaData().getSchemas();
 				boolean schemaFound = false;
@@ -74,18 +43,7 @@ public class SpliceXplainUtils {
 				conn.close();
 		}
 
-		// Create the XPLAIN table if it doesn't already exist
-		private static void createXplainTable(String schemaName, XPLAINTableDescriptor t) throws SQLException {
-				String ddl = t.getTableDDL(schemaName);
-				Connection conn = getDefaultConn();
-				if (!hasTable(conn, schemaName, t.getTableName())) {
-						Statement s = conn.createStatement();
-						s.executeUpdate(ddl);
-						s.close();
-						conn.commit();
-				}
-				conn.close();
-		}
+
 
 		private static void createXplainView(String schemaName,String viewName, String viewSQL) throws SQLException{
 				Connection conn = getDefaultConn();

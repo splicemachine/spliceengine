@@ -33,6 +33,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 	protected static final Logger LOG = Logger.getLogger(SpliceDataDictionary.class);
     public static final int SYSPRIMARYKEYS_CATALOG_NUM = 23;
     private volatile TabInfoImpl pkTable = null;
+    private volatile TabInfoImpl statementHistoryTable = null;
+    private volatile TabInfoImpl operationHistoryTable = null;
+    private volatile TabInfoImpl taskHistoryTable = null;
 
     @Override
     protected SystemProcedureGenerator getSystemProcedures() {
@@ -132,6 +135,29 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         return pkTable;
     }
 
+    private TabInfoImpl getStatementHistoryTable() throws StandardException {
+        if (statementHistoryTable == null) {
+            statementHistoryTable = new TabInfoImpl(new SYSSTATEMENTHISTORYRowFactory(uuidFactory,exFactory,dvf));
+        }
+        initSystemIndexVariables(statementHistoryTable);
+        return statementHistoryTable;
+    }
+
+    private TabInfoImpl getOperationHistoryTable() throws StandardException {
+        if (operationHistoryTable == null) {
+            operationHistoryTable = new TabInfoImpl(new SYSOPERATIONHISTORYRowFactory(uuidFactory,exFactory,dvf));
+        }
+        initSystemIndexVariables(operationHistoryTable);
+        return operationHistoryTable;
+    }
+
+    private TabInfoImpl getTaskHistoryTable() throws StandardException {
+        if (taskHistoryTable == null) {
+            taskHistoryTable = new TabInfoImpl(new SYSTASKHISTORYRowFactory(uuidFactory,exFactory,dvf));
+        }
+        initSystemIndexVariables(taskHistoryTable);
+        return taskHistoryTable;
+    }
     @Override
     protected void createDictionaryTables(Properties params,
                                           TransactionController tc,
@@ -140,9 +166,16 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         super.createDictionaryTables(params, tc, ddg);
 
         //create SYSPRIMARYKEYS
-
-
         makeCatalog(getPkTable(), getSystemSchemaDescriptor(), tc);
+
+        //create SYSSTATEMENTHISTORY
+        makeCatalog(getStatementHistoryTable(), getSystemSchemaDescriptor(), tc);
+
+        //create SYSOPERATIONHISTORY
+        makeCatalog(getOperationHistoryTable(), getSystemSchemaDescriptor(), tc);
+
+        //SYSTASKHISTORY
+        makeCatalog(getTaskHistoryTable(), getSystemSchemaDescriptor(), tc);
     }
     
     public static void verifySetup() {

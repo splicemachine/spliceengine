@@ -548,7 +548,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
 						OperationRuntimeStats metrics = RowCountOperation.this.getMetrics(statementId, operationId, true);
 						metrics.setHostName(SpliceUtils.getHostName());
-						SpliceDriver.driver().getTaskReporter().report(xplainSchema,metrics);
+						SpliceDriver.driver().getTaskReporter().report(metrics);
 				}
 
 				@Override

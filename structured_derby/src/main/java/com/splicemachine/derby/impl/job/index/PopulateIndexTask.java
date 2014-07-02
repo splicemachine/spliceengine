@@ -291,7 +291,7 @@ public class PopulateIndexTask extends ZkTask {
 
 						OperationRuntimeStats.addWriteStats(writeStats,stats);
 
-						SpliceDriver.driver().getTaskReporter().report(xplainSchema,stats);
+						SpliceDriver.driver().getTaskReporter().report(stats);
 				}
 		}
 

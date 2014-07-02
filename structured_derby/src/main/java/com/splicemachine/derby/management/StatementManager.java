@@ -48,25 +48,28 @@ public class StatementManager implements StatementManagement{
             }
 		}
 
-		public void completedStatement(StatementInfo statementInfo,String xplainSchema){
-				statementInfo.markCompleted(); //make sure the stop time is set
-				int position = statementInfoPointer.getAndIncrement()%completedStatements.length();
-				completedStatements.set(position, statementInfo);
-				executingStatements.remove(statementInfo);
+		public void completedStatement(StatementInfo statementInfo, boolean shouldTrace){
+            statementInfo.markCompleted(); //make sure the stop time is set
+            int position = statementInfoPointer.getAndIncrement()%completedStatements.length();
+            completedStatements.set(position, statementInfo);
+            executingStatements.remove(statementInfo);
+
             if (LOG.isTraceEnabled()) {
                 LOG.trace(String.format("Completing stmt from executings, size=%s, stmtUuid=%s",
                                                executingStatements.size(),
                                                statementInfo.getStatementUuid()));
             }
-				if(xplainSchema!=null){
-                        if (statementInfo.getSql().compareTo("null") != 0) {
-                            statementReporter.report(xplainSchema, statementInfo);
-                        }
-						Set<OperationInfo> operationInfo = statementInfo.getOperationInfo();
-						for(OperationInfo info:operationInfo){
-								operationReporter.report(xplainSchema,info);
-						}
-				}
+
+            if (shouldTrace) {
+                if (statementInfo.getSql().compareTo("null") != 0) {
+                    statementReporter.report(statementInfo);
+                }
+                Set<OperationInfo> operationInfo = statementInfo.getOperationInfo();
+                for (OperationInfo info : operationInfo) {
+                    operationReporter.report(info);
+                }
+            }
+
 		}
 
 		@Override

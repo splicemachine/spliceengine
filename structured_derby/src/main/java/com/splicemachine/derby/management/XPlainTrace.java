@@ -20,12 +20,12 @@ import java.util.NavigableMap;
 
 public class XPlainTrace {
 
-    private static final String operationTableName = "SYSXPLAIN_OPERATIONHISTORY";
-    private static final String taskTableName = "SYSXPLAIN_TASKHISTORY";
+    private static final String operationTableName = "SYSOPERATIONHISTORY";
+    private static final String taskTableName = "SYSTASKHISTORY";
     private static final String projectRestrict = "ProjectRestrict";
 
     /* SYSCS_UTIL.XPLAIN_TRACE() parameters */
-    private String schemaName;
+    private static final String SCHEMANAME="SYS";
     private long statementId;
     private int mode;
     private String format;
@@ -41,8 +41,7 @@ public class XPlainTrace {
     private XPlainTracePrinter printer;
 
 
-    public XPlainTrace(String sName, long sId, int mode, String format) throws SQLException {
-        this.schemaName = sName;
+    public XPlainTrace(long sId, int mode, String format) throws SQLException {
         this.statementId = sId;
         xPlainTreeNodeMap = new HashMap<Long, XPlainTreeNode>(10);
         sequenceId = 0;
@@ -212,7 +211,7 @@ public class XPlainTrace {
     private ResultSet getTaskHistory() throws SQLException{
 
         StringBuilder query = new StringBuilder("select * from ");
-        query.append(schemaName)
+        query.append(SCHEMANAME)
                 .append(".")
                 .append(taskTableName)
                 .append(" where statementId=")
@@ -271,7 +270,7 @@ public class XPlainTrace {
         StringBuilder query =
                 new StringBuilder("select operationId, parent_operation_id, operation_type, is_right_child_op, info from ");
 
-        query.append(schemaName)
+        query.append(SCHEMANAME)
                 .append(".")
                 .append(operationTableName)
                 .append(" where statementId=")

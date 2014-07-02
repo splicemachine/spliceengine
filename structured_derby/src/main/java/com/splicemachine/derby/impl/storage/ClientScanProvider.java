@@ -109,7 +109,7 @@ public class ClientScanProvider extends AbstractScanProvider {
 				stats.addMetric(OperationMetric.START_TIMESTAMP,startExecutionTime);
 				stats.addMetric(OperationMetric.STOP_TIMESTAMP,stopExecutionTime);
 
-				SpliceDriver.driver().getTaskReporter().report(xplainSchema,stats);
+				SpliceDriver.driver().getTaskReporter().report(stats);
 		}
 
 		@Override

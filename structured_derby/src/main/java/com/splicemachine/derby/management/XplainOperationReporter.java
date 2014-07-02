@@ -13,7 +13,7 @@ import com.splicemachine.storage.EntryEncoder;
  */
 public class XplainOperationReporter extends XplainReporter<OperationInfo> {
 		public XplainOperationReporter(int numWorkers) {
-				super("SYSXPLAIN_OPERATIONHISTORY",numWorkers);
+				super("SYSOPERATIONHISTORY",numWorkers);
 		}
 
 		@Override

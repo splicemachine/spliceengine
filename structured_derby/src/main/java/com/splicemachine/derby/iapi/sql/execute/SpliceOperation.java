@@ -30,20 +30,15 @@ public interface SpliceOperation extends StandardCloseable {
 
     void setCurrentRowLocation(RowLocation rowLocation);
 
-		/**
-		 * @return a descriptive name for this operation. Used for reporting information.
-		 */
-		String getName();
+    /**
+     * @return a descriptive name for this operation. Used for reporting information.
+     */
+    String getName();
 
-		/**
-		 * @return true if statistics recording is enabled.
-		 */
-		boolean shouldRecordStats();
-
-		/**
-		 * @return the xplain schema to use, or {@code null} if no schema is known(or {@link #shouldRecordStats()} returns {@code false}.
-		 */
-		String getXplainSchema();
+    /**
+     * @return true if statistics recording is enabled.
+     */
+    boolean shouldRecordStats();
 
 	 JobResults getJobResults();
 

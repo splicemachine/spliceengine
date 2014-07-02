@@ -166,9 +166,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             throw Exceptions.parseException(e);
         } finally {
             String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-            boolean explain = xplainSchema !=null &&
-                    activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
-            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema: null);
+            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
             cleanupFuture(future);
         }
     }
@@ -232,9 +230,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             throw Exceptions.parseException(e);
         }finally {
             String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-            boolean explain = xplainSchema !=null &&
-                    activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
-            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema:null);
+            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
             cleanupFuture(future);
         }
     }

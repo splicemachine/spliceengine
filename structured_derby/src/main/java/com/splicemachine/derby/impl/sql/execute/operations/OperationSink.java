@@ -145,7 +145,7 @@ public class OperationSink {
 										operationStat.addMetric(OperationMetric.TASK_QUEUE_WAIT_WALL_TIME,waitTimeNs);
 										operationStat.setHostName(hostName);
 
-										reporter.report(spliceRuntimeContext.getXplainSchema(),operationStat);
+										reporter.report(operationStat);
 								}
 						}
         } catch (Exception e) {

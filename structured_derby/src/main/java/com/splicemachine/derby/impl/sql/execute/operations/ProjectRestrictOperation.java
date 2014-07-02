@@ -155,8 +155,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                     // This is in a subquery and explain trace is on
                     XplainOperationChainInfo parent = operationChain.get(operationChain.size()-1);
                     statisticsTimingOn = true;
-                    xplainSchema = parent.getXplainSchema();
-                }
+                    }
 
                 startExecutionTime = System.currentTimeMillis();
 		}
@@ -257,7 +256,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                                             if (operationChainInfo == null) {
                                                 operationChainInfo = new XplainOperationChainInfo(
                                                     spliceRuntimeContext.getStatementId(),
-                                                    Bytes.toLong(uniqueSequenceID), xplainSchema);
+                                                    Bytes.toLong(uniqueSequenceID));
 
                                                 operationChainInfo.setMethodName("Subquery: " + restrictionMethodName);
                                             }

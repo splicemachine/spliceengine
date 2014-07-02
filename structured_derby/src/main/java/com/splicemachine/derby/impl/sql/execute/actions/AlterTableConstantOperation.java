@@ -1912,9 +1912,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             throw Exceptions.parseException(e);
         }finally {
             String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-            boolean explain = xplainSchema !=null &&
-                    activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
-            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema:null);
+            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
             cleanupFuture(future);
         }
 
@@ -1973,9 +1971,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             throw Exceptions.parseException(e);
         }finally {
             String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-            boolean explain = xplainSchema !=null &&
-                    activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
-            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema: null);
+            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
 
         }
 

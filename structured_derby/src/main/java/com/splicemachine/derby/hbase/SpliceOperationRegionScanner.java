@@ -90,7 +90,6 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 						spliceRuntimeContext = soi.getSpliceRuntimeContext();
 						if(topOperation.shouldRecordStats()){
 								spliceRuntimeContext.recordTraceMetrics();
-								spliceRuntimeContext.setXplainSchema(topOperation.getXplainSchema());
 						}
 						context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc(),false,topOperation,spliceRuntimeContext);
 						context.setSpliceRegionScanner(this);
@@ -187,7 +186,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 										for(OperationRuntimeStats opStats:stats){
 												opStats.setHostName(hostName);
 
-												reporter.report(spliceRuntimeContext.getXplainSchema(),opStats);
+												reporter.report(opStats);
 										}
                                         metricsReported = true;
 								}
@@ -226,7 +225,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                     for(OperationRuntimeStats opStats:stats){
                         opStats.setHostName(hostName);
 
-                        reporter.report(spliceRuntimeContext.getXplainSchema(),opStats);
+                        reporter.report(opStats);
                     }
                     metricsReported = true;
                 }
