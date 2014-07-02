@@ -121,8 +121,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         setLevel(((Integer) nestingLevel).intValue());
         /* Group by without aggregates gets xformed into distinct */
         if (SanityManager.DEBUG) {
-			SanityManager.ASSERT(((Vector) windowFunctions).size() > 0,
-			"windowFunctions expected to be non-empty");
+            SanityManager.ASSERT(((Vector) windowFunctions).size() > 0,
+                                 "windowFunctions expected to be non-empty");
             if (!(childResult instanceof Optimizable)) {
                 SanityManager.THROWASSERT("childResult, " + childResult.getClass().getName() +
                                               ", expected to be instanceof Optimizable");
@@ -156,7 +156,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		** with our trees a might.
 		*/
         addAggregates();
-
 
 		/*
 		 * Check to see if the source is in sorted order on any permutation
@@ -214,6 +213,18 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         addNewColumnsForAggregation();
     }
 
+    private void addOrderBy() throws StandardException {
+        OrderByList orderByList = wdn.getOrderByList();
+        if (orderByList != null) {
+//            ResultSetNode newTop = genProjectRestrictForReordering();
+//            orderByList.resetToSourceRCs();
+            resultColumns = orderByList.reorderRCL(resultColumns);
+//            newTop.getResultColumns().removeOrderByColumns();
+//            newTop.setReferencedTableMap((JBitSet) referencedTableMap.clone());
+//            parent.setResultColumns(newTop.getResultColumns());
+        }
+    }
+
     /**
      * Add a new PR node for aggregation.  Put the
      * new PR under the sort.
@@ -267,6 +278,90 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             C_NodeTypes.RESULT_COLUMN_LIST,
             getContextManager());
 
+    }
+
+    /**
+     * Add a whole slew of columns needed for
+     * aggregation. Basically, for each aggregate we add
+     * 3 columns: the aggregate input expression
+     * and the aggregator column and a column where the aggregate
+     * result is stored.  The input expression is
+     * taken directly from the aggregator node.  The aggregator
+     * is the run time aggregator.  We add it to the RC list
+     * as a new object coming into the sort node.
+     * <p/>
+     * At this point this is invoked, we have the following
+     * tree: <UL>
+     * PR - (PARENT): RCL is the original select list
+     * |
+     * PR - GROUP BY:  RCL is empty
+     * |
+     * PR - FROM TABLE: RCL is empty </UL> <P>
+     * <p/>
+     * For each ColumnReference in PR RCL <UL>
+     * <LI> clone the ref </LI>
+     * <LI> create a new RC in the bottom RCL and set it
+     * to the col ref </LI>
+     * <LI> create a new RC in the GROUPBY RCL and set it to
+     * point to the bottom RC </LI>
+     * <LI> reset the top PR ref to point to the new GROUPBY
+     * RC</LI></UL>
+     * <p/>
+     * For each aggregate in windowFunctions <UL>
+     * <LI> create RC in FROM TABLE.  Fill it with
+     * aggs Operator.
+     * <LI> create RC in FROM TABLE for agg result</LI>
+     * <LI> create RC in FROM TABLE for aggregator</LI>
+     * <LI> create RC in GROUPBY for agg input, set it
+     * to point to FROM TABLE RC </LI>
+     * <LI> create RC in GROUPBY for agg result</LI>
+     * <LI> create RC in GROUPBY for aggregator</LI>
+     * <LI> replace Agg with reference to RC for agg result </LI></UL>.
+     * <p/>
+     * For a query like,
+     * <pre>
+     * select c1, sum(c2), max(c3)
+     * from t1
+     * group by c1;
+     * </pre>
+     * the query tree ends up looking like this:
+     * <pre>
+     * ProjectRestrictNode RCL -> (ptr to GBN(column[0]), ptr to GBN(column[1]), ptr to GBN(column[4]))
+     * |
+     * GroupByNode RCL->(C1, SUM(C2), <agg-input>, <aggregator>, MAX(C3), <agg-input>, <aggregator>)
+     * |
+     * ProjectRestrict RCL->(C1, C2, C3)
+     * |
+     * FromBaseTable
+     * </pre>
+     * <p/>
+     * The RCL of the GroupByNode contains all the unagg (or grouping columns)
+     * followed by 3 RC's for each aggregate in this order: the final computed
+     * aggregate value, the aggregate input and the aggregator function.
+     * <p/>
+     * The Aggregator function puts the results in the first of the 3 RC's
+     * and the PR resultset in turn picks up the value from there.
+     * <p/>
+     * The notation (ptr to GBN(column[0])) basically means that it is
+     * a pointer to the 0th RC in the RCL of the GroupByNode.
+     * <p/>
+     * The addition of these unagg and agg columns to the GroupByNode and
+     * to the PRN is performed in addUnAggColumns and addAggregateColumns.
+     * <p/>
+     * Note that that addition of the GroupByNode is done after the
+     * query is optimized (in SelectNode#modifyAccessPaths) which means a
+     * fair amount of patching up is needed to account for generated group by columns.
+     *
+     * @throws StandardException
+     */
+    private void addNewColumnsForAggregation()
+        throws StandardException {
+        aggInfo = new AggregatorInfoList();
+        ArrayList havingRefsToSubstitute = null;
+
+        addUnAggColumns();
+        addAggregateColumns();
+//        addOrderBy();
     }
 
     /**
@@ -375,91 +470,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     }
 
     /**
-     * Add a whole slew of columns needed for
-     * aggregation. Basically, for each aggregate we add
-     * 3 columns: the aggregate input expression
-     * and the aggregator column and a column where the aggregate
-     * result is stored.  The input expression is
-     * taken directly from the aggregator node.  The aggregator
-     * is the run time aggregator.  We add it to the RC list
-     * as a new object coming into the sort node.
-     * <p/>
-     * At this point this is invoked, we have the following
-     * tree: <UL>
-     * PR - (PARENT): RCL is the original select list
-     * |
-     * PR - GROUP BY:  RCL is empty
-     * |
-     * PR - FROM TABLE: RCL is empty </UL> <P>
-     * <p/>
-     * For each ColumnReference in PR RCL <UL>
-     * <LI> clone the ref </LI>
-     * <LI> create a new RC in the bottom RCL and set it
-     * to the col ref </LI>
-     * <LI> create a new RC in the GROUPBY RCL and set it to
-     * point to the bottom RC </LI>
-     * <LI> reset the top PR ref to point to the new GROUPBY
-     * RC</LI></UL>
-     * <p/>
-     * For each aggregate in windowFunctions <UL>
-     * <LI> create RC in FROM TABLE.  Fill it with
-     * aggs Operator.
-     * <LI> create RC in FROM TABLE for agg result</LI>
-     * <LI> create RC in FROM TABLE for aggregator</LI>
-     * <LI> create RC in GROUPBY for agg input, set it
-     * to point to FROM TABLE RC </LI>
-     * <LI> create RC in GROUPBY for agg result</LI>
-     * <LI> create RC in GROUPBY for aggregator</LI>
-     * <LI> replace Agg with reference to RC for agg result </LI></UL>.
-     * <p/>
-     * For a query like,
-     * <pre>
-     * select c1, sum(c2), max(c3)
-     * from t1
-     * group by c1;
-     * </pre>
-     * the query tree ends up looking like this:
-     * <pre>
-     * ProjectRestrictNode RCL -> (ptr to GBN(column[0]), ptr to GBN(column[1]), ptr to GBN(column[4]))
-     * |
-     * GroupByNode RCL->(C1, SUM(C2), <agg-input>, <aggregator>, MAX(C3), <agg-input>, <aggregator>)
-     * |
-     * ProjectRestrict RCL->(C1, C2, C3)
-     * |
-     * FromBaseTable
-     * </pre>
-     * <p/>
-     * The RCL of the GroupByNode contains all the unagg (or grouping columns)
-     * followed by 3 RC's for each aggregate in this order: the final computed
-     * aggregate value, the aggregate input and the aggregator function.
-     * <p/>
-     * The Aggregator function puts the results in the first of the 3 RC's
-     * and the PR resultset in turn picks up the value from there.
-     * <p/>
-     * The notation (ptr to GBN(column[0])) basically means that it is
-     * a pointer to the 0th RC in the RCL of the GroupByNode.
-     * <p/>
-     * The addition of these unagg and agg columns to the GroupByNode and
-     * to the PRN is performed in addUnAggColumns and addAggregateColumns.
-     * <p/>
-     * Note that that addition of the GroupByNode is done after the
-     * query is optimized (in SelectNode#modifyAccessPaths) which means a
-     * fair amount of patching up is needed to account for generated group by columns.
-     *
-     * @throws StandardException
-     */
-    private void addNewColumnsForAggregation()
-        throws StandardException {
-        aggInfo = new AggregatorInfoList();
-        ArrayList havingRefsToSubstitute = null;
-
-        addUnAggColumns();
-
-        addAggregateColumns();
-
-    }
-
-    /**
      * In the query rewrite involving aggregates, add the columns for
      * aggregation.
      *
@@ -467,7 +477,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      */
     private void addAggregateColumns() throws StandardException {
         DataDictionary dd = getDataDictionary();
-        WindowFunctionNode aggregate = null;
+        WindowFunctionNode windowFunctionNode = null;
         ColumnReference newColumnRef;
         ResultColumn newRC;
         ResultColumn tmpRC;
@@ -481,9 +491,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
 		/*
 		 ** Now process all of the aggregates.  Replace
-		 ** every aggregate with an RC.  We toss out
+		 ** every windowFunctionNode with an RC.  We toss out
 		 ** the list of RCs, we need to get each RC
-		 ** as we process its corresponding aggregate.
+		 ** as we process its corresponding windowFunctionNode.
 		 */
         LanguageFactory lf = getLanguageConnectionContext().getLanguageFactory();
 
@@ -497,20 +507,20 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         parent.getResultColumns().accept(replaceAggsVisitor);
 
 		/*
-		** For each aggregate
+		** For each windowFunctionNode
 		*/
         int alSize = windowFunctions.size();
         for (int index = 0; index < alSize; index++) {
-            aggregate = (WindowFunctionNode) windowFunctions.get(index);
+            windowFunctionNode = (WindowFunctionNode) windowFunctions.get(index);
 
 			/*
-			** AGG RESULT: Set the aggregate result to null in the
+			** AGG RESULT: Set the windowFunctionNode result to null in the
 			** bottom project restrict.
 			*/
             newRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
                 "##WindowResult",
-                aggregate.getNewNullResultExpression(),
+                windowFunctionNode.getNewNullResultExpression(),
                 getContextManager());
             newRC.markGenerated();
             newRC.bindResultColumnToExpression();
@@ -519,8 +529,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             aggResultVColId = newRC.getVirtualColumnId();
 
 			/*
-			** Set the GB aggregate result column to
-			** point to this.  The GB aggregate result
+			** Set the GB windowFunctionNode result column to
+			** point to this.  The GB windowFunctionNode result
 			** was created when we called
 			** ReplaceAggregatesWithCRVisitor()
 			*/
@@ -546,7 +556,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** Set the column reference to point to
 			** this.
 			*/
-            newColumnRef = aggregate.getGeneratedRef();
+            newColumnRef = windowFunctionNode.getGeneratedRef();
             newColumnRef.setSource(tmpRC);
 
 			/*
@@ -554,7 +564,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** project restrict that has the expression that is
 			** to be aggregated
 			*/
-            newRC = aggregate.getNewExpressionResultColumn(dd);
+            newRC = windowFunctionNode.getNewExpressionResultColumn(dd);
             newRC.markGenerated();
             newRC.bindResultColumnToExpression();
             bottomRCL.addElement(newRC);
@@ -563,7 +573,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             aggResultRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
                 "##WindowExpression",
-                aggregate.getNewNullResultExpression(),
+                windowFunctionNode.getNewNullResultExpression(),
                 getContextManager());
 
 
@@ -579,7 +589,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** AGGREGATOR: Add a getAggregator method call
 			** to the bottom result column list.
 			*/
-            newRC = aggregate.getNewAggregatorResultColumn(dd);
+            newRC = windowFunctionNode.getNewAggregatorResultColumn(dd);
             newRC.markGenerated();
             newRC.bindResultColumnToExpression();
             bottomRCL.addElement(newRC);
@@ -609,15 +619,15 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** so we have to subtract 1.
 			*/
             aggInfo.addElement(new AggregatorInfo(
-                aggregate.getAggregateName(),
-                aggregate.getAggregatorClassName(),
-                aggInputVColId - 1,            // aggregate input column
-                aggResultVColId - 1,            // the aggregate result column
+                windowFunctionNode.getAggregateName(),
+                windowFunctionNode.getAggregatorClassName(),
+                aggInputVColId - 1,            // windowFunctionNode input column
+                aggResultVColId - 1,            // the windowFunctionNode result column
                 aggregatorVColId - 1,        // the aggregator column
-                aggregate.isDistinct(),
+                windowFunctionNode.isDistinct(),
                 lf.getResultDescription(aggRCL.makeResultDescriptors(), "SELECT")
             ));
-            this.processedAggregates.add(aggregate.getWrappedAggregate());
+            this.processedAggregates.add(windowFunctionNode.getWrappedAggregate());
         }
     }
 
@@ -827,9 +837,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     public void generate(ActivationClassBuilder acb,
                          MethodBuilder mb)
         throws StandardException {
-        int orderingItem = 0;
+        int partitioningItem = 0;
         int aggInfoItem = 0;
-        FormatableArrayHolder orderingHolder;
+        FormatableArrayHolder partitioningHolder;
 
 		/* Get the next ResultSet#, so we can number this ResultSetNode, its
 		 * ResultColumnList and ResultSet.
@@ -840,10 +850,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         costEstimate = childResult.getFinalCostEstimate();
 
 		/*
-		** Get the column ordering for the sort from orderby list.
-		* getColumnOrdering does the right thing if orderby list is null empty.
+		** Get the column ordering from partition.
+		* getColumnOrdering does the right thing if partition is null empty.
 		*/
-        orderingHolder = acb.getColumnOrdering(wdn.getOrderByList());
+        partitioningHolder = acb.getColumnOrdering(partition);
 
         if (SanityManager.DEBUG) {
             if (SanityManager.DEBUG_ON("WindowTrace")) {
@@ -851,14 +861,14 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
                 s.append("Partition column ordering is (");
                 org.apache.derby.iapi.store.access.ColumnOrdering[] ordering =
-                    (org.apache.derby.iapi.store.access.ColumnOrdering[]) orderingHolder.getArray(org.apache.derby
+                    (org.apache.derby.iapi.store.access.ColumnOrdering[]) partitioningHolder.getArray(org.apache.derby
                                                                                                       .iapi.store
                                                                                                       .access
                                                                                                       .ColumnOrdering
                                                                                                       .class);
 
-                for (int i = 0; i < ordering.length; i++) {
-                    s.append(ordering[i].getColumnId());
+                for (org.apache.derby.iapi.store.access.ColumnOrdering anOrdering : ordering) {
+                    s.append(anOrdering.getColumnId());
                     s.append(" ");
                 }
                 s.append(")");
@@ -866,7 +876,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             }
         }
 
-        orderingItem = acb.addItem(orderingHolder);
+        partitioningItem = acb.addItem(partitioningHolder);
 
 		/*
 		** We have aggregates, so save the aggInfo
@@ -885,7 +895,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		 *	arg1: childExpress - Expression for childResult
 		 *  arg2: isInSortedOrder - true if source result set in sorted order
 		 *  arg3: aggInfoItem - entry in saved objects for the aggregates,
-		 *  arg4: orderingItem - entry in saved objects for the ordering
+		 *  arg4: partitioningItem - entry in saved objects for the ordering
 		 *  arg5: Activation
 		 *  arg6: rowAllocator - method to construct rows for fetching
 		 *			from the sort
@@ -894,9 +904,12 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		 */
         // Generate the child ResultSet
         childResult.generate(acb, mb);
+        if (wdn.getOrderByList() != null) {
+            wdn.getOrderByList().generate(acb, mb, childResult);
+        }
         mb.push(isInSortedOrder);
         mb.push(aggInfoItem);
-        mb.push(orderingItem);
+        mb.push(partitioningItem);
 
         resultColumns.generateHolder(acb, mb);
 
@@ -906,7 +919,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         mb.push(costEstimate.getEstimatedCost());
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getWindowResultSet",
-                      ClassName.NoPutResultSet, 9);
+                      ClassName.NoPutResultSet, 10);
 
     }
 

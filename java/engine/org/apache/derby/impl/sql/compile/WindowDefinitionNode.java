@@ -44,7 +44,7 @@ public final class WindowDefinitionNode extends WindowNode
      * The order by list if the window definition contains a <window order
      * clause>, else null.
      */
-    private OrderByList orderByList;
+    private OrderByList orderByList = new OrderByList();
 
     /**
      * The window frame.
