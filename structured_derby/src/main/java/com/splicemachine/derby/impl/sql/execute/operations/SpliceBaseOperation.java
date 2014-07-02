@@ -50,7 +50,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         public static ThreadLocal<List<XplainOperationChainInfo>> operationChain =
                 new ThreadLocal<List<XplainOperationChainInfo>>();
         protected XplainOperationChainInfo operationChainInfo;
-		protected String xplainSchema;
 		/* Run time statistics variables */
 		public int numOpens;
 		public int inputRows;
@@ -128,19 +127,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 															 double optimizerEstimatedRowCount,
 															 double optimizerEstimatedCost) throws StandardException {
 
-                statisticsTimingOn = activation.getLanguageConnectionContext().getStatisticsTiming();
+                statisticsTimingOn = activation.isTraced();
                 List<XplainOperationChainInfo> opChain = operationChain.get();
                 if (opChain != null) {
                     statisticsTimingOn = statisticsTimingOn || opChain.size() > 0;
                 }
 				if (statisticsTimingOn){
 						beginTime = startExecutionTime = getCurrentTimeMillis();
-                        if (opChain != null && opChain.size() > 0) {
-                            xplainSchema = opChain.get(opChain.size() - 1).getXplainSchema();
-                        }
-                        else {
-                            xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-                        }
 				}
 				this.operationInformation = new DerbyOperationInformation(activation,optimizerEstimatedRowCount,optimizerEstimatedCost,resultSetNumber);
 				this.activation = activation;
@@ -170,8 +163,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
                in.readFully(uniqueSequenceID);
             }
 				statisticsTimingOn = in.readBoolean();
-				if(statisticsTimingOn)
-						xplainSchema = in.readUTF();
 				statementId = in.readLong();
 		}
 		
@@ -189,8 +180,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
                  out.write(uniqueSequenceID);
             }
 				out.writeBoolean(statisticsTimingOn);
-				if(statisticsTimingOn)
-						out.writeUTF(xplainSchema);
 				out.writeLong(statementId);
 		}
 
@@ -202,9 +191,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				sub = getRightOperation();
 				if(sub!=null) sub.setStatementId(statementId);
 		}
-
-
-		@Override public String getXplainSchema() { return xplainSchema; }
 
 		@Override
 		public JobResults getJobResults() {
@@ -678,13 +664,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
             private long statementId;
             private long operationId;
-            private String xplainSchema;
             private String methodName;
 
-            public XplainOperationChainInfo(long statementId, long operationId, String xplainSchema) {
+            public XplainOperationChainInfo(long statementId, long operationId) {
                 this.statementId = statementId;
                 this.operationId = operationId;
-                this.xplainSchema = xplainSchema;
             }
 
             public long getStatementId() {
@@ -693,10 +677,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
             public long getOperationId() {
                 return operationId;
-            }
-
-            public String getXplainSchema() {
-                return xplainSchema;
             }
 
             public void setMethodName(String name) {

@@ -406,7 +406,7 @@ public class RowProviders {
 						String hostName = SpliceUtils.getHostName();
 						for(OperationRuntimeStats opStat:opStats){
 								opStat.setHostName(hostName);
-								taskReporter.report(xplainSchema,opStat);
+								taskReporter.report(opStat);
 						}
 				}
 

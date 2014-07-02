@@ -97,7 +97,7 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
 				stats.addMetric(OperationMetric.OUTPUT_ROWS,timer.getNumEvents());
 				stats.addMetric(OperationMetric.INPUT_ROWS,scanner.getRemoteRowsRead());
 
-				SpliceDriver.driver().getTaskReporter().report(xplainSchema,stats);
+				SpliceDriver.driver().getTaskReporter().report(stats);
 		}
 
 		@Override

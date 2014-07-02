@@ -242,7 +242,7 @@ public class ImportTask extends ZkTask{
 						WriteStats writeStats = importer.getWriteStats();
 						OperationRuntimeStats.addWriteStats(writeStats, runtimeStats);
 
-						SpliceDriver.driver().getTaskReporter().report(importContext.getXplainSchema(),runtimeStats);
+						SpliceDriver.driver().getTaskReporter().report(runtimeStats);
 				}
 		}
 

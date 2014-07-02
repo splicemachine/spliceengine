@@ -162,7 +162,7 @@ public class LoadConglomerateTask extends ZkTask {
                 stats.addMetric(OperationMetric.PROCESSING_CPU_TIME,writeTime.getCpuTime());
                 stats.addMetric(OperationMetric.PROCESSING_USER_TIME,writeTime.getUserTime());
 
-                SpliceDriver.driver().getTaskReporter().report(xplainSchema,stats);
+                SpliceDriver.driver().getTaskReporter().report(stats);
             }
         }
 

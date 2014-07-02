@@ -158,17 +158,14 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
             if(showStatementInfo)
                 runtimeContext.setStatementInfo(statementInfo);
-            if(activation.getLanguageConnectionContext().getStatisticsTiming()){
+            if(activation.isTraced()){
                 runtimeContext.recordTraceMetrics();
-                String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-                runtimeContext.setXplainSchema(xplainSchema);
             }
 
             List<SpliceBaseOperation.XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
             if (operationChain != null && operationChain.size() > 0) {
                 operationChainInfo = operationChain.get(operationChain.size()-1);
                 runtimeContext.recordTraceMetrics();
-                runtimeContext.setXplainSchema(operationChainInfo.getXplainSchema());
                 parentOperationID = operationChainInfo.getOperationId();
                 statementId = operationChainInfo.getStatementId();
             }
@@ -406,23 +403,11 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
     @Override
     public void close() throws StandardException {
-				if(statementInfo!=null){
-						statementInfo.markCompleted();
-                        String xplainSchema = null;
-                        if (operationChainInfo != null) {
-                            xplainSchema = operationChainInfo.getXplainSchema();
-                        }
-                        else {
-                            xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-                        }
-
-                        boolean explain = xplainSchema !=null &&
-                                (activation.getLanguageConnectionContext().getRunTimeStatisticsMode() ||
-                                        topOperation.shouldRecordStats());
-                        SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,
-                                explain? xplainSchema: null);
-						statementInfo = null; //remove the field in case we call close twice
-				}
+        if(statementInfo!=null){
+            statementInfo.markCompleted();
+            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
+            statementInfo = null; //remove the field in case we call close twice
+        }
         if(delegate!=null)delegate.close();
         closed=true;
     }

@@ -117,9 +117,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 								}
 
                                 activation.getLanguageConnectionContext().setStatisticsTiming(true);
-                                activation.getLanguageConnectionContext().setXplainSchema(xplainSchema);
-
-						}
+                              }
 				}
                 if (rightResultSetUniqueSequenceID == null) {
                     rightResultSetUniqueSequenceID = rightResultSet.getUniqueSequenceID();
@@ -214,7 +212,6 @@ public class NestedLoopJoinOperation extends JoinOperation {
                 populated=false;
                 this.outerJoin = outerJoin;
             }
-
 
 				@Override
 				public boolean hasNext() {

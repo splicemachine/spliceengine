@@ -42,7 +42,6 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		 * When set to true, the operation should record relevant information for its operation.
 		 */
 		private boolean recordTraceMetrics;
-		private String xplainSchema;
 		private transient KryoPool kryoPool;
 		private TempTable tempTable;
         private long statementId;
@@ -99,7 +98,6 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 				copy.currentTaskId = currentTaskId;
 				copy.statementInfo = statementInfo;
                 copy.statementId = statementId;
-				copy.xplainSchema = xplainSchema;
 				copy.recordTraceMetrics = recordTraceMetrics;
 				return copy;
 		}
@@ -265,10 +263,6 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		}
         public long getStatementId() { return statementId;};
 		public boolean shouldRecordTraceMetrics() { return recordTraceMetrics; }
-		public String getXplainSchema() { return xplainSchema; }
-		public void setXplainSchema(String xplainSchema) {
-				this.xplainSchema = xplainSchema;
-		}
 
 		public KryoPool getKryoPool() {
 				return kryoPool;

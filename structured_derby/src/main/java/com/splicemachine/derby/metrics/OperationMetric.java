@@ -36,6 +36,14 @@ public enum OperationMetric {
 		PROCESSING_CPU_TIME(21),
 		PROCESSING_USER_TIME(22),
 
+        /*General measured values*/
+        FILTERED_ROWS(23),  					//number of rows which were filtered or removed
+        TASK_QUEUE_WAIT_WALL_TIME(24), //amount of time spent waiting for a task executor thread, or 0 if no tasks involved
+        START_TIMESTAMP(25),					//the timestamp at which EXECUTION begins (does not include QUEUE_WAIT_TIME)
+        STOP_TIMESTAMP(26),						//the timestamp at which EXECUTION stops (i.e. the last row is written/read. Does NOT include time to transmit task information)
+        INPUT_ROWS(27),
+        OUTPUT_ROWS(28),
+
 		WRITE_SLEEP_WALL_TIME(29),
 		WRITE_SLEEP_CPU_TIME(30),
 		WRITE_SLEEP_USER_TIME(31),
@@ -56,17 +64,9 @@ public enum OperationMetric {
 		 */
 		WRITE_THREADED_WALL_TIME(39),
 		WRITE_THREADED_USER_TIME(40),
-		WRITE_THREADED_CPU_TIME(41),
+		WRITE_THREADED_CPU_TIME(41);
 
-		/*General measured values*/
-		FILTERED_ROWS(23),  					//number of rows which were filtered or removed
-		TASK_QUEUE_WAIT_WALL_TIME(24), //amount of time spent waiting for a task executor thread, or 0 if no tasks involved
-		START_TIMESTAMP(25),					//the timestamp at which EXECUTION begins (does not include QUEUE_WAIT_TIME)
-		STOP_TIMESTAMP(26),						//the timestamp at which EXECUTION stops (i.e. the last row is written/read. Does NOT include time to transmit task information)
-		INPUT_ROWS(27),
-		OUTPUT_ROWS(28);
-
-
+        public static final int size = 42;
 		private final int indexPosition;
 		private final int shift;
 

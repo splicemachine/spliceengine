@@ -1426,8 +1426,8 @@ public class SpliceAdmin {
      * @return   an execution plan in a result set
      *
      */
-    public static void XPLAIN_TRACE(String schemaName, long statementId, int mode, String format, final ResultSet[] resultSet) throws Exception{
-        XPlainTrace xPlainTrace = new XPlainTrace(schemaName, statementId, mode, format);
+    public static void XPLAIN_TRACE(long statementId, int mode, String format, final ResultSet[] resultSet) throws Exception{
+        XPlainTrace xPlainTrace = new XPlainTrace(statementId, mode, format);
         resultSet[0] = xPlainTrace.getXPlainTraceOutput();
     }
 }
