@@ -2,13 +2,9 @@ package com.splicemachine.si;
 
 import com.splicemachine.si.api.TransactionStatusTest;
 import com.splicemachine.si.impl.*;
-import com.splicemachine.si.impl.iterator.ContiguousIteratorTest;
-import com.splicemachine.si.impl.iterator.OrderedMuxerTest;
-import com.splicemachine.si.impl.translate.MemoryTableFactoryTest;
+import com.splicemachine.si.impl.store.ActiveTxnCacheTest;
+import com.splicemachine.si.impl.store.CompletedTxnCacheAccessTest;
 import com.splicemachine.si.impl.translate.TranslatorTest;
-import com.splicemachine.si.txn.JtaXAResourceTest;
-import com.splicemachine.si.txn.TransactionManagerTest;
-
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -22,7 +18,7 @@ import org.junit.runners.Suite;
 //				LDataLibTest.class,
 //				LStoreTest.class,
 //				SIFilterTest.class,
-				TxnFilterStateTest.class,
+				SimpleTxnFilterTest.class,
 				SITransactorTest.class,
 //				SITransactorPackedTest.class,
 //				JtaXAResourceTest.class,
@@ -33,6 +29,10 @@ import org.junit.runners.Suite;
 				TranslatorTest.class,
 				CacheMapTest.class,
 				TransactionIdTest.class,
+				CompletedTxnCacheAccessTest.class,
+				ActiveTxnCacheTest.class,
+				RegionTxnStoreTest.class,
+				SynchronousReadResolverTest.class,
 //				CompactionTest.class,
                 TransactionStatusTest.class
 })

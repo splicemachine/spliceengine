@@ -5,6 +5,7 @@ import com.splicemachine.si.SpliceReusableHashmap;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.util.Bytes;

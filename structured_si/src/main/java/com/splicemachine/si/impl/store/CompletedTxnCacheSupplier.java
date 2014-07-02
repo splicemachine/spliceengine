@@ -1,4 +1,4 @@
-package com.splicemachine.si.impl;
+package com.splicemachine.si.impl.store;
 
 import com.splicemachine.si.api.TransactionCacheManagement;
 import com.splicemachine.si.api.Txn;

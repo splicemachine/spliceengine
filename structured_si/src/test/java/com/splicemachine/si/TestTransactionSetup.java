@@ -7,6 +7,8 @@ import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.light.LClientTransactor;
 import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
+import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -59,7 +61,7 @@ public class TestTransactionSetup {
 		public final TxnStore txnStore;
 		public final TxnSupplier txnSupplier;
 		public  TxnLifecycleManager txnLifecycleManager;
-		public ReadResolver readResolver;
+		public ReadResolver readResolver = NoOpReadResolver.INSTANCE; //test read-resolvers through different mechanisms
 
 		public TestTransactionSetup(StoreSetup storeSetup, boolean simple) {
         final SDataLib dataLib = storeSetup.getDataLib();

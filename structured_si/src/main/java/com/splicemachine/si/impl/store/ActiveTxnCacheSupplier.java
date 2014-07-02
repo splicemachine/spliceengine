@@ -1,4 +1,4 @@
-package com.splicemachine.si.impl;
+package com.splicemachine.si.impl.store;
 
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
@@ -52,6 +52,7 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 				if(txn!=null) return txn;
 				//bummer, not cached. try delegate
 				txn = delegate.getTransaction(txnId,getDestinationTables);
+				if(txn==null) return txn;
 
 				if(txn.getState()== Txn.State.ACTIVE)
 						addToCache(hash, txn);
@@ -60,7 +61,9 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 
 		@Override
 		public boolean transactionCached(long txnId) {
-				return false;
+				int hash = MurmurHash.murmur3_32(txnId,0);
+				Txn txn = getFromCache(hash,txnId);
+				return txn!=null;
 		}
 
 		@Override
@@ -97,14 +100,14 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 						}
 				}
 				data[pos] = new SoftReference<Txn>(txn);
+				size++;
 		}
 
 		private Txn getFromCache(int hash,long txnId){
 				int pos = hash & (data.length-1);
 				for(int i=0;i<size;i++){
-						pos = pos & (data.length-1);
-						if(data[i]==null) break; //didn't find it
-						Txn txn = data[i].get();
+						if(data[pos]==null) break; //didn't find it
+						Txn txn = data[pos].get();
 						if(txn ==null) {
 								size--; //element was purged for memory reasons
 								continue;
