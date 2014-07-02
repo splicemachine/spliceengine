@@ -19,9 +19,9 @@ public interface Transactor<Table, Mutation extends OperationWithAttributes,Put 
 		/**
      * Execute the put operation (with SI treatment) on the table. Send roll-forward notifications to the rollForwardQueue.
      */
-    boolean processPut(Table table, RollForwardQueue rollForwardQueue, Put put) throws IOException;
+    boolean processPut(Table table, RollForward rollForwardQueue, Put put) throws IOException;
 
-    OperationStatus[] processPutBatch(Table table, RollForwardQueue rollForwardQueue, Put[] mutations)
+    OperationStatus[] processPutBatch(Table table, RollForward rollForwardQueue, Put[] mutations)
             throws IOException;
 
 		OperationStatus[] processKvBatch(Table table,

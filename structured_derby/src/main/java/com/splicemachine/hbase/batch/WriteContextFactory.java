@@ -1,8 +1,7 @@
 package com.splicemachine.hbase.batch;
 
 import com.splicemachine.derby.ddl.DDLChange;
-import com.splicemachine.si.api.RollForwardQueue;
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.si.api.RollForward;
 
 import java.io.IOException;
 
@@ -15,7 +14,6 @@ public interface WriteContextFactory<T> {
     WriteContext create(String txnId,T key) throws IOException, InterruptedException;
 
     WriteContext create(String txnId,T key,
-                        RollForwardQueue queue,
                         int expectedWrites) throws IOException, InterruptedException;
 
     /**

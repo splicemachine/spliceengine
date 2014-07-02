@@ -5,7 +5,7 @@ import org.apache.hadoop.hbase.filter.Filter;
 
 import java.io.IOException;
 
-public interface IFilterState {
+public interface TxnFilter {
     Filter.ReturnCode filterKeyValue(KeyValue keyValue) throws IOException;
     void nextRow();
     KeyValue produceAccumulatedKeyValue();

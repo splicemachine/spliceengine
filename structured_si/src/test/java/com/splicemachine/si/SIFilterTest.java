@@ -4,7 +4,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
-import com.splicemachine.si.impl.IFilterState;
+import com.splicemachine.si.impl.TxnFilter;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.junit.After;
@@ -63,7 +63,7 @@ public class SIFilterTest extends SIConstants {
     public void testFiltering() throws Exception {
         final SDataLib dataLib = storeSetup.getDataLib();
         final Txn t1 = control.beginTransaction();
-        final IFilterState filterState = readController.newFilterState(transactorSetup.rollForwardQueue, t1);
+        final TxnFilter filterState = readController.newFilterState(transactorSetup.readResolver, t1);
         insertAge(t1, "bill", 20);
 				t1.commit();
 

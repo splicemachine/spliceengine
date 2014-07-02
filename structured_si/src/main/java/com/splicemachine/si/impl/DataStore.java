@@ -4,14 +4,12 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KeyValueUtils;
-import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
-
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
@@ -26,9 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.splicemachine.constants.SpliceConstants.CHECK_BLOOM_ATTRIBUTE_NAME;
-import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
-import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE;
+import static com.splicemachine.constants.SpliceConstants.*;
 
 /**
  * Library of functions used by the SI module when accessing rows from data tables (data tables as opposed to the
@@ -201,12 +197,6 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 
 		public boolean isSIFail(KeyValue keyValue) {
 				return KeyValueUtils.matchingValue(keyValue, siFail);
-		}
-
-		public void recordRollForward(RollForwardQueue rollForwardQueue, long transactionId, byte[] row, Boolean knownToBeCommitted) {
-				if (rollForwardQueue != null) {
-						rollForwardQueue.recordRow(transactionId, row, knownToBeCommitted);
-				}
 		}
 
 		public void setCommitTimestamp(IHTable table, byte[] rowKey, long beginTimestamp, long transactionId) throws IOException {

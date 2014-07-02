@@ -44,7 +44,7 @@ public class TxnFilterStateTest {
 				DataStore ds = getMockDataStore();
 
 				Txn myTxn = new InheritingTxnView(Txn.ROOT_TRANSACTION,2l,2l, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE);
-				TxnFilterState filterState = new TxnFilterState(baseStore,myTxn,
+				SimpleTxnFilter filterState = new SimpleTxnFilter(baseStore,myTxn,
 								noopResolver,ds);
 
 				KeyValue testCommitKv = new KeyValue(Encoding.encode("1"), SpliceConstants.DEFAULT_FAMILY_BYTES,
@@ -72,7 +72,7 @@ public class TxnFilterStateTest {
 				DataStore ds = getMockDataStore();
 
 				Txn myTxn = new InheritingTxnView(Txn.ROOT_TRANSACTION,2l,2l, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE);
-				TxnFilterState filterState = new TxnFilterState(baseStore,myTxn,
+				SimpleTxnFilter filterState = new SimpleTxnFilter(baseStore,myTxn,
 								mock(ReadResolver.class),ds);
 
 				KeyValue testDataKv = new KeyValue(Encoding.encode("1"),SpliceConstants.DEFAULT_FAMILY_BYTES,
@@ -326,7 +326,7 @@ public class TxnFilterStateTest {
 				final Pair<ByteSlice,Long> rolledBackTs = new Pair<ByteSlice,Long >();
 				ReadResolver resolver = getRollBackReadResolver(rolledBackTs);
 
-				TxnFilterState filter = new TxnFilterState(baseStore,myTxn,resolver,ds);
+				SimpleTxnFilter filter = new SimpleTxnFilter(baseStore,myTxn,resolver,ds);
 
 				KeyValue testDataKv = getKeyValue(rolledBackTxn);
 
@@ -349,7 +349,7 @@ public class TxnFilterStateTest {
 				final Pair<ByteSlice,Pair<Long,Long>> committedTs = new Pair<ByteSlice, Pair<Long, Long>>();
 				ReadResolver resolver = getCommitReadResolver(committedTs);
 
-				TxnFilterState filter = new TxnFilterState(baseStore,myTxn,resolver,ds);
+				SimpleTxnFilter filter = new SimpleTxnFilter(baseStore,myTxn,resolver,ds);
 
 				KeyValue testDataKv = getKeyValue(committed);
 
@@ -374,7 +374,7 @@ public class TxnFilterStateTest {
 
 				ReadResolver resolver = getActiveReadResolver();
 
-				TxnFilterState filter = new TxnFilterState(baseStore,myTxn,resolver,ds);
+				SimpleTxnFilter filter = new SimpleTxnFilter(baseStore,myTxn,resolver,ds);
 
 				KeyValue testDataKv = getKeyValue(active);
 

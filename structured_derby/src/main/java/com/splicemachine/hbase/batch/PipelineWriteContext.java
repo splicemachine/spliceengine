@@ -8,6 +8,8 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.ThrowIfDisconnected;
 import com.splicemachine.hbase.writer.*;
 
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.Txn;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.ipc.HBaseServer;
@@ -25,7 +27,7 @@ import java.util.Map;
  */
 public class PipelineWriteContext implements WriteContext{
     private final Map<KVPair,WriteResult> resultsMap;
-    private final RegionCoprocessorEnvironment rce;
+    private final TransactionalRegion rce;
 
     private final Map<byte[],HTableInterface> tableCache = Maps.newHashMapWithExpectedSize(0);
     private static final Logger LOG = Logger.getLogger(PipelineWriteContext.class);
@@ -108,6 +110,11 @@ public class PipelineWriteContext implements WriteContext{
 				}
 
 				@Override
+				public Txn getTxn() {
+						return PipelineWriteContext.this.getTxn();
+				}
+
+				@Override
 		public void sendUpstream(List<KVPair> mutation) {
 			// XXX JLEACH TODO
 			throw new RuntimeException("Not Supported");
@@ -120,11 +127,11 @@ public class PipelineWriteContext implements WriteContext{
     private final boolean useAsyncWriteBuffers;
     private final String txnId;
 
-    public PipelineWriteContext(String txnId,RegionCoprocessorEnvironment rce) {
+    public PipelineWriteContext(String txnId,TransactionalRegion rce) {
         this(txnId,rce,true,false);
     }
 
-    public PipelineWriteContext(String txnId,RegionCoprocessorEnvironment rce,boolean keepState,boolean useAsyncWriteBuffers) {
+    public PipelineWriteContext(String txnId,TransactionalRegion rce,boolean keepState,boolean useAsyncWriteBuffers) {
         this.rce = rce;
         this.resultsMap = Maps.newIdentityHashMap();
         this.keepState = keepState;
@@ -203,7 +210,7 @@ public class PipelineWriteContext implements WriteContext{
 
     @Override
     public RegionCoprocessorEnvironment getCoprocessorEnvironment() {
-        return rce;
+				throw new UnsupportedOperationException("REMOVE");
     }
     
 	
@@ -211,7 +218,7 @@ public class PipelineWriteContext implements WriteContext{
     public Map<KVPair,WriteResult> finish() throws IOException {
         RpcCallContext currentCall = HBaseServer.getCurrentCall();
         if(currentCall!=null)
-        	ThrowIfDisconnected.getThrowIfDisconnected().invoke(currentCall, rce.getRegion().getRegionNameAsString());
+        	ThrowIfDisconnected.getThrowIfDisconnected().invoke(currentCall, rce.getRegionName());
         
         try{
             WriteNode next = head.next;
@@ -262,6 +269,11 @@ public class PipelineWriteContext implements WriteContext{
 				}
 
 				return timestamp;
+		}
+
+		@Override
+		public Txn getTxn() {
+				throw new UnsupportedOperationException("IMPLEMENT");
 		}
 
 		@Override

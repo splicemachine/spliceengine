@@ -24,21 +24,22 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 		private Txn txn;
 		private TransactionReadController<Get,Scan> readController;
 //		protected String transactionIdString;
-		protected RollForwardQueue rollForwardQueue;
+//		protected RollForwardQueue rollForwardQueue;
 		private EntryPredicateFilter predicateFilter;
-		private IFilterState filterState = null;
+		private TxnFilter filterState = null;
 		private boolean countStar = false;
+		private ReadResolver readResolver;
 
 		public SIFilterPacked() {
 		}
 
 		public SIFilterPacked(Txn txn,
-													RollForwardQueue rollForwardQueue,
+													ReadResolver resolver,
 													EntryPredicateFilter predicateFilter,
 													TransactionReadController<Get, Scan> readController,
 													boolean countStar) throws IOException {
 				this.txn = txn;
-				this.rollForwardQueue = rollForwardQueue;
+				this.readResolver = resolver;
 				this.predicateFilter = predicateFilter;
 				this.readController = readController;
 				this.countStar = countStar;
@@ -47,7 +48,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 		@Override
 		public long getBytesVisited(){
 				if(filterState==null) return 0l;
-				FilterStatePacked packed = (FilterStatePacked)filterState;
+				PackedTxnFilter packed = (PackedTxnFilter)filterState;
 				@SuppressWarnings("unchecked") RowAccumulator accumulator = packed.getAccumulator();
 				return accumulator.getBytesVisited();
 		}
@@ -74,7 +75,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 		@SuppressWarnings("unchecked")
 		private void initFilterStateIfNeeded() throws IOException {
 				if (filterState == null) {
-						filterState = readController.newFilterStatePacked(NoOpReadResolver.INSTANCE, predicateFilter, txn, countStar);
+						filterState = readController.newFilterStatePacked(readResolver, predicateFilter, txn, countStar);
 //						filterState = readController.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
 //										Long.parseLong(transactionIdString), countStar);
 				}
