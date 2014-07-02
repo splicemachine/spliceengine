@@ -251,16 +251,12 @@ public class BroadcastJoinOperation extends JoinOperation {
         SpliceLogUtils.trace(LOG, "regionOperation=%s", opStack);
         RowProvider provider;
         PairDecoder decoder = OperationUtils.getPairDecoder(this, runtimeContext);
-        try {
-            if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)) {
-                provider = regionOperation.getReduceRowProvider(this, decoder, runtimeContext, true);
-            } else {
-                provider = regionOperation.getMapRowProvider(this, decoder, runtimeContext);
-            }
-            return new SpliceNoPutResultSet(activation, this, provider);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
+        if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)) {
+            provider = regionOperation.getReduceRowProvider(this, decoder, runtimeContext, true);
+        } else {
+            provider = regionOperation.getMapRowProvider(this, decoder, runtimeContext);
         }
+        return new SpliceNoPutResultSet(activation, this, provider);
     }
 
     @Override
