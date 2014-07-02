@@ -108,7 +108,8 @@ _startSplice() {
     export CLASSPATH
     LOG4J_CONFIG="-Dlog4j.configuration=$LOG4J_PATH"
 
-    SYS_ARGS="-Xmx3g -Xms1g \
+    SYS_ARGS="-Xmx5g -Xms1g \
+     -XX:MaxPermSize=256M -XX:+CMSClassUnloadingEnabled \
      -Djava.awt.headless=true \
      ${LOG4J_CONFIG} \
      -Djava.net.preferIPv4Stack=true \
