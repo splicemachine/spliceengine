@@ -103,10 +103,29 @@ public class ImportUtils {
 				for(String pkCol:pkCols.keySet()){
 						columns.get(pkCol).primaryKeyPos(pkCols.get(pkCol));
 				}
+            if(insertColumnList!=null) {
+                List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
 
-				for(ColumnContext.Builder colBuilder:columns.values()){
-						builder.addColumn(colBuilder.build());
-				}
+                for (ColumnContext.Builder colBuilder : columns.values()) {
+                    Iterator<String> colIterator = insertCols.iterator();
+                    ColumnContext context = colBuilder.build();
+                    int pos = 0;
+                    while (colIterator.hasNext()) {
+                        String insertCol = colIterator.next();
+                        if (insertCol.equalsIgnoreCase(context.getColumnName())) {
+                            context.setInsertPos(pos);
+                            break;
+                        }
+                        pos++;
+                    }
+                    builder.addColumn(context);
+                }
+            }
+            else{
+                for(ColumnContext.Builder colBuilder:columns.values()){
+                    builder.addColumn(colBuilder.build());
+                }
+            }
 		}
 
 		private static void computeAutoIncrementRowLocations(Map<String, ColumnContext.Builder> columns,

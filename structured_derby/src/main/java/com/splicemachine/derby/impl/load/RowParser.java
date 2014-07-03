@@ -88,11 +88,13 @@ public class RowParser {
 
     public ExecRow process(String[] line, ColumnContext[] columnContexts) throws StandardException {
         template.resetRowArray();
-        
-        int pos=0;
-        for(ColumnContext context:columnContexts){
-            String value = pos>=line.length ||line[pos]==null||line[pos].length()==0?null: line[pos];
-						//TODO -sf- this seems really inefficient, make this more better
+
+        if(columnContexts[0].getInsertPos()!=-1) {
+
+            for (ColumnContext context : columnContexts) {
+                int pos = context.getInsertPos();
+                String value = pos >= line.length || line[pos] == null || line[pos].length() == 0 ? null : line[pos];
+                //TODO -sf- this seems really inefficient, make this more better
 //            if (timestampFormatStr != null && timestampFormatStr.contains("@") && context.getColumnType() == 93 && context.getColumnNumber() == pos) {
 //            	String tmpstr = columnTimestampFormats.get(String.valueOf(context.getColumnNumber()+1));
 //            	if (tmpstr.equals("null") || tmpstr.equals("NULL") || tmpstr == null) {
@@ -100,22 +102,50 @@ public class RowParser {
 //            	} else
 //            		context.setFormatStr(tmpstr);
 //            }
-						try{
-								setColumn(context, value,line);
-						}catch(StandardException se){
-								if(!errorReporter.reportError(join(line),WriteResult.failed(se.getMessage()))){
-										if(errorReporter == FailAlwaysReporter.INSTANCE)
-												throw se; //don't swallow the exception if we aren't recording errors
-										else
-												throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException();
-								}else{
-										//skip line
-										return null;
-								}
-						}
-            pos++;
-        }
+                try {
+                    setColumn(context, value, line);
+                } catch (StandardException se) {
+                    if (!errorReporter.reportError(join(line), WriteResult.failed(se.getMessage()))) {
+                        if (errorReporter == FailAlwaysReporter.INSTANCE)
+                            throw se; //don't swallow the exception if we aren't recording errors
+                        else
+                            throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException();
+                    } else {
+                        //skip line
+                        return null;
+                    }
+                }
 
+            }
+        }
+        else{
+            int pos=0;
+            for(ColumnContext context:columnContexts){
+                String value = pos>=line.length ||line[pos]==null||line[pos].length()==0?null: line[pos];
+                //TODO -sf- this seems really inefficient, make this more better
+//            if (timestampFormatStr != null && timestampFormatStr.contains("@") && context.getColumnType() == 93 && context.getColumnNumber() == pos) {
+//            	String tmpstr = columnTimestampFormats.get(String.valueOf(context.getColumnNumber()+1));
+//            	if (tmpstr.equals("null") || tmpstr.equals("NULL") || tmpstr == null) {
+//            	    context.setFormatStr(null);
+//            	} else
+//            		context.setFormatStr(tmpstr);
+//            }
+                try{
+                    setColumn(context, value,line);
+                }catch(StandardException se){
+                    if(!errorReporter.reportError(join(line),WriteResult.failed(se.getMessage()))){
+                        if(errorReporter == FailAlwaysReporter.INSTANCE)
+                            throw se; //don't swallow the exception if we aren't recording errors
+                        else
+                            throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException();
+                    }else{
+                        //skip line
+                        return null;
+                    }
+                }
+                pos++;
+            }
+        }
         return template;
     }
 
