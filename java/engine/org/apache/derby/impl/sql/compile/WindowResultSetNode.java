@@ -162,13 +162,13 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		 * of the grouping columns.
 		 */
         if (partition != null) {
+            int pSize = this.partition.size();
             ColumnReference[] crs =
-                new ColumnReference[this.partition.size()];
+                new ColumnReference[pSize];
 
             // Now populate the CR array and see if ordered
-            int glSize = this.partition.size();
             int index;
-            for (index = 0; index < glSize; index++) {
+            for (index = 0; index < pSize; index++) {
                 GroupByColumn gc = (GroupByColumn) this.partition.elementAt(index);
                 if (gc.getColumnExpression() instanceof ColumnReference) {
                     crs[index] = (ColumnReference) gc.getColumnExpression();
@@ -178,7 +178,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 }
 
             }
-            if (index == glSize) {
+            if (index == pSize) {
                 isInSortedOrder = childResult.isOrderedOn(crs, true, (Vector) null);
             }
         }
@@ -213,17 +213,17 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         addNewColumnsForAggregation();
     }
 
-    private void addOrderBy() throws StandardException {
-        OrderByList orderByList = wdn.getOrderByList();
-        if (orderByList != null) {
+//    private void addOrderBy() throws StandardException {
+//        OrderByList orderByList = wdn.getOrderByList();
+//        if (orderByList != null) {
 //            ResultSetNode newTop = genProjectRestrictForReordering();
 //            orderByList.resetToSourceRCs();
-            resultColumns = orderByList.reorderRCL(resultColumns);
+//            resultColumns = orderByList.reorderRCL(resultColumns);
 //            newTop.getResultColumns().removeOrderByColumns();
 //            newTop.setReferencedTableMap((JBitSet) referencedTableMap.clone());
 //            parent.setResultColumns(newTop.getResultColumns());
-        }
-    }
+//        }
+//    }
 
     /**
      * Add a new PR node for aggregation.  Put the
@@ -357,7 +357,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     private void addNewColumnsForAggregation()
         throws StandardException {
         aggInfo = new AggregatorInfoList();
-        ArrayList havingRefsToSubstitute = null;
 
         addUnAggColumns();
         addAggregateColumns();
@@ -855,6 +854,20 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		*/
         partitioningHolder = acb.getColumnOrdering(partition);
 
+        // now add column ordering from order by to partition
+        OrderByList orderByList = wdn.getOrderByList();
+        if (orderByList != null) {
+            FormatableArrayHolder orderbyHolder = acb.getColumnOrdering(orderByList);
+
+            for (int i=0; i<orderByList.size(); i++) {
+                // FIXME: addColumnToOrdering() is very inefficient - creates a new IndexColumnOrder[] each call
+                // 1) check to see if column not already in there
+                // 2) create IndexColumnOrder[] size of partHolder + all missing
+                // 3) create FormatableArrayHolder with above
+                partitioningHolder = acb.addColumnToOrdering(orderbyHolder, i);
+            }
+        }
+
         if (SanityManager.DEBUG) {
             if (SanityManager.DEBUG_ON("WindowTrace")) {
                 StringBuilder s = new StringBuilder();
@@ -867,8 +880,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                                                                                                       .ColumnOrdering
                                                                                                       .class);
 
-                for (org.apache.derby.iapi.store.access.ColumnOrdering anOrdering : ordering) {
-                    s.append(anOrdering.getColumnId());
+                for (int i = 0; i < ordering.length; i++) {
+                    s.append(ordering[i].getColumnId());
                     s.append(" ");
                 }
                 s.append(")");
@@ -904,9 +917,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		 */
         // Generate the child ResultSet
         childResult.generate(acb, mb);
-        if (wdn.getOrderByList() != null) {
-            wdn.getOrderByList().generate(acb, mb, childResult);
-        }
         mb.push(isInSortedOrder);
         mb.push(aggInfoItem);
         mb.push(partitioningItem);
@@ -919,7 +929,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         mb.push(costEstimate.getEstimatedCost());
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getWindowResultSet",
-                      ClassName.NoPutResultSet, 10);
+                      ClassName.NoPutResultSet, 9);
 
     }
 
