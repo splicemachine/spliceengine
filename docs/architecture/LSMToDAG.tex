@@ -166,11 +166,209 @@ shadow, text centered, anchor=north, text=white, text width=3cm]
 	\item Scan Based RDD: Scans will go against the same cached RDD for evaluation.
 	\item Data Movement: Only regions with updated data will invalidate the RDD and
 	force a reload.
-	\item Snapshot Isolation Application: ? (XXX - TODO JL)
+	\item Snapshot Isolation Application: Cache all KeyValue objects on the RDD and 
+	perform the filtering on Spark given a specific transaction
 	\item Updates:  A single update to a region will cause the DAG model to re-read
 	that single regions for that table (1 Gig).  For example, you have 1TB of data
 	and a single update will require you to re-read only 1GB of data.
 \end{enumerate}
         
+
+\subsubsection{Handling HBase operations}
+
+\begin{enumerate}
+	\item Write: invalidate RDD for given region.
+	\item Region movement: invalidate RDD, the new RDD will be collocated 
+	in the new server
+	\item Split: invalidate RDD, next query will have one RDD per region
+\end{enumerate}
+        
+        
+\subsubsection{RDD Creation}
+
+RDD are controlled (created and used) by the Spark driver, i.e. the client submitting the 
+Spark job. This is going to be the Splice driver that is running the query, which is located 
+on an arbitrary server.
+Since RDDs are located on the clients, there are two options to invalidate them from the server:
+
+ \begin{enumerate}
+	\item Invalidate all RDDs dependent on that region remotely and synchronously: 
+	adds lots of latency for all HBase operations (writes, splits, compactions, etc.)
+	\item Keep invalidation info on servers, invalidate locally: adds some latency for queries,
+	DAG creation has to check for RDD invalidation. 
+\end{enumerate}
+        
+We'll use option \#2, since it doesn't hurt updates performance and just adds a small 
+latency for queries (see figure~\ref{fig:cache}). We could avoid the extra roundtrip 
+entirely with a customized \verb|InputFormat|, but this needs some research // TODO investigate this dgf
+
+\begin{figure}[h]
+\begin{sequencediagram}
+\newthread {cl}{Client}
+\newthread {c}{RDDCache}
+\newinst [2] {s}{Server}
+\begin{messcall}{cl}{getRDD()}{c}
+\begin{call}{c}{ hasCachedRDD() }{c}{cached}
+\end{call}
+\begin{sdblock}{NotCached}{}
+\begin{call}{c}{ createRDD() }{s}{RDD}
+\end{call}
+\mess{c}{RDD}{cl}
+\end{sdblock}
+\begin{sdblock}{Cached}{}
+\begin{call}{c}{ isCachedRDDValid() }{s}{valid}
+\end{call}
+
+\begin{sdblock}{NotValid}{}
+\begin{call}{c}{ createRDD() }{s}{RDD}
+\end{call}
+\mess{c}{RDD}{cl}
+\end{sdblock}
+\begin{sdblock}{Valid}{}
+\begin{call}{c}{ getCachedRDD() }{c}{RDD}
+\end{call}
+\mess{c}{RDD}{cl}
+\end{sdblock}
+
+\end{sdblock}
+\end{messcall}
+\end{sequencediagram}
+ \caption{RDD cache creation/invalidation}
+\label{fig:cache}
+\end{figure}
+
+      
+\subsection{Snapshot Isolation in Spark}
+
+Several transactions could be accessing the same data concurrently (possible running 
+different queries). If we want to effectively use Spark we must share the cached data 
+across the different transactions. For this to work, we must implement Snapshot Isolation 
+on Spark, thus requiring the cache to hold all KV's for a given region:
+ \begin{enumerate}
+	\item All 'active' versions of the same row
+	\item Commit timestamps
+	\item Tombstones
+\end{enumerate}
+
+Each query will retain the KVs that directly affect the transaction, filtering out all the 
+remaining KVs. This filtering has a cost but we'll be able to share the cache 
+much more effectively.
+
+\subsection{Internal Spark representation}
+
+We must cache all KV in Spark in order to implement Snapshot Isolation but we could choose
+ a different representation inside Spark (instead of storing KV objects). This is a longer term goal.
+
+Options:
+ \begin{enumerate}
+	\item Store one KV (or another type of object) per version, instead of having one KV 
+	per version and per data type (value, commit timestamp, tombstone...)
+	\item Columnar representation
+\end{enumerate}
+
+See figure~\ref{fig:rdd}.
+
+\begin{figure}[h]
+\begin{sequencediagram}
+\newthread {c}{RDDCache}
+\newinst [2] {s}{RegionServer}
+\newinst [2] {s2}{RegionServer2}
+
+\begin{call}{c}{ createRDD(region) }{s}{RDD}
+	\begin{sdblock}{Read Loop}{}
+		\begin{call}{s}{ readKV() }{s}{KV}
+
+			\begin{sdblock}{If No Commit Timestamp}{}
+				\begin{call}{s}{ resolveCommitStatus() }{s2}{commitStatus}
+				\end{call}
+			\end{sdblock}
+
+		\end{call}
+	\end{sdblock}
+\end{call}
+
+	\begin{sdblock}{Transform Loop}{Optional}
+		\begin{call}{c}{ transformKV() }{c}{cachedRow/Column}
+		\end{call}
+	\end{sdblock}
+
+\end{sequencediagram}
+ \caption{RDD creation}
+\label{fig:rdd}
+\end{figure}
+
+      
+\subsection{Spark execution}
+
+The execution in Spark works as follows:
+
+ \begin{enumerate}
+	\item Transform Derby/Splice execution plan into Spark DAG
+	 \begin{enumerate}
+		\item Each Derby/Splice operation will be implemented by Spark operations
+		\item Each accessed table will be represented by several RDDs, one per region
+		\item Region RDDs will be cached, reused and combined to represent each table
+	\end{enumerate}
+	\item The job will be submitted to the Spark cluster and executed
+	 \begin{enumerate}
+		\item Cached RDDs will be readily available in memory
+		\item Uncached RDDs will be created from scratch: 
+		a scanner will be opened from the Spark worker and bring the region 
+		into memory
+	\end{enumerate}
+\end{enumerate}
+
+
+\begin{figure}[h]
+\begin{sequencediagram}
+\newthread {j}{JDBC}
+\newinst [2] {d}{Derby}
+\newinst {c}{RDDCache}
+\newthread {sm}{SparkMaster}
+\newthread {sw1}{SparkWorker1}
+\newthread {sw2}{SparkWorker2}
+\newinst {rs}{RegionServer}
+
+\begin{call}{j}{executeQuery(query)}{d}{results}
+
+\begin{call}{d}{preparePlan(query)}{d}{plan}\end{call}
+\begin{call}{d}{generateSparkJob(plan)}{d}{sparkJob}
+	\begin{sdblock}{For Each Operation}{}
+		\begin{call}{d}{generateSparkOperation(plan)}{d}{op}\end{call}
+		\begin{call}{d}{getRDD()}{c}{RDD}\end{call}
+	\end{sdblock}
+\end{call}
+	\begin{sdblock}{Scheduling}{}
+\mess{d}{submitSparkJob}{sm}
+		\mess{sm}{ submitTask}{sw1}
+
+			\begin{sdblock}{Cached RDD}{}
+				\begin{call}{sw1}{ getCachedRDD() }{sw1}{RDD}
+				\end{call}
+			\end{sdblock}
+
+			\mess{sw1}{result}{d}
+
+		
+		\mess{sm}{ submitTask }{sw2}
+
+			\begin{sdblock}{Non-Cached RDD}{}
+				\begin{call}{sw2}{ openScanner() }{rs}{KVs}
+				\end{call}
+			\end{sdblock}
+
+			\mess{sw2}{result}{d}
+
+	\end{sdblock}
+
+\end{call}
+\end{sequencediagram}
+ \caption{RDD creation}
+\label{fig:rdd}
+\end{figure}
+
+
+
+
 
 %End LSM to DAG chapter

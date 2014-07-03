@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.ast;
 
 
 import com.google.common.base.*;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -17,25 +18,37 @@ import java.util.*;
 
 
 /**
- * This visitor moves join predicates from joined tables to the join nodes themselves for
- * hashable joins. During optimization, Derby pushes down the predicates to FromBaseTable
- * (& ProjectRestrict) nodes, assuming that a table on one side of the join will have access
- * to the "current row" of a table on the other side at query execution time, an assumption
- * which we know to be incorrect for MSJ. This visitor reverses the pushdown.
+ * This visitor modifies join predicates to avoid promiscuous column references in the plan.
+ *
+ * For hash-based join strategies, the visitor moves join predicates from joined tables
+ * up to the join nodes themselves. Derby places join predicates on
+ * FromBaseTable (or ProjectRestrict) nodes on the right-hand side (RHS) of the join, assuming
+ * that a table on the RHS of the join will have access to the "current row" of a table
+ * on the LHS at query execution time, an assumption which we know to be incorrect
+ * for our joins. This visitor pulls the predicates up from the RHS to the join node itself.
+ *
+ * For NestedLoop joins, we leave the join predicate where it is (on the RHS) but make
+ * sure that column references to the LHS are to the left-hand child of the join, not
+ * to any further descendants (which may be across sink boundaries).
  *
  * User: pjt
  * Date: 7/8/13
  */
 
-public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
+public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
-    private static Logger LOG = Logger.getLogger(MSJJoinConditionVisitor.class);
+    private static Logger LOG = Logger.getLogger(JoinConditionVisitor.class);
 
     @Override
     public JoinNode visit(JoinNode j) throws StandardException {
         AccessPath ap = ((Optimizable) j.getRightResultSet()).getTrulyTheBestAccessPath();
-        return RSUtils.isHashableJoin(ap) ?
-                pullUpPreds(j)  : j;
+        if (RSUtils.isHashableJoin(ap)){
+            return pullUpPreds(j);
+        } else if (RSUtils.isNLJ(ap)){
+            return rewriteNLJColumnRefs(j);
+        } else {
+            return j;
+        }
     }
 
     @Override
@@ -43,13 +56,14 @@ public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
         return visit((JoinNode)j);
     }
 
+    // Machinery for pulling up predicates (for hash-based joins)
+
     public JoinNode pullUpPreds(JoinNode j) throws StandardException {
         List<Predicate> toPullUp = new LinkedList<Predicate>();
 
         // Collect PRs, FBTs until a binary node (Union, Join) found, or end
         Iterable<ResultSetNode> rightsUntilBinary = Iterables.filter(
-                RSUtils.collectNodesUntil(j.getRightResultSet(), ResultSetNode.class,
-                        RSUtils.isBinaryRSN),
+                RSUtils.nodesUntilBinaryNode(j.getRightResultSet()),
                 RSUtils.rsnHasPreds);
 
         com.google.common.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
@@ -65,7 +79,7 @@ public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
         }
 
         for (Predicate p: toPullUp){
-            p = updatePredColRefsToJoin(p, j);
+            p = updatePredColRefsToNode(p, j);
             j.addOptPredicate(p);
             if (LOG.isDebugEnabled()) {
                 LOG.debug(String.format("Added pred %s to Join=%s.",
@@ -119,6 +133,34 @@ public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
         return pulled;
     }
 
+    // Machinery for rewriting predicate column references (for NLJs)
+
+    public JoinNode rewriteNLJColumnRefs(JoinNode j) throws StandardException {
+        List<Predicate> joinPreds = new LinkedList<Predicate>();
+
+        // Collect PRs, FBTs until a binary node (Union, Join) found, or end
+        Iterable<ResultSetNode> rightsUntilBinary = Iterables.filter(
+                RSUtils.nodesUntilBinaryNode(j.getRightResultSet()),
+                RSUtils.rsnHasPreds);
+
+        com.google.common.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
+
+        for (ResultSetNode rsn: rightsUntilBinary) {
+            // Encode whether to pull up predicate to join:
+            //  when can't evaluate on node but can evaluate at join
+            com.google.common.base.Predicate<Predicate> predOfInterest =
+                    Predicates.and(Predicates.not(evalableAtNode(rsn)), joinScoped);
+            joinPreds.addAll(Collections2
+                                 .filter(RSUtils.collectExpressionNodes(rsn, Predicate.class),
+                                            predOfInterest));
+        }
+
+        for (Predicate p: joinPreds) {
+            updatePredColRefsToNode(p, j.getLeftResultSet());
+        }
+        return j;
+    }
+
 
     /**
      * Return the set of ResultSetNode numbers referred to by column references in p
@@ -153,12 +195,12 @@ public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
     }
 
     /**
-     * Rewrites column references in a Predicate to point to ResultColumns from the passed join node.
+     * Rewrites column references in a Predicate to point to ResultColumns from the passed node.
      */
-    public Predicate updatePredColRefsToJoin(Predicate p, JoinNode j)
+    public Predicate updatePredColRefsToNode(Predicate p, ResultSetNode n)
             throws StandardException
     {
-        ResultColumnList rcl = j.getResultColumns();
+        ResultColumnList rcl = n.getResultColumns();
         Map<Pair<Integer,Integer>, ResultColumn> chain = ColumnUtils.rsnChainMap(rcl);
         List<ColumnReference> predCRs = RSUtils.collectNodes(p, ColumnReference.class);
         for (ColumnReference cr: predCRs){

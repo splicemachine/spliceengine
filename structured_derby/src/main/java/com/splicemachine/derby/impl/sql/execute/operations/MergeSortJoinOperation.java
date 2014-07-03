@@ -178,7 +178,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             if (!ctx.isSink())
                 init(SpliceOperationContext.newContext(activation));
             joiner = createMergeJoiner(outer, ctx);
-            joiner.open();
             isOpen = true;
             timer = ctx.newTimer();
         }
@@ -420,6 +419,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 return getEmptyRow();
             }
         };
+        joinRows.open();
         return new Joiner(joinRows, mergedRow, mergeRestriction, outer, wasRightOuterJoin, leftNumCols, rightNumCols,
                              oneRowRightSide, notExistsRightSide, emptyRowSupplier,spliceRuntimeContext);
     }
