@@ -16,7 +16,7 @@ import com.splicemachine.derby.impl.store.access.base.SpliceGenericCostControlle
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
 import com.splicemachine.derby.impl.store.access.btree.IndexCostController;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
+import org.apache.hadoop.hbase.RegionLoad;
 import org.apache.log4j.Logger;
 import java.util.Map;
 import java.util.SortedSet;

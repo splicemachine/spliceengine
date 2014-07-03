@@ -7,7 +7,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.derby.impl.store.access.conglomerate.GenericCostController;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
+import org.apache.hadoop.hbase.RegionLoad;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
