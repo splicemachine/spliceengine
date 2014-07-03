@@ -478,7 +478,8 @@ public class SITransactor<Table,
 						dataStore.setAntiTombstoneOnPut(newPut, txnIdLong);
 
 				byte[]row = kvPair.getRow();
-				//TODO -sf- implement!
+        if(rollForwardQueue!=null)
+            rollForwardQueue.submitForResolution(row,txnIdLong);
 //				dataStore.recordRollForward(rollForwardQueue,txnIdLong, row,false);
 //				if(conflictResults.toRollForward!=null){
 //						for(Long txnIdToRollForward : conflictResults.toRollForward){

@@ -2,6 +2,7 @@ package com.splicemachine.utils;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.lucene.util.ArrayUtil;
 
 import java.io.Externalizable;
@@ -156,6 +157,11 @@ public class ByteSlice implements Externalizable {
 				if (length != that.length) return false;
 //				if (offset != that.offset) return false;
 				return ArrayUtil.equals(buffer, offset, that.buffer, that.offset, length);
+		}
+
+		public int compareTo(byte[] bytes,int offset, int length) {
+				//we need comparisons to occur in an unsigned manner
+				return Bytes.compareTo(buffer,this.offset,this.length,bytes,offset,length);
 		}
 
 		public boolean equals(byte[] data, int offset, int length) {
