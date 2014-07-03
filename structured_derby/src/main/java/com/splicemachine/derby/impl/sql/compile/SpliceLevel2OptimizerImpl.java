@@ -49,7 +49,10 @@ public class SpliceLevel2OptimizerImpl extends OptimizerImpl {
 		optimizerTraceHtml = lcc.getOptimizerTraceHtml();
 		this.lcc = lcc;
 		// Optimization started
-		if (optimizerTrace) {
+
+
+
+        if (optimizerTrace) {
 			trace(STARTED, 0, 0, 0.0, null);
 		}
 	}
