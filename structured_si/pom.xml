@@ -148,6 +148,7 @@
 								<option>-keep public class com.splicemachine.si.coprocessors.RollForwardQueueMap { public *; }</option>
                                 <option>-keep public class com.splicemachine.si.coprocessors.TimestampMasterObserver { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.Transactor { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.Tracer { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.TransactionalFilter { public *; } </option>
 								<option>-keep public class com.splicemachine.si.api.TransactionReadController { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.ClientTransactor { public *; }</option>
