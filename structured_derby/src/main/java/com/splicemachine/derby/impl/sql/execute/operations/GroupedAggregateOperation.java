@@ -318,15 +318,14 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 										groupingKeys,groupingKeyOrder,nonGroupedUniqueColumns,serializers);
 						aggregator.open();
 						timer = spliceRuntimeContext.newTimer();
+						timer.startTiming();
 				}
-
-				timer.startTiming();
 				GroupedRow row = aggregator.next(spliceRuntimeContext);
 				if(row==null){
 						currentKey=null;
 						clearCurrentRow();
 						aggregator.close();
-						timer.tick(0);
+						timer.tick(aggregator.getRowsRead());
 						stopExecutionTime = System.currentTimeMillis();
 						return null;
 				}
@@ -334,7 +333,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				isCurrentDistinct = row.isDistinct();
 				ExecRow execRow = row.getRow();
 				setCurrentRow(execRow);
-				timer.tick(1);
 				return execRow;
 		}
 
