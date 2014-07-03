@@ -175,6 +175,14 @@ public class HBaseRegionLoads {
         return regions == null ? null : regions.values();
     }
 
+    public static Map<String, RegionLoad> getCachedRegionLoadsMapForTable(String tableName){
+        Map<String,Map<String,RegionLoad>> loads = cache.get();
+        if (loads == null){
+            return null;
+        }
+        return loads.get(tableName);
+    }
+
     public static int memstoreAndStorefileSize(RegionLoad load){
         return load.getStorefileSizeMB() + load.getMemStoreSizeMB();
     }

@@ -39,8 +39,6 @@ import org.apache.derby.iapi.services.cache.ClassSize;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
-import com.splicemachine.derby.utils.SpliceUtils;
-
 import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
 import org.apache.log4j.Logger;
 
@@ -56,7 +54,7 @@ public class IndexConglomerate extends SpliceConglomerate {
 	protected static final String PROPERTY_BASECONGLOMID = "baseConglomerateId";
 	protected static final String PROPERTY_ROWLOCCOLUMN  = "rowLocationColumn";
     public static final int FORMAT_NUMBER = StoredFormatIds.ACCESS_B2I_V5_ID;
-	protected long baseConglomerateId;
+	public long baseConglomerateId;
 	protected int rowLocationColumn;
 	protected boolean[]	ascDescInfo;
     protected static int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog(IndexConglomerate.class);
@@ -90,9 +88,6 @@ public class IndexConglomerate extends SpliceConglomerate {
 		    Properties              properties,
 		    int                     conglom_format_id,
 			int                     tmpFlag) throws StandardException {
-//    	if (LOG.isTraceEnabled()) {
-//    		LOG.trace("Create index ");
-//    	}
     	super.create(rawtran, segmentId, input_containerid, template, columnOrder, collationIds, properties, conglom_format_id, tmpFlag);
     	if (properties == null)
     		throw(StandardException.newException(SQLState.BTREE_PROPERTY_NOT_FOUND, PROPERTY_BASECONGLOMID));
@@ -387,7 +382,7 @@ public class IndexConglomerate extends SpliceConglomerate {
 		throws StandardException {
     	SpliceLogUtils.trace(LOG, "openStoreCost: %s", id);
        	OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,rawtran,false,ContainerHandle.MODE_READONLY,TransactionController.MODE_TABLE,(LockingPolicy) null,(StaticCompiledOpenConglomInfo) null,(DynamicCompiledOpenConglomInfo) null, this);
-        IndexCostController hbasecost = new IndexCostController();
+       	IndexCostController hbasecost = new IndexCostController(open_conglom);
 		return(hbasecost);
     }
 
@@ -395,9 +390,8 @@ public class IndexConglomerate extends SpliceConglomerate {
     /**
      * Print this hbase.
      **/
-    public String toString()
-    {
-        return (id == null) ? "null" : id.toString();
+    public String toString() {
+    	return String.format("IndexConglomerate {id=%s, baseConglomerateId=%d",id==null?"null":id.toString(),baseConglomerateId);
     }
 
     /**************************************************************************
