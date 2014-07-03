@@ -237,7 +237,7 @@ public class RegionWriteHandler implements WriteHandler {
 				return transactor.processKvBatch(new HbRegion(region),
 						SIConstants.siDelayRollForwardMaxSize > toProcess.size()?queue:null, // Only use queues when you have less than 300 buffered records
 								SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,
-								toProcess,ctx.getTransactionId(),constraintChecker);
+								toProcess,ctx.getTransactionId(),constraintChecker,constraintChecker==null);
     }
 
 	@Override
