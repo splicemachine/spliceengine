@@ -161,8 +161,9 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				}
 		}
 
-		protected void setupScan() {
+		public void setupScan() {
 				try {
+						assert spliceConglomerate!=null;
 						boolean[] sortOrder = spliceConglomerate==null?null:
 										((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).getAscDescInfo();
 						boolean sameStartStop = isSameStartStop(startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator);

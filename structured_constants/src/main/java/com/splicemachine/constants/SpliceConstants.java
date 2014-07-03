@@ -426,7 +426,20 @@ public class SpliceConstants {
 		@Parameter private static final String WRITE_THREADS_CORE = "splice.writer.coreThreads";
 		@DefaultValue(WRITE_THREADS_CORE) public static final int DEFAULT_WRITE_THREADS_CORE = 5;
 		public static int coreWriteThreads;
-
+		
+		
+		// Optimizer Items
+		
+		
+        public static long regionMaxFileSize;
+        public static long hbaseRegionRowEstimate = 1500000;
+		public static double indexPerRowCost = 0.20d;
+		public static double baseTablePerRowCost = 1.0d;
+		public static double fetchFromRowLocationCost = 3.0d;
+		public static double getBaseTableFetchFromFullKeyCost = 1.0d;
+		public static double getIndexFetchFromFullKeyCost = 0.0d;
+        
+        
 		/**
 		 * The length of time (in seconds) to wait before killing a write thread which is not in use. Turning
 		 * this up will result in more threads being available for writes after longer periods of inactivity,
@@ -913,6 +926,7 @@ public class SpliceConstants {
 				maxTreeThreads = config.getInt(MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
 				siDelayRollForwardMaxSize = config.getInt(SI_DELAY_ROLL_FORWARD_MAX_SIZE, DEFAULT_SI_DELAY_ROLL_FORWARD_MAX_SIZE);
 				ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
+				regionMaxFileSize = SpliceConstants.config.getLong(HConstants.HREGION_MAX_FILESIZE,1024 * 1024 * 1024L);
 				if(ipcThreads < maxThreads){
             /*
              * Some of our writes will also write out to indices and/or read data from HBase, which
