@@ -17,6 +17,8 @@ public interface Task {
 
     void markCancelled() throws ExecutionException;
 
+    void markCancelled(boolean propagate) throws ExecutionException;
+
     void execute() throws ExecutionException,InterruptedException;
 
     boolean isCancelled() throws ExecutionException;

@@ -345,6 +345,11 @@ public class JobControlTest {
         }
 
         @Override
+        public void markCancelled(boolean propagate) throws ExecutionException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public void execute() throws ExecutionException, InterruptedException {
             markStarted();
             try{

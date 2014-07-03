@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.job.scheduler;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.job.*;
-import org.apache.derbyTesting.functionTests.harness.shutdown;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -12,6 +12,10 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+
+import static com.splicemachine.utils.SpliceLogUtils.debug;
+import static com.splicemachine.utils.SpliceLogUtils.error;
+import static com.splicemachine.utils.SpliceLogUtils.info;
 
 /**
  * TaskScheduler that Steals Work from other Schedulers when it is empty.
@@ -292,7 +296,7 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 								if(t instanceof InterruptedException){
 										interrupted(next,usedScheduler);
 								}
-								WORKER_LOG.error("Unexepcted exception calling task "+ Bytes.toString(next.getTaskId()),e);
+								WORKER_LOG.error("Unexpected exception calling task "+ Bytes.toString(next.getTaskId()),e);
 						}finally{
 								next.getTaskStatus().detachListener(stats);
                             jobMetrics.updateTask(next.getTaskId(), next.getJobId(),next.getTaskStatus().getStatus().name());
@@ -300,9 +304,7 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 				}
 
 				private void interrupted(T next, StealableTaskScheduler<T> usedScheduler) {
-						if(WORKER_LOG.isInfoEnabled())
-								WORKER_LOG.info("Interrupted during execution of task "+ Bytes.toLong(next.getTaskId()));
-
+                        info(WORKER_LOG, "Interrupted during execution of task %s", Bytes.toLong(next.getTaskId()));
 						if(usedScheduler.isShutdown()){
 								usedScheduler.resubmit(next);
 						}else{
@@ -310,8 +312,15 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 								 * The task was cancelled, but we shouldn't shut down. Just
 								 * clear the interrupted status and continue on
 								 */
-								if(WORKER_LOG.isDebugEnabled())
-										WORKER_LOG.debug("Task "+ Bytes.toLong(next.getTaskId())+" has been cancelled");
+                            debug(WORKER_LOG, "Task %s has been cancelled", Bytes.toLong(next.getTaskId()));
+                            try {
+                                if (!next.isCancelled()) {
+                                    info(WORKER_LOG, "Task %s was interrupted, but not yet canceled, cancelling now", Bytes.toLong(next.getTaskId()));
+                                    next.markCancelled(true);
+                                }
+                            } catch (ExecutionException e) {
+                                error(WORKER_LOG, "Task %s should be cancelled but unable to mark", Bytes.toLong(next.getTaskId()));
+                            }
 								Thread.interrupted();
 						}
 				}

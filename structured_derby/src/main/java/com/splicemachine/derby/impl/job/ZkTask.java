@@ -211,7 +211,8 @@ public abstract class ZkTask implements RegionTask,Externalizable {
         }
     }
 
-    private void markCancelled(boolean propagate) throws ExecutionException{
+    @Override
+    public void markCancelled(boolean propagate) throws ExecutionException{
         switch (status.getStatus()) {
             case FAILED:
             case COMPLETED:

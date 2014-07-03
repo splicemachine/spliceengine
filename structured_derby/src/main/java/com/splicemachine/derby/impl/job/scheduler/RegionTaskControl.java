@@ -348,10 +348,5 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
 								regionTaskControl.jobControl.taskChanged(regionTaskControl);
 				}
 		}
-    public static void main(String... args) throws Exception{
-        for(int i=0;i<16;i++){
-            System.out.println(BytesUtil.toHex(new byte[]{(byte)(i*0x10)}));
-        }
-    }
 
 }
