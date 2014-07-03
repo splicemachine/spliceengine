@@ -25,13 +25,13 @@ public interface Transactor<Table, Mutation extends OperationWithAttributes,Put 
 
 		OperationStatus[] processKvBatch(Table table, RollForwardQueue rollForwardQueue, byte[] family, byte[] qualifier, Collection<KVPair> mutations, String txnId) throws IOException;
 
-		OperationStatus[] processKvBatch(Table table, RollForwardQueue queue, byte[] defaultFamilyBytes, byte[] packedColumnBytes, Collection<KVPair> toProcess, String transactionId, ConstraintChecker constraintChecker) throws IOException;
+		OperationStatus[] processKvBatch(Table table, RollForwardQueue queue, byte[] defaultFamilyBytes, byte[] packedColumnBytes, Collection<KVPair> toProcess, String transactionId, ConstraintChecker constraintChecker,boolean ignoreWriteWrite) throws IOException;
 
 		OperationStatus[] processKvBatch(Table table, RollForwardQueue rollForwardQueue, TransactionId txnId, byte[] family, byte[] qualifier, Collection<KVPair> mutations) throws IOException;
 
 		OperationStatus[] processKvBatch(Table table, RollForwardQueue rollForwardQueue, TransactionId txnId,
 																		 byte[] family, byte[] qualifier,
-																		 Collection<KVPair> mutations,ConstraintChecker constraintChecker) throws IOException;
+																		 Collection<KVPair> mutations,ConstraintChecker constraintChecker,boolean ignoreWriteWrite) throws IOException;
 
     /**
      * Create an object to keep track of the state of an HBase table compaction operation.
