@@ -12,14 +12,13 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 
 /**
 *
 * This class maintains the key session items for a conglomerate.  This is usually passed into the Controllor (inserts/updates/deletes)
 * or Scan Manager (Result Sets).
-* 
-* @author John Leach CTO Splice Machine Inc.
 *
 **/
 
@@ -118,6 +117,21 @@ public class OpenSpliceConglomerate  {
 			rowTemplate = RowUtil.newTemplate(getTransaction().getDataValueFactory(), null, getFormatIds(), getCollationIds());
 		return(RowUtil.newRowFromTemplate(rowTemplate));
 	}
+	
+	public long getIndexConglomerate() {
+		return ((IndexConglomerate)this.conglomerate).baseConglomerateId;
+	}
+
+	@Override
+	public String toString() {
+		try {
+			return String.format("OpenSpliceConglomerate {conglomerate=%s, rowTemplate=%s}",conglomerate,cloneRowTemplate());
+		} catch (StandardException e) {
+			e.printStackTrace();
+			return String.format("OpenSpliceConglomerate {conglomerate=%s}",conglomerate);
+		}
+	}
+	
 	
 	
 }
