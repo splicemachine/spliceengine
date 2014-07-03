@@ -225,7 +225,7 @@ public class RegionWriteHandler implements WriteHandler {
             queue =  RollForwardQueueMap.lookupRollForwardQueue(tableName);
 				return transactor.processKvBatch(new HbRegion(region),queue,
 								SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,
-								toProcess,ctx.getTransactionId(),constraintChecker);
+								toProcess,ctx.getTransactionId(),constraintChecker,constraintChecker==null);
     }
 
 	@Override

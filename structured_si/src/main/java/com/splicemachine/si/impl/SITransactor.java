@@ -255,7 +255,7 @@ public class SITransactor<Table,
                                             byte[] family, byte[] qualifier,
                                             Collection<KVPair> mutations,
                                             String txnId) throws IOException {
-        return processKvBatch(table, rollForwardQueue, family, qualifier, mutations, txnId, null);
+        return processKvBatch(table, rollForwardQueue, family, qualifier, mutations, txnId, null,false);
     }
 
     @Override
@@ -264,14 +264,14 @@ public class SITransactor<Table,
                                             byte[] family,
                                             byte[] qualifier,
                                             Collection<KVPair> mutations,
-                                            String txnId, ConstraintChecker constraintChecker) throws IOException {
+                                            String txnId, ConstraintChecker constraintChecker, boolean ignoreWriteWrite) throws IOException {
         if (mutations.size() <= 0)
             //noinspection unchecked
             return dataStore.writeBatch(table, null);
 
         //ensure the transaction is in good shape
         TransactionId txn = transactionManager.transactionIdFromString(txnId);
-        return processKvBatch(table, rollForwardQueue, txn, family, qualifier, mutations, constraintChecker);
+        return processKvBatch(table, rollForwardQueue, txn, family, qualifier, mutations, constraintChecker,ignoreWriteWrite);
     }
 
     @Override
@@ -280,7 +280,7 @@ public class SITransactor<Table,
                                             TransactionId txnId,
                                             byte[] family, byte[] qualifier,
                                             Collection<KVPair> mutations) throws IOException {
-        return processKvBatch(table, rollForwardQueue, txnId, family, qualifier, mutations, null);
+        return processKvBatch(table, rollForwardQueue, txnId, family, qualifier, mutations, null,false);
     }
 
     @Override
@@ -288,7 +288,7 @@ public class SITransactor<Table,
                                             RollForwardQueue rollForwardQueue,
                                             TransactionId txnId,
                                             byte[] family, byte[] qualifier,
-                                            Collection<KVPair> mutations, ConstraintChecker constraintChecker)
+                                            Collection<KVPair> mutations, ConstraintChecker constraintChecker, boolean ignoreWriteWrite)
 						throws IOException {
 				/*
 				 * Algorithmic Flow:
@@ -350,7 +350,7 @@ public class SITransactor<Table,
                                                          qualifier,
                                                          constraintChecker,
                                                          constraintState,
-                                                         finalStatus);
+                                                         finalStatus, ignoreWriteWrite);
 
             //TODO -sf- this can probably be made more efficient
             //convert into array for usefulness
@@ -445,7 +445,7 @@ public class SITransactor<Table,
                                                 byte[] family, byte[] qualifier,
                                                 ConstraintChecker constraintChecker,
                                                 FilterState constraintStateFilter,
-                                                OperationStatus[] finalStatus) throws IOException {
+                                                OperationStatus[] finalStatus, boolean ignoreWriteWrite) throws IOException {
 				IntObjectOpenHashMap<Mutation> finalMutationsToWrite = IntObjectOpenHashMap.newInstance(finalStatus.length,0.7f);
 //        List<Mutation> finalMutationsToWrite = new ArrayList<Mutation>();
         for (int i = 0; i < dataAndLocks.length; i++) {
@@ -461,7 +461,11 @@ public class SITransactor<Table,
 										if (applyConstraint(constraintChecker, constraintStateFilter, i, kvPair, row, finalStatus))
 												continue;
 								}
-            } else {
+            }
+            else if (ignoreWriteWrite && kvPair.getType().ordinal() == KVPair.Type.INSERT.ordinal()) {
+                // I am an insert on a table with no primary key, if snowflake does its job, I cannot conflict.
+            }
+            else {
                 Result possibleConflicts = dataStore.getCommitTimestampsAndTombstonesSingle(table, kvPair.getRow());
                 if (possibleConflicts != null) {
                     conflictResults = ensureNoWriteConflict(transaction, possibleConflicts);
