@@ -37,7 +37,6 @@ public class MergeJoinOperation extends JoinOperation {
     private int rightHashKeyItem;
     int[] leftHashKeys;
     int[] rightHashKeys;
-    IJoinRowsIterator<ExecRow> mergedRowSource;
     Joiner joiner;
 
     // for overriding
@@ -146,7 +145,6 @@ public class MergeJoinOperation extends JoinOperation {
         if (joiner == null) {
             // Upon first call, init up the joined rows source
             joiner = initJoiner(ctx);
-            joiner.open();
             timer = ctx.newTimer();
 						timer.startTiming();
         }
@@ -174,7 +172,9 @@ public class MergeJoinOperation extends JoinOperation {
         }
         rightRows = StandardIterators
                         .ioIterator(rightResultSet.executeScan(ctxWithOverride));
-        mergedRowSource = new MergeJoinRows(leftPushBack, rightRows, leftHashKeys, rightHashKeys);
+        rightRows.open();
+        IJoinRowsIterator<ExecRow> mergedRowSource =
+            new MergeJoinRows(leftPushBack, rightRows, leftHashKeys, rightHashKeys);
         StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
             @Override
             public ExecRow get() throws StandardException {

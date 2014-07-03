@@ -16,6 +16,7 @@ public class Tracer {
     private static transient Function<Long, Object> fCommitting = null;
     private static transient Function<Long, Object> fWaiting = null;
     private static transient Function<Object[], Object> fRegion = null;
+    private static transient Function<Object, String> bestAccess = null; 
 
     public static Integer rollForwardDelayOverride = null;
 
@@ -45,6 +46,10 @@ public class Tracer {
 
     public static void registerCommitting(Function<Long, Object> f) {
         Tracer.fCommitting = f;
+    }
+
+    public static void registerBestAccess(Function<Object, String> f) {
+        Tracer.bestAccess = f;
     }
 
     public static void registerWaiting(Function<Long, Object> f) {
@@ -94,6 +99,12 @@ public class Tracer {
     public static void traceRegion(String tableName, HRegion region) {
         if (fRegion != null) {
             fRegion.apply(new Object[] {tableName, region});
+        }
+    }
+
+    public static void traceBestAccess(Object objectParam) {
+        if (bestAccess != null) {
+        	bestAccess.apply(objectParam);
         }
     }
 

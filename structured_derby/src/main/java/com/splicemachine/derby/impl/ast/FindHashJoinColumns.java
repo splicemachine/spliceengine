@@ -19,7 +19,7 @@ import java.util.Set;
  * Find columns used in equijoin predicates and set the {left,right}HashKeys field on the JoinNode.
  * <p/>
  * Dependency: relies on join predicates having been pulled up from leaf nodes and attached
- * directly to join in the MSJJoinConditionVisitor.
+ * directly to join in the JoinConditionVisitor.
  *
  * @author P Trolard
  *         Date: 18/10/2013
