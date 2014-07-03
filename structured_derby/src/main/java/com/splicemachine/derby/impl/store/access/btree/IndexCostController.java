@@ -21,24 +21,28 @@
 
 package com.splicemachine.derby.impl.store.access.btree;
 
-import org.apache.derby.iapi.reference.Property;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.SortedSet;
 
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.error.StandardException; 
-
 import org.apache.derby.iapi.store.access.StoreCostController;
 import org.apache.derby.iapi.store.access.StoreCostResult;
-
-import org.apache.derby.iapi.store.raw.ContainerHandle;
-
-import org.apache.derby.impl.store.access.conglomerate.GenericCostController;
-import org.apache.derby.impl.store.access.conglomerate.OpenConglomerate;
-
+import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-
 import org.apache.derby.iapi.services.io.FormatableBitSet;
-import java.util.Properties;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
+import com.splicemachine.derby.impl.store.access.base.SpliceGenericCostController;
+import com.splicemachine.derby.impl.store.access.base.SpliceScan;
+import com.splicemachine.hbase.HBaseRegionLoads;
+import com.splicemachine.utils.SpliceLogUtils;
 
 
 /**
@@ -67,65 +71,17 @@ The StoreCostController gives 2 kinds of cost information
 
 **/
 
-public class IndexCostController 
-    extends GenericCostController implements StoreCostController
-{
-    /**
-     * Only lookup these estimates from raw store once.
-     **/
-    long    num_pages;
-    long    num_rows;
-    long    page_size;
-    long    row_size;
-
-    /* Private/Protected methods of This class: */
-
-    /**
-     * Initialize the cost controller.
-     * <p>
-     * Let super.init() do it's work and then get the initial stats about the
-     * table from raw store.
-     *
-	 * @exception  StandardException  Standard exception policy.
-     **/
-    public void init(
-    OpenConglomerate    open_conglom)
-        throws StandardException
-    {
-        super.init(open_conglom);
-
-        ContainerHandle container = open_conglom.getContainer();
-
-        // look up costs from raw store.
-        num_rows  = container.getEstimatedRowCount(/*unused flag*/ 0);
-
-        // Don't use 0 rows (use 1 instead), as 0 rows often leads the 
-        // optimizer to produce plans which don't use indexes because of the 0 
-        // row edge case.
-        //
-        // Eventually the plan is recompiled when rows are added, but we
-        // have seen multiple customer cases of deadlocks and timeouts 
-        // because of these 0 row based plans.  
-        if (num_rows == 0)
-            num_rows = 1;
-
-        // eliminate the allocation page from the count.
-        num_pages = container.getEstimatedPageCount(/* unused flag */ 0);
-
-        Properties prop = new Properties();
-        prop.put(Property.PAGE_SIZE_PARAMETER, "");
-        container.getContainerProperties(prop);
-        page_size = 
-            Integer.parseInt(prop.getProperty(Property.PAGE_SIZE_PARAMETER));
-
-        row_size = (num_pages * page_size / num_rows);
-
-        return;
+public class IndexCostController extends SpliceGenericCostController implements StoreCostController {
+    private static final Logger LOG = Logger.getLogger(IndexCostController.class);
+	private OpenSpliceConglomerate open_conglom;
+	private Conglomerate baseConglomerate;
+	
+    public IndexCostController(OpenSpliceConglomerate open_conglom) throws StandardException {
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "init with open_conglom=%s",open_conglom);
+    	this.open_conglom = open_conglom;
+    	this.baseConglomerate = ((SpliceTransactionManager) open_conglom.getTransactionManager()).findConglomerate(open_conglom.getIndexConglomerate());
     }
-
-    /* Public Methods of This class: */
-    /* Public Methods of XXXX class: */
-
 
     /**
      * Return the cost of calling ConglomerateController.fetch().
@@ -172,29 +128,12 @@ public class IndexCostController
      **/
     @Override
     public double getFetchFromRowLocationCost(
-    FormatableBitSet      validColumns,
-    int         access_type)
-		throws StandardException
-    {
-        /*double ret_cost;
-
-        // get "per-byte" cost of fetching a row from the page.
-        ret_cost = row_size * BASE_ROW_PER_BYTECOST;
-
-        long num_pages_per_row = (row_size / page_size) + 1;
-
-        if ((access_type & StoreCostController.STORECOST_CLUSTERED) == 0)
-        {
-            // this is the "base" unit case.
-            ret_cost += (BASE_UNCACHED_ROW_FETCH_COST * num_pages_per_row);
-        }
-        else
-        {
-            ret_cost += (BASE_CACHED_ROW_FETCH_COST * num_pages_per_row);
-        }
-
-        return(ret_cost);*/
-    	return 0d;
+    FormatableBitSet validColumns,int access_type)
+		throws StandardException {
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "getFetchFromRowLocation {conglomerate=%s, validColumns=%s, accessType=%d",
+    				open_conglom, validColumns==null?"null":validColumns.toString(),access_type);
+    	return SpliceConstants.fetchFromRowLocationCost;
     }
 
     /**
@@ -332,6 +271,7 @@ public class IndexCostController
      *
 	 * @see org.apache.derby.iapi.store.access.RowUtil
      **/
+    @Override
 	public void getScanCost(
     int                     scan_type,
     long                    row_count,
@@ -345,57 +285,42 @@ public class IndexCostController
     int                     stopSearchOperator,
     boolean                 reopen_scan,
     int                     access_type,
-    StoreCostResult         cost_result)
-        throws StandardException
-    {
-        if (SanityManager.DEBUG)
-        {
+    StoreCostResult         cost_result) throws StandardException {
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "getScanCost {scan_type=%d, row_count=%d, group_size=%d, "
+    				+ "forUpdate=%s, scanColumnList=%s, template=%s, startKeyValue=%s, startSearchOperator=%d"
+    				+ "stopKeyValue=%s, stopSearchOperator=%d, reopen_scan=%s, access_type=%d",
+    				scan_type, row_count, group_size, forUpdate, scanColumnList, template==null?"null":Arrays.toString(template), startKeyValue, startSearchOperator,
+    				stopKeyValue, stopSearchOperator, reopen_scan, access_type);
+    	assert open_conglom !=null;
+//    	SpliceScan spliceScan = new SpliceScan(open_conglom,scanColumnList,startKeyValue,startSearchOperator,null,stopKeyValue,stopSearchOperator,open_conglom.getTransaction(),false);
+//		spliceScan.setupScan();
+  //  	if (LOG.isTraceEnabled())
+//    		SpliceLogUtils.trace(LOG, "getScanCost generated Scan %s",spliceScan.getScan());		
+		if (SanityManager.DEBUG) {
             SanityManager.ASSERT(
                 scan_type == StoreCostController.STORECOST_SCAN_NORMAL ||
                 scan_type == StoreCostController.STORECOST_SCAN_SET);
         }
 
-        long estimated_row_count = ((row_count < 0) ?  num_rows : row_count);
-
-        // This cost is if the caller has to go in and out of access for
-        // every row in the table.  The cost will be significantly less if
-        // group fetch is used, or if qualifiers
-
-        // first the base cost of bringing each page in from cache:
-        double cost = (num_pages * BASE_UNCACHED_ROW_FETCH_COST);
-
-        // the cost associated with the number of bytes in each row:
-        cost += (estimated_row_count * row_size) * BASE_ROW_PER_BYTECOST;
-
-        // the base cost of getting each of the rows from a page assumed
-        // to already be cached (by the scan fetch) - this is only for all
-        // rows after the initial row on the page has been accounted for
-        // under the BASE_UNCACHED_ROW_FETCH_COST cost.:
-        long cached_row_count = estimated_row_count - num_pages;
-        if (cached_row_count < 0)
-            cached_row_count = 0;
-
-        if (scan_type == StoreCostController.STORECOST_SCAN_NORMAL)
-            cost += cached_row_count * BASE_GROUPSCAN_ROW_COST;
-        else
-            cost += cached_row_count * BASE_HASHSCAN_ROW_FETCH_COST;
-
-        if (SanityManager.DEBUG)
-        {
+        SortedSet<HRegionInfo> baseRegions = getRegions(baseConglomerate.getContainerid());
+        Map<String,RegionLoad> baseRegionLoads = HBaseRegionLoads.getCachedRegionLoadsMapForTable(baseConglomerate.getContainerid()+"");
+        long estimatedRowCount = computeRowCount(baseRegions,baseRegionLoads,SpliceConstants.hbaseRegionRowEstimate,SpliceConstants.regionMaxFileSize,null);    
+        double cost = estimatedRowCount*SpliceConstants.indexPerRowCost*(1+.001*open_conglom.getFormatIds().length); // Attempt to make bigger indexes / tables cost more.
+        if (SanityManager.DEBUG) {
             SanityManager.ASSERT(cost >= 0);
-            SanityManager.ASSERT(estimated_row_count >= 0);
+            SanityManager.ASSERT(estimatedRowCount >= 0);
         }
-
         cost_result.setEstimatedCost(cost);
-
-        // return that all rows will be scanned.
-        cost_result.setEstimatedRowCount(estimated_row_count);
-
+        cost_result.setEstimatedRowCount(estimatedRowCount);
         return;
     }
 	
 	@Override
 	public double getFetchFromFullKeyCost(FormatableBitSet validColumns, int access_type) throws StandardException {
-		return 0d;
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "getFetchFromFullKeyCost {conglomerate=%s, validColumns=%s, accessType=%d",
+    				open_conglom, validColumns==null?"null":validColumns.toString(),access_type);
+		return SpliceConstants.getIndexFetchFromFullKeyCost;
 	}
 }

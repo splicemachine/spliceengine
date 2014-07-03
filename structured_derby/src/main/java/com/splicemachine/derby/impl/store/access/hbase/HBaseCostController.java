@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
-import com.splicemachine.hbase.HBaseRegionCache;
+import com.splicemachine.hbase.HBaseRegionLoads;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.error.StandardException; 
 import org.apache.derby.iapi.store.access.RowUtil;
 import org.apache.derby.iapi.store.access.StoreCostController;
@@ -10,12 +10,16 @@ import org.apache.derby.iapi.store.access.StoreCostResult;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
+import com.splicemachine.derby.impl.store.access.base.SpliceGenericCostController;
+import com.splicemachine.derby.impl.store.access.base.SpliceScan;
+import com.splicemachine.derby.impl.store.access.btree.IndexCostController;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.util.Bytes;
-
+import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
+import org.apache.log4j.Logger;
+import java.util.Map;
 import java.util.SortedSet;
-import java.util.concurrent.ExecutionException;
 
 
 /**
@@ -44,15 +48,13 @@ The StoreCostController gives 2 kinds of cost information
 
 **/
 
-public class HBaseCostController implements StoreCostController
-{
+public class HBaseCostController extends SpliceGenericCostController implements StoreCostController {
+    private static final Logger LOG = Logger.getLogger(IndexCostController.class);
     /**
      * Only lookup these estimates from raw store once.
      **/
 	private OpenSpliceConglomerate open_conglom;
-    long    num_pages;
     long    num_rows;
-    long    page_size;
     long    row_size;
 
     /* Private/Protected methods of This class: */
@@ -65,14 +67,11 @@ public class HBaseCostController implements StoreCostController
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    public HBaseCostController(OpenSpliceConglomerate    open_conglom)
-        throws StandardException
-    {
-        this.open_conglom = open_conglom;
+    public HBaseCostController(OpenSpliceConglomerate    open_conglom) throws StandardException {
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "init with open_conglom=%s",open_conglom);
+    	this.open_conglom = open_conglom;
     }
-
-    /* Public Methods of This class: */
-    /* Public Methods of XXXX class: */
 
 
     /**
@@ -120,11 +119,12 @@ public class HBaseCostController implements StoreCostController
      **/
     public double getFetchFromRowLocationCost(
     FormatableBitSet      validColumns,
-    int         access_type)
-		throws StandardException
-    {
+    int         access_type) throws StandardException {
         // Assign arbitrary non-zero cost
-        return 1d;
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "getFetchFromRowLocation {conglomerate=%s, validColumns=%s, accessType=%d",
+    				open_conglom, validColumns==null?"null":validColumns.toString(),access_type);    	
+    	return SpliceConstants.fetchFromRowLocationCost;
     }
 
     /**
@@ -275,10 +275,21 @@ public class HBaseCostController implements StoreCostController
     int                     stopSearchOperator,
     boolean                 reopen_scan,
     int                     access_type,
-    StoreCostResult         cost_result)
-        throws StandardException
-    {
-        // Splice approach: scale Derby's calculation by the number of regions for
+    StoreCostResult         cost_result) throws StandardException {
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "getScanCost {scan_type=%d, row_count=%d, group_size=%d, "
+    				+ "forUpdate=%s, scanColumnList=%s, template=%s, startKeyValue=%s, startSearchOperator=%d"
+    				+ "stopKeyValue=%s, stopSearchOperator=%d, reopen_scan=%s, access_type=%d",
+    				scan_type, row_count, group_size, forUpdate, scanColumnList, template, startKeyValue, startSearchOperator,
+    				stopKeyValue, stopSearchOperator, reopen_scan, access_type);
+    	assert open_conglom !=null;
+//    	SpliceScan spliceScan = new SpliceScan(open_conglom,scanColumnList,startKeyValue,startSearchOperator,null,stopKeyValue,stopSearchOperator,open_conglom.getTransaction(),false);
+//    	spliceScan.setupScan();
+//    	if (LOG.isTraceEnabled())
+//    		SpliceLogUtils.trace(LOG, "getScanCost generated Scan %s",spliceScan.getScan());		
+
+		
+		// Splice approach: scale Derby's calculation by the number of regions for
         // table in HBase
 
         // Derby logic (see its HeapCostController for comments)
@@ -288,43 +299,21 @@ public class HBaseCostController implements StoreCostController
                 scan_type == StoreCostController.STORECOST_SCAN_SET);
         }
 
-        long derby_estimated_row_count = ((row_count < 0) ?  num_rows : row_count);
-        double derbyCost = (num_pages * BASE_UNCACHED_ROW_FETCH_COST);
-        derbyCost += (derby_estimated_row_count * row_size) * BASE_ROW_PER_BYTECOST;
-        long cached_row_count = derby_estimated_row_count - num_pages;
-        if (cached_row_count < 0)
-            cached_row_count = 0;
+        SortedSet<HRegionInfo> regions = getRegions(open_conglom.getConglomerate().getContainerid());
+        Map<String,RegionLoad> regionLoads = HBaseRegionLoads.getCachedRegionLoadsMapForTable(open_conglom.getConglomerate().getContainerid()+"");
 
-        if (scan_type == StoreCostController.STORECOST_SCAN_NORMAL)
-            derbyCost += cached_row_count * BASE_GROUPSCAN_ROW_COST;
-        else
-            derbyCost += cached_row_count * .02;
-
+        long estimatedRowCount = computeRowCount(regions,regionLoads,SpliceConstants.hbaseRegionRowEstimate,SpliceConstants.regionMaxFileSize,null);
+        double cost = estimatedRowCount*SpliceConstants.indexPerRowCost;
         if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(derbyCost >= 0);
-            SanityManager.ASSERT(derby_estimated_row_count >= 0);
-        }
-
-        // Scale by number of regions
-        int numregions = getNumberOfRegions(open_conglom
-                                                .getConglomerate().getContainerid());
-
-        cost_result.setEstimatedCost(derbyCost * numregions);
-        cost_result.setEstimatedRowCount(derby_estimated_row_count * numregions);
-
+            SanityManager.ASSERT(cost >= 0);
+            SanityManager.ASSERT(estimatedRowCount >= 0);
+        }        
+        cost_result.setEstimatedCost(cost);
+        cost_result.setEstimatedRowCount(estimatedRowCount);
         return;
     }
+	
 
-    private static int getNumberOfRegions(long conglomId) {
-        String table = Long.toString(conglomId);
-        int numregions = 1;
-        try {
-            numregions = HBaseRegionCache.getInstance()
-                             .getRegions(Bytes.toBytes(table)).size();
-        } catch (ExecutionException e) {
-        }
-        return numregions;
-    }
 
 
 	/**
@@ -396,7 +385,10 @@ public class HBaseCostController implements StoreCostController
     FormatableBitSet     validColumns,
     int         access_type)
 		throws StandardException {
-        return 1d;
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "getFetchFromFullKeyCost {conglomerate=%s, validColumns=%s, accessType=%d",
+    				open_conglom, validColumns==null?"null":validColumns.toString(),access_type);    	
+    	return SpliceConstants.getBaseTableFetchFromFullKeyCost;
     }
 
 
