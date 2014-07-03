@@ -28,6 +28,16 @@ public class ColumnContext implements Externalizable {
     private int length;
     private int decimalDigits;
     private String columnDefault;
+
+    public int getInsertPos() {
+        return insertPos;
+    }
+
+    public void setInsertPos(int insertPos) {
+        this.insertPos = insertPos;
+    }
+
+    private int insertPos = -1;
     private String formatStr;
     private boolean isFormatStrSet;
 		//autoincrement stuff
@@ -77,6 +87,7 @@ public class ColumnContext implements Externalizable {
         if (decimalDigits>0) 
         	out.writeInt(decimalDigits);
         out.writeBoolean(columnDefault!=null);
+
         if (columnDefault != null) 
         	out.writeUTF(columnDefault);
 				out.writeBoolean(sequenceRowLocation!=null);
@@ -86,13 +97,19 @@ public class ColumnContext implements Externalizable {
 						out.writeLong(autoIncrementStart);
 						out.writeLong(autoIncrementIncrement);
 				}
+
+            out.writeInt(insertPos);
+
+
     }
+
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         this.colName = in.readUTF();
         this.colNumber = in.readInt();
         this.columnType = in.readInt();
+
         this.pkPos = in.readInt();
         this.isNullable = in.readBoolean();
         if(in.readBoolean())
@@ -107,7 +124,7 @@ public class ColumnContext implements Externalizable {
 						autoIncrementStart = in.readLong();
 						autoIncrementIncrement = in.readLong();
 				}
-        	
+        this.insertPos = in.readInt();
     }
 
     public int getColumnNumber() {
