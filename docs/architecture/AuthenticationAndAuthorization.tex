@@ -17,31 +17,40 @@ authentication mechanism in Splice Machine.
 	database.
 \end{enumerate}
 
+\subsubsection{None (Default)}
+An open database that will allow each user to authenticate against the datbase
+can be configured by setting the following configuration.
+
+\begin{enumerate}
+	\item splice.authentication=NONE
+\end{enumerate}
+
+This is not recommended for production use.
+
+
 \subsubsection{Native (default)}
 This approach to authentication utilizes the sys.sysusers table in the splice
 schema.  The password is encrypted using MD5, SHA-256, or
 SHA-512 (Default) algorithm.  The 
 
-splice.authentication=NATIVE
-splice.authentication.native.algorithm=MD5,SHA-256,SHA-512(Default)
+\begin{enumerate}
+	\item splice.authentication=NATIVE
+	\item splice.authentication.native.algorithm=MD5,SHA-256,SHA-512(Default)
+\end{enumerate}
 
-
-\subsubsection{None}
-An open database that will allow each user to authenticate against the datbase
-can be configured by setting the following configuration.
-
-splice.authentication=NONE
-
-This is not recommended for production use.
+Defaul user:  \emph{splice}	
+Default password: \emph{admin}
 
 \subsubsection{LDAP}
 
-splice.authentication=LDAP
-splice.authentication.ldap.server=localhost:9090 (Default)
-splice.authentication.ldap.searchAuthDN
-splice.authentication.ldap.searchAuthPW
-splice.authentication.ldap.searchBase
-splice.authentication.ldap.searchFilter
+\begin{enumerate}
+	\item splice.authentication=LDAP
+	\item splice.authentication.ldap.server=localhost:9090 (Default)
+	\item splice.authentication.ldap.searchAuthDN
+	\item splice.authentication.ldap.searchAuthPW
+	\item splice.authentication.ldap.searchBase
+	\item splice.authentication.ldap.searchFilter
+\end{enumerate}
 
 \subsubsection{Custom}
 
@@ -51,9 +60,10 @@ class provided by the customer
 that implements org.apache.derby.authentication.UserAuthenticator
 to be applied as long as the following configuration is set.
 
-splice.authentication=CUSTOM
-splice.authentication.custom.provider=com.splicemachine.derby.authentication.SpliceUserAuthentication
-(Default)
+\begin{enumerate}
+	\item splice.authentication=CUSTOM
+	\item	splice.authentication.custom.provider=com.splicemachine.derby.authentication.SpliceUserAuthentication (Default)
+\end{enumerate}
 
 The interface is extremely simple and requires a developer to implement the
 single method:
