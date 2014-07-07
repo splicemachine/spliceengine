@@ -7,19 +7,122 @@
   <h3 class="text-muted">Splice Machine Console</h3>
 </div>
 
+<!-- Commenting out the HTML display of the operations tree.
 <div class="row marketing">
 <script type="text/ng-template"  id="tree_item_renderer.html">
-    {{data.operationType}}
-    <!-- button ng-click="add(data)">Add node</button -->
-    <!-- button ng-click="delete(data)" ng-show="data.children.length > 0">Delete children</button -->
+    {{node.operationType}}
     <ul>
-        <li ng-repeat="data in data.children" ng-include="'tree_item_renderer.html'"></li>
+        <li ng-repeat="node in node.children" ng-include="'tree_item_renderer.html'"></li>
     </ul>
 </script>
 
 <ul>
-    <li ng-repeat="data in tree" ng-include="'tree_item_renderer.html'"></li>
+    <li ng-repeat="node in tree" ng-include="'tree_item_renderer.html'"></li>
 </ul>
+</div>
+-->
+
+<!-- Commenting out d3Bars bar chart. -->
+<div class="row marketing" ng-controller="d3BarsCtrl">
+  <span>{{title}}</span>
+  <d3-bars data="d3Data" label="name" on-click="d3OnClick(item)"></d3-bars>
+  <br>
+  <br>
+  <span>First Item</span>
+  <input type="text" ng-model="d3Data[0].score"></input>
+  <br>
+  <span>Second Item</span>
+  <input type="text" ng-model="d3Data[1].score"></input>
+  <br>
+  <span>Third Item</span>
+  <input type="text" ng-model="d3Data[2].score"></input>
+</div>
+
+<!-- TODO: Move CSS -->
+<style>
+ .link {
+  fill: none;
+  stroke: #ccc;
+  stroke-width: 4.5px;
+}
+</style>
+
+<!--
+<div id="viz"></div>
+<script type="text/javascript">
+
+//--------------------------------------------------------------
+// Manual hard coded JS display of D3 tree structure.
+//--------------------------------------------------------------
+
+// JSON object with the data
+var treeData = {"name" : "A", "info" : "tst", "children" : [
+      {"name" : "A1" },
+      {"name" : "A2" },
+      {"name" : "A3", "children": [
+            {"name" : "A31", "children" :[
+      {"name" : "A311" },
+      {"name" : "A312" }
+]}] }
+]};
+//var rootEle = document.querySelector("#foofoo");
+//var eleRoot = angular.element(rootEle);
+//treeData = eleRoot.scope().$$childHead.tree[0];
+//treeData = angular.element(document.querySelector("#foofoo")).scope().tree;
+//console.log("Try #2 -- ", rootEle);
+
+// Create a svg canvas
+var vis = d3.select("#viz").append("svg:svg")
+.attr("width", 400)
+.attr("height", 300)
+.append("svg:g")
+.attr("transform", "translate(40, 0)"); // shift everything to the right
+
+// Create a tree "canvas"
+var tree = d3.layout.tree()
+.size([300,150]);
+
+var diagonal = d3.svg.diagonal()
+// change x and y (for the left to right tree)
+.projection(function(d) { return [d.y, d.x]; });
+
+// Preparing the data for the tree layout, convert data into an array of nodes
+var nodes = tree.nodes(treeData);
+// Create an array with all the links
+var links = tree.links(nodes);
+
+console.log(treeData)
+console.log(nodes)
+console.log(links)
+
+var link = vis.selectAll("pathlink")
+.data(links)
+.enter().append("svg:path")
+.attr("class", "link")
+.attr("d", diagonal)
+
+var node = vis.selectAll("g.node")
+.data(nodes)
+.enter().append("svg:g")
+.attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
+
+// Add the dot at every node
+node.append("svg:circle")
+.attr("r", 3.5);
+
+// place the name attribute left or right depending if children
+node.append("svg:text")
+.attr("dx", function(d) { return d.children ? -8 : 8; })
+.attr("dy", 3)
+.attr("text-anchor", function(d) { return d.children ? "end" : "start"; })
+.text(function(d) { return d.name; })
+</script>
+-->
+
+<div class="row marketing" ng-controller="spliceOperationsTreeCtrl">
+  <span>{{title}}</span>
+  <splice-ops-tree data="tree[0]" label="operationType" on-click="d3OnClick(item)"></splice-ops-tree>
+  <br>
 </div>
 
 <div class="footer">

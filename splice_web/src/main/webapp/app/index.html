@@ -51,14 +51,23 @@
     <script src="bower_components/angular-cookies/angular-cookies.js"></script>
     <script src="bower_components/angular-sanitize/angular-sanitize.js"></script>
     <script src="bower_components/angular-route/angular-route.js"></script>
+    <script src="bower_components/d3/d3.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
 
         <!-- build:js({.tmp,app}) scripts/scripts.js -->
         <script src="scripts/app.js"></script>
+        <!-- Begin injected services -->
+        <!-- TODO: I have not been able to get the injected services to work and they are very confusing and only buy you the reduction of global vars in the name space. -->
+        <!-- script src="scripts/services/d3.js"></script -->
+        <!-- End injected services -->
+        <script src="scripts/controllers/d3-bars-ctrl.js"></script>
         <script src="scripts/controllers/main.js"></script>
+        <script src="scripts/controllers/operations-tree-ctrl.js"></script>
         <script src="scripts/controllers/traced-statement-list.js"></script>
         <script src="scripts/controllers/traced-statement-detail.js"></script>
+        <script src="scripts/directives/d3-bars-drct.js"></script>
+        <script src="scripts/directives/operations-tree-drct.js"></script>
         <script src="scripts/services.js"></script>
         <!-- endbuild -->
 </body>
