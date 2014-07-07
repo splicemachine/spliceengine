@@ -82,10 +82,6 @@ public class JoinSelector extends AbstractSpliceVisitor {
                         && info.rightSingleRegionSize > -1
                         && info.rightSingleRegionSize < BROADCAST_REGION_MB_THRESHOLD))
             return BCAST;
-        // If right join column is PK, use NLJ
-        if (info.rightEquiJoinColIsPK){
-            return NLJ;
-        }
 
         return MSJ;
     }
@@ -159,7 +155,6 @@ public class JoinSelector extends AbstractSpliceVisitor {
                             userSupplied,
                             isSystemTable,
                             isEquijoin(joinPreds),
-                            false,
                             hasRightIndex,
                             joinPreds,
                             otherPreds,
@@ -237,10 +232,6 @@ public class JoinSelector extends AbstractSpliceVisitor {
                 return true;
             }
         }
-        return false;
-    }
-
-    public static boolean rightColIsPK(JoinNode j, FromBaseTable fbt, List<Predicate> equiPreds){
         return false;
     }
 

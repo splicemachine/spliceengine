@@ -19,7 +19,6 @@ public class JoinInfo {
     public final boolean userSuppliedStrategy;
     public final boolean isSystemTable;
     public final boolean isEquiJoin;
-    public final boolean rightEquiJoinColIsPK;
     public final boolean hasRightIndex;
     public final List<Predicate> joinPredicates;
     public final List<Predicate> otherPredicates;
@@ -29,7 +28,7 @@ public class JoinInfo {
 
     public JoinInfo(JoinStrategy strategy,
                     boolean userSuppliedStrategy, boolean isSystemTable,
-                    boolean isEquiJoin, boolean rightEquiJoinColIsPK, boolean hasRightIndex,
+                    boolean isEquiJoin, boolean hasRightIndex,
                     List<Predicate> joinPredicates, List<Predicate> otherPredicates,
                     List<ResultSetNode> rightNodes, List<ResultSetNode> rightLeaves,
                     int rightSingleRegionSize){
@@ -37,7 +36,6 @@ public class JoinInfo {
         this.userSuppliedStrategy = userSuppliedStrategy;
         this.isSystemTable = isSystemTable;
         this.isEquiJoin = isEquiJoin;
-        this.rightEquiJoinColIsPK = rightEquiJoinColIsPK;
         this.hasRightIndex = hasRightIndex;
         this.joinPredicates = joinPredicates;
         this.otherPredicates = otherPredicates;
@@ -53,7 +51,6 @@ public class JoinInfo {
                           "userSuppliedStrategy=%s, " +
                           "isSystemTable=%s, " +
                           "isEquijoin=%s, " +
-                          "rightEquiJoinColIsPk=%s, " +
                           "hasRightIndex=%s, " +
                           "joinPreds=%s, " +
                           "otherPreds=%s, " +
@@ -61,7 +58,7 @@ public class JoinInfo {
                           "rightLeaves=%s, " +
                           "rightSingleRegionSize=%s",
                          strategy, userSuppliedStrategy, isSystemTable,
-                         isEquiJoin, rightEquiJoinColIsPK, hasRightIndex,
+                         isEquiJoin, hasRightIndex,
                          Iterables.transform(joinPredicates, PredicateUtils.predToString),
                          Iterables.transform(otherPredicates, PredicateUtils.predToString),
                          Iterables.transform(rightNodes, className),
