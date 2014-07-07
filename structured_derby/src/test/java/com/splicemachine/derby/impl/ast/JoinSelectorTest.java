@@ -18,7 +18,7 @@ public class JoinSelectorTest {
     public static ResultSetNode rows    = new RowResultSetNode();
     public static Predicate pred        = new Predicate();
 
-    public static JoinInfo infoEqui = new JoinInfo(JoinSelector.NLJ, false, false, true, false, false,
+    public static JoinInfo infoEqui = new JoinInfo(JoinSelector.NLJ, false, false, true, false,
                                             Collections.singletonList(pred), Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.singletonList(fbt), -1);
 
     @Test
@@ -26,7 +26,7 @@ public class JoinSelectorTest {
         Assert.assertEquals(JoinSelector.MSJ, JoinSelector.chooseStrategy(infoEqui));
     }
 
-    public static JoinInfo infoNonEqui = new JoinInfo(JoinSelector.NLJ, false, false, false, false, false,
+    public static JoinInfo infoNonEqui = new JoinInfo(JoinSelector.NLJ, false, false, false, false,
                                                 Collections.singletonList(pred), Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.singletonList(fbt), -1);
 
     @Test
@@ -35,7 +35,7 @@ public class JoinSelectorTest {
     }
 
 
-    public static JoinInfo infoCross = new JoinInfo(JoinSelector.NLJ, false, false, false, false, false,
+    public static JoinInfo infoCross = new JoinInfo(JoinSelector.NLJ, false, false, false, false,
                                             Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.singletonList(fbt), -1);
 
     @Test
@@ -43,7 +43,7 @@ public class JoinSelectorTest {
         Assert.assertEquals(JoinSelector.NLJ, JoinSelector.chooseStrategy(infoCross));
     }
 
-    public static JoinInfo infoEquiIndex = new JoinInfo(JoinSelector.NLJ, false, false, true, false, true,
+    public static JoinInfo infoEquiIndex = new JoinInfo(JoinSelector.NLJ, false, false, true, true,
                                             Collections.singletonList(pred), Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.singletonList(fbt), -1);
 
     @Test
@@ -51,7 +51,7 @@ public class JoinSelectorTest {
         Assert.assertEquals(JoinSelector.NLJ, JoinSelector.chooseStrategy(infoEquiIndex));
     }
 
-    public static JoinInfo infoRowRS = new JoinInfo(JoinSelector.NLJ, false, false, true, false, false,
+    public static JoinInfo infoRowRS = new JoinInfo(JoinSelector.NLJ, false, false, true, false,
                                             Collections.singletonList(pred), Collections.EMPTY_LIST, Collections.EMPTY_LIST, Arrays.asList(rows, rows), -1);
 
     @Test
