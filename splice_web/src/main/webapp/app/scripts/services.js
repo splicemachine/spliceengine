@@ -5,7 +5,7 @@ var spliceWebServices = angular.module('spliceWebServices', ['ngResource']);
 spliceWebServices.factory('TracedStatementListService',
 	['$resource',
 		function($resource){
-			return $resource('/splice_web/webresources/myresource/sql2js?query=select+*+from+XPLAIN.SYSXPLAIN_STATEMENTHISTORY', {}, {
+			return $resource('/splice_web/webresources/myresource/sql2js?query=select+*+from+SYS.SYSSTATEMENTHISTORY', {}, {
 				query: {method:'GET', isArray:true}
 			});
 		}]);
