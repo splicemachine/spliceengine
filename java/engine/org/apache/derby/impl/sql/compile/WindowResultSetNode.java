@@ -373,99 +373,101 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         ResultColumnList bottomRCL = childResult.getResultColumns();
         ResultColumnList groupByRCL = resultColumns;
 
-        ArrayList referencesToSubstitute = new ArrayList();
-        int sz = partition.size();
-        for (int i = 0; i < sz; i++) {
-            GroupByColumn gbc = (GroupByColumn) partition.elementAt(i);
-            ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##PartitionColumn",
-                gbc.getColumnExpression(),
-                getContextManager());
+        if (partition != null && ! (partition.size() == 0)) {
+            ArrayList referencesToSubstitute = new ArrayList();
+            int sz = partition.size();
+            for (int i = 0; i < sz; i++) {
+                GroupByColumn gbc = (GroupByColumn) partition.elementAt(i);
+                ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
+                    C_NodeTypes.RESULT_COLUMN,
+                    "##PartitionColumn",
+                    gbc.getColumnExpression(),
+                    getContextManager());
 
-            // add this result column to the bottom rcl
-            bottomRCL.addElement(newRC);
-            newRC.markGenerated();
-            newRC.bindResultColumnToExpression();
-            newRC.setVirtualColumnId(bottomRCL.size());
+                // add this result column to the bottom rcl
+                bottomRCL.addElement(newRC);
+                newRC.markGenerated();
+                newRC.bindResultColumnToExpression();
+                newRC.setVirtualColumnId(bottomRCL.size());
 
-            // now add this column to the groupbylist
-            ResultColumn gbRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##PartitionColumn",
-                gbc.getColumnExpression(),
-                getContextManager());
-            groupByRCL.addElement(gbRC);
-            gbRC.markGenerated();
-            gbRC.bindResultColumnToExpression();
-            gbRC.setVirtualColumnId(groupByRCL.size());
+                // now add this column to the groupbylist
+                ResultColumn gbRC = (ResultColumn) getNodeFactory().getNode(
+                    C_NodeTypes.RESULT_COLUMN,
+                    "##PartitionColumn",
+                    gbc.getColumnExpression(),
+                    getContextManager());
+                groupByRCL.addElement(gbRC);
+                gbRC.markGenerated();
+                gbRC.bindResultColumnToExpression();
+                gbRC.setVirtualColumnId(groupByRCL.size());
 
-			/*
-			 ** Reset the original node to point to the
-			 ** Group By result set.
-			 */
-            VirtualColumnNode vc = (VirtualColumnNode) getNodeFactory().getNode(
-                C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                this, // source result set.
-                gbRC,
-                new Integer(groupByRCL.size()),
-                getContextManager());
+                /*
+                 ** Reset the original node to point to the
+                 ** Group By result set.
+                 */
+                VirtualColumnNode vc = (VirtualColumnNode) getNodeFactory().getNode(
+                    C_NodeTypes.VIRTUAL_COLUMN_NODE,
+                    this, // source result set.
+                    gbRC,
+                    new Integer(groupByRCL.size()),
+                    getContextManager());
 
-            // we replace each group by expression
-            // in the projection list with a virtual column node
-            // that effectively points to a result column
-            // in the result set doing the group by
-            //
-            // Note that we don't perform the replacements
-            // immediately, but instead we accumulate them
-            // until the end of the loop. This allows us to
-            // sort the expressions and process them in
-            // descending order of complexity, necessary
-            // because a compound expression may contain a
-            // reference to a simple grouped column, but in
-            // such a case we want to process the expression
-            // as an expression, not as individual column
-            // references. E.g., if the statement was:
-            //   SELECT ... GROUP BY C1, C1 * (C2 / 100), C3
-            // then we don't want the replacement of the
-            // simple column reference C1 to affect the
-            // compound expression C1 * (C2 / 100). DERBY-3094.
-            //
-            ValueNode vn = gbc.getColumnExpression();
-            SubstituteExpressionVisitor vis =
-                new SubstituteExpressionVisitor(vn, vc,
-                                                AggregateNode.class);
-            referencesToSubstitute.add(vis);
+                // we replace each group by expression
+                // in the projection list with a virtual column node
+                // that effectively points to a result column
+                // in the result set doing the group by
+                //
+                // Note that we don't perform the replacements
+                // immediately, but instead we accumulate them
+                // until the end of the loop. This allows us to
+                // sort the expressions and process them in
+                // descending order of complexity, necessary
+                // because a compound expression may contain a
+                // reference to a simple grouped column, but in
+                // such a case we want to process the expression
+                // as an expression, not as individual column
+                // references. E.g., if the statement was:
+                //   SELECT ... GROUP BY C1, C1 * (C2 / 100), C3
+                // then we don't want the replacement of the
+                // simple column reference C1 to affect the
+                // compound expression C1 * (C2 / 100). DERBY-3094.
+                //
+                ValueNode vn = gbc.getColumnExpression();
+                SubstituteExpressionVisitor vis =
+                    new SubstituteExpressionVisitor(vn, vc,
+                                                    AggregateNode.class);
+                referencesToSubstitute.add(vis);
 
-            // Since we always need a PR node on top of the GB
-            // node to perform projection we can use it to perform
-            // the having clause restriction as well.
-            // To evaluate the having clause correctly, we need to
-            // convert each aggregate and expression to point
-            // to the appropriate result column in the group by node.
-            // This is no different from the transformations we do to
-            // correctly evaluate aggregates and expressions in the
-            // projection list.
-            //
-            //
-            // For this query:
-            // SELECT c1, SUM(c2), MAX(c3)
-            //    FROM t1
-            //    HAVING c1+max(c3) > 0;
+                // Since we always need a PR node on top of the GB
+                // node to perform projection we can use it to perform
+                // the having clause restriction as well.
+                // To evaluate the having clause correctly, we need to
+                // convert each aggregate and expression to point
+                // to the appropriate result column in the group by node.
+                // This is no different from the transformations we do to
+                // correctly evaluate aggregates and expressions in the
+                // projection list.
+                //
+                //
+                // For this query:
+                // SELECT c1, SUM(c2), MAX(c3)
+                //    FROM t1
+                //    HAVING c1+max(c3) > 0;
 
-            // PRSN RCL -> (ptr(gbn:rcl[0]), ptr(gbn:rcl[1]), ptr(gbn:rcl[4]))
-            // Restriction: (> (+ ptr(gbn:rcl[0]) ptr(gbn:rcl[4])) 0)
-            //              |
-            // GBN (RCL) -> (C1, SUM(C2), <input>, <aggregator>, MAX(C3), <input>, <aggregator>
-            //              |
-            //       FBT (C1, C2)
-            gbc.setColumnPosition(bottomRCL.size());
+                // PRSN RCL -> (ptr(gbn:rcl[0]), ptr(gbn:rcl[1]), ptr(gbn:rcl[4]))
+                // Restriction: (> (+ ptr(gbn:rcl[0]) ptr(gbn:rcl[4])) 0)
+                //              |
+                // GBN (RCL) -> (C1, SUM(C2), <input>, <aggregator>, MAX(C3), <input>, <aggregator>
+                //              |
+                //       FBT (C1, C2)
+                gbc.setColumnPosition(bottomRCL.size());
+            }
+            Comparator sorter = new ExpressionSorter();
+            Collections.sort(referencesToSubstitute, sorter);
+            for (int r = 0; r < referencesToSubstitute.size(); r++)
+                parent.getResultColumns().accept(
+                    (SubstituteExpressionVisitor) referencesToSubstitute.get(r));
         }
-        Comparator sorter = new ExpressionSorter();
-        Collections.sort(referencesToSubstitute, sorter);
-        for (int r = 0; r < referencesToSubstitute.size(); r++)
-            parent.getResultColumns().accept(
-                (SubstituteExpressionVisitor) referencesToSubstitute.get(r));
     }
 
     /**
