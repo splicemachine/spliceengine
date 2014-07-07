@@ -19,7 +19,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.api.TxnRegion;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.ActiveWriteTxn;
+import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.DataStore;
@@ -30,6 +32,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
@@ -74,10 +77,12 @@ public class IndexedPipelineTest {
 				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
 								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
 
-        final PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",txnRegion));
+        RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
+        when(env.getRegion()).thenReturn(testRegion);
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext(new ActiveWriteTxn(1l,1l),txnRegion, env));
 
         //get a fake PipingWriteBuffer
-        final String txnId = "1";
+        final Txn txn = new ActiveWriteTxn(1l,1l);
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
         final Writer fakeWriter = mockSuccessWriter(indexedRows);
 
@@ -104,7 +109,7 @@ public class IndexedPipelineTest {
                         when(bufferConfig.getMaxEntries()).thenReturn(expectedSize);
                         when(bufferConfig.getMaxHeapSize()).thenReturn(2 * 1024 * 1024l);
 
-                        return new PipingWriteBuffer(indexName, txnId, fakeWriter, fakeWriter, fakeCache, preFlushHook, configuration, bufferConfig);
+                        return new PipingWriteBuffer(indexName, txn, fakeWriter, fakeWriter, fakeCache, preFlushHook, configuration, bufferConfig);
                     }
                 });
 
@@ -154,10 +159,13 @@ public class IndexedPipelineTest {
 				//TODO -sf- make this simpler
 				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
 								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
-        final PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",txnRegion));
+        final ActiveWriteTxn txn = new ActiveWriteTxn(1l, 1l);
+        RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
+        when(env.getRegion()).thenReturn(testRegion);
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext(txn,txnRegion, env));
 
         //get a fake PipingWriteBuffer
-        final String txnId = "1";
+//        final String txnId = "1";
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
         final Writer fakeWriter = mockSuccessWriter(indexedRows);
 
@@ -184,7 +192,7 @@ public class IndexedPipelineTest {
                         when(bufferConfig.getMaxEntries()).thenReturn(expectedSize);
                         when(bufferConfig.getMaxHeapSize()).thenReturn(2 * 1024 * 1024l);
 
-                        return new PipingWriteBuffer(indexName, txnId, fakeWriter, fakeWriter, fakeCache, preFlushHook, configuration, bufferConfig);
+                        return new PipingWriteBuffer(indexName, txn, fakeWriter, fakeWriter, fakeCache, preFlushHook, configuration, bufferConfig);
                     }
                 });
 
@@ -249,10 +257,13 @@ public class IndexedPipelineTest {
 				//TODO -sf- make this simpler
 				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
 								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
-        final PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",txnRegion));
+        final String txnId = "1";
+        final Txn txn = new ActiveWriteTxn(1l,1l);
+        RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
+        when(env.getRegion()).thenReturn(testRegion);
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext(txn,txnRegion, env));
 
         //get a fake PipingWriteBuffer
-        final String txnId = "1";
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
         final Writer fakeWriter = mockSuccessWriter(indexedRows);
 
@@ -279,7 +290,7 @@ public class IndexedPipelineTest {
                         when(bufferConfig.getMaxEntries()).thenReturn(expectedSize);
                         when(bufferConfig.getMaxHeapSize()).thenReturn(2 * 1024 * 1024l);
 
-                        return new PipingWriteBuffer(indexName, txnId, fakeWriter, fakeWriter, fakeCache, preFlushHook, configuration, bufferConfig);
+                        return new PipingWriteBuffer(indexName, txn, fakeWriter, fakeWriter, fakeCache, preFlushHook, configuration, bufferConfig);
                     }
                 });
 
@@ -344,10 +355,12 @@ public class IndexedPipelineTest {
 				//TODO -sf- make this simpler
 				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
 								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
-        final PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",txnRegion));
+        final Txn txn = new ActiveWriteTxn(1l,1l);
+        RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
+        when(env.getRegion()).thenReturn(testRegion);
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext(txn,txnRegion, env));
 
         //get a fake PipingWriteBuffer
-        final String txnId = "1";
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
         final Writer fakeWriter = mockSuccessWriter(indexedRows);
 
@@ -374,7 +387,7 @@ public class IndexedPipelineTest {
                         when(bufferConfig.getMaxEntries()).thenReturn(expectedSize);
                         when(bufferConfig.getMaxHeapSize()).thenReturn(2*1024*1024l);
 
-                        return new PipingWriteBuffer(indexName, txnId, fakeWriter, fakeWriter, fakeCache, preFlushHook, configuration, bufferConfig);
+                        return new PipingWriteBuffer(indexName, txn, fakeWriter, fakeWriter, fakeCache, preFlushHook, configuration, bufferConfig);
                     }
                 });
 
@@ -424,10 +437,12 @@ public class IndexedPipelineTest {
 				//TODO -sf- make this simpler
 				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
 								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
-        PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",txnRegion));
+        final Txn txn = new ActiveWriteTxn(1l,1l);
+        RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
+        when(env.getRegion()).thenReturn(testRegion);
+        PipelineWriteContext testCtx = spy(new PipelineWriteContext(txn,txnRegion, env));
 
         //get a fake PipingWriteBuffer
-        final String txnId = "1";
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
         final Writer fakeWriter = mockSuccessWriter(indexedRows);
 
@@ -451,7 +466,7 @@ public class IndexedPipelineTest {
                         when(bufferConfig.getMaxEntries()).thenReturn(expectedSize + 10);
                         when(bufferConfig.getMaxHeapSize()).thenReturn(2 * 1024 * 1024l);
 
-                        return new PipingWriteBuffer(indexName, txnId, fakeWriter, fakeWriter, fakeCache, preFlushHook, configuration, bufferConfig);
+                        return new PipingWriteBuffer(indexName, txn, fakeWriter, fakeWriter, fakeCache, preFlushHook, configuration, bufferConfig);
                     }
                 });
 

@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
@@ -26,8 +27,8 @@ public abstract class BaseHashAwareScanBoundary implements ScanBoundary{
     }
 
     @Override
-    public Scan buildScan(String transactionId, byte[] start, byte[] finish) {
-        Scan scan = SpliceUtils.createScan(transactionId);
+    public Scan buildScan(Txn txn, byte[] start, byte[] finish) {
+        Scan scan = SpliceUtils.createScan(txn);
         scan.setStartRow(start);
         scan.setStopRow(finish);
         scan.addFamily(columnFamily);

@@ -1,266 +1,241 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.derby.impl.store.access.base.SpliceLocalFileResource;
+import com.splicemachine.derby.impl.store.access.base.SpliceLocalFileResource;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.TransactionLifecycle;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.services.daemon.Serviceable;
-import org.apache.derby.iapi.services.io.Formatable;
-import org.apache.derby.iapi.services.locks.CompatibilitySpace;
 import org.apache.derby.iapi.services.locks.LockFactory;
 import org.apache.derby.iapi.services.monitor.ModuleControl;
 import org.apache.derby.iapi.services.monitor.ModuleSupportable;
 import org.apache.derby.iapi.store.access.FileResource;
 import org.apache.derby.iapi.store.access.TransactionInfo;
 import org.apache.derby.iapi.store.raw.Transaction;
-import org.apache.derby.iapi.store.raw.log.LogInstant;
-import org.apache.derby.iapi.store.raw.xact.TransactionId;
 import org.apache.derby.iapi.types.J2SEDataValueFactory;
+import org.apache.derby.impl.io.DirStorageFactory4;
+import org.apache.derby.io.StorageFactory;
 import org.apache.derby.impl.io.DirStorageFactory4;
 import org.apache.derby.io.StorageFactory;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.io.IOException;
 import java.util.Properties;
 
 public class SpliceTransactionFactory implements ModuleControl, ModuleSupportable{
-	private static Logger LOG = Logger.getLogger(SpliceTransactionFactory.class);
-	
-	protected static final String USER_CONTEXT_ID = "UserTransaction";
-	protected static final String NESTED_READONLY_USER_CONTEXT_ID = "NestedRawReadOnlyUserTransaction";
-	protected static final String NESTED_UPDATE_USER_CONTEXT_ID = "NestedRawUpdateUserTransaction";
-	protected static final String INTERNAL_CONTEXT_ID    = "InternalTransaction";
-	protected static final String NTT_CONTEXT_ID         = "NestedTransaction";
-	
-	protected SpliceLockFactory lockFactory;
-	protected J2SEDataValueFactory dataValueFactory;
-	protected ContextService contextFactory;
-	protected HBaseStore hbaseStore;
-	protected StorageFactory storageFactory;
-	protected FileResource fileHandler;
+		private static Logger LOG = Logger.getLogger(SpliceTransactionFactory.class);
 
-    public StandardException markCorrupt(StandardException originalError) {
-		return null;
-	}
+		protected static final String USER_CONTEXT_ID = "UserTransaction";
+		protected static final String NESTED_READONLY_USER_CONTEXT_ID = "NestedRawReadOnlyUserTransaction";
 
-	public LockFactory getLockFactory() {
-		return lockFactory;
-	}
+		protected SpliceLockFactory lockFactory;
+		protected J2SEDataValueFactory dataValueFactory;
+		protected ContextService contextFactory;
+		protected HBaseStore hbaseStore;
+        protected StorageFactory storageFactory;
+        protected FileResource fileHandler;
 
-	public Object getXAResourceManager() throws StandardException {
-		return null;
-	}
-
-	public Transaction marshalTransaction(HBaseStore hbaseStore, ContextManager contextMgr, String transName, String transactionID) throws StandardException {
-		try {
-            final TransactionManager transactor = HTransactorFactory.getTransactionManager();
-            Transaction trans = new SpliceTransaction(new SpliceLockSpace(),this,dataValueFactory,transactor,transName, transactor.transactionIdFromString(transactionID));
-            return trans;
-		} catch (Exception e) {
-            SpliceLogUtils.logAndThrow(LOG,"marshallTransaction failure", Exceptions.parseException(e));
-            return null; // can't happen
+		public LockFactory getLockFactory() {
+				return lockFactory;
 		}
-	}
 
-	
-	public Transaction startTransaction(HBaseStore hbaseStore, ContextManager contextMgr, String transName) throws StandardException {
-		if (contextMgr != contextFactory.getCurrentContextManager()) 
-			LOG.error("##############startTransaction, passed in context mgr not the same as current context mgr");
-		if (this.hbaseStore == hbaseStore) {
-			LOG.error("##############startTransaction, passed in context mgr not the same as current context mgr");
+		public Object getXAResourceManager() throws StandardException {
+				return null;
 		}
-		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, transName, false, USER_CONTEXT_ID, false, false, null);
-	}
 
-	public Transaction startNestedReadOnlyUserTransaction(HBaseStore hbaseStore, CompatibilitySpace compatibilitySpace,ContextManager contextMgr, String transName, String parentTransactionId) throws StandardException {
-		if (contextMgr != contextFactory.getCurrentContextManager()) 
-			LOG.error("##############startNestedReadOnlyUserTransaction, passed in context mgr not the same as current context mgr");
-		if (this.hbaseStore == hbaseStore) {
-			LOG.error("##############startNestedReadOnlyUserTransaction, passed in context mgr not the same as current context mgr");
+		/**
+		 * place a transaction which was created outside of derby (e.g. across a serialization boundary, or a
+		 * manually-created transaction) within the context of Derby, so that derby system calls can be used.
+		 *
+		 * This is relatively cheap--it creates a new object, but registers the existing transaction, rather than
+		 * creating a new one.
+		 *
+		 * @param transName the name of the transaction
+		 * @param txn the transaction to marshall
+		 * @return a derby representation of the transaction
+		 * @throws StandardException if something goes wrong (which it isn't super likely to do)
+		 */
+		public Transaction marshalTransaction(String transName, Txn txn) throws StandardException {
+				try {
+						return new SpliceTransaction(NoLockSpace.INSTANCE, dataValueFactory, transName, txn);
+				} catch (Exception e) {
+						SpliceLogUtils.logAndThrow(LOG,"marshallTransaction failure", Exceptions.parseException(e));
+						return null; // can't happen
+				}
 		}
-		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, true, null, false, NESTED_READONLY_USER_CONTEXT_ID, true, false, parentTransactionId);
-	}
 
-	public Transaction startNestedUpdateUserTransaction(HBaseStore hbaseStore,ContextManager contextMgr, String transName,boolean flush_log_on_xact_end, String parentTransactionid) throws StandardException {
-		if (contextMgr != contextFactory.getCurrentContextManager()) 
-			LOG.error("##############startNestedUpdateUserTransaction, passed in context mgr not the same as current context mgr");
-		if (this.hbaseStore == hbaseStore) {
-			LOG.error("##############startNestedUpdateUserTransaction, passed in context mgr not the same as current context mgr");
-		}
-		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, transName, false, NESTED_UPDATE_USER_CONTEXT_ID, true, true, parentTransactionid);
-	}
+		/**
+		 * Starts a new transaction with the given name.
+		 *
+		 * This will create a new top-level transaction. As such, it will likely be an expensive network operation.
+		 *
+		 * @param hbaseStore the hbase store relevant to the transaction
+		 * @param contextMgr the context manager
+		 * @param transName the name of the transaction
+		 * @return a new transaction with the specified name and context.
+		 * @throws StandardException if something goes wrong creating the transaction
+		 */
+		public Transaction startTransaction(HBaseStore hbaseStore, ContextManager contextMgr, String transName) throws StandardException {
+				assert contextMgr == contextFactory.getCurrentContextManager(): "##############startTransaction, passed in context mgr not the same as current context mgr";
+				assert hbaseStore == this.hbaseStore: "##############startTransaction, passed in context mgr not the same as current context mgr";
 
-	public Transaction startGlobalTransaction(HBaseStore hbaseStore,ContextManager contextMgr, int format_id, byte[] global_id,byte[] branch_id) throws StandardException {
-		if (contextMgr != contextFactory.getCurrentContextManager()) 
-			LOG.error("##############startGlobalTransaction, passed in context mgr not the same as current context mgr");
-		if (this.hbaseStore == hbaseStore) {
-			LOG.error("##############startGlobalTransaction, passed in context mgr not the same as current context mgr");
+				return startCommonTransaction(hbaseStore, contextMgr,  dataValueFactory, transName, false, USER_CONTEXT_ID);
 		}
-		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, null, false, USER_CONTEXT_ID, false, false, null);
-	}
 
-	public Transaction findUserTransaction(HBaseStore hbaseStore,ContextManager contextMgr, String transName) throws StandardException {
-		if (contextMgr != contextFactory.getCurrentContextManager()) 
-			LOG.error("findUserTransaction, passed in context mgr not the same as current context mgr");
-		if (this.hbaseStore == hbaseStore) {
-			LOG.error("findUserTransaction, passed in context mgr not the same as current context mgr");
+		/**
+		 * Start a "nested" transaction.
+		 *
+		 * Derby's nested transaction is functionally equivalent to Splice's child transaction, and this method
+		 * will actually create a child transaction.
+		 *
+		 * @param hbaseStore the hbase store relevant to the transaction
+		 * @param contextMgr the context manager
+		 * @param parentTxn the parent transaction
+		 * @return a new child transaction of the parent transaction
+		 * @throws StandardException if something goes wrong
+		 */
+		public Transaction startNestedTransaction(HBaseStore hbaseStore,
+																							ContextManager contextMgr,
+																							Txn parentTxn) throws StandardException {
+				assert contextMgr==contextFactory.getCurrentContextManager() :
+								"##############startNestedReadOnlyUserTransaction, passed in context mgr not the same as current context mgr";
+				assert hbaseStore==this.hbaseStore :
+						"##############startNestedReadOnlyUserTransaction, passed in context mgr not the same as current context mgr";
+				return startNestedTransaction(hbaseStore, contextMgr,
+								 dataValueFactory, null, false, NESTED_READONLY_USER_CONTEXT_ID, true, parentTxn);
 		}
-		SpliceTransactionContext tc = (SpliceTransactionContext)contextMgr.getContext(USER_CONTEXT_ID);
-		if (tc == null) {
-			SpliceLogUtils.debug(LOG, "findUserTransaction, transaction controller is null for UserTransaction");
-			return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, transName, false, USER_CONTEXT_ID, false, false, null);
-		} else {
-			SpliceLogUtils.debug(LOG,"findUserTransaction, transaction controller is NOT null for UserTransaction");
-			return tc.getTransaction();
-		}
-	}
 
-	public Transaction startNestedTopTransaction(HBaseStore hbaseStore, ContextManager contextMgr) throws StandardException {
-		if (contextMgr != contextFactory.getCurrentContextManager()) 
-			LOG.error("##############startNestedTopTransaction, passed in context mgr not the same as current context mgr");
-		if (this.hbaseStore == hbaseStore) {
-			LOG.error("##############startNestedTopTransaction, passed in context mgr not the same as current context mgr");
-		}
-		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, null, true, NTT_CONTEXT_ID, false, false, null);
-	}
+		/**
+		 * Find or create a user-level transaction.
+		 *
+		 * If the current context already has a created user level transaction, then it will return the value
+		 * which currently exists. Otherwise, it will create a new user-level transaction.
+		 *
+		 * Because of the possibility of creating a new transaction, it may use a network call, which makes this
+		 * a potentially expensive call.
+		 *
+		 * @param hbaseStore the hbase store relevant to the transaction
+		 * @param contextMgr the context manager
+		 * @param transName the name of the transaction
+		 * @return a new user-level transaction
+		 * @throws StandardException if something goes wrong
+		 */
+		public Transaction findUserTransaction(HBaseStore hbaseStore,
+																					 ContextManager contextMgr, String transName) throws StandardException {
+				assert contextMgr==contextFactory.getCurrentContextManager()
+								: "findUserTransaction passed in context manager which is not the same as the current context manager";
+				assert this.hbaseStore == hbaseStore
+								: "findUserTransaction passed in an hbase store which is not the same as the current context's store";
 
-	public Transaction startInternalTransaction(HBaseStore hbaseStore, ContextManager contextMgr) throws StandardException {
-		if (contextMgr != contextFactory.getCurrentContextManager()) 
-			LOG.error("##############startInternalTransaction, passed in context mgr not the same as current context mgr");
-		if (this.hbaseStore == hbaseStore) {
-			LOG.error("##############startInternalTransaction, passed in context mgr not the same as current context mgr");
+				SpliceTransactionContext tc = (SpliceTransactionContext)contextMgr.getContext(USER_CONTEXT_ID);
+				if (tc == null) {
+						//We don't have a transaction yet, so create a new top-level transaction. This may require a network call
+						SpliceLogUtils.trace(LOG, "findUserTransaction, transaction controller is null for UserTransaction");
+						return startCommonTransaction(hbaseStore, contextMgr, dataValueFactory,transName, false, USER_CONTEXT_ID);
+				} else {
+						//we already have a transaction, so just return that one
+						SpliceLogUtils.trace(LOG,"findUserTransaction, transaction controller is NOT null for UserTransaction");
+						return tc.getTransaction();
+				}
 		}
-		return startCommonTransaction(hbaseStore, contextMgr, lockFactory, dataValueFactory, false, null, true, INTERNAL_CONTEXT_ID, false, false, null);
-	}
 
-	private SpliceTransaction startCommonTransaction(HBaseStore hbaseStore,
-                                                     ContextManager contextMgr, SpliceLockFactory lockFactory, J2SEDataValueFactory dataValueFactory,
-                                                     boolean readOnly, String transName, boolean abortAll, String contextName, boolean nested, boolean dependent, String parentTransactionID) {
+    protected final SpliceTransaction startNestedTransaction(HBaseStore hbaseStore,
+                                                             ContextManager contextMgr,
+                                                             J2SEDataValueFactory dataValueFactory,
+                                                             String transName,
+                                                             boolean abortAll,
+                                                             String contextName,
+                                                             boolean dependent,
+                                                             Txn parentTxn) {
         try {
-            final TransactionManager transactor = HTransactorFactory.getTransactionManager();
-			SpliceTransaction trans = new SpliceTransaction(new SpliceLockSpace(), this, dataValueFactory, transactor, transName); 
-			trans.setTransactionName(transName);
-			
-			SpliceTransactionContext context = new SpliceTransactionContext(contextMgr, contextName, trans, abortAll, hbaseStore);
-			
-			trans.setActiveState(readOnly, nested, dependent, parentTransactionID);
-			SpliceLogUtils.debug(LOG, "transaction type="+context.getIdName()+",transactionID="+trans.getTransactionId().getTransactionIdString());
-			return trans;
-		} catch (Exception e) {
-			LOG.error(e.getMessage(), e);
+            TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
+						/*
+						 * All transactions start as read only.
+						 *
+						 * If parentTxn!=null, then this will create a read-only child transaction (which is essentially
+						 * a duplicate of the parent transaction); this requires no network calls immediately, but will require
+						 * 2 network calls when elevateTransaction() is called.
+						 *
+						 * if parentTxn==null, then this will make a call to the timestamp source to generate a begin timestamp
+						 * for a read-only transaction; this requires a single network call.
+						 */
+            Txn txn = lifecycleManager.beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,dependent,true,null);
+            SpliceTransaction trans = new SpliceTransaction(NoLockSpace.INSTANCE, dataValueFactory, transName,txn);
+            trans.setTransactionName(transName);
+
+            SpliceTransactionContext context = new SpliceTransactionContext(contextMgr, contextName, trans, abortAll, hbaseStore);
+
+            if(LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "transaction type=%s,%s",context.getIdName(),txn);
+
+            return trans;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+		/**
+		 * Start a new transaction.
+		 *
+		 * If parentTxn==null, then this will create a new top-level transaction (e.g. a child of the ROOT_TRANSACTION).
+		 * Performing this generally requires a network call, and so is expensive.
+		 *
+		 * If parentTxn!=null, then this may create a "read-only child transaction"; this is in effect a copy of the
+		 * parent transaction's information along with some additional logic for when elevation occur. Therefore, this
+		 * way is likely very inexpensive to call this method, but it will be doubly expensive when elevateTransaction()
+		 * is called (as it will require 2 network calls to elevate).
+		 *
+		 * @see com.splicemachine.si.api.TxnLifecycleManager#beginChildTransaction(com.splicemachine.si.api.Txn, com.splicemachine.si.api.Txn.IsolationLevel,boolean, boolean,byte[])
+		 */
+		protected final SpliceTransaction startCommonTransaction(HBaseStore hbaseStore,
+																										 ContextManager contextMgr,
+																										 J2SEDataValueFactory dataValueFactory,
+																										 String transName,
+																										 boolean abortAll,
+																										 String contextName) {
+        SpliceTransaction trans = new SpliceTransaction(NoLockSpace.INSTANCE,dataValueFactory,transName);
+        trans.setTransactionName(transName);
+
+        SpliceTransactionContext context = new SpliceTransactionContext(contextMgr, contextName, trans, abortAll, hbaseStore);
+
+        if(LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "transaction type=%s,%s",context.getIdName(),transName);
+
+        return trans;
 		}
-        return null;
-	}
-	
-	public boolean findTransaction(TransactionId id, Transaction tran) {
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - findTransaction trans="+tran.toString()+",id="+id.toString());
-		return false;
-	}
 
-	public void resetTranId() throws StandardException {
-		// TODO Auto-generated method stub
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - resetTranId");
-	}
-
-	public LogInstant firstUpdateInstant() {
-		// TODO Auto-generated method stub
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - firstUpdateInstant");
-		return null;
-	}
-
-	public void handlePreparedXacts(HBaseStore hbaseStore)
-			throws StandardException {
-		// TODO Auto-generated method stub
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - handlePreparedXacts");
-	}
-
-	public void rollbackAllTransactions(Transaction recoveryTransaction, HBaseStore hbaseStore) throws StandardException {
-		// TODO Auto-generated method stub
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - rollbackAllTransactions trnas="+recoveryTransaction.getGlobalId());
-	}
-
-	public boolean submitPostCommitWork(Serviceable work) {
-		// TODO Auto-generated method stub
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - submitPostCommitWork");
-		return false;
-	}
-
-	public void setHBaseStoreFactory(HBaseStore hbaseStore) throws StandardException {
-		// TODO Auto-generated method stub
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - setHBaseStoreFactory");
-		this.hbaseStore = hbaseStore;
-	}
-
-	public boolean noActiveUpdateTransaction() {
-		// TODO Auto-generated method stub
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - noActiveUpdateTransaction");
-		return false;
-	}
-
-	public boolean hasPreparedXact() {
-		// TODO Auto-generated method stub
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - hasPreparedXact");
-		return false;
-	}
-
-	public void createFinished() throws StandardException {
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory - createFinished");
-	}
-
-	public Formatable getTransactionTable() {
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -getTransactionTable");
-		return null;
-	}
-
-	public void useTransactionTable(Formatable transactionTable)
-			throws StandardException {
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -useTransactionTable");
-	}
-
-	public TransactionInfo[] getTransactionInfo() {
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -getTransactionInfo");
-		return null;
-	}
-
-	public boolean blockBackupBlockingOperations(boolean wait) throws StandardException {
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -blockBackupBlockingOperations");
-		return false;
-	}
-
-	public void unblockBackupBlockingOperations() {
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -unblockBackupBlockingOperations");
-	}
-	@Override
-	public boolean canSupport(Properties properties) {
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -canSupport");
-		return true;
-	}
-
-	public void boot(boolean create, Properties properties) throws StandardException {
-        dataValueFactory = new J2SEDataValueFactory();
-        dataValueFactory.boot(create, properties);
-		contextFactory = ContextService.getFactory();
-		lockFactory = new SpliceLockFactory();
-		lockFactory.boot(create, properties);
-		storageFactory = new DirStorageFactory4();
-		try {
-			storageFactory.init(null, "splicedb", null, null);  // Grumble, grumble, ... not a big fan of hard coding "splicedb" as the dbname.
-		} catch (IOException ioe) {
-			throw StandardException.newException(
-					SQLState.FILE_UNEXPECTED_EXCEPTION, ioe);
+		@Override
+		public boolean canSupport(Properties properties) {
+				SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -canSupport");
+				return true;
 		}
+
+		public void boot(boolean create, Properties properties) throws StandardException {
+				dataValueFactory = new J2SEDataValueFactory();
+				dataValueFactory.boot(create, properties);
+				contextFactory = ContextService.getFactory();
+				lockFactory = new SpliceLockFactory();
+				lockFactory.boot(create, properties);
+        storageFactory = new DirStorageFactory4();
+        try {
+            storageFactory.init(null, "splicedb", null, null);  // Grumble, grumble, ... not a big fan of hard coding "splicedb" as the dbname.
+        } catch (IOException ioe) {
+            throw StandardException.newException(
+                    SQLState.FILE_UNEXPECTED_EXCEPTION, ioe);
+        }
         fileHandler = new SpliceLocalFileResource(storageFactory);
-	}
+    }
 
-	public void stop() {
-		SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -stop");
-	}
+		public void stop() {
+				SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -stop");
+		}
 
 	public FileResource getFileHandler() {			
 		return fileHandler;

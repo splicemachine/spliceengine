@@ -78,7 +78,7 @@ public class PopulateIndexTask extends ZkTask {
 		@SuppressWarnings("UnusedDeclaration")
 		public PopulateIndexTask() { }
 
-    public PopulateIndexTask(String transactionId,
+    public PopulateIndexTask(
                              long indexConglomId,
                              long baseConglomId,
                              int[] mainColToIndexPosMap,
@@ -92,8 +92,7 @@ public class PopulateIndexTask extends ZkTask {
                              long operationId,
                              int[] columnOrdering,
                              int[] format_ids) {
-        super(jobId, OperationJob.operationTaskPriority,transactionId,false);
-        this.transactionId = transactionId;
+        super(jobId, OperationJob.operationTaskPriority,null);
         this.indexConglomId = indexConglomId;
         this.baseConglomId = baseConglomId;
         this.mainColToIndexPosMap = mainColToIndexPosMap;
@@ -183,7 +182,7 @@ public class PopulateIndexTask extends ZkTask {
 
 		@Override
     public void doExecute() throws ExecutionException, InterruptedException {
-        Scan regionScan = SpliceUtils.createScan(transactionId);
+        Scan regionScan = SpliceUtils.createScan(getTxn());
         regionScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
         regionScan.setStartRow(scanStart);
         regionScan.setStopRow(scanStop);
@@ -233,7 +232,7 @@ public class PopulateIndexTask extends ZkTask {
 //                                                isUnique,isUniqueWithDuplicateNulls,columnOrdering,format_ids);
 
 								byte[] indexTableLocation = Bytes.toBytes(Long.toString(indexConglomId));
-								writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTaskStatus().getTransactionId(),metricFactory);
+								writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTxn(),metricFactory);
 								try{
 										while(shouldContinue){
 												SpliceBaseOperation.checkInterrupt(numRecordsRead, SpliceConstants.interruptLoopCheck);

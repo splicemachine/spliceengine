@@ -12,7 +12,6 @@ public class ImportContextTest {
         ImportContext ic = builder.path("/foo")
                                 .colDelimiter(",")
                                 .destinationTable(1l)
-                                .transactionId("1")
                                 .byteOffset(100l)
                                 .bytesToRead(10)
                                 .build();
@@ -22,7 +21,6 @@ public class ImportContextTest {
         Assert.assertEquals("/foo", newIC.getFilePath().toString());
         Assert.assertEquals(",", newIC.getColumnDelimiter());
         Assert.assertEquals(1l, newIC.getTableId());
-        Assert.assertEquals("1", newIC.getTransactionId());
         Assert.assertEquals(100l, newIC.getByteOffset());
         Assert.assertEquals(10, newIC.getBytesToRead());
     }
@@ -32,7 +30,6 @@ public class ImportContextTest {
         ImportContext.Builder builder = new ImportContext.Builder();
         ImportContext ic = builder.colDelimiter(",")
                 .destinationTable(1l)
-                .transactionId("1")
                 .byteOffset(100l)
                 .bytesToRead(10)
                 .build();
@@ -44,7 +41,6 @@ public class ImportContextTest {
         ImportContext.Builder builder = new ImportContext.Builder();
         ImportContext ic = builder.path("/foo")
                 .colDelimiter(",")
-                .transactionId("1")
                 .byteOffset(100l)
                 .bytesToRead(10)
                 .build();

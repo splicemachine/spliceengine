@@ -25,7 +25,7 @@ public class SnapshotIsolatedWriteHandler implements WriteHandler {
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
         try {
-            if (ddlFilter.isVisibleBy(ctx.getTransactionId())) {
+            if (ddlFilter.isVisibleBy(ctx.getTxn())) {
                 delegate.next(mutation, ctx);
             }else
 								ctx.sendUpstream(mutation);
@@ -38,7 +38,7 @@ public class SnapshotIsolatedWriteHandler implements WriteHandler {
     @Override
     public void next(List<KVPair> mutations, WriteContext ctx) {
         try {
-            if (ddlFilter.isVisibleBy(ctx.getTransactionId())) {
+            if (ddlFilter.isVisibleBy(ctx.getTxn())) {
                 delegate.next(mutations, ctx);
             }else
 								ctx.sendUpstream(mutations);
@@ -52,7 +52,7 @@ public class SnapshotIsolatedWriteHandler implements WriteHandler {
 
     @Override
     public void finishWrites(WriteContext ctx) throws IOException {
-        if (ddlFilter.isVisibleBy(ctx.getTransactionId())) {
+        if (ddlFilter.isVisibleBy(ctx.getTxn())) {
             delegate.finishWrites(ctx);
         }
     }

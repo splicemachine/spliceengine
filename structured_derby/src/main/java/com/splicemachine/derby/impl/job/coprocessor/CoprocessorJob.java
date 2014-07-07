@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.splicemachine.job.Job;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
@@ -19,7 +20,9 @@ public interface CoprocessorJob extends Job {
 
     HTableInterface getTable();
 
-    TransactionId getParentTransaction();
-
-    boolean isReadOnly();
+		/**
+		 * @return the destination table to write to, or {@code null} if there is no ultimate <em>transactional</em>
+		 * table (i.e. if the query is read only
+		 */
+		byte[] getDestinationTable();
 }

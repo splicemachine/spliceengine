@@ -6,6 +6,8 @@ import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.log4j.Logger;
 
 import java.io.Externalizable;
@@ -26,7 +28,6 @@ public class TaskStatus implements Externalizable{
     private AtomicReference<Status> status;
     private final Set<StatusListener> listeners;
     private volatile TaskStats stats;
-    private volatile String txnId;
 
 //    private volatile boolean shouldRetry;
 //    private volatile String errorCode;
@@ -37,11 +38,7 @@ public class TaskStatus implements Externalizable{
         return new TaskStatus(Status.FAILED,new IOException(s));
     }
 
-    public String getTransactionId() {
-        return txnId;
-    }
-
-    public Throwable getError() {
+		public Throwable getError() {
         return errorTransport.getError();
     }
 
@@ -65,9 +62,6 @@ public class TaskStatus implements Externalizable{
         }
     }
 
-    public void setTxnId(String txnId){
-        this.txnId = txnId;
-    }
 
     public boolean shouldRetry(){
         return errorTransport.shouldRetry();
@@ -101,12 +95,13 @@ public class TaskStatus implements Externalizable{
     public static TaskStatus fromBytes(byte[] bytes) throws IOException, ClassNotFoundException {
         Input input = new Input(bytes);
         Kryo kryo = null;
+        KryoPool kryoPool = SpliceDriver.getKryoPool();
         try {
-        	kryo = SpliceDriver.getKryoPool().get();
-        return kryo.readObject(input,TaskStatus.class);
+            kryo = kryoPool.get();
+            return kryo.readObject(input,TaskStatus.class);
         } finally {
-        	if (kryo != null)
-        		SpliceDriver.getKryoPool().returnInstance(kryo);
+            if (kryo != null)
+                kryoPool.returnInstance(kryo);
         }
     }
 
@@ -155,9 +150,6 @@ public class TaskStatus implements Externalizable{
         out.writeBoolean(stats!=null);
         if(stats!=null)
             out.writeObject(stats);
-        out.writeBoolean(txnId !=null);
-        if(txnId !=null)
-            out.writeUTF(txnId);
     }
 
     @Override
@@ -169,9 +161,6 @@ public class TaskStatus implements Externalizable{
         if(in.readBoolean()){
             stats = (TaskStats)in.readObject();
         }
-
-        if(in.readBoolean())
-            txnId = in.readUTF();
     }
 
     public void attachListener(StatusListener listener) {

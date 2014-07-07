@@ -13,6 +13,7 @@ import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.job.Task;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -27,7 +28,6 @@ public class DropColumnJob implements CoprocessorJob {
     private final long oldConglomId;
     private final long newConglomId;
     private final DDLChange ddlChange;
-    private final String txnId;
 
 
     public DropColumnJob(HTableInterface table,
@@ -38,7 +38,6 @@ public class DropColumnJob implements CoprocessorJob {
         this.oldConglomId = oldConglomId;
         this.newConglomId = newConglomId;
         this.ddlChange = ddlChange;
-        this.txnId = ddlChange.getTransactionId();
     }
 
     @Override
@@ -54,7 +53,7 @@ public class DropColumnJob implements CoprocessorJob {
 
     @Override
     public String getJobId() {
-        return "dropColumnJob-"+txnId.substring(txnId.lastIndexOf('/')+1);
+        return "dropColumnJob-"+ddlChange.getTxn().getTxnId();
     }
 
     @Override
@@ -63,12 +62,12 @@ public class DropColumnJob implements CoprocessorJob {
     }
 
     @Override
-    public TransactionId getParentTransaction() {
-        return HTransactorFactory.getTransactionManager().transactionIdFromString(txnId);
+    public byte[] getDestinationTable() {
+        return null;
     }
 
     @Override
-    public boolean isReadOnly() {
-        return false;
+    public Txn getTxn() {
+        return ddlChange.getTxn();
     }
 }

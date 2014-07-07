@@ -5,10 +5,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.SimpleTimestampSource;
-import com.splicemachine.si.api.ReadResolver;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnSupplier;
-import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.*;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -267,9 +264,6 @@ public class SimpleTxnFilterTest {
 
 		private ReadResolver getRollBackReadResolver(final Pair<ByteSlice, Long> rolledBackTs) {
 				ReadResolver resolver = mock(ReadResolver.class);
-				doThrow(new AssertionError("Attempted to resolve an entry as committed!"))
-								.when(resolver)
-								.resolveCommitted(any(ByteSlice.class), anyLong(), anyLong());
 
 				doAnswer(new Answer<Void>() {
 						@Override
@@ -279,32 +273,32 @@ public class SimpleTxnFilterTest {
 								rolledBackTs.setSecond((Long) args[1]);
 								return null;
 						}
-				}).when(resolver).resolveRolledback(any(ByteSlice.class),anyLong());
+				}).when(resolver).resolve(any(ByteSlice.class), anyLong());
 				return resolver;
 		}
 
-		private ReadResolver getCommitReadResolver(final Pair<ByteSlice, Pair<Long, Long>> committedTs) {
+		private ReadResolver getCommitReadResolver(final Pair<ByteSlice, Pair<Long, Long>> committedTs,final TxnSupplier txnStore) {
 				ReadResolver resolver = mock(ReadResolver.class);
-				doThrow(new AssertionError("Attempted to roll back an entry!")).when(resolver).resolveRolledback(any(ByteSlice.class),anyLong());
 
 				doAnswer(new Answer<Void>() {
 						@Override
 						public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
 								Object[] args = invocationOnMock.getArguments();
 								committedTs.setFirst((ByteSlice)args[0]);
-								committedTs.setSecond(Pair.newPair((Long)args[1],(Long)args[2]));
+                long tx = (Long)args[1];
+                long commitTs = txnStore.getTransaction(tx).getEffectiveCommitTimestamp();
+								committedTs.setSecond(Pair.newPair(tx,commitTs));
 								return null;
 						}
-				}).when(resolver).resolveCommitted(any(ByteSlice.class),anyLong(),anyLong());
+				}).when(resolver).resolve(any(ByteSlice.class),anyLong());
 				return resolver;
 		}
 
 		private ReadResolver getActiveReadResolver(){
 				ReadResolver resolver = mock(ReadResolver.class);
-				doThrow(new AssertionError("Attempted to roll back an entry!")).when(resolver).resolveRolledback(any(ByteSlice.class),anyLong());
 				doThrow(new AssertionError("Attempted to resolve an entry as committed!"))
 								.when(resolver)
-								.resolveCommitted(any(ByteSlice.class), anyLong(), anyLong());
+								.resolve(any(ByteSlice.class), anyLong());
 				return resolver;
 		}
 
@@ -336,7 +330,7 @@ public class SimpleTxnFilterTest {
 				Txn myTxn = new InheritingTxnView(Txn.ROOT_TRANSACTION,readTs,readTs,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
 
 				final Pair<ByteSlice,Pair<Long,Long>> committedTs = new Pair<ByteSlice, Pair<Long, Long>>();
-				ReadResolver resolver = getCommitReadResolver(committedTs);
+				ReadResolver resolver = getCommitReadResolver(committedTs,baseStore);
 
 				SimpleTxnFilter filter = new SimpleTxnFilter(baseStore,myTxn,resolver,ds);
 

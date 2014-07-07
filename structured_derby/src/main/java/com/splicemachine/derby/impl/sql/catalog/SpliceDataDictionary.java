@@ -135,6 +135,31 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         return pkTable;
     }
 
+	/**
+	 * Initialize system catalogs. This is where Derby performs upgrade.
+	 * This is where Splice updates (reloads) the system stored procedures
+	 * when the <code>splice.updateSystemProcs</code> system property is set to true.
+	 *
+	 *	@param	tc				TransactionController
+//	 *	@param	ddg				DataDescriptorGenerator
+//	 *	@param	startParams		Properties
+	 *
+	 * 	@exception StandardException		Thrown on error
+	 */
+    @Override
+	protected void updateSystemProcedures(TransactionController tc)
+		throws StandardException
+	{        
+    	// Update (or create) the system stored procedures if requested.
+    	if (SpliceConstants.updateSystemProcs) {
+    		createOrUpdateAllSystemProcedures(tc);
+//    		createOrUpdateAllSystemProcedures(tc);
+//    		createOrUpdateAllSystemProcedures(tc);
+    	}
+    	// Only update the system procedures once.  Otherwise, each time an ij session is created, the system procedures will be dropped/created again.
+    	// It would be better if it was possible to detect when the database is being booted during server startup versus the database being booted during ij startup.
+    	SpliceConstants.updateSystemProcs = false;
+	}
     private TabInfoImpl getStatementHistoryTable() throws StandardException {
         if (statementHistoryTable == null) {
             statementHistoryTable = new TabInfoImpl(new SYSSTATEMENTHISTORYRowFactory(uuidFactory,exFactory,dvf));

@@ -1,14 +1,15 @@
 package com.splicemachine.si.coprocessors;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.LongStripedSynchronizer;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.ThrowIfDisconnected;
-import com.splicemachine.si.api.CannotCommitException;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TimestampSource;
-import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.*;
+import com.splicemachine.si.impl.DenseTxn;
 import com.splicemachine.si.impl.RegionTxnStore;
 import com.splicemachine.si.impl.SparseTxn;
 import com.splicemachine.utils.ByteSlice;
@@ -21,6 +22,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -44,7 +46,7 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 		public void start(CoprocessorEnvironment env) {
 				region = ((RegionCoprocessorEnvironment)env).getRegion();
 				regionStore = new RegionTxnStore(region);
-				timestampSource = HTransactorFactory.getTimestampSource();
+				timestampSource = TransactionTimestamps.getTimestampSource();
 		}
 
 		@Override
@@ -57,17 +59,19 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 				SparseTxn txn = decodeFromNetwork(packedTxn);
 				assert txn.getTxnId()==txnId: "Transaction Ids do not match"; //probably won't happen, but it catches programmer errors
 
+
 				Lock lock = lockStriper.get(txnId).writeLock(); //use the write lock to record transactions
 				acquireLock(lock);
 				try{
 					regionStore.recordTransaction(txn);
 				}finally{
-						lock.unlock();
-				}
+            unlock(lock);
+        }
 		}
 
 
-		@Override
+
+    @Override
 		public void elevateTransaction(long txnId, byte[] newDestinationTable) throws IOException {
 				if(newDestinationTable==null){
 						LOG.warn("Attempting to elevate a transaction with no destination table. This is probably a waste of a network call");
@@ -78,8 +82,8 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 				try{
 						regionStore.addDestinationTable(txnId,newDestinationTable);
 				}finally{
-						lock.unlock();
-				}
+            unlock(lock);
+        }
 		}
 
 		@Override
@@ -103,8 +107,8 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 						regionStore.recordCommit(txnId, commitTs);
 						return commitTs;
 				}finally{
-						lock.unlock();
-				}
+            unlock(lock);
+        }
 		}
 
 		@Override
@@ -128,8 +132,8 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 										regionStore.recordRollback(txnId);
 						}
 				}finally{
-						lock.unlock();
-				}
+            unlock(lock);
+        }
 		}
 
 		@Override
@@ -139,8 +143,8 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 				try{
 						return regionStore.keepAlive(txnId);
 				}finally{
-						lock.unlock();
-				}
+            unlock(lock);
+        }
 		}
 
 		@Override
@@ -151,12 +155,12 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 						SparseTxn transaction = regionStore.getTransaction(txnId);
 						return encodeForNetwork(transaction,getDestinationTables);
 				}finally{
-						lock.unlock();
-				}
+            unlock(lock);
+        }
 		}
 
 		@Override
-		public byte[] getActiveTransactions(long afterTs, long beforeTs, byte[] destinationTable) throws IOException {
+		public byte[] getActiveTransactionIds(long afterTs, long beforeTs, byte[] destinationTable) throws IOException {
 				long[] activeTxnIds = regionStore.getActiveTxnIds(beforeTs,afterTs,destinationTable);
 				MultiFieldEncoder encoder = MultiFieldEncoder.create(activeTxnIds.length);
 				for(long activeTxnId:activeTxnIds){
@@ -165,37 +169,64 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 				return encoder.build();
 		}
 
-		private byte[] encodeForNetwork(SparseTxn transaction,boolean addDestinationTables) {
+    @Override
+    public List<byte[]> getActiveTransactions(long afterTs, long beforeTs, byte[] destinationTable) throws IOException {
+        List<DenseTxn> activeTxns = regionStore.getActiveTxns(afterTs,beforeTs,destinationTable);
+        List<byte[]> encodedData = Lists.newArrayListWithCapacity(activeTxns.size());
+        MultiFieldEncoder txnEncoder = MultiFieldEncoder.create(11);
+        for(DenseTxn txn:activeTxns){
+            txnEncoder.reset();
+            encodeForNetwork(txnEncoder,txn,true,true);
+            encodedData.add(txnEncoder.build());
+        }
+        return encodedData;
+    }
+
+    private void encodeForNetwork(MultiFieldEncoder encoder,
+                                  SparseTxn transaction,
+                                  boolean addKaTime,
+                                  boolean addDestinationTables){
+        encoder.encodeNext(transaction.getTxnId())
+                .encodeNext(transaction.getParentTxnId())
+                .encodeNext(transaction.getBeginTimestamp());
+        Txn.IsolationLevel level = transaction.getIsolationLevel();
+        if(level==null)encoder.encodeEmpty();
+        else encoder.encodeNext(level.encode());
+
+        if(transaction.hasDependentField())
+            encoder.encodeNext(transaction.isDependent());
+        else
+            encoder.encodeEmpty();
+        if(transaction.hasAdditiveField())
+            encoder.encodeNext(transaction.isAdditive());
+        else
+            encoder.encodeEmpty();
+
+        long commitTs = transaction.getCommitTimestamp();
+        if(commitTs>=0)
+            encoder.encodeNext(commitTs);
+        else encoder.encodeEmpty();
+        long globalCommitTs = transaction.getGlobalCommitTimestamp();
+        if(globalCommitTs>=0)
+            encoder.encodeNext(globalCommitTs);
+        else encoder.encodeEmpty();
+        encoder.encodeNext(transaction.getState().getId());
+
+        if(addKaTime){
+            if(transaction instanceof DenseTxn){
+                 encoder.encodeNext(((DenseTxn) transaction).getLastKATime());
+            }
+        }
+
+        if(addDestinationTables)
+            encoder.setRawBytes(transaction.getDestinationTableBuffer());
+
+    }
+
+    private byte[] encodeForNetwork(SparseTxn transaction,boolean addDestinationTables) {
 				if(transaction==null) return HConstants.EMPTY_BYTE_ARRAY;
 				MultiFieldEncoder encoder = MultiFieldEncoder.create(addDestinationTables? 10:9);
-				encoder.encodeNext(transaction.getTxnId())
-								.encodeNext(transaction.getParentTxnId())
-								.encodeNext(transaction.getBeginTimestamp());
-				Txn.IsolationLevel level = transaction.getIsolationLevel();
-				if(level==null)encoder.encodeEmpty();
-				else encoder.encodeNext(level.encode());
-
-				if(transaction.hasDependentField())
-						encoder.encodeNext(transaction.isDependent());
-				else
-						encoder.encodeEmpty();
-				if(transaction.hasAdditiveField())
-						encoder.encodeNext(transaction.isAdditive());
-				else
-						encoder.encodeEmpty();
-
-				long commitTs = transaction.getCommitTimestamp();
-				if(commitTs>=0)
-						encoder.encodeNext(commitTs);
-				else encoder.encodeEmpty();
-				long globalCommitTs = transaction.getGlobalCommitTimestamp();
-				if(globalCommitTs>=0)
-						encoder.encodeNext(globalCommitTs);
-				else encoder.encodeEmpty();
-
-				encoder.encodeNext(transaction.getState().getId());
-				if(addDestinationTables)
-						encoder.setRawBytes(transaction.getDestinationTableBuffer());
+        encodeForNetwork(encoder,transaction,false,addDestinationTables);
 
 				return encoder.build();
 		}
@@ -249,8 +280,8 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 										throwIfDisconnected.invoke(HBaseServer.getCurrentCall(), regionNameAsString);
 								}catch(IOException ioe){
 										if(!shouldContinue) //the lock was acquired, so it needs to be unlocked
-												lock.unlock();
-										throw ioe;
+                        unlock(lock);
+                    throw ioe;
 								}
 						} catch (InterruptedException e) {
 								LOG.warn("Interrupted while acquiring transaction lock. " +
@@ -259,5 +290,10 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 						}
 				}
 		}
+
+    private void unlock(Lock lock) {
+        lock.unlock();
+        region.closeRegionOperation();
+    }
 
 }

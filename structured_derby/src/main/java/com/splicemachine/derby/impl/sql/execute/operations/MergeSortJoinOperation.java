@@ -127,7 +127,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             System.arraycopy(uniqueSequenceID, 0, start, 0, start.length);
             byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);
             rowType = (SQLInteger) activation.getDataValueFactory().getNullInteger(null);
-            reduceScan = Scans.newScan(start, finish, getTransactionID());
+            reduceScan = Scans.newScan(start, finish,null);
         } else {
             reduceScan = context.getScan();
         }
@@ -248,7 +248,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             byte[] finish = new byte[start.length+1];
 						System.arraycopy(start,0,finish,0,start.length);
 						finish[finish.length-1] = 0x01;
-            reduceScan = Scans.newScan(start, finish, SpliceUtils.NA_TRANSACTION_ID);
+            reduceScan = Scans.newScan(start, finish, null);
             if (failedTasks.size() > 0) {
                 reduceScan.setFilter(new SuccessFilter(failedTasks));
             }
@@ -431,7 +431,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
         //ResultMergeScanner scanner;
         if (spliceRuntimeContext.isSink()) {
-            scanner = ResultMergeScanner.regionAwareScanner(reduceScan, transactionID, leftDecoder, rightDecoder, region,spliceRuntimeContext);
+            scanner = ResultMergeScanner.regionAwareScanner(reduceScan, leftDecoder, rightDecoder, region,spliceRuntimeContext);
         } else {
             scanner = ResultMergeScanner.clientScanner(reduceScan, leftDecoder, rightDecoder,spliceRuntimeContext);
         }

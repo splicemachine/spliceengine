@@ -8,6 +8,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.stats.TaskStats;
@@ -15,6 +16,8 @@ import com.splicemachine.derby.utils.*;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionLifecycle;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -180,7 +183,8 @@ public class HdfsImport {
 						LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
 						final String user = lcc.getSessionUserId();
 						Activation activation = lcc.getLastActivation();
-						final String transactionId = activation.getTransactionController().getActiveStateTxIdString();
+//						final String transactionId = activation.getTransactionController().getActiveStateTxIdString();
+            Txn txn = ((SpliceTransactionManager)activation.getTransactionController()).getActiveStateTxn();
 //						final String transactionId = SpliceObserverInstructions.getTransactionId(lcc);
 						try {
 								if(schemaName==null)
@@ -193,7 +197,7 @@ public class HdfsImport {
 								 */
 
 								EmbedConnection embedConnection = (EmbedConnection)conn;
-								ExecRow resultRow = importData(transactionId, user, conn, schemaName.toUpperCase(), tableName.toUpperCase(),
+								ExecRow resultRow = importData(txn,user, conn, schemaName.toUpperCase(), tableName.toUpperCase(),
 												insertColumnList, fileName, columnDelimiter,
 												characterDelimiter, timestampFormat, dateFormat, timeFormat, lcc, maxBadRecords, badRecordDirectory);
 								IteratorNoPutResultSet rs = new IteratorNoPutResultSet(Arrays.asList(resultRow),IMPORT_RESULT_COLUMNS,activation);
@@ -247,7 +251,7 @@ public class HdfsImport {
 				}
 		}
 
-		public static ExecRow importData(String transactionId, String user,
+		public static ExecRow importData(Txn txn, String user,
 																			 Connection connection,
 																			 String schemaName,
 																			 String tableName,
@@ -294,11 +298,11 @@ public class HdfsImport {
 				 * Create a child transaction to actually perform the import under
 				 */
 				byte[] conglomBytes = Bytes.toBytes(Long.toString(builder.getDestinationConglomerate()));
-				TransactionId parentTxnId = new TransactionId(transactionId);
-				TransactionId childTransaction;
+
+				Txn parentTxnId = txn;
+				Txn childTransaction;
 				try {
-						childTransaction = HTransactorFactory.getTransactionManager().beginChildTransaction(parentTxnId, conglomBytes);
-						builder = builder.transactionId(childTransaction.getTransactionIdString());
+						childTransaction = TransactionLifecycle.getLifecycleManager().beginChildTransaction(txn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, true, conglomBytes);
 				} catch (IOException e) {
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
 				}
@@ -306,7 +310,7 @@ public class HdfsImport {
 				HdfsImport importer;
 				StatementInfo statementInfo = new StatementInfo(String.format("import(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
 								schemaName,tableName,insertColumnList,inputFileName,delimiter,charDelimiter,timestampFormat,dateFormat,timeFormat),
-								user,transactionId,
+								user,childTransaction,
 								1,SpliceDriver.driver().getUUIDGenerator());
 				OperationInfo opInfo = new OperationInfo(
 								SpliceDriver.driver().getUUIDGenerator().nextUUID(), statementInfo.getStatementUuid(),"Import", null, false, -1l);
@@ -318,7 +322,7 @@ public class HdfsImport {
 						importer = new HdfsImport(builder.build(),statementInfo.getStatementUuid(),opInfo.getOperationUuid());
 						SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
 						runtimeContext.setStatementInfo(statementInfo);
-						return importer.executeShuffle(runtimeContext);
+						return importer.executeShuffle(runtimeContext,childTransaction);
 				} catch(AssertionError ae){
 						rollback =true;
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(ae));
@@ -335,8 +339,9 @@ public class HdfsImport {
 						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, explain);
 						if(rollback){
 								try {
-										TransactionUtils.rollback(HTransactorFactory.getTransactionManager(),childTransaction,0,5);
-								} catch (AttemptsExhaustedException e) {
+                    childTransaction.rollback();
+//										TransactionUtils.rollback(HTransactorFactory.getTransactionManager(),childTransaction,0,5);
+								} catch (IOException e) {
 										/*
 										 * We were unable to rollback the transaction, which is bad.
 										 *
@@ -350,8 +355,9 @@ public class HdfsImport {
 								}
 						}else{
 								try {
-										TransactionUtils.commit(HTransactorFactory.getTransactionManager(), childTransaction, 0, 5);
-								} catch (AttemptsExhaustedException e) {
+                    childTransaction.commit();
+//										TransactionUtils.commit(HTransactorFactory.getTransactionManager(), childTransaction, 0, 5);
+								} catch (IOException e) {
 										/*
 										 * We were unable to commit the transaction properly,
 										 * so we have to give up and blow back on the client
@@ -365,7 +371,7 @@ public class HdfsImport {
 		}
 
 
-		public ExecRow executeShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+		public ExecRow executeShuffle(SpliceRuntimeContext runtimeContext,Txn txn) throws StandardException {
 				try {
 						admin = new HBaseAdmin(SpliceUtils.config);
 				} catch (MasterNotRunningException e) {
@@ -399,7 +405,7 @@ public class HdfsImport {
 						}
 						try {
 								LOG.info("Importing files "+ file.getPaths());
-								ImportJob importJob = new FileImportJob(table,context,statementId,file.getPaths(),operationId);
+								ImportJob importJob = new FileImportJob(table,context,statementId,file.getPaths(),operationId,txn);
 								long start = System.currentTimeMillis();
 								JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob);
 								JobInfo info = new JobInfo(importJob.getJobId(),jobFuture.getNumTasks(),start);

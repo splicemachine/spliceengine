@@ -13,7 +13,9 @@ import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.catalog.UUID;
@@ -91,36 +93,46 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 		this.indexName = indexName;
 	}
 
-    protected TransactionId getIndexTransaction(TransactionController parent, TransactionController tc, TransactionId tentativeTransaction, TransactionManager transactor, long tableConglomId) throws StandardException {
-        final TransactionId parentTransactionId =  new TransactionId(getTransactionId(parent));
-        final TransactionId wrapperTransactionId =  new TransactionId(getTransactionId(tc));
-        TransactionId indexTransaction;
-        try {
-            indexTransaction = transactor.beginChildTransaction(wrapperTransactionId, true, true, false, false, true, tentativeTransaction);
+    protected Txn getIndexTransaction(TransactionController parent, TransactionController tc, Txn tentativeTransaction, TransactionManager transactor, long tableConglomId) throws StandardException {
+        final Txn parentTxn = ((SpliceTransactionManager)parent).getActiveStateTxn();
+        final Txn wrapperTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+//        final TransactionId parentTransactionId =  new TransactionId(getTransactionId(parent));
+//        final TransactionId wrapperTransactionId =  new TransactionId(getTransactionId(tc));
+        Txn indexTxn;
+        try{
+            indexTxn = TransactionLifecycle.getLifecycleManager().chainTransaction(wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,true,null,tentativeTransaction);
         } catch (IOException e) {
             LOG.error("Couldn't commit transaction for tentative DDL operation");
             // TODO must cleanup tentative DDL change
             throw Exceptions.parseException(e);
         }
+//        TransactionId indexTransaction;
+//        try {
+//            indexTransaction = transactor.beginChildTransaction(wrapperTransactionId, true, true, false, false, true, tentativeTransaction);
+//        } catch (IOException e) {
+//            LOG.error("Couldn't commit transaction for tentative DDL operation");
+//            // TODO must cleanup tentative DDL change
+//            throw Exceptions.parseException(e);
+//        }
 
         // Wait for past transactions to die
-        long oldestActiveTxn;
-        List<TransactionId> toIgnore = Arrays.asList(parentTransactionId, wrapperTransactionId, indexTransaction);
+        List<Txn> active;
+        List<Txn> toIgnore = Arrays.asList(parentTxn,wrapperTxn,indexTxn);
         try {
-            oldestActiveTxn = waitForConcurrentTransactions(indexTransaction, toIgnore,tableConglomId);
+            active = waitForConcurrentTransactions(indexTxn, toIgnore,tableConglomId);
         } catch (IOException e) {
             LOG.error("Unexpected error while waiting for past transactions to complete", e);
             throw Exceptions.parseException(e);
         }
-        if (oldestActiveTxn>=0) {
+        if (!active.isEmpty()) {
             throw StandardException.newException(SQLState.LANG_SERIALIZABLE,
-                    new RuntimeException(String.format("Transaction %d is still active.", oldestActiveTxn)));
+                    new RuntimeException(String.format("There are active transactions %s", active)));
         }
-        return indexTransaction;
+        return indexTxn;
     }
 
     protected void populateIndex(Activation activation, int[] baseColumnPositions, boolean[] descColumns,
-                                 long tableConglomId, HTableInterface table, TransactionId indexTransaction,
+                                 long tableConglomId, HTableInterface table, Txn indexTransaction,
                                  TentativeIndexDesc tentativeIndexDesc) throws StandardException {
         String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 				/*
@@ -136,9 +148,9 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             activation.getLanguageConnectionContext().setXplainStatementId(sId);
         }
         StatementInfo statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
-                activation.getTransactionController().getActiveStateTxIdString(),1, sId);
-        OperationInfo populateIndexOp = new OperationInfo(SpliceDriver.driver().getUUIDGenerator().nextUUID(),
-                statementInfo.getStatementUuid(), "PopulateIndex", null, false,-1l);
+                ((SpliceTransactionManager)activation.getTransactionController()).getActiveStateTxn(),1, SpliceDriver.driver().getUUIDGenerator());
+        OperationInfo populateIndexOp = new OperationInfo(statementInfo.getStatementUuid(),
+                SpliceDriver.driver().getUUIDGenerator().nextUUID(), "PopulateIndex", null, false,-1l);
         statementInfo.setOperationInfo(Arrays.asList(populateIndexOp));
         SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
         JobFuture future = null;
@@ -147,7 +159,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         long conglomId = tentativeIndexDesc.getConglomerateNumber();
         try{
             SpliceConglomerate conglomerate = (SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(tableConglomId);
-            PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction.getTransactionIdString(),
+            PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction,
                     conglomId, tableConglomId, baseColumnPositions, unique, uniqueWithDuplicateNulls, descColumns,
                     statementInfo.getStatementUuid(),populateIndexOp.getOperationUuid(),
                     activation.isTraced(), conglomerate.getColumnOrdering(), conglomerate.getFormat_ids());
@@ -237,11 +249,6 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             //SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
             cleanupFuture(future);
         }
-    }
-
-    protected String getTransactionId(TransactionController tc) {
-        Transaction td = ((SpliceTransactionManager)tc).getRawTransaction();
-        return SpliceUtils.getTransID(td);
     }
 
     private void cleanupFuture(JobFuture future) throws StandardException {

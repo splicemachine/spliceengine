@@ -106,7 +106,12 @@ public abstract class AbstractTxn implements Txn {
 				return beginTimestamp;
 		}
 
-		@Override
+    @Override
+    public long getLastKeepAliveTimestamp() {
+        return -1l;
+    }
+
+    @Override
 		public ConflictType conflicts(Txn otherTxn) {
 				/*
 				 * There are two ways that a transaction does not conflict.

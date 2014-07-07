@@ -21,6 +21,7 @@ import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.hbase.writer.WriteStats;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.KeyValue;
@@ -71,19 +72,17 @@ public class LoadConglomerateTask extends ZkTask {
                                  long toConglomId,
                                  ColumnInfo[] columnInfo,
                                  int droppedColumnPosition,
-                                 String txnId,
                                  String jobId,
                                  boolean isTraced,
                                  long statementId,
                                  long operationId) {
 
-        super(jobId, OperationJob.operationTaskPriority, txnId, false);
+        super(jobId, OperationJob.operationTaskPriority, null);
         this.tableId = tableId;
         this.fromConglomId = fromConglomId;
         this.toConglomId = toConglomId;
         this.columnInfo = columnInfo;
         this.droppedColumnPosition = droppedColumnPosition;
-        this.txnId = txnId;
         this.isTraced = isTraced;
         this.statementId = statementId;
         this.operationId = operationId;
@@ -94,7 +93,7 @@ public class LoadConglomerateTask extends ZkTask {
 				return new LoadConglomerateTask(tableId,
 								fromConglomId,toConglomId,
 								columnInfo,droppedColumnPosition,
-								txnId,jobId,isTraced,statementId,operationId);
+				jobId,isTraced,statementId,operationId);
 		}
 
 		@Override public boolean isSplittable() { return false; }
@@ -107,9 +106,10 @@ public class LoadConglomerateTask extends ZkTask {
 		}
 
 		private void initialize() throws StandardException{
-        scanner = new ConglomerateScanner(columnInfo, region, txnId, isTraced,scanStart,scanStop);
-        transformer = new RowTransformer(tableId, txnId, columnInfo, droppedColumnPosition);
-        loader = new ConglomerateLoader(toConglomId, txnId, isTraced);
+        Txn txn = getTxn();
+        scanner = new ConglomerateScanner(columnInfo, region, txn, isTraced,scanStart,scanStop);
+        transformer = new RowTransformer(tableId, txn, columnInfo, droppedColumnPosition);
+        loader = new ConglomerateLoader(toConglomId, txn, isTraced);
         initialized = true;
     }
     @Override
@@ -179,8 +179,7 @@ public class LoadConglomerateTask extends ZkTask {
         return true;
     }
 
-
-		@Override
+    @Override
     public int getPriority() {
         return SchedulerPriorities.INSTANCE.getBasePriority(LoadConglomerateTask.class);
     }
@@ -199,7 +198,6 @@ public class LoadConglomerateTask extends ZkTask {
             }
         }
         droppedColumnPosition = in.readInt();
-        txnId = in.readUTF();
 
         if(isTraced = in.readBoolean()){
             statementId = in.readLong();
@@ -220,7 +218,6 @@ public class LoadConglomerateTask extends ZkTask {
             out.writeObject(columnInfo[i]);
         }
         out.writeInt(droppedColumnPosition);
-        out.writeUTF(txnId);
         out.writeBoolean(isTraced);
 
         if(isTraced){

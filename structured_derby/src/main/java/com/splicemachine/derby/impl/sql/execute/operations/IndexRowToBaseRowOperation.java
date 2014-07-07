@@ -359,7 +359,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 										.source(source)
 										.mainTableConglomId(conglomId)
 										.outputTemplate(compactRow)
-										.transactionId(getTransactionID())
+                    .transaction(operationInformation.getTransaction())
 										.indexColumns(indexCols)
 										.mainTableKeyColumnEncodingOrder(getColumnOrdering())
 										.mainTableKeyColumnTypes(getKeyColumnTypes())

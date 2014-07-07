@@ -2,6 +2,7 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
+import com.splicemachine.si.api.Txn;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
@@ -23,7 +24,6 @@ public interface SinkingOperation extends SpliceOperation {
      */
     ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException;
 
-    String getTransactionID();
 
 //		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
 
@@ -34,4 +34,5 @@ public interface SinkingOperation extends SpliceOperation {
 //		void close() throws IOException,StandardException;
 
 		byte[] getUniqueSequenceId();
+
 }

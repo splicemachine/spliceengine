@@ -1,13 +1,14 @@
 package com.splicemachine.hbase.batch;
 
 import com.google.common.collect.Maps;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.ThrowIfDisconnected;
-import com.splicemachine.hbase.writer.*;
-
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.WriteCoordinator;
+import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.hbase.writer.Writer;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -28,12 +29,13 @@ import java.util.Map;
 public class PipelineWriteContext implements WriteContext{
     private final Map<KVPair,WriteResult> resultsMap;
     private final TransactionalRegion rce;
+    private final RegionCoprocessorEnvironment env;
 
     private final Map<byte[],HTableInterface> tableCache = Maps.newHashMapWithExpectedSize(0);
     private static final Logger LOG = Logger.getLogger(PipelineWriteContext.class);
 		private long timestamp;
 
-		private class WriteNode implements WriteContext{
+    private class WriteNode implements WriteContext{
         private WriteHandler handler;
         private WriteNode next;
 
@@ -99,11 +101,6 @@ public class PipelineWriteContext implements WriteContext{
             return PipelineWriteContext.this.canRun(input);
         }
 
-        @Override
-        public String getTransactionId() {
-            return PipelineWriteContext.this.getTransactionId();
-        }
-
 				@Override
 				public long getTransactionTimestamp() {
 						return PipelineWriteContext.this.getTransactionTimestamp();
@@ -125,20 +122,21 @@ public class PipelineWriteContext implements WriteContext{
     private WriteNode tail;
     private final boolean keepState;
     private final boolean useAsyncWriteBuffers;
-    private final String txnId;
+    private final Txn txn;
 
-    public PipelineWriteContext(String txnId,TransactionalRegion rce) {
-        this(txnId,rce,true,false);
+    public PipelineWriteContext(Txn txn, TransactionalRegion rce, RegionCoprocessorEnvironment env) {
+        this(txn,rce,env,true,false);
     }
 
-    public PipelineWriteContext(String txnId,TransactionalRegion rce,boolean keepState,boolean useAsyncWriteBuffers) {
+    public PipelineWriteContext(Txn txn,TransactionalRegion rce,RegionCoprocessorEnvironment env,boolean keepState,boolean useAsyncWriteBuffers) {
         this.rce = rce;
         this.resultsMap = Maps.newIdentityHashMap();
         this.keepState = keepState;
         this.useAsyncWriteBuffers= useAsyncWriteBuffers;
-        this.txnId = txnId;
+				this.txn = txn;
 
         head = tail =new WriteNode(null);
+        this.env = env;
     }
 
     public void addLast(WriteHandler handler){
@@ -204,13 +202,13 @@ public class PipelineWriteContext implements WriteContext{
                                              WriteCoordinator.PreFlushHook preFlushListener,
                                              Writer.WriteConfiguration writeConfiguration, int maxSize) throws Exception {
         if(useAsyncWriteBuffers)
-            return SpliceDriver.driver().getTableWriter().writeBuffer(conglomBytes,txnId, preFlushListener, writeConfiguration);
-        return SpliceDriver.driver().getTableWriter().synchronousWriteBuffer(conglomBytes,txnId,preFlushListener, writeConfiguration,maxSize);
+            return SpliceDriver.driver().getTableWriter().writeBuffer(conglomBytes,txn, preFlushListener, writeConfiguration);
+        return SpliceDriver.driver().getTableWriter().synchronousWriteBuffer(conglomBytes,txn,preFlushListener, writeConfiguration,maxSize);
     }
 
     @Override
     public RegionCoprocessorEnvironment getCoprocessorEnvironment() {
-				throw new UnsupportedOperationException("REMOVE");
+        return env;
     }
     
 	
@@ -247,33 +245,14 @@ public class PipelineWriteContext implements WriteContext{
         return result == null || result.getCode() == WriteResult.Code.SUCCESS;
     }
 
-    @Override
-    public String getTransactionId() {
-        return txnId;
-    }
-
 		@Override
 		public long getTransactionTimestamp() {
-				if(timestamp<=0){
-						/*
-						 * It's cheaper to try parsing (succeeding 99.9999999% of the time) and
-						 * fail when NA_TRANSACTION_ID is passed than it is to do the comparison every time.
-						 */
-						try{
-								timestamp = Long.parseLong(txnId);
-						}catch(NumberFormatException nfe){
-							if(SpliceConstants.NA_TRANSACTION_ID.equals(txnId)){
-									timestamp=0;
-							}
-						}
-				}
-
-				return timestamp;
+				return txn.getBeginTimestamp();
 		}
 
 		@Override
 		public Txn getTxn() {
-				throw new UnsupportedOperationException("IMPLEMENT");
+				return txn;
 		}
 
 		@Override

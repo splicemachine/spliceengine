@@ -12,6 +12,7 @@ import com.splicemachine.job.TaskFuture;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -220,7 +221,7 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
 
     //deal with an error state. Retry if possible, otherwise, bomb out with a wrapper around a StandardException
     void dealWithError() throws ExecutionException{
-				if(!rollback(5)){
+				if(!rollback()){
 						fail(taskStatus.getError());
 						throw new ExecutionException(taskStatus.getError());
 				}
@@ -247,58 +248,79 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
      * protects us from programmer error. However, as invalidations can result in tasks not having a child transaction, we can also be
      * relaxed about this check.
      */
-    boolean rollback(int maxTries) {
-        if(!task.isTransactional()){
-            //no need to roll back a nontransactional task
-            return true;
-        }
-
-        String tId = taskStatus.getTransactionId();
-        if(tId==null){
-            //emit a warning in case
-            SpliceLogUtils.info(LOG,"Attempting to rollback a transactional task with no transaction. Task: "+ getTaskNode());
-            return true;
-        }
-
-				if(LOG.isDebugEnabled())
-						SpliceLogUtils.debug(LOG,"Attempting to roll back transaction id %s on task %d",tId,Bytes.toLong(getTaskId()));
-        try {
-						boolean rollback = TransactionUtils.rollback(HTransactorFactory.getTransactionManager(), tId, maxTries);
-						if(LOG.isDebugEnabled())
-								SpliceLogUtils.debug(LOG,"Rollback of transaction %s on task %d complete with return state %b",tId,Bytes.toLong(getTaskId()),rollback);
-						return rollback; //TODO -sf- make 5 configurable
-        } catch (AttemptsExhaustedException e) {
-						SpliceLogUtils.error(LOG,"Unable to roll back transaction id %s for task %d",tId,Bytes.toLong(getTaskId()));
-            fail(e);
-            return false;
-        }finally{
+    boolean rollback() {
+				Txn txn = task.getTxn();
+				if(txn==null) return true;
+				try {
+						txn.rollback();
+						return true;
+				} catch (IOException e) {
+						SpliceLogUtils.error(LOG,"Unable to roll back transaction %s for task %d",txn,Bytes.toLong(getTaskId()));
+						fail(e);
+						return false;
 				}
+//				if(!task.isTransactional()){
+//            //no need to roll back a nontransactional task
+//            return true;
+//        }
+//
+//        String tId = taskStatus.getTransactionId();
+//        if(tId==null){
+//            //emit a warning in case
+//            SpliceLogUtils.info(LOG,"Attempting to rollback a transactional task with no transaction. Task: "+ getTaskNode());
+//            return true;
+//        }
+//
+//				if(LOG.isDebugEnabled())
+//						SpliceLogUtils.debug(LOG,"Attempting to roll back transaction id %s on task %d",tId,Bytes.toLong(getTaskId()));
+//        try {
+//						boolean rollback = TransactionUtils.rollback(HTransactorFactory.getTransactionManager(), tId, maxTries);
+//						if(LOG.isDebugEnabled())
+//								SpliceLogUtils.debug(LOG,"Rollback of transaction %s on task %d complete with return state %b",tId,Bytes.toLong(getTaskId()),rollback);
+//						return rollback; //TODO -sf- make 5 configurable
+//        } catch (AttemptsExhaustedException e) {
+//						SpliceLogUtils.error(LOG,"Unable to roll back transaction id %s for task %d",tId,Bytes.toLong(getTaskId()));
+//            fail(e);
+//            return false;
+//        }finally{
+//				}
     }
 
 
 
-    boolean commit(int maxTries){
-        if(!task.isTransactional()){
-            return true;
-        }
-        String tId = taskStatus.getTransactionId();
-        Preconditions.checkNotNull(tId,"Transactional task has no transaction");
+    boolean commit(){
+				Txn txn = task.getTxn();
+				if(txn==null) return true;
 
-        TransactionManager txnControl = HTransactorFactory.getTransactionManager();
-
-				if(LOG.isDebugEnabled())
-						SpliceLogUtils.debug(LOG,"Committing transaction %s for task %d",tId,Bytes.toLong(getTaskId()));
-        try {
-						boolean commit = TransactionUtils.commit(txnControl, tId, maxTries);//TODO -sf- make 5 configurable
-						if(LOG.isDebugEnabled())
-								SpliceLogUtils.debug(LOG,"transaction %s committed for task %d with return state %b",tId,Bytes.toLong(getTaskId()),commit);
-						return commit;
-        } catch (AttemptsExhaustedException e) {
-						if(LOG.isDebugEnabled())
-								SpliceLogUtils.debug(LOG,"Unable to commit transaction "+tId,e);
-            fail(e);
-            return false;
-        }
+				try{
+						txn.commit();
+						return true;
+				} catch (IOException e) {
+						SpliceLogUtils.warn(LOG,"Unable to commit transaction "+ txn,e);
+						fail(e);
+						return false;
+				}
+//				if(!task.isTransactional()){
+//            return true;
+//        }
+//        String tId = taskStatus.getTransactionId();
+//        Preconditions.checkNotNull(tId,"Transactional task has no transaction");
+//
+//        TransactionManager txnControl = HTransactorFactory.getTransactionManager();
+//
+//				if(LOG.isDebugEnabled())
+//						SpliceLogUtils.debug(LOG,"Committing transaction %s for task %d",tId,Bytes.toLong(getTaskId()));
+//        try {
+//						boolean commit = TransactionUtils.commit(txnControl, tId, maxTries);//TODO -sf- make 5 configurable
+//						if(LOG.isDebugEnabled())
+//								SpliceLogUtils.debug(LOG,"transaction %s committed for task %d with return state %b",tId,Bytes.toLong(getTaskId()),commit);
+//						return commit;
+//        } catch (AttemptsExhaustedException e) {
+//						if(LOG.isDebugEnabled())
+//								SpliceLogUtils.debug(LOG,"Unable to commit transaction "+tId,e);
+//            fail(e);
+//            return false;
+//        }
     }
 
 

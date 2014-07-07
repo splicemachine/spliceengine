@@ -64,10 +64,8 @@ public class LStoreSetup implements StoreSetup {
     }
 
 		@Override
-		public TxnStore getTxnStore(TxnLifecycleManager txnLifecycleManager) {
-				InMemoryTxnStore store = new InMemoryTxnStore(source, SIConstants.transactionTimeout);
-				store.setLifecycleManager(txnLifecycleManager);
-				return store;
+		public TxnStore getTxnStore() {
+        return new InMemoryTxnStore(source, SIConstants.transactionTimeout);
 		}
 
 		@Override

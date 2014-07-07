@@ -25,26 +25,6 @@ public abstract class AbstractClientTransactor<Put extends OperationWithAttribut
 		}
 
 		@Override
-		public TransactionId transactionIdFromGet(Get get) {
-				return dataStore.getTransactionIdFromOperation(get);
-		}
-
-		@Override
-		public Txn txnFromOp(OperationWithAttributes op, boolean readOnly) throws IOException {
-				return dataStore.getTxn(op,readOnly);
-		}
-
-		@Override
-		public TransactionId transactionIdFromScan(Scan scan) {
-				return dataStore.getTransactionIdFromOperation(scan);
-		}
-
-		@Override
-		public TransactionId transactionIdFromPut(Put put) {
-				return dataStore.getTransactionIdFromOperation(put);
-		}
-
-		@Override
 		public void initializeGet(String transactionId, Get get) throws IOException {
 				initializeOperation(transactionId,get);
 		}

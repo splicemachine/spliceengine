@@ -36,7 +36,7 @@ public class DropColumnTask extends ZkTask {
                           long oldConglomId,
                           long newConglomId,
                           DDLChange ddlChange) {
-        super(jobId, OperationJob.operationTaskPriority,ddlChange.getTransactionId(),false);
+        super(jobId, OperationJob.operationTaskPriority,null);
         this.oldConglomId = oldConglomId;
         this.newConglomId = newConglomId;
         this.ddlChange = ddlChange;

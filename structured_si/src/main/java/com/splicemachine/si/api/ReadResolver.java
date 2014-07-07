@@ -17,22 +17,6 @@ import com.splicemachine.utils.ByteSlice;
  */
 public interface ReadResolver {
 
-		/**
-		 * Resolve a particular row and transaction id as committed (e.g.
-		 * add a commit timestamp column to the entry if needed.
-		 *
-		 * @param rowKey the row key to resolve
-		 * @param txnId the transaction id (e.g. Hbase version) to resolve as committed
-		 * @param commitTimestamp the commit timestamp to resolve with
-		 */
-		void resolveCommitted(ByteSlice rowKey, long txnId,long commitTimestamp);
+    void resolve(ByteSlice rowKey, long txnId);
 
-		/**
-		 * Resolve a particular row and transaction id as rolled back(e.g.
-		 * delete the particular version of the data)
-		 *
-		 * @param rowKey the row key to resolve
-		 * @param txnId the transaction id (e.g. Hbase version) to resolve as rolled back
-		 */
-		void resolveRolledback(ByteSlice rowKey, long txnId);
 }

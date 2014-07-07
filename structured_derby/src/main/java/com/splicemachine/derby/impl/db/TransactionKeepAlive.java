@@ -42,28 +42,31 @@ public class TransactionKeepAlive {
 
     private static void performKeepAlive() {
     	SpliceLogUtils.trace(LOG,"running keepAlive task");
-        final ContextService contextService = ContextService.getFactory();
-		final Set<ContextManager> contextManagers = getContextManagers(contextService);
-        if (contextManagers != null) {
-            SpliceLogUtils.trace(LOG,"contextManager count %d",contextManagers.size());
-            final Set<String> keptAlive = new HashSet<String>();
-            for (ContextManager contextManager : contextManagers) {
-                final String transactionId = SpliceObserverInstructions.getTransactionId(contextManager);
-                if (transactionId != null && !keptAlive.contains(transactionId)) {
-                    final TransactionManager transactor = HTransactorFactory.getTransactionManager();
-                    try {
-                    	SpliceLogUtils.trace(LOG,"keeping alive %s",transactionId);
-                        transactor.keepAlive(transactor.transactionIdFromString(transactionId));
-                        keptAlive.add(transactionId);
-                    } catch (IOException e) {
-                        // ignore this and carry on with the rest of the transactions
-                        LOG.error("error calling keepAlive", e);
-                    }
-                }
-            }
-            SpliceLogUtils.trace(LOG, "keptAlive count %d",keptAlive.size());
-            LOG.trace("keptAlive count " + keptAlive.size());
-        }
+        throw new UnsupportedOperationException("REMOVE");
+//        final ContextService contextService = ContextService.getFactory();
+//        @SuppressWarnings("rawtypes")
+//		final Set contextManagers = getContextManagers(contextService);
+//        if (contextManagers != null) {
+//            SpliceLogUtils.trace(LOG,"contextManager count %d",contextManagers.size());
+//            final Set<String> keptAlive = new HashSet<String>();
+//            for (Object o : contextManagers) {
+//                final ContextManager contextManager = (ContextManager) o;
+//                final String transactionId = SpliceObserverInstructions.getTransactionId(contextManager);
+//                if (transactionId != null && !keptAlive.contains(transactionId)) {
+//                    final TransactionManager transactor = HTransactorFactory.getTransactionManager();
+//                    try {
+//                    	SpliceLogUtils.trace(LOG,"keeping alive %s",transactionId);
+//                        transactor.keepAlive(transactor.transactionIdFromString(transactionId));
+//                        keptAlive.add(transactionId);
+//                    } catch (IOException e) {
+//                        // ignore this and carry on with the rest of the transactions
+//                        LOG.error("error calling keepAlive", e);
+//                    }
+//                }
+//            }
+//            SpliceLogUtils.trace(LOG, "keptAlive count %d",keptAlive.size());
+//            LOG.trace("keptAlive count " + keptAlive.size());
+//        }
     }
 
 	private static Set<ContextManager> getContextManagers(ContextService contextService) {

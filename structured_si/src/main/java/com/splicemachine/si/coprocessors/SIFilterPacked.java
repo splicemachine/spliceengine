@@ -33,6 +33,10 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
 		public SIFilterPacked() {
 		}
 
+		public SIFilterPacked(TxnFilter filterState){
+				this.filterState = filterState;
+		}
+
 		public SIFilterPacked(Txn txn,
 													ReadResolver resolver,
 													EntryPredicateFilter predicateFilter,

@@ -19,6 +19,11 @@ public class ReadOnlyTxn extends AbstractTxn {
 		private final boolean dependent;
 		private final boolean additive;
 
+
+		public static Txn create(long txnId, IsolationLevel isolationLevel,TxnLifecycleManager tc) {
+				return new ReadOnlyTxn(txnId,txnId,isolationLevel,Txn.ROOT_TRANSACTION,tc,false,true);
+		}
+
 		public static Txn createReadOnlyTransaction(long txnId,
 																								Txn parentTxn,
 																								long beginTs,
@@ -100,7 +105,7 @@ public class ReadOnlyTxn extends AbstractTxn {
 								case ROLLEDBACK:
 										throw new CannotCommitException(txnId,currState);
 								default:
-										shouldContinue = state.compareAndSet(currState,State.COMMITTED);
+										shouldContinue = !state.compareAndSet(currState,State.COMMITTED);
 						}
 				}while(shouldContinue);
 		}
@@ -137,5 +142,8 @@ public class ReadOnlyTxn extends AbstractTxn {
 				}
 		}
 
-
+    @Override
+    public String toString() {
+        return "ReadOnlyTxn("+txnId+","+getState()+")";
+    }
 }

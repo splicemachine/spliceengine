@@ -4,8 +4,7 @@ import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.job.Task;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.api.Txn;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
@@ -21,7 +20,6 @@ import java.util.Map;
 public class CreateIndexJob implements CoprocessorJob{
     private final HTableInterface table;
     private final DDLChange ddlChange;
-    private final String transactionId;
     private int[] columnOrdering;
     private int[] formatIds;
 
@@ -30,7 +28,6 @@ public class CreateIndexJob implements CoprocessorJob{
                           int[] columnOrdering,
                           int[] formatIds) {
         this.table = table;
-        this.transactionId = ddlChange.getTransactionId();
         this.ddlChange = ddlChange;
         this.columnOrdering = columnOrdering;
         this.formatIds = formatIds;
@@ -49,7 +46,8 @@ public class CreateIndexJob implements CoprocessorJob{
 
     @Override
     public String getJobId() {
-        return "indexJob-"+transactionId.substring(transactionId.lastIndexOf('/')+1);
+        Txn txn = ddlChange.getTxn();
+        return "indexJob-"+txn.getTxnId();
     }
 
     @Override
@@ -58,12 +56,12 @@ public class CreateIndexJob implements CoprocessorJob{
     }
 
     @Override
-    public TransactionId getParentTransaction() {
-        return HTransactorFactory.getTransactionManager().transactionIdFromString(transactionId);
+    public byte[] getDestinationTable() {
+        return null;
     }
 
     @Override
-    public boolean isReadOnly() {
-        return false;
+    public Txn getTxn() {
+        return ddlChange.getTxn();
     }
 }

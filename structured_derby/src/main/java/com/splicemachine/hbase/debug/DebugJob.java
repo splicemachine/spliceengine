@@ -4,6 +4,7 @@ import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.hbase.HBaseRegionCache;
 import com.splicemachine.hbase.table.SpliceHTable;
 import com.splicemachine.job.Task;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.HConnectionManager;
@@ -41,16 +42,6 @@ public abstract class DebugJob implements CoprocessorJob{
     }
 
     @Override
-    public TransactionId getParentTransaction() {
-        return null;
-    }
-
-    @Override
-    public boolean isReadOnly() {
-        return true;
-    }
-
-    @Override
     public String getJobId() {
         return opId;
     }
@@ -59,4 +50,8 @@ public abstract class DebugJob implements CoprocessorJob{
     public <T extends Task> Pair<T, Pair<byte[], byte[]>> resubmitTask(T originalTask, byte[] taskStartKey, byte[] taskEndKey) throws IOException {
         return Pair.newPair(originalTask,Pair.newPair(taskStartKey,taskEndKey));
     }
+
+    @Override public byte[] getDestinationTable() { return null; }
+
+    @Override public Txn getTxn() { return null; }
 }

@@ -1,5 +1,6 @@
 package com.splicemachine.job;
 
+import com.splicemachine.si.api.Txn;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
@@ -16,6 +17,11 @@ public interface Job {
      * @return a unique id for this job
      */
     String getJobId();
+
+		/**
+		 * @return the parent transaction for the job, or {@code null} if the job is not transactional.
+		 */
+		Txn getTxn();
 
     <T extends Task> Pair<T,Pair<byte[],byte[]>> resubmitTask(T originalTask,byte[] taskStartKey,byte[] taskEndKey) throws IOException;
 }

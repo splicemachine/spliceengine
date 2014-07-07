@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CancellationException;
 
+import com.splicemachine.hbase.HBaseRegionLoads;
+import com.splicemachine.si.api.Txn;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceMasterObserverRestoreAction;
 import org.apache.derby.iapi.error.StandardException;
@@ -117,7 +119,7 @@ public class SpliceDatabase extends BasicDatabase {
 			SpliceLogUtils.info(LOG,"Booting the Splice Machine");
 		}
 		super.boot(create, startParams);
-        TransactionKeepAlive.start();
+//        TransactionKeepAlive.start();
         if (!create) {
             HBaseRegionLoads.start();
         }
@@ -164,7 +166,7 @@ public class SpliceDatabase extends BasicDatabase {
 		/**
 		 * This is the light creation of languageConnectionContext that removes 4 rpc calls per context creation.
 		 * 
-		 * @param transactionID
+		 * @param txn
 		 * @param cm
 		 * @param user
 		 * @param drdaID
@@ -174,8 +176,14 @@ public class SpliceDatabase extends BasicDatabase {
 		 * @return
 		 * @throws StandardException
 		 */
-		public LanguageConnectionContext generateLanguageConnectionContext(String transactionID, ContextManager cm, String user, String drdaID, String dbname, String sessionUserName, SchemaDescriptor defaultSchemaDescriptor) throws StandardException {
-			TransactionController tc = ((SpliceAccessManager) af).marshallTransaction(cm, transactionID);
+		public LanguageConnectionContext generateLanguageConnectionContext(Txn txn,
+																																			 ContextManager cm,
+																																			 String user,
+																																			 String drdaID,
+																																			 String dbname,
+																																			 String sessionUserName,
+																																			 SchemaDescriptor defaultSchemaDescriptor) throws StandardException {
+			TransactionController tc = ((SpliceAccessManager) af).marshallTransaction(cm, txn);
 			cm.setLocaleFinder(this);
 			pushDbContext(cm);
 			LanguageConnectionContext lctx = lcf.newLanguageConnectionContext(cm, tc, lf, this, user, drdaID, dbname);
@@ -190,7 +198,7 @@ public class SpliceDatabase extends BasicDatabase {
 		 * 
 		 * This method should only be used by start() methods in coprocessors.  Do not use for sinks or observers.  
 		 * 
-		 * @param transactionID
+		 * @param txn
 		 * @param cm
 		 * @param user
 		 * @param drdaID
@@ -198,8 +206,8 @@ public class SpliceDatabase extends BasicDatabase {
 		 * @return
 		 * @throws StandardException
 		 */
-		public LanguageConnectionContext generateLanguageConnectionContext(String transactionID, ContextManager cm, String user, String drdaID, String dbname) throws StandardException {
-			TransactionController tc = ((SpliceAccessManager) af).marshallTransaction(cm, transactionID);
+		public LanguageConnectionContext generateLanguageConnectionContext(Txn txn, ContextManager cm, String user, String drdaID, String dbname) throws StandardException {
+			TransactionController tc = ((SpliceAccessManager) af).marshallTransaction(cm, txn);
 			cm.setLocaleFinder(this);
 			pushDbContext(cm);
 			LanguageConnectionContext lctx = lcf.newLanguageConnectionContext(cm, tc, lf, this, user, drdaID, dbname);

@@ -13,6 +13,7 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.Metrics;
@@ -65,10 +66,9 @@ public class ImportTask extends ZkTask{
 											ImportContext importContext,
 											ImportReader reader,
 											int priority,
-											String parentTxnId,
 											long statementId,
 											long operationId){
-				super(jobId,priority,parentTxnId,false);
+				super(jobId,priority);
 				this.importContext = importContext;
 				this.reader = reader;
 				this.statementId = statementId;
@@ -80,19 +80,12 @@ public class ImportTask extends ZkTask{
 											ImportReader reader,
 											Importer importer,
 											int priority,
-											String parentTxnId,
 											byte[] taskId){
-				super(jobId, priority, parentTxnId, false);
+				super(jobId, priority);
 				this.importContext = importContext;
 				this.reader = reader;
 				this.importer = importer;
 				this.taskId = taskId;
-		}
-
-		@Override
-		protected TransactionId beginChildTransaction(TransactionManager transactor, TransactionId parent) throws IOException {
-				byte[] table = Long.toString(importContext.getTableId()).getBytes();
-				return transactor.beginChildTransaction(parent,!readOnly,table);
 		}
 
 		@Override
@@ -253,15 +246,17 @@ public class ImportTask extends ZkTask{
 				} catch (IOException e) {
 						throw new ExecutionException(e);
 				}
-				String transactionId = getTaskStatus().getTransactionId();
+
+				Txn txn = getTxn();
+
 				if(LOG.isInfoEnabled())
 						SpliceLogUtils.info(LOG,"Importing %s using transaction %s, which is a child of transaction %s",
-										reader.toString(),transactionId,parentTxnId);
+										reader.toString(),txn,txn.getParentTransaction());
 				if(shouldParallelize) {
-						return  new ParallelImporter(importContext,row, transactionId,errorReporter);
+						return new ParallelImporter(importContext,row, txn,errorReporter);
 				} else
 //						return new SequentialImporter(importContext,row,transactionId,errorReporter);
-						return new ParallelImporter(importContext,row,1,SpliceConstants.maxImportReadBufferSize,transactionId,errorReporter);
+						return new ParallelImporter(importContext,row,1,SpliceConstants.maxImportReadBufferSize,txn,errorReporter);
 		}
 
 		@Override

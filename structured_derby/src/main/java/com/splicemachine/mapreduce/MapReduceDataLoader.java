@@ -6,6 +6,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.load.ImportContext;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.si.api.Txn;
 import org.apache.commons.cli.*;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.jdbc.ClientDriver;
@@ -38,7 +39,7 @@ public class MapReduceDataLoader extends Configured implements Tool {
 		public static final String HBASE_TABLE_NAME = "hbase.table.name";
 		public static Gson gson = new Gson();
 
-		public int runHFileIncrementalLoad(ImportContext importContext,String tempOutputPath,int numReduces) throws Exception {
+		public int runHFileIncrementalLoad(Txn txn,ImportContext importContext,String tempOutputPath,int numReduces) throws Exception {
 				Configuration conf = getConf();
 				conf.set(HBASE_TABLE_NAME, Long.toString(importContext.getTableId()));
 				HBaseConfiguration.addHbaseResources(conf);
@@ -57,7 +58,9 @@ public class MapReduceDataLoader extends Configured implements Tool {
 				if(numReduces>setReduceTasks)
 						job.setNumReduceTasks(numReduces);
 				job.setReducerClass(HBaseBulkLoadReducer.class);
-				job.getConfiguration().set("import.txnId", importContext.getTransactionId());
+        if(true)
+            throw new UnsupportedOperationException("IMPLEMENT");
+//				job.getConfiguration().set("import.txnId", importContext.getTransactionId());
 
 				FileInputFormat.addInputPath(job, importContext.getFilePath());
 				Path outputDir = new Path(tempOutputPath);
@@ -174,13 +177,13 @@ public class MapReduceDataLoader extends Configured implements Tool {
 								return 1;
 						}
 
-						try{
-								ctxBuilder = ctxBuilder.transactionId(Long.toString(getTransactionInformation(connection)));
-						}catch(SQLException se){
-								failed = true;
-								printSqlException("Unable to get transaction information",se);
-								return 2;
-						}
+//						try{
+//								ctxBuilder = ctxBuilder.transactionId(Long.toString(getTransactionInformation(connection)));
+//						}catch(SQLException se){
+//								failed = true;
+//								printSqlException("Unable to get transaction information",se);
+//								return 2;
+//						}
 
 						try{
 								addTableAndSchemaInformation(connection,ctxBuilder,commandLine);
@@ -205,7 +208,8 @@ public class MapReduceDataLoader extends Configured implements Tool {
 								System.err.printf("Could not parse reducers %s, using default of 2%n",commandLine.getOptionValue("r"));
 								numReducers=2;
 						}
-						return runHFileIncrementalLoad(ctx,commandLine.getOptionValue("o"),numReducers);
+            throw new UnsupportedOperationException("IMPLEMENT");
+//						return runHFileIncrementalLoad(ctx,commandLine.getOptionValue("o"),numReducers);
 				}finally{
 						commitAndClose(connection, failed);
 				}

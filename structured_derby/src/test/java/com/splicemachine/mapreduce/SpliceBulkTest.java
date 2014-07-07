@@ -40,7 +40,6 @@ public class SpliceBulkTest {
         .path("/testPath")
         .destinationTable(1184l)
         .colDelimiter(",")
-        .transactionId("123")
         .build();
 		mapDriver = new MapDriver(new HBaseBulkLoadMapper());
 		mapDriver.withInput(new LongWritable(), new Text("1234"));

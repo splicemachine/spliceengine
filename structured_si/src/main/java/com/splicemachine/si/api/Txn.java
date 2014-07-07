@@ -26,7 +26,10 @@ public interface Txn {
 				@Override public long getCommitTimestamp() { return -1l; }
 				@Override public long getEffectiveCommitTimestamp() { return -1l; }
 				@Override public long getEffectiveBeginTimestamp() { return 0; }
-				@Override public Txn getParentTransaction() { return null; }
+
+        @Override public long getLastKeepAliveTimestamp() { return -1l; }
+
+        @Override public Txn getParentTransaction() { return null; }
 				@Override public State getState() { return State.ACTIVE; }
 				@Override public boolean allowsWrites() { return true; }
 
@@ -265,6 +268,15 @@ public interface Txn {
 		 * effective begin timestamp is the same as it's begin timestamp.
 		 */
 		long getEffectiveBeginTimestamp();
+
+    /**
+     * @return the last time this transaction is <em>known</em> to have been alive at, or {@code -1} if
+     * that value is not known to this instance.
+     *
+     * In most cases, it is reasonable to expect that this value is -1--in other words, unless otherwise
+     * specified, this should not be treated as reliable.
+     */
+    long getLastKeepAliveTimestamp();
 
 		/**
 		 * @return the parent transaction for this transaction, or {@code null} if the transaction is a top-level

@@ -5,6 +5,7 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.hbase.HBaseRegionCache;
 import com.splicemachine.hbase.table.SpliceHTable;
 import com.splicemachine.job.Task;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
@@ -53,13 +54,13 @@ public class TransactionCountJob implements CoprocessorJob {
     }
 
     @Override
-    public TransactionId getParentTransaction() {
+    public byte[] getDestinationTable() {
         return null;
     }
 
     @Override
-    public boolean isReadOnly() {
-        return true;
+    public Txn getTxn() {
+        return null;
     }
 
     @Override

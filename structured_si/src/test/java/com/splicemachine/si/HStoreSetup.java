@@ -74,7 +74,7 @@ public class HStoreSetup implements StoreSetup {
                 }
             });
 						this.timestampSource = new SimpleTimestampSource();
-						HTransactorFactory.setTimestampSource(timestampSource);
+						TransactionTimestamps.setTimestampSource(timestampSource);
 						Configuration configuration = testCluster.getConfiguration();
 						configuration.set("hbase.coprocessor.region.classes", TxnLifecycleEndpoint.class.getName());
 						SpliceConstants.config = configuration;
@@ -92,7 +92,7 @@ public class HStoreSetup implements StoreSetup {
 						CoprocessorTxnStore txnS = new CoprocessorTxnStore(new SpliceHTableFactory(true),timestampSource,null);
 						txnS.setCache(new CompletedTxnCacheSupplier(new LazyTxnSupplier(txnS),SIConstants.activeTransactionCacheSize,16));
 						baseStore = txnS;
-						HTransactorFactory.setTxnStore(baseStore);
+						TransactionStorage.setTxnStore(baseStore);
 						//TODO -sf- add CompletedTxnCache to it
             return tableSource;
         } catch (Exception e) {
@@ -152,7 +152,7 @@ public class HStoreSetup implements StoreSetup {
     }
 
 		@Override
-		public TxnStore getTxnStore(TxnLifecycleManager txnLifecycleManager) {
+		public TxnStore getTxnStore() {
 				return baseStore;
 		}
 

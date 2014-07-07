@@ -8,6 +8,7 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.job.Task;
+import com.splicemachine.si.api.Txn;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -32,12 +33,12 @@ public class BlockImportJob extends FileImportJob{
     private final FileSystem fs;
 
 		public BlockImportJob(HTableInterface table, ImportContext context,
-													long statementId, long operationId, FileSystem fs) {
-			this(table,context,Collections.singletonList(context.getFilePath()),statementId,operationId,fs);
+													long statementId, long operationId, FileSystem fs,Txn txn) {
+			this(table,context,Collections.singletonList(context.getFilePath()),statementId,operationId,fs,txn);
 		}
 		public BlockImportJob(HTableInterface table, ImportContext context,List<Path> files,
-													long statementId, long operationId, FileSystem fs) {
-				super(table, context, statementId,files, operationId);
+													long statementId, long operationId, FileSystem fs,Txn txn) {
+				super(table, context, statementId,files, operationId,txn);
 				this.fs = fs;
 		}
 
@@ -62,7 +63,6 @@ public class BlockImportJob extends FileImportJob{
         //assign one task per BlockLocation
         Iterator<ServerName> regionCycle = Iterators.cycle(regions.keySet());
         Map<RegionTask,Pair<byte[],byte[]>> taskMap = Maps.newHashMapWithExpectedSize(locations.length);
-        String parentTxnString = getParentTransaction().getTransactionIdString();
         String jobId = getJobId();
         for(BlockLocation location:locations){
             /*
@@ -84,7 +84,7 @@ public class BlockImportJob extends FileImportJob{
                 String regionHost = nextRegionServer.getHostname();
                 for(String blockHost:blockHosts){
                     if(regionHost.equalsIgnoreCase(blockHost)){
-                        putTask(taskMap, parentTxnString, jobId, location, regions.get(nextRegionServer));
+                        putTask(taskMap, jobId, location, regions.get(nextRegionServer));
                         found=true;
                         break;
                     }
@@ -100,7 +100,7 @@ public class BlockImportJob extends FileImportJob{
                  * but the hope is that we'll get at least some local writes and the
                  * whole thing won't suck horrendously.
                  */
-                putTask(taskMap, parentTxnString, jobId, location, regions.get(regionCycle.next()));
+                putTask(taskMap, jobId, location, regions.get(regionCycle.next()));
             }
         }
         return taskMap;
@@ -136,9 +136,9 @@ public class BlockImportJob extends FileImportJob{
         }
     }
 
-    private void putTask(Map<RegionTask, Pair<byte[], byte[]>> taskMap, String parentTxnString, String jobId, BlockLocation location, HRegionInfo next) {
+    private void putTask(Map<RegionTask, Pair<byte[], byte[]>> taskMap, String jobId, BlockLocation location, HRegionInfo next) {
         ImportReader reader = new BlockImportReader(location,context.shouldRecordStats());
-        ImportTask task = new ImportTask(jobId,context,reader,SpliceConstants.importTaskPriority,parentTxnString,statementId,operationId);
+        ImportTask task = new ImportTask(jobId,context,reader,SpliceConstants.importTaskPriority,statementId,operationId);
         Pair<byte[], byte[]> regionBounds = getTaskBoundary(next);
         taskMap.put(task,regionBounds);
     }

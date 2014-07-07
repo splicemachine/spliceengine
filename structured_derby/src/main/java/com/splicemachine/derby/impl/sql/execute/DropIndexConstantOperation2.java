@@ -9,6 +9,8 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionLifecycle;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -86,13 +88,14 @@ public class DropIndexConstantOperation2 extends IndexConstantOperation{
 						throw ErrorState.LANG_INDEX_NOT_FOUND_DURING_EXECUTION.newException(fullIndexName);
 
 				//drop the conglomerate in a child transaction
-				TransactionId metaTxnId = drop(cd, td, sd, dd, lcc);
+				Txn metaTxn = drop(cd, td, sd, dd, lcc);
 
 				//create a second nested transaction
-				TransactionId parent = new TransactionId(getTransactionId(tc));
+				Txn parent = ((SpliceTransactionManager)tc).getActiveStateTxn();
 				try {
-						TransactionId pipelineTxn = HTransactorFactory.getTransactionManager().beginChildTransaction(parent, true,false);
-						List<TransactionId> toIgnore = Arrays.asList(parent, pipelineTxn);
+            Txn pipelineTxn = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parent, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,false,null);
+//						TransactionId pipelineTxn = HTransactorFactory.getTransactionManager().beginChildTransaction(parent, true,false);
+						List<Txn> toIgnore = Arrays.asList(parent, pipelineTxn);
 						//wait to ensure that all previous transactions terminate
 						waitForConcurrentTransactions(pipelineTxn,toIgnore,tableConglomerateId);
 						//drop the index from the write pipeline
@@ -100,7 +103,8 @@ public class DropIndexConstantOperation2 extends IndexConstantOperation{
 
 						//TODO -sf- wait for all transactions to complete, then drop the
 						//physical hbase table
-						HTransactorFactory.getTransactionManager().commit(pipelineTxn);
+            pipelineTxn.commit();
+//						HTransactorFactory.getTransactionManager().commit(pipelineTxn);
 
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
@@ -130,7 +134,7 @@ public class DropIndexConstantOperation2 extends IndexConstantOperation{
 				}
 		}
 
-		private TransactionId drop(ConglomerateDescriptor cd,
+		private Txn drop(ConglomerateDescriptor cd,
 											TableDescriptor td,
 											SchemaDescriptor sd,
 											DataDictionary dd,
@@ -161,6 +165,6 @@ public class DropIndexConstantOperation2 extends IndexConstantOperation{
 
 				td.removeConglomerateDescriptor(cd);
 				metaTxn.commit();
-				return new TransactionId(getTransactionId(metaTxn));
+        return ((SpliceTransaction)((SpliceTransactionManager)metaTxn).getRawTransaction()).getTxn();
 		}
 }

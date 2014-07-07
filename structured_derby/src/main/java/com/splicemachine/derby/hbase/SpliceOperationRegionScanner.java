@@ -18,6 +18,7 @@ import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.writer.WriteStats;
+import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -75,7 +76,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 				}
 		}
 
-		public SpliceOperationRegionScanner(final RegionScanner regionScanner, final Scan scan, final HRegion region) throws IOException {
+		public SpliceOperationRegionScanner(final RegionScanner regionScanner, final Scan scan, final HRegion region,
+                                        TransactionalRegion txnRegion) throws IOException {
 				SpliceLogUtils.trace(LOG, "instantiated with %s, and scan %s",regionScanner,scan);
 				this.regionScanner = regionScanner;
 				boolean prepared = false;
@@ -92,24 +94,20 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 						if(topOperation.shouldRecordStats()){
 								spliceRuntimeContext.recordTraceMetrics();
 						}
-						context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc(),false,topOperation,spliceRuntimeContext);
+						context = new SpliceOperationContext(regionScanner,
+										region,txnRegion,scan, activation, statement, impl.getLcc(),false,topOperation,spliceRuntimeContext,
+										soi.getTxn());
 						context.setSpliceRegionScanner(this);
 
 						topOperation.init(context);
-//						List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
-//						topOperation.generateLeftOperationStack(opStack);
-//						SpliceLogUtils.trace(LOG, "Ready to execute stack %s", opStack);
 				} catch (Exception e) {
 						ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
 						throw Exceptions.getIOException(e);
-//						SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
 				}finally{
 						if(prepared)
 								impl.resetContextManager();
 				}
 		}
-
-
 
 		@Override
 		public boolean next(final List<KeyValue> results) throws IOException {

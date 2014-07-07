@@ -12,6 +12,7 @@ import com.splicemachine.derby.utils.marshall.NoOpKeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.SkippingKeyDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -32,7 +33,6 @@ public class IndexRowReaderBuilder {
 		private int lookupBatchSize;
 		private int numConcurrentLookups = -1;
 		private ExecRow  outputTemplate;
-		private String txnId;
 		private long mainTableConglomId = -1;
 
 		private int[] mainTableRowDecodingMap;
@@ -53,8 +53,9 @@ public class IndexRowReaderBuilder {
 		private String tableVersion;
 		private int[] mainTableKeyColumnTypes;
 		private HTableInterface table;
+    private Txn txn;
 
-		public IndexRowReaderBuilder indexColumns(int[] indexCols){
+    public IndexRowReaderBuilder indexColumns(int[] indexCols){
 				this.indexCols = indexCols;
 				return this;
 		}
@@ -84,10 +85,10 @@ public class IndexRowReaderBuilder {
 				return this;
 		}
 
-		public IndexRowReaderBuilder transactionId(String txnId) {
-				this.txnId = txnId;
-				return this;
-		}
+    public IndexRowReaderBuilder transaction(Txn transaction) {
+        this.txn = transaction;
+        return this;
+    }
 
 		public IndexRowReaderBuilder mainTableConglomId(long mainTableConglomId) {
 				this.mainTableConglomId = mainTableConglomId;
@@ -145,7 +146,7 @@ public class IndexRowReaderBuilder {
 		}
 
 		public IndexRowReader build() throws StandardException{
-				assert txnId!=null: "No Transaction specified!";
+				assert txn!=null: "No Transaction specified!";
 				assert runtimeContext!=null: "No Runtime context specified!";
 				assert mainTableRowDecodingMap!=null: "No Row decoding map specified!";
 				assert mainTableConglomId>=0: "No Main table conglomerate id specified!";
@@ -198,7 +199,7 @@ public class IndexRowReaderBuilder {
 				return new IndexRowReader(lookupService,
 								sourceOperation,
 								outputTemplate,
-								txnId,
+								txn,
 								lookupBatchSize,
 								Math.max(numConcurrentLookups,0),
 								mainTableConglomId,

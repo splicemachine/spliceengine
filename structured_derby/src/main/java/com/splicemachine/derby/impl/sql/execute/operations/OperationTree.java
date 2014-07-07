@@ -6,9 +6,11 @@ import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.si.api.Txn;
 import jsr166y.ForkJoinPool;
 import jsr166y.ForkJoinTask;
 import jsr166y.RecursiveAction;
@@ -146,8 +148,10 @@ public class OperationTree {
         try {
             transactionResource.prepareContextManager();
             prepared = true;
-            transactionResource.marshallTransaction(
-                  op.getActivation().getTransactionController().getActiveStateTxIdString());
+//            Txn txn = ((SpliceTransactionManager)op.getActivation().getTransactionController()).getActiveStateTxn();
+//            transactionResource.marshallTransaction(txn,ctx);
+//            transactionResource.marshallTransaction(
+//                    ((SpliceTransactionManager)(op.getActivation().getTransactionController())).getActiveStateTxn());
             shuffle(op, ctx);
         } finally {
             resetContext(transactionResource, prepared);

@@ -4,6 +4,7 @@ import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.si.api.Txn;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
@@ -65,7 +66,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 	}
 
 	@Override
-    public List<Scan> getScans(String txnId, ExecRow startKeyOverride, Activation activation, SpliceOperation top, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public List<Scan> getScans(Txn txn, ExecRow startKeyOverride, Activation activation, SpliceOperation top, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         /*
          * We must build the proper scan here in pieces
          */
@@ -79,7 +80,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
         List<Scan> scans = new ArrayList<Scan>(probeValues.length);
         for (int i = 0; i < probeValues.length; i++) {
             probeValue = probeValues[i];
-            Scan scan = getScan(txnId);
+            Scan scan = getScan(txn);
             SpliceUtils.setInstructions(scan, activation, top, spliceRuntimeContext);
             scans.add(scan);
         }

@@ -6,6 +6,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
@@ -13,8 +14,7 @@ import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.job.JobResults;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionStatus;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.Metrics;
@@ -28,6 +28,7 @@ import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.execute.ValueRow;
@@ -341,10 +342,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
                  * Instead, we create a child transaction, which we can roll back
                  * safely.
                  */
-								TransactionId childTransactionId = getChildTransaction();
+                Txn txn = getChildTransaction();
+//								TransactionId childTransactionId = getChildTransaction();
 
 								try {
-										spliceObserverInstructions.setTransactionId(childTransactionId.getTransactionIdString());
+//										spliceObserverInstructions.setTxn(txn);
 										JobResults stats = rowProvider.shuffleRows(spliceObserverInstructions);
 										long i = 0;
 										for (TaskStats stat: stats.getJobStats().getTaskStats()) {
@@ -352,7 +354,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 										}
 										//modifiedProvider.setRowsModified(stats.get.getTotalRecords());
 										modifiedProvider.setRowsModified(i);
-										commitTransactionSafely(childTransactionId,0);
+                    txn.commit();
+//										commitTransactionSafely(,0);
 								} catch (Exception ioe) {
 										if(ioe instanceof StandardException && ErrorState.XACT_COMMIT_EXCEPTION.getSqlState().equals(((StandardException)ioe).getSqlState())){
 												//bad news, we couldn't commit the transaction. Nothing we can do there,
@@ -361,13 +364,14 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 										}
 										//we encountered some other kind of error. Try and roll back the Transaction
 										try {
-												rollback(childTransactionId,0);
-										} catch (StandardException e) {
-												throw new RuntimeException(e);
-										}
-										throw new RuntimeException(ioe);
+                        txn.rollback();
+//												rollback(childTransactionId,0);
+										}catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    throw new RuntimeException(ioe);
 								} finally {
-										clearChildTransactionID();
+//										clearChildTransactionID();
 								}
 						}
 				}
@@ -513,11 +517,14 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				return source.isReferencingTable(tableNumber);
 		}
 
-		TransactionId getChildTransaction() {
-				TransactionId parentTxnId = HTransactorFactory.getTransactionManager().transactionIdFromString(getTransactionID());
-				TransactionId childTransactionId;
+		Txn getChildTransaction() {
+        TransactionController tc = activation.getTransactionController();
+        Txn parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+//				Txn parentTxnId = HTransactorFactory.getTransactionManager().transactionIdFromString(getTransactionID());
+				Txn childTransactionId;
 				try{
-						childTransactionId = HTransactorFactory.getTransactionManager().beginChildTransaction(parentTxnId, Bytes.toBytes(Long.toString(heapConglom)));
+            childTransactionId = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,true,Bytes.toBytes(Long.toString(heapConglom)));
+//						childTransactionId = HTransactorFactory.getTransactionManager().beginChildTransaction(parentTxnId, Bytes.toBytes(Long.toString(heapConglom)));
 				}catch(IOException ioe){
 						LOG.error(ioe);
 						throw new RuntimeException(ErrorState.XACT_INTERNAL_TRANSACTION_EXCEPTION.newException());

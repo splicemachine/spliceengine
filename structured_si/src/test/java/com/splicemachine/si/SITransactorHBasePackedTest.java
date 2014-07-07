@@ -17,10 +17,11 @@ public class SITransactorHBasePackedTest extends SITransactorHBaseTest {
     @Before
     public void setUp() throws IOException {
         this.storeSetup = HBaseSuite.classStoreSetup;
-        this.transactorSetup = HBaseSuite.classTransactorSetup;
+        this.transactorSetup = new TestTransactionSetup(storeSetup,false);
         baseSetUp();
     }
 		private static boolean selfManaged = false;
+
 		@BeforeClass
 		public static void setUpClass() throws Exception {
 				if(HBaseSuite.classStoreSetup==null){

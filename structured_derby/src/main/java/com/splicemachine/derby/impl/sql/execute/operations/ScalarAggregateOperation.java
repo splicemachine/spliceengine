@@ -95,7 +95,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 						byte[] range = new byte[uniqueSequenceID.length+1];
 						range[0] = spliceRuntimeContext.getHashBucket();
 						System.arraycopy(uniqueSequenceID,0,range,1,uniqueSequenceID.length);
-						reduceScan = Scans.buildPrefixRangeScan(range, SpliceUtils.NA_TRANSACTION_ID);
+						reduceScan = Scans.buildPrefixRangeScan(range, null); //no transaction needed against TEMP
 						//make sure that we filter out failed tasks
             if(failedTasks.size()>0){
                 SuccessFilter filter = new SuccessFilter(failedTasks);
@@ -147,7 +147,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
             if (scanAggregator == null) {
                 PairDecoder decoder = OperationUtils.getPairDecoder(this, spliceRuntimeContext);
-                ScalarAggregateScan scan = new ScalarAggregateScan(decoder, spliceRuntimeContext, transactionID, region, reduceScan);
+                ScalarAggregateScan scan = new ScalarAggregateScan(decoder, spliceRuntimeContext, region, reduceScan);
                 scanAggregator = new ScalarAggregator(scan, aggregates, true, false, false);
                 timer = spliceRuntimeContext.newTimer();
             }

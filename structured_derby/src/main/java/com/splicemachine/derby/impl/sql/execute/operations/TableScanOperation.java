@@ -17,6 +17,9 @@ import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.tools.splice;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.IntArrays;
@@ -63,7 +66,9 @@ public class TableScanOperation extends ScanOperation {
 
 		private SITableScanner tableScanner;
 
-		public TableScanOperation() { super(); }
+    private transient TransactionalRegion txnRegion;
+
+    public TableScanOperation() { super(); }
 
 		public TableScanOperation(ScanInformation scanInformation,
 															OperationInformation operationInformation,
@@ -148,6 +153,8 @@ public class TableScanOperation extends ScanOperation {
 				//start reading rows
 				if(regionScanner!=null)
 						regionScanner.start();
+
+        this.txnRegion = context.getTransactionalRegion();
 
                 String tableNameInfo = null;
                 if (this.indexName != null) {
@@ -268,7 +275,8 @@ public class TableScanOperation extends ScanOperation {
 				if(tableScanner==null){
 						tableScanner = new TableScannerBuilder()
 										.scanner(regionScanner)
-										.transactionID(transactionID)
+                    .region(txnRegion)
+                    .transaction(operationInformation.getTransaction())
 										.metricFactory(spliceRuntimeContext)
 										.scan(scan)
 										.template(currentRow)

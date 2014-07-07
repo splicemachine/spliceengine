@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.store.access;
 
 import java.util.Properties;
 
+import com.splicemachine.si.api.Txn;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.locks.CompatibilitySpace;
@@ -84,70 +85,73 @@ public class HBaseStore implements ModuleControl, ModuleSupportable {
 		SpliceLogUtils.trace(LOG,"checkpoint");									
 	}
 
-	public void waitForPostCommitToFinishWork() {
-		SpliceLogUtils.trace(LOG,"waitForPostCommitToFinishWork");									
-	}
-	
-	public void waitUntilQueueIsEmpty() {
-		SpliceLogUtils.trace(LOG,"waitUntilQueueIsEmpty");									
-	}
-	public void getRawStoreProperties(TransactionController transactionController) {
-		SpliceLogUtils.trace(LOG,"getRawStoreProperties %s",transactionController);	
-	}
+		public void waitUntilQueueIsEmpty() {
+				SpliceLogUtils.trace(LOG,"waitUntilQueueIsEmpty");
+		}
+		public void getRawStoreProperties(TransactionController transactionController) {
+				SpliceLogUtils.trace(LOG,"getRawStoreProperties %s",transactionController);
+		}
 
-	public Transaction marshallTransaction(ContextManager contextManager, String transactionName, String transactionId) throws StandardException {
-		SpliceLogUtils.trace(LOG, "marshalTransaction with Context Manager %s  and transaction name %s", contextManager, transactionName);
-		return transactionFactory.marshalTransaction(this, contextManager, transactionName, transactionId);
-	}
-	
-	public Transaction findUserTransaction(ContextManager contextManager, String transactionName) throws StandardException {
-		SpliceLogUtils.trace(LOG, "marshalTransaction with Context Manager %s  and transaction name %s", contextManager, transactionName);
-		return transactionFactory.findUserTransaction(this, contextManager, transactionName);
-	}
+		public Transaction marshallTransaction(ContextManager contextManager, String transactionName, Txn txn) throws StandardException {
+				SpliceLogUtils.trace(LOG, "marshalTransaction with Context Manager %s  and transaction name %s", contextManager, transactionName);
+				return transactionFactory.marshalTransaction(transactionName, txn);
+		}
 
-	public Transaction startGlobalTransaction(ContextManager contextManager, int format_id, byte[] global_id, byte[] branch_id) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("startGlobalTransaction with Context Manager " + contextManager + " and format_id " + format_id + ", global_id " + global_id + ", branch_id + " + branch_id);
-		return transactionFactory.startGlobalTransaction(this, contextManager, format_id, global_id, branch_id);
-	}
-	public boolean checkVersion(int requiredMajorVersion,int requiredMinorVersion,String feature) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("checkVersion");											
-		return true;
-	}
-	public Transaction startInternalTransaction(ContextManager contextManager) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("startInternalTransaction with context manager " + contextManager);
-		return transactionFactory.startInternalTransaction(this, contextManager);
-	}
+		/**
+		 * Finds or creates a new user-level transaction. If the Context manager already has a user-level transaction
+		 * available, then this will return that one; otherwise, a new user-level transaction is created. This therefore
+		 * has a minimum of 1 network call, and is therefore an expensive operation.
+		 */
+		public Transaction findUserTransaction(ContextManager contextManager, String transactionName) throws StandardException {
+				SpliceLogUtils.trace(LOG, "marshalTransaction with Context Manager %s  and transaction name %s", contextManager, transactionName);
+				return transactionFactory.findUserTransaction(this, contextManager, transactionName);
+		}
 
-	public Transaction startNestedReadOnlyUserTransaction(CompatibilitySpace lockSpace, ContextManager contextManager, String nestedReadonlyUserTrans, String parentTransactionId) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("startNestedReadOnlyUserTransaction with context manager " + contextManager + ", lock space " + lockSpace + ", nestedReadonlyUserTrans " + nestedReadonlyUserTrans);											
-		return transactionFactory.startNestedReadOnlyUserTransaction(this, lockSpace, contextManager, nestedReadonlyUserTrans, parentTransactionId);
-	}
+		/**
+		 * Start a "global transaction". In this case, it delegates to just creating a new top-level transaction.
+		 *
+		 * @param contextManager the context manager to use
+		 * @param format_id
+		 * @param global_id
+		 * @param branch_id
+		 * @return
+		 * @throws StandardException
+		 */
+		public Transaction startGlobalTransaction(ContextManager contextManager, int format_id, byte[] global_id, byte[] branch_id) throws StandardException {
+				SpliceLogUtils.trace(LOG,"startGlobalTransaction with ContextManager %s and format_id %d, global_id %s, branch_id %s",contextManager,format_id,global_id,branch_id);
+				return transactionFactory.startTransaction(this, contextManager, null);
+		}
 
-	public Transaction startNestedUpdateUserTransaction(ContextManager contextManager, String nestedUpdateUserTrans, boolean flush_log_on_xact_end, String parentTransactionId) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("startNestedUpdateUserTransaction with context manager " + contextManager + ", lock space " + nestedUpdateUserTrans + ", flush_log_on_xact_end " + flush_log_on_xact_end);											
-		return transactionFactory.startNestedUpdateUserTransaction(this, contextManager, nestedUpdateUserTrans, flush_log_on_xact_end, parentTransactionId);
-	}
-	@Override
-	public boolean canSupport(Properties properties) {
-		if (LOG.isTraceEnabled())
-			LOG.trace("canSupport with properties " + properties);											
-		return true;
-	}
-	@Override
-	public void boot(boolean create, Properties properties) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("boot with properties " + properties);
-        transactionFactory = new SpliceTransactionFactory();
-		transactionFactory.boot(create, properties);
-	}
-	@Override
-	public void stop() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("stop ");													
-	}
+		public boolean checkVersion(int requiredMajorVersion,int requiredMinorVersion,String feature) {
+				if (LOG.isTraceEnabled())
+						LOG.trace("checkVersion");
+				return true;
+		}
+
+		public Transaction startNestedTransaction(CompatibilitySpace lockSpace,
+																							ContextManager contextManager,
+																							String nestedReadonlyUserTrans, Txn parentTxn) throws StandardException {
+				if (LOG.isTraceEnabled())
+						LOG.trace("startNestedReadOnlyUserTransaction with context manager " + contextManager + ", lock space " + lockSpace + ", nestedReadonlyUserTrans " + nestedReadonlyUserTrans);
+				return transactionFactory.startNestedTransaction(this, contextManager, parentTxn);
+		}
+
+		@Override
+		public boolean canSupport(Properties properties) {
+				if (LOG.isTraceEnabled())
+						LOG.trace("canSupport with properties " + properties);
+				return true;
+		}
+		@Override
+		public void boot(boolean create, Properties properties) throws StandardException {
+				if (LOG.isTraceEnabled())
+						LOG.trace("boot with properties " + properties);
+				transactionFactory = new SpliceTransactionFactory();
+				transactionFactory.boot(create, properties);
+		}
+		@Override
+		public void stop() {
+				if (LOG.isTraceEnabled())
+						LOG.trace("stop ");
+		}
 }

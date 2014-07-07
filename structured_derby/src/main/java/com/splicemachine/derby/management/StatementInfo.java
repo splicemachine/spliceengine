@@ -1,6 +1,8 @@
 package com.splicemachine.derby.management;
 
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.utils.Snowflake;
 
 import java.beans.ConstructorProperties;
 import java.io.IOException;
@@ -36,7 +38,7 @@ public class StatementInfo {
 		private final Set<JobInfo> completedJobIds;
 
 		private final long startTimeMs;
-		private final String txnId;
+		private final long txn;
 		private volatile long stopTimeMs = -1l;
 		private volatile boolean isCancelled;
 
@@ -44,13 +46,13 @@ public class StatementInfo {
 
 		public StatementInfo(String sql,
 												 String user,
-												 String txnId,
+												 Txn txn,
 												 int numSinks,
 												 com.splicemachine.uuid.Snowflake uuidGenerator) {
 				this.numSinks = numSinks;
 				this.user = user;
 				this.sql = sql;
-				this.txnId = txnId;
+        this.txn = txn.getTxnId();
 
 				if(numSinks>0){
 						runningJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
@@ -66,13 +68,13 @@ public class StatementInfo {
 
         public StatementInfo(String sql,
                              String user,
-                             String txnId,
+                             long txnId,
                              int numSinks,
                              long statementUuid) {
             this.numSinks = numSinks;
             this.user = user;
             this.sql = sql;
-            this.txnId = txnId;
+            this.txn = txnId;
 
             if(numSinks>0){
                 runningJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
@@ -89,7 +91,7 @@ public class StatementInfo {
 		@ConstructorProperties({"sql","user","txnId","numJobs",
 						"statementUuid","runningJobs","completedJobs",
 						"startTimeMs","stopTimeMs","operationInfo"})
-		public StatementInfo(String sql,String user,String txnId,
+		public StatementInfo(String sql,String user,long txnId,
 												 int numSinks,long statementUuid,
 												 Set<JobInfo> runningJobs,
 												 Set<JobInfo> completedJobs,
@@ -97,7 +99,7 @@ public class StatementInfo {
 												 Set<OperationInfo> operationInfo){
 				this.sql = sql;
 				this.user = user;
-				this.txnId = txnId;
+				this.txn = txnId;
 				this.statementUuid = statementUuid;
 				this.numSinks = numSinks;
 				this.runningJobIds = runningJobs;
@@ -124,7 +126,7 @@ public class StatementInfo {
 				runningJobIds.remove(jobInfo);
 		}
 
-		public String getTxnId() { return txnId; }
+		public long getTxnId() { return txn; }
 		public int getNumJobs(){ return numSinks;}
 		public String getSql() { return sql; }
 		public long getStatementUuid() { return statementUuid; }

@@ -164,7 +164,7 @@ public class LastIndexKeyOperation extends ScanOperation {
 								tableScanner = new TableScannerBuilder()
 												.scanner(scanner)
 												.scan(contextScan)
-												.transactionID(transactionID)
+                        .transaction(operationInformation.getTransaction())
 												.template(currentRow)
 												.metricFactory(spliceRuntimeContext)
 												.rowDecodingMap(baseColumnMap)

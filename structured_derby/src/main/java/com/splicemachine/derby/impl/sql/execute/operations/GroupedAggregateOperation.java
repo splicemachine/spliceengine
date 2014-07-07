@@ -170,17 +170,17 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
     }
 
-    private void buildReduceScan() throws StandardException {
-        try {
-            reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-        if (failedTasks.size() > 0) {
-            SuccessFilter filter = new SuccessFilter(failedTasks);
-            reduceScan.setFilter(filter);
-        }
-    }
+		private void buildReduceScan() throws StandardException {
+				try {
+						reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, null);
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+				if(failedTasks.size()>0){
+						SuccessFilter filter = new SuccessFilter(failedTasks);
+						reduceScan.setFilter(filter);
+				}
+		}
 
     @Override
     public void open() throws StandardException, IOException {
@@ -527,7 +527,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 return start;
             }
         };
-        return RegionAwareScanner.create(getTransactionID(), region, baseScan, SpliceConstants.TEMP_TABLE_BYTES, boundary, spliceRuntimeContext);
+        return RegionAwareScanner.create(null, region, baseScan, SpliceConstants.TEMP_TABLE_BYTES, boundary, spliceRuntimeContext);
     }
 
     @Override

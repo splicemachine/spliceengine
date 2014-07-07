@@ -2,8 +2,10 @@ package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.util.Bytes;
 
 /**
  * @author Scott Fines
@@ -17,13 +19,17 @@ public abstract class ImportJob implements CoprocessorJob {
 		protected final long statementId;
 		protected final long operationId;
 
+    private Txn txn;
+
     protected ImportJob(HTableInterface table, ImportContext context,
-												long statementId,long operationId) {
+												long statementId,long operationId,
+                        Txn txn) {
         this.table = table;
         this.context = context;
         this.jobId = "import-"+context.getTableName()+"-"+context.getFilePath().getName();
 				this.statementId = statementId;
 				this.operationId = operationId;
+        this.txn = txn;
     }
 
     @Override
@@ -36,13 +42,13 @@ public abstract class ImportJob implements CoprocessorJob {
         return jobId;
     }
 
-    @Override
-    public TransactionId getParentTransaction() {
-        return HTransactorFactory.getTransactionManager().transactionIdFromString(context.getTransactionId());
-    }
+		@Override
+		public byte[] getDestinationTable() {
+				return context.getTableName().getBytes();
+		}
 
     @Override
-    public boolean isReadOnly() {
-        return false;
+    public Txn getTxn() {
+        return txn;
     }
 }

@@ -136,13 +136,13 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
 				if(columns==null && families==null){
 						newCells.addAll(t.values);
 				}
-				if(columns!=null){
+				if(columns!=null&&columns.size()>0){
 						for(KeyValue c:t.values){
 								if(columnsContain(columns,c) && c.getTimestamp()<= effectiveTimestamp)
 										newCells.add(c);
 						}
 				}
-				if(families!=null){
+				if(families!=null && families.size()>0){
 						for(KeyValue c:t.values){
 								for(byte[] family:families){
 										if(c.matchingFamily(family) && c.getTimestamp()<=effectiveTimestamp){

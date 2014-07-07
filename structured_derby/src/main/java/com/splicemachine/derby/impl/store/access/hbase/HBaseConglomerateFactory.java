@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.store.access.hbase;
 
 import java.util.Properties;
 
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
@@ -96,10 +97,7 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory {
      **/
     public Conglomerate readConglomerate(TransactionManager xact_mgr, ContainerKey container_key) throws StandardException {
     	SpliceLogUtils.trace(LOG, "readConglomerate container_key %d", container_key.getContainerId());
-    	return ConglomerateUtils.readConglomerate(container_key.getContainerId(), HBaseConglomerate.class, xact_mgr.getActiveStateTxIdString());
+    	return ConglomerateUtils.readConglomerate(container_key.getContainerId(), HBaseConglomerate.class, ((SpliceTransactionManager)xact_mgr).getActiveStateTxn());
     }
-	
-
-
 }
 

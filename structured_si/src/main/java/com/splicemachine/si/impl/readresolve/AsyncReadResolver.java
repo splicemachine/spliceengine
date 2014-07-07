@@ -1,13 +1,11 @@
 package com.splicemachine.si.impl.readresolve;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.lmax.disruptor.EventFactory;
-import com.lmax.disruptor.EventHandler;
-import com.lmax.disruptor.RingBuffer;
-import com.lmax.disruptor.YieldingWaitStrategy;
+import com.lmax.disruptor.*;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.splicemachine.si.api.ReadResolver;
+import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.ThreadSafe;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -28,8 +26,11 @@ public class AsyncReadResolver  {
 
 		private final ThreadPoolExecutor consumerThreads;
 		private volatile boolean stopped;
+    private final TxnSupplier txnSupplier;
 
-		public AsyncReadResolver(int maxThreads,int bufferSize) {
+		public AsyncReadResolver(int maxThreads,int bufferSize,
+                             TxnSupplier txnSupplier) {
+        this.txnSupplier = txnSupplier;
 				consumerThreads = new ThreadPoolExecutor(maxThreads,maxThreads,
 								60, TimeUnit.SECONDS,
 								new LinkedBlockingQueue<Runnable>(),
@@ -40,7 +41,7 @@ public class AsyncReadResolver  {
 						bSize<<=1;
 				disruptor = new Disruptor<ResolveEvent>(new ResolveEventFactory(),bSize,consumerThreads,
 								ProducerType.MULTI,
-								new YieldingWaitStrategy()); //we want low latency here, but it might cost too much in CPU
+								new BlockingWaitStrategy()); //we want low latency here, but it might cost too much in CPU
 				disruptor.handleEventsWith(new ResolveEventHandler());
 				ringBuffer = disruptor.getRingBuffer();
 		}
@@ -62,9 +63,7 @@ public class AsyncReadResolver  {
 		private static class ResolveEvent{
 				HRegion region;
 				long txnId;
-				long commitTimestamp;
-				ByteSlice rowKey;
-				boolean rolledBack;
+				ByteSlice rowKey = new ByteSlice();
 		}
 
 		private static class ResolveEventFactory implements EventFactory<ResolveEvent>{
@@ -75,14 +74,11 @@ public class AsyncReadResolver  {
 				}
 		}
 
-		private static class ResolveEventHandler implements EventHandler<ResolveEvent>{
+		private class ResolveEventHandler implements EventHandler<ResolveEvent>{
 
 				@Override
 				public void onEvent(ResolveEvent event, long sequence, boolean endOfBatch) throws Exception {
-						if(event.rolledBack)
-								SynchronousReadResolver.INSTANCE.resolveRolledback(event.region,event.rowKey,event.txnId);
-						else
-								SynchronousReadResolver.INSTANCE.resolveCommitted(event.region,event.rowKey,event.txnId,event.commitTimestamp);
+            SynchronousReadResolver.INSTANCE.resolve(event.region,event.rowKey,event.txnId,txnSupplier);
 				}
 		}
 
@@ -93,42 +89,19 @@ public class AsyncReadResolver  {
 						this.region = region;
 				}
 
-				@Override
-				public void resolveCommitted(ByteSlice rowKey, long txnId, long commitTimestamp) {
-						if(stopped) return; //if we aren't running, do nothing
-						long sequence = ringBuffer.next();
-						try{
-								setCommit(txnId, commitTimestamp, sequence);
-						}finally{
-								ringBuffer.publish(sequence);
-						}
+        @Override
+        public void resolve(ByteSlice rowKey, long txnId) {
+            if(stopped) return; //we aren't running, so do nothing
+            long sequence = ringBuffer.next();
+            try{
+                ResolveEvent event = ringBuffer.get(sequence);
+                event.region = region;
+                event.txnId = txnId;
+                event.rowKey = rowKey;
+            }finally{
+                ringBuffer.publish(sequence);
+            }
+        }
 
-				}
-
-				@Override
-				public void resolveRolledback(ByteSlice rowKey, long txnId) {
-						if(stopped) return; //if we aren't running, do nothing
-						long sequence = ringBuffer.next();
-						try{
-								setRollback(txnId, sequence);
-						}finally{
-								ringBuffer.publish(sequence);
-						}
-				}
-
-				private void setCommit(long txnId, long commitTimestamp, long sequence) {
-						ResolveEvent event = ringBuffer.get(sequence); //get the next entry
-						event.region = region;
-						event.txnId = txnId;
-						event.commitTimestamp = commitTimestamp;
-				}
-
-				private ResolveEvent setRollback(long txnId, long sequence) {
-						ResolveEvent event = ringBuffer.get(sequence); //get the next entry
-						event.region = region;
-						event.txnId = txnId;
-						event.rolledBack =true;
-						return event;
-				}
 		}
 }

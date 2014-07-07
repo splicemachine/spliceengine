@@ -100,7 +100,7 @@ public class IndexUpsertWriteHandlerTest {
         }
 
         PipelineWriteContext context = getWriteContext(indexPairs);
-        when(context.getTransactionId()).thenReturn(SpliceUtils.NA_TRANSACTION_ID);
+        when(context.getTxn()).thenReturn(null);
 
         HRegion mockRegion = mock(HRegion.class);
         when(mockRegion.get(any(Get.class))).thenAnswer(new Answer<Result>(){

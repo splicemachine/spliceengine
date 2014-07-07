@@ -126,9 +126,4 @@ public class TransactionUtils {
             return getTransactionStatus(txnId,txnControl,tryCount+1,maxTries);
         }
     }
-
-    public static String getTransactionId(TransactionController tc) {
-        Transaction td = ((SpliceTransactionManager)tc).getRawTransaction();
-        return SpliceUtils.getTransID(td);
-    }
 }

@@ -13,6 +13,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
@@ -79,7 +80,7 @@ public class BulkWriteActionTest {
 						pairs.add(new KVPair(Encoding.encode(i),Encoding.encode(i)));
 				}
 				byte[] regionKey = HConstants.EMPTY_START_ROW;
-				BulkWrite write = new BulkWrite(pairs,"testTxnId",regionKey);
+				BulkWrite write = new BulkWrite(pairs,new ActiveWriteTxn(1l,1l),regionKey);
 				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
 				when(config.getMaximumRetries()).thenReturn(5);
 				when(config.getPause()).thenReturn(100l);
@@ -171,7 +172,7 @@ public class BulkWriteActionTest {
 						mutations.add(new KVPair(Encoding.encode(i), Encoding.encode(i)));
 				}
 				byte[] regionKey = Encoding.encode(0);
-				BulkWrite write = new BulkWrite(mutations,"testTxnId",regionKey);
+				BulkWrite write = new BulkWrite(mutations,new ActiveWriteTxn(1l,1l),regionKey);
 				RegionCache cache = mock(RegionCache.class);
 				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
 
@@ -197,7 +198,7 @@ public class BulkWriteActionTest {
 						mutations.add(new KVPair(Encoding.encode(i), Encoding.encode(i)));
 				}
 				byte[] regionKey = Encoding.encode(0);
-				BulkWrite write = new BulkWrite(mutations,"testTxnId",regionKey);
+				BulkWrite write = new BulkWrite(mutations,new ActiveWriteTxn(1l,1l),regionKey);
 				RegionCache cache = mock(RegionCache.class);
 				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
 				when(config.partialFailure(any(BulkWriteResult.class),any(BulkWrite.class))).thenReturn(Writer.WriteResponse.THROW_ERROR);
@@ -233,7 +234,7 @@ public class BulkWriteActionTest {
 						mutations.add(new KVPair(Encoding.encode(i), Encoding.encode(i)));
 				}
 				byte[] regionKey = Encoding.encode(0);
-				BulkWrite write = new BulkWrite(mutations,"testTxnId",regionKey);
+				BulkWrite write = new BulkWrite(mutations,new ActiveWriteTxn(1l,1l),regionKey);
 				RegionCache cache = mock(RegionCache.class);
 				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
 				when(config.getMaximumRetries()).thenReturn(1);
@@ -278,7 +279,7 @@ public class BulkWriteActionTest {
 						mutations.add(new KVPair(Encoding.encode(i), Encoding.encode(i)));
 				}
 				byte[] regionKey = Encoding.encode(0);
-				BulkWrite write = new BulkWrite(mutations,"testTxnId",regionKey);
+				BulkWrite write = new BulkWrite(mutations,new ActiveWriteTxn(1l,1l),regionKey);
 				RegionCache cache = mock(RegionCache.class);
 				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
 				when(config.getMaximumRetries()).thenReturn(1);
@@ -323,7 +324,7 @@ public class BulkWriteActionTest {
 						mutations.add(new KVPair(Encoding.encode(i), Encoding.encode(i)));
 				}
 				byte[] regionKey = Encoding.encode(5);
-				BulkWrite write = new BulkWrite(mutations,"testTxnId",regionKey);
+				BulkWrite write = new BulkWrite(mutations,new ActiveWriteTxn(1l,1l),regionKey);
 				RegionCache cache = mock(RegionCache.class);
 				final SortedSet<HRegionInfo> regions = Sets.newTreeSet();
 				regions.add(new HRegionInfo(tableName, Encoding.encode(6),HConstants.EMPTY_END_ROW));
@@ -420,7 +421,7 @@ public class BulkWriteActionTest {
 						mutations.add(new KVPair(Encoding.encode(i), Encoding.encode(i)));
 				}
 				byte[] regionKey = Encoding.encode(5);
-				BulkWrite write = new BulkWrite(mutations,"testTxnId",regionKey);
+				BulkWrite write = new BulkWrite(mutations,new ActiveWriteTxn(1l,1l),regionKey);
 				RegionCache cache = mock(RegionCache.class);
 				SortedSet<HRegionInfo> regions = Sets.newTreeSet();
 				regions.add(new HRegionInfo(tableName, HConstants.EMPTY_START_ROW,Encoding.encode(6)));
@@ -529,7 +530,7 @@ public class BulkWriteActionTest {
 						mutations.add(new KVPair(Encoding.encode(i), Encoding.encode(i)));
 				}
 				byte[] regionKey = Encoding.encode(5);
-				BulkWrite write = new BulkWrite(mutations,"testTxnId",regionKey);
+				BulkWrite write = new BulkWrite(mutations,new ActiveWriteTxn(1l,1l),regionKey);
 				RegionCache cache = mock(RegionCache.class);
 				SortedSet<HRegionInfo> regions = Sets.newTreeSet();
 				regions.add(new HRegionInfo(tableName, HConstants.EMPTY_START_ROW,Encoding.encode(6)));
@@ -643,7 +644,7 @@ public class BulkWriteActionTest {
 						mutations.add(new KVPair(Encoding.encode(i), Encoding.encode(i)));
 				}
 				byte[] regionKey = Encoding.encode(5);
-				BulkWrite write = new BulkWrite(mutations,"testTxnId",regionKey);
+				BulkWrite write = new BulkWrite(mutations,new ActiveWriteTxn(1l,1l),regionKey);
 				RegionCache cache = mock(RegionCache.class);
 				SortedSet<HRegionInfo> regions = Sets.newTreeSet();
 				regions.add(new HRegionInfo(tableName, HConstants.EMPTY_START_ROW,Encoding.encode(5)));

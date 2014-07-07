@@ -12,11 +12,10 @@ import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.*;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.readresolve.AsyncReadResolver;
-import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
-import com.splicemachine.si.impl.store.LazyTxnSupplier;
-import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.si.jmx.TransactorStatus;
+import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import com.splicemachine.si.txn.SpliceTimestampSource;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.hbase.client.*;
@@ -25,20 +24,13 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-
 /**
  * Used to construct a transactor object that is bound to the HBase types and that provides SI functionality. This is
  * the main entry point for applications using SI. Keeps track of a global, static instance that is shared by all callers.
  * Also defines the various configuration options and plugins for the transactor instance.
  */
 public class HTransactorFactory extends SIConstants {
-		//replaced with the TxnStore and TxnSupplier interfaces
+    //replaced with the TxnStore and TxnSupplier interfaces
 //    private final static Map<Long, ImmutableTransaction> immutableCache = CacheMap.makeCache(true);
 //    private final static Map<Long, ActiveTransactionCacheEntry> activeCache = CacheMap.makeCache(true);
 //    private final static Map<Long, Transaction> cache = CacheMap.makeCache(true);
@@ -53,61 +45,57 @@ public class HTransactorFactory extends SIConstants {
 		private static volatile SITransactionReadController< Get, Scan, Delete, Put> readController;
 //		private static volatile RollForwardQueueFactory<byte[], HbRegion> rollForwardQueueFactory;
 //		private static volatile TransactionStore transactionStore;
-		private static volatile DataStore dataStore;
-		private static volatile TxnStore txnStore;
-		private static volatile TxnSupplier txnSupplier;
-		private static volatile AsyncReadResolver asyncReadResolver;
+//		private static volatile DataStore dataStore;
+//		private static volatile TxnStore txnStore;
+//		private static volatile TxnSupplier txnSupplier;
+//    private static volatile AsyncReadResolver asyncReadResolver;
 
-		public static void setTransactor(ManagedTransactor managedTransactorToUse) {
+    public static void setTransactor(ManagedTransactor managedTransactorToUse) {
         managedTransactor = managedTransactorToUse;
     }
 
     public static TransactorStatus getTransactorStatus() {
-				initializeIfNeeded();
-				return managedTransactor;
+        initializeIfNeeded();
+        return managedTransactor;
     }
 
     public static TransactionManager getTransactionManager() {
-				initializeIfNeeded();
-				return transactionManager;
+        initializeIfNeeded();
+        return transactionManager;
     }
 
     @SuppressWarnings("unchecked")
-		public static ClientTransactor<Put, Get, Scan, Mutation> getClientTransactor() {
-				initializeIfNeeded();
-				return clientTransactor;
+    public static ClientTransactor<Put, Get, Scan, Mutation> getClientTransactor() {
+        throw new UnsupportedOperationException("REMOVE");
     }
 
     public static Transactor<IHTable, Mutation,Put> getTransactor() {
-				initializeIfNeeded();
-				return managedTransactor.getTransactor();
+        initializeIfNeeded();
+        return managedTransactor.getTransactor();
     }
 
-		public static TransactionReadController<Get,Scan> getTransactionReadController(){
-				initializeIfNeeded();
-				return readController;
-		}
+    public static TransactionReadController<Get,Scan> getTransactionReadController(){
+        initializeIfNeeded();
+        return readController;
+    }
 
-		public static ReadResolver getReadResolver(HRegion region){
-				initializeIfNeeded();
-				return asyncReadResolver.getResolver(region);
-		}
+    @SuppressWarnings("unchecked")
+    private static void initializeIfNeeded(){
+        if(initialized) return;
 
-		@SuppressWarnings("unchecked")
-		private static void initializeIfNeeded(){
-				if(initialized) return;
+        synchronized (HTransactorFactory.class) {
+            if(initialized) return;
+            if(managedTransactor!=null && transactionManager !=null){
+                //it was externally created
+                initialized = true;
+                return;
+            }
 
-				synchronized (HTransactorFactory.class) {
-						if(initialized) return;
-						if(managedTransactor!=null && transactionManager !=null && clientTransactor!=null){
-								//it was externally created
-								initialized = true;
-								return;
-						}
+            // TODO: permanently purge this later (leave commented out for now while we test more)
+            // TimestampSource timestampSource = new ZooKeeperStatTimestampSource(ZkUtils.getRecoverableZooKeeper(),zkSpliceTransactionPath);
+//						if(timestampSource==null)
+//								timestampSource = new SpliceTimestampSource(ZkUtils.getRecoverableZooKeeper());
 
-						// Left here commented out for reference, but as of 0.5.1 we no longer use ZooKeeperStatTimestampSource.
-						// TimestampSource timestampSource = new ZooKeeperStatTimestampSource(ZkUtils.getRecoverableZooKeeper(),zkSpliceTransactionPath);
-						TimestampSource timestampSource = new SpliceTimestampSource(ZkUtils.getRecoverableZooKeeper());
 						BetterHTablePool hTablePool = new BetterHTablePool(new SpliceHTableFactory(),
 										SpliceConstants.tablePoolCleanerInterval, TimeUnit.SECONDS,
 										SpliceConstants.tablePoolMaxSize,SpliceConstants.tablePoolCoreSize);
@@ -143,86 +131,53 @@ public class HTransactorFactory extends SIConstants {
 //						transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer,
 //										immutableCache, activeCache, cache, committedCache, failedCache, permissionCache, SIConstants.committingPause, builderTransactor);
 
-						dataStore = new DataStore(dataLib, reader, writer,
-										SI_NEEDED, //siNeededAttribute
-										SI_NEEDED_VALUE_BYTES ,             //the bytes for the siNeededAttribute
-										SI_TRANSACTION_ID_KEY, //transactionIdAttribute
-										SI_DELETE_PUT,  //deletePutAttribute
-										SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, //commitTimestampQualifier
-										SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES, //tombstoneQualifier
-										EMPTY_BYTE_ARRAY,  //siNull
-										SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES, //siAntiTombstoneValue
-										SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,  //siFail
-										DEFAULT_FAMILY_BYTES,
-										new LazyTxnSupplier(txnSupplier),
-										lifecycleManager ); //user columnFamily
+
 //						if(transactionManager ==null)
 //								transactionManager = new SITransactionManager(transactionStore,timestampSource,builderTransactor);
-						if(clientTransactor==null){
-								//use a lazy transaction wrapper here to avoid excessive network calls when looking up parent transactions
-								clientTransactor = new HBaseClientTransactor(dataStore,lifecycleManager,dataLib);
-						}
+            DataStore ds = TxnDataStore.getDataStore();
+            TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
 //						if(rollForwardQueueFactory ==null)
 //								rollForwardQueueFactory = new HBaseRollForwardQueueFactory(Providers.basicProvider(transactionStore),
 //												Providers.basicProvider(dataStore));
 
-						if(readController==null)
-								readController = new SITransactionReadController<
-												Get,Scan,Delete,Put>(dataStore,dataLib, txnSupplier,lifecycleManager);
-						Transactor transactor = new SITransactor.Builder()
-										.dataLib(dataLib)
-										.dataWriter(writer)
-										.dataStore(dataStore)
-//										.transactionStore(transactionStore)
-										.clock(new SystemClock())
-										.transactionTimeout(transactionTimeout)
-										.txnStore(txnSupplier)
-										.control(transactionManager).build();
-						builderTransactor.setTransactor(transactor);
-						if(managedTransactor==null)
-								managedTransactor = builderTransactor;
+            if(readController==null)
+                readController = new SITransactionReadController<
+                        Get,Scan,Delete,Put>(ds,dataLib, TransactionStorage.getTxnSupplier(),tc);
+            Transactor transactor = new SITransactor.Builder()
+                    .dataLib(dataLib)
+                    .dataWriter(writer)
+                    .dataStore(ds)
+                    .clock(new SystemClock())
+                    .transactionTimeout(transactionTimeout)
+                    .txnStore(TransactionStorage.getTxnSupplier())
+                    .control(transactionManager).build();
+            builderTransactor.setTransactor(transactor);
+            if(managedTransactor==null)
+                managedTransactor = builderTransactor;
 
-						initialized = true;
-				}
-		}
+            initialized = true;
+        }
+    }
 
-		public static void setTransactionManager(TransactionManager transactionManager) {
-				HTransactorFactory.transactionManager = transactionManager;
-		}
-		public static void setClientTransactor(ClientTransactor clientTransactor){
-				HTransactorFactory.clientTransactor = clientTransactor;
-		}
+    public static void setTransactionManager(TransactionManager transactionManager) {
+        HTransactorFactory.transactionManager = transactionManager;
+    }
 
-		public static TimestampSource getTimestampSource() {
-				TimestampSource ts = timestampSource;
-				if(ts!=null) return ts;
-				initializeIfNeeded();
-				return timestampSource;
-		}
+//		public static TimestampSource getTimestampSource() {
+//				TimestampSource ts = timestampSource;
+//				if(ts!=null) return ts;
+//				initializeIfNeeded();
+//				return timestampSource;
+//		}
 
-		public static void setTimestampSource(TimestampSource timestampSource) {
-				HTransactorFactory.timestampSource = timestampSource;
-		}
+//		public static void setTimestampSource(TimestampSource timestampSource) {
+//				HTransactorFactory.timestampSource = timestampSource;
+//		}
+//
+//		public static void setTxnStore(TxnStore store){
+//				HTransactorFactory.txnStore = store;
+////				HTransactorFactory.txnSupplier = store;
+//				HTransactorFactory.txnSupplier = new CompletedTxnCacheSupplier(store,SIConstants.activeTransactionCacheSize,16);
+//		}
 
-		public static void setTxnStore(TxnStore store){
-				HTransactorFactory.txnStore = store;
-//				HTransactorFactory.txnSupplier = store;
-				HTransactorFactory.txnSupplier = new CompletedTxnCacheSupplier(store,SIConstants.activeTransactionCacheSize,16);
-		}
-
-		public static RollForward getRollForward(HRegion region) {
-				throw new UnsupportedOperationException("IMPLEMENT");
-		}
-
-		public static TxnSupplier getTxnSupplier() {
-				throw new UnsupportedOperationException("IMPLEMENT");
-		}
-
-		public static DataStore getDataStore() {
-				throw new UnsupportedOperationException("IMPLEMENT");
-		}
-
-		public static SDataLib getDataLib() {
-				throw new UnsupportedOperationException("IMPLEMENT");
-		}
 }
