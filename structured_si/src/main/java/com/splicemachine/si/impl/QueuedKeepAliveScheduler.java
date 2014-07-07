@@ -4,12 +4,11 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.ThreadLocalRandom;
 import com.splicemachine.si.api.TransactionTimeoutException;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.coprocessors.TxnLifecycleProtocol;
+import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.utils.ThreadSafe;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.concurrent.*;
 
 /**
@@ -24,19 +23,19 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler {
 		private final ScheduledExecutorService threadPool;
 		private final com.splicemachine.concurrent.ThreadLocalRandom random;
 
-		private final @ThreadSafe TxnLifecycleProtocol lifecycleProtocol;
+		private final @ThreadSafe TxnStore txnStore;
 
 		private volatile boolean shutdown = false;
 
 
 		public QueuedKeepAliveScheduler(long maxWaitIntervalMs, long maxKeepAliveIntervalMs,
-																		int numKeepers, TxnLifecycleProtocol lifecycleProtocol) {
+																		int numKeepers,TxnStore txnStore) {
 				this.maxWaitIntervalMs = maxWaitIntervalMs;
 				ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat("keepAlive-thread-%d").setDaemon(true).build();
 
 				this.threadPool = Executors.newScheduledThreadPool(numKeepers,factory);
 				this.random = ThreadLocalRandom.current();
-				this.lifecycleProtocol = lifecycleProtocol;
+				this.txnStore = txnStore;
 				this.maxKeepAliveIntervalMs = maxKeepAliveIntervalMs;
 		}
 
@@ -95,7 +94,7 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler {
 						}
 
 						try {
-								boolean reschedule = lifecycleProtocol.keepAlive(txn.getTxnId());
+								boolean reschedule = txnStore.keepAlive(txn.getTxnId());
 								if(reschedule){
 										//use a random slop factor to load-balance our keep alive requests.
 										threadPool.schedule(this,random.nextLong(maxWaitIntervalMs),TimeUnit.MILLISECONDS);

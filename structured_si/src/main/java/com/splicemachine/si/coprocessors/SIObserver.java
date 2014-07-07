@@ -1,17 +1,24 @@
 package com.splicemachine.si.coprocessors;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.TreeMultimap;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
+import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -26,10 +33,14 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
 
@@ -38,23 +49,33 @@ import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTR
  */
 public class SIObserver extends BaseRegionObserver {
 		private static Logger LOG = Logger.getLogger(SIObserver.class);
-		protected HRegion region;
+//		protected HRegion region;
 		private boolean tableEnvMatch = false;
 		private String tableName;
 		private static final int S = 1000;
 //		private RollForwardQueue rollForwardQueue;
-		private ReadResolver readResolver;
-		private RollForward rollForward;
+//		private ReadResolver readResolver;
+//		private RollForward rollForward;
+
+		private TxnOperationFactory txnOperationFactory;
+		private TransactionalRegion region;
 
 		@Override
 		public void start(CoprocessorEnvironment e) throws IOException {
 				SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
-				region = ((RegionCoprocessorEnvironment) e).getRegion();
-				tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
-				Tracer.traceRegion(tableName, region);
-				tableEnvMatch = doesTableNeedSI(region);
-				readResolver = HTransactorFactory.getReadResolver(region);
-				this.rollForward = NoopRollForward.INSTANCE;
+				region = TransactionalRegions.get(((RegionCoprocessorEnvironment)e).getRegion(),new SegmentedRollForward.Action(){
+
+						@Override
+						public void submitAction(HRegion region, byte[] startKey, byte[] stopKey, SegmentedRollForward.Context context) {
+							throw new UnsupportedOperationException("IMPLEMENT");
+						}
+				});
+				tableName = region.getTableName();
+				Tracer.traceRegion(tableName, ((RegionCoprocessorEnvironment)e).getRegion());
+				tableEnvMatch = doesTableNeedSI(region.getRegionName());
+				txnOperationFactory = new SimpleOperationFactory(TransactionStorage.getTxnSupplier());
+//				readResolver = HTransactorFactory.getReadResolver(region);
+//				this.rollForward = NoopRollForward.INSTANCE;
 //				RollForwardAction action = HTransactorFactory.getRollForwardQueueFactory().newAction(new HbRegion(region));
 //		rollForwardQueue = new ConcurrentRollForwardQueue(action,10000,10000,5*60*S,timedRoller,rollerPool);
 //				rollForwardQueue = new SynchronousRollForwardQueue(action,10000,10*S,5*60*S,tableName);
@@ -62,8 +83,7 @@ public class SIObserver extends BaseRegionObserver {
 				super.start(e);
     }
 
-    public static boolean doesTableNeedSI(HRegion region) {
-        final String tableName = region.getTableDesc().getNameAsString();
+    public static boolean doesTableNeedSI(String tableName) {
         return (EnvUtils.getTableEnv(tableName).equals(SpliceConstants.TableEnv.USER_TABLE)
                 || EnvUtils.getTableEnv(tableName).equals(SpliceConstants.TableEnv.USER_INDEX_TABLE)
                 || EnvUtils.getTableEnv(tableName).equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE))
@@ -109,14 +129,16 @@ public class SIObserver extends BaseRegionObserver {
     }
 
     private void addSIFilterToGet(Get get) throws IOException {
-				Txn txn = HTransactorFactory.getClientTransactor().txnFromOp(get,true);
+//				Txn txn = HTransactorFactory.getClientTransactor().txnFromOp(get,true);
+				Txn txn = txnOperationFactory.fromReads(get);
         final Filter newFilter = makeSIFilter(txn, get.getFilter(),
 								getPredicateFilter(get),false);
         get.setFilter(newFilter);
     }
 
     private void addSIFilterToScan(Scan scan) throws IOException {
-				Txn txn = HTransactorFactory.getClientTransactor().txnFromOp(scan,true);
+//				Txn txn = HTransactorFactory.getClientTransactor().txnFromOp(scan,true);
+				Txn txn = txnOperationFactory.fromReads(scan);
         final Filter newFilter = makeSIFilter(txn, scan.getFilter(),
 								getPredicateFilter(scan),scan.getAttribute(SIConstants.SI_COUNT_STAR) != null);
         scan.setFilter(newFilter);
@@ -128,10 +150,13 @@ public class SIObserver extends BaseRegionObserver {
     }
 
     private Filter makeSIFilter(Txn txn, Filter currentFilter, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
-        final SIFilterPacked siFilter = new SIFilterPacked(txn,
-								readResolver,
-								predicateFilter,
-								HTransactorFactory.getTransactionReadController(),countStar);
+				TxnFilter txnFilter = region.packedFilter(txn, predicateFilter, countStar);
+				SIFilterPacked siFilter = new SIFilterPacked(txnFilter);
+
+//				final SIFilterPacked siFilter = new SIFilterPacked(txn,
+//								readResolver,
+//								predicateFilter,
+//								HTransactorFactory.getTransactionReadController(),countStar);
         if (needsCompositeFilter(currentFilter)) {
             return composeFilters(orderFilters(currentFilter, siFilter));
         } else {
@@ -151,25 +176,78 @@ public class SIObserver extends BaseRegionObserver {
         }
     }
 
-    private FilterList composeFilters(Filter[] filters) {
-        return new FilterList(FilterList.Operator.MUST_PASS_ALL, filters[0], filters[1]);
-    }
+		private FilterList composeFilters(Filter[] filters) {
+				return new FilterList(FilterList.Operator.MUST_PASS_ALL, filters[0], filters[1]);
+		}
 
-    @Override
-    public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, boolean writeToWAL) throws IOException {
+		@Override
+		public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, boolean writeToWAL) throws IOException {
 				/*
 				 * This is relatively expensive--it's better to use the write pipeline when you need to load a lot of rows.
 				 */
-        if (tableEnvMatch) {
-            final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
-						//TODO -sf- make HbRegion() a constant field
-            final boolean processed = transactor.processPut(new HbRegion(e.getEnvironment().getRegion()), rollForward, put);
-            if (processed) {
-            	e.bypass();
-                e.complete();
-            }
-        }
-    }
+				if(!tableEnvMatch || put.getAttribute(SIConstants.SI_NEEDED)==null) {
+						super.prePut(e,put,edit,writeToWAL);
+						return;
+				}
+				Txn txn = txnOperationFactory.fromWrites(put);
+				boolean isDelete = put.getAttribute(SIConstants.SI_DELETE_PUT)!=null;
+				byte[] row = put.getRow();
+				boolean isSIDataOnly = true;
+				//convert the put into a collection of KVPairs
+				Map<byte[],Map<byte[],KVPair>> familyMap = Maps.newHashMap();
+				Iterable<KeyValue> keyValues = Iterables.concat(put.getFamilyMap().values());
+				for(KeyValue kv:keyValues){
+						byte[] family = kv.getFamily();
+						byte[] column = kv.getQualifier();
+						if(!Bytes.equals(column, SIConstants.PACKED_COLUMN_BYTES)) continue; //skip SI columns
+
+						isSIDataOnly = false;
+						byte[] value = kv.getValue();
+						Map<byte[],KVPair> columnMap = familyMap.get(family);
+						if(columnMap==null){
+								columnMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+								familyMap.put(family,columnMap);
+						}
+						columnMap.put(column,new KVPair(row,value,isDelete? KVPair.Type.DELETE: KVPair.Type.INSERT));
+				}
+				if(isSIDataOnly){
+						byte[] family = SpliceConstants.DEFAULT_FAMILY_BYTES;
+						byte[] column = SpliceConstants.PACKED_COLUMN_BYTES;
+						byte[] value = HConstants.EMPTY_BYTE_ARRAY;
+						Map<byte[],KVPair> columnMap = familyMap.get(family);
+						if(columnMap==null){
+								columnMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+								familyMap.put(family,columnMap);
+						}
+						columnMap.put(column,new KVPair(row,value,isDelete? KVPair.Type.DELETE: KVPair.Type.EMPTY_COLUMN));
+				}
+				boolean processed = false;
+				for(Map.Entry<byte[],Map<byte[],KVPair>> family:familyMap.entrySet()){
+						byte[] fam = family.getKey();
+						Map<byte[],KVPair> cols = family.getValue();
+						for(Map.Entry<byte[],KVPair> column:cols.entrySet()){
+								OperationStatus[] status = region.bulkWrite(txn,fam,column.getKey(),null, Collections.singleton(column.getValue()));
+								switch(status[0].getOperationStatusCode()){
+										case NOT_RUN:
+												break;
+										case BAD_FAMILY:
+												throw new NoSuchColumnFamilyException(status[0].getExceptionMsg());
+										case SANITY_CHECK_FAILURE:
+												throw new IOException("Sanity Check failure:" + status[0].getExceptionMsg());
+										case FAILURE:
+												throw new IOException(status[0].getExceptionMsg());
+										default:
+												processed=true;
+								}
+						}
+				}
+
+//						final boolean processed = transactor.processPut(new HbRegion(e.getEnvironment().getRegion()), rollForward, put);
+				if (processed) {
+						e.bypass();
+						e.complete();
+				}
+		}
 
     @Override
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e, Delete delete, WALEdit edit,

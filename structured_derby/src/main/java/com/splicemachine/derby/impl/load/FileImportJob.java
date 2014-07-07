@@ -8,6 +8,7 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.HBaseRegionCache;
 import com.splicemachine.job.Task;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -39,8 +40,9 @@ public class FileImportJob extends ImportJob{
 														ImportContext context,
 														long statementId,
 														List<Path> files,
-														long operationId) {
-				super(table, context, statementId, operationId);
+														long operationId,
+                            Txn txn) {
+				super(table, context, statementId, operationId,txn);
 				this.files = files;
 		}
 
@@ -57,7 +59,7 @@ public class FileImportJob extends ImportJob{
 				for(Path filePath:files){
 						ImportContext ctx = context.getCopy();
 						ctx.setFilePath(filePath);
-						ImportTask importTask = new ImportTask(jobId, ctx, reader, SpliceConstants.importTaskPriority, context.getTransactionId(), statementId, operationId);
+						ImportTask importTask = new ImportTask(jobId, ctx, reader, SpliceConstants.importTaskPriority, statementId, operationId);
 						tasks.put(importTask,getTaskBoundary(ctx));
 				}
 

@@ -1,7 +1,8 @@
-package com.splicemachine.si.api;
+package com.splicemachine.si.impl;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
@@ -20,8 +21,9 @@ import java.io.IOException;
 import java.util.Collection;
 
 /**
+ * Base implementation of a TransactionalRegion
  * @author Scott Fines
- *         Date: 7/1/14
+ * Date: 7/1/14
  */
 public class TxnRegion implements TransactionalRegion {
 		private final HRegion region;
@@ -54,7 +56,7 @@ public class TxnRegion implements TransactionalRegion {
 				this.transactor = transactor;
 				this.hbRegion = new HbRegion(region);
 
-				this.transactionalWrites = SIObserver.doesTableNeedSI(region);
+				this.transactionalWrites = SIObserver.doesTableNeedSI(region.getTableDesc().getNameAsString());
 		}
 
 		@Override

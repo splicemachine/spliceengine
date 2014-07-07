@@ -4,11 +4,17 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.si.api.TransactionStorage;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnOperationFactory;
+import com.splicemachine.si.impl.SimpleOperationFactory;
+import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.WriteConflict;
+import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -17,18 +23,13 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.filter.CompareFilter;
-import org.apache.hadoop.hbase.filter.WritableByteArrayComparable;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -45,11 +46,21 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
 		private long blockingStoreFiles;
 
+		private TransactionalRegion region;
+    private TxnOperationFactory operationFactory;
+
 		@Override
     public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
         //get the Conglomerate Id. If it's not a table that we can index (e.g. META, ROOT, SYS_TEMP,__TXN_LOG, etc)
         //then don't bother with setting things up
         String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
+				this.region = TransactionalRegions.get(e.getEnvironment().getRegion(), new SegmentedRollForward.Action() {
+            @Override
+            public void submitAction(HRegion region, byte[] startKey, byte[] stopKey, SegmentedRollForward.Context context) {
+                throw new UnsupportedOperationException("IMPLEMENT");
+            }
+        });
+        this.operationFactory = new SimpleOperationFactory(TransactionStorage.getTxnSupplier());
         try{
             conglomId = Long.parseLong(tableName);
         }catch(NumberFormatException nfe){
@@ -83,7 +94,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             }else{
                 kv = new KVPair(row, HConstants.EMPTY_BYTE_ARRAY);
             }
-            mutate(e.getEnvironment(), kv, SpliceUtils.getTransactionId(put));
+            mutate(e.getEnvironment(), kv, operationFactory.fromWrites(put));
         }
         super.prePut(e, put, edit, writeToWAL);
     }
@@ -96,7 +107,8 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         if(conglomId>0){
             if(delete.getAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)==null){
                 KVPair deletePair = KVPair.delete(delete.getRow());
-                mutate(e.getEnvironment(), deletePair, Bytes.toString(delete.getAttribute("si_delete_put")));
+                Txn txn = operationFactory.fromWrites(delete);
+                mutate(e.getEnvironment(), deletePair,txn);
             }
         }
         super.preDelete(e, delete, edit, writeToWAL);
@@ -182,13 +194,13 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 		}
 
 
-    private void mutate(RegionCoprocessorEnvironment rce, KVPair mutation,String txnId) throws IOException {
+    private void mutate(RegionCoprocessorEnvironment rce, KVPair mutation,Txn txn) throws IOException {
     	if (LOG.isTraceEnabled())
     		SpliceLogUtils.trace(LOG, "mutate %s",mutation);
         //we've already done our write path, so just pass it through
         WriteContext context;
         try{
-            context = SpliceIndexEndpoint.factoryMap.get(conglomId).getFirst().createPassThrough(txnId,rce,1);
+						context = SpliceIndexEndpoint.factoryMap.get(conglomId).getFirst().createPassThrough(txn,region,1, null);
         }catch(InterruptedException e){
             throw new IOException(e);
         }

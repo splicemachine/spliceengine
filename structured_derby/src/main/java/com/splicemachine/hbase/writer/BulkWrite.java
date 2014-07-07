@@ -4,6 +4,11 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.api.TransactionStorage;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.ActiveWriteTxn;
+import com.splicemachine.si.impl.InheritingTxnView;
+import com.splicemachine.si.impl.LazyTxn;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.compress.SnappyCodec;
 
@@ -20,7 +25,8 @@ public class BulkWrite implements Externalizable {
     private static final long serialVersionUID = 1l;
     private static SnappyCodec snappy;
     private ObjectArrayList<KVPair> mutations;
-    private String txnId;
+//    private String txnId;
+		private Txn txn;
     private byte[] regionKey;
     private long bufferSize = -1;
 
@@ -30,25 +36,27 @@ public class BulkWrite implements Externalizable {
     
     public BulkWrite() { }
 
-    public BulkWrite(ObjectArrayList<KVPair> mutations, String txnId,byte[] regionKey) {
+    public BulkWrite(ObjectArrayList<KVPair> mutations, Txn txn,byte[] regionKey) {
         this.mutations = mutations;
-        this.txnId = txnId;
         this.regionKey = regionKey;
+				this.txn = txn;
     }
 
-    public BulkWrite(String txnId, byte[] regionKey){
-        this.txnId = txnId;
+    public BulkWrite(Txn txn, byte[] regionKey){
         this.regionKey = regionKey;
         this.mutations = ObjectArrayList.newInstance();
+				this.txn = txn;
     }
 
     public ObjectArrayList<KVPair> getMutations() {
         return mutations;
     }
 
-    public String getTxnId() {
-        return txnId;
-    }
+//    public String getTxnId() {
+//        return txnId;
+//    }
+
+		public Txn getTxn(){ return txn; }
 
     public byte[] getRegionKey() {
         return regionKey;
@@ -58,12 +66,10 @@ public class BulkWrite implements Externalizable {
         mutations.add(write);
     }
 
-
-
     @Override
     public String toString() {
         return "BulkWrite{" +
-                "txnId='" + txnId + '\'' +
+                "txn='" + txn + '\'' +
                 ", regionKey=" + Bytes.toStringBinary(regionKey) +
                 ", rows="+mutations.size()+
                 '}';
@@ -92,7 +98,9 @@ public class BulkWrite implements Externalizable {
     }
 		@Override
 		public void writeExternal(ObjectOutput out) throws IOException {
-				out.writeUTF(txnId);
+				out.writeLong(txn.getTxnId());
+				out.writeLong(txn.getEffectiveBeginTimestamp());
+				out.writeBoolean(txn.isAdditive());
 				Object[] buffer = mutations.buffer;
 				int iBuffer = mutations.size();
 				out.writeInt(iBuffer);
@@ -103,7 +111,10 @@ public class BulkWrite implements Externalizable {
 
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-				txnId = in.readUTF();
+				long txnId = in.readLong();
+				long beginTs = in.readLong();
+				boolean additive = in.readBoolean();
+
 				int size = in.readInt();
 				mutations = ObjectArrayList.newInstanceWithCapacity(size);
 				for(int i=0;i<size;i++){
@@ -113,7 +124,10 @@ public class BulkWrite implements Externalizable {
 
 		public byte[] toBytes() throws IOException {
 				Output output = new Output(1024,-1);
-				output.writeString(txnId);
+				output.writeLong(txn.getTxnId());
+				output.writeLong(txn.getBeginTimestamp());
+				output.writeLong(txn.getParentTransaction().getTxnId());
+				output.writeBoolean(txn.isAdditive());
 				Object[] buffer = mutations.buffer;
 				int size = mutations.size();
 				for(int i=0;i< size;i++){
@@ -127,11 +141,20 @@ public class BulkWrite implements Externalizable {
 		public static BulkWrite fromBytes(byte[] bulkWriteBytes) throws IOException {
 				Input input = new Input(bulkWriteBytes);
 
-				String txnId = input.readString();
+				long txnId = input.readLong();
+				long beginTs = input.readLong();
+				long parentTxnId = input.readLong();
+				boolean additive = input.readBoolean();
+
+        Txn parentTxn;
+        if(parentTxnId>=0) parentTxn = new ActiveWriteTxn(parentTxnId,parentTxnId);
+        else parentTxn = Txn.ROOT_TRANSACTION;
+
+        Txn writeTxn = new ActiveWriteTxn(txnId,beginTs,parentTxn,additive);
 				ObjectArrayList<KVPair> mutations = new ObjectArrayList<KVPair>();
 				while(input.available()>0){
 						mutations.add(KVPair.fromBytes(input));
 				}
-				return new BulkWrite(mutations,txnId,null);
+				return new BulkWrite(mutations,writeTxn,null);
 		}
 }

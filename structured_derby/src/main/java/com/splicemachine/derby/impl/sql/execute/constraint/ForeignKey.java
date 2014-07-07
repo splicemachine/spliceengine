@@ -4,6 +4,7 @@ import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.hbase.KVPair;
 
 import com.splicemachine.hbase.batch.BatchConstraintChecker;
+import com.splicemachine.si.api.Txn;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -94,12 +95,12 @@ public class ForeignKey implements Constraint{
     }
 
     @Override
-    public boolean validate(KVPair mutation, String txnId,RegionCoprocessorEnvironment rce,Collection<KVPair> priors) throws IOException {
+    public boolean validate(KVPair mutation, Txn txn,RegionCoprocessorEnvironment rce,Collection<KVPair> priors) throws IOException {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     @Override
-    public Collection<KVPair> validate(Collection<KVPair> mutations, String txnId,RegionCoprocessorEnvironment rce,List<KVPair> priors) throws IOException {
+    public Collection<KVPair> validate(Collection<KVPair> mutations, Txn txn,RegionCoprocessorEnvironment rce,List<KVPair> priors) throws IOException {
         return Collections.emptyList();
     }
 

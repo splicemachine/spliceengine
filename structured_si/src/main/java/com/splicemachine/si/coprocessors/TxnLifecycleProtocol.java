@@ -3,6 +3,7 @@ package com.splicemachine.si.coprocessors;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Represents a network protocol for managing a Transaction's lifecycle.
@@ -81,7 +82,7 @@ public interface TxnLifecycleProtocol extends CoprocessorProtocol {
 		void rollback(long txnId) throws IOException;
 
 
-/**
+    /**
 		 * Indicate that this transaction is still alive.
 		 *
 		 * If the transaction is in a terminal state, then this will return {@code false}, to indicate
@@ -116,5 +117,7 @@ public interface TxnLifecycleProtocol extends CoprocessorProtocol {
 		 * @return a list of transaction ids which satisfy the constraints, encoded using a packed encoding.
 		 * @throws IOException if something goes wrong.
 		 */
-		byte[] getActiveTransactions(long afterTs,long beforeTs,byte[] destinationTable) throws IOException;
+		byte[] getActiveTransactionIds(long afterTs, long beforeTs, byte[] destinationTable) throws IOException;
+
+    List<byte[]> getActiveTransactions(long afterTs,long beforeTs,byte[] destinationTable) throws IOException;
 }

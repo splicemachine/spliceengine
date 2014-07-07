@@ -9,6 +9,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.api.ReadOnlyModificationException;
+import com.splicemachine.si.api.TransactionTimeoutException;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.KeyValue;
@@ -148,7 +149,7 @@ public class RegionTxnStore {
 				long currTime = System.currentTimeMillis();
 				Txn.State adjustedState = adjustStateForTimeout(state,oldKAKV,currTime,false);
 				if(adjustedState!= Txn.State.ACTIVE)
-						return false; //can't keep alive a transaction that has timed out
+						throw new TransactionTimeoutException(txnId);
 
 				Put newPut = new Put(TxnUtils.getRowKey(txnId));
 				newPut.add(FAMILY,KEEP_ALIVE_QUALIFIER_BYTES,Encoding.encode(currTime));
@@ -338,12 +339,58 @@ public class RegionTxnStore {
 				return txnIds.toArray();
 		}
 
+    public List<DenseTxn> getActiveTxns(long afterTs,long beforeTs, byte[] destinationTable) throws IOException{
+        Scan scan = new Scan(region.getStartKey(),region.getEndKey());
+        scan.setMaxVersions(1);
+
+        RegionScanner scanner = region.getScanner(scan);
+        List<DenseTxn> txns = Lists.newArrayList();
+        List<KeyValue> keyValues = Lists.newArrayListWithExpectedSize(4);
+        MultiFieldDecoder bytesDecoder = null;
+        boolean shouldContinue;
+        do{
+            keyValues.clear();
+            shouldContinue = scanner.nextRaw(keyValues,null);
+            if(keyValues.size()<=0) break;
+
+
+            DenseTxn txn = newTransactionDecoder.decode(keyValues);
+            if(txn==null)
+                txn = oldTransactionDecoder.decode(keyValues);
+            long txnTs = txn.getBeginTimestamp();
+            if(txnTs<=beforeTs && txnTs>=afterTs){
+                if(destinationTable!=null){
+                    ByteSlice slice = txn.getDestinationTableBuffer();
+                    if(slice==null || slice.length()<=0)
+                        continue; //ignore transactions which don't match the table
+                    if(bytesDecoder==null)
+                        bytesDecoder = MultiFieldDecoder.wrap(txn.getDestinationTableBuffer());
+                    else
+                        bytesDecoder.set(slice.array(),slice.offset(),slice.length());
+                    while(bytesDecoder.available()){
+                        int offset = bytesDecoder.offset();
+                        bytesDecoder.skip();
+                        int length = bytesDecoder.offset()-offset-1;
+                        if(Bytes.equals(destinationTable,0,destinationTable.length,bytesDecoder.array(),offset,length)){
+                            //we match!
+                            txns.add(txn);
+                        }
+                    }
+                }else
+                    txns.add(txn);
+            }
+        }while(shouldContinue);
+        return txns;
+    }
+
 		/******************************************************************************************************************/
 		/*private helper methods*/
 
 
 		private static interface TxnDecoder{
 				SparseTxn decode(long txnId,Result result) throws IOException;
+
+        DenseTxn decode(List<KeyValue> keyValues) throws IOException;
 		}
 
 		//easy reference for code clarity
@@ -375,6 +422,9 @@ public class RegionTxnStore {
 				 * reading and decoding the entire transaction.
 				 *
 				 * In the new format, if a transaction has been written to the table, then it automatically allows writes
+				 *
+				 * order: c,d,e,g,k,s,t
+				 * order: counter,data,destinationTable,globalCommitTimestamp,keepAlive,state,commitTimestamp,
 				 */
 
 				public Put encodeForPut(SparseTxn txn) throws IOException{
@@ -412,47 +462,86 @@ public class RegionTxnStore {
 						return put;
 				}
 
-				@Override
-				public SparseTxn decode(long txnId, Result result) throws IOException {
-						KeyValue dataKv = result.getColumnLatest(FAMILY, DATA_QUALIFIER_BYTES);
-						MultiFieldDecoder decoder = MultiFieldDecoder.wrap(dataKv.getBuffer(), dataKv.getValueOffset(), dataKv.getValueLength());
-						long beginTs = decoder.decodeNextLong();
-						long parentTxnId = -1l;
-						if(!decoder.nextIsNull()) parentTxnId = decoder.decodeNextLong();
-						else decoder.skip();
+        @Override
+        public DenseTxn decode(List<KeyValue> keyValues) throws IOException {
+            if(keyValues.size()<=0) return null;
+            KeyValue dataKv = null;
+            KeyValue keepAliveKv = null;
+            KeyValue commitKv = null;
+            KeyValue globalCommitKv = null;
+            KeyValue stateKv = null;
+            KeyValue destinationTables = null;
 
-						boolean isDependent = false;
-						boolean hasDependent = true;
-						if(!decoder.nextIsNull())
-								isDependent = decoder.decodeNextBoolean();
-						else {
-								hasDependent = false;
-								decoder.skip();
-						}
+            for(KeyValue kv: keyValues){
+                if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,DATA_QUALIFIER_BYTES))
+                    dataKv = kv;
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,KEEP_ALIVE_QUALIFIER_BYTES))
+                    keepAliveKv = kv;
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,GLOBAL_COMMIT_QUALIFIER_BYTES))
+                    globalCommitKv = kv;
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,COMMIT_QUALIFIER_BYTES))
+                    commitKv = kv;
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,STATE_QUALIFIER_BYTES))
+                    stateKv = kv;
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES))
+                    destinationTables = kv;
+            }
+            if(dataKv==null) return null;
 
-						boolean isAdditive = false;
-						boolean hasAdditive = true;
-						if(!decoder.nextIsNull())
-								isAdditive = decoder.decodeNextBoolean();
-						else {
-								hasAdditive = false;
-								decoder.skip();
-						}
-						Txn.IsolationLevel level = null;
-						if(!decoder.nextIsNull())
-								level = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
-						else decoder.skip();
+            long txnId = TxnUtils.txnIdFromRowKey(dataKv.getBuffer(),dataKv.getRowOffset(),dataKv.getRowLength());
 
-						KeyValue commitTsVal = result.getColumnLatest(FAMILY,COMMIT_QUALIFIER_BYTES);
-						long commitTs = -1l;
-						if(commitTsVal!=null)
-								commitTs = Encoding.decodeLong(commitTsVal.getBuffer(),commitTsVal.getValueOffset(),false);
+            return decodeInternal(dataKv, keepAliveKv, commitKv, globalCommitKv, stateKv, destinationTables, txnId);
+        }
 
-						KeyValue globalTsVal = result.getColumnLatest(FAMILY,GLOBAL_COMMIT_QUALIFIER_BYTES);
-						long globalTs = -1l;
-						if(globalTsVal!=null)
-								globalTs = Encoding.decodeLong(globalTsVal.getBuffer(),globalTsVal.getValueOffset(),false);
-						else {
+        @Override
+        public SparseTxn decode(long txnId, Result result) throws IOException {
+            KeyValue dataKv = result.getColumnLatest(FAMILY, DATA_QUALIFIER_BYTES);
+            KeyValue commitTsVal = result.getColumnLatest(FAMILY,COMMIT_QUALIFIER_BYTES);
+            KeyValue globalTsVal = result.getColumnLatest(FAMILY,GLOBAL_COMMIT_QUALIFIER_BYTES);
+            KeyValue stateKv = result.getColumnLatest(FAMILY,STATE_QUALIFIER_BYTES);
+            KeyValue destinationTables = result.getColumnLatest(FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES);
+            KeyValue kaTime = result.getColumnLatest(FAMILY, KEEP_ALIVE_QUALIFIER_BYTES);
+
+            return decodeInternal(dataKv,kaTime,commitTsVal,globalTsVal,stateKv,destinationTables,txnId);
+        }
+
+        protected DenseTxn decodeInternal(KeyValue dataKv, KeyValue keepAliveKv, KeyValue commitKv, KeyValue globalCommitKv, KeyValue stateKv, KeyValue destinationTables, long txnId) {
+            MultiFieldDecoder decoder = MultiFieldDecoder.wrap(dataKv.getBuffer(), dataKv.getValueOffset(), dataKv.getValueLength());
+            long beginTs = decoder.decodeNextLong();
+            long parentTxnId = -1l;
+            if(!decoder.nextIsNull()) parentTxnId = decoder.decodeNextLong();
+            else decoder.skip();
+
+            boolean isDependent = false;
+            boolean hasDependent = true;
+            if(!decoder.nextIsNull())
+                isDependent = decoder.decodeNextBoolean();
+            else {
+                hasDependent = false;
+                decoder.skip();
+            }
+
+            boolean isAdditive = false;
+            boolean hasAdditive = true;
+            if(!decoder.nextIsNull())
+                isAdditive = decoder.decodeNextBoolean();
+            else {
+                hasAdditive = false;
+                decoder.skip();
+            }
+            Txn.IsolationLevel level = null;
+            if(!decoder.nextIsNull())
+                level = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
+            else decoder.skip();
+
+            long commitTs = -1l;
+            if(commitKv!=null)
+                commitTs = Encoding.decodeLong(commitKv.getBuffer(), commitKv.getValueOffset(), false);
+
+            long globalTs = -1l;
+            if(globalCommitKv!=null)
+                globalTs = Encoding.decodeLong(globalCommitKv.getBuffer(), globalCommitKv.getValueOffset(), false);
+            else {
 								/*
 								 * for independent transactions, global commit = commit. As a result,
 								 * by putting this if check in here, we make the global commit timestamp purely
@@ -460,33 +549,34 @@ public class RegionTxnStore {
 								 * requiring an extra get() during commit time( the extra get is necessary to
 								 * determine if a transaction is dependent or not).
 								 */
-								if(hasDependent && !isDependent)
-										globalTs = commitTs; //for independent transactions, global commit = commit
-						}
+                if(hasDependent && !isDependent)
+                    globalTs = commitTs; //for independent transactions, global commit = commit
+            }
 
-						KeyValue stateKv = result.getColumnLatest(FAMILY,STATE_QUALIFIER_BYTES);
-						Txn.State state = Txn.State.decode(stateKv.getBuffer(),stateKv.getValueOffset(),stateKv.getValueLength());
+            Txn.State state = Txn.State.decode(stateKv.getBuffer(),stateKv.getValueOffset(),stateKv.getValueLength());
 
-						if(state== Txn.State.ACTIVE){
+
+            if(state== Txn.State.ACTIVE){
 								/*
 								 * We need to check that the transaction hasn't been timed out (and therefore rolled back). This
 								 * happens if the keepAliveTime is older than the configured transaction timeout. Of course,
 								 * there is some network latency which could cause small keep alives to be problematic. To help out,
 								 * we allow a little fudge factor in the timeout
 								 */
-								state = adjustStateForTimeout(state,result.getColumnLatest(FAMILY,KEEP_ALIVE_QUALIFIER_BYTES),false);
-						}
+                state = adjustStateForTimeout(state, keepAliveKv,false);
+            }
+            long kaTime = decodeKeepAlive(keepAliveKv,false);
 
-						KeyValue destinationTables = result.getColumnLatest(FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES);
-						ByteSlice destTableBuffer = null;
-						if(destinationTables!=null){
-								destTableBuffer = new ByteSlice();
-								destTableBuffer.set(destinationTables.getBuffer(),destinationTables.getValueOffset(),destinationTables.getValueLength());
-						}
+            ByteSlice destTableBuffer = null;
+            if(destinationTables!=null){
+                destTableBuffer = new ByteSlice();
+                destTableBuffer.set(destinationTables.getBuffer(),destinationTables.getValueOffset(),destinationTables.getValueLength());
+            }
 
-						return new SparseTxn(txnId,beginTs,parentTxnId,
-										commitTs,globalTs,hasDependent,isDependent,hasAdditive,isAdditive,level,state,destTableBuffer);
-				}
+            return new DenseTxn(txnId,beginTs,parentTxnId,
+                    commitTs,globalTs,hasDependent,isDependent,hasAdditive,isAdditive,level,state,destTableBuffer,kaTime);
+        }
+
 		}
 
 		private static final long TRANSACTION_TIMEOUT_WINDOW = SIConstants.transactionTimeout+1000;
@@ -513,25 +603,91 @@ public class RegionTxnStore {
 				@Override
 				public SparseTxn decode(long txnId,Result result) throws IOException {
 						KeyValue beginTsVal = result.getColumnLatest(FAMILY, SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES);
-						long beginTs = Bytes.toLong(beginTsVal.getBuffer(),beginTsVal.getValueOffset(),beginTsVal.getValueLength());
-						KeyValue parentTxnVal = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_PARENT_COLUMN_BYTES);
-						long parentTs = -1l; //by default, the "root" transaction id is -1l
-						if(parentTxnVal!=null)
-								parentTs = Bytes.toLong(parentTxnVal.getBuffer(),parentTxnVal.getValueOffset(),parentTxnVal.getValueLength());
-						boolean dependent = false;
-						boolean hasDependent = false;
-						KeyValue dependentKv = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_DEPENDENT_COLUMN_BYTES);
-						if(dependentKv!=null){
-								hasDependent = true;
-								dependent = BytesUtil.toBoolean(dependentKv.getBuffer(), dependentKv.getValueOffset());
-						}
-						boolean additive = false;
-						boolean hasAdditive = false;
-						KeyValue additiveKv = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_ADDITIVE_COLUMN_BYTES);
-						if(additiveKv!=null){
-								additive = BytesUtil.toBoolean(additiveKv.getBuffer(),additiveKv.getValueOffset());
-								hasAdditive = true;
-						}
+            KeyValue parentTxnVal = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_PARENT_COLUMN_BYTES);
+            KeyValue ruVal = result.getColumnLatest(FAMILY, SIConstants.TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES);
+            KeyValue rcVal = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES);
+            KeyValue statusVal = result.getColumnLatest(FAMILY, SIConstants.TRANSACTION_STATUS_COLUMN_BYTES);
+            KeyValue cTsVal = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES);
+            KeyValue gTsVal = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN_BYTES);
+            KeyValue kaTimeKv = result.getColumnLatest(FAMILY, KEEP_ALIVE_QUALIFIER_BYTES);
+            KeyValue destinationTables = result.getColumnLatest(FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES);
+            KeyValue dependentKv = result.getColumnLatest(FAMILY, SIConstants.TRANSACTION_DEPENDENT_COLUMN_BYTES);
+            KeyValue additiveKv = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_ADDITIVE_COLUMN_BYTES);
+
+            return decodeInternal(txnId, beginTsVal, parentTxnVal, dependentKv,additiveKv,ruVal, rcVal, statusVal, cTsVal, gTsVal, kaTimeKv, destinationTables);
+				}
+
+        @Override
+        public DenseTxn decode(List<KeyValue> keyValues) throws IOException {
+            if(keyValues.size()<=0) return null;
+            KeyValue beginTsVal = null;
+            KeyValue parentTxnVal = null;
+            KeyValue ruVal = null;
+            KeyValue rcVal = null;
+            KeyValue statusVal = null;
+            KeyValue cTsVal = null;
+            KeyValue gTsVal = null;
+            KeyValue kaTimeKv = null;
+            KeyValue destinationTables = null;
+            KeyValue dependentKv = null;
+            KeyValue additiveKv = null;
+            for(KeyValue kv:keyValues){
+                if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES))
+                    beginTsVal = kv;
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_PARENT_COLUMN_BYTES))
+                    parentTxnVal = kv;
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES))
+                    ruVal = kv;
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_READ_COMMITTED_COLUMN_BYTES))
+                    rcVal = kv;
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_STATUS_COLUMN_BYTES))
+                    statusVal = kv;
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES))
+                    cTsVal = kv;
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN_BYTES))
+                    gTsVal = kv;
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_KEEP_ALIVE_COLUMN_BYTES))
+                    kaTimeKv = kv;
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_WRITE_TABLE_COLUMN_BYTES))
+                    destinationTables = kv;
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_DEPENDENT_COLUMN_BYTES))
+                    dependentKv = kv;
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_ADDITIVE_COLUMN_BYTES))
+                    additiveKv = kv;
+            }
+            if(beginTsVal==null) return null;
+            long txnId = TxnUtils.txnIdFromRowKey(beginTsVal.getBuffer(),beginTsVal.getRowOffset(),beginTsVal.getRowLength());
+            return decodeInternal(txnId,beginTsVal,parentTxnVal,dependentKv,additiveKv,ruVal,rcVal,statusVal,cTsVal,gTsVal,kaTimeKv,destinationTables);
+        }
+
+        protected DenseTxn decodeInternal(long txnId,
+                                           KeyValue beginTsVal,
+                                           KeyValue parentTxnVal,
+                                           KeyValue dependentKv,
+                                           KeyValue additiveKv,
+                                           KeyValue readUncommittedKv,
+                                           KeyValue readCommittedKv,
+                                           KeyValue statusKv,
+                                           KeyValue commitTimestampKv,
+                                           KeyValue globalTimestampKv,
+                                           KeyValue keepAliveTimeKv,
+                                           KeyValue destinationTables) {
+            long beginTs = Bytes.toLong(beginTsVal.getBuffer(), beginTsVal.getValueOffset(), beginTsVal.getValueLength());
+            long parentTs = -1l; //by default, the "root" transaction id is -1l
+            if(parentTxnVal!=null)
+                parentTs = Bytes.toLong(parentTxnVal.getBuffer(),parentTxnVal.getValueOffset(),parentTxnVal.getValueLength());
+            boolean dependent = false;
+            boolean hasDependent = false;
+            if(dependentKv!=null){
+                hasDependent = true;
+                dependent = BytesUtil.toBoolean(dependentKv.getBuffer(), dependentKv.getValueOffset());
+            }
+            boolean additive = false;
+            boolean hasAdditive = false;
+            if(additiveKv!=null){
+                additive = BytesUtil.toBoolean(additiveKv.getBuffer(),additiveKv.getValueOffset());
+                hasAdditive = true;
+            }
 						/*
 						 * We can ignore the ALLOW_WRITES field, for the following reason:
 						 *
@@ -545,66 +701,56 @@ public class RegionTxnStore {
 						 * interested in this transaction, then they are interested in writable transactions only, and that
 						 * this is therefore writable.
 						 */
-						boolean readUncommitted = false;
-						KeyValue ruVal = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES);
-						if(ruVal!=null)
-								readUncommitted = BytesUtil.toBoolean(ruVal.getBuffer(),ruVal.getValueOffset());
-						boolean readCommitted = false;
-						KeyValue rcVal = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES);
-						if(rcVal!=null)
-								readCommitted = BytesUtil.toBoolean(rcVal.getBuffer(), rcVal.getValueOffset());
-						KeyValue statusVal = result.getColumnLatest(FAMILY, SIConstants.TRANSACTION_STATUS_COLUMN_BYTES);
-						Txn.State state = Txn.State.decode(statusVal.getBuffer(),statusVal.getValueOffset(),statusVal.getValueLength());
-						long commitTs = -1l;
-						KeyValue cTsVal = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES);
-						if(cTsVal!=null)
-								commitTs = Bytes.toLong(cTsVal.getBuffer(),cTsVal.getValueOffset(),cTsVal.getValueLength());
-						long globalCommitTs = -1l;
-						KeyValue gTsVal = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN_BYTES);
-						if(gTsVal!=null)
-								globalCommitTs = Bytes.toLong(gTsVal.getBuffer(),gTsVal.getValueOffset(),gTsVal.getValueLength());
-						else if(hasDependent &&!dependent){
-								//performance enhancement to avoid an extra region get() during commit time
-								globalCommitTs = commitTs;
-						}
+            boolean readUncommitted = false;
+            if(readUncommittedKv!=null)
+                readUncommitted = BytesUtil.toBoolean(readUncommittedKv.getBuffer(), readUncommittedKv.getValueOffset());
+            boolean readCommitted = false;
+            if(readCommittedKv!=null)
+                readCommitted = BytesUtil.toBoolean(readCommittedKv.getBuffer(), readCommittedKv.getValueOffset());
+            Txn.State state = Txn.State.decode(statusKv.getBuffer(), statusKv.getValueOffset(), statusKv.getValueLength());
+            long commitTs = -1l;
+            if(commitTimestampKv!=null)
+                commitTs = Bytes.toLong(commitTimestampKv.getBuffer(), commitTimestampKv.getValueOffset(), commitTimestampKv.getValueLength());
+            long globalCommitTs = -1l;
+            if(globalTimestampKv!=null)
+                globalCommitTs = Bytes.toLong(globalTimestampKv.getBuffer(),globalTimestampKv.getValueOffset(),globalTimestampKv.getValueLength());
+            else if(hasDependent &&!dependent){
+                //performance enhancement to avoid an extra region get() during commit time
+                globalCommitTs = commitTs;
+            }
 
-						if(state== Txn.State.ACTIVE){
-								/*
-								 * We need to check that the transaction hasn't been timed out (and therefore rolled back). This
-								 * happens if the keepAliveTime is older than the configured transaction timeout. Of course,
-								 * there is some network latency which could cause small keep alives to be problematic. To help out,
-								 * we allow a little fudge factor in the timeout
-								 */
-								state = adjustStateForTimeout(state,result.getColumnLatest(FAMILY,KEEP_ALIVE_QUALIFIER_BYTES),true);
-						}
+            if(state== Txn.State.ACTIVE){
+                /*
+                 * We need to check that the transaction hasn't been timed out (and therefore rolled back). This
+                 * happens if the keepAliveTime is older than the configured transaction timeout. Of course,
+                 * there is some network latency which could cause small keep alives to be problematic. To help out,
+                 * we allow a little fudge factor in the timeout
+                 */
+                state = adjustStateForTimeout(state, keepAliveTimeKv,true);
+            }
+            long kaTime = decodeKeepAlive(keepAliveTimeKv,true);
 
-						Txn.IsolationLevel level = null;
-						if(rcVal!=null){
-								if(readCommitted) level = Txn.IsolationLevel.READ_COMMITTED;
-								else if(ruVal!=null && readUncommitted) level = Txn.IsolationLevel.READ_UNCOMMITTED;
-						}else if(ruVal!=null && readUncommitted)
-								level = Txn.IsolationLevel.READ_COMMITTED;
+            Txn.IsolationLevel level = null;
+            if(readCommittedKv!=null){
+                if(readCommitted) level = Txn.IsolationLevel.READ_COMMITTED;
+                else if(readUncommittedKv!=null && readUncommitted) level = Txn.IsolationLevel.READ_UNCOMMITTED;
+            }else if(readUncommittedKv!=null && readUncommitted)
+                level = Txn.IsolationLevel.READ_COMMITTED;
 
 
-						KeyValue destinationTables = result.getColumnLatest(FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES);
-						ByteSlice destTableBuffer = null;
-						if(destinationTables!=null){
-								destTableBuffer = new ByteSlice();
-								destTableBuffer.set(destinationTables.getBuffer(),destinationTables.getValueOffset(),destinationTables.getValueLength());
-						}
+            ByteSlice destTableBuffer = null;
+            if(destinationTables!=null){
+                destTableBuffer = new ByteSlice();
+                destTableBuffer.set(destinationTables.getBuffer(),destinationTables.getValueOffset(),destinationTables.getValueLength());
+            }
 
-						return new SparseTxn(txnId,beginTs,parentTs,
-										commitTs,globalCommitTs,hasDependent,dependent,hasAdditive,additive,level,state,destTableBuffer);
-
-				}
-		}
+            return new DenseTxn(txnId,beginTs,parentTs,
+                    commitTs,globalCommitTs,hasDependent,dependent,hasAdditive,additive,level,state,destTableBuffer,kaTime);
+        }
+    }
 
 		private static Txn.State adjustStateForTimeout(Txn.State currentState,KeyValue columnLatest,long currTime,boolean oldForm) {
-				long lastKATime;
-				if(oldForm)
-						lastKATime = Bytes.toLong(columnLatest.getBuffer(),columnLatest.getValueOffset(),columnLatest.getValueLength());
-				else
-						lastKATime = Encoding.decodeLong(columnLatest.getBuffer(), columnLatest.getValueOffset(), false);
+        long lastKATime = decodeKeepAlive(columnLatest, oldForm);
 
 				if((currTime-lastKATime)>TRANSACTION_TIMEOUT_WINDOW)
 						return Txn.State.ROLLEDBACK; //time out the txn
@@ -612,7 +758,16 @@ public class RegionTxnStore {
 				return currentState;
 		}
 
-		private static Txn.State adjustStateForTimeout(Txn.State currentState,KeyValue columnLatest,boolean oldForm) {
+    private static long decodeKeepAlive(KeyValue columnLatest, boolean oldForm) {
+        long lastKATime;
+        if(oldForm)
+            lastKATime = Bytes.toLong(columnLatest.getBuffer(), columnLatest.getValueOffset(), columnLatest.getValueLength());
+        else
+            lastKATime = Encoding.decodeLong(columnLatest.getBuffer(), columnLatest.getValueOffset(), false);
+        return lastKATime;
+    }
+
+    private static Txn.State adjustStateForTimeout(Txn.State currentState,KeyValue columnLatest,boolean oldForm) {
 				return adjustStateForTimeout(currentState,columnLatest,System.currentTimeMillis(),oldForm);
 		}
 
@@ -667,10 +822,12 @@ public class RegionTxnStore {
 										}
 								}else
 									isAlive=true;
-								return ReturnCode.SKIP; //remove the keep alive column
+								return ReturnCode.INCLUDE; //remove the keep alive column
 						}else if(KeyValueUtils.singleMatchingQualifier(kv,DESTINATION_TABLE_QUALIFIER_BYTES)){
 								if(destTablesSeen) return ReturnCode.SKIP; //just to be safe
 								destTablesSeen = true;
+                if(destinationTable==null) return ReturnCode.INCLUDE;
+
 								if(encodedDestTable==null)
 										encodedDestTable = Encoding.encodeBytesUnsorted(destinationTable);
 
@@ -686,7 +843,7 @@ public class RegionTxnStore {
 										int length = bytesDecoder.offset()-offset-1;
 										if(Bytes.equals(destinationTable,0,destinationTable.length,bytesDecoder.array(),offset,length)){
 												//we match!
-												return ReturnCode.SKIP;
+												return ReturnCode.INCLUDE;
 										}
 								}
 								return ReturnCode.NEXT_ROW; //doesn't match the destination table
@@ -703,16 +860,16 @@ public class RegionTxnStore {
 										}
 								}else
 									isAlive =true;
-								return ReturnCode.SKIP;
+								return ReturnCode.INCLUDE;
 						} else if(KeyValueUtils.singleMatchingQualifier(kv,SIConstants.TRANSACTION_WRITE_TABLE_COLUMN_BYTES)){
 								if(destTablesSeen) return ReturnCode.SKIP;
 								destTablesSeen = true;
 								if(!Bytes.equals(destinationTable,0,destinationTable.length,kv.getBuffer(),kv.getValueOffset(),kv.getValueLength()))
 										return ReturnCode.NEXT_ROW;
-								return ReturnCode.SKIP;
+								return ReturnCode.INCLUDE;
 						} else{
 								//weird case, so we're using a random ReturnCode to indicate that something goofy is happening
-								return ReturnCode.INCLUDE_AND_NEXT_COL;
+								return ReturnCode.INCLUDE;
 						}
 				}
 

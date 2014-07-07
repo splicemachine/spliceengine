@@ -28,7 +28,9 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.TransactionUtils;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.catalog.DefaultInfo;
@@ -98,6 +100,7 @@ import org.apache.derby.impl.sql.execute.CardinalityCounter;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -1712,9 +1715,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 		}
 
         // calculate column order for new table
-        String parentTxnId = SpliceObserverInstructions.getTransactionId(lcc);
-        String txnId = TransactionUtils.getTransactionId(tc);
-        int[] co = DataDictionaryUtils.getColumnOrdering(parentTxnId, tableId);
+        Txn parentTxn = ((SpliceTransactionManager)lcc.getTransactionExecute()).getActiveStateTxn();
+        Txn txn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+//        String txnId = TransactionUtils.getTransactionId(tc);
+        int[] co = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
         int[] newco = DataDictionaryUtils.getColumnOrderingAfterDropColumn(co, droppedColumnPosition);
         IndexColumnOrder[] columnOrdering = null;
         if (newco != null && newco.length > 0) {
@@ -1723,23 +1727,16 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                 columnOrdering[i] = new IndexColumnOrder(newco[i]);
             }
         }
-        // Create a new table
-		newHeapConglom =
-                tc.createAndLoadConglomerate(
-                "heap",
-                emptyHeapRow.getRowArray(),
-                columnOrdering,
-                collation_ids,
-                properties,
-                TransactionController.IS_DEFAULT,
-                this,
-                (long[]) null);
+				// Create a new table -- use createConglomerate() to avoid confusing calls to createAndLoad()
+				newHeapConglom = tc.createConglomerate("heap", emptyHeapRow.getRowArray(),
+                columnOrdering, collation_ids,
+                properties, TransactionController.IS_DEFAULT);
+
 
         // Start a tentative txn to notify DDL('alter table drop column') change
-        TransactionId tentativeTransaction;
-        TransactionManager transactor = HTransactorFactory.getTransactionManager();
+        Txn tentativeTransaction;
         try {
-            tentativeTransaction = transactor.beginTransaction();
+            tentativeTransaction = TransactionLifecycle.getLifecycleManager().beginTransaction();
         } catch (IOException e) {
             LOG.error("Couldn't start transaction for tentative DDL operation");
             throw Exceptions.parseException(e);
@@ -1755,7 +1752,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                         allColumnInfo,
                         droppedColumnPosition);
 
-        DDLChange ddlChange = new DDLChange(tentativeTransaction.getTransactionIdString(),
+        DDLChange ddlChange = new DDLChange(tentativeTransaction,
                 DDLChangeType.DROP_COLUMN);
         ddlChange.setTentativeDDLDesc(tentativeDropColumnDesc);
         ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
@@ -1768,13 +1765,13 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             tentativeDropColumn(table, newHeapConglom, tableConglomId, ddlChange);
 
             //wait for all past txns to complete
-            TransactionId dropColumnTransaction = getDropColumnTransaction(parentTxnId, txnId,
-                    tentativeTransaction, transactor, tableConglomId);
+            Txn dropColumnTransaction = getDropColumnTransaction(parentTxn, txn,
+                    tentativeTransaction,  tableConglomId);
 
             // Copy data from old table to the new table
             //copyToConglomerate(newHeapConglom, tentativeTransaction.getTransactionIdString(), co);
-            copyToConglomerate(newHeapConglom, parentTxnId, co);
-            transactor.commit(dropColumnTransaction);
+            copyToConglomerate(newHeapConglom, parentTxn, co);
+            dropColumnTransaction.commit();
         }
         catch (IOException e) {
             tc.abort();
@@ -1793,11 +1790,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 							TransactionController.OPENMODE_FORUPDATE,
 							TransactionController.MODE_TABLE,
                             TransactionController.ISOLATION_SERIALIZABLE,
-							(FormatableBitSet) null,
-							(DataValueDescriptor[]) null,
+            null,
+            null,
 							0,
-							(Qualifier[][]) null,
-							(DataValueDescriptor[]) null,
+            null,
+            null,
 							0);
 		
 		compressHeapSC.setEstimatedRowCount(rowCount);
@@ -1844,17 +1841,18 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         cleanUp();
 	}
 
-    private TransactionId getDropColumnTransaction(String parentTransaction,
-                                                   String wrapperTransaction,
-                                                   TransactionId tentativeTransaction,
-                                                   TransactionManager transactor,
+    private Txn getDropColumnTransaction(Txn parentTransaction,
+                                                   Txn wrapperTransaction,
+                                                   Txn tentativeTransaction,
+//                                                   TransactionManager transactor,
                                                    long tableConglomId) throws StandardException {
-        TransactionId parentTransactionId = new TransactionId(parentTransaction);
-        TransactionId wrapperTransactionId = new TransactionId(wrapperTransaction);
-        TransactionId dropColumnTransaction;
+//        TransactionId parentTransactionId = new TransactionId(parentTransaction);
+//        TransactionId wrapperTransactionId = new TransactionId(wrapperTransaction);
+        Txn dropColumnTransaction;
         try {
-            dropColumnTransaction = transactor.beginChildTransaction(wrapperTransactionId,
-                    true, true, false, false, true, tentativeTransaction);
+            dropColumnTransaction = TransactionLifecycle.getLifecycleManager().chainTransaction(wrapperTransaction, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,false, Bytes.toBytes(Long.toString(tableConglomId)),tentativeTransaction);
+//            dropColumnTransaction = transactor.beginChildTransaction(wrapperTransactionId,
+//                    true, true, false, false, true, tentativeTransaction);
         } catch (IOException e) {
             LOG.error("Couldn't commit transaction for tentative DDL operation");
             // TODO must cleanup tentative DDL change
@@ -1863,7 +1861,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
         // Wait for past transactions to die
         long activeTxnId;
-        List<TransactionId> toIgnore = Arrays.asList(parentTransactionId, wrapperTransactionId, dropColumnTransaction);
+        List<Txn> active;
+        List<Txn> toIgnore = Arrays.asList(parentTransaction, wrapperTransaction, dropColumnTransaction);
         try {
             activeTxnId = waitForConcurrentTransactions(dropColumnTransaction, toIgnore,tableConglomId);
         } catch (IOException e) {
@@ -1876,6 +1875,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         }
         return dropColumnTransaction;
     }
+
     private void tentativeDropColumn(HTableInterface table,
                                      long newConglomId,
                                      long oldConglomId,
@@ -1887,7 +1887,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         ColumnInfo[] columnInfos = desc.getColumnInfos();
         /*StatementInfo statementInfo = new StatementInfo(String.format("alter table %s drop column %s",tableName,
                 columnInfos[droppedColumnPosition-1].name),userId,
-                activation.getTransactionController().getActiveStateTxIdString(),1, SpliceDriver.driver().getUUIDGenerator());
+                ((SpliceTransactionManager)activation.getTransactionController()).getActiveStateTxn(),1, SpliceDriver.driver().getUUIDGenerator());
         statementInfo.setOperationInfo(Arrays.asList(new OperationInfo(statementInfo.getStatementUuid(),
                 SpliceDriver.driver().getUUIDGenerator().nextUUID(), "DropColumn", null, false, -1l)));*/
         try{
@@ -1933,7 +1933,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         }
     }
 
-    private void copyToConglomerate(long toConglomId, String DropColumnTxnId, int[] columnOrdering) throws StandardException {
+    private void copyToConglomerate(long toConglomId, Txn dropColumnTxn, int[] columnOrdering) throws StandardException {
 
         String user = lcc.getSessionUserId();
         Snowflake snowflake = SpliceDriver.driver().getUUIDGenerator();
@@ -1943,7 +1943,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         }
         StatementInfo statementInfo =
                 new StatementInfo(String.format("alter table %s.%s drop %s", td.getSchemaName(), td.getName(), columnInfo[0].name),
-                        user,DropColumnTxnId, 1, sId);
+                        user,dropColumnTxn, 1, SpliceDriver.driver().getUUIDGenerator());
         OperationInfo opInfo = new OperationInfo(
                 SpliceDriver.driver().getUUIDGenerator().nextUUID(), statementInfo.getStatementUuid(),"Alter Table Drop Column", null, false, -1l);
         statementInfo.setOperationInfo(Arrays.asList(opInfo));
@@ -1956,7 +1956,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             HTableInterface table = SpliceAccessManager.getHTable(Long.toString(fromConglomId).getBytes());
 
             ColumnInfo[] allColumnInfo = DataDictionaryUtils.getColumnInfo(td);
-            LoadConglomerateJob job = new LoadConglomerateJob(table, tableId, fromConglomId, toConglomId, allColumnInfo, droppedColumnPosition, DropColumnTxnId,
+            LoadConglomerateJob job = new LoadConglomerateJob(table, tableId, fromConglomId, toConglomId, allColumnInfo, droppedColumnPosition, dropColumnTxn,
                     statementInfo.getStatementUuid(), opInfo.getOperationUuid(), activation.isTraced());
             long start = System.currentTimeMillis();
             future = SpliceDriver.driver().getJobScheduler().submit(job);
@@ -2351,10 +2351,9 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             for(int i=0;i<isAscending.length;i++){
                 descColumns[i] = !isAscending[i];
             }
-            TransactionId tentativeTransaction;
-            TransactionManager transactor = HTransactorFactory.getTransactionManager();
+            Txn tentativeTransaction;
             try {
-                tentativeTransaction = transactor.beginTransaction();
+                tentativeTransaction = TransactionLifecycle.getLifecycleManager().beginTransaction();
             } catch (IOException e) {
                 LOG.error("Couldn't start transaction for tentative DDL operation");
                 throw Exceptions.parseException(e);
@@ -2363,7 +2362,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                     baseColumnPositions, unique,
                     uniqueWithDuplicateNulls,
                     SpliceUtils.bitSetFromBooleanArray(descColumns));
-            DDLChange ddlChange = new DDLChange(tentativeTransaction.getTransactionIdString(),
+            DDLChange ddlChange = new DDLChange(tentativeTransaction,
                     DDLChangeType.CREATE_INDEX);
             ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
             ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
@@ -2375,11 +2374,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                 // Add the indexes to the exisiting regions
                 createIndex(activation, ddlChange, table, td);
 
-                TransactionId indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, transactor,newHeapConglom);
+                Txn indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, transactor,newHeapConglom);
 
                 populateIndex(activation, baseColumnPositions, descColumns, newHeapConglom, table, indexTransaction, tentativeIndexDesc);
                 //only commit the index transaction if the job actually completed
-                transactor.commit(indexTransaction);
+                tentativeTransaction.commit();
             }finally{
                 Closeables.closeQuietly(table);
             }

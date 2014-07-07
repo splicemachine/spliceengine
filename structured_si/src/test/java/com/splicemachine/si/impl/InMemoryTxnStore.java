@@ -1,12 +1,14 @@
 package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongArrayList;
+import com.google.common.collect.Lists;
+import com.google.common.primitives.Longs;
 import com.splicemachine.concurrent.LongStripedSynchronizer;
 import com.splicemachine.si.api.*;
+import com.splicemachine.utils.Source;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
@@ -142,7 +144,28 @@ public class InMemoryTxnStore implements TxnStore {
 				}
 		}
 
-//		@Override
+		@Override
+		public boolean keepAlive(long txnId) throws IOException {
+				Lock writeLock = lockStriper.get(txnId).writeLock();
+				writeLock.lock();
+				try{
+						TxnHolder holder = txnMap.get(txnId);
+						if(holder==null) return false;
+
+						Txn txn = holder.txn;
+						if(txn.getState()!= Txn.State.ACTIVE)
+								return false; //don't keep keepAlives going if the transaction is finished
+						if(isTimedOut(holder))
+								throw new TransactionTimeoutException(txnId);
+
+						holder.keepAliveTs = System.currentTimeMillis();
+						return true;
+				}finally{
+						writeLock.unlock();
+				}
+		}
+
+		//		@Override
 		public void timeout(long txnId) throws IOException {
 				rollback(txnId);
 		}
@@ -168,20 +191,44 @@ public class InMemoryTxnStore implements TxnStore {
 		}
 
 		@Override
-		public long[] getActiveTransactions(Txn txn, byte[] table) throws IOException {
+		public long[] getActiveTransactionIds(Txn txn, byte[] table) throws IOException {
 				long minTs = this.commitTsGenerator.retrieveTimestamp();
-				return getActiveTransactions(minTs,txn.getTxnId(),table);
+				return getActiveTransactionIds(minTs, txn.getTxnId(), table);
 		}
 
 		@Override
-		public long[] getActiveTransactions(long minTxnId, long maxTxnId, byte[] table) throws IOException {
+		public long[] getActiveTransactionIds(long minTxnId, long maxTxnId, byte[] table) throws IOException {
 				if(table==null)
 						return getAllActiveTransactions(minTxnId,maxTxnId);
 				else
 						return findActiveTransactions(minTxnId, maxTxnId, table);
 		}
 
-		public boolean keepAlive(Txn txn) throws TransactionTimeoutException {
+    @Override
+    public List<Txn> getActiveTransactions(long minTxnid, long maxTxnId, byte[] table) throws IOException {
+        List<Txn> txns = Lists.newArrayListWithExpectedSize(txnMap.size());
+        for(Map.Entry<Long,TxnHolder> txnEntry:txnMap.entrySet()){
+            if(isTimedOut(txnEntry.getValue())) continue;
+            Txn value = txnEntry.getValue().txn;
+            if(value.getEffectiveState()== Txn.State.ACTIVE
+                    && value.getTxnId()<=maxTxnId
+                    && value.getTxnId()>=minTxnid)
+                txns.add(value);
+        }
+        Collections.sort(txns,new Comparator<Txn>() {
+            @Override
+            public int compare(Txn o1, Txn o2) {
+                if(o1==null){
+                    if(o2==null) return 0;
+                    return -1;
+                }else if(o2==null) return 1;
+                return Longs.compare(o1.getTxnId(), o2.getTxnId());
+            }
+        });
+        return txns;
+    }
+
+    public boolean keepAlive(Txn txn) throws TransactionTimeoutException {
 				Lock wl = lockStriper.get(txn.getTxnId()).writeLock();
 				wl.lock();
 				try{

@@ -310,7 +310,7 @@ public class UpdateOperation extends DMLWriteOperation{
 								}
 
 								getTimer.startTiming();
-								Get remoteGet = SpliceUtils.createGet(getTransactionID(),location);
+								Get remoteGet = SpliceUtils.createGet(operationInformation.getTransaction(),location);
 								remoteGet.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES);
 								remoteGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,filterBytes);
 

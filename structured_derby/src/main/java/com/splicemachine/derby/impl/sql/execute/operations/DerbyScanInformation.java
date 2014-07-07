@@ -13,6 +13,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SerializationUtils;
 
+import com.splicemachine.si.api.Txn;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -254,12 +255,12 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     }
 
     @Override
-    public Scan getScan(String txnId) throws StandardException {
-        return getScan(txnId, null,null);
+    public Scan getScan(Txn txn) throws StandardException {
+        return getScan(txn, null,null);
     }
 
     @Override
-    public Scan getScan(String txnId, ExecRow startKeyOverride,int[] keyDecodingMap) throws StandardException {
+    public Scan getScan(Txn txn, ExecRow startKeyOverride,int[] keyDecodingMap) throws StandardException {
         boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
         ExecIndexRow startPosition = getStartPosition();
         ExecIndexRow stopPosition = sameStartStop ? startPosition : getStopPosition();
@@ -292,7 +293,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
                 qualifiers,
                 conglomerate.getAscDescInfo(),
                 getAccessedNonPkColumns(),
-                txnId,sameStartStop,
+                txn,sameStartStop,
                 conglomerate.getFormat_ids(),
 								keyDecodingMap,
 								getColumnOrdering(),
@@ -477,7 +478,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     }
 
 	@Override
-	public List<Scan> getScans(String txnId, ExecRow startKeyOverride, Activation activation, SpliceOperation top,SpliceRuntimeContext spliceRuntimeContext) throws StandardException  {
+	public List<Scan> getScans(Txn txn, ExecRow startKeyOverride, Activation activation, SpliceOperation top,SpliceRuntimeContext spliceRuntimeContext) throws StandardException  {
 		throw new RuntimeException("getScans is not supported");
 	}
 

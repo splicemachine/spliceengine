@@ -5,8 +5,11 @@ import java.util.Arrays;
 import java.util.Properties;
 
 import com.google.common.io.Closeables;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.Txn;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -723,10 +726,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             }
 
             // Perform tentative DDL change
-            TransactionId tentativeTransaction;
-            TransactionManager transactor = HTransactorFactory.getTransactionManager();
+            Txn tentativeTransaction;
             try {
-                tentativeTransaction = transactor.beginTransaction();
+                tentativeTransaction = TransactionLifecycle.getLifecycleManager().beginTransaction();
             } catch (IOException e) {
                 LOG.error("Couldn't start transaction for tentative DDL operation");
                 throw Exceptions.parseException(e);
@@ -735,7 +737,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                     baseColumnPositions, unique,
                     uniqueWithDuplicateNulls,
                     SpliceUtils.bitSetFromBooleanArray(descColumns));
-            DDLChange ddlChange = new DDLChange(tentativeTransaction.getTransactionIdString(),
+            DDLChange ddlChange = new DDLChange(tentativeTransaction,
                     DDLChangeType.CREATE_INDEX);
             ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
             ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
@@ -748,11 +750,12 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                 // Add the indexes to the exisiting regions
                 createIndex(activation, ddlChange, table, td);
 
-                TransactionId indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, transactor,tableConglomId);
+                Txn indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, transactor,tableConglomId);
 
                 populateIndex(activation, baseColumnPositions, descColumns, tableConglomId, table, indexTransaction, tentativeIndexDesc);
                 //only commit the index transaction if the job actually completed
-                transactor.commit(indexTransaction);
+                indexTransaction.commit();
+//                transactor.commit(indexTransaction);
             }finally{
                 Closeables.closeQuietly(table);
             }
@@ -763,11 +766,12 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             tc.abort();
             throw Exceptions.parseException(t);
         }
-        try {
-            HTransactorFactory.getTransactionManager().commit(new TransactionId(getTransactionId(tc)));
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
+      tc.commit();
+//        try {
+//            HTransactorFactory.getTransactionManager().commit(new TransactionId(getTransactionId(tc)));
+//        } catch (IOException e) {
+//            throw Exceptions.parseException(e);
+//        }
     }
 
 

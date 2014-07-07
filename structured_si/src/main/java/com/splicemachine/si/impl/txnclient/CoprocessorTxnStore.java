@@ -2,6 +2,7 @@ package com.splicemachine.si.impl.txnclient;
 
 import com.carrotsearch.hppc.LongOpenHashSet;
 import com.google.common.collect.Lists;
+import com.google.common.primitives.Longs;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
@@ -9,8 +10,8 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnStore;
+import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.coprocessors.TxnLifecycleProtocol;
 import com.splicemachine.si.impl.InheritingTxnView;
 import com.splicemachine.si.impl.TxnUtils;
@@ -21,10 +22,7 @@ import org.apache.hadoop.hbase.client.HTableInterfaceFactory;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Transaction Store which uses the TxnLifecycleEndpoint to manage and access transactions
@@ -90,6 +88,17 @@ public class CoprocessorTxnStore implements TxnStore{
 				}
 		}
 
+		@Override
+		public boolean keepAlive(long txnId) throws IOException {
+				HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config, SIConstants.TRANSACTION_TABLE_BYTES);
+				try{
+						byte[] rowKey = getTransactionRowKey(txnId);
+						TxnLifecycleProtocol txnLifecycleProtocol = table.coprocessorProxy(TxnLifecycleProtocol.class, rowKey);
+						return txnLifecycleProtocol.keepAlive(txnId);
+				}finally{
+						table.close();
+				}
+		}
 
 		@Override
 		public void elevateTransaction(Txn txn, byte[] newDestinationTable) throws IOException {
@@ -104,18 +113,18 @@ public class CoprocessorTxnStore implements TxnStore{
 		}
 
 		@Override
-		public long[] getActiveTransactions(Txn txn, byte[] table) throws IOException {
-				return getActiveTransactions(timestampSource.retrieveTimestamp(),txn.getTxnId(),table);
+		public long[] getActiveTransactionIds(Txn txn, byte[] table) throws IOException {
+				return getActiveTransactionIds(timestampSource.retrieveTimestamp(), txn.getTxnId(), table);
 		}
 
 		@Override
-		public long[] getActiveTransactions(final long minTxnId, final long maxTxnId, final byte[] writeTable) throws IOException {
+		public long[] getActiveTransactionIds(final long minTxnId, final long maxTxnId, final byte[] writeTable) throws IOException {
 				HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config,SIConstants.TRANSACTION_TABLE_BYTES);
 				try{
 						Map<byte[],byte[]> data = table.coprocessorExec(TxnLifecycleProtocol.class, HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW, new Batch.Call<TxnLifecycleProtocol, byte[]>() {
 								@Override
 								public byte[] call(TxnLifecycleProtocol instance) throws IOException {
-										return instance.getActiveTransactions(minTxnId, maxTxnId, writeTable);
+										return instance.getActiveTransactionIds(minTxnId, maxTxnId, writeTable);
 								}
 						});
 
@@ -137,7 +146,47 @@ public class CoprocessorTxnStore implements TxnStore{
 				}
 		}
 
-		@Override
+    @Override
+    public List<Txn> getActiveTransactions(final long minTxnid, final long maxTxnId, final byte[] activeTable) throws IOException {
+        HTableInterface table = tableFactory.createHTableInterface(SpliceConstants.config,SIConstants.TRANSACTION_TABLE_BYTES);
+        try{
+            Map<byte[],List<byte[]>> data = table.coprocessorExec(TxnLifecycleProtocol.class, HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW,
+                    new Batch.Call<TxnLifecycleProtocol, List<byte[]>>() {
+                @Override
+                public List<byte[]> call(TxnLifecycleProtocol instance) throws IOException {
+                    return instance.getActiveTransactions(minTxnid, maxTxnId, activeTable);
+                }
+            });
+
+            List<Txn> txns = Lists.newArrayList();
+            MultiFieldDecoder txnDecoder = MultiFieldDecoder.create();
+
+            for(List<byte[]> packed:data.values()){
+                for(byte[] bytes:packed){
+                    txnDecoder.set(bytes);
+                    txns.add(decode(txnDecoder, true));
+                }
+            }
+            Collections.sort(txns,new Comparator<Txn>() {
+                @Override
+                public int compare(Txn o1, Txn o2) {
+                    if(o1==null){
+                        if(o2==null) return 0;
+                        else return -1;
+                    }else if (o2==null) return 1;
+                    return Longs.compare(o1.getTxnId(), o2.getTxnId());
+                }
+            });
+            return txns;
+
+        } catch (Throwable throwable) {
+            throw new IOException(throwable);
+        } finally{
+            table.close();
+        }
+    }
+
+    @Override
 		public Txn getTransaction(long txnId) throws IOException {
 			return getTransaction(txnId,false);
 		}
@@ -168,63 +217,71 @@ public class CoprocessorTxnStore implements TxnStore{
 		private Txn decode(byte[] txnPackedBytes) throws IOException {
 				assert txnPackedBytes.length>0: "No transaction found";
 				MultiFieldDecoder decoder = MultiFieldDecoder.wrap(txnPackedBytes);
-				long txnId = decoder.decodeNextLong();
-				long parentTxnId = -1l;
-				if(decoder.nextIsNull()) decoder.skip();
-				else parentTxnId = decoder.decodeNextLong();
-
-				long beginTs = decoder.decodeNextLong();
-
-				Txn.IsolationLevel isolationLevel = null;
-				if(decoder.nextIsNull()) decoder.skip();
-				else isolationLevel = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
-
-				boolean hasDependent = false;
-				boolean dependent = false;
-				if(decoder.nextIsNull()) decoder.skip();
-				else{
-						hasDependent = true;
-						dependent = decoder.decodeNextBoolean();
-				}
-
-				boolean hasAdditive = false;
-				boolean additive = false;
-				if(decoder.nextIsNull()) decoder.skip();
-				else{
-						hasAdditive = true;
-						additive = decoder.decodeNextBoolean();
-				}
-
-				long commitTs = -1l;
-				long globalCommitTs = -1l;
-				if(decoder.nextIsNull()) decoder.skip();
-				else commitTs = decoder.decodeNextLong();
-
-				if(decoder.nextIsNull()) decoder.skip();
-				else globalCommitTs = decoder.decodeNextLong();
-
-				Txn.State state = Txn.State.fromByte(decoder.decodeNextByte());
-
-				Collection<byte[]> destinationTables;
-				if(decoder.available()){
-						destinationTables = Lists.newArrayList();
-						while(decoder.available()){
-							destinationTables.add(decoder.decodeNextBytesUnsorted());
-						}
-				}else
-						destinationTables = Collections.emptyList();
-
-				Txn parentTxn = cache.getTransaction(parentTxnId);
-				return new InheritingTxnView(parentTxn,txnId,beginTs,
-								isolationLevel,
-								hasDependent,dependent,
-								hasAdditive,additive,
-								true,true,
-								commitTs,globalCommitTs,
-								state,destinationTables);
+        return decode(decoder, false);
 		}
 
-		private byte[] encode(Txn txn) {
+    private Txn decode(MultiFieldDecoder decoder,boolean hasKaTime) throws IOException {
+        long txnId = decoder.decodeNextLong();
+        long parentTxnId = -1l;
+        if(decoder.nextIsNull()) decoder.skip();
+        else parentTxnId = decoder.decodeNextLong();
+
+        long beginTs = decoder.decodeNextLong();
+
+        Txn.IsolationLevel isolationLevel = null;
+        if(decoder.nextIsNull()) decoder.skip();
+        else isolationLevel = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
+
+        boolean hasDependent = false;
+        boolean dependent = false;
+        if(decoder.nextIsNull()) decoder.skip();
+        else{
+            hasDependent = true;
+            dependent = decoder.decodeNextBoolean();
+        }
+
+        boolean hasAdditive = false;
+        boolean additive = false;
+        if(decoder.nextIsNull()) decoder.skip();
+        else{
+            hasAdditive = true;
+            additive = decoder.decodeNextBoolean();
+        }
+
+        long commitTs = -1l;
+        long globalCommitTs = -1l;
+        if(decoder.nextIsNull()) decoder.skip();
+        else commitTs = decoder.decodeNextLong();
+
+        if(decoder.nextIsNull()) decoder.skip();
+        else globalCommitTs = decoder.decodeNextLong();
+
+        Txn.State state = Txn.State.fromByte(decoder.decodeNextByte());
+
+        long kaTime = -1l;
+        if(hasKaTime)
+            kaTime = decoder.decodeNextLong();
+
+        Collection<byte[]> destinationTables;
+        if(decoder.available()){
+            destinationTables = Lists.newArrayList();
+            while(decoder.available()){
+            destinationTables.add(decoder.decodeNextBytesUnsorted());
+            }
+        }else
+            destinationTables = Collections.emptyList();
+
+        Txn parentTxn = cache.getTransaction(parentTxnId);
+        return new InheritingTxnView(parentTxn,txnId,beginTs,
+                isolationLevel,
+                hasDependent,dependent,
+                hasAdditive,additive,
+                true,true,
+                commitTs,globalCommitTs,
+                state,destinationTables,kaTime);
+    }
+
+    private byte[] encode(Txn txn) {
 				Collection<byte[]> destinationTables = txn.getDestinationTables();
 				MultiFieldEncoder encoder = MultiFieldEncoder.create(9+destinationTables.size());
 				encoder.encodeNext(txn.getTxnId());

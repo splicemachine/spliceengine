@@ -11,6 +11,7 @@ import com.google.common.collect.Sets;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
@@ -345,15 +346,15 @@ final class BulkWriteAction implements Callable<WriteStats> {
 				}
 
         if(toRetry.size()>0){
-            return retryFailedWrites(writeConfiguration.getMaximumRetries(), bulkWrite.getTxnId(), toRetry);
+            return retryFailedWrites(writeConfiguration.getMaximumRetries(), bulkWrite.getTxn(), toRetry);
         }
 				return Collections.emptyList();
     }
 
-    private List<BulkWrite> retryFailedWrites(int tries, String txnId, ObjectArrayList<KVPair> failedWrites) throws Exception {
+    private List<BulkWrite> retryFailedWrites(int tries, Txn txn, ObjectArrayList<KVPair> failedWrites) throws Exception {
         if(tries<0)
             throw new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
-				List<BulkWrite> newBuckets = getBulkWrites(txnId);
+				List<BulkWrite> newBuckets = getBulkWrites(txn);
         if(WriteUtils.bucketWrites(failedWrites, newBuckets)){
 						if(LOG.isTraceEnabled()){
 //								List<Integer> sizes = Lists.transform(newBuckets,new Function<BulkWrite, Integer>() {
@@ -367,23 +368,23 @@ final class BulkWriteAction implements Callable<WriteStats> {
 						}
 						return newBuckets;
         }else{
-            return retryFailedWrites(tries-1,txnId,failedWrites);
+            return retryFailedWrites(tries-1,txn,failedWrites);
         }
     }
 
-		private List<BulkWrite> getBulkWrites(String txnId) throws Exception {
+		private List<BulkWrite> getBulkWrites(Txn txn) throws Exception {
 				Set<HRegionInfo> regionInfo = getRegionsFromCache(writeConfiguration.getMaximumRetries());
-				return getWriteBuckets(txnId, regionInfo);
+				return getWriteBuckets(txn, regionInfo);
 		}
 
 		private List<BulkWrite> retry(int tries, BulkWrite bulkWrite) throws Exception {
-        return retryFailedWrites(tries, bulkWrite.getTxnId(), bulkWrite.getMutations());
+        return retryFailedWrites(tries, bulkWrite.getTxn(), bulkWrite.getMutations());
     }
 
-    private List<BulkWrite> getWriteBuckets(String txnId,Set<HRegionInfo> regionInfos){
+    private List<BulkWrite> getWriteBuckets(Txn txn,Set<HRegionInfo> regionInfos){
         List<BulkWrite> writes = Lists.newArrayListWithCapacity(regionInfos.size());
         for(HRegionInfo info:regionInfos){
-            writes.add(new BulkWrite(txnId, info.getStartKey()));
+            writes.add(new BulkWrite(txn, info.getStartKey()));
         }
         return writes;
     }

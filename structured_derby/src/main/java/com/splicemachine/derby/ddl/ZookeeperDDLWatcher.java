@@ -5,8 +5,8 @@ import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.impl.TransactionId;
+import com.google.gson.*;
+import com.splicemachine.si.api.Txn;
 import org.apache.derby.iapi.error.ShutdownException;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Property;
@@ -209,10 +209,11 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
 
     private void killDDLTransaction(String changeId) {
         try {
-            String transactionId = currentDDLChanges.get(changeId).getTransactionId();
-            LOG.warn("We are killing transaction " + transactionId + " since it exceeds the maximum wait period for"
+            Txn txn = currentDDLChanges.get(changeId).getTxn();
+            LOG.warn("We are killing transaction " + txn + " since it exceeds the maximum wait period for"
                     + " the DDL change " + changeId + " publication");
-            HTransactorFactory.getTransactionManager().fail(new TransactionId(transactionId));
+            throw new UnsupportedOperationException("IMPLEMENT");
+//            HTransactorFactory.getTransactionManager().fail(new TransactionId(transactionId));
         } catch (Exception e) {
             LOG.warn("Couldn't kill transaction, already killed?", e);
         }

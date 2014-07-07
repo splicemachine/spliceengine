@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 
 import com.splicemachine.hbase.batch.BatchConstraintChecker;
+import com.splicemachine.si.api.Txn;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import com.splicemachine.hbase.KVPair;
@@ -71,7 +72,7 @@ public interface Constraint {
      *
      * @throws IOException if something goes wrong during the validation.
      */
-    boolean validate(KVPair mutation,String txnId,RegionCoprocessorEnvironment rce,Collection<KVPair> priorValues) throws IOException;
+    boolean validate(KVPair mutation,Txn txn,RegionCoprocessorEnvironment rce,Collection<KVPair> priorValues) throws IOException;
 
     /**
      * Validate that the constraint is satisfied on all the mutations.
@@ -81,7 +82,7 @@ public interface Constraint {
      * @return the Mutations which failed validation
      * @throws IOException if something goes wrong during the validation
      */
-    Collection<KVPair> validate(Collection<KVPair> mutations, String txnId,
+    Collection<KVPair> validate(Collection<KVPair> mutations, Txn txn,
                      RegionCoprocessorEnvironment rce,List<KVPair> priorValues) throws IOException;
 
     ConstraintContext getConstraintContext();

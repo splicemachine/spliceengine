@@ -16,6 +16,7 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.UUIDGenerator;
 import org.apache.derby.catalog.UUID;
@@ -32,7 +33,7 @@ import java.sql.SQLException;
 public class RowTransformer implements Closeable {
 
     private UUID tableId;
-    private String txnId;
+    private Txn txn;
     private boolean initialized = false;
     private ExecRow oldRow;
     private ExecRow newRow;
@@ -48,11 +49,11 @@ public class RowTransformer implements Closeable {
     DataValueDescriptor[] kdvds;
 
     public RowTransformer(UUID tableId,
-                          String txnId,
+                          Txn txn,
                           ColumnInfo[] columnInfos,
                           int droppedColumnPosition) {
         this.tableId = tableId;
-        this.txnId = txnId;
+        this.txn = txn;
         this.columnInfos = columnInfos;
         this.droppedColumnPosition = droppedColumnPosition;
     }
@@ -77,7 +78,7 @@ public class RowTransformer implements Closeable {
     }
 
     private void initEncoder() throws StandardException {
-				String tableVersion = DataDictionaryUtils.getTableVersion(txnId,tableId);
+				String tableVersion = DataDictionaryUtils.getTableVersion(txn,tableId);
 				DescriptorSerializer[] oldSerializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(oldRow);
 
         // Initialize decoder
@@ -91,7 +92,7 @@ public class RowTransformer implements Closeable {
 //        keyMarshaller = new KeyMarshaller();
 
         // initialize encoder
-        oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(txnId, tableId);
+        oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(txn, tableId);
         newColumnOrdering = DataDictionaryUtils.getColumnOrderingAfterDropColumn(oldColumnOrdering, droppedColumnPosition);
 
         KeyEncoder encoder;
@@ -120,7 +121,7 @@ public class RowTransformer implements Closeable {
         baseColumnMap = IntArrays.count(oldRow.nColumns());
 
         if (oldColumnOrdering != null && oldColumnOrdering.length > 0) {
-            formatIds = DataDictionaryUtils.getFormatIds(txnId, tableId);
+            formatIds = DataDictionaryUtils.getFormatIds(txn, tableId);
             kdvds = new DataValueDescriptor[oldColumnOrdering.length];
             for (int i = 0; i < oldColumnOrdering.length; ++i) {
                 kdvds[i] = LazyDataValueFactory.getLazyNull(formatIds[oldColumnOrdering[i]]);

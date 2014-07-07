@@ -19,6 +19,6 @@ public interface StoreSetup {
     String getPersonTableName();
     Clock getClock();
 
-		TxnStore getTxnStore(TxnLifecycleManager txnLifecycleManager);
+		TxnStore getTxnStore();
 		TimestampSource getTimestampSource();
 }

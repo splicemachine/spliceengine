@@ -6,6 +6,7 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.hbase.HBaseRegionCache;
 import com.splicemachine.hbase.table.SpliceHTable;
 import com.splicemachine.job.Task;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HConnectionManager;
@@ -52,20 +53,14 @@ public class NonTransactionalCounterJob implements CoprocessorJob{
         }
     }
 
-    @Override
-    public TransactionId getParentTransaction() {
-        return null;
-    }
-
-    @Override
-    public boolean isReadOnly() {
-        return true;
-    }
+    @Override public byte[] getDestinationTable() { return null; }
 
     @Override
     public String getJobId() {
         return operationId;
     }
+
+    @Override public Txn getTxn() { return null; }
 
     @Override
     public <T extends Task> Pair<T, Pair<byte[], byte[]>> resubmitTask(T originalTask, byte[] taskStartKey, byte[] taskEndKey) throws IOException {

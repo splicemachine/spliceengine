@@ -9,10 +9,7 @@ import com.splicemachine.derby.impl.sql.execute.constraint.*;
 import com.splicemachine.derby.impl.sql.execute.index.*;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.hbase.batch.*;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.api.TransactionStatus;
-import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.ResettableCountDownLatch;
@@ -25,6 +22,7 @@ import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -71,17 +69,17 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
     }
 
     @Override
-    public WriteContext create(String txnId,TransactionalRegion region) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(txnId,region);
+    public WriteContext create(Txn txn, TransactionalRegion region, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(txn,region, env);
         context.addLast(new RegionWriteHandler(region, tableWriteLatch, writeBatchSize, null));
         addIndexInformation(1000, context);
         return context;
     }
 
     @Override
-    public WriteContext create(String txnId, TransactionalRegion region,
-															 int expectedWrites) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(txnId,region);
+    public WriteContext create(Txn txn, TransactionalRegion region,
+                               int expectedWrites, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(txn,region, env);
 				BatchConstraintChecker checker = buildConstraintChecker();
         context.addLast(new RegionWriteHandler(region, tableWriteLatch, writeBatchSize,checker));
         addIndexInformation(expectedWrites, context);
@@ -98,16 +96,16 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
 		}
 
 		private void addIndexInformation(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
-        String transactionId = context.getTransactionId();
+        Txn txn = context.getTxn();
         switch (state.get()) {
             case READY_TO_START:
                 SpliceLogUtils.trace(LOG, "Index management for conglomerate %d " +
                         "has not completed, attempting to start now", congomId);
-                start(transactionId);
+                start(txn);
                 break;
             case STARTING:
                 SpliceLogUtils.trace(LOG,"Index management is starting up");
-                start(transactionId);
+                start(txn);
                 break;
             case FAILED_SETUP:
                 //since we haven't done any writes yet, it's safe to just explore
@@ -136,8 +134,8 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
     }
 
     @Override
-    public WriteContext createPassThrough(String txnId,TransactionalRegion region,int expectedWrites) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(txnId,region);
+    public WriteContext createPassThrough(Txn txn, TransactionalRegion region, int expectedWrites, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(txn,region, env);
         addIndexInformation(expectedWrites, context);
 
         return context;
@@ -240,7 +238,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
         NOT_MANAGED
     }
 
-    private void start(String transactionId) throws IOException,InterruptedException{
+    private void start(Txn txn) throws IOException,InterruptedException{
         /*
          * Ready to Start => switch to STARTING
          * STARTING => continue through to block on the lock
@@ -265,7 +263,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
             transactionResource = new SpliceTransactionResourceImpl();
             transactionResource.prepareContextManager();
             try{
-                transactionResource.marshallTransaction(transactionId);
+                transactionResource.marshallTransaction(txn);
 
                 DataDictionary dataDictionary= transactionResource.getLcc().getDataDictionary();
                 ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(congomId);
@@ -592,7 +590,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
                 ctx.addLast(deleteHandler);
                 ctx.addLast(writeHandler);
             } else {
-                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getParentTransactionId(),ddlChange.getTransactionId());
+                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getTxn());
                 ctx.addLast(new SnapshotIsolatedWriteHandler(deleteHandler, ddlFilter));
                 ctx.addLast(new SnapshotIsolatedWriteHandler(writeHandler, ddlFilter));
             }
@@ -620,20 +618,20 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
 
     private static class DropColumnFactory  {
         private UUID tableId;
-        private String txnId;
+        private Txn txn;
         private long newConglomId;
         private ColumnInfo[] columnInfos;
         private int droppedColumnPosition;
         private DDLChange ddlChange;
 
         public DropColumnFactory(UUID tableId,
-                                 String txnId,
+                                 Txn txn,
                                  long newConglomId,
                                  ColumnInfo[] columnInfos,
                                  int droppedColumnPosition,
                                  DDLChange ddlChange) {
             this.tableId = tableId;
-            this.txnId = txnId;
+            this.txn = txn;
             this.newConglomId = newConglomId;
             this.columnInfos = columnInfos;
             this.droppedColumnPosition = droppedColumnPosition;
@@ -647,19 +645,19 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
             TentativeDropColumnDesc desc = (TentativeDropColumnDesc)ddlChange.getTentativeDDLDesc();
 
             UUID tableId = desc.getTableId();
-            String txnId = ddlChange.getTransactionId();
+            Txn txn = ddlChange.getTxn();
             long newConglomId = desc.getConglomerateNumber();
             ColumnInfo[] columnInfos = desc.getColumnInfos();
             int droppedColumnPosition = desc.getDroppedColumnPosition();
-            return new DropColumnFactory(tableId, txnId, newConglomId, columnInfos, droppedColumnPosition, ddlChange);
+            return new DropColumnFactory(tableId, txn, newConglomId, columnInfos, droppedColumnPosition, ddlChange);
         }
 
         public void addTo(PipelineWriteContext ctx) throws IOException{
-            DropColumnHandler handler = new DropColumnHandler(tableId, newConglomId, txnId, columnInfos, droppedColumnPosition);
+            DropColumnHandler handler = new DropColumnHandler(tableId, newConglomId, txn, columnInfos, droppedColumnPosition);
             if (ddlChange == null) {
                 ctx.addLast(handler);
             } else {
-                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getParentTransactionId(),ddlChange.getTransactionId());
+                    DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getTxn());
                 ctx.addLast(new SnapshotIsolatedWriteHandler(handler, ddlFilter));
             }
         }

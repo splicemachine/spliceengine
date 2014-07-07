@@ -42,7 +42,7 @@ public class RegionWriteHandler implements WriteHandler {
         this.region = region;
         this.writeLatch = writeLatch;
 				this.constraintChecker = constraintChecker;
-				this.mutations = Lists.newArrayListWithExpectedSize(writeBatchSize);
+				this.mutations = Lists.newArrayList();
     }
 
     @Override

@@ -20,6 +20,7 @@ import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.api.SIFilter;
+import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.FilterState;
@@ -59,7 +60,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		private final Counter filterCounter;
 
 		private MeasuredRegionScanner regionScanner;
-		private final HRegion region;
+		private final TransactionalRegion region;
 		private final Scan scan;
         private ScopedPredicates scopedPredicates;
 		private final ExecRow template;
@@ -89,37 +90,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 
 
 		SITableScanner(MeasuredRegionScanner scanner,
-									 HRegion region,
-													ExecRow template,
-													MetricFactory metricFactory,
-													Scan scan,
-													int[] rowDecodingMap,
-													Txn txn,
-													int[] allPkColumns,
-													boolean[] keyColumnSortOrder,
-													int[] keyColumnTypes,
-													int[] keyDecodingMap,
-													FormatableBitSet accessedPks,
-													String indexName,
-													String tableVersion) {
-			this(scanner,
-							region,
-							template,
-							metricFactory,
-							scan,
-							rowDecodingMap,
-							txn,
-							allPkColumns,
-							keyColumnSortOrder,
-							keyColumnTypes,
-							keyDecodingMap,
-							accessedPks,
-							indexName,
-							tableVersion,null);
-		}
-
-		SITableScanner(MeasuredRegionScanner scanner,
-									 final HRegion region,
+									 final TransactionalRegion region,
 													final ExecRow template,
 													MetricFactory metricFactory,
 													Scan scan,
@@ -154,7 +125,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 																					EntryDecoder rowEntryDecoder,
 																					EntryAccumulator accumulator,
 																					boolean isCountStar) throws IOException {
-										TxnFilter txnFilter = HTransactorFactory.getTransactionReadController().newFilterState(HTransactorFactory.getReadResolver(region), txn);
+										TxnFilter txnFilter = region.unpackedFilter(txn);
 
 										HRowAccumulator hRowAccumulator = new HRowAccumulator(predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
 										//noinspection unchecked

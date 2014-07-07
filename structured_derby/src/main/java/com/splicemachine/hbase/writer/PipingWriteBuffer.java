@@ -7,6 +7,8 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
@@ -38,7 +40,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     private final Writer writer;
     private final Writer synchronousWriter;
     private final byte[] tableName;
-    private final String txnId;
+    private final Txn txn;
     private final RegionCache regionCache;
 
     private long totalElementsAdded = 0l;
@@ -63,7 +65,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
 
 
     public PipingWriteBuffer(byte[] tableName,
-                      String txnId,
+														 Txn txn,
                       Writer writer,
                       Writer synchronousWriter,
                       RegionCache regionCache,
@@ -71,9 +73,9 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
                       Writer.WriteConfiguration writeConfiguration,
                       BufferConfiguration bufferConfiguration) {
         this.writer = writer;
+				this.txn = txn;
         this.synchronousWriter = synchronousWriter;
         this.tableName = tableName;
-        this.txnId = txnId;
         this.regionCache = regionCache;
         this.writeConfiguration = new UpdatingWriteConfiguration(writeConfiguration);
         this.regionToBufferMap = new TreeMap<byte[], PreMappedBuffer>(Bytes.BYTES_COMPARATOR);
@@ -300,7 +302,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
 						heapSize=0;
 
 						copy = preFlushHook.transform(copy);
-						BulkWrite write = new BulkWrite(copy,txnId,regionStartKey);
+						BulkWrite write = new BulkWrite(copy,txn,regionStartKey);
 						outstandingRequests.add(writer.write(tableName,write, writeConfiguration));
 				}
 

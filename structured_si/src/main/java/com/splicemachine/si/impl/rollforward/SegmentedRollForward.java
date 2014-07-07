@@ -66,6 +66,10 @@ public class SegmentedRollForward implements RollForward {
 				void submitAction(HRegion region,byte[] startKey, byte[] stopKey,Context context);
 		}
 
+    public static final Action NOOP_ACTION = new Action() {
+        @Override public void submitAction(HRegion region, byte[] startKey, byte[] stopKey, Context context) {  }
+    };
+
 		private final HRegion region;
 		/*
 		 * We use our own internal RegionSegment implementations here, which

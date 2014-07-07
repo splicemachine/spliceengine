@@ -10,6 +10,7 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.table.BoundCall;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskStatus;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -295,6 +296,7 @@ public class JobControlTest {
         private final CountDownLatch latch;
         private volatile TaskStatus taskStatus;
         private final int pos;
+        private Txn txn;
 
         public CountDownRegionTask(CountDownLatch latch,int pos) {
             this.latch = latch;
@@ -317,6 +319,17 @@ public class JobControlTest {
             return "/test/taskNode";
         }
 
+        @Override
+        public void setTxn(Txn txn) {
+            this.txn = txn;
+        }
+
+        @Override
+        public Txn getTxn() {
+            return txn;
+        }
+
+        @Override
 				@Override
 				public RegionTask getClone() {
 						return this;
@@ -402,11 +415,6 @@ public class JobControlTest {
         @Override
         public int getPriority() {
             return 1;
-        }
-
-        @Override
-        public boolean isTransactional() {
-            return false;
         }
 
 				@Override

@@ -167,7 +167,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		@Override
 		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				try{
-						Scan scan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
+						Scan scan = Scans.buildPrefixRangeScan(uniqueSequenceID,null);
 						return new ClientScanProvider("hashScanMap",SpliceOperationCoprocessor.TEMP_TABLE,scan,
 										OperationUtils.getPairDecoder(this,spliceRuntimeContext), spliceRuntimeContext);
 				} catch (IOException e) {

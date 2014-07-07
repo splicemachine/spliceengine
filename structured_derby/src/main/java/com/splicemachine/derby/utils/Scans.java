@@ -5,6 +5,7 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
 import com.splicemachine.storage.AndPredicate;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -42,30 +43,30 @@ public class Scans extends SpliceUtils {
 		 * be returned by the scan.
 		 *
 		 * @param prefix the prefix to search
-		 * @param transactionId the transaction ID
+		 * @param txn the transaction
 		 * @return a transactionally-aware Scan which will scan all keys stored lexicographically between
 		 * {@code prefix} and the lexicographic increment of {@code prefix}
 		 * @throws IOException if {@code prefix} is unable to be correctly converted into a byte[]
 		 */
-		public static Scan buildPrefixRangeScan(byte[] prefix,String transactionId) throws IOException {
+		public static Scan buildPrefixRangeScan(byte[] prefix,Txn txn) throws IOException {
 				byte[] start = new byte[prefix.length];
 				System.arraycopy(prefix,0,start,0,start.length);
 
 				byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);
-				return newScan(start,finish,transactionId);
+				return newScan(start,finish,txn);
 		}
 
 		/**
-		 * Convenience utility for calling {@link #newScan(byte[], byte[], String, int)} when
+		 * Convenience utility for calling {@link #newScan(byte[], byte[], com.splicemachine.si.api.Txn, int)} when
 		 * the Default cache size is acceptable and the transactionID is a string.
 		 *
 		 * @param start the start row of the scan
 		 * @param finish the stop row of the scan
-		 * @param transactionID the transactionID.
+		 * @param txn the transaction for the scan.
 		 * @return a transactionally-aware scan constructed with {@link #DEFAULT_CACHE_SIZE}
 		 */
-		public static Scan newScan(byte[] start, byte[] finish, String transactionID) {
-				return newScan(start, finish, transactionID, DEFAULT_CACHE_SIZE);
+		public static Scan newScan(byte[] start, byte[] finish, Txn txn) {
+				return newScan(start, finish, txn, DEFAULT_CACHE_SIZE);
 		}
 		/**
 		 * Constructs a new Scan from the specified start and stop rows, and adds transaction information
@@ -73,13 +74,13 @@ public class Scans extends SpliceUtils {
 		 *
 		 * @param startRow the start of the scan
 		 * @param stopRow the end of the scan
-		 * @param transactionId the transaction id for the scan
+		 * @param txn the transaction for the scan
 		 * @param caching the number of rows to cache.
 		 * @return a correctly constructed, transactionally-aware scan.
 		 */
 		public static Scan newScan(byte[] startRow, byte[] stopRow,
-															 String transactionId, int caching) {
-				Scan scan = SpliceUtils.createScan(transactionId);
+															 Txn txn, int caching) {
+				Scan scan = SpliceUtils.createScan(txn);
 				scan.setCaching(caching);
 				scan.setStartRow(startRow);
 				scan.setStopRow(stopRow);
@@ -112,7 +113,7 @@ public class Scans extends SpliceUtils {
 		 *                   the amount of data returned.
 		 * @param sortOrder a sort order to use in how data is to be searched, or {@code null} if the default sort is used.
 		 * @param scanColumnList a bitset determining which columns should be returned by the scan.
-		 * @param transactionId the transactionId to use
+		 * @param txn the transaction to use
 		 * @return a transactionally aware scan from {@code startKeyValue} to {@code stopKeyValue}, with appropriate
 		 * filters aas specified by {@code qualifiers}
 		 */
@@ -121,15 +122,15 @@ public class Scans extends SpliceUtils {
 																 Qualifier[][] qualifiers,
 																 boolean[] sortOrder,
 																 FormatableBitSet scanColumnList,
-																 String transactionId,
+                                 Txn txn,
 																 boolean sameStartStopPosition,
 																 int[] formatIds,
 																 int[] keyDecodingMap,
 																 int[] keyTablePositionMap,
 																 DataValueFactory dataValueFactory,
 																 String tableVersion) throws StandardException {
-				assert dataValueFactory != null;
-				Scan scan = SpliceUtils.createScan(transactionId, scanColumnList!=null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
+        assert dataValueFactory != null;
+				Scan scan = SpliceUtils.createScan(txn, scanColumnList!=null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
 				scan.setCaching(DEFAULT_CACHE_SIZE);
 				try{
 						attachScanKeys(scan, startKeyValue, startSearchOperator,

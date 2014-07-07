@@ -13,6 +13,8 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BufferedRegionScanner;
+import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
@@ -37,8 +39,8 @@ public class ConglomerateScanner {
 
     private static Logger LOG = Logger.getLogger(ConglomerateScanner.class);
     private ColumnInfo[] columnInfo;
-    private String txnId;
     private boolean isTraced;
+    private Txn txn;
 
     private ExecRow row;
     private HRegion region;
@@ -49,13 +51,13 @@ public class ConglomerateScanner {
 
     public ConglomerateScanner(ColumnInfo[] columnInfo,
                                HRegion region,
-                               String txnId,
+                               Txn txn,
                                boolean isTraced,
                                byte[] scanStart,
                                byte[] scanFinish) throws StandardException{
         this.columnInfo = columnInfo;
         this.isTraced = isTraced;
-        this.txnId = txnId;
+        this.txn = txn;
         this.region = region;
         this.scanStart = scanStart;
         this.scanFinish = scanFinish;
@@ -75,7 +77,7 @@ public class ConglomerateScanner {
     private void initScanner() throws ExecutionException{
 
         // initialize a region scanner
-        Scan regionScan = SpliceUtils.createScan(txnId);
+        Scan regionScan = SpliceUtils.createScan(txn);
         regionScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
         regionScan.setStartRow(scanStart);
         regionScan.setStopRow(scanFinish);
@@ -87,7 +89,7 @@ public class ConglomerateScanner {
             RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
             if(sourceScanner==null)
                 sourceScanner = region.getScanner(regionScan);
-            Scan scan = SpliceUtils.createScan(txnId);
+            Scan scan = SpliceUtils.createScan(txn);
             brs = new BufferedRegionScanner(region,sourceScanner,scan,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory);
         } catch (IOException e) {
             SpliceLogUtils.error(LOG, e);

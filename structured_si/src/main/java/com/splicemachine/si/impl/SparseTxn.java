@@ -14,7 +14,6 @@ import java.util.Collection;
  */
 public class SparseTxn {
 
-
 		private final long txnId;
 		private final long beginTimestamp;
 		private final long parentTxnId;

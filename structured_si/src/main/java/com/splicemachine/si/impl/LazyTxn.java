@@ -202,7 +202,12 @@ public class LazyTxn implements Txn {
 				return delegate.getEffectiveBeginTimestamp();
 		}
 
-		@Override
+    @Override
+    public long getLastKeepAliveTimestamp() {
+        return -1l; //don't lookup just for the timestamp;
+    }
+
+    @Override
 		public Txn getParentTransaction() {
 				try {
 						lookup(false); //parent txn never changes

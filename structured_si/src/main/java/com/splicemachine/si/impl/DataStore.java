@@ -106,36 +106,10 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 			return decodeForOp(op.getAttribute(SIConstants.SI_TRANSACTION_KEY),readOnly);
 		}
 
-		public void setTransactionId(long transactionId, OperationWithAttributes operation) {
-				operation.setAttribute(transactionIdAttribute, dataLib.encode(String.valueOf(transactionId)));
-		}
-
 		public TransactionId getTransactionIdFromOperation(OperationWithAttributes put) {
 				byte[] value = put.getAttribute(transactionIdAttribute);
 				if(value==null) return null;
 				return new TransactionId(Bytes.toString(value));
-		}
-
-		public long getTxnIdFromOp(OperationWithAttributes put){
-				byte[] value = put.getAttribute(transactionIdAttribute);
-				if(value==null) return -1l;
-				return Long.parseLong(Bytes.toString(value));
-		}
-
-		public String getTransactionid(OperationWithAttributes owa){
-				byte[] value = owa.getAttribute(transactionIdAttribute);
-				if(value==null) return null;
-				return Bytes.toString(value);
-		}
-
-		void copyPutKeyValues(Put put, Put newPut, long timestamp) {
-				for (KeyValue keyValue : dataLib.listPut(put)) {
-						final byte[] qualifier = keyValue.getQualifier();
-						dataLib.addKeyValueToPut(newPut, keyValue.getFamily(),
-										qualifier,
-										timestamp,
-										keyValue.getValue());
-				}
 		}
 
 		public Delete copyPutToDelete(Put put, Set<Long> transactionIdsToDelete) {
@@ -199,21 +173,6 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 				return KeyValueUtils.matchingValue(keyValue, siFail);
 		}
 
-		public void setCommitTimestamp(IHTable table, byte[] rowKey, long beginTimestamp, long transactionId) throws IOException {
-				setCommitTimestampDirect(table, rowKey, beginTimestamp, dataLib.encode(transactionId));
-		}
-
-		public void setCommitTimestampToFail(IHTable table, byte[] rowKey, long transactionId) throws IOException {
-				setCommitTimestampDirect(table, rowKey, transactionId, siFail);
-		}
-
-		private void setCommitTimestampDirect(IHTable table, byte[] rowKey, long transactionId, byte[] timestampValue) throws IOException {
-				Put put = dataLib.newPut(rowKey);
-				suppressIndexing(put);
-				dataLib.addKeyValueToPut(put, userColumnFamily, commitTimestampQualifier, transactionId, timestampValue);
-				writer.write(table, put, false);
-		}
-
 		/**
 		 * When this new operation goes through the co-processor stack it should not be indexed (because it already has been
 		 * when the original operation went through).
@@ -259,13 +218,13 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 				return writer.writeBatch(table, mutationsAndLocks);
 		}
 
-		public void closeLowLevelOperation(IHTable table) throws IOException {
-				reader.closeOperation(table);
-		}
-
-		public void startLowLevelOperation(IHTable table) throws IOException {
-				reader.openOperation(table);
-		}
+//		public void closeLowLevelOperation(IHTable table) throws IOException {
+//				reader.closeOperation(table);
+//		}
+//
+//		public void startLowLevelOperation(IHTable table) throws IOException {
+//				reader.openOperation(table);
+//		}
 
 		public String getTableName(IHTable table) {
 				return reader.getTableName(table);

@@ -5,6 +5,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -32,14 +35,21 @@ import org.hbase.async.HbaseAttributeHolder;
 public class SpliceOperationRegionObserver extends BaseRegionObserver {
 	private static Logger LOG = Logger.getLogger(SpliceOperationRegionObserver.class);
 	public static String SPLICE_OBSERVER_INSTRUCTIONS = "Z"; // Reducing this so the amount of network traffic will be reduced...
-	/**
-	 * Logs the start of the observer.
-	 */
-	@Override
-	public void start(CoprocessorEnvironment e) throws IOException {
-		SpliceLogUtils.info(LOG, "Starting TransactionalManagerRegionObserver CoProcessor %s", SpliceOperationRegionObserver.class);
-		super.start(e);
-	}
+
+    private TransactionalRegion txnRegion;
+
+    /**
+     * Logs the start of the observer.
+     */
+    @Override
+    public void start(CoprocessorEnvironment e) throws IOException {
+        SpliceLogUtils.info(LOG, "Starting TransactionalManagerRegionObserver CoProcessor %s", SpliceOperationRegionObserver.class);
+
+        //TODO -sf- implement RollForward
+        this.txnRegion = TransactionalRegions.get(((RegionCoprocessorEnvironment)e).getRegion(), SegmentedRollForward.NOOP_ACTION);
+        super.start(e);
+    }
+
 	/**
 	 * Logs the stop of the observer.
 	 */
@@ -92,6 +102,7 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
 			if (scan.getCaching() < 0) // Async Scanner is corrupting this value..
 				scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
 			return super.postScannerOpen(e, scan, new SpliceOperationRegionScanner(s,scan,e.getEnvironment().getRegion()));
+			return super.postScannerOpen(e, scan, new SpliceOperationRegionScanner(s,scan,e.getEnvironment().getRegion(),txnRegion));
 		}
 //		SpliceLogUtils.trace(LOG, "postScannerOpen called, but no instructions specified");
 		return super.postScannerOpen(e, scan, s);

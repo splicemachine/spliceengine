@@ -1,6 +1,7 @@
 package com.splicemachine.si.api;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -20,6 +21,8 @@ public interface TxnStore extends TxnSupplier {
 
 		public long commit(long txnId) throws IOException;
 
+		public boolean keepAlive(long txnId) throws IOException;
+
 		public void elevateTransaction(Txn txn, byte[] newDestinationTable) throws IOException;
 
 		/**
@@ -38,8 +41,10 @@ public interface TxnStore extends TxnSupplier {
 		 * 			will be returned.
 		 * @throws IOException
 		 */
-		long[] getActiveTransactions(Txn txn,byte[] table) throws IOException;
+		long[] getActiveTransactionIds(Txn txn, byte[] table) throws IOException;
 
-		long[] getActiveTransactions(long minTxnId,long maxTxnId,byte[] table) throws IOException;
+		long[] getActiveTransactionIds(long minTxnId, long maxTxnId, byte[] table) throws IOException;
+
+    List<Txn> getActiveTransactions(long minTxnid, long maxTxnId,byte[] table) throws IOException;
 
 }

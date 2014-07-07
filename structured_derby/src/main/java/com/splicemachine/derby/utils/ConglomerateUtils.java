@@ -8,6 +8,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
@@ -46,14 +47,14 @@ public class ConglomerateUtils extends SpliceConstants {
 	 * @param <T> the type to return
 	 * @return an instance of {@code T} which contains the conglomerate information.
 	 */
-	public static <T> T readConglomerate(long conglomId, Class<T> instanceClass, String transactionID) throws StandardException {
+	public static <T> T readConglomerate(long conglomId, Class<T> instanceClass, Txn txn) throws StandardException {
 		SpliceLogUtils.trace(LOG,"readConglomerate {%d}, for instanceClass {%s}",conglomId,instanceClass);
-		Preconditions.checkNotNull(transactionID);
+		Preconditions.checkNotNull(txn);
 		Preconditions.checkNotNull(conglomId);
 		HTableInterface table = null;
 		try {
 			table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
-			Get get = SpliceUtils.createGet(transactionID, Bytes.toBytes(conglomId));
+			Get get = SpliceUtils.createGet(txn, Bytes.toBytes(conglomId));
             get.addColumn(DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES);
             EntryPredicateFilter predicateFilter  = EntryPredicateFilter.emptyPredicate();
             get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
@@ -196,8 +197,8 @@ public class ConglomerateUtils extends SpliceConstants {
 	 * @param conglomerate the conglomerate to store
 	 * @throws IOException if something goes wrong and the data can't be stored.
 	 */
-	public static void createConglomerate(long conglomId, Conglomerate conglomerate, String transactionID) throws StandardException {
-		createConglomerate(Long.toString(conglomId), conglomId, DerbyBytesUtil.toBytes(conglomerate),transactionID);
+	public static void createConglomerate(long conglomId, Conglomerate conglomerate, Txn txn) throws StandardException {
+		createConglomerate(Long.toString(conglomId), conglomId, DerbyBytesUtil.toBytes(conglomerate),txn);
 	}
 
 	/**
@@ -206,9 +207,9 @@ public class ConglomerateUtils extends SpliceConstants {
 	 * @param tableName the name of the table
 	 * @throws IOException if something goes wrong and the data can't be stored.
 	 */
-	public static void createConglomerate(String tableName, long conglomId, byte[] conglomData, String transactionID) throws StandardException {
+	public static void createConglomerate(String tableName, long conglomId, byte[] conglomData, Txn txn) throws StandardException {
 		SpliceLogUtils.debug(LOG, "creating Hbase table for conglom {%s} with data {%s}", tableName, conglomData);
-		Preconditions.checkNotNull(transactionID);
+		Preconditions.checkNotNull(txn);
 		Preconditions.checkNotNull(conglomData);		
 		Preconditions.checkNotNull(tableName);
 		HBaseAdmin admin = SpliceUtils.getAdmin();
@@ -218,7 +219,7 @@ public class ConglomerateUtils extends SpliceConstants {
 			HTableDescriptor td = SpliceUtils.generateDefaultSIGovernedTable(tableName);
 			admin.createTable(td);
 			table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
-			Put put = SpliceUtils.createPut(Bytes.toBytes(conglomId), transactionID);
+			Put put = SpliceUtils.createPut(Bytes.toBytes(conglomId), txn);
             BitSet fields = new BitSet();
             fields.set(0);
             entryEncoder = EntryEncoder.create(SpliceDriver.getKryoPool(),1, fields,null,null,null);
@@ -241,14 +242,14 @@ public class ConglomerateUtils extends SpliceConstants {
 	 * @param conglomerate the new conglomerate information to update
 	 * @throws IOException if something goes wrong and the data can't be stored.
 	 */
-	public static void updateConglomerate(Conglomerate conglomerate, String transactionID) throws StandardException {
+	public static void updateConglomerate(Conglomerate conglomerate, Txn txn) throws StandardException {
 		String tableName = Long.toString(conglomerate.getContainerid());
 		SpliceLogUtils.debug(LOG, "updating table {%s} in hbase with serialized data {%s}",tableName,conglomerate);
 		HTableInterface table = null;
         EntryEncoder entryEncoder = null;
 		try{
 			table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
-			Put put = SpliceUtils.createPut(Bytes.toBytes(conglomerate.getContainerid()), transactionID);
+			Put put = SpliceUtils.createPut(Bytes.toBytes(conglomerate.getContainerid()), txn);
             BitSet setFields = new BitSet();
             setFields.set(0);
             entryEncoder = EntryEncoder.create(SpliceDriver.getKryoPool(),1,setFields,null,null,null); //no need to set length-delimited, we aren't

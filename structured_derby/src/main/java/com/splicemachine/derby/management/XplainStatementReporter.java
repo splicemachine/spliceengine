@@ -51,7 +51,7 @@ public class XplainStatementReporter extends XplainReporter<StatementInfo> {
 										encoder.encodeNext(statementInfo.getStatementUuid()) //0 - long
 														.encodeNext(InetAddress.getLocalHost().getHostName().trim()) //1 - varchar
 														.encodeNext(statementInfo.getUser().trim()) //2 - varchar
-														.encodeNext(Long.parseLong(statementInfo.getTxnId())) //3 - long
+														.encodeNext(statementInfo.getTxnId()) //3 - long
 														.encodeNext(statementInfo.status()) //4 - varchar
 														.encodeNext(statementInfo.getSql()) //5 - varchar
 														.encodeNext(statementInfo.getNumJobs()) //6 - int

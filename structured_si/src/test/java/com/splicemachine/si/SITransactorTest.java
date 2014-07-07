@@ -101,7 +101,7 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("joe9 age=20 job=null", testUtility.read(t1, "joe9"));
 				t1.commit();
 
-				Txn t2 = control.beginTransaction(Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+				Txn t2 = control.beginTransaction();
 				try{
 						Assert.assertEquals("joe9 age=20 job=null", testUtility.read(t2, "joe9"));
 				}finally{
@@ -112,7 +112,7 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void writeReadOverlap() throws IOException {
         Txn t1 = control.beginTransaction();
-				t1.elevateToWritable(Bytes.toBytes("t"));
+				t1 =t1.elevateToWritable(Bytes.toBytes("t"));
         Assert.assertEquals("joe8 absent", testUtility.read(t1, "joe8"));
         testUtility.insertAge(t1, "joe8", 20);
         Assert.assertEquals("joe8 age=20 job=null", testUtility.read(t1, "joe8"));
@@ -129,18 +129,18 @@ public class SITransactorTest extends SIConstants {
 		public void testGetActiveTransactionsFiltersOutChildrenCommit() throws Exception {
 				Txn parent = control.beginTransaction(DESTINATION_TABLE);
 				Txn child = control.beginChildTransaction(parent,parent.getIsolationLevel(),true,DESTINATION_TABLE);
-				long[] activeTxns = txnStore.getActiveTransactions(child,null);
+				long[] activeTxns = txnStore.getActiveTransactionIds(child, null);
 				Assert.assertEquals("Incorrect size",2,activeTxns.length);
 				Arrays.sort(activeTxns);
 				Assert.assertEquals("Incorrect transaction returned!",parent.getTxnId(),activeTxns[0]);
 				Assert.assertEquals("Incorrect transaction returned!",child.getTxnId(),activeTxns[1]);
 
 				parent.commit();
-				activeTxns = txnStore.getActiveTransactions(child,null);
+				activeTxns = txnStore.getActiveTransactionIds(child, null);
 				Assert.assertEquals("Incorrect size",0,activeTxns.length);
 
 				Txn next = control.beginTransaction(DESTINATION_TABLE);
-				activeTxns = txnStore.getActiveTransactions(next,null);
+				activeTxns = txnStore.getActiveTransactionIds(next, null);
 				Assert.assertEquals("Incorrect size",1,activeTxns.length);
 				Assert.assertEquals("Incorrect transaction returned!",next.getTxnId(),activeTxns[0]);
 		}
@@ -149,7 +149,7 @@ public class SITransactorTest extends SIConstants {
 		public void testGetActiveWriteTransactionsShowsWriteTransactions() throws Exception {
 				Txn parent = control.beginTransaction(DESTINATION_TABLE);
 
-				long[] ids = txnStore.getActiveTransactions(parent, null);
+				long[] ids = txnStore.getActiveTransactionIds(parent, null);
 				Assert.assertEquals("Incorrect size",1,ids.length);
 				Assert.assertArrayEquals("Incorrect values", new long[]{parent.getTxnId()}, ids);
 
@@ -160,7 +160,7 @@ public class SITransactorTest extends SIConstants {
 
 				//now see if a read-only doesn't show
 				Txn next = control.beginTransaction();
-				ids = txnStore.getActiveTransactions(next, null);
+				ids = txnStore.getActiveTransactionIds(next, null);
 				Assert.assertEquals("Incorrect size",1,ids.length);
 				Assert.assertArrayEquals("Incorrect values", new long[]{parent.getTxnId()}, ids);
 		}
@@ -169,7 +169,7 @@ public class SITransactorTest extends SIConstants {
 		public void testGetActiveTransactionsWorksWithGap() throws Exception {
 				Txn parent = control.beginTransaction(DESTINATION_TABLE);
 
-				long[] ids = txnStore.getActiveTransactions(parent,null);
+				long[] ids = txnStore.getActiveTransactionIds(parent, null);
 				Assert.assertEquals("Incorrect size",1,ids.length);
 				Assert.assertArrayEquals("Incorrect values", new long[]{parent.getTxnId()}, ids);
 
@@ -179,7 +179,7 @@ public class SITransactorTest extends SIConstants {
 
 
 				Txn next = control.beginTransaction(DESTINATION_TABLE);
-				ids = txnStore.getActiveTransactions(next,null);
+				ids = txnStore.getActiveTransactionIds(next, null);
 				Assert.assertEquals("Incorrect size",2,ids.length);
 				Arrays.sort(ids);
 				Assert.assertArrayEquals("Incorrect values",new long[]{parent.getTxnId(),next.getTxnId()},ids);
@@ -215,7 +215,7 @@ public class SITransactorTest extends SIConstants {
 				Txn parent = control.beginTransaction(DESTINATION_TABLE);
 				Txn child = control.beginChildTransaction(parent,parent.getIsolationLevel(),true, DESTINATION_TABLE);
 				Txn grandChild = control.beginChildTransaction(child,child.getIsolationLevel(),true,DESTINATION_TABLE);
-				long[] ids = txnStore.getActiveTransactions(grandChild,null);
+				long[] ids = txnStore.getActiveTransactionIds(grandChild, null);
 				Assert.assertEquals("Incorrect size",3,ids.length);
 				Arrays.sort(ids);
 				Assert.assertArrayEquals("Incorrect values", new long[]{parent.getTxnId(), child.getTxnId(), grandChild.getTxnId()}, ids);
@@ -226,7 +226,7 @@ public class SITransactorTest extends SIConstants {
 				parent.rollback();
 
 				Txn next = control.beginTransaction(DESTINATION_TABLE);
-				ids = txnStore.getActiveTransactions(next,null);
+				ids = txnStore.getActiveTransactionIds(next, null);
 				Assert.assertEquals("Incorrect size",1,ids.length);
 				Assert.assertArrayEquals("Incorrect values", new long[]{next.getTxnId()}, ids);
 		}
@@ -2772,7 +2772,7 @@ public class SITransactorTest extends SIConstants {
     public void oldestActiveTransactionsOne() throws IOException {
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         transactorSetup.timestampSource.rememberTimestamp(t1.getTxnId() - 1);
-        long[] ids = txnStore.getActiveTransactions(t1,null);
+        long[] ids = txnStore.getActiveTransactionIds(t1, null);
 //        Assert.assertEquals(1, ids.length);
         Assert.assertEquals(t1.getTxnId(), ids[0]);
     }
@@ -2782,7 +2782,7 @@ public class SITransactorTest extends SIConstants {
         final Txn t0 = control.beginTransaction(DESTINATION_TABLE);
         transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        long[] ids = txnStore.getActiveTransactions(t1,null);
+        long[] ids = txnStore.getActiveTransactionIds(t1, null);
 				System.out.printf("%d,%d,%s%n",t0.getTxnId(),t1.getTxnId(),Arrays.toString(ids));
         Assert.assertEquals(2, ids.length);
 				Arrays.sort(ids);
@@ -2796,7 +2796,7 @@ public class SITransactorTest extends SIConstants {
         transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         control.beginTransaction();
-        final long[] ids = txnStore.getActiveTransactions(t1,null);
+        final long[] ids = txnStore.getActiveTransactionIds(t1, null);
         Assert.assertEquals(2, ids.length);
 				Arrays.sort(ids);
         Assert.assertEquals(t0.getTxnId(), ids[0]);
@@ -2810,7 +2810,7 @@ public class SITransactorTest extends SIConstants {
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
         t0.commit();
-        final long[] ids = txnStore.getActiveTransactions(t2,null);
+        final long[] ids = txnStore.getActiveTransactionIds(t2, null);
         Assert.assertEquals(2, ids.length);
 				Arrays.sort(ids);
         Assert.assertEquals(t1.getTxnId(), ids[0]);
@@ -2824,7 +2824,7 @@ public class SITransactorTest extends SIConstants {
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
         t1.commit();
-        final long[] ids = txnStore.getActiveTransactions(t2,null);
+        final long[] ids = txnStore.getActiveTransactionIds(t2, null);
         Assert.assertEquals(2, ids.length);
 				Arrays.sort(ids);
         Assert.assertEquals(t0.getTxnId(), ids[0]);
@@ -2840,7 +2840,7 @@ public class SITransactorTest extends SIConstants {
         t0.commit();
         final long originalSavedTimestamp = transactorSetup.timestampSource.retrieveTimestamp();
 				transactorSetup.timestampSource.rememberTimestamp(t3.getTxnId()-1);
-        txnStore.getActiveTransactions(t3,null);
+        txnStore.getActiveTransactionIds(t3, null);
         final long newSavedTimestamp = transactorSetup.timestampSource.retrieveTimestamp();
         Assert.assertEquals(originalSavedTimestamp + 2, newSavedTimestamp);
     }
@@ -2852,7 +2852,7 @@ public class SITransactorTest extends SIConstants {
         final Txn t1 = control.beginChildTransaction(t0,DESTINATION_TABLE);
         t1.commit();
         final Txn t2 = control.beginChildTransaction(t0,DESTINATION_TABLE);
-        long[] active = txnStore.getActiveTransactions(t2,null);
+        long[] active = txnStore.getActiveTransactionIds(t2, null);
         Assert.assertEquals(2, active.length);
 				Arrays.sort(active);
 				Assert.assertArrayEquals(new long[]{t0.getTxnId(), t2.getTxnId()}, active);
@@ -2876,7 +2876,7 @@ public class SITransactorTest extends SIConstants {
 				Assert.assertNull("Transaction id mistakenly found!",voidedTransactionID);
 
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        final long[] ids = txnStore.getActiveTransactions(t1,null);
+        final long[] ids = txnStore.getActiveTransactionIds(t1, null);
         Assert.assertEquals(2, ids.length);
 				Arrays.sort(ids);
         Assert.assertEquals(t0.getTxnId(), ids[0]);
@@ -2898,7 +2898,7 @@ public class SITransactorTest extends SIConstants {
 				}
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
 				startedTxns.add(t1.getTxnId());
-        final long[] ids = txnStore.getActiveTransactions(t1,null);
+        final long[] ids = txnStore.getActiveTransactionIds(t1, null);
 
         Assert.assertEquals(startedTxns.size(), ids.length);
 				Arrays.sort(ids);
@@ -2918,8 +2918,8 @@ public class SITransactorTest extends SIConstants {
 
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         try {
-            txnStore.getActiveTransactions(t1,null);
-            Assert.fail("Did not receive a runtime exception");
+            txnStore.getActiveTransactionIds(t1, null);
+            Assert.fail();
         } catch (RuntimeException ex) {
             Assert.assertTrue(ex.getMessage().startsWith("expected max id of"));
         }

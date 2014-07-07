@@ -743,7 +743,7 @@ public class SpliceConstants {
 		 * Defaults to 50.
 		 */
 		@Parameter private static final String KRYO_POOL_SIZE = "splice.marshal.kryoPoolSize";
-		@DefaultValue(KRYO_POOL_SIZE) public static final int DEFAULT_KRYO_POOL_SIZE=2000;
+		@DefaultValue(KRYO_POOL_SIZE) public static final int DEFAULT_KRYO_POOL_SIZE=16000;
 		public static int kryoPoolSize;
 
 

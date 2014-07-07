@@ -12,7 +12,6 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.data.hbase.HbRegion;
-import com.splicemachine.si.data.light.LTuple;
 import com.splicemachine.si.impl.PackedTxnFilter;
 import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.EntryDecoder;
@@ -21,10 +20,7 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.OperationWithAttributes;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.BinaryComparator;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
@@ -107,8 +103,13 @@ public class TransactorTestUtility {
 		public String scan(Txn txn, String name) throws IOException {
 				final STableReader reader = storeSetup.getReader();
 				byte[] key = dataLib.newRowKey(new Object[]{name});
-				Object scan = makeScan(dataLib, key, null, key);
-				transactorSetup.clientTransactor.initializeOperation(txn, (OperationWithAttributes) scan);
+        Scan s = transactorSetup.txnOperationFactory.newScan(txn);
+        s.setStartRow(key);
+        s.setStopRow(key);
+//				Get get = transactorSetup.txnOperationFactory.newGet(txn,key);
+				OperationWithAttributes scan = transactorSetup.convertTestTypeScan(s,null);
+//				Object scan = makeScan(dataLib, key, null, key);
+//				transactorSetup.clientTransactor.initializeOperation(txn, (OperationWithAttributes) scan);
 				Object testSTable = reader.open(storeSetup.getPersonTableName());
 				try {
 						Iterator<Result> results = reader.scan(testSTable, scan);
@@ -134,20 +135,25 @@ public class TransactorTestUtility {
 
 				byte[] key = dataLib.newRowKey(new Object[]{startKey});
 				byte[] endKey = dataLib.newRowKey(new Object[]{stopKey});
-				Object get = makeScan(dataLib, endKey, null, key);
+				Scan scan = transactorSetup.txnOperationFactory.newScan(txn);
+				scan.setStartRow(key);
+				scan.setStopRow(endKey);
+        addPredicateFilter(scan);
+
+				OperationWithAttributes owa = transactorSetup.convertTestTypeScan(scan, null);
 				if (!useSimple && filterValue != null) {
-						final Scan scan = (Scan) get;
-						SingleColumnValueFilter filter = new SingleColumnValueFilter((byte[]) transactorSetup.family,
-										(byte[]) transactorSetup.ageQualifier,
+//						final Scan scan = (Scan) get;
+						SingleColumnValueFilter filter = new SingleColumnValueFilter(transactorSetup.family,
+										transactorSetup.ageQualifier,
 										CompareFilter.CompareOp.EQUAL,
 										new BinaryComparator(dataLib.encode(filterValue)));
 						filter.setFilterIfMissing(true);
 						scan.setFilter(filter);
 				}
-				transactorSetup.clientTransactor.initializeOperation(txn, (OperationWithAttributes) get);
+//				transactorSetup.clientTransactor.initializeOperation(txn, (OperationWithAttributes) get);
 				Object testSTable = reader.open(storeSetup.getPersonTableName());
 				try {
-						Iterator<Result> results = reader.scan(testSTable, get);
+						Iterator<Result> results = reader.scan(testSTable, owa);
 
 						StringBuilder result = new StringBuilder();
 						while (results.hasNext()) {
@@ -172,15 +178,15 @@ public class TransactorTestUtility {
 						throws IOException {
 			final SDataLib dataLib = storeSetup.getDataLib();
 				final STableReader reader = storeSetup.getReader();
-				Object put = makePut(useSimple, transactorSetup, txn, name, index, fieldValue, dataLib);
+				Object put = makePut(transactorSetup, txn, name, index, fieldValue, dataLib);
 				processPutDirect(useSimple, transactorSetup, storeSetup, reader, (OperationWithAttributes)put);
 		}
 
-		private static Object makePut(boolean useSimple, TestTransactionSetup transactorSetup,
+		private static OperationWithAttributes makePut(TestTransactionSetup transactorSetup,
 																	Txn txn, String name, int index,
 																	Object fieldValue, SDataLib dataLib) throws IOException {
 				byte[] key = dataLib.newRowKey(new Object[]{name});
-				OperationWithAttributes put = dataLib.newPut(key);
+				Put put = transactorSetup.txnOperationFactory.newPut(txn,key);
 				final BitSet bitSet = new BitSet();
 				if (fieldValue != null)
 					bitSet.set(index);
@@ -191,12 +197,12 @@ public class TransactorTestUtility {
 					} else if (fieldValue != null) {
 						entryEncoder.getEntryEncoder().encodeNext((String) fieldValue);
 					}
-					dataLib.addKeyValueToPut(put, transactorSetup.family, dataLib.encode(SIConstants.PACKED_COLUMN_STRING), -1, entryEncoder.encode());
+						put.add(transactorSetup.family, SpliceConstants.PACKED_COLUMN_BYTES, -1, entryEncoder.encode());
 				} finally {
 					entryEncoder.close();
 				}
-				transactorSetup.clientTransactor.initializeOperation(txn, put);
-				return put;
+//				transactorSetup.clientTransactor.initializeOperation(txn, put);
+				return transactorSetup.convertTestTypePut(put);
 		}
 
 		private static void insertFieldBatch(boolean useSimple, TestTransactionSetup transactorSetup, StoreSetup storeSetup,
@@ -210,8 +216,8 @@ public class TransactorTestUtility {
 						Txn transactionId = (Txn) subArgsArray[0];
 						String name = (String) subArgsArray[1];
 						Object fieldValue = subArgsArray[2];
-						Object put = makePut(useSimple, transactorSetup, transactionId, name, index, fieldValue, dataLib);
-						puts[i] = (OperationWithAttributes)put;
+						OperationWithAttributes put = makePut(transactorSetup, transactionId, name, index, fieldValue, dataLib);
+						puts[i] = put;
 						i++;
 				}
 				processPutDirectBatch(useSimple, transactorSetup, storeSetup, reader, puts);
@@ -223,7 +229,9 @@ public class TransactorTestUtility {
 				final STableReader reader = storeSetup.getReader();
 
 				byte[] key = dataLib.newRowKey(new Object[]{name});
-				OperationWithAttributes deletePut = transactorSetup.clientTransactor.createDeletePut(txn, key);
+				Mutation put = transactorSetup.txnOperationFactory.newDelete(txn,key);
+				OperationWithAttributes deletePut= transactorSetup.convertTestTypePut((Put)put);
+//				OperationWithAttributes deletePut = transactorSetup.clientTransactor.createDeletePut(txn, key);
 				processPutDirect(useSimple, transactorSetup, storeSetup, reader, deletePut);
 		}
 
@@ -233,8 +241,7 @@ public class TransactorTestUtility {
 				Object testSTable = reader.open(storeSetup.getPersonTableName());
 				try {
 						if (useSimple) {
-										Assert.assertTrue(transactorSetup.transactor.processPut(testSTable, transactorSetup.rollForwardQueue,
-														((LTuple) put)));
+										Assert.assertTrue(transactorSetup.transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put));
 						} else {
 								storeSetup.getWriter().write(testSTable, put);
 						}
@@ -251,7 +258,7 @@ public class TransactorTestUtility {
 						if (useSimple) {
 							OperationWithAttributes[] packedPuts = new OperationWithAttributes[puts.length];
 							for (int i = 0; i < puts.length; i++) {
-								packedPuts[i] = ((LTuple) puts[i]);
+								packedPuts[i] = puts[i];
 							}
 							puts = packedPuts;
 						} else {
@@ -272,11 +279,14 @@ public class TransactorTestUtility {
 				final STableReader reader = storeSetup.getReader();
 
 				byte[] key = dataLib.newRowKey(new Object[]{name});
-				Object get = makeGet(dataLib, key);
-				transactorSetup.clientTransactor.initializeOperation(txn, (OperationWithAttributes)get);
+				Get get = transactorSetup.txnOperationFactory.newGet(txn,key);
+				OperationWithAttributes owa = transactorSetup.convertTestTypeGet(get,null);
+//        addPredicateFilter(owa);
+//				Object get = makeGet(dataLib, key);
+//				transactorSetup.clientTransactor.initializeOperation(txn, (OperationWithAttributes)get);
 				Object testSTable = reader.open(storeSetup.getPersonTableName());
 				try {
-						Result rawTuple = reader.get(testSTable, get);
+						Result rawTuple = reader.get(testSTable, owa);
 						return readRawTuple(useSimple, transactorSetup, storeSetup, txn, name, dataLib, rawTuple, true, false, true);
 				} finally {
 						reader.close(testSTable);
@@ -289,9 +299,13 @@ public class TransactorTestUtility {
 				final STableReader reader = storeSetup.getReader();
 
 				byte[] endKey = dataLib.newRowKey(new Object[]{name});
-				final ArrayList families = new ArrayList();
-				Object scan = makeScan(dataLib, endKey, families, endKey);
-				transactorSetup.clientTransactor.initializeOperation(txn, (OperationWithAttributes) scan);
+				Scan s = transactorSetup.txnOperationFactory.newScan(txn);
+				s.setStartRow(endKey);
+				s.setStopRow(endKey);
+				OperationWithAttributes scan = transactorSetup.convertTestTypeScan(s,null);
+        addPredicateFilter(scan);
+//				Object scan = makeScan(dataLib, endKey, families, endKey);
+//				transactorSetup.clientTransactor.initializeOperation(txn, (OperationWithAttributes) scan);
 				transactorSetup.readController.preProcessScan(scan);
 				Object testSTable = reader.open(storeSetup.getPersonTableName());
 				try {
@@ -430,22 +444,22 @@ public class TransactorTestUtility {
 
 		public static OperationWithAttributes makeGet(SDataLib dataLib, byte[] key) throws IOException {
 				final OperationWithAttributes get = dataLib.newGet(key, null, null, null);
-				addPredicateFilter(dataLib, get);
+				addPredicateFilter(get);
 				return get;
 		}
 
-		private static Object makeScan(SDataLib dataLib, byte[] endKey, ArrayList families, byte[] startKey) throws IOException {
-				final Object scan = dataLib.newScan(startKey, endKey, families, null, null);
-				addPredicateFilter(dataLib, scan);
+		private Object makeScan(SDataLib dataLib, byte[] endKey, ArrayList families, byte[] startKey) throws IOException {
+				final OperationWithAttributes scan = (OperationWithAttributes)dataLib.newScan(startKey, endKey, families, null, null);
+				addPredicateFilter(scan);
 				return scan;
 		}
 
-		private static void addPredicateFilter(SDataLib dataLib, Object operation) throws IOException {
+		private static void addPredicateFilter(OperationWithAttributes operation) throws IOException {
 				final BitSet bitSet = new BitSet(2);
 				bitSet.set(0);
 				bitSet.set(1);
 				EntryPredicateFilter filter = new EntryPredicateFilter(bitSet, new ObjectArrayList<Predicate>(), true);
-				((OperationWithAttributes)operation).setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,filter.toBytes());
+				operation.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL, filter.toBytes());
 		}
 
 }

@@ -14,6 +14,7 @@ import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -31,6 +32,7 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -40,8 +42,10 @@ import java.util.Properties;
 public abstract class SpliceController implements ConglomerateController {
 		protected static Logger LOG = Logger.getLogger(SpliceController.class);
 		protected OpenSpliceConglomerate openSpliceConglomerate;
-		protected Transaction trans;
-		protected String transID;
+
+//    protected Txn txn;
+		protected SpliceTransaction trans;
+//		protected String transID;
 
 //		protected EntryEncoder entryEncoder;
 		protected EntryDataHash entryEncoder;
@@ -49,31 +53,33 @@ public abstract class SpliceController implements ConglomerateController {
 
 		public SpliceController() {}
 
-		public SpliceController(OpenSpliceConglomerate openSpliceConglomerate, Transaction trans) {
-				this.openSpliceConglomerate = openSpliceConglomerate;
-				try {
-						((SpliceTransaction)trans).setActiveState(false, false, false, null);
-				} catch (Exception e) {
-						e.printStackTrace();
-				}
-				this.trans = trans;
-				this.transID = SpliceUtils.getTransID(trans);
-				this.tableVersion = "1.0";	//TODO -sf- move this to non-1.0
-		}
+    public SpliceController(OpenSpliceConglomerate openSpliceConglomerate, Transaction trans) {
+        this.openSpliceConglomerate = openSpliceConglomerate;
+        this.trans = (SpliceTransaction)trans;
+        try {
+            ((SpliceTransaction)trans).setActiveState(false, false, false, null);
+//            this.txn = ((SpliceTransaction)trans).getTxn();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+//				this.trans = trans;
+//				this.transID = SpliceUtils.getTransID(trans);
+        this.tableVersion = "1.0";	//TODO -sf- move this to non-1.0
+    }
 
-		public void close() throws StandardException {
-				Closeables.closeQuietly(entryEncoder);
-				try {
-						if ((openSpliceConglomerate != null) && (openSpliceConglomerate.getTransactionManager() != null))
-								openSpliceConglomerate.getTransactionManager().closeMe(this);
-				} catch (Exception e) {
-						throw StandardException.newException("error on close" + e);
-				}
-		}
+    public void close() throws StandardException {
+        Closeables.closeQuietly(entryEncoder);
+        try {
+            if ((openSpliceConglomerate != null) && (openSpliceConglomerate.getTransactionManager() != null))
+                openSpliceConglomerate.getTransactionManager().closeMe(this);
+        } catch (Exception e) {
+            throw StandardException.newException("error on close" + e);
+        }
+    }
 
-		public void getTableProperties(Properties prop) throws StandardException {
-				SpliceLogUtils.trace(LOG, "getTableProperties: %s", prop);
-		}
+    public void getTableProperties(Properties prop) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getTableProperties: %s", prop);
+    }
 
 
 		public Properties getInternalTablePropertySet(Properties prop) throws StandardException {
@@ -96,7 +102,8 @@ public abstract class SpliceController implements ConglomerateController {
 		public boolean delete(RowLocation loc) throws StandardException {
 				HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
 				try {
-						SpliceUtils.doDelete(htable, transID, loc.getBytes());
+            elevateTransaction();
+						SpliceUtils.doDelete(htable, trans.getTxn(), loc.getBytes());
 						return true;
 				} catch (Exception e) {
 						throw StandardException.newException("delete Failed", e);
@@ -164,7 +171,7 @@ public abstract class SpliceController implements ConglomerateController {
 		public boolean fetch(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, boolean waitForLock) throws StandardException {
 				HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
 				try {
-						Get get = SpliceUtils.createGet(loc, destRow, validColumns, transID);
+						Get get = SpliceUtils.createGet(loc, destRow, validColumns, trans.getTxn());
 						Result result = htable.get(get);
 						if(result==null||result.isEmpty()) return false;
 						int[] cols = FormatableBitSetUtils.toIntArray(validColumns);
@@ -241,4 +248,8 @@ public abstract class SpliceController implements ConglomerateController {
 //				EncodingUtils.encodeRow(row, put, columns, validColumns, entryEncoder);
 				put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES,data);
 		}
+
+    protected void elevateTransaction() throws IOException {
+        trans.elevate(Bytes.toBytes(Long.toString(openSpliceConglomerate.getConglomerate().getContainerid())));
+    }
 }

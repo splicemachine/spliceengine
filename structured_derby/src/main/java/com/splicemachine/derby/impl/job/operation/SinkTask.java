@@ -16,9 +16,11 @@ import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Status;
-import com.splicemachine.job.TaskStatus;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
@@ -71,11 +73,9 @@ public class SinkTask extends ZkTask {
 
     public SinkTask(String jobId,
                     Scan scan,
-                    String transactionId,
                     byte[] parentTaskId,
-                    boolean readOnly,
                     int priority) {
-        super(jobId, priority, transactionId, readOnly);
+        super(jobId, priority);
         this.scan = scan;
         this.parentTaskId = parentTaskId;
     }
@@ -155,8 +155,11 @@ public class SinkTask extends ZkTask {
 								spliceRuntimeContext.recordTraceMetrics();
 						}
 
-						opContext = new SpliceOperationContext(region,
-										scan,activation,instructions.getStatement(), transactionResource.getLcc(),true,instructions.getTopOperation(), spliceRuntimeContext);
+						opContext = new SpliceOperationContext(region, TransactionalRegions.get(region, SegmentedRollForward.NOOP_ACTION),
+                    scan,activation,
+										instructions.getStatement(),
+										transactionResource.getLcc(),
+										true,instructions.getTopOperation(), spliceRuntimeContext,getTxn());
 						//init the operation stack
 
 						op.init(opContext);
@@ -182,7 +185,8 @@ public class SinkTask extends ZkTask {
 						SpliceLogUtils.trace(LOG,"executing task %s",Bytes.toString(getTaskId()));
         try {
 						SpliceOperation op = instructions.getTopOperation();
-            OperationSink opSink = OperationSink.create((SinkingOperation) op, getTaskId(), getTransactionId(), op.getStatementId(),waitTimeNs);
+            OperationSink opSink = OperationSink.create((SinkingOperation) op, getTaskId(),
+										getTxn(), op.getStatementId(),waitTimeNs);
 
             TaskStats stats;
             if(op instanceof DMLWriteOperation)
@@ -209,12 +213,12 @@ public class SinkTask extends ZkTask {
     }
 
 		@Override
-		protected TransactionId beginChildTransaction(TransactionManager transactor, TransactionId parent) throws IOException {
+		protected Txn beginChildTransaction(Txn parentTxn, TxnLifecycleManager tc) throws IOException {
 				byte[] table = null;
 				if(instructions.getTopOperation() instanceof DMLWriteOperation){
 						table = ((DMLWriteOperation)instructions.getTopOperation()).getDestinationTable();
 				}
-				return transactor.beginChildTransaction(parent, !readOnly, table);
+				return tc.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),true,false,table);
 		}
 
 		@Override
@@ -277,15 +281,6 @@ public class SinkTask extends ZkTask {
         }
         if (impl != null) {
             impl.cleanup();
-        }
-    }
-
-    private String getTransactionId() {
-        final TaskStatus taskStatus = getTaskStatus();
-        if (taskStatus != null) {
-            return taskStatus.getTransactionId();
-        } else {
-            return null;
         }
     }
 }

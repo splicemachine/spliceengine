@@ -23,10 +23,7 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.SimpleJobResults;
-import com.splicemachine.si.api.ClientTransactor;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.metrics.MetricFactory;
@@ -119,8 +116,6 @@ public class InsertOperationTest {
 
 		@Before
 		public void setUp() throws Exception {
-				ClientTransactor transactor = mock(ClientTransactor.class);
-				HTransactorFactory.setClientTransactor(transactor);
 
 		}
 
@@ -161,7 +156,7 @@ public class InsertOperationTest {
         final List<KVPair> output = Lists.newArrayListWithExpectedSize(rowsToWrite.size());
 
         SpliceObserverInstructions mockInstructions = mock(SpliceObserverInstructions.class);
-        doNothing().when(mockInstructions).setTransactionId(any(String.class));
+        doNothing().when(mockInstructions).setTxn(any(Txn.class));
 
         when(writeInfo.buildInstructions(any(SpliceOperation.class))).thenReturn(mockInstructions);
 
@@ -176,7 +171,7 @@ public class InsertOperationTest {
 
         mockOperationSink(sourceOperation, output);
 
-        InsertOperation operation = new InsertOperation(sourceOperation, opInfo,writeInfo,"10");
+        InsertOperation operation = new InsertOperation(sourceOperation, opInfo,writeInfo);
         operation.init(mock(SpliceOperationContext.class));
 				InsertOperation spy = spy(operation);
 				doReturn(new TransactionId("12")).when(spy).getChildTransaction();
@@ -329,8 +324,8 @@ public class InsertOperationTest {
             }
         }).when(outputBuffer).add(any(KVPair.class));
         final CallBufferFactory<KVPair> bufferFactory = mock(CallBufferFactory.class);
-        when(bufferFactory.writeBuffer(any(byte[].class), any(String.class))).thenReturn(outputBuffer);
-				when(bufferFactory.writeBuffer(any(byte[].class), any(String.class),any(MetricFactory.class))).thenReturn(outputBuffer);
+        when(bufferFactory.writeBuffer(any(byte[].class), any(Txn.class))).thenReturn(outputBuffer);
+				when(bufferFactory.writeBuffer(any(byte[].class), any(Txn.class),any(MetricFactory.class))).thenReturn(outputBuffer);
 
         RowProvider mockProvider = mock(RowProvider.class);
         when(mockProvider.shuffleRows(any(SpliceObserverInstructions.class))).thenAnswer(new Answer<JobResults>(){
@@ -341,7 +336,8 @@ public class InsertOperationTest {
 
                 SpliceOperation op = observerInstructions.getTopOperation();
 
-                OperationSink opSink = new OperationSink(Bytes.toBytes("TEST_TASK"),(DMLWriteOperation)op,bufferFactory,"TEST_TXN",-1l,0l);
+								Txn mockTxn = Txn.ROOT_TRANSACTION;
+                OperationSink opSink = new OperationSink(Bytes.toBytes("TEST_TASK"),(DMLWriteOperation)op,bufferFactory,mockTxn,-1l,0l);
 
                 TaskStats sink = opSink.sink(Bytes.toBytes("1184"), new SpliceRuntimeContext(table,kryoPool));
                 JobStats stats = mock(JobStats.class);

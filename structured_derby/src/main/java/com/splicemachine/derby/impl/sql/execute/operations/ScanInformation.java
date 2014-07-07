@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
+import com.splicemachine.si.api.Txn;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
@@ -43,9 +44,9 @@ interface ScanInformation<T> {
     FormatableBitSet getAccessedPkColumns() throws StandardException;
 
 
-    Scan getScan(String txnId) throws StandardException;
+    Scan getScan(Txn txn) throws StandardException;
 
-    Scan getScan(String txnId, T startKeyHint,int[] keyDecodingMap) throws StandardException;
+    Scan getScan(Txn txn, T startKeyHint,int[] keyDecodingMap) throws StandardException;
 
     Qualifier[][] getScanQualifiers() throws StandardException;
 
@@ -55,7 +56,7 @@ interface ScanInformation<T> {
 
     long getConglomerateId();
     
-    List<Scan> getScans(String txnId, ExecRow startKeyOverride, Activation activation, SpliceOperation top, SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+    List<Scan> getScans(Txn txn, ExecRow startKeyOverride, Activation activation, SpliceOperation top, SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
 
     int[] getColumnOrdering() throws StandardException;
 

@@ -1,13 +1,11 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.collections.CloseableIterator;
-import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.api.HTransactorFactory;
-
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.api.TransactionStatus;
+import com.splicemachine.si.api.TransactionStorage;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.impl.TransactionStore;
@@ -23,6 +21,7 @@ import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
 import org.apache.derby.impl.sql.execute.ValueRow;
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
@@ -31,6 +30,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -45,14 +45,12 @@ public class TransactionAdmin {
 						new GenericColumnDescriptor("isDependent",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN)),
 						new GenericColumnDescriptor("allowsWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN)),
 						new GenericColumnDescriptor("isAdditive",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN)),
-						new GenericColumnDescriptor("readUncommitted",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN)),
-						new GenericColumnDescriptor("readCommitted",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN)),
+						new GenericColumnDescriptor("isolationLevel",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
 						new GenericColumnDescriptor("commitTimestamp",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
 						new GenericColumnDescriptor("effectiveCommitTimestamp",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
 						new GenericColumnDescriptor("globalCommitTimestamp",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
 						new GenericColumnDescriptor("status",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
 						new GenericColumnDescriptor("lastKeepAlive",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP)),
-						new GenericColumnDescriptor("counter",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
 						new GenericColumnDescriptor("modifiedConglomerate",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR))
 		};
 
@@ -62,9 +60,9 @@ public class TransactionAdmin {
 
 		public static void SYSCS_GET_CURRENT_TRANSACTION(ResultSet[] resultSet) throws SQLException{
 				EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
-				TransactionId txnId= new TransactionId(getTransactionId(defaultConn.getLanguageConnection().getTransactionExecute()));
+        Txn txn = ((SpliceTransactionManager)defaultConn.getLanguageConnection().getTransactionExecute()).getActiveStateTxn();
 				ExecRow row = new ValueRow(1);
-				row.setColumn(1,new SQLLongint(txnId.getId()));
+				row.setColumn(1,new SQLLongint(txn.getTxnId()));
 				Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
 				IteratorNoPutResultSet rs = new IteratorNoPutResultSet(Arrays.asList(row),CURRENT_TXN_ID_COLUMNS,lastActivation);
 				try {
@@ -75,103 +73,58 @@ public class TransactionAdmin {
 				resultSet[0] = new EmbedResultSet40(defaultConn,rs,false,null,true);
 		}
 
-    public static void SYSCS_GET_ACTIVE_TRANSACTION_IDS(ResultSet[] resultSets) throws SQLException{
-        ActiveTransactionReader reader = new ActiveTransactionReader(0l,Long.MAX_VALUE,null);
-        try {
-            CloseableIterator<Long> activeTxns = reader.getActiveTransactionIds();
-            ExecRow template = toRow(CURRENT_TXN_ID_COLUMNS);
-            List<ExecRow> results = Lists.newArrayList();
-            while(activeTxns.hasNext()){
-                template.getColumn(1).setValue(activeTxns.next().longValue());
-                results.add(template.getClone());
+		public static void SYSCS_DUMP_TRANSACTIONS(ResultSet[] resultSet) throws SQLException {
+        TxnStore store = TransactionStorage.getTxnStore();
+        try{
+            List<Txn> txns = store.getActiveTransactions(0,Long.MAX_VALUE,null);
+            DataValueDescriptor[] templateCols = new DataValueDescriptor[TRANSACTION_TABLE_COLUMNS.length];
+            for(int i=0;i<templateCols.length;i++){
+                templateCols[i] = TRANSACTION_TABLE_COLUMNS[i].getType().getNull();
             }
-
-            EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
-            Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-            IteratorNoPutResultSet rs = new IteratorNoPutResultSet(results,CURRENT_TXN_ID_COLUMNS,lastActivation);
-            rs.openCore();
-
-            resultSets[0] = new EmbedResultSet40(defaultConn,rs,false,null,true);
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        } catch (StandardException e) {
-            throw PublicAPI.wrapStandardException(e);
-        }
-    }
-
-    private static ExecRow toRow(ResultColumnDescriptor[] columns) throws StandardException {
-        DataValueDescriptor[] dvds = new DataValueDescriptor[columns.length];
-        for(int i=0;i<columns.length;i++){
-            dvds[i] = columns[i].getType().getNull();
-        }
-        ExecRow row = new ValueRow(columns.length);
-        row.setRowArray(dvds);
-        return row;
-    }
-
-	public static void SYSCS_DUMP_TRANSACTIONS(ResultSet[] resultSet) throws SQLException {
-				try {
-						throw new UnsupportedOperationException("IMPLEMENT");
-//						TransactionStore store = HTransactorFactory.getTransactionStore();
-						//noinspection unchecked
-						List<Transaction> transactions =store.getAllTransactions();
-						ExecRow template = new ValueRow(15);
-						template.setRowArray(new DataValueDescriptor[]{
-										new SQLLongint(), //txnId
-										new SQLLongint(), //begin
-										new SQLLongint(), //parent id
-										new SQLBoolean(), //dependent
-										new SQLBoolean(), //allowsWrites
-										new SQLBoolean(), //isAdditive
-										new SQLBoolean(), //readUncommitted
-										new SQLBoolean(), //readCommitted
-										new SQLLongint(),  //commit timestamp
-										new SQLLongint(), //effective commit timestamp
-										new SQLLongint(), //global commit timestamp
-										new SQLVarchar(), //status
-										new SQLTimestamp(), //last keep alive
-										new SQLInteger(), //counter
-										new SQLVarchar() //destinationConglomerate
-						});
-
-						List<ExecRow> rows = Lists.newArrayListWithCapacity(transactions.size());
-						for(Transaction txn:transactions){
+            ExecRow template = new ValueRow(templateCols.length);
+            template.setRowArray(templateCols);
+            List<ExecRow> rows = Lists.newArrayListWithCapacity(txns.size());
+						for(Txn txn:txns){
 								template.resetRowArray();
 								DataValueDescriptor[] dvds = template.getRowArray();
-								dvds[0].setValue(txn.getLongTransactionId());
+								dvds[0].setValue(txn.getTxnId());
 								dvds[1].setValue(txn.getBeginTimestamp());
-								if(txn.getParent()!=null && txn.getParent().getLongTransactionId()!=-1l)
-										dvds[2].setValue(txn.getParent().getLongTransactionId());
+								if(txn.getParentTransaction()!=null && txn.getParentTransaction().getTxnId()!=-1l)
+										dvds[2].setValue(txn.getParentTransaction().getTxnId());
 								else
 									dvds[2].setToNull();
 								dvds[3].setValue(txn.isDependent());
 								dvds[4].setValue(txn.allowsWrites());
 								dvds[5].setValue(txn.isAdditive());
-								setBoolean(dvds[6], txn.getReadUncommitted());
-								setBoolean(dvds[7], txn.getReadCommitted());
-								setLong(dvds[8], txn.getCommitTimestampDirect());
-								setLong(dvds[9],txn.getEffectiveCommitTimestamp());
-								setLong(dvds[10], txn.getGlobalCommitTimestamp());
-								dvds[11].setValue(txn.getStatus().toString());
-								dvds[12].setValue(new Timestamp(txn.getKeepAlive()),null);
-								dvds[13].setValue(txn.getCounter());
-								dvds[14].setValue(Bytes.toString(txn.getWriteTable()));
+                dvds[6].setValue(txn.getIsolationLevel().toString());
+								setLong(dvds[7], txn.getCommitTimestamp());
+								setLong(dvds[8],txn.getEffectiveCommitTimestamp());
+								setLong(dvds[9], txn.getGlobalCommitTimestamp());
+								dvds[10].setValue(txn.getState().toString());
+								dvds[11].setValue(new Timestamp(txn.getLastKeepAliveTimestamp()),null);
+                Collection<byte[]> writeTables = txn.getDestinationTables();
+                StringBuilder tables = new StringBuilder();
+                boolean isFirst=true;
+                for(byte[] table:writeTables){
+                    if(!isFirst) tables.append(",");
+                    else isFirst=false;
+                    tables.append(Bytes.toString(table));
+                }
+								dvds[12].setValue(tables.toString());
 
 								rows.add(template.getClone());
 						}
-
 						EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
 						Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
 						IteratorNoPutResultSet rs = new IteratorNoPutResultSet(rows,TRANSACTION_TABLE_COLUMNS,lastActivation);
 						rs.openCore();
 						resultSet[0] = new EmbedResultSet40(defaultConn,rs,false,null,true);
-				} catch (IOException e) {
-						throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
 				} catch (StandardException e) {
 						throw PublicAPI.wrapStandardException(e);
-				}
-		}
-
+				} catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
 
 		protected  static void setLong(DataValueDescriptor dvd, Long value) throws StandardException{
 				if(value !=null)
@@ -184,53 +137,6 @@ public class TransactionAdmin {
 						dvd.setValue(value.booleanValue());
 				else
 						dvd.setToNull();
-		}
-
-		private static String getTransactionId(TransactionController tc) {
-			org.apache.derby.iapi.store.raw.Transaction td = ((SpliceTransactionManager)tc).getRawTransaction();
-			return SpliceUtils.getTransID(td);
-		}
-		
-		private static final ResultColumnDescriptor[] CHILD_TXN_ID_COLUMNS = new GenericColumnDescriptor[]{
-			new GenericColumnDescriptor("childTxnId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
-		};
-		
-		public static void SYSCS_START_CHILD_TRANSACTION(long parentTransactionId, long conglomId, ResultSet[] resultSet) throws IOException, SQLException {
-			
-			// Verify the specified parent transaction exists
-			TransactionStore store = HTransactorFactory.getTransactionStore();
-			Transaction existingParentTransaction = store.getTransaction(parentTransactionId);
-			if (existingParentTransaction == null) {
-				throw new IllegalArgumentException(String.format("Specified parent transaction id %s not found. Unable to create child transaction.", parentTransactionId));
-			}
-
-			// Verify parent transaction is an active transaction
-			if (!(TransactionStatus.ACTIVE.equals(existingParentTransaction.getStatus()))) {
-				throw new IllegalArgumentException(String.format("Specified parent transaction with id %s is %s, not active. Unable to create child transaction.",
-					parentTransactionId, existingParentTransaction.getStatus()));
-			}
-			
-			TransactionId parentTxnId = new TransactionId(Long.toString(parentTransactionId)); // constructor that takes long is not public
-			TransactionId childTransaction;
-			TransactionManager tm = HTransactorFactory.getTransactionManager();
-			
-			try {
-				childTransaction = tm.beginChildTransaction(parentTxnId, Bytes.toBytes(conglomId));
-			} catch (IOException e) {
-				throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-			}
-
-			ExecRow row = new ValueRow(1);
-			row.setColumn(1, new SQLLongint(childTransaction.getId()));
-			EmbedConnection defaultConn = (EmbedConnection)SpliceAdmin.getDefaultConn();
-			Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-			IteratorNoPutResultSet rs = new IteratorNoPutResultSet(Arrays.asList(row), CHILD_TXN_ID_COLUMNS, lastActivation);
-			try {
-				rs.openCore();
-			} catch (StandardException e) {
-				throw PublicAPI.wrapStandardException(e);
-			}
-			resultSet[0] = new EmbedResultSet40(defaultConn, rs, false, null, true);
 		}
 
 }

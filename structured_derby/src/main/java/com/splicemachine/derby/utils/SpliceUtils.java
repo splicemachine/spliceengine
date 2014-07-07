@@ -12,10 +12,10 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.si.api.ClientTransactor;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.api.TransactionStorage;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnOperationFactory;
+import com.splicemachine.si.impl.SimpleOperationFactory;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -27,7 +27,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.*;
@@ -40,23 +39,26 @@ import org.apache.zookeeper.ZooDefs;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Map;
 
 /**
- * 
+ *
  * Splice Utility Methods
- * 
+ *
  */
 
 public class SpliceUtils extends SpliceUtilities {
-		private static Logger LOG = Logger.getLogger(SpliceUtils.class);
-		private static final String hostName;
-		static{
-				try {
-						hostName = InetAddress.getLocalHost().getHostName();
-				} catch (UnknownHostException e) {
-						throw new RuntimeException(e);
-				}
-		}
+    private static Logger LOG = Logger.getLogger(SpliceUtils.class);
+    private static final String hostName;
+    private static final TxnOperationFactory operationFactory;
+    static{
+        try {
+            hostName = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
+        operationFactory = new SimpleOperationFactory(TransactionStorage.getTxnSupplier());
+    }
 
     /**
      * Populates an array of DataValueDescriptors with a default value based on their type.
@@ -94,195 +96,97 @@ public class SpliceUtils extends SpliceUtilities {
         }
     }
 
-    public static Scan createScan(String transactionId) {
+    public static Scan createScan(Txn txn) {
+        return createScan(txn,false);
+    }
+
+    public static Scan createScan(Txn txn,boolean countStar) {
+        return operationFactory.newScan(txn,countStar);
+    }
+
+    public static Get createGet(Txn txn, byte[] row) throws IOException {
+        return operationFactory.newGet(txn, row);
+    }
+
+    public static Get createGet(RowLocation loc,
+                                DataValueDescriptor[] destRow,
+                                FormatableBitSet validColumns, Txn txn) throws StandardException {
         try {
-            return attachTransaction(new Scan(), transactionId);
+            Get get = createGet(txn, loc.getBytes());
+            BitSet fieldsToReturn;
+            if(validColumns!=null){
+                fieldsToReturn = new BitSet(validColumns.size());
+                for(int i=validColumns.anySetBit();i>=0;i=validColumns.anySetBit(i)){
+                    fieldsToReturn.set(i);
+                }
+            }else{
+                fieldsToReturn = new BitSet(destRow.length);
+                fieldsToReturn.set(0,destRow.length);
+            }
+            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn, new ObjectArrayList<Predicate>());
+            get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
+            return get;
         } catch (Exception e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG, e);
-            return null;
+            SpliceLogUtils.logAndThrow(LOG,"createGet Failed",Exceptions.parseException(e));
+            return null; //can't happen
         }
     }
-    
-    public static Scan createScan(String transactionId, boolean countStar) {
-    	Scan scan = createScan(transactionId);
-    	if (countStar) {
-    		scan.setAttribute(SIConstants.SI_COUNT_STAR, SIConstants.TRUE_BYTES);
-    	}
-    	return scan;
-    }
-
-		public static Get createGet(String transactionId, byte[] row) throws IOException {
-        return attachTransaction(new Get(row), transactionId);
-    }
-
-		public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
-				try {
-						Get get = createGet(transID, loc.getBytes());
-						BitSet fieldsToReturn;
-						if(validColumns!=null){
-								fieldsToReturn = new BitSet(validColumns.size());
-								for(int i=validColumns.anySetBit();i>=0;i=validColumns.anySetBit(i)){
-										fieldsToReturn.set(i);
-								}
-						}else{
-								fieldsToReturn = new BitSet(destRow.length);
-								fieldsToReturn.set(0,destRow.length);
-						}
-						EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn, new ObjectArrayList<Predicate>());
-						get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
-						return get;
-				} catch (Exception e) {
-						SpliceLogUtils.logAndThrow(LOG,"createGet Failed",Exceptions.parseException(e));
-						return null; //can't happen
-				}
-		}
 
     /**
      * Perform a Delete against a table. The operation which is actually performed depends on the transactional semantics.
      *
      * @param table the table to delete from
-     * @param transactionId the transaction to delete under
+     * @param txn the transaction to delete under
      * @param row the row to delete.
      * @throws IOException if something goes wrong during deletion.
      */
-    public static void doDelete(HTableInterface table, String transactionId, byte[] row) throws IOException {
-        Mutation mutation = Mutations.getDeleteOp(transactionId,row);
+    public static void doDelete(HTableInterface table, Txn txn, byte[] row) throws IOException {
+        Mutation mutation = operationFactory.newDelete(txn, row);
         if(mutation instanceof Put)
             table.put((Put)mutation);
         else
             table.delete((Delete)mutation);
     }
 
-    public static Put createPut(byte[] newRowKey, Mutation mutation) throws IOException {
-        return createPut(newRowKey, getTransactionId(mutation));
-    }
 
-    public static Put createPut(byte[] newRowKey, String transactionID) throws IOException {
-        return attachTransaction(new Put(newRowKey), transactionID);
-    }
-    
-    /**
-     * Attach transactional information to the specified operation.
-     *
-     * @param op the operation to attach to.
-     * @param transactionId the transaction id to attach.
-     */
-    public static Put attachTransaction(Put op, String transactionId) throws IOException {
-    	return attachTransaction(op,transactionId,true);
-    }
-
-    public static Put attachTransaction(Put op, String transactionId, boolean addPlaceHolderColumnToEmptyPut) throws IOException {
-        if (!attachTransactionNA(op, transactionId)) {
-            getTransactor().initializePut(transactionId, op);
-        }
-        return op;
-    }
-
-    
-    public static Get attachTransaction(Get op, String transactionId) throws IOException {
-        if (!attachTransactionNA(op, transactionId)) {
-            getTransactor().initializeGet(transactionId, op);
-        }
-        return op;
-    }
-
-    public static Scan attachTransaction(Scan op, String transactionId) throws IOException {
-        if (!attachTransactionNA(op, transactionId)) {
-            getTransactor().initializeScan(transactionId, op);
-        }
-        return op;
-    }
-
-    private static boolean attachTransactionNA(OperationWithAttributes op, String transactionId) {
-        if (transactionId == null) {
-            throw new RuntimeException("Cannot create operation with a null transactionId");
-        }
-        if (transactionId.equals(NA_TRANSACTION_ID)) {
-            op.setAttribute(SI_EXEMPT, Bytes.toBytes(true));
-            return true;
-        }
-        return false;
-    }
-
-    public static Put createDeletePut(Mutation mutation, byte[] rowKey) {
-        return createDeletePut(getTransactionId(mutation), rowKey);
-    }
-
-    public static Put createDeletePut(String transactionId, byte[] rowKey) {
-        final ClientTransactor<Put, Get, Scan, Mutation> clientTransactor = HTransactorFactory.getClientTransactor();
-        return clientTransactor.createDeletePut(HTransactorFactory.getTransactionManager().transactionIdFromString(transactionId), rowKey);
+    public static Put createPut(byte[] newRowKey, Txn txn) throws IOException {
+        return operationFactory.newPut(txn,newRowKey);
     }
 
     public static boolean isDelete(Mutation mutation) {
-				return mutation instanceof Delete || HTransactorFactory.getClientTransactor().isDeletePut(mutation);
+        return mutation instanceof Delete || mutation.getAttribute(SIConstants.SI_DELETE_PUT)!=null;
     }
 
-    /**
-     * Get the transaction information from the specified mutation.
-     *
-     * @param mutation the mutation to get transaction information from
-     * @return the transaction id specified by the given mutation.
-     */
-    public static String getTransactionId(Mutation mutation) {
-        final byte[] exempt = mutation.getAttribute(SI_EXEMPT);
-        if (exempt != null && Bytes.toBoolean(exempt)) {
-            return NA_TRANSACTION_ID;
-        }
-        TransactionId transactionId = getTransactor().transactionIdFromPut((Put) mutation);
-        if(transactionId==null) return null;
-        return transactionId.getTransactionIdString();
+    public static Txn txnForReads(OperationWithAttributes owa) throws IOException {
+        return operationFactory.fromReads(owa);
     }
 
-		public static SpliceObserverInstructions getSpliceObserverInstructions(Scan scan) {
-		byte[] instructions = scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS);
-		if(instructions==null) return null;
+    public static Txn txnForWrites(OperationWithAttributes owa) throws IOException {
+        return operationFactory.fromWrites(owa);
+    }
+
+    public static SpliceObserverInstructions getSpliceObserverInstructions(Scan scan) {
+        byte[] instructions = scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS);
+        if(instructions==null) return null;
 
         Kryo kryo = SpliceDriver.getKryoPool().get();
-		try {
+        try {
             Input input = new Input(instructions);
             KryoObjectInput koi = new KryoObjectInput(input,kryo);
-				return (SpliceObserverInstructions) koi.readObject();
-		} catch (Exception e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
-		}finally{
+            return (SpliceObserverInstructions) koi.readObject();
+        } catch (Exception e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
+        }finally{
             SpliceDriver.getKryoPool().returnInstance(kryo);
         }
-		return null;
-	}
-
-	public static String getTransIDString(Transaction trans) {
-		if (trans == null)
-			return null;
-
-		//for debugging purpose right now
-		if (!(trans instanceof SpliceTransaction))
-			LOG.error("We should only support SpliceTransaction!");
-
-		SpliceTransaction spliceTransaction = (SpliceTransaction)trans;
-		if (spliceTransaction.getTransactionId() != null && spliceTransaction.getTransactionId().getTransactionIdString() != null)
-			return spliceTransaction.getTransactionId().getTransactionIdString();
-
-		return null;
-	}
-
-
-	public static String getTransID(Transaction trans) {
-		String transID = getTransIDString(trans);
-		if (transID == null)
-			return null;
-
-		return transID;
-	}
-
-    protected static ClientTransactor<Put, Get, Scan, Mutation> getTransactor() {
-        return HTransactorFactory.getClientTransactor();
+        return null;
     }
 
-	public static byte[] getUniqueKey(){
+    public static byte[] getUniqueKey(){
         return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-	}
+    }
 
-		public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation, SpliceRuntimeContext spliceRuntimeContext) {
+    public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation, SpliceRuntimeContext spliceRuntimeContext) {
         SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation,spliceRuntimeContext);
         return generateInstructions(instructions);
     }
@@ -303,18 +207,18 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static void setInstructions(Scan scan, Activation activation, SpliceOperation topOperation, SpliceRuntimeContext spliceRuntimeContext){
-		scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(activation,topOperation,spliceRuntimeContext));
-	}
+        scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(activation,topOperation,spliceRuntimeContext));
+    }
 
     public static void setInstructions(Scan scan, SpliceObserverInstructions instructions){
         scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(instructions));
     }
 
     public static boolean propertyExists(String propertyName) throws StandardException {
-    	SpliceLogUtils.trace(LOG, "propertyExists %s",propertyName);
-    	RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
+        SpliceLogUtils.trace(LOG, "propertyExists %s",propertyName);
+        RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
         try {
-        	return rzk.exists(zkSpliceDerbyPropertyPath + "/" + propertyName, false) != null;
+            return rzk.exists(zkSpliceDerbyPropertyPath + "/" + propertyName, false) != null;
         } catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG,"propertyExistsException",Exceptions.parseException(e));
             return false; //can't happen
@@ -322,10 +226,10 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static byte[] getProperty(String propertyName) throws StandardException {
-    	SpliceLogUtils.trace(LOG, "propertyExists %s",propertyName);
-    	RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
+        SpliceLogUtils.trace(LOG, "propertyExists %s",propertyName);
+        RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
         try {
-        	return rzk.getData(zkSpliceDerbyPropertyPath + "/" + propertyName, false, null);
+            return rzk.getData(zkSpliceDerbyPropertyPath + "/" + propertyName, false, null);
         } catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG,"propertyExists Exception",Exceptions.parseException(e));
             return null; //can't happen
@@ -333,13 +237,13 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static void addProperty(String propertyName, String propertyValue) throws StandardException {
-    		SpliceLogUtils.trace(LOG, "addProperty name %s , value %s", propertyName, propertyValue);
-    	   	RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
-            try {
-                    rzk.create(zkSpliceDerbyPropertyPath + "/" + propertyName, Bytes.toBytes(propertyValue), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-            } catch (Exception e) {
-                SpliceLogUtils.logAndThrow(LOG,"addProperty Exception",Exceptions.parseException(e));
-            }
+        SpliceLogUtils.trace(LOG, "addProperty name %s , value %s", propertyName, propertyValue);
+        RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
+        try {
+            rzk.create(zkSpliceDerbyPropertyPath + "/" + propertyName, Bytes.toBytes(propertyValue), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+        } catch (Exception e) {
+            SpliceLogUtils.logAndThrow(LOG,"addProperty Exception",Exceptions.parseException(e));
+        }
     }
 
     public static int[] bitSetToMap(FormatableBitSet bitSet){
@@ -353,7 +257,7 @@ public class SpliceUtils extends SpliceUtilities {
         return validCols;
     }
 
-		public static BitSet bitSetFromBooleanArray(boolean[] array) {
+    public static BitSet bitSetFromBooleanArray(boolean[] array) {
         BitSet bitSet = new BitSet(array.length);
         for (int col = 0; col < array.length; col++) {
             if (array[col])
@@ -362,7 +266,14 @@ public class SpliceUtils extends SpliceUtilities {
         return bitSet;
     }
 
-		public static String getHostName() {
-				return hostName;
-		}
+    public static String getHostName() {
+        return hostName;
+    }
+
+    private static void copyAttributes(OperationWithAttributes source, OperationWithAttributes dest) {
+        Map<String,byte[]> attributesMap = source.getAttributesMap();
+        for(Map.Entry<String,byte[]> attribute:attributesMap.entrySet()){
+            dest.setAttribute(attribute.getKey(),attribute.getValue());
+        }
+    }
 }

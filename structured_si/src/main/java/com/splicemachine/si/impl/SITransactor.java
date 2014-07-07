@@ -51,6 +51,7 @@ public class SITransactor<Table,
 		private final SDataLib<Put, Delete, Get, Scan> dataLib;
     private final STableWriter<Table, Mutation, Put, Delete> dataWriter;
     private final DataStore<Mutation, Put, Delete, Get, Scan, Table> dataStore;
+    private final TxnOperationFactory operationFactory;
     private final TxnSupplier transactionStore;
 
 //		private final TransactionSource transactionSource;
@@ -58,6 +59,7 @@ public class SITransactor<Table,
 		private SITransactor(SDataLib dataLib,
 												 STableWriter dataWriter,
 												 DataStore dataStore,
+                         final TxnOperationFactory operationFactory,
 												 final TxnSupplier transactionStore) {
 //				transactionSource = new TransactionSource() {
 //            @Override
@@ -68,6 +70,7 @@ public class SITransactor<Table,
 				this.dataLib = dataLib;
 				this.dataWriter = dataWriter;
 				this.dataStore = dataStore;
+        this.operationFactory = operationFactory;
 				this.transactionStore = transactionStore;
 		}
 
@@ -130,7 +133,7 @@ public class SITransactor<Table,
 				 */
 				Map<Long,Map<byte[],Map<byte[],List<KVPair>>>> kvPairMap = Maps.newHashMap();
 				for(Put mutation:mutations){
-						long txnId = dataStore.getTxn(mutation,false).getTxnId();
+						long txnId = operationFactory.fromWrites(mutation).getTxnId();
 						boolean isDelete = dataStore.getDeletePutAttribute(mutation);
 						byte[] row = dataLib.getPutKey(mutation);
 						Iterable<KeyValue> keyValues = dataLib.listPut(mutation);
@@ -702,8 +705,9 @@ public class SITransactor<Table,
 				private int transactionTimeoutMS;
 				private TransactionManager control;
 				private TxnSupplier txnStore;
+        private TxnOperationFactory operationFactory;
 
-				public Builder() {
+        public Builder() {
 				}
 
 				public Builder control(TransactionManager control) {
@@ -723,6 +727,11 @@ public class SITransactor<Table,
 						this.dataWriter = dataWriter;
 						return this;
 				}
+
+        public Builder operationFactory(TxnOperationFactory operationFactory){
+            this.operationFactory = operationFactory;
+            return this;
+        }
 
 				public Builder dataStore(DataStore<
 								Mutation, Put, Delete, Get, Scan, Table> dataStore) {
@@ -751,8 +760,8 @@ public class SITransactor<Table,
 						assert txnStore!=null: "No TxnStore set!";
 						return new SITransactor<Table,
 										Mutation, Put,Get,Scan,
-										Delete> (dataLib,dataWriter,
-										dataStore,txnStore);
+										Delete>(dataLib,dataWriter, dataStore,
+                    operationFactory,txnStore);
 				}
 
 		}

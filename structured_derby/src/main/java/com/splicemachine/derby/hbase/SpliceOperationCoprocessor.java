@@ -5,6 +5,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -78,7 +80,8 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
                 imp = new SpliceTransactionResourceImpl();
                 imp.marshallTransaction(instructions);
                 Activation activation = instructions.getActivation(imp.getLcc());
-                SpliceOperationContext context = new SpliceOperationContext(region,scan,activation, instructions.getStatement(),imp.getLcc(),true,instructions.getTopOperation(),instructions.getSpliceRuntimeContext());
+                SpliceOperationContext context = new SpliceOperationContext(region, TransactionalRegions.get(region, SegmentedRollForward.NOOP_ACTION),scan,activation,
+                        instructions.getStatement(),imp.getLcc(),true,instructions.getTopOperation(),instructions.getSpliceRuntimeContext(),instructions.getTxn());
                 SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
                 SpliceLogUtils.trace(LOG,"performing sink");
                 TaskStats out = spliceScanner.sink();

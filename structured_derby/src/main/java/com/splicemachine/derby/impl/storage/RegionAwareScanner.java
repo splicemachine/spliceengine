@@ -10,6 +10,7 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.hbase.ReadAheadRegionScanner;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.coprocessors.SIFilter;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
@@ -69,7 +70,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
     private byte[] localFinish;
     private byte[] regionFinish;
     private byte[] regionStart;
-    private final String transactionId;
+    private final Txn txn;
     private final Scan scan;
     private Scan localScan;
 
@@ -80,7 +81,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
 		private Scan lookAheadScan;
 		private Scan lookBehindScan;
 
-		private RegionAwareScanner(String transactionId,
+		private RegionAwareScanner(Txn txn,
 															 HTableInterface table,
 															 HRegion region,
 															 Scan scan,
@@ -97,31 +98,18 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
             this.regionFinish = scan.getStartRow();
             this.regionStart = scan.getStopRow();
         }
-        this.transactionId = transactionId;
+				this.txn = txn;
 				this.remoteReadTimer = metricFactory.newWallTimer();
 				this.remoteBytesRead = metricFactory.newCounter();
     }
 
-    private RegionAwareScanner(String transactionId,
+    private RegionAwareScanner(Txn txn,
 															 HTableInterface table,
 															 HRegion region,
 															 byte[] scanStart,
 															 byte[] scanFinish,
 															 ScanBoundary scanBoundary, MetricFactory metricFactory){
-				this(transactionId,table,region,new Scan(scanStart,scanFinish),scanBoundary,metricFactory);
-//        this.table = table;
-//        this.region = region;
-//				this.metricFactory = metricFactory;
-//				this.scan = new Scan(scanStart,scanFinish);
-//        this.boundary = scanBoundary;
-//        if(region!=null){
-//	        this.regionFinish = region.getEndKey();
-//	        this.regionStart = region.getStartKey();
-//        }else{
-//            this.regionFinish = scanFinish;
-//            this.regionStart = scanStart;
-//        }
-//        this.transactionId = transactionId;
+				this(txn,table,region,new Scan(scanStart,scanFinish),scanBoundary,metricFactory);
     }
 
 		@Override public TimeView getRemoteReadTime() { return remoteReadTimer.getTime(); }
@@ -244,19 +232,19 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
      * @return a RegionAwareScanner which can complete the portions of the global scan which
      * {@code region} is responsible for.
      */
-    public static RegionAwareScanner create(String transactionId, HRegion region, ScanBoundary boundary,
+    public static RegionAwareScanner create(Txn txn, HRegion region, ScanBoundary boundary,
                                             byte[] tableName,
                                             byte[] scanStart,
                                             byte[] scanFinish,
 																						MetricFactory metricFactory){
         HTableInterface table = SpliceAccessManager.getHTable(tableName);
-        return new RegionAwareScanner(transactionId,table,region,scanStart,scanFinish,boundary, metricFactory);
+        return new RegionAwareScanner(txn,table,region,scanStart,scanFinish,boundary, metricFactory);
     }
 
-    public static RegionAwareScanner create(String txnId, HRegion region, Scan localScan,
+    public static RegionAwareScanner create(Txn txn, HRegion region, Scan localScan,
                                             byte[] tableName,ScanBoundary boundary, MetricFactory metricFactory){
         HTableInterface table = SpliceAccessManager.getHTable(tableName);
-        return new RegionAwareScanner(txnId,table,region,localScan,boundary, metricFactory);
+        return new RegionAwareScanner(txn,table,region,localScan,boundary, metricFactory);
     }
 
     public void open() throws StandardException {
@@ -317,7 +305,7 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
             //deal with the start of the region
         	handleStartOfRegion();
         }
-        localScan = boundary.buildScan(transactionId,localStart,localFinish);
+        localScan = boundary.buildScan(txn,localStart,localFinish);
         localScan.setFilter(scan.getFilter());
 				localScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
 				if(SpliceConstants.useReadAheadScanner)
@@ -331,11 +319,11 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
 
 				localScanner.start();
 				if(remoteStart!=null){
-            lookBehindScan = boundary.buildScan(transactionId,remoteStart,regionFinish);
+            lookBehindScan = boundary.buildScan(txn,remoteStart,regionFinish);
             lookBehindScan.setFilter(scan.getFilter());
             lookBehindScanner = table.getScanner(lookBehindScan);
         }if(remoteFinish!=null){
-            lookAheadScan = boundary.buildScan(transactionId,regionFinish,remoteFinish);
+            lookAheadScan = boundary.buildScan(txn,regionFinish,remoteFinish);
             lookAheadScan.setFilter(scan.getFilter());
             lookAheadScanner = table.getScanner(lookAheadScan);
         }
@@ -350,11 +338,11 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
             lookAheadExhausted = true;
         }else{
             //have to determine whether to lookahead or stop early.
-            Scan aheadScan = boundary.buildScan(transactionId,regionFinish,scanFinish);
+            Scan aheadScan = boundary.buildScan(txn,regionFinish,scanFinish);
             aheadScan.setCaching(1);
             aheadScan.setBatch(1);
             //carry over filters from localscan
-            aheadScan.setFilter(getCorrectFilter(scan.getFilter(),transactionId));
+            aheadScan.setFilter(getCorrectFilter(scan.getFilter(),txn));
             ResultScanner aheadScanner = null;
             try{
                 aheadScanner = table.getScanner(aheadScan);
@@ -400,11 +388,11 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
             lookBehindExhausted=true;
         }else{
             //have to determine whether or not to lookbehind or skip the first local elements
-            Scan startScan = boundary.buildScan(transactionId,regionStart,regionFinish);
+            Scan startScan = boundary.buildScan(txn,regionStart,regionFinish);
             startScan.setCaching(1);
             startScan.setBatch(1);
             //carry over scan filters
-            startScan.setFilter(getCorrectFilter(scan.getFilter(), transactionId));
+            startScan.setFilter(getCorrectFilter(scan.getFilter(), txn));
             RegionScanner localScanner = null;
             try{
             	localScanner = new BufferedRegionScanner(region,region.getScanner(startScan),startScan,startScan.getCaching(),metricFactory);
@@ -442,10 +430,9 @@ public class RegionAwareScanner extends ReopenableScanner implements SpliceResul
         }
     }
 
-    private Filter getCorrectFilter(Filter filter, String transactionId) {
-        if(!SpliceUtils.NA_TRANSACTION_ID.equals(transactionId)|| filter==null){
-           return filter;
-        }
+    private Filter getCorrectFilter(Filter filter, Txn txn) {
+				if(txn!=null||filter==null)
+						return filter;
         /*
          * If we have no transaction id, we need to make sure and remove the SI Filter from the list,
          * because otherwise it'll break

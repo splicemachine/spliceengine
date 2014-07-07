@@ -193,7 +193,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 
 		private void buildReduceScan(byte[] uniqueSequenceID) throws StandardException {
 				try{
-						reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
+						reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, null); //no transaction needed
 						//make sure that we filter out failed tasks
 						if (failedTasks.size() > 0) {
 								SuccessFilter filter = new SuccessFilter(failedTasks);
@@ -486,7 +486,8 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 								return start;
 						}
 				};
-				return RegionAwareScanner.create(getTransactionID(),region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary,spliceRuntimeContext);
+				//don't use a transaction for this, since we are reading from temp
+				return RegionAwareScanner.create(null,region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary,spliceRuntimeContext);
 		}
 
 }

@@ -31,6 +31,8 @@ public class InheritingTxnView extends AbstractTxn {
 
 		private final Collection<byte[]> destinationTables;
 
+    private final long lastKaTime;
+
 		public InheritingTxnView(Txn parentTxn,
 														 long txnId,long beginTimestamp,
 														 IsolationLevel isolationLevel,
@@ -58,6 +60,23 @@ public class InheritingTxnView extends AbstractTxn {
 							state, Collections.<byte[]>emptyList());
 		}
 
+    public InheritingTxnView(Txn parentTxn,
+                             long txnId, long beginTimestamp,
+                             IsolationLevel isolationLevel,
+                             boolean hasDependent, boolean isDependent,
+                             boolean hasAdditive, boolean isAdditive,
+                             boolean hasAllowWrites,boolean allowWrites,
+                             long commitTimestamp,long globalCommitTimestamp,
+                             State state,
+                             Collection<byte[]> destinationTables) {
+        this(parentTxn, txnId, beginTimestamp, isolationLevel,
+                hasDependent, isDependent,
+                hasAdditive, isAdditive,
+                hasAllowWrites, allowWrites,
+                commitTimestamp, globalCommitTimestamp,
+                state,destinationTables,-1l);
+    }
+
 		public InheritingTxnView(Txn parentTxn,
 														 long txnId, long beginTimestamp,
 														 IsolationLevel isolationLevel,
@@ -66,7 +85,8 @@ public class InheritingTxnView extends AbstractTxn {
 														 boolean hasAllowWrites,boolean allowWrites,
 														 long commitTimestamp,long globalCommitTimestamp,
 														 State state,
-														 Collection<byte[]> destinationTables) {
+														 Collection<byte[]> destinationTables,
+                             long lastKaTime) {
 				super(txnId, beginTimestamp, isolationLevel);
 				this.hasDependent = hasDependent;
 				this.isDependent = isDependent;
@@ -79,9 +99,12 @@ public class InheritingTxnView extends AbstractTxn {
 				this.hasAllowWrites = hasAllowWrites;
 				this.globalCommitTimestamp = globalCommitTimestamp;
 				this.destinationTables = destinationTables;
+        this.lastKaTime = lastKaTime;
 		}
 
-		@Override
+    @Override public long getLastKeepAliveTimestamp() { return lastKaTime; }
+
+    @Override
 		public Collection<byte[]> getDestinationTables() {
 				return destinationTables;
 		}

@@ -114,7 +114,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
          * 3. issue a delete against the index table
          */
         try {
-            Get get = SpliceUtils.createGet(ctx.getTransactionId(), mutation.getRow());
+            Get get = SpliceUtils.createGet(ctx.getTxn(), mutation.getRow());
             EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
             get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
             Result result = ctx.getRegion().get(get);

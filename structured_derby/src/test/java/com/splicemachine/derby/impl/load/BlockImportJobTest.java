@@ -6,6 +6,7 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import org.apache.hadoop.fs.BlockLocation;
@@ -45,7 +46,7 @@ public class BlockImportJobTest {
                 .path("/test")
                 .destinationTable(1184l)
                 .colDelimiter(",")
-                .transactionId("1")
+//                .transactionId("1")
                 .addColumn(new ColumnContext.Builder().columnNumber(0).nullable(true).columnType(Types.INTEGER).build())
                 .build();
 
@@ -99,10 +100,7 @@ public class BlockImportJobTest {
         when(fs.getFileStatus(context.getFilePath())).thenReturn(testStatus);
         when(fs.getFileBlockLocations(any(FileStatus.class),any(Long.class),any(Long.class))).thenReturn(blocks);
 
-        BlockImportJob job = new BlockImportJob(table,context,-1l,-1l,fs);
-				BlockImportJob spy = Mockito.spy(job);
-				doReturn(new TransactionId("12")).when(spy).getParentTransaction();
-				job = spy;
+        BlockImportJob job = new BlockImportJob(table,context,-1l,-1l,fs,new ActiveWriteTxn(12,12));
 
 				Map<? extends RegionTask,Pair<byte[],byte[]>> tasks = job.getTasks();
         /*

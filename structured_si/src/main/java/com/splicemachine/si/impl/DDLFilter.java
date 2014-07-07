@@ -30,6 +30,10 @@ public class DDLFilter implements Comparable<DDLFilter> {
 				visibilityMap = CacheBuilder.newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).maximumSize(10000).build();
 		}
 
+		public boolean isVisibleBy(final Txn txn) throws IOException {
+			throw new UnsupportedOperationException("IMPLEMENT");
+		}
+
 		public boolean isVisibleBy(final String transactionId) throws IOException {
 				Boolean visible = visibilityMap.getIfPresent(transactionId);
 				if (visible != null) {

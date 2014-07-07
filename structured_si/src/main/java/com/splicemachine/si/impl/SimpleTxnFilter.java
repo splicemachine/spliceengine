@@ -13,6 +13,7 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
@@ -124,18 +125,10 @@ public class SimpleTxnFilter implements TxnFilter {
 				//get the row data. This will allow efficient movement of the row key without copying byte[]s
 				rowKey.set(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength());
 
-				if(t.getEffectiveState()==Txn.State.COMMITTED){
-						/*
-						 * This entry has definitely FOR SURE been committed, and all we need
-						 * is the effective commit timestamp for the transaction--thus,
-						 * we can perform a read-resolution on it.
-						 */
-						readResolver.resolveCommitted(rowKey, ts, t.getEffectiveCommitTimestamp());
-				}else if(t.getEffectiveState()==Txn.State.ROLLEDBACK){
-						//this entry has been rolled back, and can be removed from physical storage
-						readResolver.resolveRolledback(rowKey,ts);
-				}
-		}
+        //submit it to the resolver to resolve asynchronously
+        if(t.getEffectiveState().isFinal())
+            readResolver.resolve(rowKey,ts);
+    }
 
 		private Filter.ReturnCode checkVisibility(KeyValue keyValue) throws IOException {
 				/*
@@ -221,7 +214,7 @@ public class SimpleTxnFilter implements TxnFilter {
 						if(dataStore.isSIFail(keyValue)){
 								//use the current read-resolver to remove the entry
 								rowKey.set(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength());
-								readResolver.resolveRolledback(rowKey,keyValue.getTimestamp());
+                readResolver.resolve(rowKey,keyValue.getTimestamp());
 								transactionStore.cache(new RolledBackTxn(txnId));
 						}else{
 								long commitTs = Bytes.toLong(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());

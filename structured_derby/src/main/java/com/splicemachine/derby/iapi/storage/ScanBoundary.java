@@ -1,5 +1,6 @@
 package com.splicemachine.derby.iapi.storage;
 
+import com.splicemachine.si.api.Txn;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 
@@ -14,7 +15,7 @@ public interface ScanBoundary{
      * @param finish the end key of the scan
      * @return a constructed Scan representing the range given by {@code start} and {@code finish}
      */
-    Scan buildScan(String transactionId, byte[] start, byte[] finish);
+    Scan buildScan(Txn txn, byte[] start, byte[] finish);
 
     /**
      * Get the beginning of the key range that this row belongs to.

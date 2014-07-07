@@ -6,8 +6,9 @@ import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
-import com.splicemachine.si.coprocessors.RegionRollForwardAction;
 import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.Tracer;
+import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.TransactionId;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
 
 import static com.splicemachine.constants.SIConstants.DEFAULT_FAMILY_BYTES;
 import static com.splicemachine.constants.SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
