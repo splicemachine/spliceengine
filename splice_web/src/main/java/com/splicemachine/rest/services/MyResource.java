@@ -47,7 +47,7 @@ public class MyResource {
     	// TODO: This method is a quick hack to get some data flowing.
     	// Prepared statements should be used at a minimum.
     	if (statementId == null) return null;
-    	List<Map<String, String>> objects = getQueryResultsAsJavaScriptObjects(String.format("call syscs_util.xplain_trace('xplain', %s, 1, 'json')", statementId));
+    	List<Map<String, String>> objects = getQueryResultsAsJavaScriptObjects(String.format("call syscs_util.xplain_trace(%s, 1, 'json')", statementId));
     	if (objects == null) return null;
     	Map<String, String> object = objects.get(0);
     	if (object == null) return null;
