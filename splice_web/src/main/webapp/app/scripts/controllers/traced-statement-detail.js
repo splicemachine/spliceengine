@@ -5,8 +5,6 @@ angular.module('spliceWebApp')
 	// In the future, this may change and the tree structure will refresh when the service returns.
 	.controller('TracedStatementDetailCtrl', ['$scope', '$routeParams', 'tracedStatement', function ($scope, $routeParams, tracedStatement) {
 		$scope.tree = [tracedStatement];
-		console.log("tracedStatement", tracedStatement);
-		console.log("tracedStatementStr #1", JSON.stringify(tracedStatement,undefined,4));
 		$scope.awesomeThings = [
 			'HTML5 Boilerplate',
 			'AngularJS',
