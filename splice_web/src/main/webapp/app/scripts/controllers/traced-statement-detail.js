@@ -1,23 +1,15 @@
 'use strict';
 
 angular.module('spliceWebApp')
-.controller('TracedStatementDetailCtrl', ['$scope', '$routeParams', 'TracedStatementDetailService', function ($scope, $routeParams, TracedStatementDetailService) {
-	var str = TracedStatementDetailService.get({statementId: $routeParams.statementId});
-//	$scope.tracedStatement = str;
-	$scope.tree = [str];
-//	$scope.tracedStatementString = JSON.stringify($scope.tracedStatement, null, 2);
-	$scope.awesomeThings = [
-	                        'HTML5 Boilerplate',
-	                        'AngularJS',
-	                        'Karma'
-	                        ];
-//	$scope.delete = function(data) {
-//		data.children = [];
-//	};
-//	$scope.add = function(data) {
-//		var post = data.children.length + 1;
-//		var newName = data.name + '-' + post;
-//		data.children.push({name: newName,children: []});
-//	};
-//	$scope.tree = [{name: "Node", children: []}];
-}]);
+	// The tracedStatement below is fully loaded since the route provider blocks until the RESTful service returns.
+	// In the future, this may change and the tree structure will refresh when the service returns.
+	.controller('TracedStatementDetailCtrl', ['$scope', '$routeParams', 'tracedStatement', function ($scope, $routeParams, tracedStatement) {
+		$scope.tree = [tracedStatement];
+		console.log("tracedStatement", tracedStatement);
+		console.log("tracedStatementStr #1", JSON.stringify(tracedStatement,undefined,4));
+		$scope.awesomeThings = [
+			'HTML5 Boilerplate',
+			'AngularJS',
+			'Karma'
+		];
+	}]);
