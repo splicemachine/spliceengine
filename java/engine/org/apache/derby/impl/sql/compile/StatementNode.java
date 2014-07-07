@@ -389,6 +389,23 @@ public abstract class StatementNode extends QueryTreeNode
 		// wrap up the constructor by putting a return at the end of it
 		generatingClass.finishConstructor();
 
+        // Turn on explain trace flag if necessary
+        mbWorker = generatingClass.getClassBuilder().newMethodBuilder(
+                Modifier.PUBLIC,
+                "boolean",
+                "isTraced");
+        if (getLanguageConnectionContext().getStatisticsTiming() &&
+            getLanguageConnectionContext().getRunTimeStatisticsMode() &&
+            shouldTrace()) {
+            mbWorker.push(true);
+        }
+        else {
+            mbWorker.push(false);
+        }
+
+        mbWorker.methodReturn();
+        mbWorker.complete();
+
 		try {
 			// cook the completed class into a real class
 			// and stuff it into activationClass
@@ -424,5 +441,9 @@ public abstract class StatementNode extends QueryTreeNode
             throws StandardException {
         // Do nothing, overridden by appropriate nodes.
         return EMPTY_TD_LIST;
+    }
+
+    public boolean shouldTrace() {
+        return true;
     }
 }

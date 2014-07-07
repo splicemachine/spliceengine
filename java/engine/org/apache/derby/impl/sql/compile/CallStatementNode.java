@@ -37,6 +37,7 @@ import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.compile.Visitor;
 import org.apache.derby.iapi.sql.conn.Authorizer;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import java.util.TreeSet;
 
 /**
  * An CallStatementNode represents a CALL <procedure> statement.
@@ -60,7 +61,20 @@ public class CallStatementNode extends DMLStatementNode
 	 * in the parser.
 	 */
 	private JavaToSQLValueNode	methodCall;
+    private static TreeSet<String> xplainTraceProcedures;
 
+    static {
+        xplainTraceProcedures = new TreeSet<String>();
+
+        xplainTraceProcedures.add("SYSCS_SET_RUNTIMESTATISTICS");
+        xplainTraceProcedures.add("SYSCS_GET_RUNTIME_STATISTICS");
+
+        xplainTraceProcedures.add("SYSCS_SET_STATISTICS_TIMING");
+        xplainTraceProcedures.add("SYSCS_GET_STATISTICS_TIMING");
+
+        xplainTraceProcedures.add("SYSCS_GET_XPLAIN_TRACE");
+        xplainTraceProcedures.add("SYSCS_GET_XPLAIN_STATEMENTID");
+    }
 
 	/**
 	 * Initializer for a CallStatementNode.
@@ -295,4 +309,17 @@ public class CallStatementNode extends DMLStatementNode
 
 		return routineInfo.getSQLAllowed();
 	}
+
+    @Override
+    public boolean shouldTrace() {
+        JavaValueNode valueNode = methodCall.getJavaValueNode();
+        if (valueNode instanceof MethodCallNode) {
+            MethodCallNode callNode = (MethodCallNode) valueNode;
+            String methodName = callNode.getMethodName();
+            if (xplainTraceProcedures.contains(methodName)) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

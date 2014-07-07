@@ -1143,9 +1143,108 @@ class ij {
 		return null;
 	}
 
+    void set_xplain_trace(boolean enable) throws SQLException{
 
-	
+        haveConnection();
+        Statement	aStatement = theConnection.createStatement();
 
+        if (enable) {
+            aStatement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
+            aStatement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
+        }
+        else {
+            aStatement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0)");
+            aStatement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0)");
+        }
+
+    }
+
+    ijResult explainTrace(String sql, String format) throws SQLException{
+        haveConnection();
+        Statement	aStatement = theConnection.createStatement();
+        boolean runtimeStatistics = false;
+        boolean statisticsTiming = false;
+
+        try{
+            // Save the old state
+
+            ResultSet rs = aStatement.executeQuery("call SYSCS_UTIL.SYSCS_GET_RUNTIME_STATISTICS()");
+            if (rs.next()) {
+                runtimeStatistics = rs.getBoolean(1);
+            }
+            rs.close();
+
+            rs = aStatement.executeQuery("call SYSCS_UTIL.SYSCS_GET_STATISTICS_TIMING()");
+            if (rs.next()) {
+                statisticsTiming = rs.getBoolean(1);
+            }
+            rs.close();
+
+            // Turn on explain trace
+            aStatement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
+            aStatement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
+
+            // Execute the statement
+            boolean rowsReturned = aStatement.execute(sql);
+            if (rowsReturned) {
+                rs = aStatement.getResultSet();
+                while(rs.next()){
+                    // Consume all rows
+                }
+            }
+            // Get the statement ID
+            long statementId = 0;
+            rs = aStatement.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
+            if (rs.next()) {
+               statementId = rs.getLong(1);
+            }
+            rs.close();
+
+            // Wait until data is available
+            int count = 0;
+            String stmt = null;
+            while (count == 0) {
+                stmt = "select count(*) from sys.sysstatementhistory where statementId = " + statementId;
+                rs = aStatement.executeQuery(stmt);
+                if (rs.next()){
+                    count = rs.getInt(1);
+                }
+            }
+
+            // Wait until all task data are written
+            int count_before = -1;
+            count = -1;
+            while (count_before != count && count > 0) {
+                count_before = count;
+                stmt = "select count(*) from sys.systaskhistory where statementId = " + statementId;
+                rs = aStatement.executeQuery(stmt);
+                if (rs.next()){
+                    count = rs.getInt(1);
+                }
+            }
+
+            stmt = "call SYSCS_UTIL.SYSCS_GET_XPLAIN_TRACE(" + statementId + ", 0, '" + format + "')";
+            rs = aStatement.executeQuery(stmt);
+            return new ijResultSetResult(rs);
+
+        }finally {
+            // Restore the old state
+            Statement	anotherStatement = theConnection.createStatement();
+            if (runtimeStatistics){
+                anotherStatement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
+            }
+            else {
+                anotherStatement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0)");
+            }
+
+            if (statisticsTiming){
+                anotherStatement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
+            }
+            else {
+                anotherStatement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0)");
+            }
+        }
+    }
 }
 
 PARSER_END(ij)
@@ -1319,6 +1418,8 @@ TOKEN [IGNORE_CASE] :
 |	<CP_GETCONNECTION: "CP_getconnection">
 |	<CP_DISCONNECT: "CP_disconnect">
 |	<WORK : "work">
+|   <EXPLAINTRACE: "explaintrace">
+|   <JSON: "JSON">
 }
 
 TOKEN :
@@ -1665,6 +1766,7 @@ throws SQLException
 |	r=CP_ConnectStatement()
 |	r=CP_GetConnectionStatement()
 |	r=CP_DisconnectStatement()
+|   r=ExplainTraceStatement()
 )? <EOF>
 	{
 		return r;
@@ -3987,10 +4089,41 @@ keyword() :
 |	tok = <CP_GETCONNECTION>
 |	tok = <CP_DISCONNECT>
 |	tok = <WORK>
+|   tok = <EXPLAINTRACE>
+|   tok = <JSON>
 	)
 	{
 
 		return tok.image;
 
 	}
+}
+
+ijResult ExplainTraceStatement() throws SQLException
+:
+{
+	Token json=null;
+	Token t=null;
+	String sql = null;
+}
+{
+
+	<EXPLAINTRACE>
+	( <ON>
+	    {
+	        set_xplain_trace(true);
+            return null;
+	    }
+	| <OFF>
+	    {
+	        set_xplain_trace(false);
+            return null;
+	    }
+	| [<IN> json=<JSON>] <FOR> t=<STRING>
+	    {
+            sql = stringValue(t.image);
+            String format = (json == null ? "tree" : "Json");
+            return explainTrace(sql, format);
+	    }
+	)
 }

@@ -1284,7 +1284,8 @@ public interface LanguageConnectionContext extends Context {
     public String getXplainSchema();
     public void setXplainStatement(Object key, Object stmt);
     public Object getXplainStatement(Object key);
-
+    public void setXplainStatementId(long id);
+    public long getXplainStatementId();
     /**
      * Set a Visitor which walks the AST at various stages. This is useful
      * for poking user-written inspectors into the parse, bind, and optimize phases.

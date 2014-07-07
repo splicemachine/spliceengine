@@ -103,7 +103,6 @@ public class GenericLanguageConnectionContext
     private boolean ddWriteMode;
     private boolean runTimeStatisticsSetting ;
     private boolean statisticsTiming;
-
     
     /**
      * ========================
@@ -138,7 +137,7 @@ public class GenericLanguageConnectionContext
      * capturing of statistics data into the user XPLAIN tables.
      */
     private Map xplain_statements = new HashMap();
-    
+    private long xplainStatementId;
     //all the temporary tables declared for this connection
     private ArrayList allDeclaredGlobalTempTables;
 
@@ -3951,7 +3950,12 @@ public class GenericLanguageConnectionContext
     {
         return xplain_statements.get(key);
     }
-    
+    public long getXplainStatementId() {
+        return xplainStatementId;
+    }
+    public void setXplainStatementId(long id) {
+        xplainStatementId = id;
+    }
     public void setASTVisitor( ASTVisitor visitor )
     {
         astWalker = visitor;
