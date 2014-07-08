@@ -93,9 +93,14 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         String txnId = activation.getTransactionController().getActiveStateTxIdString();
         if (stmtInfo == null) {
             if (parentOperationID == -1) {
+                Snowflake snowflake = SpliceDriver.driver().getUUIDGenerator();
+                long sId = snowflake.nextUUID();
+                if (activation.isTraced()) {
+                    activation.getLanguageConnectionContext().setXplainStatementId(sId);
+                }
                 stmtInfo = new StatementInfo(sql, user, txnId,
                         OperationTree.getNumSinks(topOperation),
-                        SpliceDriver.driver().getUUIDGenerator());
+                        sId);
             }
             else {
                 stmtInfo = new StatementInfo(sql, user, txnId,

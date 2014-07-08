@@ -265,4 +265,24 @@ public class XPlainTreeNode {
             node.aggregateTree(otherChild);
         }
     }
+
+    public long getLocalScanRows() {
+        return localScanRows;
+    }
+
+    public long getRemoteScanRows() {
+        return remoteScanRows;
+    }
+
+    public long getInputRows() {
+        return inputRows;
+    }
+
+    public long getOutputRows() {
+        return outputRows;
+    }
+
+    public long getWriteRows() {
+        return writeRows;
+    }
 }
