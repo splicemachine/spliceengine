@@ -1,0 +1,47 @@
+\section{Planning and Optimization in Splice Machine}
+Query planning and optimization are key components.
+
+\subsection{Optimizer Implementation and Logging}
+
+The Derby Optimizer Implementation has been moved into Splice Machine.  The goal
+will be to start transitioning the optimizer as we get more sophisticated in our
+planning routines.  The current optimizer is located at 
+\emph{com.splicemachine.derby.impl.sql.compile.SpliceLevel2OptimizerImpl}.
+
+Logging for the optimizer can be enabled by the following settings.
+
+\emph{log4j.logger.com.splicemachine.derby.impl.sql.compile=TRACE, Console1}
+\emph{log4j.additivity.com.splicemachine.derby.impl.sql.compile=false}
+
+\subsection{Table vs. Index Cost Selection Constants}
+
+Here are the key constants that drive the planning optimization and selection:
+
+\begin{enumerate}
+	\item \emph{splice.optimizer.hbaseRegionRowsEstimate} (Default=1500000): This
+	metric is the number of rows to associate with the cost based optimizer when seeing a single
+	region.  
+	\item \emph{splice.optimizer.indexPerRowCost} (Default=0.20): This
+	metric is the cost per row of data returned from an index scan. 
+	\item \emph{splice.optimizer.baseTablePerRowCost} (Default=1): This
+	metric is the cost per row of data returned from a table scan. 
+	\item \emph{splice.optimizer.fetchFromRowLocationCost} (Default=3): This
+	metric is the remote cost per single row lookup from index to base table.
+	\item \emph{splice.optimizer.getBaseTableFetchFromFullKeyCost} (Default=1):
+	This metric is the ?
+	\item \emph{splice.optimizer.getIndexFetchFromFullKeyCost} (Default=3): Metric
+	that describes a unique lookup against an index where all the keys of the
+	index are unique and defined in the query.
+\end{enumerate}
+
+\subsection{Table Row Count and Costing Functions}
+
+\subsubsection{Row Count Computation}
+
+The row count is computed via the following algorithm.
+
+
+\emph{Row }
+
+
+%End Authentication and Authorization Chapter
