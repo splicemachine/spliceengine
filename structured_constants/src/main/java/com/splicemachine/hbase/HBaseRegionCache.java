@@ -178,6 +178,12 @@ public class HBaseRegionCache implements RegionCache {
 														&&!info.isSplitParent()){
                         regionInfos.add(info);
                     }
+                    else if(info.isOffline()){
+                        SpliceLogUtils.error(CACHE_LOG,"Server is offline");
+                        INSTANCE.shutdown();
+                        this.close();
+
+                    }
                     return true;
                 }
 
