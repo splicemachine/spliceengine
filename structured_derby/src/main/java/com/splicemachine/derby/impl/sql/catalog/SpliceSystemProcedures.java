@@ -432,7 +432,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     /*
                      * Procedure to print out a query execution plan for the specified statement
                      */
-                    Procedure xplainTrace = Procedure.newBuilder().name("XPLAIN_TRACE")
+                    Procedure xplainTrace = Procedure.newBuilder().name("SYSCS_GET_XPLAIN_TRACE")
                             .bigint("statementID")       // statement to print out a query plan for
                             .integer("mode")             // 0: only operation tree. 1: execution plan with metrics
                             .varchar("format", 4)        // 0: Tree, 1: Json
@@ -442,7 +442,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
 
                     procedures.add(xplainTrace);
-
                 }
 
             }

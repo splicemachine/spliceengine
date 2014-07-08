@@ -1426,8 +1426,41 @@ public class SpliceAdmin {
      * @return   an execution plan in a result set
      *
      */
-    public static void XPLAIN_TRACE(long statementId, int mode, String format, final ResultSet[] resultSet) throws Exception{
+    public static void SYSCS_GET_XPLAIN_TRACE(long statementId, int mode, String format, final ResultSet[] resultSet) throws Exception{
         XPlainTrace xPlainTrace = new XPlainTrace(statementId, mode, format);
         resultSet[0] = xPlainTrace.getXPlainTraceOutput();
+    }
+
+    public static void SYSCS_GET_XPLAIN_STATEMENTID(final ResultSet[] resultSet) throws Exception{
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        long statementId = lcc.getXplainStatementId();
+
+        StringBuilder statement = new StringBuilder()
+                .append("select * from (values (")
+                .append(statementId)
+                .append("))foo(STATEMENTID)");
+        resultSet[0] = executeStatement(statement);
+    }
+
+    public static void SYSCS_GET_RUNTIME_STATISTICS(final ResultSet[] resultSet) throws Exception{
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        boolean runTimeStatisticsMode = lcc.getRunTimeStatisticsMode();
+
+        StringBuilder statement = new StringBuilder()
+                .append("select * from (values (")
+                .append(runTimeStatisticsMode)
+                .append("))foo(RUNTIME_STATISTICS)");
+        resultSet[0] = executeStatement(statement);
+    }
+
+    public static void SYSCS_GET_STATISTICS_TIMING(final ResultSet[] resultSet) throws Exception{
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        boolean statisticsTiming = lcc.getStatisticsTiming();
+
+        StringBuilder statement = new StringBuilder()
+                .append("select * from (values (")
+                .append(statisticsTiming)
+                .append("))foo(STATISTICS_TIMING)");
+        resultSet[0] = executeStatement(statement);
     }
 }

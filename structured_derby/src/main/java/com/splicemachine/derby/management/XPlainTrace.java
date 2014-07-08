@@ -41,6 +41,11 @@ public class XPlainTrace {
     private XPlainTracePrinter printer;
 
 
+    protected XPlainTrace() {
+        xPlainTreeNodeMap = new HashMap<Long, XPlainTreeNode>(10);
+        sequenceId = 0;
+    }
+
     public XPlainTrace(long sId, int mode, String format) throws SQLException {
         this.statementId = sId;
         xPlainTreeNodeMap = new HashMap<Long, XPlainTreeNode>(10);
@@ -282,4 +287,37 @@ public class XPlainTrace {
         return rs;
     }
 
+    /*
+     *  Convenience methods fpr testing purpose
+     */
+    protected XPlainTreeNode getTopOperation() throws Exception{
+        if (topOperation == null) {
+            if (!populateTreeNodeMap()) return null;
+
+            constructOperationTree();
+
+            populateMetrics();
+
+            aggregateTableScan();
+
+            aggregateSubqueries();
+        }
+        return topOperation;
+    }
+
+    protected void setStatementId(long sId) {
+        this.statementId = sId;
+    }
+
+    protected void setMode (int mode) {
+        this.mode = mode;
+    }
+
+    protected void setFormat (String format) {
+        this.format = format;
+    }
+
+    protected void setConnection (Connection connection) {
+        this.connection = connection;
+    }
 }
