@@ -38,6 +38,7 @@ public class MyResource {
 
     /** Method processing HTTP GET requests, producing "text/plain" MIME media
      * type.
+     * RESTful service that returns JSON with the traced statement plan, which is a SQL operation tree, for the statement.
      * @return String that will be send back as a response of type "text/plain".
      */
     @GET
@@ -47,7 +48,7 @@ public class MyResource {
     	// TODO: This method is a quick hack to get some data flowing.
     	// Prepared statements should be used at a minimum.
     	if (statementId == null) return null;
-    	List<Map<String, String>> objects = getQueryResultsAsJavaScriptObjects(String.format("call syscs_util.xplain_trace(%s, 1, 'json')", statementId));
+    	List<Map<String, String>> objects = getQueryResultsAsJavaScriptObjects(String.format("call syscs_util.syscs_get_xplain_trace(%s, 1, 'json')", statementId));
     	if (objects == null) return null;
     	Map<String, String> object = objects.get(0);
     	if (object == null) return null;

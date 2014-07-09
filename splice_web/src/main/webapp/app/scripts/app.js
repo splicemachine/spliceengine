@@ -19,11 +19,14 @@ angular
 			.when('/traced-statements/:statementId', {
 				templateUrl: 'views/traced-statement-detail.html',
 				controller: 'TracedStatementDetailCtrl',
-				// Do not render until the traced statement has been returned from the Splice REST service.
-				// In the future, we can start rendering the tree and refresh it when the REST service returns.
+				// Do not render until the traced statement has been returned from the Splice REST services.
+				// In the future, we can start rendering the tree and refresh it as the REST services return.
 				resolve: {
 					tracedStatement: ['TracedStatementDetailService', '$route', function(TracedStatementDetailService, $route) {
 						return TracedStatementDetailService.get({statementId: $route.current.params.statementId}).$promise;
+					}],
+					tracedStatementSQL: ['TracedStatementSQLService', '$route', function(TracedStatementSQLService, $route) {
+						return TracedStatementSQLService.query({statementId: $route.current.params.statementId}).$promise;
 					}]
 				}
 			})
