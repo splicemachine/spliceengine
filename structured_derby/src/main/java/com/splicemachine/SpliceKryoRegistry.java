@@ -139,6 +139,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.UpdateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.WindowOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.DerbyGroupedAggregateContext;
+import com.splicemachine.derby.impl.sql.execute.operations.window.DerbyWindowContext;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -768,6 +769,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 						}
 				},161);
 
-            instance.register(WindowOperation.class,EXTERNALIZABLE_SERIALIZER,179);
+        instance.register(WindowOperation.class,EXTERNALIZABLE_SERIALIZER,179);
+        instance.register(DerbyWindowContext.class,EXTERNALIZABLE_SERIALIZER,180);
 		}
 }
