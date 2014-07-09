@@ -21,14 +21,13 @@
 
 package	org.apache.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.compile.Visitor;
-import org.apache.derby.iapi.sql.compile.Visitable;
-import org.apache.derby.iapi.error.StandardException;
-
-import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.sql.compile.Visitor;
 
 /**
  * QueryTreeNodeVector is the root class for all lists of query tree nodes.
@@ -80,6 +79,10 @@ abstract class QueryTreeNodeVector extends QueryTreeNode
 	{
 		v.setElementAt(qt, index);
 	}
+
+    Iterator iterator() {
+        return v.iterator();
+    }
 
 	void destructiveAppend(QueryTreeNodeVector qtnv)
 	{

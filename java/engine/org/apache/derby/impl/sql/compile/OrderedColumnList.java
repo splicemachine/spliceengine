@@ -21,17 +21,15 @@
 
 package	org.apache.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.store.access.ColumnOrdering;
+import java.util.Hashtable;import java.util.Iterator;
 
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
-
-import java.util.Hashtable;
 
 /**
  * List of OrderedColumns
  *
  */
-public abstract class OrderedColumnList extends QueryTreeNodeVector
+public abstract class OrderedColumnList extends QueryTreeNodeVector implements Iterable<OrderedColumn>
 {
 	/**
 	 * Get an array of ColumnOrderings to pass to the store
@@ -89,4 +87,9 @@ public abstract class OrderedColumnList extends QueryTreeNodeVector
 
 		return ordering;
 	}
+
+    @Override
+    public Iterator<OrderedColumn> iterator() {
+        return super.iterator();
+    }
 }

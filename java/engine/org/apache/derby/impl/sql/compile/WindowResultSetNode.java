@@ -23,6 +23,8 @@ package org.apache.derby.impl.sql.compile;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.Vector;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -45,6 +47,7 @@ import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.impl.sql.execute.AggregatorInfo;
 import org.apache.derby.impl.sql.execute.AggregatorInfoList;
+import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 
 
 /**
@@ -92,6 +95,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * over the windowing node and parent is set to that node.
      */
     FromTable parent;
+
+    private boolean	addDistinctAggregate;
+    private int		addDistinctAggregateColumnNum;
 
     // Is the source in sorted order
     private boolean isInSortedOrder;
@@ -157,29 +163,36 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		*/
         addAggregates();
 
-		/*
-		 * Check to see if the source is in sorted order on any permutation
-		 * of the grouping columns.
+		/* We say that the source is never in sorted order if there is a distinct aggregate.
+		 * (Not sure what happens if it is, so just skip it for now.)
+		 * Otherwise, we check to see if the source is in sorted order on any permutation
+		 * of the grouping columns.)
 		 */
-        if (partition != null) {
-            int pSize = this.partition.size();
+        if (! addDistinctAggregate && partition != null)
+        {
             ColumnReference[] crs =
-                new ColumnReference[pSize];
+                new ColumnReference[this.partition.size()];
 
             // Now populate the CR array and see if ordered
+            int glSize = this.partition.size();
             int index;
-            for (index = 0; index < pSize; index++) {
-                GroupByColumn gc = (GroupByColumn) this.partition.elementAt(index);
-                if (gc.getColumnExpression() instanceof ColumnReference) {
-                    crs[index] = (ColumnReference) gc.getColumnExpression();
-                } else {
+            for (index = 0; index < glSize; index++)
+            {
+                GroupByColumn gc =
+                    (GroupByColumn) this.partition.elementAt(index);
+                if (gc.getColumnExpression() instanceof ColumnReference)
+                {
+                    crs[index] = (ColumnReference)gc.getColumnExpression();
+                }
+                else
+                {
                     isInSortedOrder = false;
                     break;
                 }
 
             }
-            if (index == pSize) {
-                isInSortedOrder = childResult.isOrderedOn(crs, true, (Vector) null);
+            if (index == glSize) {
+                isInSortedOrder = childResult.isOrderedOn(crs, true, (Vector)null);
             }
         }
     }
@@ -211,19 +224,44 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     private void addAggregates() throws StandardException {
         addNewPRNode();
         addNewColumnsForAggregation();
+        addDistinctAggregatesToOrderBy();
     }
 
-//    private void addOrderBy() throws StandardException {
-//        OrderByList orderByList = wdn.getOrderByList();
-//        if (orderByList != null) {
-//            ResultSetNode newTop = genProjectRestrictForReordering();
-//            orderByList.resetToSourceRCs();
-//            resultColumns = orderByList.reorderRCL(resultColumns);
-//            newTop.getResultColumns().removeOrderByColumns();
-//            newTop.setReferencedTableMap((JBitSet) referencedTableMap.clone());
-//            parent.setResultColumns(newTop.getResultColumns());
-//        }
-//    }
+    /**
+     * Add any distinct aggregates to the order by list.
+     * Asserts that there are 0 or more distincts.
+     */
+    private void addDistinctAggregatesToOrderBy()
+    {
+        int numDistinct = numDistinctAggregates(windowFunctions);
+        if (numDistinct != 0)
+        {
+            if (SanityManager.DEBUG)
+            {
+                SanityManager.ASSERT(partition != null || numDistinct == 1,
+                                     "Should not have more than 1 distinct aggregate per Partition");
+            }
+
+            AggregatorInfo agg = null;
+            int count = aggInfo.size();
+            for (int i = 0; i < count; i++)
+            {
+                agg = (AggregatorInfo) aggInfo.elementAt(i);
+                if (agg.isDistinct())
+                {
+                    break;
+                }
+            }
+
+            if (SanityManager.DEBUG)
+            {
+                SanityManager.ASSERT(agg != null && agg.isDistinct());
+            }
+
+            addDistinctAggregate = true;
+            addDistinctAggregateColumnNum = agg.getInputColNum();
+        }
+    }
 
     /**
      * Add a new PR node for aggregation.  Put the
@@ -358,9 +396,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         throws StandardException {
         aggInfo = new AggregatorInfoList();
 
-        addUnAggColumns();
+        if (partition != null) {
+            addUnAggColumns();
+        }
         addAggregateColumns();
-//        addOrderBy();
     }
 
     /**
@@ -373,101 +412,99 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         ResultColumnList bottomRCL = childResult.getResultColumns();
         ResultColumnList groupByRCL = resultColumns;
 
-        if (partition != null && ! (partition.size() == 0)) {
-            ArrayList referencesToSubstitute = new ArrayList();
-            int sz = partition.size();
-            for (int i = 0; i < sz; i++) {
-                GroupByColumn gbc = (GroupByColumn) partition.elementAt(i);
-                ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    "##PartitionColumn",
-                    gbc.getColumnExpression(),
-                    getContextManager());
+        ArrayList referencesToSubstitute = new ArrayList();
+        int sz = partition.size();
+        for (int i = 0; i < sz; i++) {
+            GroupByColumn gbc = (GroupByColumn) partition.elementAt(i);
+            ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN,
+                "##PartitionColumn",
+                gbc.getColumnExpression(),
+                getContextManager());
 
-                // add this result column to the bottom rcl
-                bottomRCL.addElement(newRC);
-                newRC.markGenerated();
-                newRC.bindResultColumnToExpression();
-                newRC.setVirtualColumnId(bottomRCL.size());
+            // add this result column to the bottom rcl
+            bottomRCL.addElement(newRC);
+            newRC.markGenerated();
+            newRC.bindResultColumnToExpression();
+            newRC.setVirtualColumnId(bottomRCL.size());
 
-                // now add this column to the groupbylist
-                ResultColumn gbRC = (ResultColumn) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    "##PartitionColumn",
-                    gbc.getColumnExpression(),
-                    getContextManager());
-                groupByRCL.addElement(gbRC);
-                gbRC.markGenerated();
-                gbRC.bindResultColumnToExpression();
-                gbRC.setVirtualColumnId(groupByRCL.size());
+            // now add this column to the groupbylist
+            ResultColumn gbRC = (ResultColumn) getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN,
+                "##PartitionColumn",
+                gbc.getColumnExpression(),
+                getContextManager());
+            groupByRCL.addElement(gbRC);
+            gbRC.markGenerated();
+            gbRC.bindResultColumnToExpression();
+            gbRC.setVirtualColumnId(groupByRCL.size());
 
-                /*
-                 ** Reset the original node to point to the
-                 ** Group By result set.
-                 */
-                VirtualColumnNode vc = (VirtualColumnNode) getNodeFactory().getNode(
-                    C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                    this, // source result set.
-                    gbRC,
-                    new Integer(groupByRCL.size()),
-                    getContextManager());
+            /*
+             ** Reset the original node to point to the
+             ** Group By result set.
+             */
+            VirtualColumnNode vc = (VirtualColumnNode) getNodeFactory().getNode(
+                C_NodeTypes.VIRTUAL_COLUMN_NODE,
+                this, // source result set.
+                gbRC,
+                new Integer(groupByRCL.size()),
+                getContextManager());
 
-                // we replace each group by expression
-                // in the projection list with a virtual column node
-                // that effectively points to a result column
-                // in the result set doing the group by
-                //
-                // Note that we don't perform the replacements
-                // immediately, but instead we accumulate them
-                // until the end of the loop. This allows us to
-                // sort the expressions and process them in
-                // descending order of complexity, necessary
-                // because a compound expression may contain a
-                // reference to a simple grouped column, but in
-                // such a case we want to process the expression
-                // as an expression, not as individual column
-                // references. E.g., if the statement was:
-                //   SELECT ... GROUP BY C1, C1 * (C2 / 100), C3
-                // then we don't want the replacement of the
-                // simple column reference C1 to affect the
-                // compound expression C1 * (C2 / 100). DERBY-3094.
-                //
-                ValueNode vn = gbc.getColumnExpression();
-                SubstituteExpressionVisitor vis =
-                    new SubstituteExpressionVisitor(vn, vc,
-                                                    AggregateNode.class);
-                referencesToSubstitute.add(vis);
+            // we replace each group by expression
+            // in the projection list with a virtual column node
+            // that effectively points to a result column
+            // in the result set doing the group by
+            //
+            // Note that we don't perform the replacements
+            // immediately, but instead we accumulate them
+            // until the end of the loop. This allows us to
+            // sort the expressions and process them in
+            // descending order of complexity, necessary
+            // because a compound expression may contain a
+            // reference to a simple grouped column, but in
+            // such a case we want to process the expression
+            // as an expression, not as individual column
+            // references. E.g., if the statement was:
+            //   SELECT ... GROUP BY C1, C1 * (C2 / 100), C3
+            // then we don't want the replacement of the
+            // simple column reference C1 to affect the
+            // compound expression C1 * (C2 / 100). DERBY-3094.
+            //
+            ValueNode vn = gbc.getColumnExpression();
+            SubstituteExpressionVisitor vis =
+                new SubstituteExpressionVisitor(vn, vc,
+                                                AggregateNode.class);
+            referencesToSubstitute.add(vis);
 
-                // Since we always need a PR node on top of the GB
-                // node to perform projection we can use it to perform
-                // the having clause restriction as well.
-                // To evaluate the having clause correctly, we need to
-                // convert each aggregate and expression to point
-                // to the appropriate result column in the group by node.
-                // This is no different from the transformations we do to
-                // correctly evaluate aggregates and expressions in the
-                // projection list.
-                //
-                //
-                // For this query:
-                // SELECT c1, SUM(c2), MAX(c3)
-                //    FROM t1
-                //    HAVING c1+max(c3) > 0;
+            // Since we always need a PR node on top of the GB
+            // node to perform projection we can use it to perform
+            // the having clause restriction as well.
+            // To evaluate the having clause correctly, we need to
+            // convert each aggregate and expression to point
+            // to the appropriate result column in the group by node.
+            // This is no different from the transformations we do to
+            // correctly evaluate aggregates and expressions in the
+            // projection list.
+            //
+            //
+            // For this query:
+            // SELECT c1, SUM(c2), MAX(c3)
+            //    FROM t1
+            //    HAVING c1+max(c3) > 0;
 
-                // PRSN RCL -> (ptr(gbn:rcl[0]), ptr(gbn:rcl[1]), ptr(gbn:rcl[4]))
-                // Restriction: (> (+ ptr(gbn:rcl[0]) ptr(gbn:rcl[4])) 0)
-                //              |
-                // GBN (RCL) -> (C1, SUM(C2), <input>, <aggregator>, MAX(C3), <input>, <aggregator>
-                //              |
-                //       FBT (C1, C2)
-                gbc.setColumnPosition(bottomRCL.size());
-            }
-            Comparator sorter = new ExpressionSorter();
-            Collections.sort(referencesToSubstitute, sorter);
-            for (int r = 0; r < referencesToSubstitute.size(); r++)
-                parent.getResultColumns().accept(
-                    (SubstituteExpressionVisitor) referencesToSubstitute.get(r));
+            // PRSN RCL -> (ptr(gbn:rcl[0]), ptr(gbn:rcl[1]), ptr(gbn:rcl[4]))
+            // Restriction: (> (+ ptr(gbn:rcl[0]) ptr(gbn:rcl[4])) 0)
+            //              |
+            // GBN (RCL) -> (C1, SUM(C2), <input>, <aggregator>, MAX(C3), <input>, <aggregator>
+            //              |
+            //       FBT (C1, C2)
+            gbc.setColumnPosition(bottomRCL.size());
         }
+        Comparator sorter = new ExpressionSorter();
+        Collections.sort(referencesToSubstitute, sorter);
+        for (int r = 0; r < referencesToSubstitute.size(); r++)
+            parent.getResultColumns().accept(
+                (SubstituteExpressionVisitor) referencesToSubstitute.get(r));
     }
 
     /**
@@ -835,12 +872,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      *
      * @throws StandardException Thrown on error
      */
-    public void generate(ActivationClassBuilder acb,
-                         MethodBuilder mb)
-        throws StandardException {
-        int partitioningItem = 0;
-        int aggInfoItem = 0;
-        FormatableArrayHolder partitioningHolder;
+    public void generate(ActivationClassBuilder acb,  MethodBuilder mb) throws StandardException {
 
 		/* Get the next ResultSet#, so we can number this ResultSetNode, its
 		 * ResultColumnList and ResultSet.
@@ -851,24 +883,21 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         costEstimate = childResult.getFinalCostEstimate();
 
 		/*
-		** Get the column ordering from partition.
-		* getColumnOrdering does the right thing if partition is null empty.
+		** Get the column ordering for the sort.  Note that
+		** for a scalar aggregate we may not have any ordering
+		** columns (if there are no distinct aggregates).
+		** WARNING: if a distinct aggregate is passed to
+		** SortResultSet it assumes that the last column
+		** is the distinct one.  If this assumption changes
+		** then SortResultSet will have to change.
 		*/
-        partitioningHolder = acb.getColumnOrdering(partition);
-
-        // now add column ordering from order by to partition
-        OrderByList orderByList = wdn.getOrderByList();
-        if (orderByList != null) {
-            FormatableArrayHolder orderbyHolder = acb.getColumnOrdering(orderByList);
-
-            for (int i=0; i<orderByList.size(); i++) {
-                // FIXME: addColumnToOrdering() is very inefficient - creates a new IndexColumnOrder[] each call
-                // 1) check to see if column not already in there
-                // 2) create IndexColumnOrder[] size of partHolder + all missing
-                // 3) create FormatableArrayHolder with above
-                partitioningHolder = acb.addColumnToOrdering(orderbyHolder, i);
-            }
+        FormatableArrayHolder partitionHolder = createColumnOrdering(partition);
+        if (addDistinctAggregate) {
+            partitionHolder = acb.addColumnToOrdering(partitionHolder, addDistinctAggregateColumnNum);
         }
+
+        // add column ordering from order by to end of partition following what's stated above
+        FormatableArrayHolder orderByHolder = createColumnOrdering(wdn.getOrderByList());
 
         if (SanityManager.DEBUG) {
             if (SanityManager.DEBUG_ON("WindowTrace")) {
@@ -876,7 +905,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
                 s.append("Partition column ordering is (");
                 org.apache.derby.iapi.store.access.ColumnOrdering[] ordering =
-                    (org.apache.derby.iapi.store.access.ColumnOrdering[]) partitioningHolder.getArray(org.apache.derby
+                    (org.apache.derby.iapi.store.access.ColumnOrdering[]) partitionHolder.getArray(org.apache.derby
                                                                                                       .iapi.store
                                                                                                       .access
                                                                                                       .ColumnOrdering
@@ -891,17 +920,17 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             }
         }
 
-        partitioningItem = acb.addItem(partitioningHolder);
+        int partitionItemIndex = acb.addItem(partitionHolder);
+        int orderByItemIndex = acb.addItem(orderByHolder);
 
 		/*
 		** We have aggregates, so save the aggInfo
 		** struct in the activation and store the number
 		*/
         if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(aggInfo != null,
-                                 "aggInfo not set up as expected");
+            SanityManager.ASSERT(aggInfo != null, "aggInfo not set up as expected");
         }
-        aggInfoItem = acb.addItem(aggInfo);
+        int aggInfoItem = acb.addItem(aggInfo);
 
         acb.pushGetResultSetFactoryExpression(mb);
 
@@ -910,18 +939,20 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		 *	arg1: childExpress - Expression for childResult
 		 *  arg2: isInSortedOrder - true if source result set in sorted order
 		 *  arg3: aggInfoItem - entry in saved objects for the aggregates,
-		 *  arg4: partitioningItem - entry in saved objects for the ordering
-		 *  arg5: Activation
-		 *  arg6: rowAllocator - method to construct rows for fetching
-		 *			from the sort
-		 *  arg7: row size
+		 *  arg4: partitionItemIndex - index of entry in saved objects for the partition
+		 *  arg5: orderByItemIndex - index of entry in saved objects for the ordering
+		 *  arg6: Activation
+		 *  arg7: number of columns in the result
 		 *  arg8: resultSetNumber
+		 *  arg9: row count estimate for cost
+		 *  arg10: estimated cost
 		 */
         // Generate the child ResultSet
         childResult.generate(acb, mb);
         mb.push(isInSortedOrder);
         mb.push(aggInfoItem);
-        mb.push(partitioningItem);
+        mb.push(partitionItemIndex);
+        mb.push(orderByItemIndex);
 
         resultColumns.generateHolder(acb, mb);
 
@@ -931,7 +962,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         mb.push(costEstimate.getEstimatedCost());
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getWindowResultSet",
-                      ClassName.NoPutResultSet, 9);
+                      ClassName.NoPutResultSet, 10);
 
     }
 
@@ -940,6 +971,35 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     // UTILITIES
     //
     ///////////////////////////////////////////////////////////////
+
+    /**
+     * Create the zero-based column ordering for one or more ordered column lists
+     * @param orderedColumnLists using varargs ordered column list here so that we can
+     *                           add both partition and orderby lists at once.
+     * @return The holder for the column ordering array.
+     */
+    private FormatableArrayHolder createColumnOrdering(OrderedColumnList... orderedColumnLists) {
+        FormatableArrayHolder colOrdering = null;
+        if (orderedColumnLists != null) {
+            Map<Integer, OrderedColumn> map = new TreeMap<Integer, OrderedColumn>();
+            for (int i=0; i<orderedColumnLists.length && orderedColumnLists[i] != null; i++) {
+                for (OrderedColumn orderedColumn : orderedColumnLists[i]) {
+                    map.put(i, orderedColumn);
+                }
+            }
+            IndexColumnOrder[] ordering = new IndexColumnOrder[map.size()];
+            int j = 0;
+            for (OrderedColumn oc : map.values()) {
+                ordering[j++] = new IndexColumnOrder(oc.getColumnPosition()-1, oc.isAscending(), oc.isNullsOrderedLow());
+            }
+            colOrdering = new FormatableArrayHolder(ordering);
+        }
+
+        if (colOrdering == null) {
+            colOrdering = new FormatableArrayHolder(new IndexColumnOrder[0]);
+        }
+        return colOrdering;
+    }
 
     /**
      * Method for creating a new result column referencing

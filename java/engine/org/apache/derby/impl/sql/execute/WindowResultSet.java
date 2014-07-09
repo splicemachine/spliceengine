@@ -88,6 +88,7 @@ import org.apache.derby.iapi.types.RowLocation;
 
       // set in constructor and not altered during
       // life of object.
+      private ColumnOrdering[] partition;
       private ColumnOrdering[] order;
       private ExecIndexRow sortTemplateRow;
       public	boolean	hasDistinctAggregate;	// true if distinct aggregate
@@ -145,7 +146,10 @@ import org.apache.derby.iapi.types.RowLocation;
        * @param	aggregateItem	indicates the number of the
        *		SavedObject off of the PreparedStatement that holds the
        *		AggregatorInfoList used by this routine.
-       * @param	orderingItem	indicates the number of the
+       * @param	partitionItemIdx	indicates the number of the
+       *		SavedObject off of the PreparedStatement that holds the
+       *		Partition array used by this routine
+       * @param	orderingItemIdx	indicates the number of the
        *		SavedObject off of the PreparedStatement that holds the
        *		ColumOrdering array used by this routine
        * @param	activation				activation
@@ -156,7 +160,7 @@ import org.apache.derby.iapi.types.RowLocation;
        *
        * @exception StandardException Thrown on error
         */
-       public WindowResultSet(NoPutResultSet source, boolean isInSortedOrder, int aggregateItem, int orderingItem,
+       public WindowResultSet(NoPutResultSet source, boolean isInSortedOrder, int aggregateItem, int partitionItemIdx, int orderingItemIdx,
                                    Activation activation, GeneratedMethod rowAllocator, int maxRowSize, int resultSetNumber,
                                    double optimizerEstimatedRowCount, double optimizerEstimatedCost) throws StandardException {
            super(source, aggregateItem, activation, rowAllocator, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
@@ -165,9 +169,13 @@ import org.apache.derby.iapi.types.RowLocation;
            this.isInSortedOrder = isInSortedOrder;
            finishedResults = new ArrayList();
            sortTemplateRow = getExecutionFactory().getIndexableRow((ExecRow) rowAllocator.invoke(activation));
+           partition = (ColumnOrdering[])
+               ((FormatableArrayHolder)
+                   (activation.getPreparedStatement().getSavedObject(partitionItemIdx)))
+                   .getArray(ColumnOrdering.class);
            order = (ColumnOrdering[])
                ((FormatableArrayHolder)
-                   (activation.getPreparedStatement().getSavedObject(orderingItem)))
+                   (activation.getPreparedStatement().getSavedObject(orderingItemIdx)))
                    .getArray(ColumnOrdering.class);
 
            if (SanityManager.DEBUG)
