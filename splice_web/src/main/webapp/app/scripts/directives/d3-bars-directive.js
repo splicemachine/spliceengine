@@ -1,7 +1,7 @@
 (function () {
 	'use strict';
 
-	angular.module('spliceWebDirectives')
+	angular.module('spliceAdminDirectives')
 		.directive('d3Bars', [/*'d3',*/ function(/*d3*/) {
 			return {
 				restrict: 'EA',
