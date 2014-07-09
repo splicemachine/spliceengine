@@ -42,19 +42,93 @@
 
 <!-- TODO: Move CSS -->
 <style>
- .link {
-  fill: none;
-  stroke: #ccc;
-  stroke-width: 4.5px;
-}
+  .link {
+    fill: none;
+    stroke: #ccc;
+    stroke-width: 4.5px;
+  }
 </style>
 
 <div class="row marketing" ng-controller="spliceOperationsTreeCtrl">
-  <span>{{title}}</span>
-  <splice-ops-tree data="tree[0]" label="operationType" on-click="d3OnClick(item)"></splice-ops-tree>
-  <br>
+  <div class="row marketing">
+    <span><h4 class="text-primary">{{tracedStatementSQL}}</h4></span>
+    <splice-ops-tree data="tree[0]" label="operationType" on-click="d3OnClick(item)"></splice-ops-tree>
+  </div>
+  <div class="row marketing">
+    <!-- TODO: Remove the evil TABLE tag!!! -->
+    <h6>
+    <table border="1">
+      <tr>
+        <td>failedWriteAttempts: {{clickedOperation.failedWriteAttempts}}</td>
+        <td>filteredRows: {{clickedOperation.filteredRows}}</td>
+        <td>host: {{clickedOperation.host}}</td>
+        <td>info: {{clickedOperation.info}}</td>
+      </tr>
+      <tr>
+        <td>inputRows: {{clickedOperation.inputRows}}</td>
+        <td>iterations: {{clickedOperation.iterations}}</td>
+        <td>localScanBytes: {{clickedOperation.localScanBytes}}</td>
+        <td>localScanCPUTime: {{clickedOperation.localScanCPUTime}}</td>
+      </tr>
+      <tr>
+        <td>localScanRows: {{clickedOperation.localScanRows}}</td>
+        <td>localScanUserTime: {{clickedOperation.localScanUserTime}}</td>
+        <td>localScanWallTime: {{clickedOperation.localScanWallTime}}</td>
+        <td>operationType: {{clickedOperation.operationType}}</td>
+      </tr>
+      <tr>
+        <td>outputRows: {{clickedOperation.outputRows}}</td>
+        <td>partialWriteFailures: {{clickedOperation.partialWriteFailures}}</td>
+        <td>processingCPUTime: {{clickedOperation.processingCPUTime}}</td>
+        <td>processingUserTime: {{clickedOperation.processingUserTime}}</td>
+      </tr>
+      <tr>
+        <td>processingWallTime: {{clickedOperation.processingWallTime}}</td>
+        <td>region: {{clickedOperation.region}}</td>
+        <td>rejectedWriteAttempts: {{clickedOperation.rejectedWriteAttempts}}</td>
+        <td>remoteGetBytes: {{clickedOperation.remoteGetBytes}}</td>
+      </tr>
+      <tr>
+        <td>remoteGetCPUTime: {{clickedOperation.remoteGetCPUTime}}</td>
+        <td>remoteGetRows: {{clickedOperation.remoteGetRows}}</td>
+        <td>remoteGetUserTime: {{clickedOperation.remoteGetUserTime}}</td>
+        <td>remoteGetWallTime: {{clickedOperation.remoteGetWallTime}}</td>
+      </tr>
+      <tr>
+        <td>remoteScanBytes: {{clickedOperation.remoteScanBytes}}</td>
+        <td>remoteScanCPUTime: {{clickedOperation.remoteScanCPUTime}}</td>
+        <td>remoteScanRows: {{clickedOperation.remoteScanRows}}</td>
+        <td>remoteScanUserTime: {{clickedOperation.remoteScanUserTime}}</td>
+      </tr>
+      <tr>
+        <td>remoteScanWallTime: {{clickedOperation.remoteScanWallTime}}</td>
+        <td>retriedWriteAttempts: {{clickedOperation.retriedWriteAttempts}}</td>
+        <td>totalCPUTime: {{clickedOperation.totalCPUTime}}</td>
+        <td>totalUserTime: {{clickedOperation.totalUserTime}}</td>
+      </tr>
+      <tr>
+        <td>totalWallTime: {{clickedOperation.totalWallTime}}</td>
+        <td>writeBytes: {{clickedOperation.writeBytes}}</td>
+        <td>writeNetworkCPUTime: {{clickedOperation.writeNetworkCPUTime}}</td>
+        <td>writeNetworkUserTime: {{clickedOperation.writeNetworkUserTime}}</td>
+      </tr>
+      <tr>
+        <td>writeNetworkWallTime: {{clickedOperation.writeNetworkWallTime}}</td>
+        <td>writeRows: {{clickedOperation.writeRows}}</td>
+        <td>writeSleepCPUTime: {{clickedOperation.writeSleepCPUTime}}</td>
+        <td>writeSleepUserTime: {{clickedOperation.writeSleepUserTime}}</td>
+      </tr>
+      <tr>
+        <td>writeSleepWallTime: {{clickedOperation.writeSleepWallTime}}</td>
+        <td>writeThreadCPUTime: {{clickedOperation.writeThreadCPUTime}}</td>
+        <td>writeThreadUserTime: {{clickedOperation.writeThreadUserTime}}</td>
+        <td>writeThreadWallTime: {{clickedOperation.writeThreadWallTime}}</td>
+      </tr>
+    </table>
+    </h6>
+  </div>
 </div>
 
 <div class="footer">
-  <p><span class="glyphicon glyphicon-heart"></span> from the Splice Machine team</p>
+  <p>&copy; 2014 Splice Machine, Inc. All rights reserved.</p>
 </div>

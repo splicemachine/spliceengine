@@ -5,7 +5,8 @@
 		.controller('spliceOperationsTreeCtrl', ['$scope', function($scope){
 			$scope.title = "spliceOperationsTreeCtrl";
 			$scope.d3OnClick = function(item){
-				alert(item.operationType);
+				$scope.clickedOperation = item;
+				$scope.$digest();
 			};
 		}]);
 

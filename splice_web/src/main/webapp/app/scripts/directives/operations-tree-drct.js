@@ -50,7 +50,7 @@
 						var vis = svg
 //						var vis = d3.select("#viz").append("svg:svg")
 //							.attr("width", 400)
-							.attr("height", 300)
+							.attr("height", 300)  // TODO: Calculate the height.
 							.append("svg:g")
 							.attr("transform", "translate(100, 40)"); // Shift everything to the right.
 
