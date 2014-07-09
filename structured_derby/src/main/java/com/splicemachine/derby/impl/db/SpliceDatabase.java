@@ -150,6 +150,7 @@ public class SpliceDatabase extends BasicDatabase {
         afterOptVisitors.add(FindHashJoinColumns.class);
         afterOptVisitors.add(FixSubqueryColRefs.class);
         afterOptVisitors.add(PlanPrinter.class);
+        afterOptVisitors.add(XPlainTraceVisitor.class);
 
         List<Class<? extends ISpliceVisitor>> afterBindVisitors = new ArrayList<Class<? extends ISpliceVisitor>>(1);
         afterBindVisitors.add(RepeatedPredicateVisitor.class);
