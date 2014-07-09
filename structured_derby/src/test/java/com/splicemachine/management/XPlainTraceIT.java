@@ -152,17 +152,9 @@ public class XPlainTraceIT extends XPlainTrace {
         XPlainTreeNode topOperation = xPlainTrace.getTopOperation();
 
         String operationType = topOperation.getOperationType();
-        Assert.assertEquals(operationType.compareTo(SCROLLINSENSITIVEOPERATION), 0);
-        Assert.assertEquals(topOperation.getRemoteScanRows(), nrows);
-        Assert.assertEquals(topOperation.getInputRows(), nrows);
-        Assert.assertEquals(topOperation.getOutputRows(), nrows);
 
-        Deque<XPlainTreeNode> children = topOperation.getChildren();
-        Assert.assertEquals(children.size(), 1);
-
-        XPlainTreeNode child = children.getFirst();
-        Assert.assertEquals(child.getOperationType().contains(TABLESCANOPERATION), true);
-        Assert.assertEquals(child.getLocalScanRows(), nrows);
+        Assert.assertEquals(topOperation.getOperationType().contains(TABLESCANOPERATION), true);
+        Assert.assertEquals(topOperation.getLocalScanRows(), nrows);
     }
 
     @Test
@@ -192,28 +184,19 @@ public class XPlainTraceIT extends XPlainTrace {
         xPlainTrace.setConnection(connection);
         XPlainTreeNode topOperation = xPlainTrace.getTopOperation();
 
-        // Top operation should be ScrollInsensitive
         String operationType = topOperation.getOperationType();
-        Assert.assertEquals(operationType.compareTo(SCROLLINSENSITIVEOPERATION), 0);
-        Assert.assertEquals(topOperation.getRemoteScanRows(), 1);
-        Assert.assertEquals(topOperation.getInputRows(), 1);
-        Assert.assertEquals(topOperation.getOutputRows(), 1);
 
-        // Should only have one child operation
+        Assert.assertEquals(topOperation.getOperationType().compareTo(PROJECTRESTRICTOPERATION), 0);
+        Assert.assertEquals(topOperation.getInputRows(), 1);
+
+        // Should be ScalarAggregate
         Deque<XPlainTreeNode> children = topOperation.getChildren();
         Assert.assertEquals(children.size(), 1);
 
-        // Child operation should be ProjectRestrict
         XPlainTreeNode child = children.getFirst();
-        Assert.assertEquals(child.getOperationType().compareTo(PROJECTRESTRICTOPERATION), 0);
-        Assert.assertEquals(child.getInputRows(), 1);
-
-        // Should be ScalarAggregate
-        children = child.getChildren();
-        Assert.assertEquals(children.size(), 1);
-
-        child = children.getFirst();
         Assert.assertEquals(child.getOperationType().compareTo(SCALARAGGREGATEOPERATION), 0);
+        Assert.assertEquals(child.getInputRows(), 10);
+        Assert.assertEquals(child.getOutputRows(), 1);
         Assert.assertEquals(child.getWriteRows(), 1);
     }
 

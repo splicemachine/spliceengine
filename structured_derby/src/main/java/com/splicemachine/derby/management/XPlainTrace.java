@@ -247,6 +247,10 @@ public class XPlainTrace {
                 }
             }
         }
+
+        // Skip the top level ScrollInsensitive node
+        Deque<XPlainTreeNode> children = topOperation.getChildren();
+        topOperation = children.getFirst();
     }
 
     /*
