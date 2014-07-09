@@ -29,12 +29,12 @@ import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.EmptyRowSupplier;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SourceIterator;
-import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.DerbyGroupedAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.ScanGroupedAggregateIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.SinkGroupedAggregateIterator;
+import com.splicemachine.derby.impl.sql.execute.operations.window.DerbyWindowContext;
 import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
 import com.splicemachine.derby.impl.storage.ClientResultScanner;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
@@ -119,7 +119,8 @@ public class WindowOperation extends GenericAggregateOperation {
         SpliceOperation source,
         boolean isInSortedOrder,
         int	aggregateItem,
-        int	orderingItem,
+        int	partitionItemIdx,
+        int	orderingItemIdx,
         Activation activation,
         GeneratedMethod rowAllocator,
         int maxRowSize,
@@ -131,7 +132,7 @@ public class WindowOperation extends GenericAggregateOperation {
         super(source, aggregateItem, activation, rowAllocator, resultSetNumber,
               optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.isInSortedOrder = isInSortedOrder;
-        this.groupedAggregateContext = new DerbyGroupedAggregateContext(orderingItem);
+        this.groupedAggregateContext = new DerbyWindowContext(partitionItemIdx, orderingItemIdx);
         recordConstructorTime();
     }
 
