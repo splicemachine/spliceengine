@@ -43,6 +43,7 @@ public class StddevSplitIT extends SpliceUnitTest {
      */
     @Before
     public void setUp() throws Exception {
+    	
         Connection conn = methodWatcher.createConnection();
         for (int j = 0 ; j < 100; ++j) {
             for (int i=0; i<10; i++) {
