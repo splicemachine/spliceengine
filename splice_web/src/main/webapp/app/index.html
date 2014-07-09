@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="styles/main.css">
     <!-- endbuild -->
   </head>
-  <body ng-app="spliceWebApp">
+  <body ng-app="spliceAdminApp">
     <!--[if lt IE 7]>
       <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
     <![endif]-->
@@ -59,15 +59,15 @@
         <script src="scripts/app.js"></script>
         <!-- Begin injected services -->
         <!-- TODO: I have not been able to get the injected services to work and they are very confusing and only buy you the reduction of global vars in the name space. -->
-        <!-- script src="scripts/services/d3.js"></script -->
+        <!-- script src="scripts/services/d3-service.js"></script -->
         <!-- End injected services -->
-        <script src="scripts/controllers/d3-bars-ctrl.js"></script>
-        <script src="scripts/controllers/main.js"></script>
-        <script src="scripts/controllers/operations-tree-ctrl.js"></script>
-        <script src="scripts/controllers/traced-statement-list.js"></script>
-        <script src="scripts/controllers/traced-statement-detail.js"></script>
-        <script src="scripts/directives/d3-bars-drct.js"></script>
-        <script src="scripts/directives/operations-tree-drct.js"></script>
+        <script src="scripts/controllers/d3-bars-controller.js"></script>
+        <script src="scripts/controllers/main-controller.js"></script>
+        <script src="scripts/controllers/operations-tree-controller.js"></script>
+        <script src="scripts/controllers/traced-statement-list-controller.js"></script>
+        <script src="scripts/controllers/traced-statement-detail-controller.js"></script>
+        <script src="scripts/directives/d3-bars-directive.js"></script>
+        <script src="scripts/directives/operations-tree-directive.js"></script>
         <script src="scripts/services.js"></script>
         <!-- endbuild -->
 </body>

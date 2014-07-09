@@ -1,8 +1,8 @@
 (function () {
 	'use strict';
 
-	angular.module('spliceWebDirectives')
-		.directive('spliceOpsTree', [/*'d3',*/ function(/*d3*/) {  // TODO: Dependency injection is not working and suspect the value that it provides.
+	angular.module('spliceAdminDirectives')
+		.directive('operationsTree', [/*'d3',*/ function(/*d3*/) {  // TODO: Dependency injection is not working and suspect the value that it provides.
 			return {
 				restrict: 'EA',
 				scope: {

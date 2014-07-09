@@ -1,38 +1,38 @@
 'use strict';
 
 angular
-	.module('spliceWebApp', [
+	.module('spliceAdminApp', [
 		'ngCookies',
 		'ngResource',
 		'ngSanitize',
 		'ngRoute',
-		'spliceWebServices',
-		'spliceWebControllers',
-		'spliceWebDirectives'
+		'spliceAdminServices',
+		'spliceAdminControllers',
+		'spliceAdminDirectives'
 	])
 	.config(function ($routeProvider) {  // Configure routes
 		$routeProvider
 			.when('/traced-statements', {
 				templateUrl: 'views/traced-statement-list.html',
-				controller: 'TracedStatementListCtrl'
+				controller: 'tracedStatementListController'
 			})
 			.when('/traced-statements/:statementId', {
 				templateUrl: 'views/traced-statement-detail.html',
-				controller: 'TracedStatementDetailCtrl',
+				controller: 'tracedStatementDetailController',
 				// Do not render until the traced statement has been returned from the Splice REST services.
 				// In the future, we can start rendering the tree and refresh it as the REST services return.
 				resolve: {
-					tracedStatement: ['TracedStatementDetailService', '$route', function(TracedStatementDetailService, $route) {
-						return TracedStatementDetailService.get({statementId: $route.current.params.statementId}).$promise;
+					tracedStatement: ['tracedStatementDetailService', '$route', function(tracedStatementDetailService, $route) {
+						return tracedStatementDetailService.get({statementId: $route.current.params.statementId}).$promise;
 					}],
-					tracedStatementSQL: ['TracedStatementSQLService', '$route', function(TracedStatementSQLService, $route) {
-						return TracedStatementSQLService.query({statementId: $route.current.params.statementId}).$promise;
+					tracedStatementSQL: ['tracedStatementSQLService', '$route', function(tracedStatementSQLService, $route) {
+						return tracedStatementSQLService.query({statementId: $route.current.params.statementId}).$promise;
 					}]
 				}
 			})
 			.when('/yeoman', {
 				templateUrl: 'views/main.html',
-				controller: 'MainCtrl'
+				controller: 'mainController'
 			})
 			.otherwise({
 				redirectTo: '/traced-statements'
@@ -42,6 +42,6 @@ angular
 // Setup dependency injection of D3 to keep from loading the library into the global scope.
 // TODO: The dependency injection of d3.js is not working and the benefit is minimal at best.
 //angular.module('d3', []);
-angular.module('spliceWebControllers', []);
-//angular.module('spliceWebDirectives', ['d3']);
-angular.module('spliceWebDirectives', []);
+angular.module('spliceAdminControllers', []);
+//angular.module('spliceAdminDirectives', ['d3']);
+angular.module('spliceAdminDirectives', []);

@@ -1,17 +1,17 @@
 'use strict';
 
-var spliceWebServices = angular.module('spliceWebServices', ['ngResource']);
+var spliceAdminServices = angular.module('spliceAdminServices', ['ngResource']);
 
-spliceWebServices.factory('TracedStatementListService',
+spliceAdminServices.factory('tracedStatementListService',
 	['$resource',
 		function($resource){
 			return $resource('/splice_web/webresources/myresource/sql2js?query=' +
-				encodeURIComponent('select * from SYS.SYSSTATEMENTHISTORY'), {}, {
+				encodeURIComponent('select * from SYS.SYSSTATEMENTHISTORY order by STARTTIMEMS desc'), {}, {
 				query: {method:'GET', isArray:true}
 			});
 		}]);
 
-spliceWebServices.factory('TracedStatementDetailService',
+spliceAdminServices.factory('tracedStatementDetailService',
 	['$resource',
 		function($resource){
 			return $resource('/splice_web/webresources/myresource/tracedStatements/:statementId', {}, {
@@ -19,11 +19,11 @@ spliceWebServices.factory('TracedStatementDetailService',
 			});
 		}]);
 
-spliceWebServices.factory('TracedStatementSQLService',
+spliceAdminServices.factory('tracedStatementSQLService',
 	['$resource',
 		function($resource){
 			return $resource('/splice_web/webresources/myresource/sql2js?query=' +
-				encodeURIComponent('select STATEMENTSQL from SYS.SYSSTATEMENTHISTORY WHERE STATEMENTID=') + ':statementId', {}, {
+				encodeURIComponent('select STATEMENTSQL from SYS.SYSSTATEMENTHISTORY where STATEMENTID=') + ':statementId', {}, {
 				query: {method:'GET', isArray:true}
 			});
 		}]);

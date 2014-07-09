@@ -1,9 +1,9 @@
 (function () {
 	'use strict';
 
-	angular.module('spliceWebControllers')
-		.controller('d3BarsCtrl', ['$scope', function($scope){
-			$scope.title = "d3BarsCtrl";
+	angular.module('spliceAdminControllers')
+		.controller('d3BarsController', ['$scope', function($scope){
+			$scope.title = "d3BarsController";
 			// TODO: Remove the hard coded sample data and hook it up to a RESTful service.
 			$scope.d3Data = [
 				{name: "Greg", score:98},

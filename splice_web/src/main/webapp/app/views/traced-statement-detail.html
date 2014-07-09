@@ -24,7 +24,7 @@
 -->
 
 <!-- Commenting out d3Bars bar chart.
-<div class="row marketing" ng-controller="d3BarsCtrl">
+<div class="row marketing" ng-controller="d3BarsController">
   <span>{{title}}</span>
   <d3-bars data="d3Data" label="name" on-click="d3OnClick(item)"></d3-bars>
   <br>
@@ -49,13 +49,14 @@
   }
 </style>
 
-<div class="row marketing" ng-controller="spliceOperationsTreeCtrl">
+<div class="row marketing" ng-controller="operationsTreeController">
   <div class="row marketing">
     <span><h4 class="text-primary">{{tracedStatementSQL}}</h4></span>
-    <splice-ops-tree data="tree[0]" label="operationType" on-click="d3OnClick(item)"></splice-ops-tree>
+    <operations-tree data="tree[0]" label="operationType" on-click="d3OnClick(item)"></operations-tree>
   </div>
   <div class="row marketing">
     <!-- TODO: Remove the evil TABLE tag!!! -->
+    <h5>Details for {{clickedOperation.operationType}}:</h5>
     <h6>
     <table border="1">
       <tr>
