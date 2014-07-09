@@ -353,29 +353,29 @@ public abstract class StatementNode extends QueryTreeNode
         mbWorker.methodReturn();
         mbWorker.complete();
 
-		executeMethod.pushThis();
-		executeMethod.getField(ClassName.BaseActivation, "resultSet",
+        executeMethod.pushThis();
+        executeMethod.getField(ClassName.BaseActivation, "resultSet",
                 ClassName.ResultSet);
-        
-		executeMethod.conditionalIfNull();
-        
-            // Generate the result set tree and store the
-            // resulting top-level result set into the resultSet
-            // field, as well as returning it from the execute method.
-			
-			executeMethod.pushThis();
-			executeMethod.callMethod(VMOpcode.INVOKEVIRTUAL, (String) null,
-									 "fillResultSet", ClassName.ResultSet, 0);
-            executeMethod.pushThis();
-            executeMethod.swap();
-            executeMethod.putField(ClassName.BaseActivation, "resultSet", ClassName.ResultSet);
-            
-		executeMethod.startElseCode(); // this is here as the compiler only supports ? :
-			executeMethod.pushThis();
-			executeMethod.getField(ClassName.BaseActivation, "resultSet", ClassName.ResultSet);
-		executeMethod.completeConditional();
 
-   		// wrap up the activation class definition
+        executeMethod.conditionalIfNull();
+
+        // Generate the result set tree and store the
+        // resulting top-level result set into the resultSet
+        // field, as well as returning it from the execute method.
+
+        executeMethod.pushThis();
+        executeMethod.callMethod(VMOpcode.INVOKEVIRTUAL, (String) null,
+                "fillResultSet", ClassName.ResultSet, 0);
+        executeMethod.pushThis();
+        executeMethod.swap();
+        executeMethod.putField(ClassName.BaseActivation, "resultSet", ClassName.ResultSet);
+
+        executeMethod.startElseCode(); // this is here as the compiler only supports ? :
+        executeMethod.pushThis();
+        executeMethod.getField(ClassName.BaseActivation, "resultSet", ClassName.ResultSet);
+        executeMethod.completeConditional();
+
+        // wrap up the activation class definition
 		// generate on the tree gave us back the newExpr
 		// for getting a result set on the tree.
 		// we put it in a return statement and stuff
@@ -395,14 +395,28 @@ public abstract class StatementNode extends QueryTreeNode
                 "boolean",
                 "isTraced");
         if (getLanguageConnectionContext().getStatisticsTiming() &&
-            getLanguageConnectionContext().getRunTimeStatisticsMode() &&
-            shouldTrace()) {
-            mbWorker.push(true);
+            getLanguageConnectionContext().getRunTimeStatisticsMode()) {
+
+            if (!getLanguageConnectionContext().getStatementContext().hasExplainTablesOrProcedures()) {
+                mbWorker.push(true);
+            }
+            else {
+                mbWorker.push(false);
+            }
         }
         else {
-            mbWorker.push(false);
+            // automatically turn on explain trace
+            if (!getLanguageConnectionContext().getStatementContext().hasExplainTablesOrProcedures() &&
+                 getLanguageConnectionContext().getStatementContext().getMaxCardinality() > 3) {
+                mbWorker.push(true);
+            }
+            else {
+                mbWorker.push(false);
+            }
         }
-
+        // Clear flags for explain trace because the context may be reused
+        getLanguageConnectionContext().getStatementContext().setExplainTablesOrProcedures(false);
+        getLanguageConnectionContext().getStatementContext().setMaxCardinality(0);
         mbWorker.methodReturn();
         mbWorker.complete();
 
@@ -441,9 +455,5 @@ public abstract class StatementNode extends QueryTreeNode
             throws StandardException {
         // Do nothing, overridden by appropriate nodes.
         return EMPTY_TD_LIST;
-    }
-
-    public boolean shouldTrace() {
-        return true;
     }
 }

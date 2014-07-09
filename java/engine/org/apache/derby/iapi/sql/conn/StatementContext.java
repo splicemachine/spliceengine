@@ -278,4 +278,12 @@ public interface StatementContext extends Context {
      * @return {@code true} if the statement was invalidated.
      */
     public boolean getStatementWasInvalidated();
+
+    public void setMaxCardinality(int size);
+
+    public int getMaxCardinality();
+
+    public void setExplainTablesOrProcedures(boolean traced);
+
+    public boolean hasExplainTablesOrProcedures();
 }

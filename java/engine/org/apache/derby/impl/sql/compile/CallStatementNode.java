@@ -185,6 +185,15 @@ public class CallStatementNode extends DMLStatementNode
 								(SubqueryList) null,
 								(PredicateList) null);
 
+        JavaValueNode valueNode = methodCall.getJavaValueNode();
+        if (valueNode instanceof MethodCallNode) {
+            MethodCallNode callNode = (MethodCallNode) valueNode;
+            String methodName = callNode.getMethodName();
+            if (xplainTraceProcedures.contains(methodName)) {
+                // turn off explain trace for xplain procedures
+                getLanguageConnectionContext().getStatementContext().setExplainTablesOrProcedures(true);
+            }
+        }
 	}
 
 	/**
@@ -309,17 +318,4 @@ public class CallStatementNode extends DMLStatementNode
 
 		return routineInfo.getSQLAllowed();
 	}
-
-    @Override
-    public boolean shouldTrace() {
-        JavaValueNode valueNode = methodCall.getJavaValueNode();
-        if (valueNode instanceof MethodCallNode) {
-            MethodCallNode callNode = (MethodCallNode) valueNode;
-            String methodName = callNode.getMethodName();
-            if (xplainTraceProcedures.contains(methodName)) {
-                return false;
-            }
-        }
-        return true;
-    }
 }

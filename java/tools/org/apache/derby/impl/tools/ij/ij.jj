@@ -1204,6 +1204,11 @@ class ij {
             int count = 0;
             String stmt = null;
             while (count == 0) {
+                try{
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+
+                }
                 stmt = "select count(*) from sys.sysstatementhistory where statementId = " + statementId;
                 rs = aStatement.executeQuery(stmt);
                 if (rs.next()){
@@ -1215,6 +1220,11 @@ class ij {
             int count_before = -1;
             count = -1;
             while (count_before != count && count > 0) {
+                try{
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+
+                }
                 count_before = count;
                 stmt = "select count(*) from sys.systaskhistory where statementId = " + statementId;
                 rs = aStatement.executeQuery(stmt);

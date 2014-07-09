@@ -70,6 +70,8 @@ final class GenericStatementContext
 	private NoPutResultSet[] materializedSubqueries;
 	private	final LanguageConnectionContext lcc;
 	private boolean		inUse = true;
+    private boolean     hasExplainTablesOrProcedures = false;
+    private int         maxCardinality = 0;
 
     // This flag satisfies all the conditions
     // for using volatile instead of synchronized.
@@ -796,5 +798,25 @@ final class GenericStatementContext
 
     public boolean getStatementWasInvalidated() {
         return statementWasInvalidated;
+    }
+
+    @Override
+    public boolean hasExplainTablesOrProcedures() {
+        return hasExplainTablesOrProcedures;
+    }
+
+    @Override
+    public void setExplainTablesOrProcedures(boolean val) {
+        this.hasExplainTablesOrProcedures = val;
+    }
+
+    @Override
+    public void setMaxCardinality(int val) {
+        this.maxCardinality = val;
+    }
+
+    @Override
+    public int getMaxCardinality() {
+        return maxCardinality;
     }
 }
