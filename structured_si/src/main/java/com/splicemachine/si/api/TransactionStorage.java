@@ -34,8 +34,9 @@ public class TransactionStorage {
 		 * consider accessing the baseStore instead.
 		 */
 		private static volatile @ThreadSafe TxnSupplier cachedTransactionSupplier;
+    private static CompletedTxnCacheSupplier cacheManagement;
 
-		public static TxnSupplier getTxnSupplier(){
+    public static TxnSupplier getTxnSupplier(){
 				TxnSupplier supply = cachedTransactionSupplier;
 				//only do 2 volatile reads the very first few calls
 				if(supply!=null) return supply;
@@ -59,7 +60,9 @@ public class TransactionStorage {
 		public static void setTxnStore(@ThreadSafe TxnStore store){
 				synchronized (lock){
 						baseStore = store;
-						cachedTransactionSupplier=new LazyTxnSupplier(new CompletedTxnCacheSupplier(baseStore,SIConstants.activeTransactionCacheSize,16));
+            CompletedTxnCacheSupplier delegate = new CompletedTxnCacheSupplier(baseStore, SIConstants.activeTransactionCacheSize, 16);
+            cachedTransactionSupplier=new LazyTxnSupplier(delegate);
+            cacheManagement = delegate;
 				}
 		}
 
@@ -72,13 +75,26 @@ public class TransactionStorage {
 								TimestampSource tsSource = TransactionTimestamps.getTimestampSource();
 								CoprocessorTxnStore txnStore = new CoprocessorTxnStore(new SpliceHTableFactory(true),tsSource,null);
 								//TODO -sf- configure these fields separately
-								if(cachedTransactionSupplier==null)
-										cachedTransactionSupplier = new LazyTxnSupplier(new CompletedTxnCacheSupplier(txnStore, SIConstants.activeTransactionCacheSize,16));
+								if(cachedTransactionSupplier==null){
+                    CompletedTxnCacheSupplier delegate = new CompletedTxnCacheSupplier(txnStore, SIConstants.activeTransactionCacheSize, 16);
+                    cachedTransactionSupplier =new LazyTxnSupplier(delegate);
+                    cacheManagement = delegate;
+                }
 								txnStore.setCache(cachedTransactionSupplier);
 								baseStore = txnStore;
 						}else if (cachedTransactionSupplier==null){
-								cachedTransactionSupplier = new LazyTxnSupplier(new CompletedTxnCacheSupplier(baseStore, SIConstants.activeTransactionCacheSize,16));
+                CompletedTxnCacheSupplier delegate = new CompletedTxnCacheSupplier(baseStore, SIConstants.activeTransactionCacheSize, 16);
+                cachedTransactionSupplier =new LazyTxnSupplier(delegate);
+                cacheManagement = delegate;
 						}
 				}
 		}
+
+    public static TransactionCacheManagement getTxnManagement() {
+        TransactionCacheManagement cache = cacheManagement;
+        if(cache==null){
+            lazyInitialize();
+        }
+        return cacheManagement;
+    }
 }

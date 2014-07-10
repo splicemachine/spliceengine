@@ -7,6 +7,7 @@ import com.splicemachine.concurrent.LongStripedSynchronizer;
 import com.splicemachine.si.api.*;
 import com.splicemachine.utils.Source;
 
+import javax.management.relation.RoleUnresolved;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -64,7 +65,15 @@ public class InMemoryTxnStore implements TxnStore {
 		@Override public boolean transactionCached(long txnId) { return false; }
 		@Override public void cache(Txn toCache) {  }
 
-		@Override
+    @Override public Txn getTransactionFromCache(long txnId) {
+        try {
+            return getTransaction(txnId);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
 		public void recordNewTransaction(Txn txn) throws IOException {
 				ReadWriteLock readWriteLock = lockStriper.get(txn.getTxnId());
 				Lock wl = readWriteLock.writeLock();

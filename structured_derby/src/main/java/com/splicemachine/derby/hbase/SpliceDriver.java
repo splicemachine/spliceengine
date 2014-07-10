@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.google.common.base.Function;
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.uuid.Snowflake;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
@@ -421,6 +422,8 @@ public class SpliceDriver extends SIConstants {
             mbs.registerMBean(jobScheduler.getJobMetrics(),jobSchedulerName);
 
             //register transaction stuff
+            ObjectName storeName = new ObjectName("com.splicemachine.txn:type=TransactionCacheManagement");
+            mbs.registerMBean(TransactionStorage.getTxnManagement(),storeName);
 //            ObjectName transactorName = new ObjectName("com.splicemachine.txn:type=TransactorStatus");
 //            mbs.registerMBean(HTransactorFactory.getTransactorStatus(), transactorName);
 

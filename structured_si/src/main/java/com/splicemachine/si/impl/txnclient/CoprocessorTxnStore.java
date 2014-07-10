@@ -212,7 +212,12 @@ public class CoprocessorTxnStore implements TxnStore{
 
 		@Override public void cache(Txn toCache) {  }
 
-	/******************************************************************************************************************/
+    @Override
+    public Txn getTransactionFromCache(long txnId) {
+        return null;
+    }
+
+    /******************************************************************************************************************/
 		/*private helper methods*/
 		private Txn decode(byte[] txnPackedBytes) throws IOException {
 				assert txnPackedBytes.length>0: "No transaction found";

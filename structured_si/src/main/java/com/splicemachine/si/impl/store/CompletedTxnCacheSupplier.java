@@ -7,6 +7,8 @@ import org.cliffc.high_scale_lib.Counter;
 
 import java.io.IOException;
 import java.lang.ref.SoftReference;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -25,10 +27,10 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 
 		private final TxnSupplier delegate;
 
-		private final Counter size = new Counter();
-		private final Counter hits = new Counter();
-		private final Counter requests = new Counter();
-		private final Counter evicted = new Counter();
+		private final AtomicInteger size = new AtomicInteger();
+		private final AtomicLong hits = new AtomicLong();
+		private final AtomicLong requests = new AtomicLong();
+		private final AtomicLong evicted = new AtomicLong();
 
 		@SuppressWarnings("unchecked")
 		public CompletedTxnCacheSupplier(TxnSupplier delegate, int maxSize, int concurrencyLevel) {
@@ -51,10 +53,10 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 				this.delegate = delegate;
 		}
 
-		@Override public int getCurrentSize() { return (int)size.estimate_get(); }
+		@Override public int getCurrentSize() { return size.get(); }
 		@Override public int getMaxSize() { return maxSize; }
-		@Override public long getTotalHits() { return hits.estimate_get(); }
-		@Override public long getTotalRequests() { return requests.estimate_get(); }
+		@Override public long getTotalHits() { return hits.get(); }
+		@Override public long getTotalRequests() { return requests.get(); }
 		@Override public long getTotalMisses() { return getTotalRequests()-getTotalHits(); }
 
 		@Override
@@ -64,7 +66,7 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 				return (float)(((double)hits)/totalRequests);
 		}
 
-		@Override public long getTotalEvictedEntries() { return evicted.estimate_get(); }
+		@Override public long getTotalEvictedEntries() { return evicted.get(); }
 
 		@Override
 		public Txn getTransaction(long txnId) throws IOException {
@@ -73,24 +75,25 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 
 		@Override
 		public Txn getTransaction(long txnId, boolean getDestinationTables) throws IOException {
-				requests.increment();
+				requests.incrementAndGet();
 				int hash = MurmurHash.murmur3_32(txnId,0);
 
-				int pos = hash & (segments.length-1); //find the lock for this hash
-				Txn txn = segments[pos].get(txnId);
-				if(txn!=null) return txn;
-				//bummer, we aren't in the cache, need to check the delegate
-				Txn transaction = delegate.getTransaction(txnId);
-				if(transaction==null) //noinspection ConstantConditions
-						return transaction; //don't cache read-only transactions;
-				else
-					hits.increment();
+        int pos = hash & (segments.length-1); //find the lock for this hash
+        Txn txn = segments[pos].get(txnId);
+        if(txn!=null){
+            hits.incrementAndGet();
+            return txn;
+        }
+        //bummer, we aren't in the cache, need to check the delegate
+        Txn transaction = delegate.getTransaction(txnId);
+        if(transaction==null) //noinspection ConstantConditions
+            return transaction; //don't cache read-only transactions;
 
 				switch(transaction.getState()){
 						case COMMITTED:
 						case ROLLEDBACK:
 								segments[pos].put(transaction); //it's been completed, so cache it for future use
-								size.increment();
+								size.incrementAndGet();
 				}
 				return transaction;
 		}
@@ -114,7 +117,19 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 				segments[pos].put(toCache);
 		}
 
-		private class Segment {
+    @Override
+    public Txn getTransactionFromCache(long txnId) {
+        requests.incrementAndGet();
+        int hash = MurmurHash.murmur3_32(txnId,0);
+
+        int pos = hash & (segments.length-1); //find the lock for this hash
+        Txn txn = segments[pos].get(txnId);
+        if(txn!=null)
+            hits.incrementAndGet();
+        return txn;
+    }
+
+    private class Segment {
 				private final ReentrantReadWriteLock lock;
 				private volatile int size = 0;
 				private int nextEvictPosition = 0;
@@ -173,7 +188,7 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 										}
 								}
 								if(position<0 && size==data.length){
-										evicted.increment();
+										evicted.incrementAndGet();
 										position = nextEvictPosition; //evict the first entry
 										nextEvictPosition= (nextEvictPosition+1) & (data.length-1);
 								} else{

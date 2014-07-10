@@ -43,12 +43,12 @@ public class TransactionalRegions {
 		}
 
 		private static ReadResolver getReadResolver(HRegion region) {
-        return NoOpReadResolver.INSTANCE;
-//				AsyncReadResolver arr = readResolver;
-//				if(arr==null)
-//						arr = initializeReadResolver();
-//
-//				return arr.getResolver(region);
+//        return NoOpReadResolver.INSTANCE;
+				AsyncReadResolver arr = readResolver;
+				if(arr==null)
+						arr = initializeReadResolver();
+
+				return arr.getResolver(region);
 		}
 
 		private static RollForward getRollForward(HRegion region, SegmentedRollForward.Action rollForwardAction){

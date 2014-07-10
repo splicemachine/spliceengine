@@ -68,14 +68,20 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 
 		@Override
 		public void cache(Txn toCache) {
-				if(cacheGlobally){
+//				if(cacheGlobally){
 						delegate.cache(toCache);
-				}else{
-						addToCache(MurmurHash.murmur3_32(toCache.getTxnId(),0),toCache);
-				}
+//				}else{
+						addToCache(MurmurHash.murmur3_32(toCache.getTxnId(), 0), toCache);
+//		}
 		}
 
-		protected void addToCache(int hash, Txn txn) {
+    @Override
+    public Txn getTransactionFromCache(long txnId) {
+        int hash = MurmurHash.murmur3_32(txnId,0);
+        return getFromCache(hash,txnId);
+    }
+
+    protected void addToCache(int hash, Txn txn) {
 				int pos = hash &(data.length-1) ;
 				//cache it for future use
 				if(size==maxSize){
