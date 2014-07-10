@@ -35,7 +35,8 @@ public class BroadcastJoinOperationIT extends SpliceUnitTest {
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
-            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME));
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/hits.sql", CLASS_NAME));
 
     @Rule
     public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
@@ -90,6 +91,18 @@ public class BroadcastJoinOperationIT extends SpliceUnitTest {
         } else {
             Assert.fail("This query should have raised an error.");
         }
+    }
+
+    @Test
+    public void testRHSAggregateUnderSink() throws Exception {
+        int count = 48;
+        ResultSet rs = methodWatcher.executeQuery("SELECT m1.month, m1.ip_address, m1.hits\n" +
+                                                      "FROM monthly_hits m1 \n" +
+                                                      "LEFT OUTER JOIN monthly_hits m2 " +
+                                                      "     --splice-properties joinStrategy=BROADCAST\n" +
+                                                      "  ON (m1.month = m2.month AND m1.hits < m2.hits) \n" +
+                                                      "order by m1.month, m1.ip_address, m1.hits");
+        Assert.assertEquals("Unexpected result set cardinality", count, TestUtils.resultSetToArrays(rs).size());
     }
 
     @Test
