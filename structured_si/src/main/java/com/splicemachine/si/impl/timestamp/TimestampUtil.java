@@ -6,6 +6,9 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class TimestampUtil {
 
+	// This extra logging layer no longer does anything beyond delegation
+	// to SpliceLogUtils, but leave here for now anyway.
+
 	//
 	// Trace
 	//
@@ -14,16 +17,16 @@ public class TimestampUtil {
 		SpliceLogUtils.trace(logger, message);
 	}
 	
-	public static void doClientTrace(Logger logger, String message, Object obj) {
-		SpliceLogUtils.trace(logger, message + " : " + obj);
+	public static void doClientTrace(Logger logger, String message, Object... args) {
+		SpliceLogUtils.trace(logger, message, args);
 	}
 	
 	public static void doServerTrace(Logger logger, String message) {
 		SpliceLogUtils.trace(logger, message);
 	}
 	
-	public static void doServerTrace(Logger logger, String message, Object obj) {
-		SpliceLogUtils.trace(logger, message + " : " + obj);
+	public static void doServerTrace(Logger logger, String message, Object... args) {
+		SpliceLogUtils.trace(logger, message, args);
 	}
 	
 	//
@@ -34,16 +37,16 @@ public class TimestampUtil {
 		SpliceLogUtils.info(logger, message);
 	}
 	
-	public static void doClientInfo(Logger logger, String message, Object obj) {
-		SpliceLogUtils.info(logger, message + " : " + obj);
+	public static void doClientInfo(Logger logger, String message, Object... args) {
+		SpliceLogUtils.info(logger, message, args);
 	}
 	
 	public static void doServerInfo(Logger logger, String message) {
 		SpliceLogUtils.info(logger, message);
 	}
 	
-	public static void doServerInfo(Logger logger, String message, Object obj) {
-		SpliceLogUtils.info(logger, message + " : " + obj);
+	public static void doServerInfo(Logger logger, String message, Object... args) {
+		SpliceLogUtils.info(logger, message, args);
 	}
 	
 	//
@@ -51,23 +54,19 @@ public class TimestampUtil {
 	//
 	
 	public static void doClientDebug(Logger logger, String message) {
-		doDebug(logger, message);
-	}
-	
-	public static void doClientDebug(Logger logger, String message, Object obj) {
-		doDebug(logger, message + " : " + obj);
-	}
-	
-	public static void doServerDebug(Logger logger, String message) {
-		doDebug(logger, message);
-	}
-	
-	public static void doServerDebug(Logger logger, String message, Object obj) {
-		doDebug(logger, message + " : " + obj);
-	}
-	
-	public static void doDebug(Logger logger, String message) {
 		SpliceLogUtils.debug(logger, message);
+	}
+
+	public static void doClientDebug(Logger logger, String message, Object... args) {
+		SpliceLogUtils.debug(logger, message, args);
+	}
+
+	public static void doServerDebug(Logger logger, String message) {
+		SpliceLogUtils.debug(logger, message);
+	}
+	
+	public static void doServerDebug(Logger logger, String message, Object... args) {
+		SpliceLogUtils.debug(logger, message, args);
 	}
 	
 	//
@@ -82,23 +81,15 @@ public class TimestampUtil {
 		SpliceLogUtils.error(logger, message, t);		
 	}
 	
-	public static void doClientError(Logger logger, String message, Throwable t, Object obj) {
-		SpliceLogUtils.error(logger, message + " : " + obj, t);		
+	public static void doClientError(Logger logger, String message, Throwable t, Object... args) {
+		SpliceLogUtils.error(logger, message, t, args);		
 	}
 	
-	public static void doClientErrorThrow(Logger logger, String message, Throwable t, Object obj)
+	public static void doClientErrorThrow(Logger logger, String message, Throwable t, Object... args)
 		throws TimestampIOException {
-		
 		if (message == null) message = "";
-		if (obj == null) obj = "";
-		StringBuffer sb = new StringBuffer();
-		String fullMsg = sb.append(message).append(" : ").append(obj).toString();
-		SpliceLogUtils.error(logger, fullMsg);
-		if (t != null) {
-			throw new TimestampIOException(fullMsg, t);
-		} else {
-			throw new TimestampIOException(fullMsg);
-		}
+		SpliceLogUtils.logAndThrow(logger, String.format(message, args),
+		    t != null ? new TimestampIOException(message, t) : new TimestampIOException(message));
 	}
 	
 	public static void doServerError(Logger logger, String message) {
@@ -109,8 +100,8 @@ public class TimestampUtil {
 		SpliceLogUtils.error(logger, message, t);		
 	}
 	
-	public static void doServerError(Logger logger, String message, Throwable t, Object obj) {
-		SpliceLogUtils.error(logger, message + " : " + obj, t);		
+	public static void doServerError(Logger logger, String message, Object... args) {
+		SpliceLogUtils.error(logger, message, args);		
 	}
 	
 }

@@ -36,7 +36,7 @@ public class TimestampServer {
 			Executors.newCachedThreadPool(),
 			Executors.newCachedThreadPool());
 
-    	TimestampUtil.doServerInfo(LOG, "Timestamp Server starting (binding to port " + _port + ")...");
+    	TimestampUtil.doServerInfo(LOG, "Timestamp Server starting (binding to port %s)...", _port);
 
     	ServerBootstrap bootstrap = new ServerBootstrap(factory);
 

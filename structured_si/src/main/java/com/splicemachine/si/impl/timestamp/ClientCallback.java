@@ -9,8 +9,6 @@ import com.splicemachine.constants.SpliceConstants;
 
 public class ClientCallback implements Callback {
 	
-    private static final Logger LOG = Logger.getLogger(ClientCallback.class);
-
     private final short _callerId; 
 	private volatile long _newTimestamp = -1l;
 	private Exception _e = null;
@@ -46,15 +44,12 @@ public class ClientCallback implements Callback {
     }
 
     public synchronized void complete(long timestamp) {
-    	TimestampUtil.doClientTrace(LOG, "Setting timestamp on callback " + timestamp, this);
         _newTimestamp = timestamp;
         countDown();
-    	TimestampUtil.doClientTrace(LOG, "done with callback completion", this);
     }   
 
     public String toString() {
-    	return "Callback (callerId = " + _callerId + ", latch count = " +
-            (_latch != null ? _latch.getCount() : "?") +
+    	return "Callback (callerId = " + _callerId +
     		(_newTimestamp > -1 ? ", ts = " + _newTimestamp : ", ts blank") + ")";
     }
     

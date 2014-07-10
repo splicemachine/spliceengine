@@ -8,6 +8,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.impl.timestamp.TimestampClient;
 import com.splicemachine.si.impl.timestamp.TimestampClientFactory;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * Timestamp source implementation that utilizes a special purpose service
@@ -61,7 +62,7 @@ public class SpliceTimestampSource implements TimestampSource {
 			throw new RuntimeException("Unable to fetch new timestamp", e);
 		}
 
-		LOG.debug("Next timestamp: " + nextTimestamp);
+		SpliceLogUtils.debug(LOG, "Next timestamp: %s", nextTimestamp);
 		
 		return nextTimestamp;
 	}
