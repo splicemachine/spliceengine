@@ -62,7 +62,7 @@ public class SICompactionScanner implements InternalScanner {
 
     @Override
     public void close() throws IOException {
-    	compactionState.close();
+//    	compactionState.close();
         delegate.close();
     }
 }

@@ -672,7 +672,7 @@ public class SITransactor<Table,
 
     @Override
     public SICompactionState newCompactionState() {
-				return new SICompactionState(dataLib,dataStore,transactionStore);
+				return new SICompactionState(dataStore,transactionStore);
     }
 
 // Helpers
