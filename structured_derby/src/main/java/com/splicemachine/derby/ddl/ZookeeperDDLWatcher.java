@@ -1,12 +1,20 @@
 package com.splicemachine.derby.ddl;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.constants.SpliceConstants;
 import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.google.gson.*;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.utils.ZkUtils;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.ShutdownException;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Property;
@@ -18,11 +26,20 @@ import org.apache.derby.iapi.store.access.AccessFactory;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.*;
+import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.io.IOException;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -123,9 +140,26 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         //
         for (String changeId : ongoingDDLChangeIDs) {
             if (!seenDDLChanges.contains(changeId)) {
-                DDLChange ddlChange = getOngoingDDLChange(changeId);
-                newChanges.add(ddlChange);
+                byte[] data;
+                try {
+                    data = ZkUtils.getData(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + changeId);
+                } catch (IOException e) {
+                    throw Exceptions.parseException(e);
+                }
+
+                DDLChange ddlChange;
+                KryoPool kp = SpliceKryoRegistry.getInstance();
+                Kryo kryo = kp.get();
+
+                try{
+                    Input input = new Input(data);
+                    ddlChange = kryo.readObject(input, DDLChange.class);
+                }finally{
+                    kp.returnInstance(kryo);
+                }
                 LOG.debug("New change with id " + changeId + " :" + ddlChange);
+                ddlChange.setChangeId(changeId);
+                newChanges.add(ddlChange);
                 seenDDLChanges.add(changeId);
                 if (ddlChange.isTentative()) {
                     // isTentative means we never add to currentDDLChanges or timeouts.  In fact all we do
@@ -212,8 +246,9 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
             Txn txn = currentDDLChanges.get(changeId).getTxn();
             LOG.warn("We are killing transaction " + txn + " since it exceeds the maximum wait period for"
                     + " the DDL change " + changeId + " publication");
-            throw new UnsupportedOperationException("IMPLEMENT");
-//            HTransactorFactory.getTransactionManager().fail(new TransactionId(transactionId));
+            TransactionLifecycle.getLifecycleManager().rollback(txn.getTxnId());
+//            throw new UnsupportedOperationException("IMPLEMENT");
+////            HTransactorFactory.getTransactionManager().fail(new TransactionId(transactionId));
         } catch (Exception e) {
             LOG.warn("Couldn't kill transaction, already killed?", e);
         }

@@ -125,13 +125,7 @@ public class SITransactionReadController<
 
 		@Override
 		public DDLFilter newDDLFilter(Txn txn) throws IOException {
-				throw new UnsupportedOperationException("Implement!");
-//				TransactionId transactionId1 = control.transactionIdFromString(transactionId);
-//				return new DDLFilter(
-//								transactionStore.getTransaction(transactionId1),
-//								parentTransactionId == null ? null : transactionStore.getTransaction(control.transactionIdFromString(parentTransactionId)),
-//								transactionStore
-//				);
+        return new DDLFilter(txn,txnSupplier);
 		}
 
 

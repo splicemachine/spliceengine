@@ -266,7 +266,7 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 		private boolean canSeeDDLDemarcationPoint(TransactionManager xact_mgr) {
 				try {
 						// If the transaction is older than the latest DDL operation (can't see it), bypass the cache
-						return ddlDemarcationPoint == null || ddlDemarcationPoint.isVisibleBy(xact_mgr.getActiveStateTxIdString());
+						return ddlDemarcationPoint == null || ddlDemarcationPoint.isVisibleBy(((SpliceTransactionManager)xact_mgr).getActiveStateTxn());
 				} catch (IOException e) {
 						// Stay on the safe side, assume it's not visible
 						return false;

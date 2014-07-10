@@ -10,12 +10,12 @@ import java.util.Vector;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
+import com.carrotsearch.hppc.LongArrayList;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -25,13 +25,9 @@ import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.TransactionUtils;
 import com.splicemachine.job.JobFuture;
-import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionLifecycle;
-import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.catalog.DefaultInfo;
 import org.apache.derby.catalog.Dependable;
@@ -78,7 +74,6 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.store.access.ConglomerateController;
 import org.apache.derby.iapi.store.access.GroupFetchScanController;
-import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.RowLocationRetRowSource;
 import org.apache.derby.iapi.store.access.RowSource;
 import org.apache.derby.iapi.store.access.RowUtil;
@@ -1755,7 +1750,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         DDLChange ddlChange = new DDLChange(tentativeTransaction,
                 DDLChangeType.DROP_COLUMN);
         ddlChange.setTentativeDDLDesc(tentativeDropColumnDesc);
-        ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
+        ddlChange.setTxn(((SpliceTransactionManager)tc).getActiveStateTxn());
 
         notifyMetadataChange(ddlChange);
 
@@ -1860,18 +1855,17 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         }
 
         // Wait for past transactions to die
-        long activeTxnId;
-        List<Txn> active;
         List<Txn> toIgnore = Arrays.asList(parentTransaction, wrapperTransaction, dropColumnTransaction);
+        LongArrayList active;
         try {
-            activeTxnId = waitForConcurrentTransactions(dropColumnTransaction, toIgnore,tableConglomId);
+            active= waitForConcurrentTransactions(dropColumnTransaction, toIgnore,tableConglomId);
         } catch (IOException e) {
             LOG.error("Unexpected error while waiting for past transactions to complete", e);
             throw Exceptions.parseException(e);
         }
-        if (activeTxnId>=0) {
+        if (!active.isEmpty()) {
             throw StandardException.newException(SQLState.LANG_SERIALIZABLE,
-                    new RuntimeException(String.format("Transaction %d is still active", activeTxnId)));
+                    new RuntimeException(String.format("Transactions %s is still active", active)));
         }
         return dropColumnTransaction;
     }
@@ -2365,7 +2359,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             DDLChange ddlChange = new DDLChange(tentativeTransaction,
                     DDLChangeType.CREATE_INDEX);
             ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
-            ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
+            ddlChange.setTxn(((SpliceTransactionManager)tc).getActiveStateTxn());
 
             notifyMetadataChange(ddlChange);
 
@@ -2374,7 +2368,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                 // Add the indexes to the exisiting regions
                 createIndex(activation, ddlChange, table, td);
 
-                Txn indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, transactor,newHeapConglom);
+                Txn indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, newHeapConglom);
 
                 populateIndex(activation, baseColumnPositions, descColumns, newHeapConglom, table, indexTransaction, tentativeIndexDesc);
                 //only commit the index transaction if the job actually completed

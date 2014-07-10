@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.carrotsearch.hppc.LongArrayList;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -93,7 +94,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 		this.indexName = indexName;
 	}
 
-    protected Txn getIndexTransaction(TransactionController parent, TransactionController tc, Txn tentativeTransaction, TransactionManager transactor, long tableConglomId) throws StandardException {
+    protected Txn getIndexTransaction(TransactionController parent, TransactionController tc, Txn tentativeTransaction, long tableConglomId) throws StandardException {
         final Txn parentTxn = ((SpliceTransactionManager)parent).getActiveStateTxn();
         final Txn wrapperTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
 //        final TransactionId parentTransactionId =  new TransactionId(getTransactionId(parent));
@@ -116,7 +117,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 //        }
 
         // Wait for past transactions to die
-        List<Txn> active;
+        LongArrayList active;
         List<Txn> toIgnore = Arrays.asList(parentTxn,wrapperTxn,indexTxn);
         try {
             active = waitForConcurrentTransactions(indexTxn, toIgnore,tableConglomId);

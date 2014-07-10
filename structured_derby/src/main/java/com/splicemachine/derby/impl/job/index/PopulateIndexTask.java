@@ -54,7 +54,6 @@ public class PopulateIndexTask extends ZkTask {
     private static final long serialVersionUID = 5l;
 		private long operationId;
 		private long statementId;
-		private String transactionId;
     private long indexConglomId;
     private long baseConglomId;
     private int[] mainColToIndexPosMap;
@@ -134,7 +133,6 @@ public class PopulateIndexTask extends ZkTask {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeUTF(transactionId);
         out.writeLong(indexConglomId);
         out.writeLong(baseConglomId);
         out.writeInt(indexedColumns.wlen);
@@ -156,7 +154,6 @@ public class PopulateIndexTask extends ZkTask {
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        transactionId = in.readUTF();
         indexConglomId = in.readLong();
         baseConglomId = in.readLong();
         int numWords = in.readInt();

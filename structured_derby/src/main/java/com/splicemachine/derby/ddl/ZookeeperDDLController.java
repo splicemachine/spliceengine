@@ -1,15 +1,26 @@
 package com.splicemachine.derby.ddl;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Output;
+import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.utils.ZkUtils;
+import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.*;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
 
 import static com.splicemachine.derby.ddl.DDLZookeeperClient.*;
 
@@ -29,11 +40,28 @@ public class ZookeeperDDLController implements DDLController, Watcher {
 
     @Override
     public String notifyMetadataChange(DDLChange change) throws StandardException {
+        String changeId;
+        KryoPool kp = SpliceKryoRegistry.getInstance();
+        Kryo kryo = kp.get();
+        byte[] data;
+        try{
+            Output output = new Output(128,-1);
+            kryo.writeObject(output,change);
+            data = output.toBytes();
+        }finally{
+           kp.returnInstance(kryo);
+        }
+        try {
+            changeId = ZkUtils.create(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/", data,
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
+        } catch (KeeperException e) {
+            throw Exceptions.parseException(e);
+        } catch (InterruptedException e) {
+            throw Exceptions.parseException(e);
+        }
 
-        String jsonChange = DDLCoordinationFactory.GSON.toJson(change);
-        String changeId = createChangeNode(jsonChange);
-
-        LOG.debug("Notifying metadata change with id " + changeId + ": " + jsonChange);
+        if(LOG.isDebugEnabled())
+            LOG.debug("Notifying metadata change with id " + changeId + ": " + jsonChange);
 
         long startTimestamp = System.currentTimeMillis();
         synchronized (LOCK) {
