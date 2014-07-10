@@ -320,12 +320,12 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
     	TimestampUtil.doClientError(LOG, message, t, args);
     }
 
-	private void registerJMX() throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
+    private void registerJMX() throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         registerJMX(mbs);
         TimestampUtil.doServerInfo(LOG, "TimestampClient on region server successfully registered with JMX");
-	}
-	
+    }
+
     private void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
         ObjectName name = new ObjectName("com.splicemachine.si.impl.timestamp.request:type=TimestampRegionManagement"); // Same string is in JMXUtils
         mbs.registerMBean(this, name);

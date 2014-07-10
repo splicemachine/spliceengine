@@ -25,7 +25,6 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 	}
 
 	public void initializeIfNeeded() throws TimestampIOException {
-
 		TimestampUtil.doServerTrace(LOG, "Checking whether initialization is needed");
 		synchronized(this) {
 			if (_oracle == null) {
