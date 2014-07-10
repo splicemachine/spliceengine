@@ -771,9 +771,25 @@ public class RegionTxnStore {
 
     private static long decodeKeepAlive(KeyValue columnLatest, boolean oldForm) {
         long lastKATime;
-        if(oldForm)
-            lastKATime = Bytes.toLong(columnLatest.getBuffer(), columnLatest.getValueOffset(), columnLatest.getValueLength());
-        else
+        if(oldForm){
+            /*
+             * The old version would put an empty value into the Keep Alive column. If the transaction
+             * committed before the keep alive was initiated, then the field will still be null.
+             *
+             * Since we only read transactions in the old form, and don't create new ones, we just have to decide
+             * what to do with these situations. They can only arise if the transaction either
+             *
+             * A) commits/rolls back before the keep alive can be initiated
+             * B) fails before the first keep alive.
+             *
+             * In the case of a commit/roll back, the value of the keep alive doesn't matter, and in the case
+             * of B), we want to fail it. The easiest way to deal with this is just to return 0l.
+             */
+            int length = columnLatest.getValueLength();
+            if(length==0) return 0l;
+            else
+                lastKATime = Bytes.toLong(columnLatest.getBuffer(), columnLatest.getValueOffset(), length);
+        }else
             lastKATime = Encoding.decodeLong(columnLatest.getBuffer(), columnLatest.getValueOffset(), false);
         return lastKATime;
     }

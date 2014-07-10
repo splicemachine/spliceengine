@@ -91,7 +91,12 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 				long beginTs = Bytes.toLong(txnData,0,8);
         long parentTxnId = Bytes.toLong(txnData,8,8);
 				Txn.IsolationLevel isoLevel = Txn.IsolationLevel.fromByte(txnData[16]);
-        Txn parentTxn = parentTxnId<0? Txn.ROOT_TRANSACTION : txnSupplier.getTransaction(parentTxnId);
+        Txn parentTxn;
+        if(parentTxnId<0 || parentTxnId==beginTs){
+            //we are effectively a read-only child of the parent
+            parentTxn = Txn.ROOT_TRANSACTION;
+        }else
+            parentTxn = txnSupplier.getTransaction(parentTxnId);
 				return new ReadOnlyTxn(beginTs,beginTs,isoLevel,parentTxn,UnsupportedLifecycleManager.INSTANCE,false,false);
 		}
 

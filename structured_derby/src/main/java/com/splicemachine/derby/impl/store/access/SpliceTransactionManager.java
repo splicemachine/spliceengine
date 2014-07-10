@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.store.access;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -8,6 +9,7 @@ import java.util.Properties;
 
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.Txn;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -51,6 +53,7 @@ import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.util.ReuseFactory;
 import org.apache.derby.impl.store.access.conglomerate.ConglomerateUtil;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
@@ -2109,8 +2112,18 @@ public class SpliceTransactionManager implements XATransactionController,
 		// from "this", thus the new transaction shares the compatibility space
 		// of the current transaction.
 
+      String txnName;
+      if(!readOnly){
+          txnName = AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS;
+          try {
+              ((SpliceTransaction) rawtran).elevate(Bytes.toBytes("unknown"));
+          } catch (IOException e) {
+              throw Exceptions.parseException(e);
+          }
+      }else
+        txnName = AccessFactoryGlobals.NESTED_READONLY_USER_TRANS;
+
       final Txn txn = ((SpliceTransaction)rawtran).getTxn();
-      String txnName = readOnly? AccessFactoryGlobals.NESTED_READONLY_USER_TRANS: AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS;
       Transaction childTxn = accessmanager.getRawStore().startNestedTransaction(getLockSpace(),cm,txnName,txn);
 
       SpliceTransactionManager rt = new SpliceTransactionManager(

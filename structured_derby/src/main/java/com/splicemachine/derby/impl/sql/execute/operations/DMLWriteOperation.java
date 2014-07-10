@@ -523,7 +523,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 //				Txn parentTxnId = HTransactorFactory.getTransactionManager().transactionIdFromString(getTransactionID());
 				Txn childTransactionId;
 				try{
-            childTransactionId = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,true,Bytes.toBytes(Long.toString(heapConglom)));
+            childTransactionId = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,false,Bytes.toBytes(Long.toString(heapConglom)));
 //						childTransactionId = HTransactorFactory.getTransactionManager().beginChildTransaction(parentTxnId, Bytes.toBytes(Long.toString(heapConglom)));
 				}catch(IOException ioe){
 						LOG.error(ioe);
