@@ -9,6 +9,7 @@ import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.ThreadSafe;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.log4j.Logger;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -21,7 +22,8 @@ import java.util.concurrent.TimeUnit;
  */
 @ThreadSafe
 public class AsyncReadResolver  {
-		private final RingBuffer<ResolveEvent> ringBuffer;
+    private static final Logger LOG = Logger.getLogger(AsyncReadResolver.class);
+    private final RingBuffer<ResolveEvent> ringBuffer;
 		private final Disruptor<ResolveEvent> disruptor;
 
 		private final ThreadPoolExecutor consumerThreads;
@@ -92,7 +94,15 @@ public class AsyncReadResolver  {
         @Override
         public void resolve(ByteSlice rowKey, long txnId) {
             if(stopped) return; //we aren't running, so do nothing
-            long sequence = ringBuffer.next();
+            long sequence;
+            try {
+                sequence = ringBuffer.tryNext();
+            } catch (InsufficientCapacityException e) {
+                if(LOG.isTraceEnabled())
+                    LOG.trace("Unable to submit for read resolution");
+                return;
+            }
+
             try{
                 ResolveEvent event = ringBuffer.get(sequence);
                 event.region = region;

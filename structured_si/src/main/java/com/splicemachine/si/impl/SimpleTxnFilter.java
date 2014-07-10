@@ -111,7 +111,7 @@ public class SimpleTxnFilter implements TxnFilter {
 				 * parent transaction has been committed.
 				 */
 				long ts = keyValue.getTimestamp();
-				if(visitedTxnIds.contains(ts)){
+        if(!visitedTxnIds.add(ts)){
 						/*
 						 * We've already visited this version of the row data, so there's no
 						 * point in read-resolving this entry. This saves us from a
@@ -119,15 +119,16 @@ public class SimpleTxnFilter implements TxnFilter {
 						 */
 					return;
 				}
-				visitedTxnIds.add(ts); //prevent future columns from performing read-resolution on the same row
+
 				Txn t = transactionStore.getTransaction(ts);
 				assert t!=null :"Could not find a transaction for id "+ ts;
-				//get the row data. This will allow efficient movement of the row key without copying byte[]s
-				rowKey.set(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength());
 
         //submit it to the resolver to resolve asynchronously
-        if(t.getEffectiveState().isFinal())
+        if(t.getEffectiveState().isFinal()){
+            //get the row data. This will allow efficient movement of the row key without copying byte[]s
+            rowKey.set(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength());
             readResolver.resolve(rowKey,ts);
+        }
     }
 
 		private Filter.ReturnCode checkVisibility(KeyValue keyValue) throws IOException {
@@ -195,6 +196,7 @@ public class SimpleTxnFilter implements TxnFilter {
 		private void ensureTransactionIsCached(KeyValue keyValue) {
 				long txnId = keyValue.getTimestamp();
 				if(!transactionStore.transactionCached(txnId)){
+            visitedTxnIds.add(txnId);
 						/*
 						 * We do not have a cache entry for this transaction, so we want
 						 * to add it in. We have two possible scenarios:
@@ -219,7 +221,6 @@ public class SimpleTxnFilter implements TxnFilter {
 						}else{
 								long commitTs = Bytes.toLong(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());
 								transactionStore.cache(new CommittedTxn(txnId,commitTs)); //since we don't care about the begin timestamp, just use the TxnId
-								visitedTxnIds.add(txnId);
 						}
 				}
 		}

@@ -68,4 +68,6 @@ public interface TxnSupplier {
 		 * @param toCache the transaction to cache.
 		 */
 		void cache(Txn toCache);
+
+    Txn getTransactionFromCache(long txnId);
 }

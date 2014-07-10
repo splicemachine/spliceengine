@@ -91,7 +91,8 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 				long beginTs = Bytes.toLong(txnData,0,8);
         long parentTxnId = Bytes.toLong(txnData,8,8);
 				Txn.IsolationLevel isoLevel = Txn.IsolationLevel.fromByte(txnData[16]);
-				return new ReadOnlyTxn(beginTs,beginTs,isoLevel,txnSupplier.getTransaction(parentTxnId),UnsupportedLifecycleManager.INSTANCE,false,false);
+        Txn parentTxn = parentTxnId<0? Txn.ROOT_TRANSACTION : txnSupplier.getTransaction(parentTxnId);
+				return new ReadOnlyTxn(beginTs,beginTs,isoLevel,parentTxn,UnsupportedLifecycleManager.INSTANCE,false,false);
 		}
 
 		@Override
@@ -101,7 +102,8 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 				long txnId = Bytes.toLong(txnData,0,8);
 				long parentTxnId = Bytes.toLong(txnData,8,8);
 				boolean isAdditive = BytesUtil.toBoolean(txnData,16); //TODO -sf- add this in somehow
-				return new ActiveWriteTxn(txnId,txnId,txnSupplier.getTransaction(parentTxnId),isAdditive);
+        Txn parentTxn = parentTxnId<0? Txn.ROOT_TRANSACTION : txnSupplier.getTransaction(parentTxnId);
+				return new ActiveWriteTxn(txnId,txnId,parentTxn,isAdditive);
 		}
 
 		/******************************************************************************************************************/

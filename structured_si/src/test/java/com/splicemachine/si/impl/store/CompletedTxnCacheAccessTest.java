@@ -124,7 +124,12 @@ public class CompletedTxnCacheAccessTest {
 								called[0] = true;
 								return super.getTransaction(txnId,getDestinationTables);
 						}
-				};
+
+            @Override
+            public Txn getTransactionFromCache(long txnId) {
+                return null;
+            }
+        };
 				backStore.recordNewTransaction(txn);
 
 				TxnSupplier store = new CompletedTxnCacheSupplier(backStore,10,16);

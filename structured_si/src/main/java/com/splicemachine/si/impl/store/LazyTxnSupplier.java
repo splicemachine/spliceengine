@@ -33,9 +33,9 @@ public class LazyTxnSupplier implements TxnSupplier {
 				 * in case it's not needed (e.g. in case all values are present in the
 				 * child or whatever, so defaults are never needed).
 				 */
-				if(delegate.transactionCached(txnId)){
-						return delegate.getTransaction(txnId);
-				}
+        Txn cached = delegate.getTransactionFromCache(txnId);
+        if(cached!=null) return cached;
+
 				return new LazyTxn(txnId,delegate);
 		}
 
@@ -53,4 +53,9 @@ public class LazyTxnSupplier implements TxnSupplier {
 		public void cache(Txn toCache) {
 				delegate.cache(toCache);
 		}
+
+    @Override
+    public Txn getTransactionFromCache(long txnId) {
+        return delegate.getTransactionFromCache(txnId);
+    }
 }
