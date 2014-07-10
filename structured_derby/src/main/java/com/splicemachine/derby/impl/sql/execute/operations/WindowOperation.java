@@ -121,6 +121,7 @@ public class WindowOperation extends GenericAggregateOperation {
         int	aggregateItem,
         int	partitionItemIdx,
         int	orderingItemIdx,
+        int frameDefnIndex,
         Activation activation,
         GeneratedMethod rowAllocator,
         int maxRowSize,
@@ -132,7 +133,7 @@ public class WindowOperation extends GenericAggregateOperation {
         super(source, aggregateItem, activation, rowAllocator, resultSetNumber,
               optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.isInSortedOrder = isInSortedOrder;
-        this.groupedAggregateContext = new DerbyWindowContext(partitionItemIdx, orderingItemIdx);
+        this.groupedAggregateContext = new DerbyWindowContext(partitionItemIdx, orderingItemIdx, frameDefnIndex);
         recordConstructorTime();
     }
 
