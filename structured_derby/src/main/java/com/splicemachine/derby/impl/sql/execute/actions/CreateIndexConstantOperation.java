@@ -5,11 +5,13 @@ import java.util.Arrays;
 import java.util.Properties;
 
 import com.google.common.io.Closeables;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -46,6 +48,7 @@ import org.apache.derby.impl.services.daemon.IndexStatisticsDaemonImpl;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.derby.impl.sql.execute.RowUtil;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.ddl.DDLChange;
@@ -53,8 +56,6 @@ import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 
 
@@ -484,7 +485,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             SpliceLogUtils.trace(LOG, "Here XXX");
 
             // Tell it the conglomerate id of the base table
-            indexProperties.put("baseConglomerateId",Long.toString(td.getHeapConglomerateId()));
+            long heapConglomerateId = td.getHeapConglomerateId();
+            indexProperties.put("baseConglomerateId",Long.toString(heapConglomerateId));
 
             // All indexes are unique because they contain the RowLocation.
             // The number of uniqueness columns must include the RowLocation
@@ -561,7 +563,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 
             // Start by opening a full scan on the base table.
             scan = tc.openGroupFetchScan(
-                                td.getHeapConglomerateId(),
+                    heapConglomerateId,
                                 false,	// hold
                                 0,	// open base table read only
                                 TransactionController.MODE_TABLE,
@@ -727,30 +729,32 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 
             // Perform tentative DDL change
             Txn tentativeTransaction;
+            Txn parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
             try {
-                tentativeTransaction = TransactionLifecycle.getLifecycleManager().beginTransaction();
+                TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
+                tentativeTransaction = lifecycleManager.beginChildTransaction(parentTxn,
+                        Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,false,Bytes.toBytes(Long.toString(heapConglomerateId)));
             } catch (IOException e) {
                 LOG.error("Couldn't start transaction for tentative DDL operation");
                 throw Exceptions.parseException(e);
             }
-            TentativeIndexDesc tentativeIndexDesc = new TentativeIndexDesc(conglomId, td.getHeapConglomerateId(),
+            TentativeIndexDesc tentativeIndexDesc = new TentativeIndexDesc(conglomId, heapConglomerateId,
                     baseColumnPositions, unique,
                     uniqueWithDuplicateNulls,
                     SpliceUtils.bitSetFromBooleanArray(descColumns));
             DDLChange ddlChange = new DDLChange(tentativeTransaction,
                     DDLChangeType.CREATE_INDEX);
             ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
-            ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
 
             notifyMetadataChange(ddlChange);
 
-            final long tableConglomId = td.getHeapConglomerateId();
+            final long tableConglomId = heapConglomerateId;
             HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
             try{
                 // Add the indexes to the exisiting regions
                 createIndex(activation, ddlChange, table, td);
 
-                Txn indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, transactor,tableConglomId);
+                Txn indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, tableConglomId);
 
                 populateIndex(activation, baseColumnPositions, descColumns, tableConglomId, table, indexTransaction, tentativeIndexDesc);
                 //only commit the index transaction if the job actually completed

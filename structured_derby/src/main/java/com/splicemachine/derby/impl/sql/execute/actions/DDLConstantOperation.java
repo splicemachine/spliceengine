@@ -1,11 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.carrotsearch.hppc.LongArrayList;
+import com.splicemachine.constants.SpliceConstants;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.si.api.*;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
@@ -40,6 +43,7 @@ import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -888,32 +892,50 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
      * @return list of transactions still running after timeout
      * @throws IOException
      */
-	public List<Txn> waitForConcurrentTransactions(Txn maximum, List<Txn> toIgnore,long tableConglomId) throws IOException {
+    private static final LongArrayList EMPTY_LIST = LongArrayList.newInstanceWithCapacity(0);
+	public LongArrayList waitForConcurrentTransactions(Txn maximum, List<Txn> toIgnore,long tableConglomId) throws IOException {
 	    if (!waitsForConcurrentTransactions()) {
-	        return Collections.emptyList();
+          return EMPTY_LIST; //save on object creation in this case
 	    }
 			byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
-      throw new UnsupportedOperationException("IMPLEMENT");
-//	    List<TransactionId> active = transactor.getActiveWriteTransactionIds(maximum,conglomBytes);
-//			active.removeAll(toIgnore);
-//
-//	    long waitTime = SpliceConstants.ddlDrainingInitialWait;
-//	    long totalWait = 0;
-//	    while (!active.isEmpty() && totalWait < SpliceConstants.ddlDrainingMaximumWait) {
-//	        try {
-//                Thread.sleep(waitTime);
-//            } catch (InterruptedException e) {
-//                throw new IOException(e);
-//            }
-//	        totalWait += waitTime;
-//	        waitTime *= 10;
-//	        active = transactor.getActiveWriteTransactionIds(maximum,conglomBytes);
-//					active.removeAll(toIgnore);
-//	    }
-//	    if (!active.isEmpty()) {
-//	        LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %.100s", toString(), active));
-//	    }
-//	    return active;
+      long minTs = TransactionTimestamps.getTimestampSource().retrieveTimestamp();
+      long maxTs = maximum.getBeginTimestamp();
+      long wait = SpliceConstants.ddlDrainingInitialWait;
+      long totalWait = 0;
+      LongArrayList active = null;
+      do{
+          long[] activeTransactions = TransactionStorage.getTxnStore().getActiveTransactionIds(minTs, maxTs, conglomBytes);
+          if(activeTransactions.length<=0) return EMPTY_LIST; //unlikely, but you never know
+          if(active==null)
+              active = LongArrayList.newInstanceWithCapacity(activeTransactions.length);
+          else
+            active.clear();
+          for(long activeTxnId:activeTransactions){
+              boolean found = false;
+              for(Txn txn:toIgnore){
+                  if(txn.getTxnId()==activeTxnId){
+                      found = true;
+                      break;
+                  }
+              }
+              if(!found){
+                  active.add(activeTxnId);
+              }
+          }
+
+          if(active.size()>0){
+              //we still have active transactions, need to wait
+              try{
+                  Thread.sleep(wait);
+              } catch (InterruptedException e) {
+                  throw new IOException(e);
+              }
+              totalWait+=wait;
+              wait *=10;
+          }
+      }while(totalWait<SpliceConstants.ddlDrainingMaximumWait);
+
+      return active;
 	}
 
 	/**

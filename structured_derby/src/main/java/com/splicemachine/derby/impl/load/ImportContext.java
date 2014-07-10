@@ -244,10 +244,6 @@ public class ImportContext implements Externalizable{
 
 		public String getTableVersion() { return tableVersion; }
 
-    public Txn getTxn() {
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
     public static class Builder{
 				private Path filePath;
 				private Long tableId;
@@ -255,7 +251,6 @@ public class ImportContext implements Externalizable{
 				private String stripString;
 				Map<Integer,Integer> indexToTypeMap = new HashMap<Integer, Integer>();
 				private String timestampFormat;
-				private String transactionId;
 				private long byteOffset;
 				private int bytesToRead;
 
@@ -373,7 +368,6 @@ public class ImportContext implements Externalizable{
 						Preconditions.checkNotNull(filePath,"No File specified!");
 						Preconditions.checkNotNull(tableId,"No destination table specified!");
 //						Preconditions.checkNotNull(columnDelimiter,"No column Delimiter specified");
-						Preconditions.checkNotNull(transactionId,"No transactionId specified");
 
 
 						ColumnContext[] context = new ColumnContext[columnInformation.size()];

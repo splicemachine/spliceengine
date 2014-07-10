@@ -9,9 +9,10 @@ import com.splicemachine.derby.impl.sql.execute.constraint.*;
 import com.splicemachine.derby.impl.sql.execute.index.*;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.hbase.batch.*;
-import com.splicemachine.si.api.*;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.DDLFilter;
-import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.ResettableCountDownLatch;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.IndexDescriptor;
@@ -379,19 +380,19 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
         // check tentative indexes
         for (DDLChange ddlChange : DDLCoordinationFactory.getWatcher().getTentativeDDLs()) {
             TentativeDDLDesc ddlDesc = ddlChange.getTentativeDDLDesc();
-            boolean error = false;
-            TransactionManager transactionControl = HTransactorFactory.getTransactionManager();
-            TransactionStatus status = null;
-            try {
-                status = transactionControl.getTransactionStatus(
-                        new TransactionId(ddlChange.getParentTransactionId()));
-            } catch (Exception e) {
-                // Error while checking transaction status, remove change
-                // necessary for backwards compatibility
-                error = true;
-            }
-            if (error || status.isFinished()) {
-                DDLCoordinationFactory.getController().finishMetadataChange(ddlChange.getChangeId());
+            Txn txn = ddlChange.getTxn().getParentTransaction();
+//            TransactionManager transactionControl = HTransactorFactory.getTransactionManager();
+//            TransactionStatus status = null;
+//            try {
+//                status = transactionControl.getTransactionStatus(
+//                        new TransactionId(ddlChange.getParentTransactionId()));
+//            } catch (Exception e) {
+//                // Error while checking transaction status, remove change
+//                // necessary for backwards compatibility
+//                error = true;
+//            }
+            if (txn.getEffectiveState().isFinal()) {
+                DDLCoordinationFactory.getController().finishMetadataChange(ddlChange.getIdentifier());
             } else if (ddlDesc.getBaseConglomerateNumber() == congomId) {
 
                 if(ddlChange.getChangeType() == DDLChangeType.CREATE_INDEX) {

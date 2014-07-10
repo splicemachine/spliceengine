@@ -18,6 +18,9 @@ import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
+import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
+import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import org.apache.derby.catalog.types.AggregateAliasInfo;
 import org.apache.derby.catalog.types.BaseTypeIdImpl;
@@ -792,5 +795,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ActivationSerializer.BooleanFieldStorage.class,EXTERNALIZABLE_SERIALIZER,185);
         instance.register(WindowFunctionInfoList.class,EXTERNALIZABLE_SERIALIZER,186);
         instance.register(WindowFunctionInfo.class,EXTERNALIZABLE_SERIALIZER,187);
+        instance.register(DDLChange.class,EXTERNALIZABLE_SERIALIZER,188);
+        instance.register(TentativeIndexDesc.class,EXTERNALIZABLE_SERIALIZER,189);
+        instance.register(TentativeDropColumnDesc.class,EXTERNALIZABLE_SERIALIZER,190);
     }
 }

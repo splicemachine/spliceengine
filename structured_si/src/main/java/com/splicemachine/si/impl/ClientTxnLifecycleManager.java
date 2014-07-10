@@ -101,12 +101,26 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 																Txn txnToCommit) throws IOException {
 				if(parentTxn==null)
 						parentTxn = Txn.ROOT_TRANSACTION;
-				if(destinationTable!=null && !parentTxn.allowsWrites())
-						throw new DoNotRetryIOException("Cannot create a writable child of a read-only transaction. Elevate the parent transaction("+parentTxn.getTxnId()+") first");
-				if(!txnToCommit.descendsFrom(parentTxn)){
-					throw new DoNotRetryIOException("Cannot chain create transactions which are not siblings");
-				}
-				long oldTs = commit(txnToCommit.getTxnId());
+        if(destinationTable!=null){
+            /*
+             * the new transaction must be writable, so we have to make sure that we generate a timestamp
+             */
+            if(!parentTxn.allowsWrites())
+                throw new DoNotRetryIOException("Cannot create a writable child of a read-only transaction. Elevate the parent transaction("+parentTxn.getTxnId()+") first");
+            if(!txnToCommit.allowsWrites())
+                throw new DoNotRetryIOException("Cannot chain a writable transaction from a read-only transaction. Elevate the transaction("+txnToCommit.getTxnId()+") first");
+        }
+
+        if(!txnToCommit.allowsWrites() && Txn.ROOT_TRANSACTION.equals(parentTxn)){
+            /*
+             * The transaction to commit is read only, but we need to create a new parent transaction,
+             * so we cannot chain transactions
+             */
+            throw new DoNotRetryIOException("Cannot chain a read-only parent transaction from a read-only transaction. Elevate the transaction("+txnToCommit.getTxnId()+") first");
+        }
+        txnToCommit.commit();
+        long oldTs = txnToCommit.getCommitTimestamp();
+
 				if(destinationTable!=null)
 						return createWritableTransaction(oldTs,isolationLevel,dependent,additive,parentTxn,destinationTable);
 				else{
