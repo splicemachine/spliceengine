@@ -9,6 +9,7 @@ import com.google.common.collect.Lists;
 import org.apache.derby.iapi.error.SQLWarningFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.io.FormatableHashtable;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
@@ -29,6 +30,7 @@ public class DerbyWindowContext implements GroupedAggregateContext {
     private Activation activation;
     private int partitionItemIdx;
     private int orderingItemIdx;
+    private int frameDefnIdx;
     private int[] groupingKeys;
     private boolean[] groupingKeyOrder;
     private int[] nonGroupedUniqueColumns;
@@ -37,9 +39,10 @@ public class DerbyWindowContext implements GroupedAggregateContext {
     public DerbyWindowContext() {
     }
 
-    public DerbyWindowContext(int partitionItemIdx, int orderingItemIdx) {
+    public DerbyWindowContext(int partitionItemIdx, int orderingItemIdx, int frameDefnIdx) {
         this.partitionItemIdx = partitionItemIdx;
         this.orderingItemIdx = orderingItemIdx;
+        this.frameDefnIdx = frameDefnIdx;
     }
 
     @Override
@@ -53,6 +56,8 @@ public class DerbyWindowContext implements GroupedAggregateContext {
 
         ColumnOrdering[] orderings = (ColumnOrdering[])
             ((FormatableArrayHolder) (statement.getSavedObject(orderingItemIdx))).getArray(ColumnOrdering.class);
+
+        WindowFrameDefinition frameDefinition = WindowFrameDefinition.create((FormatableHashtable) statement.getSavedObject(frameDefnIdx));
 
         int[] allKeyedColumns = new int[partition.length + orderings.length];
         boolean[] allSortOrders = new boolean[partition.length + orderings.length];
@@ -122,12 +127,14 @@ public class DerbyWindowContext implements GroupedAggregateContext {
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeInt(partitionItemIdx);
         out.writeInt(orderingItemIdx);
+        out.writeInt(frameDefnIdx);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         partitionItemIdx = in.readInt();
         orderingItemIdx = in.readInt();
+        frameDefnIdx = in.readInt();
     }
 
 }
