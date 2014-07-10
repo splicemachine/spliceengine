@@ -42,7 +42,7 @@ public class ReadOnlyTxn extends AbstractTxn {
 				//make yourself a copy of the parent transaction, for the purposes of reading
 				return new ReadOnlyTxn(parentTxn.getTxnId(),
 								parentTxn.getBeginTimestamp(),
-								parentTxn.getIsolationLevel(),parentTxn.getParentTransaction(),tc,dependent,additive);
+								parentTxn.getIsolationLevel(),parentTxn,tc,dependent,additive);
 		}
 		public static ReadOnlyTxn createReadOnlyParentTransaction(long txnId,long beginTimestamp,
 																															IsolationLevel isolationLevel,

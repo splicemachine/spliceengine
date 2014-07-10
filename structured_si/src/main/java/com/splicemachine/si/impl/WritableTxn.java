@@ -163,4 +163,8 @@ public class WritableTxn extends AbstractTxn {
 				return tableWrites;
 		}
 
+    @Override
+    public String toString(){
+        return "WritableTxn("+txnId+","+getState()+")";
+    }
 }

@@ -38,10 +38,10 @@ import java.util.concurrent.TimeUnit;
 import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static com.splicemachine.derby.ddl.DDLZookeeperClient.*;
 
@@ -65,6 +65,12 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
     private ScheduledExecutorService executor = MoreExecutors
             .namedSingleThreadScheduledExecutor("ZookeeperDDLWatcherRefresh");
 
+    private ExecutorService refreshThread = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
+            .setNameFormat("ZooKeeperDDLWatcherRefresher").setDaemon(true).build());
+
+    private final Lock refreshNotifierLock = new ReentrantLock();
+    private final Condition refreshNotifierCondition = refreshNotifierLock.newCondition();
+
     @Override
     public synchronized void registerLanguageConnectionContext(LanguageConnectionContext lcc) {
         if (!currentDDLChanges.isEmpty()) {
@@ -84,22 +90,46 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         executor.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
+                refreshNotifierLock.lock();
                 try {
-                    refresh();
-                } catch (StandardException e) {
-                    LOG.error("Failed to execute refresh", e);
+                    refreshNotifierCondition.signal();
+                }finally{
+                    refreshNotifierLock.unlock();
                 }
             }
         }, REFRESH_TIMEOUT_MS, REFRESH_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+
+        refreshThread.submit(new Runnable() {
+            @Override
+            public void run() {
+                while(true){
+                    refreshNotifierLock.lock();
+                    try{
+                        //wait to be notified
+                        refreshNotifierCondition.await();
+                    }catch (InterruptedException e) {
+                        LOG.error("Interrupted while forcibly refreshing, terminating thread");
+                    } finally{
+                        refreshNotifierLock.unlock();
+                    }
+                    try{
+                        refresh();
+                    }catch(StandardException e){
+                        LOG.error("Failed to refresh ddl",e);
+                    }
+                }
+            }
+        });
     }
 
     @Override
     public void process(WatchedEvent event) {
         if (event.getType().equals(EventType.NodeChildrenChanged)) {
+            refreshNotifierLock.lock();
             try {
-                refresh();
-            } catch (StandardException e) {
-                LOG.error("Couldn't process the ZooKeeper event " + event, e);
+                refreshNotifierCondition.signal();
+            }finally{
+                refreshNotifierLock.unlock();
             }
         }
     }
