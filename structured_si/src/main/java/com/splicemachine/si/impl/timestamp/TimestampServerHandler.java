@@ -25,7 +25,7 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 	}
 
 	public void initializeIfNeeded() throws TimestampIOException {
-		TimestampUtil.doServerTrace(LOG, "initializeIfNeeded");
+		TimestampUtil.doServerTrace(LOG, "Checking whether initialization is needed");
 		synchronized(this) {
 			if (_oracle == null) {
 				_oracle = TimestampOracle.getInstance(_rzk, SpliceConstants.zkSpliceMaxReservedTimestampPath);
@@ -45,7 +45,7 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 		final short callerId = buf.readShort();
  		ensureReadableBytes(buf, 0);
 		
-		TimestampUtil.doServerTrace(LOG, "received timetamp request from client. Caller id = " + callerId);
+		TimestampUtil.doServerTrace(LOG, "Received timestamp request from client. Caller id = %s", callerId);
 		long nextTimestamp = _oracle.getNextTimestamp();
 		assert nextTimestamp > 0;
 		
@@ -56,7 +56,7 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 		ChannelBuffer writeBuf = ChannelBuffers.buffer(TimestampServer.FIXED_MSG_SENT_LENGTH);
 		writeBuf.writeShort(callerId);
 		writeBuf.writeLong(nextTimestamp);
-		TimestampUtil.doServerDebug(LOG, "Responding to caller " + callerId + " with timestamp " + nextTimestamp);
+		TimestampUtil.doServerDebug(LOG, "Responding to caller %s with timestamp %s", callerId, nextTimestamp);
         ChannelFuture futureResponse = e.getChannel().write(writeBuf); // Could also use Channels.write
 		futureResponse.addListener(new ChannelFutureListener() {
 			public void operationComplete(ChannelFuture cf) throws Exception {
@@ -71,16 +71,16 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 		super.messageReceived(ctx, e);
 	}
 		   
-    protected void doTrace(String message) {
-    	TimestampUtil.doServerTrace(LOG, message);
+    protected void doTrace(String message, Object... args) {
+    	TimestampUtil.doServerTrace(LOG, message, args);
 	}
 
-    protected void doDebug(String message) {
-    	TimestampUtil.doServerDebug(LOG, message);
+    protected void doDebug(String message, Object... args) {
+    	TimestampUtil.doServerDebug(LOG, message, args);
 	}
 
-	protected void doError(String message, Throwable t) {
-    	TimestampUtil.doServerError(LOG, message, t);
+	protected void doError(String message, Throwable t,Object... args) {
+    	TimestampUtil.doServerError(LOG, message, t, args);
     }
 
 }

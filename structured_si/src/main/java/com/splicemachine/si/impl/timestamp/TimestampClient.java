@@ -118,7 +118,7 @@ public class TimestampClient extends TimestampBaseHandler {
 			@SuppressWarnings("deprecation") HMasterInterface master = HConnectionManager.getConnection(SpliceConstants.config).getMaster();
 			hostName = master.getClusterStatus().getMaster().getHostname();
     	} catch (Exception e) {
-    		TimestampUtil.doClientErrorThrow(LOG, "Unable to determine host name for master.", e, null);
+    		TimestampUtil.doClientErrorThrow(LOG, "Unable to determine host name for active hbase master", e);
     	}
     	return hostName;
     }
@@ -143,8 +143,10 @@ public class TimestampClient extends TimestampBaseHandler {
             	return _state.get();
             }
 	
-			TimestampUtil.doClientInfo(LOG, "Attempting to connect to server (host " + getHost() + ", port " + getPort() + ")");
-	
+            if (LOG.isInfoEnabled()) {
+			    TimestampUtil.doClientInfo(LOG, "Attempting to connect to server (host %s, port %s)", getHost(), getPort());
+            }
+            
 			ChannelFuture futureConnect = _bootstrap.connect(new InetSocketAddress(getHost(), getPort()));
 			final CountDownLatch latchConnect = new CountDownLatch(1);
 			futureConnect.addListener(new ChannelFutureListener() {
@@ -153,7 +155,7 @@ public class TimestampClient extends TimestampBaseHandler {
  				    	_channel = cf.getChannel();
 						latchConnect.countDown();
 				    } else {
-				    	TimestampUtil.doClientErrorThrow(LOG, "TimestampClient unable to connect to TimestampServer", cf.getCause(), null);
+				    	TimestampUtil.doClientErrorThrow(LOG, "TimestampClient unable to connect to TimestampServer", cf.getCause());
 				    }
 				  }
 				}
@@ -178,34 +180,33 @@ public class TimestampClient extends TimestampBaseHandler {
     	
     	short clientCallId = (short)_clientCallCounter.getAndIncrement();
     	final ClientCallback callback = new ClientCallback(clientCallId);
-    	TimestampUtil.doClientDebug(LOG, "Starting new client call with id " + clientCallId);
+    	TimestampUtil.doClientDebug(LOG, "Starting new client call with id %s", clientCallId);
     	
 		// Add this caller (id and callback) to the map of current clients.
 		// If an entry was already present for this caller id, that is a bug,
 		// so throw an exception.
 		if (_clientCallbacks.putIfAbsent(clientCallId, callback) != null) {
-    		TimestampUtil.doClientErrorThrow(LOG, "Found existing client callback with caller id " + clientCallId +
-				", so unable to process the new call", null, callback);
+    		TimestampUtil.doClientErrorThrow(LOG, "Found existing client callback with caller id %s, so unable to handle new call.", null, clientCallId);
 		}
 
 		try {
             ChannelBuffer buffer = ChannelBuffers.buffer(2);
     	    buffer.writeShort(clientCallId);
-			TimestampUtil.doClientTrace(LOG, "Writing request message to server", callback);
+			TimestampUtil.doClientTrace(LOG, "Writing request message to server for client: %s", callback);
             ChannelFuture futureWrite = _channel.write(buffer);
 	        futureWrite.addListener(new ChannelFutureListener() {
 	            public void operationComplete(ChannelFuture future) throws Exception {
 	                if (!future.isSuccess()) {
-	                    TimestampUtil.doClientErrorThrow(LOG, "Error writing message from timestamp client to server", future.getCause(), null);
+	                    TimestampUtil.doClientErrorThrow(LOG, "Error writing message from timestamp client to server", future.getCause());
 	                } else {
-	                    TimestampUtil.doClientTrace(LOG, "Request to server complete. Waiting for response.", callback);
+	                    TimestampUtil.doClientTrace(LOG, "Request sent. Waiting for response for client: %s", callback);
 	                }
 	            }
 	        });
     	} catch (Exception e) { // Correct to catch all Exceptions in this case so we can remove client call
         	_clientCallbacks.remove(clientCallId);
             callback.error(e);
-    		TimestampUtil.doClientErrorThrow(LOG, "Exception writing message to timestamp server", e, callback);
+    		TimestampUtil.doClientErrorThrow(LOG, "Exception writing message to timestamp server for client: %s", e, callback);
     	}
         
     	// If we get here, request was successfully sent without exception.
@@ -215,7 +216,7 @@ public class TimestampClient extends TimestampBaseHandler {
 		try {
 			callback.await();
 		} catch (InterruptedException e) {
-            TimestampUtil.doClientErrorThrow(LOG, "Interrupted waiting for timestamp client callback", e, callback);
+            TimestampUtil.doClientErrorThrow(LOG, "Interrupted waiting for timestamp client: %s", e, callback);
 		}
     	
 		// If we get here, it should mean the client received the response with the timestamp,
@@ -223,10 +224,10 @@ public class TimestampClient extends TimestampBaseHandler {
 		
 		long timestamp = callback.getNewTimestamp();
         if (timestamp < 0) {
-        	throw new TimestampIOException("Invalid timestamp created in timestamp callback " + callback);
+        	TimestampUtil.doClientErrorThrow(LOG, "Invalid timestamp found for client: %s", null, callback);
         }
     	
-        TimestampUtil.doClientDebug(LOG, "Client call complete", callback);
+        TimestampUtil.doClientDebug(LOG, "Client call complete: %s", callback);
     	
     	return timestamp;
     }
@@ -243,11 +244,10 @@ public class TimestampClient extends TimestampBaseHandler {
  		assert (timestamp > 0);
  		ensureReadableBytes(buf, 0);
 
- 		TimestampUtil.doClientDebug(LOG, "Response from server: clientCallerId = " + clientCallerId + ", timestamp = " + timestamp);
+ 		TimestampUtil.doClientDebug(LOG, "Response from server: clientCallerId = %s, timestamp = %s", clientCallerId, timestamp);
  		ClientCallback cb = _clientCallbacks.remove(clientCallerId);
         if (cb == null) {
-        	TimestampUtil.doClientErrorThrow(LOG, "Client callback with id " + clientCallerId +
-        	    " not found, so unable to deliver timestamp " + timestamp, null, null);
+        	TimestampUtil.doClientErrorThrow(LOG, "Client callback with id %s not found, so unable to deliver timestamp %s", null, clientCallerId, timestamp);
         }
 
         // This releases the latch the original client thread is waiting for
@@ -267,15 +267,15 @@ public class TimestampClient extends TimestampBaseHandler {
         super.channelConnected(ctx, e);
     }
 
-    protected void doTrace(String message) {
-    	TimestampUtil.doClientTrace(LOG, message);
+    protected void doTrace(String message, Object... args) {
+    	TimestampUtil.doClientTrace(LOG, message, args);
 	}
 
-    protected void doDebug(String message) {
-    	TimestampUtil.doClientDebug(LOG, message);
+    protected void doDebug(String message, Object... args) {
+    	TimestampUtil.doClientDebug(LOG, message, args);
 	}
 
-	protected void doError(String message, Throwable t) {
-    	TimestampUtil.doClientError(LOG, message, t);
+	protected void doError(String message, Throwable t, Object... args) {
+    	TimestampUtil.doClientError(LOG, message, t, args);
     }
 }

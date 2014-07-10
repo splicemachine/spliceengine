@@ -18,61 +18,61 @@ public abstract class TimestampBaseHandler extends SimpleChannelHandler {
 
     public void channelOpen(
 		ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-    	doTrace("channelOpen");
+    	// doTrace("channelOpen");
     	super.channelOpen(ctx, e);
     }
 
     public void channelBound(
 		ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-    	doTrace("channelBound");
+    	// doTrace("channelBound");
     	super.channelBound(ctx, e);
     }
 
     public void channelConnected(
     	ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-    	doTrace("channelConnected");
+    	// doTrace("channelConnected");
         super.channelConnected(ctx, e);
     }
 
     public void channelInterestChanged(
         ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-    	doTrace("channelInterestChanged");
+    	// doTrace("channelInterestChanged");
     	super.channelInterestChanged(ctx, e);
     }
 
     public void channelDisconnected(
 		ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-    	doTrace("channelDisconnected");
+    	// doTrace("channelDisconnected");
     	super.channelDisconnected(ctx, e);
     }
 
     public void channelUnbound(
         ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-    	doTrace("channelUnbound");
+    	// doTrace("channelUnbound");
     	super.channelUnbound(ctx, e);
     }
 
     public void channelClosed(
         ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-    	doTrace("channelClosed");
+    	// doTrace("channelClosed");
     	super.channelClosed(ctx, e);
     }
 
     public void writeComplete(
     	ChannelHandlerContext ctx, WriteCompletionEvent e) throws Exception {
-    	doTrace("writeComplete");
+    	// doTrace("writeComplete");
     	super.writeComplete(ctx, e);
    }
 
     public void childChannelOpen(
         ChannelHandlerContext ctx, ChildChannelStateEvent e) throws Exception {
-    	doTrace("childChannelOpen");
+    	// doTrace("childChannelOpen");
     	super.childChannelOpen(ctx, e);
     }
 
     public void childChannelClosed(
         ChannelHandlerContext ctx, ChildChannelStateEvent e) throws Exception {
-    	doTrace("childChannelClosed");
+    	// doTrace("childChannelClosed");
     	super.childChannelClosed(ctx, e);
     }
 
@@ -83,9 +83,9 @@ public abstract class TimestampBaseHandler extends SimpleChannelHandler {
  		};
     }
     
-    protected abstract void doTrace(String message);
+    protected abstract void doTrace(String message, Object... args);
     
-    protected abstract void doDebug(String message);
+    protected abstract void doDebug(String message, Object... args);
 	
-    protected abstract void doError(String message, Throwable t);
+    protected abstract void doError(String message, Throwable t, Object... args);
 }
