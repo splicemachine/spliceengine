@@ -930,7 +930,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(aggInfo != null, "aggInfo not set up as expected");
         }
-        int aggInfoItem = acb.addItem(aggInfo);
+        int aggInfoItemIndex = acb.addItem(aggInfo);
+
+        // add the window frame definition
+        int frameDefnIndex = acb.addItem(wdn.getFrameExtent().toMap());
 
         acb.pushGetResultSetFactoryExpression(mb);
 
@@ -941,18 +944,20 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		 *  arg3: aggInfoItem - entry in saved objects for the aggregates,
 		 *  arg4: partitionItemIndex - index of entry in saved objects for the partition
 		 *  arg5: orderByItemIndex - index of entry in saved objects for the ordering
-		 *  arg6: Activation
-		 *  arg7: number of columns in the result
-		 *  arg8: resultSetNumber
-		 *  arg9: row count estimate for cost
-		 *  arg10: estimated cost
+		 *  arg6: frameDefnIndex - index of entry in saved objects for the frame definition
+		 *  arg7: Activation
+		 *  arg8: number of columns in the result
+		 *  arg9: resultSetNumber
+		 *  arg10: row count estimate for cost
+		 *  arg11: estimated cost
 		 */
         // Generate the child ResultSet
         childResult.generate(acb, mb);
         mb.push(isInSortedOrder);
-        mb.push(aggInfoItem);
+        mb.push(aggInfoItemIndex);
         mb.push(partitionItemIndex);
         mb.push(orderByItemIndex);
+        mb.push(frameDefnIndex);
 
         resultColumns.generateHolder(acb, mb);
 
@@ -962,7 +967,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         mb.push(costEstimate.getEstimatedCost());
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getWindowResultSet",
-                      ClassName.NoPutResultSet, 10);
+                      ClassName.NoPutResultSet, 11);
 
     }
 

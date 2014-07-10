@@ -10002,7 +10002,8 @@ overClause() throws StandardException :
 	String windowRef;
 	Partition partitionCols = null;
 	OrderByList orderCols = null;
-	WindowFrameDefinition frameDefn = null;
+	// Default. RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+	WindowFrameDefinition frameDefn = new WindowFrameDefinition();
 }
 {
   LOOKAHEAD({ getToken(2).kind == LEFT_PAREN ||
@@ -10033,77 +10034,89 @@ overClause() throws StandardException :
 }
 
 WindowFrameDefinition
-frameDefinitionClause():
+frameDefinitionClause() throws StandardException:
 {
 	WindowFrameDefinition frameDefn = null;
-	WindowFrameDefinition.Window window = null;
-	WindowFrameDefinition.FrameType startFrame = null;
-	WindowFrameDefinition.FrameType endFrame = null;
+	WindowFrameDefinition.FrameMode frameMode = null;
+	WindowFrameDefinition.FrameType frameStart = null;
+	// If no frameEnd given, defaults to CURRENT ROW
+	WindowFrameDefinition.FrameType frameEnd = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.CURRENT_ROW, WindowFrameDefinition.FrameType.NON_VAL);
 }
 {
-   ( window = frameClause() ( startFrame = frameStartEnd() |
-   <BETWEEN> startFrame = frameStartEnd() <AND> endFrame = frameStartEnd() ) )
+   ( frameMode = frameClause() ( frameStart = frameStartEnd() |
+        ( <BETWEEN> frameStart = frameStartEnd() <AND> frameEnd = frameStartEnd() )
+        ) )
    {
-       if (startFrame != null) {
-           frameDefn = new WindowFrameDefinition(window, startFrame, endFrame);
+       if (frameStart != null) {
+           frameDefn = new WindowFrameDefinition(frameMode, frameStart, frameEnd);
        }
        return frameDefn;
    }
 }
 
-WindowFrameDefinition.Window
+WindowFrameDefinition.FrameMode
 frameClause():
 {
-    WindowFrameDefinition.Window window = null;
+    WindowFrameDefinition.FrameMode frameMode = null;
 }
 {
     ( <ROWS>
-      { window = WindowFrameDefinition.Window.ROWS; } |
+      { frameMode = WindowFrameDefinition.FrameMode.ROWS; } |
       <RANGE>
-      { window = WindowFrameDefinition.Window.RANGE; } )
+      { frameMode = WindowFrameDefinition.FrameMode.RANGE; } )
       {
-          return window;
+          return frameMode;
       }
 }
 
 WindowFrameDefinition.FrameType
-frameStartEnd():
+frameStartEnd() throws StandardException:
 {
-    WindowFrameDefinition.FrameType frame = null;
-    int value = -1;
+    WindowFrameDefinition.FrameType frameType = null;
+    // rowOffset only makes sense for <n> PRECEDING or <n> FOLLOWING and n>0; n=0 implies CURRENT ROW
+    long rowOffset = WindowFrameDefinition.FrameType.NON_VAL;
 }
 {
   ( <CURRENT> <ROW>
-     { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.CURRENT_ROW, value); } |
-  value = nonNegativeInt()
-      (
+     { frameType = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.CURRENT_ROW, rowOffset); } |
+  ( rowOffset = rowOffset()
+        (
           <PRECEDING>
-            { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.PRECEDING, value); }  |
+            { frameType = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.PRECEDING, rowOffset); }  |
           <FOLLOWING>
-            { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.FOLLOWING, value); }
-      )  |
+            { frameType = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.FOLLOWING, rowOffset); }
+        )
+  ) |
   <UNBOUNDED>
       (
           <PRECEDING>
-            { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.UNBOUNDED_PRECEDING, value); } |
+            { frameType = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.UNBOUNDED_PRECEDING, rowOffset); } |
           <FOLLOWING>
-            { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.UNBOUNDED_FOLLOWING, value); }
+            { frameType = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.UNBOUNDED_FOLLOWING, rowOffset); }
       )
   )
   {
-     return frame;
+     return frameType;
   }
 }
 
-int
-nonNegativeInt():
+long
+rowOffset() throws StandardException:
 {
-    Token t;
+    Token longToken;
 }
 {   // non-negative whole numbers: 0 or (1-9)*
-    t = < NON_NEGATIVE_INTEGER: "0" | ["1"-"9"] (<DIGIT>)* >
+//    longToken = <NON_NEGATIVE_LONG: "0" | ["1"-"9"] (<DIGIT>)*>
+    longToken = <EXACT_NUMERIC>
     {
-        return Integer.parseInt(t.image);
+        long num = WindowFrameDefinition.FrameType.NON_VAL;
+        try {
+            num = Long.parseLong(longToken.image);
+        } catch (NumberFormatException nfe) {
+            throw StandardException.newException(
+                   SQLState.LANG_INVALID_INTEGER_LITERAL, longToken.image);
+        }
+        return num;
     }
 }
 

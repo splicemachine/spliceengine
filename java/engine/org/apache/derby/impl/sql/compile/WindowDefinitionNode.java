@@ -25,6 +25,7 @@ import java.util.Vector;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.shared.common.reference.SQLState;
 
 /**
  * This class represents an OLAP window definition.
@@ -80,6 +81,12 @@ public final class WindowDefinitionNode extends WindowNode
         } else {
             super.init("IN-LINE");
             inlined = true;
+        }
+
+        // TODO: Remove exception when window functions ready
+        if (orderByList != null || partition != null) {
+            throw StandardException.newException(SQLState.NOT_IMPLEMENTED,
+                                                 "WINDOW/OVER clause coming soon.");
         }
     }
 

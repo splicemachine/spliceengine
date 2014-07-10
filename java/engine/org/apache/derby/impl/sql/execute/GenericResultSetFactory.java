@@ -521,6 +521,7 @@ public abstract class GenericResultSetFactory implements ResultSetFactory
                                              int aggregateItem,
                                              int partitionItemIndex,
                                              int orderingItemIndex,
+                                             int frameDefnIndex,
                                              GeneratedMethod rowAllocator,
                                              int rowSize,
                                              int resultSetNumber,
