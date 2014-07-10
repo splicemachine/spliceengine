@@ -72,7 +72,7 @@ public class HBaseConglomerate extends SpliceConglomerate {
 				super.create(rawtran, segmentId, input_containerid, template, columnOrder, collationIds, properties, conglom_format_id, tmpFlag);
         try {
             //elevate the transaction
-            ((SpliceTransaction)rawtran).elevate(Bytes.toBytes(containerId));
+            ((SpliceTransaction)rawtran).elevate(Bytes.toBytes(Long.toString(containerId)));
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
