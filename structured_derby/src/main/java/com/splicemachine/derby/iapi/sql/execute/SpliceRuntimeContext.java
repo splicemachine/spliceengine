@@ -168,6 +168,8 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 
 		public void markAsSink() { isSink = true; }
 
+    public void unMarkAsSink() { isSink = false; }
+
 		public boolean isSink() { return isSink; }
 
 		public void recordTraceMetrics(){ this.recordTraceMetrics = true; }
@@ -326,7 +328,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 
 				@Override
 				public String toString() {
-						return String.format(" Path={resultSetNumber=%d, state=%d", resultSetNumber, state);
+						return String.format(" Path={resultSetNumber=%d, state=%s}", resultSetNumber, state);
 				}
 
 		}
