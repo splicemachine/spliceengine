@@ -7,7 +7,6 @@ import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.data.hbase.HbRegion;
-import com.splicemachine.si.impl.*;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -76,7 +75,7 @@ public class TxnRegion implements TransactionalRegion {
 
 		@Override
 		public SICompactionState compactionFilter() throws IOException {
-				return new SICompactionState(dataLib,dataStore,txnSupplier);
+				return new SICompactionState(dataStore,txnSupplier);
 		}
 
 		@Override
