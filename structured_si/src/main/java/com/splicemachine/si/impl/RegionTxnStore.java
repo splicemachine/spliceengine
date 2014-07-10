@@ -25,7 +25,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -68,12 +67,10 @@ public class RegionTxnStore {
 						 * We want to support backwards-compatibility here, so we need to be able to read either format.
 						 * If the data is encoded in the old format, read that. Otherwise, read the new format
 						 */
-				if(result.containsColumn(FAMILY,SIConstants.TRANSACTION_STATUS_COLUMN_BYTES)){
-						//this transaction is encoded in the old way, so use the old decoder
-						return oldTransactionDecoder.decode(txnId,result);
-				}else{
-						return newTransactionDecoder.decode(txnId,result);
-				}
+        SparseTxn txn = newTransactionDecoder.decode(txnId,result);
+        if(txn==null)
+            txn = oldTransactionDecoder.decode(txnId,result);
+        return txn;
 		}
 
 		/**
@@ -180,8 +177,8 @@ public class RegionTxnStore {
 				get.addColumn(FAMILY,STATE_QUALIFIER_BYTES);
 				get.addColumn(FAMILY,KEEP_ALIVE_QUALIFIER_BYTES);
 				//add the columns for the old encoding
-				get.addColumn(FAMILY,SIConstants.TRANSACTION_STATUS_COLUMN_BYTES);
-				get.addColumn(FAMILY,SIConstants.TRANSACTION_KEEP_ALIVE_COLUMN_BYTES);
+				get.addColumn(FAMILY,OLD_STATUS_COLUMN);
+				get.addColumn(FAMILY,OLD_KEEP_ALIVE_COLUMN);
 
 				Result result = region.get(get);
 				if(result==null)
@@ -193,8 +190,8 @@ public class RegionTxnStore {
 				if(stateKv==null){
 						oldForm=true;
 					//used the old encoding
-						stateKv =result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_STATUS_COLUMN_BYTES);
-						keepAliveKv = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_KEEP_ALIVE_COLUMN_BYTES);
+						stateKv =result.getColumnLatest(FAMILY,OLD_STATUS_COLUMN);
+						keepAliveKv = result.getColumnLatest(FAMILY,OLD_KEEP_ALIVE_COLUMN);
 				}else{
 						keepAliveKv = result.getColumnLatest(FAMILY,KEEP_ALIVE_QUALIFIER_BYTES);
 				}
@@ -254,7 +251,7 @@ public class RegionTxnStore {
 		public long getCommitTimestamp(long txnId) throws IOException {
 				Get get = new Get(TxnUtils.getRowKey(txnId));
 				get.addColumn(FAMILY,COMMIT_QUALIFIER_BYTES);
-				get.addColumn(FAMILY,SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES);
+				get.addColumn(FAMILY,OLD_COMMIT_TIMESTAMP_COLUMN);
 
 				Result result = region.get(get);
 				if(result==null) return -1l; //no commit timestamp for read-only transactions
@@ -263,7 +260,7 @@ public class RegionTxnStore {
 				if((kv=result.getColumnLatest(FAMILY,COMMIT_QUALIFIER_BYTES))!=null)
 						return Encoding.decodeLong(kv.getBuffer(),kv.getValueOffset(),false);
 				else{
-						kv = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES);
+						kv = result.getColumnLatest(FAMILY,OLD_COMMIT_TIMESTAMP_COLUMN);
 						return Bytes.toLong(kv.getBuffer(),kv.getValueOffset(),kv.getValueLength());
 				}
 		}
@@ -311,13 +308,13 @@ public class RegionTxnStore {
 				scan.addColumn(FAMILY,STATE_QUALIFIER_BYTES);
 				scan.addColumn(FAMILY,KEEP_ALIVE_QUALIFIER_BYTES);
 				//add old columns for backwards compatibility
-				scan.addColumn(FAMILY,SIConstants.TRANSACTION_STATUS_COLUMN_BYTES);
-				scan.addColumn(FAMILY,SIConstants.TRANSACTION_KEEP_ALIVE_COLUMN_BYTES);
+				scan.addColumn(FAMILY,OLD_STATUS_COLUMN);
+				scan.addColumn(FAMILY,OLD_KEEP_ALIVE_COLUMN);
 				scan.setMaxVersions(1);
 
 				if(destinationTable!=null){
 						scan.addColumn(FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES);
-						scan.addColumn(FAMILY,SIConstants.TRANSACTION_WRITE_TABLE_COLUMN_BYTES);
+						scan.addColumn(FAMILY,OLD_WRITE_TABLE_COLUMN);
 				}
 
 				scan.setFilter(new ActiveTxnFilter(beforeTs, afterTs, destinationTable));
@@ -502,6 +499,7 @@ public class RegionTxnStore {
             KeyValue destinationTables = result.getColumnLatest(FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES);
             KeyValue kaTime = result.getColumnLatest(FAMILY, KEEP_ALIVE_QUALIFIER_BYTES);
 
+            if(dataKv==null) return null;
             return decodeInternal(dataKv,kaTime,commitTsVal,globalTsVal,stateKv,destinationTables,txnId);
         }
 
@@ -581,6 +579,19 @@ public class RegionTxnStore {
 
 		private static final long TRANSACTION_TIMEOUT_WINDOW = SIConstants.transactionTimeout+1000;
 
+    private static final byte[] OLD_COMMIT_TIMESTAMP_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN);
+    private static final byte[] OLD_START_TIMESTAMP_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_START_TIMESTAMP_COLUMN);
+    private static final byte[] OLD_PARENT_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_PARENT_COLUMN);
+    private static final byte[] OLD_DEPENDENT_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_DEPENDENT_COLUMN);
+    private static final byte[] OLD_ALLOW_WRITES_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_ALLOW_WRITES_COLUMN);
+    private static final byte[] OLD_ADDITIVE_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_ADDITIVE_COLUMN);
+    private static final byte[] OLD_READ_UNCOMMITTED_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_READ_UNCOMMITTED_COLUMN);
+    private static final byte[] OLD_READ_COMMITTED_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_READ_COMMITTED_COLUMN);
+    private static final byte[] OLD_KEEP_ALIVE_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_KEEP_ALIVE_COLUMN);
+    private static final byte[] OLD_STATUS_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_STATUS_COLUMN);
+    private static final byte[] OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN);
+    private static final byte[] OLD_COUNTER_COLUMN = Bytes.toBytes(SIConstants.TRANSACTION_COUNTER_COLUMN);
+    private static final byte[] OLD_WRITE_TABLE_COLUMN = Bytes.toBytes(SIConstants.WRITE_TABLE_COLUMN);
 		private class OldVersionTxnDecoder implements TxnDecoder{
 
 				/*
@@ -602,17 +613,17 @@ public class RegionTxnStore {
 				 */
 				@Override
 				public SparseTxn decode(long txnId,Result result) throws IOException {
-						KeyValue beginTsVal = result.getColumnLatest(FAMILY, SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES);
-            KeyValue parentTxnVal = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_PARENT_COLUMN_BYTES);
-            KeyValue ruVal = result.getColumnLatest(FAMILY, SIConstants.TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES);
-            KeyValue rcVal = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES);
-            KeyValue statusVal = result.getColumnLatest(FAMILY, SIConstants.TRANSACTION_STATUS_COLUMN_BYTES);
-            KeyValue cTsVal = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES);
-            KeyValue gTsVal = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN_BYTES);
-            KeyValue kaTimeKv = result.getColumnLatest(FAMILY, KEEP_ALIVE_QUALIFIER_BYTES);
-            KeyValue destinationTables = result.getColumnLatest(FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES);
-            KeyValue dependentKv = result.getColumnLatest(FAMILY, SIConstants.TRANSACTION_DEPENDENT_COLUMN_BYTES);
-            KeyValue additiveKv = result.getColumnLatest(FAMILY,SIConstants.TRANSACTION_ADDITIVE_COLUMN_BYTES);
+						KeyValue beginTsVal = result.getColumnLatest(FAMILY,OLD_START_TIMESTAMP_COLUMN);
+            KeyValue parentTxnVal = result.getColumnLatest(FAMILY,OLD_PARENT_COLUMN);
+            KeyValue ruVal = result.getColumnLatest(FAMILY, OLD_READ_UNCOMMITTED_COLUMN);
+            KeyValue rcVal = result.getColumnLatest(FAMILY,OLD_READ_COMMITTED_COLUMN);
+            KeyValue statusVal = result.getColumnLatest(FAMILY, OLD_STATUS_COLUMN);
+            KeyValue cTsVal = result.getColumnLatest(FAMILY,OLD_COMMIT_TIMESTAMP_COLUMN);
+            KeyValue gTsVal = result.getColumnLatest(FAMILY,OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN);
+            KeyValue kaTimeKv = result.getColumnLatest(FAMILY, OLD_KEEP_ALIVE_COLUMN);
+            KeyValue destinationTables = result.getColumnLatest(FAMILY,OLD_WRITE_TABLE_COLUMN);
+            KeyValue dependentKv = result.getColumnLatest(FAMILY, OLD_DEPENDENT_COLUMN);
+            KeyValue additiveKv = result.getColumnLatest(FAMILY,OLD_ADDITIVE_COLUMN);
 
             return decodeInternal(txnId, beginTsVal, parentTxnVal, dependentKv,additiveKv,ruVal, rcVal, statusVal, cTsVal, gTsVal, kaTimeKv, destinationTables);
 				}
@@ -632,27 +643,27 @@ public class RegionTxnStore {
             KeyValue dependentKv = null;
             KeyValue additiveKv = null;
             for(KeyValue kv:keyValues){
-                if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES))
+                if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_START_TIMESTAMP_COLUMN))
                     beginTsVal = kv;
-                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_PARENT_COLUMN_BYTES))
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_PARENT_COLUMN))
                     parentTxnVal = kv;
-                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES))
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_READ_UNCOMMITTED_COLUMN))
                     ruVal = kv;
-                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_READ_COMMITTED_COLUMN_BYTES))
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_READ_COMMITTED_COLUMN))
                     rcVal = kv;
-                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_STATUS_COLUMN_BYTES))
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_STATUS_COLUMN))
                     statusVal = kv;
-                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN_BYTES))
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_COMMIT_TIMESTAMP_COLUMN))
                     cTsVal = kv;
-                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN_BYTES))
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN))
                     gTsVal = kv;
-                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_KEEP_ALIVE_COLUMN_BYTES))
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_KEEP_ALIVE_COLUMN))
                     kaTimeKv = kv;
-                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_WRITE_TABLE_COLUMN_BYTES))
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_WRITE_TABLE_COLUMN))
                     destinationTables = kv;
-                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_DEPENDENT_COLUMN_BYTES))
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_DEPENDENT_COLUMN))
                     dependentKv = kv;
-                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,SIConstants.TRANSACTION_ADDITIVE_COLUMN_BYTES))
+                else if(KeyValueUtils.singleMatchingColumn(kv,FAMILY,OLD_ADDITIVE_COLUMN))
                     additiveKv = kv;
             }
             if(beginTsVal==null) return null;
@@ -806,7 +817,7 @@ public class RegionTxnStore {
 				@Override
 				public ReturnCode filterKeyValue(KeyValue kv) {
 						if(KeyValueUtils.singleMatchingQualifier(kv, STATE_QUALIFIER_BYTES) ||
-										KeyValueUtils.singleMatchingQualifier(kv,SIConstants.TRANSACTION_STATUS_COLUMN_BYTES)){
+										KeyValueUtils.singleMatchingQualifier(kv,OLD_STATUS_COLUMN)){
 								return filterState(kv);
 						}else if(KeyValueUtils.singleMatchingQualifier(kv,KEEP_ALIVE_QUALIFIER_BYTES)){
 								if(keepAliveSeen) return ReturnCode.SKIP; //just to be safe
@@ -822,7 +833,7 @@ public class RegionTxnStore {
 										}
 								}else
 									isAlive=true;
-								return ReturnCode.INCLUDE; //remove the keep alive column
+								return ReturnCode.SKIP; //remove the keep alive column
 						}else if(KeyValueUtils.singleMatchingQualifier(kv,DESTINATION_TABLE_QUALIFIER_BYTES)){
 								if(destTablesSeen) return ReturnCode.SKIP; //just to be safe
 								destTablesSeen = true;
@@ -843,11 +854,11 @@ public class RegionTxnStore {
 										int length = bytesDecoder.offset()-offset-1;
 										if(Bytes.equals(destinationTable,0,destinationTable.length,bytesDecoder.array(),offset,length)){
 												//we match!
-												return ReturnCode.INCLUDE;
+												return ReturnCode.SKIP;
 										}
 								}
 								return ReturnCode.NEXT_ROW; //doesn't match the destination table
-						} else if (KeyValueUtils.singleMatchingQualifier(kv,SIConstants.TRANSACTION_KEEP_ALIVE_COLUMN_BYTES)){
+						} else if (KeyValueUtils.singleMatchingQualifier(kv,OLD_KEEP_ALIVE_COLUMN)){
 								if(keepAliveSeen) return ReturnCode.SKIP; //shouldn't happen, but just in case
 								keepAliveSeen = true;
 								Txn.State adjustedState = adjustStateForTimeout(Txn.State.ACTIVE,kv,true);
@@ -860,16 +871,16 @@ public class RegionTxnStore {
 										}
 								}else
 									isAlive =true;
-								return ReturnCode.INCLUDE;
-						} else if(KeyValueUtils.singleMatchingQualifier(kv,SIConstants.TRANSACTION_WRITE_TABLE_COLUMN_BYTES)){
+								return ReturnCode.SKIP;
+						} else if(KeyValueUtils.singleMatchingQualifier(kv,OLD_WRITE_TABLE_COLUMN)){
 								if(destTablesSeen) return ReturnCode.SKIP;
 								destTablesSeen = true;
 								if(!Bytes.equals(destinationTable,0,destinationTable.length,kv.getBuffer(),kv.getValueOffset(),kv.getValueLength()))
 										return ReturnCode.NEXT_ROW;
-								return ReturnCode.INCLUDE;
+								return ReturnCode.SKIP;
 						} else{
 								//weird case, so we're using a random ReturnCode to indicate that something goofy is happening
-								return ReturnCode.INCLUDE;
+								return ReturnCode.INCLUDE_AND_NEXT_COL;
 						}
 				}
 
