@@ -1,6 +1,6 @@
 'use strict';
 
-var spliceAdminServices = angular.module('spliceAdminServices', ['ngResource']);
+var spliceAdminServices = angular.module('spliceAdminServices');
 
 spliceAdminServices.factory('tracedStatementListService',
 	['$resource',

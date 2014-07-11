@@ -39,9 +39,11 @@ angular
 			});
 	});
 
+// Create all Splice Admin modules here since they may be shared across files.
 // Setup dependency injection of D3 to keep from loading the library into the global scope.
 // TODO: The dependency injection of d3.js is not working and the benefit is minimal at best.
 //angular.module('d3', []);
+angular.module('spliceAdminServices', ['ngResource']);
 angular.module('spliceAdminControllers', []);
 //angular.module('spliceAdminDirectives', ['d3']);
 angular.module('spliceAdminDirectives', []);

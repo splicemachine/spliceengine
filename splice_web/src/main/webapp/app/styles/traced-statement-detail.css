@@ -1,0 +1,40 @@
+.operation-details-title {
+  font-size: 21px;
+  text-align: center;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.operation-details-box {
+  background-color: #ccc;
+}
+
+.round-corners {
+  border-radius:1em;
+  -moz-border-radius:1em;
+  -webkit-border-radius:1em;
+}
+
+.operation-details-sub-title {
+  font-weight: bold;
+}
+
+/* Box for the operations details summary info */
+#operation-details-summary {
+  float: left;
+  width: 30%;
+  margin: 5px;
+  border-right: 1px solid #e5e5e5;
+}
+
+#operation-details-input {
+  float: left;
+  width: 30%;
+  margin: 5px;
+  border-right: 1px solid #e5e5e5;
+}
+
+#operation-details-output {
+  float: left;
+  width: 30%;
+  margin: 5px;
+}
