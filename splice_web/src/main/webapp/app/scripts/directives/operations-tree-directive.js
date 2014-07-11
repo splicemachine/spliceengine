@@ -2,7 +2,7 @@
 	'use strict';
 
 	angular.module('spliceAdminDirectives')
-		.directive('operationsTree', [/*'d3',*/ function(/*d3*/) {  // TODO: Dependency injection is not working and suspect the value that it provides.
+		.directive('operationsTree', ['formatNanoTimeService', function(formatNanoTimeService) {  // TODO: Dependency injection of D3 is not working and suspect the value that it provides.
 			return {
 				restrict: 'EA',
 				scope: {
@@ -94,7 +94,13 @@
 							.attr("dx", function(d) { return d.children ? -8 : 8; })
 							.attr("dy", 3)
 							.attr("text-anchor", function(d) { return d.children ? "end" : "start"; })
-							.text(function(d) { return d[scope.label]; })
+							.text(function(d) {
+								var arr = [];
+								if (d.inputRows) arr.push('In: ' + d.inputRows + (d.inputRows == 1 ? ' row' : ' rows'));
+								if (d.outputRows) arr.push('Out: ' + d.outputRows + (d.outputRows == 1 ? ' row' : ' rows'));
+								if (d.totalWallTime) arr.push('Time: ' + formatNanoTimeService.formatRawNanoTime(d.totalWallTime));
+								return d[scope.label] + (arr.length ? ' (' + arr.join(', ') + ')' : '');
+							})
 					};  // End of render function.
 				}
 			};

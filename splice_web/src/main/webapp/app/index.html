@@ -16,6 +16,7 @@
     <!-- endbuild -->
     <!-- build:css({.tmp,app}) styles/main.css -->
     <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/traced-statement-detail.css">
     <!-- endbuild -->
   </head>
   <body ng-app="spliceAdminApp">
@@ -55,20 +56,21 @@
     <!-- endbower -->
     <!-- endbuild -->
 
-        <!-- build:js({.tmp,app}) scripts/scripts.js -->
-        <script src="scripts/app.js"></script>
-        <!-- Begin injected services -->
-        <!-- TODO: I have not been able to get the injected services to work and they are very confusing and only buy you the reduction of global vars in the name space. -->
-        <!-- script src="scripts/services/d3-service.js"></script -->
-        <!-- End injected services -->
-        <script src="scripts/controllers/d3-bars-controller.js"></script>
-        <script src="scripts/controllers/main-controller.js"></script>
-        <script src="scripts/controllers/operations-tree-controller.js"></script>
-        <script src="scripts/controllers/traced-statement-list-controller.js"></script>
-        <script src="scripts/controllers/traced-statement-detail-controller.js"></script>
-        <script src="scripts/directives/d3-bars-directive.js"></script>
-        <script src="scripts/directives/operations-tree-directive.js"></script>
-        <script src="scripts/services.js"></script>
-        <!-- endbuild -->
+    <!-- build:js({.tmp,app}) scripts/scripts.js -->
+    <script src="scripts/app.js"></script>
+    <!-- Begin injected services -->
+    <!-- TODO: I have not been able to get the injected services to work and they are very confusing and only buy you the reduction of global vars in the name space. -->
+    <!-- script src="scripts/services/d3-service.js"></script -->
+    <!-- End injected services -->
+    <script src="scripts/controllers/d3-bars-controller.js"></script>
+    <script src="scripts/controllers/main-controller.js"></script>
+    <script src="scripts/controllers/operations-tree-controller.js"></script>
+    <script src="scripts/controllers/traced-statement-list-controller.js"></script>
+    <script src="scripts/controllers/traced-statement-detail-controller.js"></script>
+    <script src="scripts/directives/d3-bars-directive.js"></script>
+    <script src="scripts/directives/operations-tree-directive.js"></script>
+    <script src="scripts/services/resource-services.js"></script>
+    <script src="scripts/services/utility-services.js"></script>
+    <!-- endbuild -->
 </body>
 </html>
