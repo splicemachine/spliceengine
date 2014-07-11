@@ -64,11 +64,6 @@ public class HTransactorFactory extends SIConstants {
         return transactionManager;
     }
 
-    @SuppressWarnings("unchecked")
-    public static ClientTransactor<Put, Get, Scan, Mutation> getClientTransactor() {
-        throw new UnsupportedOperationException("REMOVE");
-    }
-
     public static Transactor<IHTable, Mutation,Put> getTransactor() {
         initializeIfNeeded();
         return managedTransactor.getTransactor();

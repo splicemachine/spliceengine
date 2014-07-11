@@ -1,8 +1,10 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.*;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ThreadSafe;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
@@ -76,16 +78,21 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 				return beginChildTransaction(parentTxn, isolationLevel, dependent, parentTxn.isAdditive(), destinationTable);
 		}
 
+    private static final Logger LOG = Logger.getLogger(ClientTxnLifecycleManager.class);
 		@Override
 		public Txn beginChildTransaction(Txn parentTxn,
 																		 Txn.IsolationLevel isolationLevel,
 																		 boolean isDependent,
 																		 boolean additive,
 																		 byte[] destinationTable) throws IOException {
+        if(LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"Beginning child transaction: parent=%s,isolationLevel=%s,isDependent=%b,additive=%b,destinationTable=%s,isReadOnly=%b",parentTxn,isolationLevel,isDependent,additive,destinationTable,destinationTable!=null);
 				if(parentTxn==null)
 						parentTxn = Txn.ROOT_TRANSACTION;
 				if(destinationTable!=null && !parentTxn.allowsWrites())
 						throw new DoNotRetryIOException("Cannot create a writable child of a read-only transaction. Elevate the parent transaction("+parentTxn.getTxnId()+") first");
+        if(parentTxn.getState()!= Txn.State.ACTIVE)
+            throw new DoNotRetryIOException("Cannot create a child of an inactive transaction. Parent: "+ parentTxn);
 				if(destinationTable!=null){
 						long timestamp = timestampSource.nextTimestamp();
 						return createWritableTransaction(timestamp,isolationLevel,isDependent,additive,parentTxn,destinationTable);
