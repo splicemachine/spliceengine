@@ -66,8 +66,6 @@ public class TableScanOperation extends ScanOperation {
 
 		private SITableScanner tableScanner;
 
-    private transient TransactionalRegion txnRegion;
-
     public TableScanOperation() { super(); }
 
 		public TableScanOperation(ScanInformation scanInformation,

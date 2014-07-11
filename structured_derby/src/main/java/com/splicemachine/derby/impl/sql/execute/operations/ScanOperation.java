@@ -10,6 +10,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -54,11 +55,12 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		protected EntryPredicateFilter predicateFilter;
 		private boolean cachedPredicateFilter = false;
 		protected int[] keyDecodingMap;
+    protected TransactionalRegion txnRegion;
         protected Scan scan;
         protected boolean scanSet = false;
         protected String scanQualifiersField;
 
-    public ScanOperation () {
+		public ScanOperation () {
 				super();
 		}
 
@@ -148,6 +150,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 						currentTemplate = currentRow.getClone();
 						if (currentRowLocation == null)
 								currentRowLocation = new HBaseRowLocation();
+
+            this.txnRegion = context.getTransactionalRegion();
                         if(shouldRecordStats()) {
                             if(scanQualifiersField != null ) {
                                 getScanQualifiersInStringFormat();
