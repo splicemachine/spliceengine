@@ -6,6 +6,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -517,18 +518,14 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				return source.isReferencingTable(tableNumber);
 		}
 
-		Txn getChildTransaction() {
-        TransactionController tc = activation.getTransactionController();
-        Txn parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
-//				Txn parentTxnId = HTransactorFactory.getTransactionManager().transactionIdFromString(getTransactionID());
-				Txn childTransactionId;
-				try{
-            childTransactionId = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,false,Bytes.toBytes(Long.toString(heapConglom)));
-//						childTransactionId = HTransactorFactory.getTransactionManager().beginChildTransaction(parentTxnId, Bytes.toBytes(Long.toString(heapConglom)));
-				}catch(IOException ioe){
-						LOG.error(ioe);
-						throw new RuntimeException(ErrorState.XACT_INTERNAL_TRANSACTION_EXCEPTION.newException());
-				}
-				return childTransactionId;
+    Txn getChildTransaction() {
+        byte[] destTable = Bytes.toBytes(Long.toString(heapConglom));
+        Txn parentTxn = operationInformation.getTransaction();
+        try{
+            return TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,false,destTable);
+        }catch(IOException ioe){
+            LOG.error(ioe);
+            throw new RuntimeException(ErrorState.XACT_INTERNAL_TRANSACTION_EXCEPTION.newException());
+        }
 		}
 }

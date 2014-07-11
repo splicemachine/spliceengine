@@ -200,14 +200,11 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				return true;
 		}
 
-		public OpenSpliceConglomerate getOpenConglom() {
-				return spliceConglomerate;
-		}
-
-		public boolean delete() throws StandardException {
+    public boolean delete() throws StandardException {
 				if (currentResult == null)
 						throw StandardException.newException("Attempting to delete with a null current result");
 				try {
+            elevateTransaction(table.getTableName());
 						SpliceUtils.doDelete(table, txn, this.currentResult.getRow());
 						currentRowDeleted = true;
 						return true;
@@ -217,7 +214,11 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				}
 		}
 
-		public boolean next() throws StandardException {
+    private void elevateTransaction(byte[] tableName) throws IOException {
+        txn = txn.elevateToWritable(tableName);
+    }
+
+    public boolean next() throws StandardException {
 				if (!scannerInitialized)
 						initialize();
 				currentRowDeleted = false;
@@ -293,7 +294,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		public void fetchLocation(RowLocation destRowLocation) throws StandardException {
 				if (currentResult == null)
 						throw StandardException.newException("currentResult is null ");
-				SpliceLogUtils.trace(LOG, "fetchLocation %s", currentResult.getRow());
+        if(LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "fetchLocation %s", Bytes.toString(currentResult.getRow()));
 				destRowLocation.setValue(this.currentResult.getRow());
 		}
 
@@ -320,27 +322,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 						throw StandardException.newException("Error occurred during fetch", e);
 				}
 		}
-		/**
-		 * This is the right way to do it unfortunately some of the data in OpenSpliceConglomerate are not set
-		 * Need to fix it. SO temporarily use the next method to do clone
-		 * @return
-		 * @throws StandardException
-		 */
-		protected DataValueDescriptor[] cloneRowTemplate() throws StandardException {
-				return spliceConglomerate.cloneRowTemplate();
-		}
 
-		protected DataValueDescriptor[] cloneRowTemplate(DataValueDescriptor[] original) {
-				DataValueDescriptor[] columnClones = new DataValueDescriptor[original.length];
-				for (int i = 0; i < original.length; i++) {
-						if (original[i] != null) {
-								columnClones[i] = original[i].cloneValue(false);
-						}
-				}
-				return columnClones;
-		}
-
-		public long getEstimatedRowCount() throws StandardException {
+    public long getEstimatedRowCount() throws StandardException {
 				return estimatedRowCount;
 		}
 
@@ -427,10 +410,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 
 		public boolean positionAtRowLocation(RowLocation rl) throws StandardException {
 				SpliceLogUtils.trace(LOG, "positionAtRowLocation %s", rl);
-				if (this.currentRowLocation != null)
-						return this.currentRowLocation.equals(rl);
-				return false;
-		}
+        return this.currentRowLocation != null && this.currentRowLocation.equals(rl);
+    }
 
 		public int fetchNextGroup(DataValueDescriptor[][] row_array, RowLocation[] rowloc_array) throws StandardException {
 				try {
@@ -476,6 +457,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				SpliceLogUtils.trace(LOG, "replace values for these valid Columns %s",validColumns);
 				try {
 						int[] validCols = SpliceUtils.bitSetToMap(validColumns);
+            elevateTransaction(table.getTableName());
 						Put put = SpliceUtils.createPut(currentRowLocation.getBytes(),txn);
 
 						DescriptorSerializer[] serializers = VersionedSerializers.forVersion("1.0",true).getSerializers(row);
@@ -494,22 +476,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 						throw StandardException.newException("Error during replace " + e);
 				}
 		}
-		private void logIndexKeys() {
-				try {
-						if (startKeyValue != null) {
-								for (int i =0;i<startKeyValue.length;i++)
-										LOG.trace("startkey - "+startKeyValue[i].getTypeName() + " : " + startKeyValue[i].getTraceString());
-						}
-						if (stopKeyValue != null) {
-								for (int i =0;i<stopKeyValue.length;i++)
-										LOG.trace("stopKey - "+stopKeyValue[i].getTypeName() + " : " + stopKeyValue[i].getTraceString());
-						}
-				} catch (Exception e) {
-						LOG.error("Exception Logging");
-				}
-		}
 
-		@Override
+    @Override
 		public Scan getScan() {
 				if (LOG.isTraceEnabled())
 						LOG.trace("getScan called from ParallelScan Interface");

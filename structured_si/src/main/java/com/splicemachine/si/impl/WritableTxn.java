@@ -152,6 +152,7 @@ public class WritableTxn extends AbstractTxn {
 
 		@Override
 		public Txn elevateToWritable(byte[] writeTable) throws IOException {
+        assert state==State.ACTIVE: "Cannot elevate an inactive transaction: "+ state;
 				if(tableWrites.add(writeTable)){
 						tc.elevateTransaction(this,writeTable);
 				}
