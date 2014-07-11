@@ -17,6 +17,7 @@ public interface Txn {
 		static final Logger TXN_LOGGER = Logger.getLogger(Txn.class);
 
 		static final Txn ROOT_TRANSACTION = new Txn() {
+        @Override public String toString(){ return "ROOT"; }
 				@Override public Collection<byte[]> getDestinationTables() { return Collections.emptyList(); }
 				@Override public boolean descendsFrom(Txn potentialParent) { return false; }
 				@Override public State getEffectiveState() { return State.ACTIVE; }

@@ -7,7 +7,6 @@ import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
-import com.splicemachine.si.data.light.LClientTransactor;
 import com.splicemachine.si.data.light.LGet;
 import com.splicemachine.si.data.light.LTuple;
 import com.splicemachine.si.impl.*;
@@ -20,7 +19,6 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
