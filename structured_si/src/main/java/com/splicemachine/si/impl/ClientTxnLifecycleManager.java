@@ -86,7 +86,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 																		 boolean additive,
 																		 byte[] destinationTable) throws IOException {
         if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"Beginning child transaction: parent=%s,isolationLevel=%s,isDependent=%b,additive=%b,destinationTable=%s,isReadOnly=%b",parentTxn,isolationLevel,isDependent,additive,destinationTable,destinationTable!=null);
+            SpliceLogUtils.trace(LOG,"Beginning child transaction: parent=%s,isolationLevel=%s,isDependent=%b,additive=%b,destinationTable=%s,isReadOnly=%b",parentTxn,isolationLevel,isDependent,additive,destinationTable,destinationTable==null);
 				if(parentTxn==null)
 						parentTxn = Txn.ROOT_TRANSACTION;
 				if(destinationTable!=null && !parentTxn.allowsWrites())

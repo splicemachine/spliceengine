@@ -346,9 +346,11 @@ public class SpliceTransaction implements Transaction {
 
 		public void setTxn(Txn txn) { this.txn = txn; }
 
-    public void elevate(byte[] writeTable) throws IOException {
+    public Txn elevate(byte[] writeTable) throws IOException {
+        setActiveState(false,false,false,txn.getParentTransaction());
         if(!txn.allowsWrites())
             txn = txn.elevateToWritable(writeTable);
+        return txn;
     }
 
     @Override

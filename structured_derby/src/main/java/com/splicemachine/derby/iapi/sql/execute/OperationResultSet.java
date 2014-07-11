@@ -511,13 +511,8 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 				 */
 				TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
 				Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
-				Txn txn = ((SpliceTransaction) rawStoreXact).getTxn();
 				try {
-						Txn newTxn = txn.elevateToWritable(((DMLWriteOperation)topOperation).getDestinationTable());
-						if(newTxn != txn){
-								((SpliceTransaction)rawStoreXact).setTxn(newTxn);
-						}
-						return newTxn;
+            return ((SpliceTransaction)rawStoreXact).elevate(((DMLWriteOperation)topOperation).getDestinationTable());
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
 				}
