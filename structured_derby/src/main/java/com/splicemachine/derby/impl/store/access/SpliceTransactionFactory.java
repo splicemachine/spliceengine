@@ -70,6 +70,14 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 				}
 		}
 
+		private void checkContextAndStore(HBaseStore hbaseStore, ContextManager contextMgr, String methodName) {
+			if (contextMgr != contextFactory.getCurrentContextManager()) 
+				LOG.error(methodName + ": passed in context mgr not the same as current context mgr");
+			if (this.hbaseStore != hbaseStore) {
+				LOG.warn(methodName + ": passed in hbase store not the same as current context's store");
+			}
+		}
+		
 		/**
 		 * Starts a new transaction with the given name.
 		 *
@@ -82,10 +90,9 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		 * @throws StandardException if something goes wrong creating the transaction
 		 */
 		public Transaction startTransaction(HBaseStore hbaseStore, ContextManager contextMgr, String transName) throws StandardException {
-				assert contextMgr == contextFactory.getCurrentContextManager(): "##############startTransaction, passed in context mgr not the same as current context mgr";
-				assert hbaseStore == this.hbaseStore: "##############startTransaction, passed in context mgr not the same as current context mgr";
-
-				return startCommonTransaction(hbaseStore, contextMgr,  dataValueFactory, transName, false, USER_CONTEXT_ID);
+			checkContextAndStore(hbaseStore, contextMgr, "startTransaction");
+			
+			return startCommonTransaction(hbaseStore, contextMgr,  dataValueFactory, transName, false, USER_CONTEXT_ID);
 		}
 
 		/**
@@ -101,14 +108,12 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		 * @throws StandardException if something goes wrong
 		 */
 		public Transaction startNestedTransaction(HBaseStore hbaseStore,
-																							ContextManager contextMgr,
-																							Txn parentTxn) throws StandardException {
-				assert contextMgr==contextFactory.getCurrentContextManager() :
-								"##############startNestedReadOnlyUserTransaction, passed in context mgr not the same as current context mgr";
-				assert hbaseStore==this.hbaseStore :
-						"##############startNestedReadOnlyUserTransaction, passed in context mgr not the same as current context mgr";
-				return startNestedTransaction(hbaseStore, contextMgr,
-								 dataValueFactory, null, false, NESTED_READONLY_USER_CONTEXT_ID, true, parentTxn);
+												  ContextManager contextMgr,
+												  Txn parentTxn) throws StandardException {
+			checkContextAndStore(hbaseStore, contextMgr, "startNestedTransaction");
+			
+			return startNestedTransaction(hbaseStore, contextMgr,
+				dataValueFactory, null, false, NESTED_READONLY_USER_CONTEXT_ID, true, parentTxn);
 		}
 
 		/**
@@ -127,12 +132,10 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		 * @throws StandardException if something goes wrong
 		 */
 		public Transaction findUserTransaction(HBaseStore hbaseStore,
-																					 ContextManager contextMgr, String transName) throws StandardException {
-				assert contextMgr==contextFactory.getCurrentContextManager()
-								: "findUserTransaction passed in context manager which is not the same as the current context manager";
-				assert this.hbaseStore == hbaseStore
-								: "findUserTransaction passed in an hbase store which is not the same as the current context's store";
-
+											   ContextManager contextMgr,
+											   String transName) throws StandardException {
+				checkContextAndStore(hbaseStore, contextMgr, "findUserTransaction");
+			
 				SpliceTransactionContext tc = (SpliceTransactionContext)contextMgr.getContext(USER_CONTEXT_ID);
 				if (tc == null) {
 						//We don't have a transaction yet, so create a new top-level transaction. This may require a network call
