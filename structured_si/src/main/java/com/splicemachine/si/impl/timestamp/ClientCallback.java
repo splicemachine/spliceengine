@@ -27,9 +27,9 @@ public class ClientCallback implements Callback {
     }
 
     protected void countDown() {
-       _latch.countDown();
+        _latch.countDown();
     }
-    
+
     public boolean await(int timeoutMillis) throws InterruptedException {
         return _latch.await(timeoutMillis, TimeUnit.MILLISECONDS);
     }

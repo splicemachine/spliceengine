@@ -226,19 +226,18 @@ public class SpliceConstants {
 		/**
 		 * The number of timestamps to 'reserve' at a time in the Timestamp Server.
 		 * Defaults to 8192
-     *
-		 */
-		@Parameter public static final String TIMESTAMP_BLOCK_SIZE = "splice.timestamp_server.blocksize";
-		@DefaultValue(TIMESTAMP_BLOCK_SIZE) public static final int DEFAULT_TIMESTAMP_BLOCK_SIZE = 8192;
-		public static int timestampBlockSize;
+     */
+    @Parameter public static final String TIMESTAMP_BLOCK_SIZE = "splice.timestamp_server.blocksize";
+    @DefaultValue(TIMESTAMP_BLOCK_SIZE) public static final int DEFAULT_TIMESTAMP_BLOCK_SIZE = 8192;
+    public static int timestampBlockSize;
 
-		/**
-		 * The number of milliseconds the timestamp client should wait for the response.
-		 * Defaults to 60000 (60 seconds)
-		 */
-		@Parameter public static final String TIMESTAMP_CLIENT_WAIT_TIME = "splice.timestamp_server.clientWaitTime";
-		@DefaultValue(TIMESTAMP_CLIENT_WAIT_TIME) public static final int DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME = 60000;
-		public static int timestampClientWaitTime;
+    /**
+     * The number of milliseconds the timestamp client should wait for the response.
+     * Defaults to 60000 (60 seconds)
+     */
+    @Parameter public static final String TIMESTAMP_CLIENT_WAIT_TIME = "splice.timestamp_server.clientWaitTime";
+    @DefaultValue(TIMESTAMP_CLIENT_WAIT_TIME) public static final int DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME = 60000;
+    public static int timestampClientWaitTime;
 
     /*Task and Job management*/
 		/**
