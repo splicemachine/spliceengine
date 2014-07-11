@@ -183,6 +183,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 							colMap = keyColumns;
 						StandardIterator<ExecRow> source = new TableScannerBuilder()
 										.scanner(regionScanner)
+                    .region(txnRegion)
 										.template(template)
 										.metricFactory(spliceRuntimeContext)
 										.scan(scan)

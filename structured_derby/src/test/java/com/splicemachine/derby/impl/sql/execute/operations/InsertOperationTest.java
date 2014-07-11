@@ -24,6 +24,8 @@ import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.SimpleJobResults;
 import com.splicemachine.si.api.*;
+import com.splicemachine.si.impl.ActiveWriteTxn;
+import com.splicemachine.si.impl.ReadOnlyTxn;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.metrics.MetricFactory;
@@ -86,7 +88,7 @@ public class InsertOperationTest {
 
 
 //        data.add(new Object[]{new TestingDataType[]{TestingDataType.TIMESTAMP},
-//                new int[]{}
+//                new int[]{1}
 //        });
         for(TestingDataType dataType:TestingDataType.values()){
             data.add(new Object[]{new TestingDataType[]{dataType},
@@ -174,7 +176,13 @@ public class InsertOperationTest {
         InsertOperation operation = new InsertOperation(sourceOperation, opInfo,writeInfo);
         operation.init(mock(SpliceOperationContext.class));
 				InsertOperation spy = spy(operation);
-				doReturn(new TransactionId("12")).when(spy).getChildTransaction();
+        Txn txn = mock(Txn.class);
+        when(txn.getBeginTimestamp()).thenReturn(12l);
+        when(txn.getTxnId()).thenReturn(12l);
+        when(txn.allowsWrites()).thenReturn(true);
+        doNothing().when(txn).commit();
+        doNothing().when(txn).rollback();
+				doReturn(txn).when(spy).getChildTransaction();
 				doReturn(TestingDataType.getTemplateOutput(dataTypes)).when(spy).getExecRowDefinition();
 				operation = spy;
 

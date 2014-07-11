@@ -1705,8 +1705,8 @@ public class SpliceTransactionManager implements XATransactionController,
 		return sc;
 	}
 
-	public Transaction getRawTransaction() {
-		return rawtran;
+	public SpliceTransaction getRawTransaction() {
+		return (SpliceTransaction)rawtran;
 	}
 
 	public void commit() throws StandardException {
