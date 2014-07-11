@@ -298,24 +298,24 @@ public class SpliceTransaction implements Transaction {
 
 		public final void setActiveState(boolean readOnly, boolean nested, boolean dependent, Txn parentTxn) {
 				if (state == IDLE) {
-						try {
-								synchronized(this) {
+            try {
+                synchronized(this) {
 //										if(nested){
-                        TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
+                    TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
                     if(nested)
-												txn = lifecycleManager.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),dependent,false,null);
+                        txn = lifecycleManager.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),dependent,false,null);
                     else
                         txn = lifecycleManager.beginTransaction();
 //										}
 //										this.setTransactionState(generateTransactionId(nested, dependent, parentTransactionID, allowWrites));
-										state = ACTIVE;
-										//justCreated = false;
-								}
-						} catch (Exception e) {
-								SpliceLogUtils.logAndThrowRuntime(LOG, e);
-						}
-				}
-		}
+                    state = ACTIVE;
+                    //justCreated = false;
+                }
+            } catch (Exception e) {
+                SpliceLogUtils.logAndThrowRuntime(LOG, e);
+            }
+        }
+    }
 
 //		private TransactionId generateTransactionId(boolean nested, boolean dependent, String parentTransactionID, boolean allowWrites) throws IOException {
 //				TransactionId result;
@@ -351,4 +351,16 @@ public class SpliceTransaction implements Transaction {
             txn = txn.elevateToWritable(writeTable);
     }
 
+    @Override
+    public String toString() {
+        String s = "SpliceTransaction(";
+        if(state==IDLE)
+            s += "IDLE";
+        else if(state==ACTIVE)
+            s += "ACTIVE";
+        else
+            s += "CLOSED";
+        s+=","+txn+")";
+        return s;
+    }
 }

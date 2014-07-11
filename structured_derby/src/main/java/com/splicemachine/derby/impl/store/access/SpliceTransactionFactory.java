@@ -26,7 +26,6 @@ import org.apache.derby.io.StorageFactory;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.IOException;
 import java.util.Properties;
 
 public class SpliceTransactionFactory implements ModuleControl, ModuleSupportable{

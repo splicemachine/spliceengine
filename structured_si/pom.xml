@@ -235,39 +235,9 @@
 								</option>
 								<option>-keep public class com.splicemachine.si.impl.Tracer { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.Transactor { public *; }</option>
-								<option>-keep public class com.splicemachine.si.api.TransactionalFilter { public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.api.TransactionReadController { public
-									*; }
-								</option>
-								<option>-keep public class com.splicemachine.si.impl.rollforward.AbstractProcessingQueue
-									{ public *; }
-								</option>
-								<option>-keep public class
-									com.splicemachine.si.impl.rollforward.DelayedRollForwardAction { public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.impl.rollforward.DelayedRollForwardQueue
-									{ public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.impl.rollforward.PushForwardAction {
-									public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.impl.rollforward.PushForwardQueue {
-									public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.impl.rollforward.RollForwardEvent {
-									public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.impl.rollforward.RollForwardEventFactory
-									{ public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.impl.rollforward.SIRollForwardQueue {
-									public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.api.ClientTransactor { public *; }
-								</option>
-								<option>-keep public class com.splicemachine.si.api.ConstraintChecker { public *; }
-								</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionalFilter { public *; } </option>
+								<option>-keep public class com.splicemachine.si.api.TransactionReadController { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.ConstraintChecker { public *; }</option>
 								<!-- ### Method: beginTransaction ### -->
 								<option>-keep public class com.splicemachine.si.api.TransactionManager { public *; }
 								</option>
