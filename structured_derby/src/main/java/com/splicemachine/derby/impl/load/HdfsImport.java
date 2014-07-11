@@ -8,6 +8,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
@@ -184,7 +185,7 @@ public class HdfsImport {
 						final String user = lcc.getSessionUserId();
 						Activation activation = lcc.getLastActivation();
 //						final String transactionId = activation.getTransactionController().getActiveStateTxIdString();
-            Txn txn = ((SpliceTransactionManager)activation.getTransactionController()).getActiveStateTxn();
+            SpliceTransaction txn = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction();
 //						final String transactionId = SpliceObserverInstructions.getTransactionId(lcc);
 						try {
 								if(schemaName==null)
@@ -251,7 +252,8 @@ public class HdfsImport {
 				}
 		}
 
-		public static ExecRow importData(Txn txn, String user,
+		public static ExecRow importData(SpliceTransaction txn,
+                                     String user,
 																			 Connection connection,
 																			 String schemaName,
 																			 String tableName,
@@ -298,11 +300,16 @@ public class HdfsImport {
 				 * Create a child transaction to actually perform the import under
 				 */
 				byte[] conglomBytes = Bytes.toBytes(Long.toString(builder.getDestinationConglomerate()));
+        Txn parentTxn;
+        try {
+            parentTxn = txn.elevate(conglomBytes);
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
 
-				Txn parentTxnId = txn;
 				Txn childTransaction;
 				try {
-						childTransaction = TransactionLifecycle.getLifecycleManager().beginChildTransaction(txn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, true, conglomBytes);
+						childTransaction = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, true, conglomBytes);
 				} catch (IOException e) {
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
 				}

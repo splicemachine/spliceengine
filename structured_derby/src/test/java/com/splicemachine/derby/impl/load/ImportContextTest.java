@@ -45,15 +45,4 @@ public class ImportContextTest {
                 .bytesToRead(10)
                 .build();
     }
-
-    @Test( expected = NullPointerException.class )
-    public void testMissingTransactionId() throws Exception{
-        ImportContext.Builder builder = new ImportContext.Builder();
-        ImportContext ic = builder.path("/foo")
-                .colDelimiter(",")
-                .destinationTable(1l)
-                .byteOffset(100l)
-                .bytesToRead(10)
-                .build();
-    }
 }
