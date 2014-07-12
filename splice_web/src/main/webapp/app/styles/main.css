@@ -21,9 +21,14 @@ body {
   margin-top: 0;
   margin-bottom: 0;
   line-height: 40px;
-  padding-bottom: 19px;
+  padding-bottom: 1px;
 }
 
+/* Splice logo image for the header */
+.header-logo {
+  width: 100px;
+  height: 50px;
+}
 /* Custom page footer */
 .footer {
   padding-top: 19px;
@@ -76,4 +81,9 @@ body {
   .jumbotron {
     border-bottom: 0;
   }
+}
+
+/* Enlarge the Bootstrap glyphicons to show whether Splice is running or not. */
+.glyphicon-big {
+  font-size: 300%;
 }

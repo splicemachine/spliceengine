@@ -30,12 +30,15 @@ angular
 					}]
 				}
 			})
-			.when('/yeoman', {
+			.when('/home', {
 				templateUrl: 'views/main.html',
 				controller: 'mainController'
 			})
+			.when('/contact', {
+				templateUrl: 'views/contact.html'
+			})
 			.otherwise({
-				redirectTo: '/traced-statements'
+				redirectTo: '/home'
 			});
 	});
 
