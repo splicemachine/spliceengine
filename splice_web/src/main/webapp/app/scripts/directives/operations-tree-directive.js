@@ -31,6 +31,8 @@
 					);
 
 					// TODO: This is problematic code that causes many executions of the watcher.
+					// This needs further debugging if the model is going to change while the canvas is being displayed.
+					// It's not an issue right now as the model does not change after being fetched from the database.
 					// Watch for data changes and re-render.
 //					scope.$watch(
 //						'data',
@@ -66,12 +68,6 @@
 						var nodes = tree.nodes(data);
 						// Create an array with all the links
 						var links = tree.links(nodes);
-
-//						console.log("this", this)
-						console.log("data", data)
-//						console.log("data.Stringify", JSON.stringify(data, null, 10))
-						console.log("nodes", nodes)
-						console.log("links", links)
 
 						var link = vis.selectAll("pathlink")
 							.data(links)
