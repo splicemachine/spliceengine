@@ -372,6 +372,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		protected void updateStats(OperationRuntimeStats stats) {
 				stats.addMetric(OperationMetric.FILTERED_ROWS,rowsFiltered);
 				stats.addMetric(OperationMetric.INPUT_ROWS,inputRows);
+            stats.addMetric(OperationMetric.OUTPUT_ROWS,inputRows-rowsFiltered);
 		}
 
 		@Override

@@ -160,7 +160,8 @@ public class XPlainTrace {
                         regionScanMap.put(region, n);
                     }
                 }
-
+                String info = node.getInfo();
+                first.getChildren().getFirst().setInfo(info);
                 XPlainTreeNode parent = xPlainTreeNodeMap.get(node.getParentOperationId());
                 parent.getChildren().removeLast();
                 parent.getChildren().addLast(first.getChildren().getFirst());
