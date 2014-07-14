@@ -20,6 +20,7 @@ import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.Snowflake;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;

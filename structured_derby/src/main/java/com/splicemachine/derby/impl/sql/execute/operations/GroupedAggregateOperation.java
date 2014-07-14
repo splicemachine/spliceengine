@@ -394,8 +394,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
 						int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
 						boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
+						scanner = getResultScanner(groupingKeys,spliceRuntimeContext,getHashPrefix().getPrefixLength());
 
-            StandardIterator<ExecRow> sourceIterator = getSourceIterator(spliceRuntimeContext,groupingKeys);
+						StandardIterator<ExecRow> sourceIterator = new ScanIterator(scanner,OperationUtils.getPairDecoder(this,spliceRuntimeContext));
 						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(sourceExecIndexRow);
 						KeyEncoder encoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(groupingKeys,groupingKeyOrder,serializers),NoOpPostfix.INSTANCE);
 						aggregator = new ScanGroupedAggregateIterator(buffer,sourceIterator,encoder,groupingKeys,false);
@@ -429,8 +430,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				}
 		}
 
-    protected boolean[] getUsedTempBuckets(JobResults results) {
-        List<TaskStats> resultTaskStats = results.getJobStats().getTaskStats();
+    protected boolean[] getUsedTempBuckets() {
+        List<TaskStats> resultTaskStats = getJobResults().getJobStats().getTaskStats();
         boolean [] usedTempBuckets = null;
         for(TaskStats stats:resultTaskStats){
             if(usedTempBuckets==null)
@@ -447,6 +448,13 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         return usedTempBuckets;
     }
 
+    @Override
+		protected int getNumMetrics() {
+				if(aggregator instanceof SinkGroupedAggregateIterator)
+						return 7;
+				else return 12;
+		}
+
     protected StandardIterator<ExecRow> getSourceIterator(SpliceRuntimeContext spliceRuntimeContext, int[] groupingKeys) throws StandardException, IOException {
         StandardIterator<ExecRow> sourceIterator;PairDecoder pairDecoder = OperationUtils.getPairDecoder(this, spliceRuntimeContext);
         if(!spliceRuntimeContext.isSink()){
@@ -460,13 +468,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             sourceIterator = new ScanIterator(scanner, pairDecoder);
         }
         return sourceIterator;
-    }
-
-    @Override
-    protected int getNumMetrics() {
-        if (aggregator instanceof SinkGroupedAggregateIterator)
-            return 7;
-        else return 12;
     }
 
     @Override
