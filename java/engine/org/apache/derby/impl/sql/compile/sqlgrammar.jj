@@ -10074,7 +10074,7 @@ frameStartEnd() throws StandardException:
 {
     WindowFrameDefinition.FrameType frameType = null;
     // rowOffset only makes sense for <n> PRECEDING or <n> FOLLOWING and n>0; n=0 implies CURRENT ROW
-    long rowOffset = WindowFrameDefinition.FrameType.NON_VAL;
+    int rowOffset = WindowFrameDefinition.FrameType.NON_VAL;
 }
 {
   ( <CURRENT> <ROW>
@@ -10100,21 +10100,21 @@ frameStartEnd() throws StandardException:
   }
 }
 
-long
+int
 rowOffset() throws StandardException:
 {
-    Token longToken;
+    Token intToken;
 }
 {   // non-negative whole numbers: 0 or (1-9)*
-//    longToken = <NON_NEGATIVE_LONG: "0" | ["1"-"9"] (<DIGIT>)*>
-    longToken = <EXACT_NUMERIC>
+//    intToken = <NON_NEGATIVE_INT: "0" | ["1"-"9"] (<DIGIT>)*>
+    intToken = <EXACT_NUMERIC>
     {
-        long num = WindowFrameDefinition.FrameType.NON_VAL;
+        int num = WindowFrameDefinition.FrameType.NON_VAL;
         try {
-            num = Long.parseLong(longToken.image);
+            num = Integer.parseInt(intToken.image);
         } catch (NumberFormatException nfe) {
             throw StandardException.newException(
-                   SQLState.LANG_INVALID_INTEGER_LITERAL, longToken.image);
+                   SQLState.LANG_INVALID_INTEGER_LITERAL, intToken.image);
         }
         return num;
     }

@@ -10,6 +10,8 @@ import org.apache.derby.shared.common.reference.SQLState;
  * A window function frame definition. Created and validated on the derby side,
  * transported as raw data to splice side.
  *
+ * TODO: STD exception msgs below are not being propageted by Derby
+ *
  * @author Jeff Cunningham
  *         Date: 6/6/14
  */
@@ -26,9 +28,9 @@ public class WindowFrameDefinition extends QueryTreeNode implements Serializable
     }
 
     public static class FrameType {
-        public static final long NON_VAL = -1;
+        public static final int NON_VAL = -1;
         private final Frame frame;
-        private final long value;
+        private final int value;
 
         /**
          *
@@ -39,26 +41,38 @@ public class WindowFrameDefinition extends QueryTreeNode implements Serializable
          *              the current row. <code>value</code> must be an long and not contain any variables, aggregate
          *              functions, or window functions. The value must not be null or negative; but it can be zero,
          *              which selects the current row itself.<br/>
-         *              If <code>frame</code> is not either {@link org.apache.derby.impl.sql.compile.WindowFrameDefinition.Frame#PRECEDING} or
-         *              {@link org.apache.derby.impl.sql.compile.WindowFrameDefinition.Frame#FOLLOWING}, <code>value</code> is ignored.
-         * @throws StandardException if value is negative when {@link org.apache.derby.impl.sql.compile.WindowFrameDefinition.Frame#PRECEDING} or
-         *              {@link org.apache.derby.impl.sql.compile.WindowFrameDefinition.Frame#FOLLOWING} is specified.
+         *              If <code>frame</code> is not either {@link Frame#PRECEDING} or
+         *              {@link Frame#FOLLOWING}, <code>value</code> is ignored.
+         * @throws StandardException if value is negative when {@link Frame#PRECEDING} or
+         *              {@link Frame#FOLLOWING} is specified.
          */
-        public FrameType(Frame frame, long value) throws StandardException {
-            this.frame = frame;
-            this.value = value;
-            if ( (this.frame.equals(Frame.PRECEDING) || this.frame.equals(Frame.FOLLOWING)) && !( this.value >= 0) ) {
+        public FrameType(Frame frame, int value) throws StandardException {
+            if ( (frame.equals(Frame.PRECEDING) || frame.equals(Frame.FOLLOWING)) && !( value >= 0) ) {
                 throw StandardException.newException(SQLState.ID_PARSE_ERROR,
-                                     "When window frame is PRECEDING or FOLLOWING, value must be non negative.");
+                                                     "When window frame is PRECEDING or FOLLOWING, value must be non negative.");
+            }
+            if (value == 0 &&
+                (frame.equals(Frame.PRECEDING) || frame.equals(Frame.FOLLOWING))) {
+                // zero offset from rows preceding/following => current row
+                this.frame = Frame.CURRENT_ROW;
+                this.value = NON_VAL;
+            } else {
+                this.frame = frame;
+                if (frame.equals(Frame.PRECEDING) || frame.equals(Frame.FOLLOWING)) {
+                    // a positive value only makes sense for rows preceding/following
+                    this.value = value;
+                } else {
+                    this.value = NON_VAL;
+                }
             }
         }
 
-        private FrameType() {
-            frame = Frame.UNBOUNDED_PRECEDING;
+        private FrameType(Frame defaultFrame) {
+            frame = defaultFrame;
             value = NON_VAL;
         }
 
-        public long getValue() {
+        public int getValue() {
             return value;
         }
 
@@ -93,8 +107,8 @@ public class WindowFrameDefinition extends QueryTreeNode implements Serializable
      */
     public WindowFrameDefinition() {
         this.frameMode = FrameMode.RANGE;
-        this.frameStart = new FrameType();
-        this.frameEnd = new FrameType();
+        this.frameStart = new FrameType(Frame.UNBOUNDED_PRECEDING);
+        this.frameEnd = new FrameType(Frame.CURRENT_ROW);
     }
 
     /**
@@ -131,10 +145,8 @@ public class WindowFrameDefinition extends QueryTreeNode implements Serializable
      * the same data.
      */
     public boolean isEquivalent(WindowFrameDefinition other) {
-        return this == other || other != null &&
-            !(frameMode != null ? !frameMode.equals(other.frameMode) : other.frameMode != null) &&
-            !(frameStart != null ? !frameStart.equals(other.frameStart) : other.frameStart != null) &&
-            !(frameEnd != null ? !frameEnd.equals(other.frameEnd) : other.frameEnd != null);
+        return this == other || other != null && !(frameMode != null ? !frameMode.equals(other.frameMode) :
+            other.frameMode != null) && frameStart.equals(other.frameStart) && frameEnd.equals (other.frameEnd);
     }
 
     /**
