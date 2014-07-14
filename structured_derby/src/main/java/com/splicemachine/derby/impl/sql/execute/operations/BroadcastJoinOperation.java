@@ -205,24 +205,6 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     @Override
-		public RowProvider getReduceRowProvider(SpliceOperation top,
-                                            PairDecoder decoder,
-                                            SpliceRuntimeContext spliceRuntimeContext,
-                                            boolean returnDefaultValue)
-						throws StandardException, IOException {
-        return leftResultSet.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
-    }
-
-    @Override
-		public RowProvider getMapRowProvider(SpliceOperation top,
-                                         PairDecoder decoder,
-                                         SpliceRuntimeContext spliceRuntimeContext)
-						throws StandardException, IOException {
-        return leftResultSet.getMapRowProvider(top, decoder, spliceRuntimeContext);
-    }
-
-
-    @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
@@ -241,30 +223,6 @@ public class BroadcastJoinOperation extends JoinOperation {
     public void close() throws StandardException, IOException {
         super.close();
         if (joiner != null) joiner.close();
-    }
-
-    @Override
-    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws
-                                                                                 StandardException {
-        final List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
-        this.generateLeftOperationStack(opStack);
-        SpliceLogUtils.trace(LOG, "operationStack=%s", opStack);
-
-        // Get the topmost value, instead of the bottommost, in case it's you
-        SpliceOperation regionOperation = opStack.get(opStack.size() - 1);
-        SpliceLogUtils.trace(LOG, "regionOperation=%s", opStack);
-        RowProvider provider;
-        PairDecoder decoder = OperationUtils.getPairDecoder(this, runtimeContext);
-        try {
-            if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)) {
-                provider = regionOperation.getReduceRowProvider(this, decoder, runtimeContext, true);
-            } else {
-                provider = regionOperation.getMapRowProvider(this, decoder, runtimeContext);
-            }
-            return new SpliceNoPutResultSet(activation, this, provider);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
     }
 
     @Override
@@ -343,7 +301,9 @@ public class BroadcastJoinOperation extends JoinOperation {
             List<ExecRow> rows;
             Map<ByteBuffer, List<ExecRow>> cache = new HashMap<ByteBuffer, List<ExecRow>>();
             rightRowCounter = runtimeContext.newCounter();
-            SpliceNoPutResultSet resultSet = rightResultSet.executeScan(runtimeContext);
+            SpliceRuntimeContext ctxNoSink = runtimeContext.copy();
+            ctxNoSink.unMarkAsSink();
+            SpliceNoPutResultSet resultSet = rightResultSet.executeScan(ctxNoSink);
             resultSet.openCore();
             DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(rightTemplate);
             KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE,
