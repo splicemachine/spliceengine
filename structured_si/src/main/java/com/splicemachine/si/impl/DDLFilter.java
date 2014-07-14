@@ -12,14 +12,14 @@ import java.util.concurrent.TimeUnit;
 
 public class DDLFilter implements Comparable<DDLFilter> {
     private final Txn myTransaction;
-//    private final TransactionStore transactionStore;
+    private final Txn myParenTxn;
 		private final TxnSupplier transactionStore;
 		private Cache<Long,Boolean> visibilityMap;
-//    private ConcurrentMap<String, Boolean> visibilityMap;
 
-		public DDLFilter( Txn myTransaction, TxnSupplier transactionStore) {
+		public DDLFilter( Txn myTransaction,Txn myParenTxn, TxnSupplier transactionStore) {
 				this.myTransaction = myTransaction;
-				this.transactionStore = transactionStore;
+        this.myParenTxn = myParenTxn;
+        this.transactionStore = transactionStore;
 				visibilityMap = CacheBuilder.newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).maximumSize(10000).build();
 		}
 
@@ -30,9 +30,8 @@ public class DDLFilter implements Comparable<DDLFilter> {
         //if I haven't succeeded yet, don't do anything
         if(myTransaction.getEffectiveState()!= Txn.State.COMMITTED) return false;
 
-        Txn parentTxn = myTransaction.getParentTransaction();
         //if I have a parent, and he was rolled back, don't do anything
-        if(parentTxn.getEffectiveState()== Txn.State.ROLLEDBACK) return false;
+        if(myParenTxn.getEffectiveState()== Txn.State.ROLLEDBACK) return false;
         try{
             return visibilityMap.get(txn.getTxnId(),new Callable<Boolean>() {
                 @Override

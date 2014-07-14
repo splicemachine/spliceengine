@@ -124,8 +124,8 @@ public class SITransactionReadController<
 		}
 
 		@Override
-		public DDLFilter newDDLFilter(Txn txn) throws IOException {
-        return new DDLFilter(txn,txnSupplier);
+		public DDLFilter newDDLFilter(Txn txn,Txn parentTxn) throws IOException {
+        return new DDLFilter(txn,parentTxn,txnSupplier);
 		}
 
 
