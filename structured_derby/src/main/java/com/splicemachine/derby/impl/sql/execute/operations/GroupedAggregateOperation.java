@@ -430,7 +430,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
         return usedTempBuckets;
     }
-    
+
     protected StandardIterator<ExecRow> getSourceIterator(SpliceRuntimeContext spliceRuntimeContext, int[] groupingKeys) throws StandardException, IOException {
         StandardIterator<ExecRow> sourceIterator;PairDecoder pairDecoder = OperationUtils.getPairDecoder(this, spliceRuntimeContext);
         if(!spliceRuntimeContext.isSink()){
