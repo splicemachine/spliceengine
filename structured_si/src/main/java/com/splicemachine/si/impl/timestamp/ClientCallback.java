@@ -30,8 +30,8 @@ public class ClientCallback implements Callback {
        _latch.countDown();
     }
     
-    public void await() throws InterruptedException {
-        _latch.await(SpliceConstants.timestampClientWaitTime, TimeUnit.MILLISECONDS);
+    public boolean await(int timeoutMillis) throws InterruptedException {
+        return _latch.await(timeoutMillis, TimeUnit.MILLISECONDS);
     }
 
     public long getNewTimestamp() {

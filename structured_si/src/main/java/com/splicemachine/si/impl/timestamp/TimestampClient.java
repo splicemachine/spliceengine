@@ -214,7 +214,11 @@ public class TimestampClient extends TimestampBaseHandler {
     	// wait for that now.
     	
 		try {
-			callback.await();
+			int timeoutMillis = SpliceConstants.timestampClientWaitTime;
+			boolean success = callback.await(timeoutMillis);
+			if (!success) {
+			    TimestampUtil.doClientErrorThrow(LOG, "Client timed out after %s ms waiting for new timestamp: %s", null, timeoutMillis, callback);
+			}
 		} catch (InterruptedException e) {
             TimestampUtil.doClientErrorThrow(LOG, "Interrupted waiting for timestamp client: %s", e, callback);
 		}

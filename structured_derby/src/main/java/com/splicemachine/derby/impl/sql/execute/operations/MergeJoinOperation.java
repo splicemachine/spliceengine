@@ -165,6 +165,7 @@ public class MergeJoinOperation extends JoinOperation {
             new StandardPushBackIterator<ExecRow>(StandardIterators.wrap(leftResultSet));
         ExecRow firstLeft = leftPushBack.next(spliceRuntimeContext);
         SpliceRuntimeContext<ExecRow> ctxWithOverride = spliceRuntimeContext.copy();
+        ctxWithOverride.unMarkAsSink();
         if (firstLeft != null) {
             firstLeft = firstLeft.getClone();
             ctxWithOverride.addScanStartOverride(getKeyRow(firstLeft, leftHashKeys));

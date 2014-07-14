@@ -252,17 +252,13 @@ public class TPCHIT extends SpliceUnitTest {
 		}
 
 
-		protected static boolean runScript(File scriptFile, Connection connection) {
+		protected static boolean runScript(File scriptFile, Connection connection) throws Exception {
 				FileInputStream fileStream = null;
 				try {
 						fileStream = new FileInputStream(scriptFile);
 						int result  = ij.runScript(connection,fileStream,"UTF-8",System.out,"UTF-8");
 						return (result==0);
-				}
-				catch (Exception e) {
-						return false;
-				}
-				finally {
+				} finally {
 						Closeables.closeQuietly(fileStream);
 				}
 		}
