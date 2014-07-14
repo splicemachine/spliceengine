@@ -74,8 +74,12 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
             scanner.close();
         if(keyDistributor==null)
             scanner = new MeasuredResultScanner(table,scan,table.getScanner(scan),metricFactory);
-        else
+        else{
+            Scan[] scans = keyDistributor.getDistributedScans(scan);
             scanner = DistributedScanner.create(table,scan,keyDistributor,metricFactory);
+//            scanner = AsyncDistributedScanner.create(tableName,scans,metricFactory);
+        }
+        scanner.open();
     }
 
 		@Override public TimeView getRemoteReadTime() { return scanner.getRemoteReadTime(); }
