@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.sql.execute.operations.AbstractRowKeyDistributor;
 import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHashPrefix;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.marshall.BucketHasher;
@@ -27,8 +28,8 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
     private SpliceResultScanner scanner;
     private final byte[] tableName;
     private final Scan scan;
-    private final RowKeyDistributorByHashPrefix keyDistributor;
-	private final MetricFactory metricFactory;
+    private final AbstractRowKeyDistributor keyDistributor;
+    private final MetricFactory metricFactory;
     private HTableInterface table;
 
 //		private final Timer remoteReadTimer;
@@ -37,15 +38,27 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
 		private long rowsRead = 0l;
 
     public ClientResultScanner(byte[] tableName,
+                               Scan scan,
+                               boolean bucketed,
+                               MetricFactory metricFactory) {
+        this(tableName, scan, bucketed, metricFactory,null);
+    }
+
+    public ClientResultScanner(byte[] tableName,
 															 Scan scan,
 															 boolean bucketed,
-															 MetricFactory metricFactory) {
+															 MetricFactory metricFactory,
+                               boolean[] usedBuckets) {
 				this.metricFactory = metricFactory;
         this.tableName = tableName;
         this.scan = scan;
         if(bucketed){
 						SpreadBucket bucketingStrategy = SpliceDriver.driver().getTempTable().getCurrentSpread();
-            keyDistributor = new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(bucketingStrategy));
+            AbstractRowKeyDistributor distributor = new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(bucketingStrategy));
+            if(usedBuckets!=null)
+                keyDistributor = new FilteredRowKeyDistributor(distributor,usedBuckets);
+            else
+                keyDistributor = distributor;
 				}else
             keyDistributor = null;
 //				this.remoteReadTimer = metricFactory.newWallTimer();

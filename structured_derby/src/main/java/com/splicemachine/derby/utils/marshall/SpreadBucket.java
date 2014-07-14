@@ -24,7 +24,8 @@ public enum SpreadBucket {
 				@Override public byte bucket(int hashValue) { return (byte)((byte)hashValue & 0xF0); }
 				@Override public int getNumBuckets() { return 16; }
 				@Override public byte getMask() { return (byte)0xF0; }
-		},
+        @Override public int bucketIndex(byte b) { return ((byte)(b >> 4) & 0x0f); }
+    },
 		THIRTY_TWO{
 				@Override public byte bucket(int hashValue) { return (byte)((byte)hashValue & 0xF8); }
 				@Override public int getNumBuckets() { return 32; }
@@ -57,4 +58,30 @@ public enum SpreadBucket {
 		public byte getMask(){
 				throw new UnsupportedOperationException();
 		}
+
+    public int bucketIndex(byte b) {
+        throw new UnsupportedOperationException();
+    }
+
+    public static void main(String...args) throws Exception{
+        SpreadBucket bucket = SpreadBucket.SIXTEEN;
+        System.out.println(bucket.bucketIndex((byte)-128));
+        System.out.println(bucket.bucketIndex((byte) 0x00));
+        System.out.println(bucket.bucketIndex((byte) 0x10));
+        System.out.println(bucket.bucketIndex((byte) 0x20));
+        System.out.println(bucket.bucketIndex((byte) 0x30));
+        System.out.println(bucket.bucketIndex((byte) 0x40));
+        System.out.println(bucket.bucketIndex((byte) 0x50));
+        System.out.println(bucket.bucketIndex((byte) 0x60));
+        System.out.println(bucket.bucketIndex((byte) 0x70));
+        System.out.println(bucket.bucketIndex((byte) 0x80));
+        System.out.println(bucket.bucketIndex((byte) 0x90));
+        System.out.println(bucket.bucketIndex((byte) 0xA0));
+        System.out.println(bucket.bucketIndex((byte) 0xB0));
+        System.out.println(bucket.bucketIndex((byte) 0xC0));
+        System.out.println(bucket.bucketIndex((byte) 0xD0));
+        System.out.println(bucket.bucketIndex((byte) 0xE0));
+        System.out.println(bucket.bucketIndex((byte) 0xF0));
+    }
+
 }
