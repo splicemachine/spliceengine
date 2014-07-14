@@ -46,8 +46,7 @@ public class DerbyWindowContext implements GroupedAggregateContext {
     }
 
     @Override
-    public void init(SpliceOperationContext context,
-                     AggregateContext genericAggregateContext) throws StandardException {
+    public void init(SpliceOperationContext context, AggregateContext genericAggregateContext) throws StandardException {
         this.activation = context.getActivation();
 
         GenericStorablePreparedStatement statement = context.getPreparedStatement();

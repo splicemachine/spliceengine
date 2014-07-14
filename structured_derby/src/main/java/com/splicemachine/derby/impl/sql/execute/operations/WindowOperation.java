@@ -30,7 +30,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.framework.EmptyRowSup
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SourceIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateBuffer;
-import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.ScanGroupedAggregateIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.SinkGroupedAggregateIterator;
@@ -109,7 +108,7 @@ public class WindowOperation extends GenericAggregateOperation {
     protected byte[] currentKey;
     private boolean isCurrentDistinct;
     private GroupedAggregateIterator aggregator;
-    private GroupedAggregateContext groupedAggregateContext;
+    private DerbyWindowContext windowContextContext;
     private Scan baseScan;
     private SpliceResultScanner scanner;
 
@@ -133,7 +132,7 @@ public class WindowOperation extends GenericAggregateOperation {
         super(source, aggregateItem, activation, rowAllocator, resultSetNumber,
               optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.isInSortedOrder = isInSortedOrder;
-        this.groupedAggregateContext = new DerbyWindowContext(partitionItemIdx, orderingItemIdx, frameDefnIndex);
+        this.windowContextContext = new DerbyWindowContext(partitionItemIdx, orderingItemIdx, frameDefnIndex);
         recordConstructorTime();
     }
 
@@ -145,14 +144,14 @@ public class WindowOperation extends GenericAggregateOperation {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
         isInSortedOrder = in.readBoolean();
-        groupedAggregateContext = (GroupedAggregateContext)in.readObject();
+        windowContextContext = (DerbyWindowContext)in.readObject();
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeBoolean(isInSortedOrder);
-        out.writeObject(groupedAggregateContext);
+        out.writeObject(windowContextContext);
     }
 
     @Override
@@ -162,7 +161,7 @@ public class WindowOperation extends GenericAggregateOperation {
         super.init(context);
         source.init(context);
         baseScan = context.getScan();
-        groupedAggregateContext.init(context,aggregateContext);
+        windowContextContext.init(context, aggregateContext);
         startExecutionTime = System.currentTimeMillis();
     }
 
@@ -247,8 +246,8 @@ public class WindowOperation extends GenericAggregateOperation {
             @Override
             public KeyHashDecoder getDecoder() {
                 DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(sortTemplateRow);
-                return BareKeyHash.decoder(groupedAggregateContext.getGroupingKeys(),
-                                           groupedAggregateContext.getGroupingKeyOrder(),
+                return BareKeyHash.decoder(windowContextContext.getGroupingKeys(),
+                                           windowContextContext.getGroupingKeyOrder(),
                                            serializers
                 );
             }
@@ -285,7 +284,7 @@ public class WindowOperation extends GenericAggregateOperation {
 
     private class AggregateBucketingPrefix extends BucketingPrefix {
         private MultiFieldDecoder decoder;
-        private final int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
+        private final int[] groupingKeys = windowContextContext.getGroupingKeys();
         private final DataValueDescriptor[] fields = sortTemplateRow.getRowArray();
 
         public AggregateBucketingPrefix(HashPrefix delegate, ByteHash32 hashFunction, SpreadBucket spreadBucket) {
@@ -322,7 +321,7 @@ public class WindowOperation extends GenericAggregateOperation {
 				 * Only encode the fields which aren't grouped into the row.
 				 */
         ExecRow defn = getExecRowDefinition();
-        int[] nonGroupedFields = IntArrays.complementMap(groupedAggregateContext.getGroupingKeys(), defn.nColumns());
+        int[] nonGroupedFields = IntArrays.complementMap(windowContextContext.getGroupingKeys(), defn.nColumns());
         DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(defn);
         return BareKeyHash.encoder(nonGroupedFields,null,serializers);
     }
@@ -337,13 +336,13 @@ public class WindowOperation extends GenericAggregateOperation {
         if(aggregator==null){
             StandardIterator<ExecRow> sourceIterator = new SourceIterator(source);
             StandardSupplier<ExecRow> emptyRowSupplier = new EmptyRowSupplier(aggregateContext);
-            int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
-            boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
-            int[] nonGroupedUniqueColumns = groupedAggregateContext.getNonGroupedUniqueColumns();
+            int[] groupingKeys = windowContextContext.getGroupingKeys();
+            boolean[] groupingKeyOrder = windowContextContext.getGroupingKeyOrder();
+            int[] nonGroupedUniqueColumns = windowContextContext.getNonGroupedUniqueColumns();
             GroupedAggregateBuffer distinctBuffer = new GroupedAggregateBuffer(SpliceConstants.ringBufferSize,
-                                                                               aggregateContext.getDistinctAggregators(),false,emptyRowSupplier,groupedAggregateContext,false,spliceRuntimeContext, false);
+                                                                               aggregateContext.getDistinctAggregators(),false,emptyRowSupplier, windowContextContext,false,spliceRuntimeContext, false);
             GroupedAggregateBuffer nonDistinctBuffer = new GroupedAggregateBuffer(SpliceConstants.ringBufferSize,
-                                                                                  aggregateContext.getNonDistinctAggregators(),false,emptyRowSupplier,groupedAggregateContext,false,spliceRuntimeContext, false);
+                                                                                  aggregateContext.getNonDistinctAggregators(),false,emptyRowSupplier, windowContextContext,false,spliceRuntimeContext, false);
             DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(sourceExecIndexRow);
             aggregator = SinkGroupedAggregateIterator.newInstance(nonDistinctBuffer, distinctBuffer, sourceIterator, false,
                                                                   groupingKeys, groupingKeyOrder, nonGroupedUniqueColumns, serializers);
@@ -383,10 +382,11 @@ public class WindowOperation extends GenericAggregateOperation {
              * hash key are grouped together, which means that we only need to keep a single buffer entry
              * in memory.
              */
-            GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(16, aggregates,true,emptyRowSupplier,groupedAggregateContext,true,spliceRuntimeContext,true);
+            GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(16, aggregates,true,emptyRowSupplier,
+                                                                       windowContextContext,true,spliceRuntimeContext,true);
 
-            int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
-            boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
+            int[] groupingKeys = windowContextContext.getGroupingKeys();
+            boolean[] groupingKeyOrder = windowContextContext.getGroupingKeyOrder();
             scanner = getResultScanner(groupingKeys,spliceRuntimeContext,getHashPrefix().getPrefixLength
                 ());
             StandardIterator<ExecRow> sourceIterator = new ScanIterator(scanner,OperationUtils.getPairDecoder(this,spliceRuntimeContext));
@@ -505,7 +505,7 @@ public class WindowOperation extends GenericAggregateOperation {
     }
 
     public boolean hasDistinctAggregate() {
-        return groupedAggregateContext.getNumDistinctAggregates()>0;
+        return windowContextContext.getNumDistinctAggregates()>0;
     }
 
     @Override
