@@ -3,7 +3,6 @@ package com.splicemachine.derby.utils;
 import com.google.common.base.Function;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.storage.AsyncDistributedScanner;
 import com.splicemachine.derby.impl.storage.DerbyAsyncScannerUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.RowKeyDistributor;
@@ -15,7 +14,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
 import org.hbase.async.KeyValue;
 import org.hbase.async.Scanner;
 

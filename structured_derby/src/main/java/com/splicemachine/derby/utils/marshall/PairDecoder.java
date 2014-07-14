@@ -63,6 +63,16 @@ public class PairDecoder {
 			}
 		}
 
+    public ExecRow decode(org.hbase.async.KeyValue data) throws StandardException{
+        templateRow.resetRowArray();
+        byte[] key = data.key();
+        keyDecoder.decode(key,0,key.length,templateRow);
+        byte[] row = data.value();
+        rowDecoder.set(row,0,row.length);
+        rowDecoder.decode(templateRow);
+        return templateRow;
+    }
+
 		public ExecRow decode(KVPair kvPair) throws StandardException{
 				templateRow.resetRowArray();
 				keyDecoder.decode(kvPair.getRow(),0,kvPair.getRow().length,templateRow);
