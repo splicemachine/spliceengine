@@ -44,6 +44,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.thrift2.generated.THBaseService;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -394,9 +395,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
 						int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
 						boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
-						scanner = getResultScanner(groupingKeys,spliceRuntimeContext,getHashPrefix().getPrefixLength());
 
-						StandardIterator<ExecRow> sourceIterator = new ScanIterator(scanner,OperationUtils.getPairDecoder(this,spliceRuntimeContext));
+            StandardIterator<ExecRow> sourceIterator = getSourceIterator(spliceRuntimeContext,groupingKeys);
 						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(sourceExecIndexRow);
 						KeyEncoder encoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(groupingKeys,groupingKeyOrder,serializers),NoOpPostfix.INSTANCE);
 						aggregator = new ScanGroupedAggregateIterator(buffer,sourceIterator,encoder,groupingKeys,false);
@@ -429,6 +429,20 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						}
 				}
 		}
+
+    protected StandardIterator<ExecRow> getSourceIterator(SpliceRuntimeContext spliceRuntimeContext, int[] groupingKeys) throws StandardException, IOException {
+        StandardIterator<ExecRow> sourceIterator;PairDecoder pairDecoder = OperationUtils.getPairDecoder(this, spliceRuntimeContext);
+//        if(!spliceRuntimeContext.isSink()){
+//            TempTable tempTable = SpliceDriver.driver().getTempTable();
+//            byte[] temp = tempTable.getTempTableName();
+//            AbstractRowKeyDistributor distributor = new FilteredRowKeyDistributor(new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(tempTable.getCurrentSpread())),getUsedTempBuckets());
+//            sourceIterator = AsyncScanIterator.create(temp, distributor.getDistributedScans(reduceScan), pairDecoder,spliceRuntimeContext);
+//        }else{
+            scanner = getResultScanner(groupingKeys,spliceRuntimeContext,getHashPrefix().getPrefixLength());
+            sourceIterator = new ScanIterator(scanner, pairDecoder);
+//        }
+        return sourceIterator;
+    }
 
     protected boolean[] getUsedTempBuckets() {
         List<TaskStats> resultTaskStats = getJobResults().getJobStats().getTaskStats();
