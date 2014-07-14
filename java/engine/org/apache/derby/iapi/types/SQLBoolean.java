@@ -526,10 +526,17 @@ public final class SQLBoolean
 	{
 		setValue((Boolean) theValue);
 	}
+	
 	protected void setFrom(DataValueDescriptor theValue) throws StandardException {
-
         if ( theValue instanceof SQLChar ) { setValue( theValue.getString() ); }
 		else if ( theValue instanceof SQLBoolean ){ setValue(theValue.getBoolean()); }
+        // DB-1331: When input value is VARCHAR, it is wrapped in a LazyStringDataValueDescriptor,
+        // so we can not just check for instance of SQLVarchar. Nor can we check
+        // instance of LazyStringDataValueDecriptor, because that's in splice machine
+        // and here we are in Derby layer.
+		else if ( theValue.getFormat() == Format.VARCHAR) {
+			setValue(theValue.getString());
+		}
         else
         {
             throw StandardException.newException
