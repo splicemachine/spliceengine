@@ -1,0 +1,87 @@
+<div class="header">
+  <ul class="nav nav-pills pull-right">
+    <li><a ng-href="#">Home</a></li>
+    <li class="active"><a ng-href="#/traced-statements">Trace Plans</a></li>
+    <li><a ng-href="#/contact">Contact</a></li>
+  </ul>
+  <h3 class="text-muted"><img class="header-logo" src="images/splice-logo.jpg" alt="We are Splice Machine"> Admin Console</h3>
+</div>
+
+<div class="row marketing" ng-controller="operationsTreeController">
+  <div class="row marketing">
+    <span><h4 class="text-primary">{{tracedStatementSQL}}</h4></span>
+    <div
+            data-angular-treeview="true"
+            data-tree-id="abc"
+            data-tree-model="tree"
+            data-node-id="operationType"
+            data-node-label="operationType"
+            data-node-children="children" >
+    </div>
+  </div>
+  <div class="row marketing operation-details-box round-corners" ng-hide="!clickedOperation">
+    <div class="operation-details-title">{{clickedOperation.operationType}} Details</div>
+    <div id="operation-details-summary">
+      <span class="operation-details-sub-title">Summary</span>
+      <ul id="operation-details-summary-list">
+        <li ng-hide="!clickedOperation.host">Host: {{clickedOperation.host}}</li>
+        <li ng-hide="!clickedOperation.info">Info: {{clickedOperation.info}}</li>
+        <li ng-hide="!clickedOperation.iterations">Iterations: {{clickedOperation.iterations}}</li>
+        <li ng-hide="!clickedOperation.processingCPUTime">Processing CPU Time: {{formatRawNanoTime(clickedOperation.processingCPUTime)}}</li>
+        <li ng-hide="!clickedOperation.processingUserTime">Processing User Time: {{formatRawNanoTime(clickedOperation.processingUserTime)}}</li>
+        <li ng-hide="!clickedOperation.processingWallTime">Processing Wall Time: {{formatRawNanoTime(clickedOperation.processingWallTime)}}</li>
+        <li ng-hide="!clickedOperation.region">Region: {{clickedOperation.region}}</li>
+        <li ng-hide="!clickedOperation.totalCPUTime">Total CPU Time: {{formatRawNanoTime(clickedOperation.totalCPUTime)}}</li>
+        <li ng-hide="!clickedOperation.totalUserTime">Total User Time: {{formatRawNanoTime(clickedOperation.totalUserTime)}}</li>
+        <li ng-hide="!clickedOperation.totalWallTime">Total Wall Time: {{formatRawNanoTime(clickedOperation.totalWallTime)}}</li>
+      </ul>
+    </div>
+    <div id="operation-details-input">
+      <span class="operation-details-sub-title">Input</span>
+      <ul id="operation-details-input-list">
+        <li ng-hide="!clickedOperation.filteredRows">Filtered Rows: {{clickedOperation.filteredRows}}</li>
+        <li ng-hide="!clickedOperation.inputRows">Input Rows: {{clickedOperation.inputRows}}</li>
+        <li ng-hide="!clickedOperation.localScanBytes">Local Scan Bytes: {{clickedOperation.localScanBytes}}</li>
+        <li ng-hide="!clickedOperation.localScanCPUTime">Local Scan CPU Time: {{formatRawNanoTime(clickedOperation.localScanCPUTime)}}</li>
+        <li ng-hide="!clickedOperation.localScanRows">Local Scan Rows: {{clickedOperation.localScanRows}}</li>
+        <li ng-hide="!clickedOperation.localScanUserTime">Local Scan User Time: {{formatRawNanoTime(clickedOperation.localScanUserTime)}}</li>
+        <li ng-hide="!clickedOperation.localScanWallTime">Local Scan Wall Time: {{formatRawNanoTime(clickedOperation.localScanWallTime)}}</li>
+        <li ng-hide="!clickedOperation.remoteGetBytes">Remote Get Bytes: {{clickedOperation.remoteGetBytes}}</li>
+        <li ng-hide="!clickedOperation.remoteGetCPUTime">Remote Get CPU Time: {{formatRawNanoTime(clickedOperation.remoteGetCPUTime)}}</li>
+        <li ng-hide="!clickedOperation.remoteGetRows">Remote Get Rows: {{clickedOperation.remoteGetRows}}</li>
+        <li ng-hide="!clickedOperation.remoteGetUserTime">Remote Get UserTime: {{formatRawNanoTime(clickedOperation.remoteGetUserTime)}}</li>
+        <li ng-hide="!clickedOperation.remoteGetWallTime">Remote Get Wall Time: {{formatRawNanoTime(clickedOperation.remoteGetWallTime)}}</li>
+        <li ng-hide="!clickedOperation.remoteScanBytes">Remote Scan Bytes: {{clickedOperation.remoteScanBytes}}</li>
+        <li ng-hide="!clickedOperation.remoteScanCPUTime">Remote Scan CPU Time: {{formatRawNanoTime(clickedOperation.remoteScanCPUTime)}}</li>
+        <li ng-hide="!clickedOperation.remoteScanRows">Remote Scan Rows: {{clickedOperation.remoteScanRows}}</li>
+        <li ng-hide="!clickedOperation.remoteScanUserTime">Remote Scan User Time: {{formatRawNanoTime(clickedOperation.remoteScanUserTime)}}</li>
+        <li ng-hide="!clickedOperation.remoteScanWallTime">Remote Scan Wall Time: {{formatRawNanoTime(clickedOperation.remoteScanWallTime)}}</li>
+      </ul>
+    </div>
+    <div id="operation-details-output">
+      <span class="operation-details-sub-title">Output</span>
+      <ul id="operation-details-output-list">
+        <li ng-hide="!clickedOperation.failedWriteAttempts">Failed Write Attempts: {{clickedOperation.failedWriteAttempts}}</li>
+        <li ng-hide="!clickedOperation.outputRows">Output Rows: {{clickedOperation.outputRows}}</li>
+        <li ng-hide="!clickedOperation.partialWriteFailures">Partial Write Failures: {{clickedOperation.partialWriteFailures}}</li>
+        <li ng-hide="!clickedOperation.rejectedWriteAttempts">Rejected Write Attempts: {{clickedOperation.rejectedWriteAttempts}}</li>
+        <li ng-hide="!clickedOperation.retriedWriteAttempts">Retried Write Attempts: {{clickedOperation.retriedWriteAttempts}}</li>
+        <li ng-hide="!clickedOperation.writeBytes">Write Bytes: {{clickedOperation.writeBytes}}</li>
+        <li ng-hide="!clickedOperation.writeNetworkCPUTime">Write Network CPU Time: {{formatRawNanoTime(clickedOperation.writeNetworkCPUTime)}}</li>
+        <li ng-hide="!clickedOperation.writeNetworkUserTime">Write Network User Time: {{formatRawNanoTime(clickedOperation.writeNetworkUserTime)}}</li>
+        <li ng-hide="!clickedOperation.writeNetworkWallTime">Write Network Wall Time: {{formatRawNanoTime(clickedOperation.writeNetworkWallTime)}}</li>
+        <li ng-hide="!clickedOperation.writeRows">Write Rows: {{clickedOperation.writeRows}}</li>
+        <li ng-hide="!clickedOperation.writeSleepCPUTime">Write Sleep CPU Time: {{formatRawNanoTime(clickedOperation.writeSleepCPUTime)}}</li>
+        <li ng-hide="!clickedOperation.writeSleepUserTime">Write Sleep User Time: {{formatRawNanoTime(clickedOperation.writeSleepUserTime)}}</li>
+        <li ng-hide="!clickedOperation.writeSleepWallTime">Write Sleep Wall Time: {{formatRawNanoTime(clickedOperation.writeSleepWallTime)}}</li>
+        <li ng-hide="!clickedOperation.writeThreadCPUTime">Write Thread CPU Time: {{formatRawNanoTime(clickedOperation.writeThreadCPUTime)}}</li>
+        <li ng-hide="!clickedOperation.writeThreadUserTime">Write Thread User Time: {{formatRawNanoTime(clickedOperation.writeThreadUserTime)}}</li>
+        <li ng-hide="!clickedOperation.writeThreadWallTime">Write Thread Wall Time: {{formatRawNanoTime(clickedOperation.writeThreadWallTime)}}</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <p>&copy; 2014 Splice Machine, Inc. All rights reserved.</p>
+</div>
