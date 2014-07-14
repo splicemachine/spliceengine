@@ -7,52 +7,15 @@
   <h3 class="text-muted"><img class="header-logo" src="images/splice-logo.jpg" alt="We are Splice Machine"> Admin Console</h3>
 </div>
 
-<!-- Simple HTML indented list of the operations tree.  Very useful for debugging D3 code. -->
-<!-- Commenting out the HTML display of the operations tree.
-<div class="row marketing">
-<script type="text/ng-template"  id="tree_item_renderer.html">
-    {{node.operationType}}
-    <ul>
-        <li ng-repeat="node in node.children" ng-include="'tree_item_renderer.html'"></li>
-    </ul>
-</script>
-
-<ul>
-    <li ng-repeat="node in tree" ng-include="'tree_item_renderer.html'"></li>
-</ul>
-</div>
--->
-
-<!-- Commenting out d3Bars bar chart.
-<div class="row marketing" ng-controller="d3BarsController">
-  <span>{{title}}</span>
-  <d3-bars data="d3Data" label="name" on-click="d3OnClick(item)"></d3-bars>
-  <br>
-  <br>
-  <span>First Item</span>
-  <input type="text" ng-model="d3Data[0].score"></input>
-  <br>
-  <span>Second Item</span>
-  <input type="text" ng-model="d3Data[1].score"></input>
-  <br>
-  <span>Third Item</span>
-  <input type="text" ng-model="d3Data[2].score"></input>
-</div>
--->
-
-<!-- TODO: Move CSS -->
-<style>
-  .link {
-    fill: none;
-    stroke: #ccc;
-    stroke-width: 4.5px;
-  }
-</style>
-
 <div class="row marketing" ng-controller="operationsTreeController">
   <div class="row marketing">
     <span><h4 class="text-primary">{{tracedStatementSQL}}</h4></span>
-    <operations-tree data="tree[0]" label="operationType" on-click="d3OnClick(item)"></operations-tree>
+    <treecontrol class="tree-classic"
+                 tree-model="tree"
+                 on-selection="showSelected(node)"
+                 selected-node="clickedOperation">
+      {{node.operationType}} (In: {{node.inputRows}} rows, Out: {{node.outputRows}} rows, Time: {{node.totalWallTime}}ms)
+    </treecontrol>
   </div>
   <div class="row marketing operation-details-box round-corners" ng-hide="!clickedOperation">
     <div class="operation-details-title">{{clickedOperation.operationType}} Details</div>
@@ -114,80 +77,6 @@
         <li ng-hide="!clickedOperation.writeThreadWallTime">Write Thread Wall Time: {{formatRawNanoTime(clickedOperation.writeThreadWallTime)}}</li>
       </ul>
     </div>
-    <!-- TODO: Remove the evil TABLE tag!!! -->
-    <!--
-    <h5>Details for {{clickedOperation.operationType}}:</h5>
-    <h6>
-    <table border="1">
-      <tr>
-        <td>failedWriteAttempts: {{clickedOperation.failedWriteAttempts}}</td>
-        <td>filteredRows: {{clickedOperation.filteredRows}}</td>
-        <td>host: {{clickedOperation.host}}</td>
-        <td>info: {{clickedOperation.info}}</td>
-      </tr>
-      <tr>
-        <td>inputRows: {{clickedOperation.inputRows}}</td>
-        <td>iterations: {{clickedOperation.iterations}}</td>
-        <td>localScanBytes: {{clickedOperation.localScanBytes}}</td>
-        <td>localScanCPUTime: {{clickedOperation.localScanCPUTime}}</td>
-      </tr>
-      <tr>
-        <td>localScanRows: {{clickedOperation.localScanRows}}</td>
-        <td>localScanUserTime: {{clickedOperation.localScanUserTime}}</td>
-        <td>localScanWallTime: {{clickedOperation.localScanWallTime}}</td>
-        <td>operationType: {{clickedOperation.operationType}}</td>
-      </tr>
-      <tr>
-        <td>outputRows: {{clickedOperation.outputRows}}</td>
-        <td>partialWriteFailures: {{clickedOperation.partialWriteFailures}}</td>
-        <td>processingCPUTime: {{clickedOperation.processingCPUTime}}</td>
-        <td>processingUserTime: {{clickedOperation.processingUserTime}}</td>
-      </tr>
-      <tr>
-        <td>processingWallTime: {{clickedOperation.processingWallTime}}</td>
-        <td>region: {{clickedOperation.region}}</td>
-        <td>rejectedWriteAttempts: {{clickedOperation.rejectedWriteAttempts}}</td>
-        <td>remoteGetBytes: {{clickedOperation.remoteGetBytes}}</td>
-      </tr>
-      <tr>
-        <td>remoteGetCPUTime: {{clickedOperation.remoteGetCPUTime}}</td>
-        <td>remoteGetRows: {{clickedOperation.remoteGetRows}}</td>
-        <td>remoteGetUserTime: {{clickedOperation.remoteGetUserTime}}</td>
-        <td>remoteGetWallTime: {{clickedOperation.remoteGetWallTime}}</td>
-      </tr>
-      <tr>
-        <td>remoteScanBytes: {{clickedOperation.remoteScanBytes}}</td>
-        <td>remoteScanCPUTime: {{clickedOperation.remoteScanCPUTime}}</td>
-        <td>remoteScanRows: {{clickedOperation.remoteScanRows}}</td>
-        <td>remoteScanUserTime: {{clickedOperation.remoteScanUserTime}}</td>
-      </tr>
-      <tr>
-        <td>remoteScanWallTime: {{clickedOperation.remoteScanWallTime}}</td>
-        <td>retriedWriteAttempts: {{clickedOperation.retriedWriteAttempts}}</td>
-        <td>totalCPUTime: {{clickedOperation.totalCPUTime}}</td>
-        <td>totalUserTime: {{clickedOperation.totalUserTime}}</td>
-      </tr>
-      <tr>
-        <td>totalWallTime: {{clickedOperation.totalWallTime}}</td>
-        <td>writeBytes: {{clickedOperation.writeBytes}}</td>
-        <td>writeNetworkCPUTime: {{clickedOperation.writeNetworkCPUTime}}</td>
-        <td>writeNetworkUserTime: {{clickedOperation.writeNetworkUserTime}}</td>
-      </tr>
-      <tr>
-        <td>writeNetworkWallTime: {{clickedOperation.writeNetworkWallTime}}</td>
-        <td>writeRows: {{clickedOperation.writeRows}}</td>
-        <td>writeSleepCPUTime: {{clickedOperation.writeSleepCPUTime}}</td>
-        <td>writeSleepUserTime: {{clickedOperation.writeSleepUserTime}}</td>
-      </tr>
-      <tr>
-        <td>writeSleepWallTime: {{clickedOperation.writeSleepWallTime}}</td>
-        <td>writeThreadCPUTime: {{clickedOperation.writeThreadCPUTime}}</td>
-        <td>writeThreadUserTime: {{clickedOperation.writeThreadUserTime}}</td>
-        <td>writeThreadWallTime: {{clickedOperation.writeThreadWallTime}}</td>
-      </tr>
-    </table>
-    </h6>
-    -->
   </div>
 </div>
 
