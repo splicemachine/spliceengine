@@ -2908,7 +2908,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
         consMB.push(or_node.getOrderableVariantType(optTable));
 
         int numArgs = 8;
-        if (getLanguageConnectionContext().getXplainSchema() != null) {
+        if (XPlainUtils.shouldTrace(getLanguageConnectionContext())) {
             /* Qualifier's string representation */
             consMB.push(pred.getText());
             numArgs = 9;

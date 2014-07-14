@@ -191,7 +191,7 @@ public class CallStatementNode extends DMLStatementNode
             String methodName = callNode.getMethodName();
             if (xplainTraceProcedures.contains(methodName)) {
                 // turn off explain trace for xplain procedures
-                getLanguageConnectionContext().getStatementContext().setExplainTablesOrProcedures(true);
+                getLanguageConnectionContext().getStatementContext().setExplainTableOrProcedure(true);
             }
         }
 	}

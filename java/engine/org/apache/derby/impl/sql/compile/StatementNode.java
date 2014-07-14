@@ -389,37 +389,6 @@ public abstract class StatementNode extends QueryTreeNode
 		// wrap up the constructor by putting a return at the end of it
 		generatingClass.finishConstructor();
 
-        // Turn on explain trace flag if necessary
-        mbWorker = generatingClass.getClassBuilder().newMethodBuilder(
-                Modifier.PUBLIC,
-                "boolean",
-                "isTraced");
-        if (getLanguageConnectionContext().getStatisticsTiming() &&
-            getLanguageConnectionContext().getRunTimeStatisticsMode()) {
-
-            if (!getLanguageConnectionContext().getStatementContext().hasExplainTablesOrProcedures()) {
-                mbWorker.push(true);
-            }
-            else {
-                mbWorker.push(false);
-            }
-        }
-        else {
-            // automatically turn on explain trace
-            if (!getLanguageConnectionContext().getStatementContext().hasExplainTablesOrProcedures() &&
-                 getLanguageConnectionContext().getStatementContext().getMaxCardinality() > 3) {
-                mbWorker.push(true);
-            }
-            else {
-                mbWorker.push(false);
-            }
-        }
-        // Clear flags for explain trace because the context may be reused
-        getLanguageConnectionContext().getStatementContext().setExplainTablesOrProcedures(false);
-        getLanguageConnectionContext().getStatementContext().setMaxCardinality(0);
-        mbWorker.methodReturn();
-        mbWorker.complete();
-
 		try {
 			// cook the completed class into a real class
 			// and stuff it into activationClass

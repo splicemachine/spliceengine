@@ -841,4 +841,7 @@ final public class GenericActivationHolder implements Activation
     public boolean isTraced() {
         return ac.isTraced();
     }
+    public void setTraced(boolean traced) {
+        ac.setTraced(traced);
+    }
 }

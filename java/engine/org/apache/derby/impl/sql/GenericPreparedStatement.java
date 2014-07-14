@@ -158,6 +158,9 @@ public class GenericPreparedStatement
      */
     private long versionCounter;
 
+    private boolean  isAutoTraced;
+
+    private boolean hasXPlainTableOrProcedure;
 	//
 	// constructors
 	//
@@ -1227,5 +1230,25 @@ recompileOutOfDatePlan:
 
     public final void incrementVersionCounter() {
         ++versionCounter;
+    }
+
+    @Override
+    public void setAutoTraced(boolean autoTraced) {
+        this.isAutoTraced = autoTraced;
+    }
+
+    @Override
+    public boolean isAutoTraced() {
+        return isAutoTraced;
+    }
+
+    @Override
+    public boolean hasXPlainTableOrProcedure() {
+        return hasXPlainTableOrProcedure;
+    }
+
+    @Override
+    public void setXPlainTableOrProcedure (boolean val) {
+        hasXPlainTableOrProcedure = val;
     }
 }

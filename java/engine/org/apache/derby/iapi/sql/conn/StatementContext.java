@@ -283,7 +283,7 @@ public interface StatementContext extends Context {
 
     public int getMaxCardinality();
 
-    public void setExplainTablesOrProcedures(boolean traced);
+    public void setExplainTableOrProcedure(boolean val);
 
-    public boolean hasExplainTablesOrProcedures();
+    public boolean hasExplainTableOrProcedure();
 }

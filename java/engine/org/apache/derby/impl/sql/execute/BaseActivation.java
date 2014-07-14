@@ -219,6 +219,8 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	// constructors
 	//
 
+    protected boolean isTraced;
+
 	protected BaseActivation()
 	{
 		super();
@@ -1873,4 +1875,12 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 							 LanguageConnectionContext lcc)
 			throws StandardException {
 	}
+
+    public boolean isTraced() {
+        return isTraced;
+    }
+
+    public void setTraced(boolean traced) {
+        isTraced = traced;
+    }
 }

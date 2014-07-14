@@ -1790,10 +1790,10 @@ public class JoinNode extends TableOperatorNode {
 			// that evaluates the where clause.
    			acb.pushMethodReference(mb, userExprFun); // arg 5
 
-            if (getLanguageConnectionContext().getXplainSchema() != null) {
+            if (XPlainUtils.shouldTrace(getLanguageConnectionContext())) {
                 // Generate a method that returns the text format of a join predicate
                 MethodBuilder userExprToStringFun = acb.newUserExprToStringFun();
-                userExprToStringFun.push(XPlanUtils.opToString(joinClause));
+                userExprToStringFun.push(XPlainUtils.opToString(joinClause));
                 userExprToStringFun.methodReturn();
                 userExprToStringFun.complete();
             }

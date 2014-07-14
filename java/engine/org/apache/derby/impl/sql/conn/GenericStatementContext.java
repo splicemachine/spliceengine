@@ -70,7 +70,7 @@ final class GenericStatementContext
 	private NoPutResultSet[] materializedSubqueries;
 	private	final LanguageConnectionContext lcc;
 	private boolean		inUse = true;
-    private boolean     hasExplainTablesOrProcedures = false;
+    private boolean     hasExplainTableOrProcedure = false;
     private int         maxCardinality = 0;
 
     // This flag satisfies all the conditions
@@ -801,13 +801,13 @@ final class GenericStatementContext
     }
 
     @Override
-    public boolean hasExplainTablesOrProcedures() {
-        return hasExplainTablesOrProcedures;
+    public boolean hasExplainTableOrProcedure() {
+        return hasExplainTableOrProcedure;
     }
 
     @Override
-    public void setExplainTablesOrProcedures(boolean val) {
-        this.hasExplainTablesOrProcedures = val;
+    public void setExplainTableOrProcedure(boolean val) {
+        this.hasExplainTableOrProcedure = val;
     }
 
     @Override

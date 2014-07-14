@@ -62,8 +62,4 @@ public final class ConstantActionActivation extends BaseActivation
 		return resultSet;
 	}
 	public void postConstructor(){}
-
-    public boolean isTraced() {
-        return false;
-    }
 }

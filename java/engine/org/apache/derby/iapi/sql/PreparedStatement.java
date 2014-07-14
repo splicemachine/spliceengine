@@ -276,4 +276,12 @@ public interface PreparedStatement
      * @return version counter
      */
     public long getVersionCounter();
+
+    public boolean isAutoTraced();
+
+    public void setAutoTraced(boolean autoTraced);
+
+    public boolean hasXPlainTableOrProcedure();
+
+    public void setXPlainTableOrProcedure(boolean val);
 }

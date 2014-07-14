@@ -1400,6 +1400,6 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     public String getText() {
         ValueNode operand = getAndNode().getLeftOperand();
-        return XPlanUtils.opToString(operand);
+        return XPlainUtils.opToString(operand);
     }
 }
