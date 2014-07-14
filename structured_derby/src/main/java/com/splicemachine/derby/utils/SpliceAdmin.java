@@ -1438,7 +1438,7 @@ public class SpliceAdmin {
         StringBuilder statement = new StringBuilder()
                 .append("select * from (values (")
                 .append(statementId)
-                .append("))foo(STATEMENTID)");
+                .append("))xplaintracefoo(STATEMENTID)");
         resultSet[0] = executeStatement(statement);
     }
 
@@ -1449,7 +1449,7 @@ public class SpliceAdmin {
         StringBuilder statement = new StringBuilder()
                 .append("select * from (values (")
                 .append(runTimeStatisticsMode)
-                .append("))foo(RUNTIME_STATISTICS)");
+                .append("))xplaintracefoo(RUNTIME_STATISTICS)");
         resultSet[0] = executeStatement(statement);
     }
 
@@ -1460,7 +1460,7 @@ public class SpliceAdmin {
         StringBuilder statement = new StringBuilder()
                 .append("select * from (values (")
                 .append(statisticsTiming)
-                .append("))foo(STATISTICS_TIMING)");
+                .append("))xplaintracefoo(STATISTICS_TIMING)");
         resultSet[0] = executeStatement(statement);
     }
 }

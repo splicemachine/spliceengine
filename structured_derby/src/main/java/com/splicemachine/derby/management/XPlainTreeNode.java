@@ -285,4 +285,12 @@ public class XPlainTreeNode {
     public long getWriteRows() {
         return writeRows;
     }
+
+    public long getIterations() {
+        return iterations;
+    }
+
+    public long getFilteredRows() {
+        return filteredRows;
+    }
 }

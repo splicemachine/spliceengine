@@ -69,6 +69,8 @@ public class ActivationSerializer {
         factories.add(new OperationResultSetFactory());
         arrayFactory = new ArrayFactory();
         factories.add(arrayFactory);
+        factories.add(new CachedOpFieldFactory());
+        factories.add(new BooleanFactory());
 
         //always add SerializableFactory last, because otherwise it'll swallow everything else.
         factories.add(new SerializableFactory());
@@ -99,6 +101,7 @@ public class ActivationSerializer {
             try{
                 visit(baseActClass.getDeclaredField("row"),baseFields);
                 visit(baseActClass.getDeclaredField("resultSet"),baseFields);
+                visit(baseActClass.getDeclaredField("isTraced"),baseFields);
             } catch (NoSuchFieldException e) {
                 SpliceLogUtils.warn(LOG, "Could not serialize current row list");
             }
@@ -124,7 +127,7 @@ public class ActivationSerializer {
             try{
                 Object o = field.get(activation);
                 if(o!=null){
-                    FieldStorage storage = getFieldStorage(o,field.getType());
+                    FieldStorage storage = getFieldStorage(o, field.getType());
                     if(storage!=null)
                         storageMap.put(field.getName(),storage);
                 }
@@ -218,6 +221,42 @@ public class ActivationSerializer {
         boolean isType(Object instance, Class type);
     }
 
+    public static class BooleanFieldStorage implements FieldStorage{
+        private Boolean data;
+
+        public BooleanFieldStorage() { }
+
+        public BooleanFieldStorage(Boolean value) {
+            this.data = value;
+        }
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            out.writeBoolean(data);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            this.data = in.readBoolean();
+        }
+
+        @Override
+        public Object getValue(Activation context) throws StandardException {
+            return data;
+        }
+    }
+
+    private static class BooleanFactory implements FieldStorageFactory<BooleanFieldStorage> {
+        @Override
+        public BooleanFieldStorage create(Object objectToStore, Class type) {
+            return new BooleanFieldStorage((Boolean)objectToStore);
+        }
+
+        @Override
+        public boolean isType(Object instance, Class type) {
+            return type.getName().compareToIgnoreCase("boolean")==0;
+        }
+    }
 
     public static class ArrayFieldStorage implements FieldStorage{
         private static final long serialVersionUID = 4l;

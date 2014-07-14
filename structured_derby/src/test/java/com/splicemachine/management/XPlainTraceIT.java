@@ -25,8 +25,10 @@ public class XPlainTraceIT extends XPlainTrace {
 
     private static final String SCROLLINSENSITIVEOPERATION = "ScrollInsensitive";
     private static final String TABLESCANOPERATION = "TableScan";
+    private static final String BULKTABLESCANOPERATION = "BulkTableScan";
     private static final String PROJECTRESTRICTOPERATION = "ProjectRestrict";
     private static final String SCALARAGGREGATEOPERATION = "ScalarAggregate";
+    private static final String NESTEDLOOPJOINOPERATION = "NestedLoopJoin";
 
     public static final String CLASS_NAME = XPlainTraceIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -125,6 +127,81 @@ public class XPlainTraceIT extends XPlainTrace {
     }
 
     @Test
+    public void testXPlainTraceOnOff() throws Exception {
+        connection = SpliceNetConnection.getConnection();
+        statement = connection.createStatement();
+
+        // Turn on explain trace
+        statement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
+        statement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
+
+        String sql = "select * from " + CLASS_NAME + "." + TABLE1;
+        ResultSet rs = statement.executeQuery(sql);
+        int c = 0;
+        while (rs.next()) {
+            ++c;
+        }
+        Assert.assertEquals(c, nrows);
+        statement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0)");
+        statement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0)");
+
+        // Count the #of traced sql statements
+        sql = "select * from sys.sysstatementhistory";
+        rs = statement.executeQuery(sql);
+        int count = 0;
+        while (rs.next()) {
+            ++count;
+        }
+
+        // Execute the same statement. It should not be traced
+        sql = "select * from " + CLASS_NAME + "." + TABLE1;
+        rs = statement.executeQuery(sql);
+        c = 0;
+        while (rs.next()) {
+            ++c;
+        }
+        Assert.assertEquals(c, nrows);
+
+        sql = "select * from sys.sysstatementhistory";
+        rs = statement.executeQuery(sql);
+        c = 0;
+        while (rs.next()) {
+            ++c;
+        }
+        // # of traced statement should not change
+        Assert.assertEquals(c, count);
+
+        // Turn on xplain trace and run the same sql statement. It should be traced
+        statement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
+        statement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
+        sql = "select * from " + CLASS_NAME + "." + TABLE1;
+        rs = statement.executeQuery(sql);
+        c = 0;
+        while (rs.next()) {
+            ++c;
+        }
+        Assert.assertEquals(c, nrows);
+        long statementId = 0;
+        rs = statement.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
+        if (rs.next()) {
+            statementId = rs.getLong(1);
+        }
+        waitForStatement(statementId);
+        statement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0)");
+        statement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0)");
+
+        sql = "select * from sys.sysstatementhistory";
+        rs = statement.executeQuery(sql);
+        c = 0;
+        while (rs.next()) {
+            ++c;
+        }
+        // # of traced statement should increase by 2:
+        // 1 for the sql statement, 1 for call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()
+        Assert.assertEquals(c, count+2);
+    }
+
+    @Test
     public void testTableScan() throws Exception {
         turnOnTrace();
 
@@ -153,7 +230,7 @@ public class XPlainTraceIT extends XPlainTrace {
 
         String operationType = topOperation.getOperationType();
 
-        Assert.assertEquals(topOperation.getOperationType().contains(TABLESCANOPERATION), true);
+        Assert.assertEquals(operationType.contains(TABLESCANOPERATION), true);
         Assert.assertEquals(topOperation.getLocalScanRows(), nrows);
     }
 
@@ -164,17 +241,19 @@ public class XPlainTraceIT extends XPlainTrace {
         String sql = "select count(*) from " + CLASS_NAME + "." + TABLE1;
         ResultSet rs = statement.executeQuery(sql);
         int count = 0;
-        while (rs.next()) {
-            ++count;
+        if (rs.next()) {
+            count = rs.getInt(1);
         }
-        Assert.assertEquals(count, 1);
+        Assert.assertEquals(count, 10);
 
         long statementId = 0;
         rs = statement.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
         if (rs.next()) {
             statementId = rs.getLong(1);
         }
+
         turnOffTrace();
+
         waitForStatement(statementId);
 
         XPlainTraceIT xPlainTrace = new XPlainTraceIT();
@@ -185,8 +264,7 @@ public class XPlainTraceIT extends XPlainTrace {
         XPlainTreeNode topOperation = xPlainTrace.getTopOperation();
 
         String operationType = topOperation.getOperationType();
-
-        Assert.assertEquals(topOperation.getOperationType().compareTo(PROJECTRESTRICTOPERATION), 0);
+        Assert.assertEquals(operationType.compareTo(PROJECTRESTRICTOPERATION), 0);
         Assert.assertEquals(topOperation.getInputRows(), 1);
 
         // Should be ScalarAggregate
@@ -202,10 +280,66 @@ public class XPlainTraceIT extends XPlainTrace {
 
     @Test
     public void testNestedLoopJoin() throws Exception {
-        /*
-        select t1.i from --SPLICE-PROPERTIES joinOrder=FIXED
-        tab1 t1, tab2 t2 --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP
-        where t1.i = t2.i*2;
-         */
+
+        turnOnTrace();
+
+        String sql = "select * from " +
+                      CLASS_NAME + "." + TABLE1 + " t1, " + CLASS_NAME + "." + TABLE2 + " t2 " +
+                      "where t1.i = t2.i*2";
+        ResultSet rs = statement.executeQuery(sql);
+        int count = 0;
+        while (rs.next()) {
+            ++count;
+        }
+        Assert.assertEquals(count, 5);
+
+        long statementId = 0;
+        rs = statement.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
+        if (rs.next()) {
+            statementId = rs.getLong(1);
+        }
+
+        turnOffTrace();
+
+        waitForStatement(statementId);
+
+        XPlainTraceIT xPlainTrace = new XPlainTraceIT();
+        xPlainTrace.setStatementId(statementId);
+        xPlainTrace.setFormat("tree");
+        xPlainTrace.setMode(0);
+        xPlainTrace.setConnection(connection);
+
+        XPlainTreeNode operation = xPlainTrace.getTopOperation();
+        String operationType = operation.getOperationType();
+        Assert.assertEquals(operationType.compareTo(PROJECTRESTRICTOPERATION), 0);
+        Assert.assertEquals(operation.getInputRows(), count);
+        Assert.assertEquals(operation.getOutputRows(), count);
+
+        Assert.assertEquals(operation.getChildren().size(), 1);
+        operation = operation.getChildren().getFirst();
+        operationType = operation.getOperationType();
+        Assert.assertEquals(operationType.compareTo(NESTEDLOOPJOINOPERATION), 0);
+        Assert.assertEquals(operation.getInputRows(), nrows);
+        Assert.assertEquals(operation.getRemoteScanRows(), count);
+        Assert.assertEquals(operation.getOutputRows(), count);
+
+        // Must have two children
+        Assert.assertEquals(operation.getChildren().size(), 2);
+        // First child should be a bulk table scan operation
+        XPlainTreeNode child = operation.getChildren().getFirst();
+        operationType = child.getOperationType();
+        Assert.assertEquals(operationType.compareTo(BULKTABLESCANOPERATION), 0);
+        Assert.assertEquals(child.getLocalScanRows(), nrows);
+        Assert.assertEquals(child.getOutputRows(), nrows);
+
+        // right child should be a bulk table scan operation
+        child = operation.getChildren().getLast();
+        operationType = child.getOperationType();
+        Assert.assertEquals(operationType.compareTo(BULKTABLESCANOPERATION), 0);
+        Assert.assertEquals(child.getLocalScanRows(), nrows*nrows);
+        Assert.assertEquals(child.getOutputRows(), count);
+        Assert.assertEquals(child.getFilteredRows(), nrows*nrows - count);
+        Assert.assertEquals(child.getIterations(), nrows);
+
     }
 }

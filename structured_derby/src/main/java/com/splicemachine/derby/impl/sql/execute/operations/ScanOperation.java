@@ -148,7 +148,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 						currentTemplate = currentRow.getClone();
 						if (currentRowLocation == null)
 								currentRowLocation = new HBaseRowLocation();
-                        if(shouldRecordStats()&& info == null) {
+                        if(shouldRecordStats()) {
                             if(scanQualifiersField != null ) {
                                 getScanQualifiersInStringFormat();
                             }
@@ -174,7 +174,12 @@ public abstract class ScanOperation extends SpliceBaseOperation {
                         qualifiersString += q.getText();
                     }
                 }
-                info = (info == null) ? qualifiersString : info + qualifiersString;
+                if (info == null) {
+                    info = qualifiersString;
+                }
+                else if (!info.contains(qualifiersString)) {
+                    info +=", " + qualifiersString;
+                }
             }
         }
 		@Override
@@ -314,7 +319,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				}
 		}
 
-		@Override
+		/*@Override
 		public String getName() {
 				/*
 				 * TODO -sf- tableName and indexName are actually conglomerate ids, not
@@ -325,14 +330,14 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				 * to look for them later; at some point the Query Optimizer will
 				 * need to be invoked to ensure that the human readable name gets
 				 * passed through.
-				 */
+				 *
 				String baseName =  super.getName();
 				if(this.tableName!=null){
 						baseName+="(table="+tableName+")";
 				}else if(this.indexName!=null)
 						baseName+="(index="+indexName+")";
 				return baseName;
-		}
+		}*/
 
 		public String getTableName(){
 				return this.tableName;
