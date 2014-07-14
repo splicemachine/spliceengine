@@ -6,6 +6,9 @@ angular
 		'ngResource',
 		'ngSanitize',
 		'ngRoute',
+		'angularTreeview',
+		'treeControl',
+		'ui.tree',
 		'spliceAdminServices',
 		'spliceAdminControllers',
 		'spliceAdminDirectives'
@@ -30,12 +33,85 @@ angular
 					}]
 				}
 			})
+			.when('/traced-statements-basic/:statementId', {
+				templateUrl: 'views/traced-statement-detail-basic.html',
+				controller: 'tracedStatementDetailController',
+				// Do not render until the traced statement has been returned from the Splice REST services.
+				// In the future, we can start rendering the tree and refresh it as the REST services return.
+				resolve: {
+					tracedStatement: ['tracedStatementDetailService', '$route', function(tracedStatementDetailService, $route) {
+						return tracedStatementDetailService.get({statementId: $route.current.params.statementId}).$promise;
+					}],
+					tracedStatementSQL: ['tracedStatementSQLService', '$route', function(tracedStatementSQLService, $route) {
+						return tracedStatementSQLService.query({statementId: $route.current.params.statementId}).$promise;
+					}]
+				}
+			})
+			.when('/traced-statements-d3/:statementId', {
+				templateUrl: 'views/traced-statement-detail-d3.html',
+				controller: 'tracedStatementDetailController',
+				// Do not render until the traced statement has been returned from the Splice REST services.
+				// In the future, we can start rendering the tree and refresh it as the REST services return.
+				resolve: {
+					tracedStatement: ['tracedStatementDetailService', '$route', function(tracedStatementDetailService, $route) {
+						return tracedStatementDetailService.get({statementId: $route.current.params.statementId}).$promise;
+					}],
+					tracedStatementSQL: ['tracedStatementSQLService', '$route', function(tracedStatementSQLService, $route) {
+						return tracedStatementSQLService.query({statementId: $route.current.params.statementId}).$promise;
+					}]
+				}
+			})
+			.when('/traced-statements-treeview/:statementId', {
+				templateUrl: 'views/traced-statement-detail-treeview.html',
+				controller: 'tracedStatementDetailController',
+				// Do not render until the traced statement has been returned from the Splice REST services.
+				// In the future, we can start rendering the tree and refresh it as the REST services return.
+				resolve: {
+					tracedStatement: ['tracedStatementDetailService', '$route', function(tracedStatementDetailService, $route) {
+						return tracedStatementDetailService.get({statementId: $route.current.params.statementId}).$promise;
+					}],
+					tracedStatementSQL: ['tracedStatementSQLService', '$route', function(tracedStatementSQLService, $route) {
+						return tracedStatementSQLService.query({statementId: $route.current.params.statementId}).$promise;
+					}]
+				}
+			})
+			.when('/traced-statements-tree-control/:statementId', {
+				templateUrl: 'views/traced-statement-detail-tree-control.html',
+				controller: 'tracedStatementDetailController',
+				// Do not render until the traced statement has been returned from the Splice REST services.
+				// In the future, we can start rendering the tree and refresh it as the REST services return.
+				resolve: {
+					tracedStatement: ['tracedStatementDetailService', '$route', function(tracedStatementDetailService, $route) {
+						return tracedStatementDetailService.get({statementId: $route.current.params.statementId}).$promise;
+					}],
+					tracedStatementSQL: ['tracedStatementSQLService', '$route', function(tracedStatementSQLService, $route) {
+						return tracedStatementSQLService.query({statementId: $route.current.params.statementId}).$promise;
+					}]
+				}
+			})
+			.when('/traced-statements-ui-tree/:statementId', {
+				templateUrl: 'views/traced-statement-detail-ui-tree.html',
+				controller: 'tracedStatementDetailController',
+				// Do not render until the traced statement has been returned from the Splice REST services.
+				// In the future, we can start rendering the tree and refresh it as the REST services return.
+				resolve: {
+					tracedStatement: ['tracedStatementDetailService', '$route', function(tracedStatementDetailService, $route) {
+						return tracedStatementDetailService.get({statementId: $route.current.params.statementId}).$promise;
+					}],
+					tracedStatementSQL: ['tracedStatementSQLService', '$route', function(tracedStatementSQLService, $route) {
+						return tracedStatementSQLService.query({statementId: $route.current.params.statementId}).$promise;
+					}]
+				}
+			})
 			.when('/home', {
 				templateUrl: 'views/main.html',
 				controller: 'mainController'
 			})
 			.when('/contact', {
 				templateUrl: 'views/contact.html'
+			})
+			.when('/d3-bars', {
+				templateUrl: 'views/d3-bars.html'
 			})
 			.otherwise({
 				redirectTo: '/home'

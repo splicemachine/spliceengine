@@ -11,10 +11,16 @@
     "angular-cookies": "1.2.15",
     "angular-sanitize": "1.2.15",
     "angular-route": "1.2.15",
-    "d3": "~3.4.9"
+    "d3": "~3.4.9",
+    "angular-ui-tree": "~2.1.4",
+    "angular-tree-control": "~0.2.2",
+    "angular.treeview": "*"
   },
   "devDependencies": {
     "angular-mocks": "1.2.15",
     "angular-scenario": "1.2.15"
+  },
+  "resolutions": {
+    "es5-shim": "~2.1.0"
   }
 }
