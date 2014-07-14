@@ -591,7 +591,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
                 ctx.addLast(deleteHandler);
                 ctx.addLast(writeHandler);
             } else {
-                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getTxn());
+                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getTxn(),ddlChange.getParentTxn());
                 ctx.addLast(new SnapshotIsolatedWriteHandler(deleteHandler, ddlFilter));
                 ctx.addLast(new SnapshotIsolatedWriteHandler(writeHandler, ddlFilter));
             }
@@ -658,7 +658,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<Transaction
             if (ddlChange == null) {
                 ctx.addLast(handler);
             } else {
-                    DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getTxn());
+                    DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getTxn(),ddlChange.getParentTxn());
                 ctx.addLast(new SnapshotIsolatedWriteHandler(handler, ddlFilter));
             }
         }

@@ -2,15 +2,14 @@ package com.splicemachine.derby.ddl;
 
 import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.impl.InheritingTxnView;
+import com.splicemachine.si.impl.Transaction;
 
 import java.io.*;
 
 public class DDLChange implements Externalizable {
 
-    public void setTxn(Txn txn) {
-        this.txn = txn;
-    }
 
     public enum TentativeType {
         CHANGE_PK, ADD_CHECK, CREATE_FK, CREATE_INDEX, ADD_NOT_NULL, ADD_COLUMN, DROP_COLUMN
@@ -21,6 +20,7 @@ public class DDLChange implements Externalizable {
     private TentativeDDLDesc tentativeDDLDesc;
     private Txn txn;
 
+    private Txn parentTxn;
     /*Serialization constructor*/
     public DDLChange(){}
 
@@ -34,9 +34,17 @@ public class DDLChange implements Externalizable {
         this.changeType = type;
     }
 
+    public void setTxn(Txn txn) {
+        this.txn = txn;
+    }
+
     public Txn getTxn() {
         return txn;
     }
+
+    public Txn getParentTxn() { return parentTxn; }
+
+    public void setParentTxn(Txn parentTxn) { this.parentTxn = parentTxn; }
 
     public DDLChangeType getChangeType() {
         return changeType;
@@ -73,6 +81,11 @@ public class DDLChange implements Externalizable {
         out.writeLong(txn.getParentTransaction().getTxnId());
         out.writeBoolean(txn.isDependent());
         out.writeBoolean(txn.isAdditive());
+
+        out.writeLong(parentTxn.getTxnId());
+        out.writeLong(parentTxn.getParentTransaction().getTxnId());
+        out.writeBoolean(parentTxn.isDependent());
+        out.writeBoolean(parentTxn.isAdditive());
     }
 
     @Override
@@ -104,5 +117,15 @@ public class DDLChange implements Externalizable {
                 ", tentativeDDLDesc=" + tentativeDDLDesc +
                 ", identifier='" + changeId + '\'' +
                 '}';
+        TxnSupplier txnSupplier = TransactionStorage.getTxnSupplier();
+        txn = txnSupplier.getTransaction(txnId);
+
+        long pTxnId = in.readLong();
+        long pBeginTs = in.readLong();
+        long pParentTxnId = in.readLong();
+        boolean pDependent = in.readBoolean();
+        boolean pAdditive = in.readBoolean();
+
+        parentTxn = txnSupplier.getTransaction(txnId);
     }
 }

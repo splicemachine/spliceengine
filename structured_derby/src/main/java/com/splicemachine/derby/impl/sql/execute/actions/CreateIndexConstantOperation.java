@@ -732,8 +732,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             Txn parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
             try {
                 TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
-                tentativeTransaction = lifecycleManager.beginChildTransaction(parentTxn,
-                        Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,false,Bytes.toBytes(Long.toString(heapConglomerateId)));
+                tentativeTransaction = lifecycleManager.beginTransaction(Bytes.toBytes(Long.toString(heapConglomerateId)));
             } catch (IOException e) {
                 LOG.error("Couldn't start transaction for tentative DDL operation");
                 throw Exceptions.parseException(e);
@@ -745,6 +744,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             DDLChange ddlChange = new DDLChange(tentativeTransaction,
                     DDLChangeType.CREATE_INDEX);
             ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
+            ddlChange.setParentTxn(parentTxn);
 
             notifyMetadataChange(ddlChange);
 
