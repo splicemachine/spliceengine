@@ -432,15 +432,15 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
     protected StandardIterator<ExecRow> getSourceIterator(SpliceRuntimeContext spliceRuntimeContext, int[] groupingKeys) throws StandardException, IOException {
         StandardIterator<ExecRow> sourceIterator;PairDecoder pairDecoder = OperationUtils.getPairDecoder(this, spliceRuntimeContext);
-//        if(!spliceRuntimeContext.isSink()){
-//            TempTable tempTable = SpliceDriver.driver().getTempTable();
-//            byte[] temp = tempTable.getTempTableName();
-//            AbstractRowKeyDistributor distributor = new FilteredRowKeyDistributor(new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(tempTable.getCurrentSpread())),getUsedTempBuckets());
-//            sourceIterator = AsyncScanIterator.create(temp, distributor.getDistributedScans(reduceScan), pairDecoder,spliceRuntimeContext);
-//        }else{
+        if(!spliceRuntimeContext.isSink()){
+            TempTable tempTable = SpliceDriver.driver().getTempTable();
+            byte[] temp = tempTable.getTempTableName();
+            AbstractRowKeyDistributor distributor = new FilteredRowKeyDistributor(new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(tempTable.getCurrentSpread())),getUsedTempBuckets());
+            sourceIterator = AsyncScanIterator.create(temp, distributor.getDistributedScans(reduceScan), pairDecoder,spliceRuntimeContext);
+        }else{
             scanner = getResultScanner(groupingKeys,spliceRuntimeContext,getHashPrefix().getPrefixLength());
             sourceIterator = new ScanIterator(scanner, pairDecoder);
-//        }
+        }
         return sourceIterator;
     }
 
