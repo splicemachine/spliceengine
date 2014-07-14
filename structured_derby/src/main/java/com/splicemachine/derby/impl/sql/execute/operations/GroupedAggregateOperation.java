@@ -269,20 +269,24 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 								return super.bucket(hashBytes);
 
 						/*
-						 * If the row is distinct, then the grouping key is a combination of <actual grouping keys> <distinct column>
-						 * So to get the proper bucket, we need to hash only the grouping keys, so we have to first strip out
-						 * the excess grouping keys
+						 * If the row is distinct, then the grouping key is a combination
+						 * of <actual grouping keys> <distinct column>
+						 * So to get the proper bucket, we need to hash only the grouping
+						 * keys, so we have to first strip out the excess grouping keys
 						 */
 						if(decoder==null)
 								decoder = MultiFieldDecoder.create();
 
+                    // calculate the length in bytes of grouping keys by skipping over them
 						decoder.set(hashBytes);
 						int offset = decoder.offset();
-						int length = DerbyBytesUtil.skip(decoder, groupingKeys, fields);
+						int skipLength = DerbyBytesUtil.skip(decoder, groupingKeys, fields);
+                    // if there were keys to skip, decrement to account for final field separator
+                        int keyLength = Math.max(0, skipLength - 1);
 
-						if(offset+length>hashBytes.length)
-								length = hashBytes.length-offset;
-						return spreadBucket.bucket(hashFunction.hash(hashBytes,offset,length));
+						if(offset+keyLength>hashBytes.length)
+								keyLength = hashBytes.length-offset;
+						return spreadBucket.bucket(hashFunction.hash(hashBytes,offset,keyLength));
 				}
 		}
 
