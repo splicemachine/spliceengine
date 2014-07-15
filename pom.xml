@@ -438,6 +438,11 @@
 					<artifactId>hadoop-hdfs</artifactId>
 					<version>${hadoop.version}</version>
 				</dependency>
+                <dependency>
+                    <groupId>org.hbase</groupId>
+                    <artifactId>asynchbase</artifactId>
+                    <version>1.4.0</version>
+                </dependency>
 			</dependencies>
 			<repositories>
 				<repository>

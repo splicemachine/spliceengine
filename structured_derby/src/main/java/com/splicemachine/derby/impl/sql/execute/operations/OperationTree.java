@@ -52,12 +52,12 @@ public class OperationTree {
     public static SpliceNoPutResultSet executeTree(SpliceOperation root,
                                                    final SpliceRuntimeContext ctx,
                                                    boolean useProbe)
-        throws StandardException{
+            throws StandardException, IOException {
         sink(root, ctx);
         return useProbe ? root.executeProbeScan() : root.executeScan(ctx);
     }
 
-    public static void sink(SpliceOperation root, SpliceRuntimeContext ctx) throws StandardException {
+    public static void sink(SpliceOperation root, SpliceRuntimeContext ctx) throws StandardException, IOException {
         List<SinkingOperation> deps = immediateSinkDependencies(root);
         if (deps.size() > 0){
             List<ForkJoinTask> futures = Lists.newArrayListWithExpectedSize(deps.size());
