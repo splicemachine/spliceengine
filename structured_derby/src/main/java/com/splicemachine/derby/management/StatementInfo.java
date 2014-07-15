@@ -3,6 +3,7 @@ package com.splicemachine.derby.management;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.Snowflake;
+import org.apache.derby.iapi.tools.run;
 
 import java.beans.ConstructorProperties;
 import java.io.IOException;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -54,13 +56,24 @@ public class StatementInfo {
 				this.sql = sql;
         this.txn = txn.getTxnId();
 
-				if(numSinks>0){
-						runningJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
-						completedJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
-				}else{
-						runningJobIds = completedJobIds = null;
-				}
-				this.operationInfo = Collections.newSetFromMap(new ConcurrentHashMap<OperationInfo, Boolean>());
+        if(numSinks>0){
+            runningJobIds = new CopyOnWriteArraySet<JobInfo>();
+            completedJobIds = new CopyOnWriteArraySet<JobInfo>();
+//            runningJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
+//            completedJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
+        }else{
+            runningJobIds = completedJobIds = null;
+        }
+        this.operationInfo = new CopyOnWriteArraySet<OperationInfo>();
+//        this.operationInfo = Collections.newSetFromMap(new ConcurrentHashMap<OperationInfo, Boolean>());
+
+//				if(numSinks>0){
+//						runningJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
+//						completedJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
+//				}else{
+//						runningJobIds = completedJobIds = null;
+//				}
+//				this.operationInfo = Collections.newSetFromMap(new ConcurrentHashMap<OperationInfo, Boolean>());
 
 				this.statementUuid = uuidGenerator.nextUUID();
 				this.startTimeMs = System.currentTimeMillis();
