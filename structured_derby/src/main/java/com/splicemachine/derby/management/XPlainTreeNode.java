@@ -33,54 +33,54 @@ public class XPlainTreeNode {
     @Expose private String region;
 
     @Expose private long totalWallTime;
-    @Expose private long totalUserTime;
-    @Expose private long totalCPUTime;
+            private long totalUserTime;
+            private long totalCPUTime;
 
     @Expose private long localScanRows;
-    @Expose private long localScanBytes;
+            private long localScanBytes;
     @Expose private long localScanWallTime;
-    @Expose private long localScanCPUTime;
-    @Expose private long localScanUserTime;
+            private long localScanCPUTime;
+            private long localScanUserTime;
 
     @Expose private long remoteScanRows;
-    @Expose private long remoteScanBytes;
+            private long remoteScanBytes;
     @Expose private long remoteScanWallTime;
-    @Expose private long remoteScanCPUTime;
-    @Expose private long remoteScanUserTime;
+            private long remoteScanCPUTime;
+            private long remoteScanUserTime;
 
     @Expose private long remoteGetRows;
-    @Expose private long remoteGetBytes;
+            private long remoteGetBytes;
     @Expose private long remoteGetWallTime;
-    @Expose private long remoteGetCPUTime;
-    @Expose private long remoteGetUserTime;
+            private long remoteGetCPUTime;
+            private long remoteGetUserTime;
 
     @Expose private long writeRows;
-    @Expose private long writeBytes;
+            private long writeBytes;
 
-    @Expose private long processingWallTime;
-    @Expose private long processingCPUTime;
-    @Expose private long processingUserTime;
+            private long processingWallTime;
+            private long processingCPUTime;
+            private long processingUserTime;
 
-    @Expose private long filteredRows;
+            private long filteredRows;
     @Expose private long inputRows;
     @Expose private long outputRows;
 
-    @Expose private long writeSleepWallTime;
-    @Expose private long writeSleepCPUTime;
-    @Expose private long writeSleepUserTime;
+            private long writeSleepWallTime;
+            private long writeSleepCPUTime;
+            private long writeSleepUserTime;
 
-    @Expose private long rejectedWriteAttempts;
-    @Expose private long retriedWriteAttempts;
-    @Expose private long failedWriteAttempts;
-    @Expose private long partialWriteFailures;
+            private long rejectedWriteAttempts;
+            private long retriedWriteAttempts;
+            private long failedWriteAttempts;
+            private long partialWriteFailures;
 
-    @Expose private long writeNetworkWallTime;
-    @Expose private long writeNetworkCPUTime;
-    @Expose private long writeNetworkUserTime;
+            private long writeNetworkWallTime;
+            private long writeNetworkCPUTime;
+            private long writeNetworkUserTime;
 
-    @Expose private long writeThreadWallTime;
-    @Expose private long writeThreadCPUTime;
-    @Expose private long writeThreadUserTime;
+    @Expose private long writeTotalWallTime;
+            private long writeTotalCPUTime;
+            private long writeTotalUserTime;
 
     @Expose private Deque<XPlainTreeNode> children;
 

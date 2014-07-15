@@ -148,10 +148,11 @@ public class TableScanOperation extends ScanOperation {
 						regionScanner.start();
 
                 String tableNameInfo = null;
-                if(this.tableName!=null){
-                    tableNameInfo = "table:"+tableName;
-                }else if(this.indexName!=null) {
+                if(this.indexName!=null) {
                     tableNameInfo = "index:" + indexName + ")";
+                }
+                else if(this.tableName!=null){
+                    tableNameInfo = "table:"+tableName;
                 }
 
                 if (info == null) {

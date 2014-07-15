@@ -135,8 +135,11 @@ public class BroadcastJoinOperation extends JoinOperation {
         ExecRow next = joiner.nextRow(ctx);
         setCurrentRow(next);
         if (next == null) {
-            timer.tick(leftCounter.getTotal());
+            timer.tick(0);
             stopExecutionTime = System.currentTimeMillis();
+        }
+        else{
+            timer.tick(1);
         }
         return next;
     }
@@ -228,7 +231,6 @@ public class BroadcastJoinOperation extends JoinOperation {
 
     @Override
     protected void updateStats(OperationRuntimeStats stats) {
-        // TODO: jyuan -- fix statistics after merging
         if (timer == null) return;
         long left = leftCounter.getTotal();
         stats.addMetric(OperationMetric.INPUT_ROWS, left);
@@ -237,15 +239,6 @@ public class BroadcastJoinOperation extends JoinOperation {
         stats.addMetric(OperationMetric.TOTAL_WALL_TIME, time.getWallClockTime());
         stats.addMetric(OperationMetric.TOTAL_CPU_TIME, time.getCpuTime());
         stats.addMetric(OperationMetric.TOTAL_USER_TIME, time.getUserTime());
-        //long right = rightCounter.getTotal();
-        //stats.addMetric(OperationMetric.FILTERED_ROWS, left * right - timer.getNumEvents());
-        //stats.addMetric(OperationMetric.INPUT_ROWS, left + right);
-        //stats.addMetric(OperationMetric.INPUT_ROWS, left);
-        //stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME, remoteScanWallTime);
-        //stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME, remoteScanCpuTime);
-        //stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME, remoteScanUserTime);
-        //stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS, rowsSeenRight);
-        //stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,bytesReadRight);
 
         TimeView remoteTime = rightHandTimer.getTime();
         stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS, rightHandTimer.getRows());

@@ -23,12 +23,14 @@ public class XPlainTraceIT extends XPlainTrace {
     private static final String STATEMENT_TABLE = "SYS.SYSSTATEMENTHISTORY";
     private static final String TASK_TABLE = "SYS.SYSTASKHISTORY";
 
-    private static final String SCROLLINSENSITIVEOPERATION = "ScrollInsensitive";
-    private static final String TABLESCANOPERATION = "TableScan";
-    private static final String BULKTABLESCANOPERATION = "BulkTableScan";
-    private static final String PROJECTRESTRICTOPERATION = "ProjectRestrict";
-    private static final String SCALARAGGREGATEOPERATION = "ScalarAggregate";
-    private static final String NESTEDLOOPJOINOPERATION = "NestedLoopJoin";
+    private static final String SCROLLINSENSITIVE = "ScrollInsensitive";
+    private static final String TABLESCAN = "TableScan";
+    private static final String BULKTABLESCAN = "BulkTableScan";
+    private static final String PROJECTRESTRICT = "ProjectRestrict";
+    private static final String SCALARAGGREGATE = "ScalarAggregate";
+    private static final String NESTEDLOOPJOIN = "NestedLoopJoin";
+    private static final String MERGESORTJOIN = "MergeSortJoin";
+    private static final String BROADCASTJOIN = "BroadcastJoin";
 
     public static final String CLASS_NAME = XPlainTraceIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -112,6 +114,20 @@ public class XPlainTraceIT extends XPlainTrace {
         }
     }
 
+    private XPlainTreeNode getTopOperation(long statementId) throws Exception{
+
+        waitForStatement(statementId);
+
+        XPlainTraceIT xPlainTrace = new XPlainTraceIT();
+        xPlainTrace.setStatementId(statementId);
+        xPlainTrace.setFormat("tree");
+        xPlainTrace.setMode(0);
+        xPlainTrace.setConnection(connection);
+
+        XPlainTreeNode operation = xPlainTrace.getTopOperation();
+        return operation;
+
+    }
     // Turn on xplain trace
     private void turnOnTrace() throws Exception {
         connection = SpliceNetConnection.getConnection();
@@ -124,6 +140,116 @@ public class XPlainTraceIT extends XPlainTrace {
     private void turnOffTrace() throws Exception {
         statement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0)");
         statement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0)");
+    }
+
+    @Test
+    public void testIndexLookup() throws Exception {
+        turnOnTrace();
+        String createIndex = "Create index ti on " + CLASS_NAME + "." + TABLE1 + "(i)";
+        statement.execute(createIndex);
+
+        String sql = "select * from " + CLASS_NAME + "." + TABLE1 + " where i = 1";
+        ResultSet rs = statement.executeQuery(sql);
+        int count = 0;
+        while(rs.next()) {
+            ++count;
+        }
+        Assert.assertEquals(count, 1);
+
+
+        long statementId = 0;
+        rs = statement.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
+        if (rs.next()) {
+            statementId = rs.getLong(1);
+        }
+        turnOffTrace();
+
+        XPlainTreeNode operation = getTopOperation(statementId);
+        String operationType = operation.getOperationType();
+
+        statement.execute("drop index ti");
+    }
+
+    @Test
+    public void testBroadcastJoin() throws Exception {
+        turnOnTrace();
+
+        String sql = "select * from " +
+                CLASS_NAME + "." + TABLE1 + " t1, " + CLASS_NAME + "." + TABLE2 + " t2 " +
+                "where t1.i = t2.i";
+        ResultSet rs = statement.executeQuery(sql);
+        int count = 0;
+        while (rs.next()) {
+            ++count;
+        }
+        Assert.assertEquals(count, 10);
+
+        long statementId = 0;
+        rs = statement.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
+        if (rs.next()) {
+            statementId = rs.getLong(1);
+        }
+
+        turnOffTrace();
+
+        waitForStatement(statementId);
+
+        XPlainTraceIT xPlainTrace = new XPlainTraceIT();
+        xPlainTrace.setStatementId(statementId);
+        xPlainTrace.setFormat("tree");
+        xPlainTrace.setMode(0);
+        xPlainTrace.setConnection(connection);
+
+        XPlainTreeNode operation = xPlainTrace.getTopOperation();
+        String operationType = operation.getOperationType();
+
+        Assert.assertTrue(operationType.compareToIgnoreCase(BROADCASTJOIN)==0);
+        Assert.assertEquals(operation.getInputRows(), 10);
+        Assert.assertEquals(operation.getOutputRows(), 10);
+        Assert.assertEquals(operation.getWriteRows(), 0);
+        Assert.assertEquals(operation.getRemoteScanRows(), 10);
+        Assert.assertTrue(operation.getInfo().contains("Join Condition:(T1.I[4:1] = T2.I[4:2])"));
+    }
+
+    @Test
+    public void testMergeSortJoin() throws Exception {
+        turnOnTrace();
+
+        String sql = "select * from \n" +
+                CLASS_NAME + "." + TABLE1 + " t1, " + CLASS_NAME + "." + TABLE2 + " t2 --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n" +
+                "where t1.i = t2.i";
+        ResultSet rs = statement.executeQuery(sql);
+        int count = 0;
+        while (rs.next()) {
+            ++count;
+        }
+        Assert.assertEquals(count, 10);
+
+        long statementId = 0;
+        rs = statement.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
+        if (rs.next()) {
+            statementId = rs.getLong(1);
+        }
+
+        turnOffTrace();
+
+        waitForStatement(statementId);
+
+        XPlainTraceIT xPlainTrace = new XPlainTraceIT();
+        xPlainTrace.setStatementId(statementId);
+        xPlainTrace.setFormat("tree");
+        xPlainTrace.setMode(0);
+        xPlainTrace.setConnection(connection);
+
+        XPlainTreeNode operation = xPlainTrace.getTopOperation();
+        String operationType = operation.getOperationType();
+
+        Assert.assertTrue(operationType.compareToIgnoreCase(MERGESORTJOIN)==0);
+        Assert.assertTrue(operation.getInfo().contains("Join Condition:(T1.I[4:1] = T2.I[4:2])"));
+        Assert.assertEquals(operation.getInputRows(), nrows);
+        Assert.assertEquals(operation.getOutputRows(), nrows);
+        Assert.assertEquals(operation.getWriteRows(), 2*nrows);
+        Assert.assertEquals(operation.getRemoteScanRows(), 2*nrows);
     }
 
     @Test
@@ -205,13 +331,13 @@ public class XPlainTraceIT extends XPlainTrace {
     public void testTableScan() throws Exception {
         turnOnTrace();
 
-        String sql = "select * from " + CLASS_NAME + "." + TABLE1;
+        String sql = "select * from " + CLASS_NAME + "." + TABLE1 + " where i > 0";
         ResultSet rs = statement.executeQuery(sql);
         int count = 0;
         while (rs.next()) {
             ++count;
         }
-        Assert.assertEquals(count, nrows);
+        Assert.assertEquals(count, nrows-1);
 
         long statementId = 0;
         rs = statement.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
@@ -230,8 +356,9 @@ public class XPlainTraceIT extends XPlainTrace {
 
         String operationType = topOperation.getOperationType();
 
-        Assert.assertEquals(operationType.contains(TABLESCANOPERATION), true);
+        Assert.assertEquals(operationType.contains(TABLESCAN), true);
         Assert.assertEquals(topOperation.getLocalScanRows(), nrows);
+        Assert.assertTrue(topOperation.getInfo().contains("Scan filter:(I[0:1] > 0), table:"));
     }
 
     @Test
@@ -264,7 +391,7 @@ public class XPlainTraceIT extends XPlainTrace {
         XPlainTreeNode topOperation = xPlainTrace.getTopOperation();
 
         String operationType = topOperation.getOperationType();
-        Assert.assertEquals(operationType.compareTo(PROJECTRESTRICTOPERATION), 0);
+        Assert.assertEquals(operationType.compareTo(PROJECTRESTRICT), 0);
         Assert.assertEquals(topOperation.getInputRows(), 1);
 
         // Should be ScalarAggregate
@@ -272,7 +399,7 @@ public class XPlainTraceIT extends XPlainTrace {
         Assert.assertEquals(children.size(), 1);
 
         XPlainTreeNode child = children.getFirst();
-        Assert.assertEquals(child.getOperationType().compareTo(SCALARAGGREGATEOPERATION), 0);
+        Assert.assertEquals(child.getOperationType().compareTo(SCALARAGGREGATE), 0);
         Assert.assertEquals(child.getInputRows(), 10);
         Assert.assertEquals(child.getOutputRows(), 1);
         Assert.assertEquals(child.getWriteRows(), 1);
@@ -311,14 +438,14 @@ public class XPlainTraceIT extends XPlainTrace {
 
         XPlainTreeNode operation = xPlainTrace.getTopOperation();
         String operationType = operation.getOperationType();
-        Assert.assertEquals(operationType.compareTo(PROJECTRESTRICTOPERATION), 0);
+        Assert.assertEquals(operationType.compareTo(PROJECTRESTRICT), 0);
         Assert.assertEquals(operation.getInputRows(), count);
         Assert.assertEquals(operation.getOutputRows(), count);
 
         Assert.assertEquals(operation.getChildren().size(), 1);
         operation = operation.getChildren().getFirst();
         operationType = operation.getOperationType();
-        Assert.assertEquals(operationType.compareTo(NESTEDLOOPJOINOPERATION), 0);
+        Assert.assertEquals(operationType.compareTo(NESTEDLOOPJOIN), 0);
         Assert.assertEquals(operation.getInputRows(), nrows);
         Assert.assertEquals(operation.getRemoteScanRows(), count);
         Assert.assertEquals(operation.getOutputRows(), count);
@@ -328,18 +455,18 @@ public class XPlainTraceIT extends XPlainTrace {
         // First child should be a bulk table scan operation
         XPlainTreeNode child = operation.getChildren().getFirst();
         operationType = child.getOperationType();
-        Assert.assertEquals(operationType.compareTo(BULKTABLESCANOPERATION), 0);
+        Assert.assertEquals(operationType.compareTo(BULKTABLESCAN), 0);
         Assert.assertEquals(child.getLocalScanRows(), nrows);
         Assert.assertEquals(child.getOutputRows(), nrows);
 
         // right child should be a bulk table scan operation
         child = operation.getChildren().getLast();
         operationType = child.getOperationType();
-        Assert.assertEquals(operationType.compareTo(BULKTABLESCANOPERATION), 0);
+        Assert.assertEquals(operationType.compareTo(BULKTABLESCAN), 0);
         Assert.assertEquals(child.getLocalScanRows(), nrows*nrows);
         Assert.assertEquals(child.getOutputRows(), count);
         Assert.assertEquals(child.getFilteredRows(), nrows*nrows - count);
         Assert.assertEquals(child.getIterations(), nrows);
-
+        Assert.assertTrue(child.getInfo().contains("Scan filter:(T1.I[2:1] = (T2.I[0:1] * 2)), table:"));
     }
 }

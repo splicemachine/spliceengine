@@ -159,13 +159,16 @@ public class XPlainTraceTreePrinter extends XPlainTraceBasePrinter{
                 if (isStringMetric(columnName)) {
                     val = (String)field.get(operation);
                     if (val != null && val.length() > 0) {
-                        if (first) {
-                            first = false;
-                        } else {
-                            sb.append(",");
-                        }
                         legend.use(columnName);
-                        sb.append(legend.getShortName(columnName)).append("=").append(val);
+                        String shortName = legend.getShortName(columnName);
+                        if (shortName != null) {
+                            if (first) {
+                                first = false;
+                            } else {
+                                sb.append(",");
+                            }
+                            sb.append(shortName).append("=").append(val);
+                        }
                     }
 
                 }
@@ -175,13 +178,17 @@ public class XPlainTraceTreePrinter extends XPlainTraceBasePrinter{
                         l = l / 1000000;
                     }*/
                     if (field.getName().compareToIgnoreCase("iterations") != 0 && l > 0 ||  l > 1) {
-                        if (first) {
-                            first = false;
-                        } else {
-                            sb.append(",");
-                        }
+
                         legend.use(columnName);
-                        sb.append(legend.getShortName(columnName)).append("=").append(l);
+                        String shortName = legend.getShortName(columnName);
+                        if (shortName != null) {
+                            if (first) {
+                                first = false;
+                            } else {
+                                sb.append(",");
+                            }
+                            sb.append(shortName).append("=").append(l);
+                        }
                     }
                 }
             }

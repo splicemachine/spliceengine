@@ -28,38 +28,38 @@ public class XPlainTraceLegend {
         legendMap.put("HOST", new LegendEntry("HOST", "H", false));
         legendMap.put("REGION", new LegendEntry("REGION", "R", false));
         legendMap.put("TOTALWALLTIME", new LegendEntry("TOTALWALLTIME", "TWT", false));
-        legendMap.put("TOTALUSERTIME", new LegendEntry("TOTALUSERTIME", "TUT", false));
-        legendMap.put("TOTALCPUTIME",  new LegendEntry("TOTALCPUTIME", "TCT", false));
+        //legendMap.put("TOTALUSERTIME", new LegendEntry("TOTALUSERTIME", "TUT", false));
+        //legendMap.put("TOTALCPUTIME",  new LegendEntry("TOTALCPUTIME", "TCT", false));
 
         legendMap.put("LOCALSCANROWS",  new LegendEntry("LOCALSCANROWS", "LSR", false));
-        legendMap.put("LOCALSCANBYTES",  new LegendEntry("LOCALSCANBYTES", "LSB", false));
+        //legendMap.put("LOCALSCANBYTES",  new LegendEntry("LOCALSCANBYTES", "LSB", false));
 
         legendMap.put("LOCALSCANWALLTIME",  new LegendEntry("LOCALSCANWALLTIME", "LSWT", false));
-        legendMap.put("LOCALSCANCPUTIME",  new LegendEntry("LOCALSCANCPUTIME", "LSCT", false));
-        legendMap.put("LOCALSCANUSERTIME",  new LegendEntry("LOCALSCANUSERTIME", "LSUT", false));
+        //legendMap.put("LOCALSCANCPUTIME",  new LegendEntry("LOCALSCANCPUTIME", "LSCT", false));
+        //legendMap.put("LOCALSCANUSERTIME",  new LegendEntry("LOCALSCANUSERTIME", "LSUT", false));
 
         legendMap.put("REMOTESCANROWS",  new LegendEntry("REMOTESCANROWS", "RSR", false));
-        legendMap.put("REMOTESCANBYTES",  new LegendEntry("REMOTESCANBYTES", "RSB", false));
+        //legendMap.put("REMOTESCANBYTES",  new LegendEntry("REMOTESCANBYTES", "RSB", false));
 
         legendMap.put("REMOTESCANWALLTIME",  new LegendEntry("REMOTESCANWALLTIME", "RSWT", false));
-        legendMap.put("REMOTESCANCPUTIME",  new LegendEntry("REMOTESCANCPUTIME", "RSCP", false));
-        legendMap.put("REMOTESCANUSERTIME",  new LegendEntry("REMOTESCANUSERTIME", "RSUT", false));
+        //legendMap.put("REMOTESCANCPUTIME",  new LegendEntry("REMOTESCANCPUTIME", "RSCP", false));
+        //legendMap.put("REMOTESCANUSERTIME",  new LegendEntry("REMOTESCANUSERTIME", "RSUT", false));
 
         legendMap.put("REMOTEGETROWS",  new LegendEntry("REMOTEGETROWS", "RGR", false));
-        legendMap.put("REMOTEGETBYTES",  new LegendEntry("REMOTEGETBYTES", "RGB", false));
+        //legendMap.put("REMOTEGETBYTES",  new LegendEntry("REMOTEGETBYTES", "RGB", false));
 
         legendMap.put("REMOTEGETWALLTIME",  new LegendEntry("REMOTEGETWALLTIME", "RGWT", false));
-        legendMap.put("REMOTEGETCPUTIME",  new LegendEntry("REMOTEGETCPUTIME", "RGCT", false));
-        legendMap.put("REMOTEGETUSERTIME",  new LegendEntry("REMOTEGETUSERTIME", "RGUT", false));
+        //legendMap.put("REMOTEGETCPUTIME",  new LegendEntry("REMOTEGETCPUTIME", "RGCT", false));
+        //legendMap.put("REMOTEGETUSERTIME",  new LegendEntry("REMOTEGETUSERTIME", "RGUT", false));
 
         legendMap.put("WRITEROWS",  new LegendEntry("WRITEROWS", "WR", false));
-        legendMap.put("WRITEBYTES",  new LegendEntry("WRITEBYTES", "WB", false));
+        //legendMap.put("WRITEBYTES",  new LegendEntry("WRITEBYTES", "WB", false));
 
-        legendMap.put("PROCESSINGWALLTIME",  new LegendEntry("PROCESSINGWALLTIME", "PWT", false));
-        legendMap.put("PROCESSINGCPUTIME",  new LegendEntry("PROCESSINGCPUTIME", "PCT", false));
-        legendMap.put("PROCESSINGUSERTIME",  new LegendEntry("PROCESSINGUSERTIME", "PUT", false));
+        //legendMap.put("PROCESSINGWALLTIME",  new LegendEntry("PROCESSINGWALLTIME", "PWT", false));
+        //legendMap.put("PROCESSINGCPUTIME",  new LegendEntry("PROCESSINGCPUTIME", "PCT", false));
+        //legendMap.put("PROCESSINGUSERTIME",  new LegendEntry("PROCESSINGUSERTIME", "PUT", false));
 
-        legendMap.put("FILTEREDROWS",  new LegendEntry("FILTEREDROWS", "FR", false));
+        //legendMap.put("FILTEREDROWS",  new LegendEntry("FILTEREDROWS", "FR", false));
         legendMap.put("TASKQUEUEWAITWALLTIME",  new LegendEntry("TASKQUEUEWAITWALLTIME", "TQWWT", false));
         legendMap.put("STARTTIMESTAMP",  new LegendEntry("STARTTIMESTAMP", "ST", false));
         legendMap.put("STOPTIMESTAMP",  new LegendEntry("STOPTIMESTAMP", "PT", false));
@@ -67,34 +67,41 @@ public class XPlainTraceLegend {
         legendMap.put("INPUTROWS",  new LegendEntry("INPUTROWS", "IR", false));
         legendMap.put("OUTPUTROWS",  new LegendEntry("OUTPUTROWS", "OR", false));
 
-        legendMap.put("WRITESLEEPWALLTIME",  new LegendEntry("WRITESLEEPWALLTIME", "WSWT", false));
-        legendMap.put("WRITESLEEPCPUTIME",  new LegendEntry("WRITESLEEPCPUTIME", "WSCT", false));
-        legendMap.put("WRITESLEEPUSERTIME",  new LegendEntry("WRITESLEEPUSERTIME", "WSUT", false));
+        //legendMap.put("WRITESLEEPWALLTIME",  new LegendEntry("WRITESLEEPWALLTIME", "WSWT", false));
+        //legendMap.put("WRITESLEEPCPUTIME",  new LegendEntry("WRITESLEEPCPUTIME", "WSCT", false));
+        //legendMap.put("WRITESLEEPUSERTIME",  new LegendEntry("WRITESLEEPUSERTIME", "WSUT", false));
 
-        legendMap.put("REJECTEDWRITEATTEMPTS",  new LegendEntry("REJECTEDWRITEATTEMPTS", "RJWA", false));
-        legendMap.put("RETRIEDWRITEATTEMPTS",  new LegendEntry("RETRIEDWRITEATTEMPTS", "RTWA", false));
-        legendMap.put("FAILEDWRITEATTEMPTS",  new LegendEntry("FAILEDWRITEATTEMPTS", "FWA", false));
-        legendMap.put("PARTIALWRITEFAILURES",  new LegendEntry("PARTIALWRITEFAILURESS", "PWF", false));
+        //legendMap.put("REJECTEDWRITEATTEMPTS",  new LegendEntry("REJECTEDWRITEATTEMPTS", "RJWA", false));
+        //legendMap.put("RETRIEDWRITEATTEMPTS",  new LegendEntry("RETRIEDWRITEATTEMPTS", "RTWA", false));
+        //legendMap.put("FAILEDWRITEATTEMPTS",  new LegendEntry("FAILEDWRITEATTEMPTS", "FWA", false));
+        //legendMap.put("PARTIALWRITEFAILURES",  new LegendEntry("PARTIALWRITEFAILURESS", "PWF", false));
 
-        legendMap.put("WRITENETWORKWALLTIME",  new LegendEntry("WRITENETWORKWALLTIME", "WNWT", false));
-        legendMap.put("WRITENETWORKCPUTIME",  new LegendEntry("WRITENETWORKCPUTIMEE", "WNCT", false));
-        legendMap.put("WRITENETWORKUSERTIME",  new LegendEntry("WRITENETWORKUSERTIME", "WNUT", false));
+        //legendMap.put("WRITENETWORKWALLTIME",  new LegendEntry("WRITENETWORKWALLTIME", "WNWT", false));
+        //legendMap.put("WRITENETWORKCPUTIME",  new LegendEntry("WRITENETWORKCPUTIMEE", "WNCT", false));
+        //legendMap.put("WRITENETWORKUSERTIME",  new LegendEntry("WRITENETWORKUSERTIME", "WNUT", false));
 
-        legendMap.put("WRITETHREADEDWALLTIME",  new LegendEntry("WRITETHREADEDWALLTIME", "WTWT", false));
-        legendMap.put("WRITETHREADEDUSERTIME",  new LegendEntry("WRITETHREADEDUSERTIME", "WTUT", false));
-        legendMap.put("WRITETHREADEDCPUTIME",  new LegendEntry("WRITETHREADEDCPUTIME", "WTCT", false));
+        legendMap.put("WRITETOTALWALLTIME",  new LegendEntry("WRITETOTALWALLTIME", "WTWT", false));
+        //legendMap.put("WRITETOTALUSERTIME",  new LegendEntry("WRITETOTALUSERTIME", "WTUT", false));
+        //legendMap.put("WRITETOTALCPUTIME",  new LegendEntry("WRITETOTALCPUTIME", "WTCT", false));
         legendMap.put("ITERATIONS",  new LegendEntry("ITERATIONS", "ITR", false));
         legendMap.put("INFO",  new LegendEntry("INFO", "IF", false));
     }
 
     public String getShortName(String fullName) {
         LegendEntry entry = legendMap.get(fullName);
-        return entry.getShortName();
+        String shortName = null;
+        if (entry != null) {
+            shortName = entry.getShortName();
+        }
+
+        return shortName;
     }
 
     public void use(String fullName) {
         LegendEntry entry = legendMap.get(fullName);
-        entry.setUsed(true);
+        if (entry != null) {
+            entry.setUsed(true);
+        }
     }
 
     public void print(ArrayList<ExecRow> rows, ExecRow dataTemplate) throws StandardException{
