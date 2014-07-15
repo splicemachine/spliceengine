@@ -195,8 +195,8 @@ public class SimpleTxnFilter implements TxnFilter {
 
 		private void ensureTransactionIsCached(KeyValue keyValue) {
 				long txnId = keyValue.getTimestamp();
+        visitedTxnIds.add(txnId);
 				if(!transactionStore.transactionCached(txnId)){
-            visitedTxnIds.add(txnId);
 						/*
 						 * We do not have a cache entry for this transaction, so we want
 						 * to add it in. We have two possible scenarios:
