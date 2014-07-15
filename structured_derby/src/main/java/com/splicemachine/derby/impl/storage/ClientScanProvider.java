@@ -39,7 +39,8 @@ public class ClientScanProvider extends AbstractScanProvider {
 
 		public ClientScanProvider(String type,
 															byte[] tableName, Scan scan,
-															PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) {
+															PairDecoder decoder,
+                              SpliceRuntimeContext spliceRuntimeContext) {
 				super(decoder, type, spliceRuntimeContext);
 				SpliceLogUtils.trace(LOG, "instantiated");
 				this.tableName = tableName;
@@ -116,4 +117,5 @@ public class ClientScanProvider extends AbstractScanProvider {
 		public IOStats getIOStats() {
 				return new BaseIOStats(scanner.getRemoteReadTime(),scanner.getRemoteBytesRead(),scanner.getRemoteRowsRead());
 		}
+
 }
