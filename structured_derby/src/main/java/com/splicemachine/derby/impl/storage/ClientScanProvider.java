@@ -61,8 +61,10 @@ public class ClientScanProvider extends AbstractScanProvider {
             scanner.open();
 				} catch (IOException e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG,"unable to open table "+ Bytes.toString(tableName),e);
-				}
-				startExecutionTime = System.currentTimeMillis();
+				} catch (StandardException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG,"unable to open table "+ Bytes.toString(tableName),e);
+        }
+        startExecutionTime = System.currentTimeMillis();
 		}
 
 		@Override
