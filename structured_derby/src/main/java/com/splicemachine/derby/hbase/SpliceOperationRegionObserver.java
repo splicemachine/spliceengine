@@ -23,7 +23,6 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.hbase.async.HbaseAttributeHolder;
 
 /**
