@@ -90,8 +90,8 @@ public class AsyncScanner implements SpliceResultScanner, Callback<ArrayList<Arr
             outstandingRequest = scanner.nextRows().addCallback(this);
         }
         List<KeyValue> first = kvs.remove(0);
-        for(ArrayList<KeyValue> kv:kvs){
-            resultQueue.offer(kv);
+        for(int i=0;i<kvs.size();i++){
+            resultQueue.offer(kvs.get(i));
         }
         return first;
     }
