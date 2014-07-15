@@ -83,7 +83,9 @@ public class AsyncDistributedScanner implements SpliceResultScanner{
         return new AsyncDistributedScanner(SimpleAsyncScanner.HBASE_CLIENT,tableName,scans,factory);
     }
 
-    public int subScannerCount(){ return scanners.length; }
+    public int subScannerCount(){
+        return scanners.length;
+    }
 
     @Override
     public void open() throws IOException, StandardException {
