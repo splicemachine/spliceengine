@@ -80,7 +80,12 @@ public class OrderByColumn extends OrderedColumn {
 		}
 	}
 
-	/**
+    @Override
+    public ValueNode getColumnExpression() {
+        return expression;
+    }
+
+    /**
 	 * Prints the sub-nodes of this object.  See QueryTreeNode.java for
 	 * how tree printing is supposed to work.
 	 *

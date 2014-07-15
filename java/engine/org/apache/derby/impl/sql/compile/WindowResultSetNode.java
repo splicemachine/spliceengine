@@ -23,6 +23,7 @@ package org.apache.derby.impl.sql.compile;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Vector;
@@ -412,14 +413,13 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         ResultColumnList bottomRCL = childResult.getResultColumns();
         ResultColumnList groupByRCL = resultColumns;
 
+        List<OrderedColumn> overColumns = collectOverColumns();
         ArrayList referencesToSubstitute = new ArrayList();
-        int sz = partition.size();
-        for (int i = 0; i < sz; i++) {
-            GroupByColumn gbc = (GroupByColumn) partition.elementAt(i);
+        for (OrderedColumn oc : overColumns) {
             ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
                 "##PartitionColumn",
-                gbc.getColumnExpression(),
+                oc.getColumnExpression(),
                 getContextManager());
 
             // add this result column to the bottom rcl
@@ -432,7 +432,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             ResultColumn gbRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
                 "##PartitionColumn",
-                gbc.getColumnExpression(),
+                oc.getColumnExpression(),
                 getContextManager());
             groupByRCL.addElement(gbRC);
             gbRC.markGenerated();
@@ -470,7 +470,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             // simple column reference C1 to affect the
             // compound expression C1 * (C2 / 100). DERBY-3094.
             //
-            ValueNode vn = gbc.getColumnExpression();
+            ValueNode vn = oc.getColumnExpression();
             SubstituteExpressionVisitor vis =
                 new SubstituteExpressionVisitor(vn, vc,
                                                 AggregateNode.class);
@@ -498,13 +498,31 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             // GBN (RCL) -> (C1, SUM(C2), <input>, <aggregator>, MAX(C3), <input>, <aggregator>
             //              |
             //       FBT (C1, C2)
-            gbc.setColumnPosition(bottomRCL.size());
+            oc.setColumnPosition(bottomRCL.size());
         }
         Comparator sorter = new ExpressionSorter();
         Collections.sort(referencesToSubstitute, sorter);
         for (int r = 0; r < referencesToSubstitute.size(); r++)
             parent.getResultColumns().accept(
                 (SubstituteExpressionVisitor) referencesToSubstitute.get(r));
+    }
+
+    private List<OrderedColumn> collectOverColumns() {
+        int partitionSize = (partition != null ? partition.size() : 0);
+        OrderByList orderByList = wdn.getOrderByList();
+        int oderbySize = (orderByList != null? orderByList.size():0);
+        List<OrderedColumn> cols = new ArrayList<OrderedColumn>(partitionSize + oderbySize);
+        if (partition != null) {
+            for (int i=0; i<partitionSize; ++i) {
+                cols.add((OrderedColumn) partition.elementAt(i));
+            }
+        }
+        if (orderByList != null) {
+            for (int i=0; i<partitionSize; ++i) {
+                cols.add((OrderedColumn) orderByList.elementAt(i));
+            }
+        }
+        return cols;
     }
 
     /**

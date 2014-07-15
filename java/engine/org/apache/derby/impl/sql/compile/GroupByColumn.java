@@ -21,20 +21,14 @@
 
 package	org.apache.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.error.StandardException;
+import java.util.Vector;
 
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.sql.compile.Visitor;
-import org.apache.derby.iapi.sql.compile.Visitable;
-
 import org.apache.derby.iapi.types.TypeId;
-
-import org.apache.derby.iapi.reference.SQLState;
-
-import org.apache.derby.iapi.services.sanity.SanityManager;
-
-import java.util.Vector;
 
 /**
  * A GroupByColumn is a column in the GROUP BY clause.
@@ -131,7 +125,8 @@ public class GroupByColumn extends OrderedColumn
 		}
 	}
 
-	public ValueNode getColumnExpression() 
+	@Override
+    public ValueNode getColumnExpression()
 	{
 		return columnExpression;
 	}
