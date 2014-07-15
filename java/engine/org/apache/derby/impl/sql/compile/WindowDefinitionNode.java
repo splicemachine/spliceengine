@@ -165,7 +165,26 @@ public final class WindowDefinitionNode extends WindowNode
     public String toString() {
         return ("name: " + getName() + "\n" +
             "inlined: " + inlined + "\n" +
-            "()\n");
+            "partition: " + partition + "\n" +
+            "orderby: " + printOrderByList() + "\n" +
+            frameExtent + "\n");
+    }
+
+    private String printOrderByList() {
+        if (orderByList == null) {
+            return "";
+        }
+        StringBuilder buf = new StringBuilder("\n");
+        for (int i=0; i<orderByList.size(); ++i) {
+            OrderByColumn col = orderByList.getOrderByColumn(i);
+            buf.append("name: ").append(col.getResultColumn().getColumnName()).append("\n");
+            // Lang col indexes are 1-based, storage col indexes are zero-based
+            buf.append("index: ").append(col.getColumnPosition()-1).append("\n");
+            buf.append("ascending: ").append(col.isAscending()).append("\n");
+            buf.append("nullsOrderedLow: ").append(col.isAscending()).append("\n");
+        }
+//        if (buf.length() > 0) { buf.setLength(buf.length()-1); }
+        return buf.toString();
     }
 
     /**

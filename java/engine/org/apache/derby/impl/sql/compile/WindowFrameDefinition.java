@@ -96,6 +96,11 @@ public class WindowFrameDefinition extends QueryTreeNode implements Serializable
             result = (int) (31 * result + value);
             return result;
         }
+
+        @Override
+        public String toString() {
+            return ((value != NON_VAL ? value+"" : "") + frame);
+        }
     }
 
     private final FrameMode frameMode;
@@ -162,6 +167,13 @@ public class WindowFrameDefinition extends QueryTreeNode implements Serializable
         container.put("END_FRAME", this.frameEnd.frame.ordinal());
         container.put("END_FRAME_ROWS", this.frameEnd.value);
         return container;
+    }
+
+    @Override
+    public String toString() {
+        return ("frame mode: " + frameMode + "\n" +
+            "frame start: " + frameStart + "\n" +
+            "frame end: " + frameEnd);
     }
 }
 
