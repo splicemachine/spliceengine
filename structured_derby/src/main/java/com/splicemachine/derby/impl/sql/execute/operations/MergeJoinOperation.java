@@ -41,9 +41,9 @@ public class MergeJoinOperation extends JoinOperation {
 
     // for overriding
     protected boolean wasRightOuterJoin = false;
-		private IOStandardIterator<ExecRow> rightRows;
+    private IOStandardIterator<ExecRow> rightRows;
 
-		public MergeJoinOperation() {
+    public MergeJoinOperation() {
         super();
     }
 
@@ -63,17 +63,17 @@ public class MergeJoinOperation extends JoinOperation {
                               String userSuppliedOptimizerOverrides)
             throws StandardException {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,
-                activation, restriction, resultSetNumber, oneRowRightSide,
-                notExistsRightSide, optimizerEstimatedRowCount,
-                optimizerEstimatedCost, userSuppliedOptimizerOverrides);
+                 activation, restriction, resultSetNumber, oneRowRightSide,
+                 notExistsRightSide, optimizerEstimatedRowCount,
+                 optimizerEstimatedCost, userSuppliedOptimizerOverrides);
         this.leftHashKeyItem = leftHashKeyItem;
         this.rightHashKeyItem = rightHashKeyItem;
-				try {
-						init(SpliceOperationContext.newContext(activation));
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-		}
+        try {
+            init(SpliceOperationContext.newContext(activation));
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
 
     @Override
     public List<NodeType> getNodeTypes() {
@@ -146,7 +146,7 @@ public class MergeJoinOperation extends JoinOperation {
             // Upon first call, init up the joined rows source
             joiner = initJoiner(ctx);
             timer = ctx.newTimer();
-						timer.startTiming();
+            timer.startTiming();
         }
 
         ExecRow next = joiner.nextRow(ctx);
@@ -192,19 +192,19 @@ public class MergeJoinOperation extends JoinOperation {
     protected void updateStats(OperationRuntimeStats stats) {
         long leftRowsSeen = joiner.getLeftRowsSeen();
         stats.addMetric(OperationMetric.INPUT_ROWS, leftRowsSeen);
-				TimeView time = timer.getTime();
-				stats.addMetric(OperationMetric.TOTAL_WALL_TIME,time.getWallClockTime());
-				stats.addMetric(OperationMetric.TOTAL_CPU_TIME,time.getCpuTime());
-				stats.addMetric(OperationMetric.TOTAL_USER_TIME, time.getUserTime());
+        TimeView time = timer.getTime();
+        stats.addMetric(OperationMetric.TOTAL_WALL_TIME, time.getWallClockTime());
+        stats.addMetric(OperationMetric.TOTAL_CPU_TIME, time.getCpuTime());
+        stats.addMetric(OperationMetric.TOTAL_USER_TIME, time.getUserTime());
         stats.addMetric(OperationMetric.FILTERED_ROWS, joiner.getRowsFiltered());
 
-				IOStats rightSideStats = rightRows.getStats();
-				TimeView remoteView = rightSideStats.getTime();
-				stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,remoteView.getWallClockTime());
-				stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,remoteView.getCpuTime());
-				stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,remoteView.getUserTime());
-				stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,rightSideStats.getRows());
-				stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,rightSideStats.getBytes());
+        IOStats rightSideStats = rightRows.getStats();
+        TimeView remoteView = rightSideStats.getTime();
+        stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME, remoteView.getWallClockTime());
+        stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME, remoteView.getCpuTime());
+        stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME, remoteView.getUserTime());
+        stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS, rightSideStats.getRows());
+        stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES, rightSideStats.getBytes());
         super.updateStats(stats);
     }
 
