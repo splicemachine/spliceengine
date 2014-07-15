@@ -607,10 +607,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 						stats.addMetric(OperationMetric.TOTAL_WALL_TIME,view.getWallClockTime());
 						stats.addMetric(OperationMetric.TOTAL_CPU_TIME,view.getCpuTime());
 						stats.addMetric(OperationMetric.TOTAL_USER_TIME,view.getUserTime());
-                    /*if(!(isTopOperation && this instanceof SinkingOperation)) {
-                        // Bump up hte output row if this is not writing to temp
-                        stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
-                    }*/
 				}
 
 				return stats;

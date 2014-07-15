@@ -112,13 +112,13 @@ public class OperationRuntimeStats {
 		}
 
 		public static List<OperationRuntimeStats> getOperationStats(SpliceOperation topOperation,
-																																long taskId,
-																																long statementId,
-																																WriteStats writeStats,
-																																TimeView writeTimer,
-																																SpliceRuntimeContext runtimeContext){
+                                                                    long taskId,
+                                                                    long statementId,
+                                                                    WriteStats writeStats,
+                                                                    TimeView writeTimer,
+                                                                    SpliceRuntimeContext runtimeContext){
 				List<OperationRuntimeStats> stats = Lists.newArrayList();
-				OperationRuntimeStats metrics = getTopMetrics(topOperation, taskId, statementId, writeStats, writeTimer);
+                OperationRuntimeStats metrics = getTopMetrics(topOperation, taskId, statementId, writeStats, writeTimer);
 				if(metrics!=null){
 						stats.add(metrics);
 				}
@@ -139,7 +139,7 @@ public class OperationRuntimeStats {
 		}
 
 		private static OperationRuntimeStats getTopMetrics(SpliceOperation topOperation, long taskId, long statementId,
-																												 WriteStats writeStats, TimeView writeTimer) {
+														   WriteStats writeStats, TimeView writeTimer) {
 				OperationRuntimeStats metrics = topOperation.getMetrics(statementId,taskId, true);
 
 				if(metrics!=null && writeStats.getRowsWritten()>=0){
@@ -171,9 +171,9 @@ public class OperationRuntimeStats {
 				metrics.addMetric(OperationMetric.WRITE_SLEEP_CPU_TIME,sleepTime.getCpuTime());
 				metrics.addMetric(OperationMetric.WRITE_SLEEP_USER_TIME,sleepTime.getUserTime());
 				TimeView threadedTime = writeStats.getTotalTime();
-				metrics.addMetric(OperationMetric.WRITE_THREADED_WALL_TIME,threadedTime.getWallClockTime());
-				metrics.addMetric(OperationMetric.WRITE_THREADED_CPU_TIME,threadedTime.getCpuTime());
-				metrics.addMetric(OperationMetric.WRITE_THREADED_USER_TIME,threadedTime.getUserTime());
+				metrics.addMetric(OperationMetric.WRITE_TOTAL_WALL_TIME,threadedTime.getWallClockTime());
+				metrics.addMetric(OperationMetric.WRITE_TOTAL_CPU_TIME,threadedTime.getCpuTime());
+				metrics.addMetric(OperationMetric.WRITE_TOTAL_USER_TIME,threadedTime.getUserTime());
 		}
 
 		private static void populateStats(SpliceRuntimeContext context, SpliceOperation operation,

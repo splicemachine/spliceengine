@@ -236,7 +236,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME, remoteTime.getCpuTime());
                 stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME, remoteTime.getUserTime());
 
-//						stats.addMetric(OperationMetric.INPUT_ROWS,remoteRowsRead+localRowsRead);
+                stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
             } else {
 						/*
 						 * When there is no scanner, then we are a sink, which means that
@@ -257,7 +257,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 {
                     //under control node
                 }
-                stats.addMetric(OperationMetric.FILTERED_ROWS, joiner.getLeftRowsSeen() * joiner.getRightRowsSeen() - timer.getNumEvents());
+                stats.addMetric(OperationMetric.INPUT_ROWS, joiner.getLeftRowsSeen());
+                //stats.addMetric(OperationMetric.FILTERED_ROWS, joiner.getLeftRowsSeen() * joiner.getRightRowsSeen() - timer.getNumEvents());
 
             }
             else {
@@ -452,7 +453,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         KeyHashDecoder rightRowDecoder = BareKeyHash.encoder(IntArrays.complement(rightHashKeys, rightNumCols), null,rightSerializers).getDecoder();
         PairDecoder rightDecoder = new PairDecoder(rightKeyDecoder, rightRowDecoder, rightRow);
 
-        ResultMergeScanner scanner;
+        //ResultMergeScanner scanner;
         if (spliceRuntimeContext.isSink()) {
             scanner = ResultMergeScanner.regionAwareScanner(reduceScan, transactionID, leftDecoder, rightDecoder, region,spliceRuntimeContext);
         } else {
