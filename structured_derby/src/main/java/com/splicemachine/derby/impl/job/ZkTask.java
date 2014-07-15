@@ -167,8 +167,17 @@ public abstract class ZkTask implements RegionTask,Externalizable {
             taskPath= zooKeeper.execute(new SpliceZooKeeperManager.Command<String>() {
                 @Override
                 public String execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
-                    return zooKeeper.create(SpliceConstants.zkSpliceTaskPath+"/"+taskPath,
-                            statusData, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+                    String path = SpliceConstants.zkSpliceTaskPath + "/" + taskPath;
+                    zooKeeper.getZooKeeper().create(path,statusData,ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.EPHEMERAL,new AsyncCallback.StringCallback() {
+                        @Override
+                        public void processResult(int rc, String path, Object ctx, String name) {
+                            if(LOG.isTraceEnabled())
+                                LOG.trace("Task path created");
+                        }
+                    },this);
+//                    return zooKeeper.create(path,
+//                            statusData, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+                    return path;
                 }
             });
         } catch (InterruptedException e) {
