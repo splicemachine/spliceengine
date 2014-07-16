@@ -38,7 +38,7 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.Vector;
 import org.apache.derby.iapi.util.InterruptStatus;
-
+import org.apache.derby.impl.sql.compile.XPlainUtils;
 /*
  We would import these, but have name-overlap
 import java.sql.Statement;
@@ -614,6 +614,7 @@ public class EmbedStatement extends ConnectionChild
 					preparedStatement.getActivation(lcc, resultSetType ==
                         java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE);
 				checkRequiresCallableStatement(activation);
+                XPlainUtils.setXPlainTrace(lcc, preparedStatement, activation);
                 InterruptStatus.restoreIntrFlagIfSeen(lcc);
 			 } catch (Throwable t) {
 				throw handleException(t);
