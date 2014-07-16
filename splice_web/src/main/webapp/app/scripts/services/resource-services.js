@@ -6,7 +6,7 @@ var spliceAdminServices = angular.module('spliceAdminServices');
 spliceAdminServices.factory('tracedStatementListService',
 	['$resource',
 		function($resource){
-			return $resource('/splice_web/webresources/myresource/sql2js?query=' +
+			return $resource('/splice_web/webresources/sqlresource/query2js?query=' +
 				encodeURIComponent('select * from SYS.SYSSTATEMENTHISTORY order by STARTTIMEMS desc'), {}, {
 				query: {method:'GET', isArray:true}
 			});
@@ -16,7 +16,7 @@ spliceAdminServices.factory('tracedStatementListService',
 spliceAdminServices.factory('tracedStatementDetailService',
 	['$resource',
 		function($resource){
-			return $resource('/splice_web/webresources/myresource/tracedStatements/:statementId', {}, {
+			return $resource('/splice_web/webresources/sqlresource/tracedStatements/:statementId', {}, {
 				get: {method:'GET'}
 			});
 		}]);
@@ -25,7 +25,7 @@ spliceAdminServices.factory('tracedStatementDetailService',
 spliceAdminServices.factory('tracedStatementSQLService',
 	['$resource',
 		function($resource){
-			return $resource('/splice_web/webresources/myresource/sql2js?query=' +
+			return $resource('/splice_web/webresources/sqlresource/query2js?query=' +
 				encodeURIComponent('select STATEMENTSQL from SYS.SYSSTATEMENTHISTORY where STATEMENTID=') + ':statementId', {}, {
 				query: {method:'GET', isArray:true}
 			});
@@ -36,7 +36,7 @@ spliceAdminServices.factory('tracedStatementSQLService',
 spliceAdminServices.factory('sysTableCheckService',
 	['$resource',
 		function($resource){
-			return $resource('/splice_web/webresources/myresource/sql2js?query=' +
+			return $resource('/splice_web/webresources/sqlresource/query2js?query=' +
 				encodeURIComponent('select CONGLOMERATENUMBER from SYS.SYSCONGLOMERATES where CONGLOMERATENUMBER >= 1168 {LIMIT 1}'), {}, {
 				query: {method:'GET', isArray:true}
 			});
