@@ -85,8 +85,8 @@ public class SIObserver extends BaseRegionObserver {
 
     public static boolean doesTableNeedSI(String tableName) {
         SpliceConstants.TableEnv tableEnv = EnvUtils.getTableEnv(tableName);
-        SpliceLogUtils.info(LOG,"table %s has Env %s",tableName,tableEnv);
-        if(tableEnv.equals(SpliceConstants.TableEnv.TRANSACTION_TABLE)) return false;
+//        SpliceLogUtils.info(LOG,"table %s has Env %s",tableName,tableEnv);
+//        if(tableEnv.equals(SpliceConstants.TableEnv.TRANSACTION_TABLE)) return false;
 
         return (tableEnv.equals(SpliceConstants.TableEnv.USER_TABLE)
                 || tableEnv.equals(SpliceConstants.TableEnv.USER_INDEX_TABLE)

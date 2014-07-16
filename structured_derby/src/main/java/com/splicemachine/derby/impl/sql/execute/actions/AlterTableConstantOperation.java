@@ -1750,7 +1750,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         DDLChange ddlChange = new DDLChange(tentativeTransaction,
                 DDLChangeType.DROP_COLUMN);
         ddlChange.setTentativeDDLDesc(tentativeDropColumnDesc);
-        ddlChange.setTxn(((SpliceTransactionManager)tc).getActiveStateTxn());
+        ddlChange.setParentTxn(((SpliceTransactionManager)tc).getActiveStateTxn());
 
         notifyMetadataChange(ddlChange);
 
