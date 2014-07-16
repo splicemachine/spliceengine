@@ -84,9 +84,13 @@ public class SIObserver extends BaseRegionObserver {
     }
 
     public static boolean doesTableNeedSI(String tableName) {
-        return (EnvUtils.getTableEnv(tableName).equals(SpliceConstants.TableEnv.USER_TABLE)
-                || EnvUtils.getTableEnv(tableName).equals(SpliceConstants.TableEnv.USER_INDEX_TABLE)
-                || EnvUtils.getTableEnv(tableName).equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE))
+        SpliceConstants.TableEnv tableEnv = EnvUtils.getTableEnv(tableName);
+        SpliceLogUtils.info(LOG,"table %s has Env %s",tableName,tableEnv);
+        if(tableEnv.equals(SpliceConstants.TableEnv.TRANSACTION_TABLE)) return false;
+
+        return (tableEnv.equals(SpliceConstants.TableEnv.USER_TABLE)
+                || tableEnv.equals(SpliceConstants.TableEnv.USER_INDEX_TABLE)
+                || tableEnv.equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE))
                 && !tableName.equals(SpliceConstants.TEMP_TABLE)
                 && !tableName.equals(SpliceConstants.TEST_TABLE);
     }
