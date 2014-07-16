@@ -38,3 +38,12 @@
   width: 30%;
   margin: 5px;
 }
+
+/* TODO: This is a temporary style until I can get the pretty boxes around the ops tree working. */
+/* Pretty box for the indented operations in the tree */
+.my-angular-ui-tree-handle {
+  background: #f8faff;
+  border: 1px solid #dae2ea;
+  color: #7c9eb2;
+  padding: 10px 10px;
+}

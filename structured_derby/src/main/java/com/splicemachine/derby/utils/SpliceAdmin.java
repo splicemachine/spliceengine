@@ -1419,10 +1419,11 @@ public class SpliceAdmin {
     /*
      * Implementation for SYSCS_UTIL.XPLAIN_TRACE system procedure
      *
-     * @param    schemaName  : name of the schema xplain trace turned on for
      * @param    statementId : unique identifier for the sql statement
      * @param    mode        : 0 - operation tree only
      *                         1 - execution plan with metrics
+     * @param    format      : 'TREE' - Text-based tree representation
+     *                         'JSON' - JSON document of nested operations
      * @return   an execution plan in a result set
      *
      */

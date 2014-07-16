@@ -1,4 +1,3 @@
-
 package com.splicemachine.rest.services;
 
 import java.sql.Connection;
@@ -20,52 +19,47 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-/** Example resource class hosted at the URI path "/myresource"
+/**
+ * Splice RESTful SQL resources hosted at the URI path "/sqlresource".
  */
-@Path("/myresource")
-public class MyResource {
+@Path("/sqlresource")
+public class SQLResource {
 
-    /** Method processing HTTP GET requests, producing "text/plain" MIME media
-     * type.
-     * @return String that will be send back as a response of type "text/plain".
-     */
-    @GET
-    @Path("/hello")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String getIt() {
-        return "Hi there!";
-    }
+	/**
+	 * RESTful service that returns a JSON document containing the traced statement plan (SQL operation tree)
+	 * for the specified statement.
+     * @param statementId	STATEMENTID from SYS.SYSSTATEMENTHISTORY table in a Splice database
+	 * @return String with a response type of "application/json".
+	 */
+	@GET
+	@Path("/tracedStatements/{statementId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public String getTracedStatementTree(@PathParam("statementId")String statementId) {
+		// TODO: This method is a quick hack to get some data flowing.
+		// Prepared statements should be used at a minimum.
+		if (statementId == null) return null;
+		List<Map<String, String>> objects = getQueryResultsAsJavaScriptObjects(String.format("call syscs_util.syscs_get_xplain_trace(%s, 1, 'json')", statementId));
+		if (objects == null) return null;
+		Map<String, String> object = objects.get(0);
+		if (object == null) return null;
+		return object.get("PLAN");
+	}
 
-    /** Method processing HTTP GET requests, producing "text/plain" MIME media
-     * type.
-     * RESTful service that returns JSON with the traced statement plan, which is a SQL operation tree, for the statement.
-     * @return String that will be send back as a response of type "text/plain".
-     */
+	/**
+	 * RESTful service that queries a Splice database with the specified SQL query and returns the results as a
+	 * JSON document.  The JSON document is an array of "object literals" where each object maps directly to a
+	 * row in the result set.
+	 * TODO: Add example of what the JSON would look like.
+     * @param query	SQL select statement
+	 * @return List of Map objects that are transformed into a response type of "application/json".
+	 */
     @GET
-    @Path("/tracedStatements/{statementId}")
-    @Produces(MediaType.APPLICATION_JSON)
-    public String getTracedStatementTree(@PathParam("statementId")String statementId) {
-    	// TODO: This method is a quick hack to get some data flowing.
-    	// Prepared statements should be used at a minimum.
-    	if (statementId == null) return null;
-    	List<Map<String, String>> objects = getQueryResultsAsJavaScriptObjects(String.format("call syscs_util.syscs_get_xplain_trace(%s, 1, 'json')", statementId));
-    	if (objects == null) return null;
-    	Map<String, String> object = objects.get(0);
-    	if (object == null) return null;
-    	return object.get("PLAN");
-    }
-
-    /** Method processing HTTP GET requests, producing "text/plain" MIME media
-     * type.
-     * @return String that will be send back as a response of type "text/plain".
-     */
-    @GET
-    @Path("/sql2js")
+    @Path("/query2js")
     @Produces(MediaType.APPLICATION_JSON)
     public List<Map<String, String>> getQueryResultsAsJavaScriptObjects(@QueryParam("query")String query) {
 
     	// Get the "raw" JDBC results stored in lists and maps.
-    	Map<String, List> map = getSQLResults(query);
+    	Map<String, List> map = getQueryResults(query);
     	if (map == null) return null;
 
     	List<String> headers = map.get("headers");
@@ -88,28 +82,39 @@ public class MyResource {
     	return objectsList;
     }
 
-    /** Method processing HTTP GET requests, producing "text/plain" MIME media
-     * type.
-     * @return String that will be send back as a response of type "text/plain".
-     */
+	/**
+	 * RESTful service that queries a Splice database with the specified SQL query and returns the results as a
+	 * JSON document.  The JSON document matches what JDBC returns.  There is a "headers" array which is an array of
+	 * strings with the names of the columns being returned.  And there is a "rows" array which is an array of "rows",
+	 * where each row is an array of the column values being returned.
+	 * TODO: Add example of what the JSON would look like.
+     * @param query	SQL select statement
+	 * @return Map of "headers" and "rows" arrays that are transformed into a response type of "application/json".
+	 */
     @GET
-    @Path("/sql2jdbc")
+    @Path("/query2jdbc")
     @Produces(MediaType.APPLICATION_JSON)
     public Map<String, List> getQueryResultsAsJDBCObjects(@QueryParam("query")String query) {
-        return getSQLResults(query);
+        return getQueryResults(query);
     }
 
-	/**
-	 * 
-	 */
-	private Map<String, List> getSQLResults(String query) {
+    /**
+	 * Worker method that returns the results from a SQL query in JSON that closely matches what JDBC returns with
+	 * the ResultSetMetaData and ResultSet objects.
+     * @param query	SQL select statement
+	 * @return Map of "headers" and "rows" lists
+     */
+	private Map<String, List> getQueryResults(String query) {
 		if (query == null) {
+			// TODO: Remove this default and throw the appropriate exception.
 			query = "SELECT * FROM SYS.SYSTABLES";
 		}
 		Connection conn = null;
         Statement stmt = null;
         try {
         	Class.forName("org.apache.derby.jdbc.ClientDriver").newInstance();
+        	// TODO: Remove hard coded JDBC URL.  Pull URL from config.  Use same config module as HBase uses (*-site.xml, *-default.xml).
+        	// TODO: Add connection pooling.
         	conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;create=true", "app", "app");
         	stmt = conn.createStatement();
         	ResultSet rs = stmt.executeQuery(query);
@@ -142,6 +147,14 @@ public class MyResource {
         }
 	}
 
+	/**
+	 * Worker method that transforms the column labels from JDBC's ResultSetMetaData.getColumnLabel(i) into the "headers" array,
+	 * which is an array of strings with the column labels (headers).
+	 * @param rs JDBC ResultSet
+	 * @return array of strings with the column labels (headers)
+	 * @throws SQLException
+	 * @throws java.io.IOException
+	 */
 	private List<String> getHeaders(ResultSet rs) throws SQLException, java.io.IOException {
 		ResultSetMetaData md = rs.getMetaData();
 		int colCount = md.getColumnCount();
@@ -152,6 +165,14 @@ public class MyResource {
 		return headers;
 	}
 
+	/**
+	 * Worker method that transforms the rows from JDBC's ResultSet.getString(i) into the "rows" array,
+	 * which is an array of "rows" where every row is an array of its column values.
+	 * @param rs	a JDBC ResultSet
+	 * @return array of "rows" where every row is an array of its column values
+	 * @throws SQLException
+	 * @throws java.io.IOException
+	 */
 	private List<List<String>> getRows(ResultSet rs) throws SQLException, java.io.IOException {
 		ResultSetMetaData md = rs.getMetaData();
 		int colCount = md.getColumnCount();
