@@ -2,11 +2,12 @@ package com.splicemachine.derby.impl.storage;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
-import org.hbase.async.AsyncAttributeHolder;
-import org.hbase.async.HBaseClient;
-import org.hbase.async.Scanner;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FilterList;
+import org.hbase.async.*;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -42,9 +43,30 @@ public class AsyncScannerUtils {
         if(attributesMap!=null && attributesMap.size()>0){
             scanner.setFilter(new AsyncAttributeHolder(attributesMap));
         }
+        Filter f= scan.getFilter();
+        if(f instanceof FilterList){
+            FilterList oldFl = (FilterList)f;
+            List<ScanFilter> scanFilters = Lists.newArrayListWithCapacity(oldFl.getFilters().size());
+            for(Filter subFilter:oldFl.getFilters()){
+                scanFilters.add(convertFilter(subFilter));
+            }
+            org.hbase.async.FilterList newFl = new org.hbase.async.FilterList(scanFilters);
+            scanner.setFilter(newFl);
+        }else if (f!=null){
+            scanner.setFilter(convertFilter(f));
+        }
         //TODO -sf- set scan filters
 //        scanner.setFilter(scan.getFilter());
         return scanner;
+    }
+
+    private static ScanFilter convertFilter(Filter filter) {
+        if(filter instanceof SuccessFilter){
+            SuccessFilter sf = (SuccessFilter)filter;
+            return new AsyncSuccessFilter(sf.getTaskList());
+        }
+
+        throw new IllegalArgumentException("Unknown Filter of type "+ filter.getClass());
     }
 
     public static List<KeyValue> convertFromAsync(List<org.hbase.async.KeyValue> kvs){
