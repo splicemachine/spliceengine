@@ -82,10 +82,13 @@ public class DDLChange implements Externalizable {
         out.writeBoolean(txn.isDependent());
         out.writeBoolean(txn.isAdditive());
 
-        out.writeLong(parentTxn.getTxnId());
-        out.writeLong(parentTxn.getParentTransaction().getTxnId());
-        out.writeBoolean(parentTxn.isDependent());
-        out.writeBoolean(parentTxn.isAdditive());
+        out.writeBoolean(parentTxn!=null);
+        if(parentTxn!=null){
+            out.writeLong(parentTxn.getTxnId());
+            out.writeLong(parentTxn.getParentTransaction().getTxnId());
+            out.writeBoolean(parentTxn.isDependent());
+            out.writeBoolean(parentTxn.isAdditive());
+        }
     }
 
     @Override
@@ -120,12 +123,14 @@ public class DDLChange implements Externalizable {
         TxnSupplier txnSupplier = TransactionStorage.getTxnSupplier();
         txn = txnSupplier.getTransaction(txnId);
 
-        long pTxnId = in.readLong();
-        long pBeginTs = in.readLong();
-        long pParentTxnId = in.readLong();
-        boolean pDependent = in.readBoolean();
-        boolean pAdditive = in.readBoolean();
+        if(in.readBoolean()){
+            long pTxnId = in.readLong();
+            long pBeginTs = pTxnId;
+            long pParentTxnId = in.readLong();
+            boolean pDependent = in.readBoolean();
+            boolean pAdditive = in.readBoolean();
 
-        parentTxn = txnSupplier.getTransaction(txnId);
+            parentTxn = txnSupplier.getTransaction(txnId);
+        }
     }
 }
