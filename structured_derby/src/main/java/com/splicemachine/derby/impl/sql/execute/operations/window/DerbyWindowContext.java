@@ -56,6 +56,7 @@ public class DerbyWindowContext implements GroupedAggregateContext {
         ColumnOrdering[] orderings = (ColumnOrdering[])
             ((FormatableArrayHolder) (statement.getSavedObject(orderingItemIdx))).getArray(ColumnOrdering.class);
 
+        // TODO: Window Frame definition
         WindowFrameDefinition frameDefinition = WindowFrameDefinition.create((FormatableHashtable) statement.getSavedObject(frameDefnIdx));
 
         int[] allKeyedColumns = new int[partition.length + orderings.length];
