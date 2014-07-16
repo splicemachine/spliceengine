@@ -216,10 +216,14 @@ public class OrderByColumn extends OrderedColumn {
 			
 			columnPosition = resultCol.getColumnPosition();
 
-			if (addedColumnOffset >= 0 &&
-					target instanceof SelectNode &&
-					( (SelectNode)target ).hasDistinct())
-				throw StandardException.newException(SQLState.LANG_DISTINCT_ORDER_BY, cr.columnName);
+			if (target instanceof SelectNode) {
+                if (addedColumnOffset >= 0 &&
+                    ((SelectNode) target).hasDistinct())
+                    throw StandardException.newException(SQLState.LANG_DISTINCT_ORDER_BY, cr.columnName);
+
+                FromList fromList = ((SelectNode) target).getFromList();
+                expression = expression.bindExpression(fromList, null, null);
+            }
 		}else if(isReferedColByNum(expression)){
 			
 			ResultColumnList targetCols = target.getResultColumns();

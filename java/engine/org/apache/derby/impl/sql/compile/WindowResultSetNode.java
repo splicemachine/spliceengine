@@ -413,12 +413,12 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         ResultColumnList bottomRCL = childResult.getResultColumns();
         ResultColumnList groupByRCL = resultColumns;
 
-        List<OrderedColumn> overColumns = collectOverColumns();
+        List<OrderedColumn> overClauseColumns = collectOverClauseColumns();
         ArrayList referencesToSubstitute = new ArrayList();
-        for (OrderedColumn oc : overColumns) {
+        for (OrderedColumn oc : overClauseColumns) {
             ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##PartitionColumn",
+                "##PartitionColumn_"+oc.getColumnExpression().getColumnName(),
                 oc.getColumnExpression(),
                 getContextManager());
 
@@ -431,7 +431,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             // now add this column to the groupbylist
             ResultColumn gbRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##PartitionColumn",
+                "##PartitionColumn_"+oc.getColumnExpression().getColumnName(),
                 oc.getColumnExpression(),
                 getContextManager());
             groupByRCL.addElement(gbRC);
@@ -507,7 +507,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 (SubstituteExpressionVisitor) referencesToSubstitute.get(r));
     }
 
-    private List<OrderedColumn> collectOverColumns() {
+    private List<OrderedColumn> collectOverClauseColumns() {
         int partitionSize = (partition != null ? partition.size() : 0);
         OrderByList orderByList = wdn.getOrderByList();
         int oderbySize = (orderByList != null? orderByList.size():0);

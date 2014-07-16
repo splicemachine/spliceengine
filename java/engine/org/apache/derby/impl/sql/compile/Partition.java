@@ -48,9 +48,9 @@ public class Partition extends GroupByList {
         StringBuilder buf = new StringBuilder("\n");
         for (int i=0; i<size(); ++i) {
             GroupByColumn col = getGroupByColumn(i);
-            buf.append("name: ").append(col.getColumnName()).append("\n");
+            buf.append("column_name: ").append(col.getColumnName()).append("\n");
             // Lang col indexes are 1-based, storage col indexes are zero-based
-            buf.append("index: ").append(col.getColumnPosition()-1).append("\n");
+            buf.append("columnid: ").append(col.getColumnPosition()-1).append("\n");
         }
 //        if (buf.length() > 0) { buf.setLength(buf.length()-1); }
         return buf.toString();

@@ -177,9 +177,10 @@ public final class WindowDefinitionNode extends WindowNode
         StringBuilder buf = new StringBuilder("\n");
         for (int i=0; i<orderByList.size(); ++i) {
             OrderByColumn col = orderByList.getOrderByColumn(i);
-            buf.append("name: ").append(col.getResultColumn().getColumnName()).append("\n");
+//            buf.append("column_name: ").append(col.getResultColumn().getColumnName()).append("\n");
+            buf.append("column_name: ").append(col.getColumnExpression().getColumnName()).append("\n");
             // Lang col indexes are 1-based, storage col indexes are zero-based
-            buf.append("index: ").append(col.getColumnPosition()-1).append("\n");
+            buf.append("columnid: ").append(col.getColumnPosition()).append("\n");
             buf.append("ascending: ").append(col.isAscending()).append("\n");
             buf.append("nullsOrderedLow: ").append(col.isAscending()).append("\n");
         }
