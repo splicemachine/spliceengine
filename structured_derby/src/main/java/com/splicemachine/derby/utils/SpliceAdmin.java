@@ -1435,33 +1435,86 @@ public class SpliceAdmin {
     public static void SYSCS_GET_XPLAIN_STATEMENTID(final ResultSet[] resultSet) throws Exception{
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         long statementId = lcc.getXplainStatementId();
+        List<ExecRow> rows = Lists.newArrayListWithExpectedSize(1);
 
-        StringBuilder statement = new StringBuilder()
-                .append("select * from (values (")
-                .append(statementId)
-                .append("))xplaintracefoo(STATEMENTID)");
-        resultSet[0] = executeStatement(statement);
+        ExecRow row = new ValueRow(1);
+        row.setRowArray(new DataValueDescriptor[]{
+                new SQLLongint()});
+        DataValueDescriptor[] dvds = row.getRowArray();
+        dvds[0].setValue(statementId);
+        rows.add(row);
+
+        ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[1];
+        columnInfo[0] = new GenericColumnDescriptor("STATEMENTID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+
+        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
+        try {
+            resultsToWrap.openCore();
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+        EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+
+        resultSet[0] = ers;
     }
 
     public static void SYSCS_GET_RUNTIME_STATISTICS(final ResultSet[] resultSet) throws Exception{
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         boolean runTimeStatisticsMode = lcc.getRunTimeStatisticsMode();
 
-        StringBuilder statement = new StringBuilder()
-                .append("select * from (values (")
-                .append(runTimeStatisticsMode)
-                .append("))xplaintracefoo(RUNTIME_STATISTICS)");
-        resultSet[0] = executeStatement(statement);
+        List<ExecRow> rows = Lists.newArrayListWithExpectedSize(1);
+
+        ExecRow row = new ValueRow(1);
+        row.setRowArray(new DataValueDescriptor[]{
+                new SQLBoolean()});
+        DataValueDescriptor[] dvds = row.getRowArray();
+        dvds[0].setValue(runTimeStatisticsMode);
+        rows.add(row);
+
+        ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[1];
+        columnInfo[0] = new GenericColumnDescriptor("RUNTIMESTATISTICS", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
+
+        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
+        try {
+            resultsToWrap.openCore();
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+        EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+
+        resultSet[0] = ers;
     }
 
     public static void SYSCS_GET_STATISTICS_TIMING(final ResultSet[] resultSet) throws Exception{
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         boolean statisticsTiming = lcc.getStatisticsTiming();
 
-        StringBuilder statement = new StringBuilder()
-                .append("select * from (values (")
-                .append(statisticsTiming)
-                .append("))xplaintracefoo(STATISTICS_TIMING)");
-        resultSet[0] = executeStatement(statement);
+        List<ExecRow> rows = Lists.newArrayListWithExpectedSize(1);
+
+        ExecRow row = new ValueRow(1);
+        row.setRowArray(new DataValueDescriptor[]{
+                new SQLBoolean()});
+        DataValueDescriptor[] dvds = row.getRowArray();
+        dvds[0].setValue(statisticsTiming);
+        rows.add(row);
+
+        ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[1];
+        columnInfo[0] = new GenericColumnDescriptor("STATISTICSTIMING", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
+
+        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
+        try {
+            resultsToWrap.openCore();
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+        EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+
+        resultSet[0] = ers;
     }
 }

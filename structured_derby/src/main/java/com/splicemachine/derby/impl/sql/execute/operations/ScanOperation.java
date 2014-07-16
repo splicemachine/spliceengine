@@ -171,7 +171,10 @@ public abstract class ScanOperation extends SpliceBaseOperation {
                 String qualifiersString = "Scan filter:";
                 for (Qualifier[] qualifiers : scanQualifiers) {
                     for (Qualifier q : qualifiers) {
-                        qualifiersString += q.getText();
+                        String text = q.getText();
+                        if (text != null) {
+                            qualifiersString += text;
+                        }
                     }
                 }
                 if (info == null) {

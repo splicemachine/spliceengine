@@ -224,7 +224,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 				}
 				stats.addMetric(OperationMetric.INPUT_ROWS, aggregator.getRowsRead());
 
-				if(regionScanner!=null && keyValues!=null){
+            if(regionScanner!=null && keyValues!=null){
 					//we are a scan
 						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsVisited());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,regionScanner.getBytesVisited());

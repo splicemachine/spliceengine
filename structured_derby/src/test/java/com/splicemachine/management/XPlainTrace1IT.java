@@ -18,7 +18,7 @@ import java.util.Deque;
 /**
  * Created by jyuan on 7/7/14.
  */
-public class XPlainTraceIT extends XPlainTrace {
+public class XPlainTrace1IT extends XPlainTrace {
 
     private static final String STATEMENT_TABLE = "SYS.SYSSTATEMENTHISTORY";
     private static final String TASK_TABLE = "SYS.SYSTASKHISTORY";
@@ -32,7 +32,7 @@ public class XPlainTraceIT extends XPlainTrace {
     private static final String MERGESORTJOIN = "MergeSortJoin";
     private static final String BROADCASTJOIN = "BroadcastJoin";
 
-    public static final String CLASS_NAME = XPlainTraceIT.class.getSimpleName().toUpperCase();
+    public static final String CLASS_NAME = XPlainTrace1IT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String TABLE1 = "TAB1";
     public static final String TABLE2 = "TAB2";
@@ -45,7 +45,7 @@ public class XPlainTraceIT extends XPlainTrace {
     private Connection connection = null;
     private Statement statement = null;
 
-    public XPlainTraceIT() {
+    public XPlainTrace1IT() {
         super();
     }
 
@@ -118,7 +118,7 @@ public class XPlainTraceIT extends XPlainTrace {
 
         waitForStatement(statementId);
 
-        XPlainTraceIT xPlainTrace = new XPlainTraceIT();
+        XPlainTrace1IT xPlainTrace = new XPlainTrace1IT();
         xPlainTrace.setStatementId(statementId);
         xPlainTrace.setFormat("tree");
         xPlainTrace.setMode(0);
@@ -140,34 +140,6 @@ public class XPlainTraceIT extends XPlainTrace {
     private void turnOffTrace() throws Exception {
         statement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0)");
         statement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0)");
-    }
-
-    @Test
-    public void testIndexLookup() throws Exception {
-        turnOnTrace();
-        String createIndex = "Create index ti on " + CLASS_NAME + "." + TABLE1 + "(i)";
-        statement.execute(createIndex);
-
-        String sql = "select * from " + CLASS_NAME + "." + TABLE1 + " where i = 1";
-        ResultSet rs = statement.executeQuery(sql);
-        int count = 0;
-        while(rs.next()) {
-            ++count;
-        }
-        Assert.assertEquals(count, 1);
-
-
-        long statementId = 0;
-        rs = statement.executeQuery("call SYSCS_UTIL.SYSCS_GET_XPLAIN_STATEMENTID()");
-        if (rs.next()) {
-            statementId = rs.getLong(1);
-        }
-        turnOffTrace();
-
-        XPlainTreeNode operation = getTopOperation(statementId);
-        String operationType = operation.getOperationType();
-
-        statement.execute("drop index ti");
     }
 
     @Test
@@ -194,7 +166,7 @@ public class XPlainTraceIT extends XPlainTrace {
 
         waitForStatement(statementId);
 
-        XPlainTraceIT xPlainTrace = new XPlainTraceIT();
+        XPlainTrace1IT xPlainTrace = new XPlainTrace1IT();
         xPlainTrace.setStatementId(statementId);
         xPlainTrace.setFormat("tree");
         xPlainTrace.setMode(0);
@@ -235,7 +207,7 @@ public class XPlainTraceIT extends XPlainTrace {
 
         waitForStatement(statementId);
 
-        XPlainTraceIT xPlainTrace = new XPlainTraceIT();
+        XPlainTrace1IT xPlainTrace = new XPlainTrace1IT();
         xPlainTrace.setStatementId(statementId);
         xPlainTrace.setFormat("tree");
         xPlainTrace.setMode(0);
@@ -347,7 +319,7 @@ public class XPlainTraceIT extends XPlainTrace {
         turnOffTrace();
         waitForStatement(statementId);
 
-        XPlainTraceIT xPlainTrace = new XPlainTraceIT();
+        XPlainTrace1IT xPlainTrace = new XPlainTrace1IT();
         xPlainTrace.setStatementId(statementId);
         xPlainTrace.setFormat("tree");
         xPlainTrace.setMode(0);
@@ -383,7 +355,7 @@ public class XPlainTraceIT extends XPlainTrace {
 
         waitForStatement(statementId);
 
-        XPlainTraceIT xPlainTrace = new XPlainTraceIT();
+        XPlainTrace1IT xPlainTrace = new XPlainTrace1IT();
         xPlainTrace.setStatementId(statementId);
         xPlainTrace.setFormat("tree");
         xPlainTrace.setMode(0);
@@ -430,7 +402,7 @@ public class XPlainTraceIT extends XPlainTrace {
 
         waitForStatement(statementId);
 
-        XPlainTraceIT xPlainTrace = new XPlainTraceIT();
+        XPlainTrace1IT xPlainTrace = new XPlainTrace1IT();
         xPlainTrace.setStatementId(statementId);
         xPlainTrace.setFormat("tree");
         xPlainTrace.setMode(0);

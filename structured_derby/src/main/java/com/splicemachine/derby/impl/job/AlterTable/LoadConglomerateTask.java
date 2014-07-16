@@ -20,6 +20,7 @@ import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.KeyValue;
@@ -50,7 +51,7 @@ public class LoadConglomerateTask extends ZkTask {
     private ColumnInfo[] columnInfo;
     private int droppedColumnPosition;
     private String txnId;
-    private String xplainSchema;
+    private boolean isTraced;
     private long statementId;
     private long operationId;
     private ConglomerateLoader loader;
@@ -72,7 +73,7 @@ public class LoadConglomerateTask extends ZkTask {
                                  int droppedColumnPosition,
                                  String txnId,
                                  String jobId,
-                                 String xplainSchema,
+                                 boolean isTraced,
                                  long statementId,
                                  long operationId) {
 
@@ -83,7 +84,7 @@ public class LoadConglomerateTask extends ZkTask {
         this.columnInfo = columnInfo;
         this.droppedColumnPosition = droppedColumnPosition;
         this.txnId = txnId;
-        this.xplainSchema = xplainSchema;
+        this.isTraced = isTraced;
         this.statementId = statementId;
         this.operationId = operationId;
     }
@@ -93,7 +94,7 @@ public class LoadConglomerateTask extends ZkTask {
 				return new LoadConglomerateTask(tableId,
 								fromConglomId,toConglomId,
 								columnInfo,droppedColumnPosition,
-								txnId,jobId,xplainSchema,statementId,operationId);
+								txnId,jobId,isTraced,statementId,operationId);
 		}
 
 		@Override public boolean isSplittable() { return false; }
@@ -106,9 +107,9 @@ public class LoadConglomerateTask extends ZkTask {
 		}
 
 		private void initialize() throws StandardException{
-        scanner = new ConglomerateScanner(columnInfo, region, txnId, xplainSchema,scanStart,scanStop);
+        scanner = new ConglomerateScanner(columnInfo, region, txnId, isTraced,scanStart,scanStop);
         transformer = new RowTransformer(tableId, txnId, columnInfo, droppedColumnPosition);
-        loader = new ConglomerateLoader(toConglomId, txnId);
+        loader = new ConglomerateLoader(toConglomId, txnId, isTraced);
         initialized = true;
     }
     @Override
@@ -119,13 +120,13 @@ public class LoadConglomerateTask extends ZkTask {
             if (!initialized) {
                 initialize();
             }
-            MetricFactory metricFactory = xplainSchema!=null? Metrics.basicMetricFactory(): Metrics.noOpMetricFactory();
+            MetricFactory metricFactory = isTraced? Metrics.basicMetricFactory(): Metrics.noOpMetricFactory();
             writeTimer = metricFactory.newTimer();
 
             List<KeyValue> result;
-
+            writeTimer.startTiming();
             do {
-								SpliceBaseOperation.checkInterrupt(numRecordsRead, SpliceConstants.interruptLoopCheck);
+                SpliceBaseOperation.checkInterrupt(numRecordsRead, SpliceConstants.interruptLoopCheck);
                 result = scanner.next();
                 if (result == null) continue;
 
@@ -138,15 +139,16 @@ public class LoadConglomerateTask extends ZkTask {
         }catch (Exception e) {
             throw new ExecutionException("Error loading conglomerate " + fromConglomId, e);
         } finally {
-						Closeables.closeQuietly(transformer);
-						writeTimer.startTiming();
+            WriteStats writeStats = loader.getWriteStats();
+			Closeables.closeQuietly(transformer);
             loader.close();
             writeTimer.stopTiming();
-            if(xplainSchema!=null){
+            if(isTraced){
                 //record some stats
                 OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId, Bytes.toLong(taskId),region.getRegionNameAsString(),12);
                 stats.addMetric(OperationMetric.STOP_TIMESTAMP,System.currentTimeMillis());
-                stats.addMetric(OperationMetric.START_TIMESTAMP,startTime);
+                stats.addMetric(OperationMetric.START_TIMESTAMP, startTime);
+                stats.addMetric(OperationMetric.TOTAL_WALL_TIME, writeTimer.getTime().getWallClockTime());
 
                 TimeView readTime = scanner.getReadTime();
                 stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,scanner.getBytesOutput());
@@ -155,12 +157,11 @@ public class LoadConglomerateTask extends ZkTask {
                 stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTime.getCpuTime());
                 stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTime.getUserTime());
 
-                TimeView writeTime = writeTimer.getTime();
-                stats.addMetric(OperationMetric.WRITE_BYTES, loader.getTotalBytesAdded());
-                stats.addMetric(OperationMetric.WRITE_ROWS, writeTimer.getNumEvents());
-                stats.addMetric(OperationMetric.PROCESSING_WALL_TIME, writeTime.getWallClockTime());
-                stats.addMetric(OperationMetric.PROCESSING_CPU_TIME,writeTime.getCpuTime());
-                stats.addMetric(OperationMetric.PROCESSING_USER_TIME,writeTime.getUserTime());
+
+                TimeView time = writeStats.getTotalTime();
+                stats.addMetric(OperationMetric.WRITE_BYTES, writeStats.getBytesWritten());
+                stats.addMetric(OperationMetric.WRITE_ROWS, writeStats.getRowsWritten());
+                stats.addMetric(OperationMetric.WRITE_TOTAL_WALL_TIME, time.getWallClockTime());
 
                 SpliceDriver.driver().getTaskReporter().report(stats);
             }
@@ -200,8 +201,7 @@ public class LoadConglomerateTask extends ZkTask {
         droppedColumnPosition = in.readInt();
         txnId = in.readUTF();
 
-        if(in.readBoolean()){
-            xplainSchema = in.readUTF();
+        if(isTraced = in.readBoolean()){
             statementId = in.readLong();
             operationId = in.readLong();
         }
@@ -221,10 +221,9 @@ public class LoadConglomerateTask extends ZkTask {
         }
         out.writeInt(droppedColumnPosition);
         out.writeUTF(txnId);
-        out.writeBoolean(xplainSchema!=null);
+        out.writeBoolean(isTraced);
 
-        if(xplainSchema!=null){
-            out.writeUTF(xplainSchema);
+        if(isTraced){
             out.writeLong(statementId);
             out.writeLong(operationId);
         }
