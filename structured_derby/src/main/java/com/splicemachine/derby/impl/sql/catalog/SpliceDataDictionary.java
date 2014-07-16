@@ -152,7 +152,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 	{        
     	// Update (or create) the system stored procedures if requested.
     	if (SpliceConstants.updateSystemProcs) {
-    		createOrUpdateAllSystemProcedures(tc);
+    		createOrUpdateAllSystemProcedures(null,tc);
 //    		createOrUpdateAllSystemProcedures(tc);
 //    		createOrUpdateAllSystemProcedures(tc);
     	}
