@@ -22,8 +22,8 @@ public class XPlainTrace {
 
     private static final String operationTableName = "SYSOPERATIONHISTORY";
     private static final String taskTableName = "SYSTASKHISTORY";
-    private static final String projectRestrict = "ProjectRestrict";
-
+    private static final String PROJECTRESTRICT = "ProjectRestrict";
+    public static final String SCROLLINSENSITIVE = "ScrollInsensitive";
     /* SYSCS_UTIL.XPLAIN_TRACE() parameters */
     private static final String SCHEMANAME="SYS";
     private long statementId;
@@ -64,7 +64,7 @@ public class XPlainTrace {
 
             populateMetrics();
 
-            aggregateTableScan();
+            aggregateLoops();
 
             aggregateSubqueries();
 
@@ -120,13 +120,57 @@ public class XPlainTrace {
         }
     }
 
+    private void aggregateLoops() throws IllegalAccessException {
+        // Walk through the tree and aggregate broadcast and nested loop join operations
+        NavigableMap<Integer, List<XPlainTreeNode>> loopsMap = Maps.newTreeMap();
+        populateLoopsMap(topOperation, loopsMap, 0);
+
+        // Aggregate loops
+        for(Integer level:loopsMap.descendingKeySet()) {
+            List<XPlainTreeNode> l = loopsMap.get(level);
+            for(XPlainTreeNode node:l) {
+                node.aggregateLoop();
+                //remove scrollinsensitive node
+                XPlainTreeNode siNode = node.getChildren().getFirst();
+                XPlainTreeNode child = siNode.getChildren().getFirst();
+                child.setIterations(siNode.getIterations());
+                child.setInfo(node.getInfo());
+                long parentOperationId = node.getParentOperationId();
+                XPlainTreeNode parentNode = xPlainTreeNodeMap.get(parentOperationId);
+                parentNode.getChildren().removeLast();
+                parentNode.getChildren().add(child);
+            }
+        }
+    }
+
+    private void populateLoopsMap(XPlainTreeNode node, NavigableMap<Integer,
+            List<XPlainTreeNode>> loopsMap, int level) {
+        if (node.isIndexScanOperation() || node.isTableScanOperation()) {
+            Deque<XPlainTreeNode> children = node.getChildren();
+            if (children != null && children.size() > 0 &&
+                children.getFirst().getOperationType().compareToIgnoreCase("ScrollInsensitive") == 0) {
+                List<XPlainTreeNode> operations = loopsMap.get(level);
+                if (operations == null) {
+                    operations = Lists.newArrayList();
+                    loopsMap.put(level, operations);
+                }
+                operations.add(node);
+            }
+        }
+
+        Deque<XPlainTreeNode> children = node.getChildren();
+        for(XPlainTreeNode c:children) {
+            populateLoopsMap(c, loopsMap, level + 1);
+        }
+    }
+
     private void aggregateTableScan () throws IllegalAccessException{
 
         Set<Long> keys = xPlainTreeNodeMap.keySet();
         for (Long key:keys) {
             XPlainTreeNode node = xPlainTreeNodeMap.get(key);
 
-            if (node.isTableScanOperation()) {
+            if (node.isTableScanOperation() || node.isIndexScanOperation()) {
                 Deque<XPlainTreeNode> children = node.getChildren();
                 if (children.size() == 0 ||
                     children.getFirst().getOperationType().compareToIgnoreCase("ScrollInsensitive") != 0) {
@@ -201,7 +245,7 @@ public class XPlainTrace {
                 // For detailed view of the execution plan, show metrics for each region
                 if (mode == 1) {
                     if (node.isTableScanOperation()) {
-                        XPlainTreeNode child = new XPlainTreeNode(statementId);
+                        XPlainTreeNode child = new XPlainTreeNode(statementId, operationId);
                         child.setOperationType("RegionScan");
                         node.addLastChild(child);
                         node = child;
@@ -250,8 +294,10 @@ public class XPlainTrace {
         }
 
         // Skip the top level ScrollInsensitive node
-        Deque<XPlainTreeNode> children = topOperation.getChildren();
-        topOperation = children.getFirst();
+        if (topOperation.getOperationType().compareToIgnoreCase(SCROLLINSENSITIVE)==0) {
+            Deque<XPlainTreeNode> children = topOperation.getChildren();
+            topOperation = children.getFirst();
+        }
     }
 
     /*
@@ -264,7 +310,7 @@ public class XPlainTrace {
         while (rs.next()) {
             count++;
             Long operationId = rs.getLong(1);
-            XPlainTreeNode node = new XPlainTreeNode(statementId);
+            XPlainTreeNode node = new XPlainTreeNode(statementId, operationId);
             node.setParentOperationId(rs.getLong(2));
             node.setOperationType(rs.getString(3));
             node.setRightChildOp(rs.getBoolean(4));
@@ -303,7 +349,7 @@ public class XPlainTrace {
 
             populateMetrics();
 
-            aggregateTableScan();
+            aggregateLoops();
 
             aggregateSubqueries();
         }

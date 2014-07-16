@@ -15,6 +15,7 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.utils.Snowflake;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -129,10 +130,15 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 				 * This means that there
 				 */
         //TODO -sf- replace this name with the actual SQL being issued
+        Snowflake snowflake = SpliceDriver.driver().getUUIDGenerator();
+        long sId = snowflake.nextUUID();
+        if (activation.isTraced()) {
+            activation.getLanguageConnectionContext().setXplainStatementId(sId);
+        }
         StatementInfo statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
-                activation.getTransactionController().getActiveStateTxIdString(),1, SpliceDriver.driver().getUUIDGenerator());
-        OperationInfo populateIndexOp = new OperationInfo(statementInfo.getStatementUuid(),
-                SpliceDriver.driver().getUUIDGenerator().nextUUID(), "PopulateIndex", null, false,-1l);
+                activation.getTransactionController().getActiveStateTxIdString(),1, sId);
+        OperationInfo populateIndexOp = new OperationInfo(SpliceDriver.driver().getUUIDGenerator().nextUUID(),
+                statementInfo.getStatementUuid(), "PopulateIndex", null, false,-1l);
         statementInfo.setOperationInfo(Arrays.asList(populateIndexOp));
         SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
         JobFuture future = null;
@@ -144,7 +150,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction.getTransactionIdString(),
                     conglomId, tableConglomId, baseColumnPositions, unique, uniqueWithDuplicateNulls, descColumns,
                     statementInfo.getStatementUuid(),populateIndexOp.getOperationUuid(),
-                    activation.getLanguageConnectionContext().getXplainSchema(), conglomerate.getColumnOrdering(), conglomerate.getFormat_ids());
+                    activation.isTraced(), conglomerate.getColumnOrdering(), conglomerate.getFormat_ids());
 
             long start = System.currentTimeMillis();
             future = SpliceDriver.driver().getJobScheduler().submit(job);
@@ -165,7 +171,6 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         } catch (InterruptedException e) {
             throw Exceptions.parseException(e);
         } finally {
-            String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
             SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
             cleanupFuture(future);
         }
@@ -176,8 +181,8 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
         JobFuture future = null;
         JobInfo info = null;
-        StatementInfo statementInfo = new StatementInfo(String.format("create index on %s",tableName),userId,
-                activation.getTransactionController().getActiveStateTxIdString(),1, SpliceDriver.driver().getUUIDGenerator());
+        /*StatementInfo statementInfo = new StatementInfo(String.format("create index on %s",tableName),userId,
+                activation.getTransactionController().getActiveStateTxIdString(),1, SpliceDriver.driver().getUUIDGenerator());*/
 
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
@@ -202,8 +207,8 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             }
         }
 
-        statementInfo.setOperationInfo(Arrays.asList(new OperationInfo(statementInfo.getStatementUuid(),
-                SpliceDriver.driver().getUUIDGenerator().nextUUID(), "CreateIndex", null, false, -1l)));
+        /*statementInfo.setOperationInfo(Arrays.asList(new OperationInfo(statementInfo.getStatementUuid(),
+                SpliceDriver.driver().getUUIDGenerator().nextUUID(), "CreateIndex", null, false, -1l)));*/
         try {
             long start = System.currentTimeMillis();
             CreateIndexJob job = new CreateIndexJob(table, ddlChange, columnOrdering, formatIds);
@@ -218,7 +223,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                 info.failJob();
                 throw t;
             }
-            statementInfo.completeJob(info);
+            //statementInfo.completeJob(info);
         } catch (Throwable e) {
             if(info!=null) info.failJob();
             LOG.error("Couldn't create indexes on existing regions", e);
@@ -229,8 +234,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             }
             throw Exceptions.parseException(e);
         }finally {
-            String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
+            //SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
             cleanupFuture(future);
         }
     }

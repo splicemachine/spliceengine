@@ -232,7 +232,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 										Arrays.asList(rowArray),compactRow,resultRow,resultSetNumber);
 
 						//get the mainTable version
-						
 						if(mainTableVersion==null){
 							try {
 									this.mainTableVersion = DerbyScanInformation.tableVersionCache.get(conglomId,new Callable<String>() {
@@ -248,6 +247,12 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 									throw Exceptions.parseException(e);
 							}
 					}						
+                        if (info == null) {
+                            info = "baseTable:"+indexName+"";
+                        }
+                        else if (!info.contains("baseTable")) {
+                            info += ",baseTable:"+indexName+"";
+                        }
 				} catch (StandardException e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!",e);
 				}
@@ -534,7 +539,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				stats.addMetric(OperationMetric.REMOTE_GET_USER_TIME,timing.getUserTime());
 				stats.addMetric(OperationMetric.FILTERED_ROWS,rowsFiltered);
 				//for Index lookups, same number of input rows as output rows
-				stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
+				stats.addMetric(OperationMetric.INPUT_ROWS,rowsRead);
+                stats.addMetric(OperationMetric.OUTPUT_ROWS,rowsRead);
 		}
 
 		@Override protected int getNumMetrics() { return 6; }
@@ -570,7 +576,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 
 		@Override
 		public String getName() {
-				return super.getName()+"(baseTable="+indexName+")";
+				return super.getName();
 		}
 
         @Override

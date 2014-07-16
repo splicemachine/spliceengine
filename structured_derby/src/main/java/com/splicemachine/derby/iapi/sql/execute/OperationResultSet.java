@@ -22,6 +22,7 @@ import org.apache.derby.iapi.sql.execute.*;
 import com.splicemachine.metrics.IOStats;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.impl.sql.execute.ConstantActionActivation;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 

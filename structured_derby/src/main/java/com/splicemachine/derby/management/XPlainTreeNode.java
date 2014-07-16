@@ -20,14 +20,15 @@ public class XPlainTreeNode {
     private static final String TABLESCAN = "TableScan";
 
     private long parentOperationId;
+    @Expose private long operationId;
     @Expose private String operationType;
     private boolean isRightChildOp;
     private int sequenceId;
     private int rightChild;
-    private long statementId;
+    @Expose private long statementId;
     @Expose private String info;
 
-    @Expose private int iterations;
+    @Expose private long iterations;
 
     @Expose private String host;
     @Expose private String region;
@@ -87,8 +88,9 @@ public class XPlainTreeNode {
     private Field[] fields;
     private HashMap<String, Field> fieldMap;
 
-    public XPlainTreeNode(long statementId) {
+    public XPlainTreeNode(long statementId, long operationId) {
         this.statementId = statementId;
+        this.operationId = operationId;
         children = new LinkedList<XPlainTreeNode>();
         fields = this.getClass().getDeclaredFields();
         fieldMap = new HashMap<String, Field>(fields.length * 2);
@@ -169,6 +171,10 @@ public class XPlainTreeNode {
         return operationType.toUpperCase().contains("TABLESCAN");
     }
 
+    public boolean isIndexScanOperation() {
+        return operationType.toUpperCase().contains("INDEXROWTOBASEROW");
+    }
+
     public void setStatementId(long statementId) {
         this.statementId = statementId;
     }
@@ -192,7 +198,7 @@ public class XPlainTreeNode {
                 f.set(this, sum);
             }
         }
-        iterations++;
+        //iterations++;
     }
 
     private boolean canBeAggregated(Field f) {
@@ -250,7 +256,13 @@ public class XPlainTreeNode {
         }
 
         for(String key:nodeMap.keySet()) {
-            children.add(nodeMap.get(key));
+            XPlainTreeNode child = nodeMap.get(key);
+            if (child.getOperationType().compareToIgnoreCase(XPlainTrace.SCROLLINSENSITIVE) == 0) {
+                String info = child.getInfo();
+                child = child.getChildren().getFirst();
+                child.setInfo(info);
+            }
+            children.add(child);
         }
     }
 
@@ -259,11 +271,21 @@ public class XPlainTreeNode {
         aggregate(other);
         if (operationType.compareToIgnoreCase(other.operationType) != 0) {
             SpliceLogUtils.trace(LOG, "operation name not equal");
+            return;
         }
         for(XPlainTreeNode node:children) {
             XPlainTreeNode otherChild = other.children.removeFirst();
             node.aggregateTree(otherChild);
         }
+    }
+
+    public void aggregateLoop() throws IllegalAccessException {
+        XPlainTreeNode first = children.removeFirst();
+        while(children.size() > 0) {
+            XPlainTreeNode next = children.removeFirst();
+            first.aggregateTree(next);
+        }
+        children.add(first);
     }
 
     public long getLocalScanRows() {
@@ -290,7 +312,15 @@ public class XPlainTreeNode {
         return iterations;
     }
 
+    public void setIterations(long i) {
+        this.iterations = i;
+    }
+
     public long getFilteredRows() {
         return filteredRows;
+    }
+
+    public long getRemoteGetRows() {
+        return remoteGetRows;
     }
 }

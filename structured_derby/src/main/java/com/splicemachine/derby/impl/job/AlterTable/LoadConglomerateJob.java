@@ -32,7 +32,7 @@ public class LoadConglomerateJob implements CoprocessorJob {
     private final String txnId;
     private final long statementId;
     private final long operationId;
-    private final String xplainSchema;
+    private final boolean isTraced;
 
     public LoadConglomerateJob(HTableInterface table,
                                UUID tableId,
@@ -43,7 +43,7 @@ public class LoadConglomerateJob implements CoprocessorJob {
                                String txnId,
                                long statementId,
                                long operationId,
-                               String xplainSchema) {
+                               boolean isTraced) {
         this.table = table;
         this.tableId = tableId;
         this.fromConglomId = fromConglomId;
@@ -53,12 +53,12 @@ public class LoadConglomerateJob implements CoprocessorJob {
         this.txnId = txnId;
         this.statementId = statementId;
         this.operationId = operationId;
-        this.xplainSchema = xplainSchema;
+        this.isTraced = isTraced;
     }
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
-        LoadConglomerateTask task = new LoadConglomerateTask(tableId, fromConglomId, toConglomId, columnInfo, droppedColumnPosition, txnId, getJobId(), xplainSchema, statementId, operationId);
+        LoadConglomerateTask task = new LoadConglomerateTask(tableId, fromConglomId, toConglomId, columnInfo, droppedColumnPosition, txnId, getJobId(), isTraced, statementId, operationId);
         return Collections.singletonMap(task, Pair.newPair(HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW));
     }
     @Override

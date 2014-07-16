@@ -251,14 +251,14 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 								if (restriction == null) {
 										restrict = true;
 								} else {
-                                        if (shouldRecordStats()) {
+                                        if (activation.isTraced()) {
                                             // Push the operation Id
                                             if (operationChainInfo == null) {
                                                 operationChainInfo = new XplainOperationChainInfo(
                                                     spliceRuntimeContext.getStatementId(),
                                                     Bytes.toLong(uniqueSequenceID));
 
-                                                operationChainInfo.setMethodName("Subquery: " + restrictionMethodName);
+                                                operationChainInfo.setMethodName("Subquery:" + restrictionMethodName);
                                             }
                                             List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
                                             if (operationChain == null) {

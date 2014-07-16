@@ -212,8 +212,10 @@ public class NormalizeOperation extends SpliceBaseOperation {
 
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {
-				if(timer!=null)
-						stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
+				if(timer!=null) {
+                    stats.addMetric(OperationMetric.INPUT_ROWS, timer.getNumEvents());
+                    stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
+                }
 		}
 
 		@Override protected int getNumMetrics() { return super.getNumMetrics()+1; }
