@@ -131,7 +131,7 @@ public class TableConstantOperationIT extends SpliceUnitTest {
             SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
                 @Override
                 public void execute(Statement statement) throws Exception {
-                    statement.execute(String.format("create table %s.%s %s",tableSchema.schemaName,EMP_NAME_TABLE2,eNameDef));
+                    statement.execute(String.format("create table %s.%s %s", tableSchema.schemaName, EMP_NAME_TABLE2, eNameDef));
                     loadTable(statement, tableSchema.schemaName + "." + EMP_NAME_TABLE2, empNameVals);
                 }
             });
@@ -165,15 +165,15 @@ public class TableConstantOperationIT extends SpliceUnitTest {
     @Test(expected = SQLException.class)
     public void testCreateDropTableIfExist() throws Exception {
         String tableName = "R";
-        methodWatcher.getStatement().execute(String.format("create table %s.%s (i int)", tableSchema.schemaName, tableName));
-        methodWatcher.getStatement().execute(String.format("drop table %s", tableSchema.schemaName + "." + tableName));
+        Statement statement = methodWatcher.getStatement();
+        statement.execute(String.format("create table %s.%s (i int)", tableSchema.schemaName, tableName));
+        statement.execute(String.format("drop table %s", tableSchema.schemaName + "." + tableName));
 
         try {
-            methodWatcher.getStatement().execute(String.format("drop table %s", tableSchema.schemaName + "." + tableName));
+            statement.execute(String.format("drop table %s", tableSchema.schemaName + "." + tableName));
         }finally{
-
             // we should not get an exception here because we've used "if exists"
-            methodWatcher.getStatement().execute(String.format("drop table if exists %s", tableSchema.schemaName + "." + tableName));
+            statement.execute(String.format("drop table if exists %s", tableSchema.schemaName + "." + tableName));
         }
     }
 
@@ -262,7 +262,8 @@ public class TableConstantOperationIT extends SpliceUnitTest {
      public void testRenameTableWithView() throws Exception {
         Connection connection = methodWatcher.createConnection();
         try{
-            SQLClosures.query(connection,String.format("select * from %s", empNamePrivView.toString()),new SQLClosures.SQLAction<ResultSet>() {
+            connection.setAutoCommit(false);
+            SQLClosures.query(connection, String.format("select * from %s", empNamePrivView.toString()), new SQLClosures.SQLAction<ResultSet>() {
                 @Override
                 public void execute(ResultSet resultSet) throws Exception {
                     Assert.assertEquals(5, resultSetSize(resultSet));
@@ -276,6 +277,7 @@ public class TableConstantOperationIT extends SpliceUnitTest {
                 }
             });
 
+            connection.rollback();
         }finally{
             connection.close();
         }
