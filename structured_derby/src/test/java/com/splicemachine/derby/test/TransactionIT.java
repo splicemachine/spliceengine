@@ -192,38 +192,39 @@ public class TransactionIT extends SpliceUnitTest {
 			s.execute(format("insert into %s values(100)",this.getTableReference(TABLE_NAME_7)));
 	}
 
-	@Test
-	public void testUpdateRollback() throws Exception {
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_8);
-			methodWatcher.setAutoCommit(false);
-			Statement s = methodWatcher.getStatement();
-			s.execute(format("create table %s (num int, addr varchar(50), zip char(5))", this.getTableReference(TABLE_NAME_8)));
+    @Test
+    public void testUpdateRollback() throws Exception {
+        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_8);
+        methodWatcher.setAutoCommit(false);
+        Statement s = methodWatcher.getStatement();
+        s.execute(format("create table %s (num int, addr varchar(50), zip char(5))", this.getTableReference(TABLE_NAME_8)));
 
-            methodWatcher.commit();
+        methodWatcher.commit();
 
-			s.execute(format("insert into %s values(100, '100: 101 Califronia St', '94114')",this.getTableReference(TABLE_NAME_8)));
-			s.execute(format("insert into %s values(200, '200: 908 Glade Ct.', '94509')",this.getTableReference(TABLE_NAME_8)));
-			s.execute(format("insert into %s values(300, '300: my addr', '34166')",this.getTableReference(TABLE_NAME_8)));
-			s.execute(format("insert into %s values(400, '400: 182 Second St.', '94114')",this.getTableReference(TABLE_NAME_8)));
-			s.execute(format("insert into %s(num) values(500)",this.getTableReference(TABLE_NAME_8)));
-			s.execute(format("insert into %s values(600, 'new addr', '34166')",this.getTableReference(TABLE_NAME_8)));
-			methodWatcher.commit();
-			s.executeUpdate(format("update %s set addr='rolled back address' where num=400",this.getTableReference(TABLE_NAME_8)));
-			ResultSet rs = methodWatcher.executeQuery(format("select addr from %s where num=400",this.getTableReference(TABLE_NAME_8)));
-			if (rs.next()) {
-				Assert.assertEquals("rolled back address", rs.getString(1));
-			}	
-			methodWatcher.rollback();
-			rs = methodWatcher.executeQuery(format("select num, addr from %s where num=400",this.getTableReference(TABLE_NAME_8)));
-			if (rs.next()) {
-                Assert.assertEquals(400, rs.getInt(1));
-                Assert.assertEquals("400: 182 Second St.", rs.getString(2));
-			}	
-	}
+        s.execute(format("insert into %s values(100, '100: 101 Califronia St', '94114')",this.getTableReference(TABLE_NAME_8)));
+        s.execute(format("insert into %s values(200, '200: 908 Glade Ct.', '94509')",this.getTableReference(TABLE_NAME_8)));
+        s.execute(format("insert into %s values(300, '300: my addr', '34166')",this.getTableReference(TABLE_NAME_8)));
+        s.execute(format("insert into %s values(400, '400: 182 Second St.', '94114')",this.getTableReference(TABLE_NAME_8)));
+        s.execute(format("insert into %s(num) values(500)",this.getTableReference(TABLE_NAME_8)));
+        s.execute(format("insert into %s values(600, 'new addr', '34166')",this.getTableReference(TABLE_NAME_8)));
+        methodWatcher.commit();
+
+        s.executeUpdate(format("update %s set addr='rolled back address' where num=400",this.getTableReference(TABLE_NAME_8)));
+        ResultSet rs = methodWatcher.executeQuery(format("select addr from %s where num=400",this.getTableReference(TABLE_NAME_8)));
+        if (rs.next()) {
+            Assert.assertEquals("rolled back address", rs.getString(1));
+        }
+        methodWatcher.rollback();
+        rs = methodWatcher.executeQuery(format("select num, addr from %s where num=400",this.getTableReference(TABLE_NAME_8)));
+        if (rs.next()) {
+            Assert.assertEquals(400, rs.getInt(1));
+            Assert.assertEquals("400: 182 Second St.", rs.getString(2));
+        }
+    }
 
     @Test
     public void testTransactionalDDLUpdateRollback() throws Exception {
-		SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_9);
+        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME_9);
         methodWatcher.setAutoCommit(false);
         Statement s = methodWatcher.getStatement();
         s.execute(format("create table %s (num int, addr varchar(50), zip char(5))", this.getTableReference(TABLE_NAME_9)));
