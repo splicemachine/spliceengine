@@ -147,7 +147,7 @@ public class CsvUtil {
         String userDir = System.getProperty("user.dir");
         if(!userDir.endsWith("structured_derby"))
             userDir = userDir+"/structured_derby";
-        return userDir+"/src/test/resources";
+        return userDir+"/src/test/test-data";
     }
 
 }

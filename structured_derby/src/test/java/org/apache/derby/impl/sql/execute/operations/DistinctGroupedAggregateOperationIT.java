@@ -115,7 +115,6 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
         Assert.assertEquals("Incorrect number of oids returned!",0,correctOids.size());
 	}
 
-    @Ignore("DB-1277")
     @Test
     public void testDistinctAndNonDistinctAggregate() throws Exception {
         List<Object[]> sumExpected = Arrays.asList(new Object[]{null}, o(6L), o(10L));
@@ -138,9 +137,6 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
                                                                                                "sum(c1) " +
                                                                                                "from t1 group by c2 " +
                                                                                                "order by 1"));
-        for (Object[] o: bothSumsRows){
-            System.out.println(Arrays.toString(o));
-        }
         Assert.assertArrayEquals(bothSumsExpected.toArray(), bothSumsRows.toArray());
     }
 }

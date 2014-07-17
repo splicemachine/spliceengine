@@ -11,7 +11,7 @@ export LOG4J_PROP_PATH
 DEV_CP="${ROOT_DIR}/target/splicemachine/lib/*"
 export DEV_CP
 
-SQL_SHELL="${ROOT_DIR}"/target/classes/bin/sqlshell.sh
+SQL_SHELL="${ROOT_DIR}"/src/main/bin/sqlshell.sh
 
 if [[ ! -x ${SQL_SHELL} ]]; then
     chmod 755 ${SQL_SHELL}
