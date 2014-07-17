@@ -25,7 +25,7 @@
 			</excludes>
 		</fileSet>
 		<fileSet>
-			<directory>target/classes/bin</directory>
+			<directory>src/main/bin</directory>
 			<outputDirectory>splicemachine/bin</outputDirectory>
 			<fileMode>0755</fileMode>
 			<directoryMode>0755</directoryMode>
@@ -34,7 +34,7 @@
 			</includes>
 		</fileSet>
 		<fileSet>
-			<directory>target/classes/bin</directory>
+			<directory>src/main/bin</directory>
 			<outputDirectory>splicemachine</outputDirectory>
 			<fileMode>0644</fileMode>
 			<includes>
@@ -43,7 +43,7 @@
 			</includes>
 		</fileSet>
 		<fileSet>
-			<directory>target/test-classes/demodata</directory>
+			<directory>src/test/test-data/demo/demodata</directory>
 			<outputDirectory>splicemachine/demodata</outputDirectory>
 			<fileMode>0666</fileMode>
 			<directoryMode>0755</directoryMode>
@@ -53,7 +53,7 @@
 		</fileSet>
 		<fileSet>
 			<!-- Copy binary files in separate fileSet -->
-			<directory>target/test-classes/demodata/data</directory>
+			<directory>src/test/test-data/demo/demodata/data</directory>
 			<outputDirectory>splicemachine/demodata/data</outputDirectory>
 			<lineEnding>keep</lineEnding>
 			<fileMode>0775</fileMode>

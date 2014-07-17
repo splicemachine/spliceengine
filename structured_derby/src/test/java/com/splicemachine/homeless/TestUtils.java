@@ -16,7 +16,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import org.apache.commons.dbutils.BasicRowProcessor;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.runner.Description;
@@ -50,20 +52,10 @@ public class TestUtils {
         executeSql(spliceWatcher, readFile(fileSuffix), schema);
     }
 
-    public static String readFile(String fileName) {
+    private static String readFile(String fileName) {
         try {
-            File f = new File(fileName);
-            URL pathToFile = null;
-
-            if (f.isAbsolute()) {
-                pathToFile = f.toURL();
-
-            } else {
-                pathToFile = getClasspathResource(fileName);
-            }
-
-            return IOUtils.toString(pathToFile);
-
+            File f = new File(SpliceUnitTest.getResourceDirectory(), fileName);
+            return FileUtils.readFileToString(f);
         } catch (IOException e) {
             throw new RuntimeException("Unable to open file " + fileName, e);
         }

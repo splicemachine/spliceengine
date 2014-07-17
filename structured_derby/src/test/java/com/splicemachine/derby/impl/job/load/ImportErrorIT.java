@@ -339,6 +339,6 @@ public class ImportErrorIT {
         return userDir;
     }
     public static String getResourceDirectory() {
-        return getBaseDirectory()+"/src/test/resources";
+        return getBaseDirectory()+"/src/test/test-data";
     }
 }

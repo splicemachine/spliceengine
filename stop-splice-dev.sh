@@ -41,7 +41,7 @@ done
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd )"
 pushd "${SCRIPT_DIR}/structured_derby" &>/dev/null
 ROOT_DIR="$( pwd )"
-source ${ROOT_DIR}/target/classes/bin/functions.sh
+source ${ROOT_DIR}/src/main/bin/functions.sh
 SPLICELOG="${ROOT_DIR}"/splice.log
 ZOOLOG="${ROOT_DIR}"/zoo.log
 DERBYLOG="${ROOT_DIR}"/derby.log
@@ -58,7 +58,7 @@ currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
 
 echo "Shutting down splice at $currentDateTime" >> ${SPLICELOG}
 
-source ${ROOT_DIR}/target/classes/bin/functions.sh
+source ${ROOT_DIR}/src/main/bin/functions.sh
 _stopServer "${ROOT_DIR}/target/splicemachine" "${ROOT_DIR}/target/splicemachine"
 
 # Check for stragglers
