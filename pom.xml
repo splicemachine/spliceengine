@@ -5,7 +5,7 @@
 	<groupId>com.splicemachine</groupId>
 	<version>FUJI.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
-	<artifactId>structured_hbase</artifactId>
+	<artifactId>spliceengine</artifactId>
 	<name>structured_hbase</name>
 	<description>Splice Machine Root POM</description>
 	<modules>
@@ -377,7 +377,7 @@
 					<artifactId>hadoop-hdfs</artifactId>
 					<version>${hadoop.version}</version>
 					<classifier>tests</classifier>
-                    <scope>tests</scope>
+                    <scope>test</scope>
 				</dependency>
 				<dependency>
 					<groupId>org.apache.hadoop</groupId>
