@@ -47,3 +47,8 @@
   color: #7c9eb2;
   padding: 10px 10px;
 }
+
+/* Set width for the angular.ui.bootstrap popover that is used to display the very long region name in the operation details panel. */
+.popover {
+  max-width: 500px;
+}

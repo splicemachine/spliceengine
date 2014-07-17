@@ -18,7 +18,7 @@
          on-selection="showSelected(node)"
          selected-node="clickedOperation">
       <!-- span class="my-angular-ui-tree-handle" -->
-        {{node.operationType}} <span style="width: 400px;text-align: left;" class="pull-right">[In: {{node.inputRows}} rows, Out: {{node.outputRows}} rows, Time: {{formatRawNanoTime(node.totalWallTime)}}]</span>
+        {{node.operationType}} <span style="width: 400px;text-align: left;" class="pull-right">[In: {{node.inputRows | number:0}} rows, Out: {{node.outputRows | number:0}} rows, Time: {{formatRawNanoTime(node.totalWallTime)}}]</span>
         <!-- a class="btn btn-danger btn-xs pull-right" ng-click="alert('remove!')"><span class="glyphicon glyphicon-remove"></span></a -->
         <!-- a class="btn btn-primary btn-xs" ng-click="alert('new!')"><span class="glyphicon glyphicon-plus"></span></a -->
       <!-- /span -->
@@ -41,27 +41,27 @@
         <li ng-show="clickedOperation.totalCPUTime">Total CPU Time: {{formatRawNanoTime(clickedOperation.totalCPUTime)}}</li>
         <li ng-show="clickedOperation.totalUserTime">Total User Time: {{formatRawNanoTime(clickedOperation.totalUserTime)}}</li>
         <li ng-show="clickedOperation.totalWallTime">Total Wall Time: {{formatRawNanoTime(clickedOperation.totalWallTime)}}</li>
-        <li ng-show="clickedOperation.region">Region: {{clickedOperation.region}}</li>
+        <li ng-show="clickedOperation.regionShort">Region: <a popover-title="Region Name" popover="{{clickedOperation.region}}">{{clickedOperation.regionShort}}</a></li>
       </ul>
     </div>
     <div id="operation-details-input">
       <span class="operation-details-sub-title">Input</span>
       <ul id="operation-details-input-list">
-        <li ng-show="clickedOperation.filteredRows">Filtered Rows: {{clickedOperation.filteredRows}}</li>
-        <li ng-show="clickedOperation.inputRows">Input Rows: {{clickedOperation.inputRows}}</li>
+        <li ng-show="clickedOperation.filteredRows">Filtered Rows: {{clickedOperation.filteredRows | number:0}}</li>
+        <li ng-show="clickedOperation.inputRows">Input Rows: {{clickedOperation.inputRows | number:0}}</li>
         <li ng-show="clickedOperation.localScanBytes">Local Scan Bytes: {{clickedOperation.localScanBytes}}</li>
         <li ng-show="clickedOperation.localScanCPUTime">Local Scan CPU Time: {{formatRawNanoTime(clickedOperation.localScanCPUTime)}}</li>
-        <li ng-show="clickedOperation.localScanRows">Local Scan Rows: {{clickedOperation.localScanRows}}</li>
+        <li ng-show="clickedOperation.localScanRows">Local Scan Rows: {{clickedOperation.localScanRows | number:0}}</li>
         <li ng-show="clickedOperation.localScanUserTime">Local Scan User Time: {{formatRawNanoTime(clickedOperation.localScanUserTime)}}</li>
         <li ng-show="clickedOperation.localScanWallTime">Local Scan Wall Time: {{formatRawNanoTime(clickedOperation.localScanWallTime)}}</li>
         <li ng-show="clickedOperation.remoteGetBytes">Remote Get Bytes: {{clickedOperation.remoteGetBytes}}</li>
         <li ng-show="clickedOperation.remoteGetCPUTime">Remote Get CPU Time: {{formatRawNanoTime(clickedOperation.remoteGetCPUTime)}}</li>
-        <li ng-show="clickedOperation.remoteGetRows">Remote Get Rows: {{clickedOperation.remoteGetRows}}</li>
+        <li ng-show="clickedOperation.remoteGetRows">Remote Get Rows: {{clickedOperation.remoteGetRows | number:0}}</li>
         <li ng-show="clickedOperation.remoteGetUserTime">Remote Get UserTime: {{formatRawNanoTime(clickedOperation.remoteGetUserTime)}}</li>
         <li ng-show="clickedOperation.remoteGetWallTime">Remote Get Wall Time: {{formatRawNanoTime(clickedOperation.remoteGetWallTime)}}</li>
         <li ng-show="clickedOperation.remoteScanBytes">Remote Scan Bytes: {{clickedOperation.remoteScanBytes}}</li>
         <li ng-show="clickedOperation.remoteScanCPUTime">Remote Scan CPU Time: {{formatRawNanoTime(clickedOperation.remoteScanCPUTime)}}</li>
-        <li ng-show="clickedOperation.remoteScanRows">Remote Scan Rows: {{clickedOperation.remoteScanRows}}</li>
+        <li ng-show="clickedOperation.remoteScanRows">Remote Scan Rows: {{clickedOperation.remoteScanRows | number:0}}</li>
         <li ng-show="clickedOperation.remoteScanUserTime">Remote Scan User Time: {{formatRawNanoTime(clickedOperation.remoteScanUserTime)}}</li>
         <li ng-show="clickedOperation.remoteScanWallTime">Remote Scan Wall Time: {{formatRawNanoTime(clickedOperation.remoteScanWallTime)}}</li>
       </ul>
@@ -70,7 +70,7 @@
       <span class="operation-details-sub-title">Output</span>
       <ul id="operation-details-output-list">
         <li ng-show="clickedOperation.failedWriteAttempts">Failed Write Attempts: {{clickedOperation.failedWriteAttempts}}</li>
-        <li ng-show="clickedOperation.outputRows">Output Rows: {{clickedOperation.outputRows}}</li>
+        <li ng-show="clickedOperation.outputRows">Output Rows: {{clickedOperation.outputRows | number:0}}</li>
         <li ng-show="clickedOperation.partialWriteFailures">Partial Write Failures: {{clickedOperation.partialWriteFailures}}</li>
         <li ng-show="clickedOperation.rejectedWriteAttempts">Rejected Write Attempts: {{clickedOperation.rejectedWriteAttempts}}</li>
         <li ng-show="clickedOperation.retriedWriteAttempts">Retried Write Attempts: {{clickedOperation.retriedWriteAttempts}}</li>
@@ -78,7 +78,7 @@
         <li ng-show="clickedOperation.writeNetworkCPUTime">Write Network CPU Time: {{formatRawNanoTime(clickedOperation.writeNetworkCPUTime)}}</li>
         <li ng-show="clickedOperation.writeNetworkUserTime">Write Network User Time: {{formatRawNanoTime(clickedOperation.writeNetworkUserTime)}}</li>
         <li ng-show="clickedOperation.writeNetworkWallTime">Write Network Wall Time: {{formatRawNanoTime(clickedOperation.writeNetworkWallTime)}}</li>
-        <li ng-show="clickedOperation.writeRows">Write Rows: {{clickedOperation.writeRows}}</li>
+        <li ng-show="clickedOperation.writeRows">Write Rows: {{clickedOperation.writeRows | number:0}}</li>
         <li ng-show="clickedOperation.writeSleepCPUTime">Write Sleep CPU Time: {{formatRawNanoTime(clickedOperation.writeSleepCPUTime)}}</li>
         <li ng-show="clickedOperation.writeSleepUserTime">Write Sleep User Time: {{formatRawNanoTime(clickedOperation.writeSleepUserTime)}}</li>
         <li ng-show="clickedOperation.writeSleepWallTime">Write Sleep Wall Time: {{formatRawNanoTime(clickedOperation.writeSleepWallTime)}}</li>
