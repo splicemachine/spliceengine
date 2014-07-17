@@ -281,150 +281,226 @@ public class TableConstantOperationIT extends SpliceUnitTest {
         }
     }
 
+    private static final SQLClosures.SQLAction<ResultSet> siFailAction = new SQLClosures.SQLAction<ResultSet>() {
+        @Override
+        public void execute(ResultSet resultSet) throws Exception {
+            Assert.fail("Read committed violated, access to non committed table didn't raise exception");
+        }
+    };
     @Test
     public void testTableCreationIsolation() throws Exception {
-        String create = String.format("create table %s.%s %s",tableSchema.schemaName,EMP_NAME_TABLE3,ePrivDef);
-        String query = String.format("select * from %s.%s", tableSchema.schemaName, EMP_NAME_TABLE3);
+        final String create = String.format("create table %s.%s %s",tableSchema.schemaName,EMP_NAME_TABLE3,ePrivDef);
+        final String query = String.format("select * from %s.%s", tableSchema.schemaName, EMP_NAME_TABLE3);
 
         Connection connection1 = methodWatcher.createConnection();
-        Statement statement1 = connection1.createStatement();
-        Connection connection2 = methodWatcher.createConnection();
-        try {
+        try{
             connection1.setAutoCommit(false);
-            connection2.setAutoCommit(false);
-            statement1.execute(create);
-            loadTable(statement1, tableSchema.schemaName + "." + EMP_NAME_TABLE3, empNameVals);
+            Connection connection2 = methodWatcher.createConnection();
+            try{
+                connection2.setAutoCommit(false);
+                SQLClosures.execute(connection1, new SQLClosures.SQLAction<Statement>() {
+                    @Override
+                    public void execute(Statement statement1) throws Exception {
+                        statement1.execute(create);
+                        loadTable(statement1, tableSchema.schemaName + "." + EMP_NAME_TABLE3, empNameVals);
+                    }
+                });
 
-            ResultSet resultSet;
-            try {
-                resultSet = connection2.createStatement().executeQuery(query);
-                Assert.fail("Read committed violated, access to non committed table didn't raise exception");
-            } catch (SQLException e) {
-                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
-            }
 
-            resultSet = connection1.createStatement().executeQuery(query);
-            Assert.assertTrue("Connection should see its own writes",resultSet.next());
+                try{
+                    SQLClosures.query(connection2,query, siFailAction);
+                }catch(SQLException se){
+                    Assert.assertTrue("Unknown exception", se.getMessage().contains("does not exist"));
+                }
 
-            connection1.commit();
-            try {
-                resultSet = connection2.createStatement().executeQuery(query);
-                Assert.fail("Read committed violated, access to not-in-snapshot table didn't raise exception");
-            } catch (SQLException e) {
-                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
-            }
+                SQLClosures.query(connection1,query,new SQLClosures.SQLAction<ResultSet>() {
+                    @Override
+                    public void execute(ResultSet resultSet) throws Exception {
+                        Assert.assertTrue("Connection should see its own writes",resultSet.next());
+                    }
+                });
 
-            connection2.commit();
-            resultSet = connection2.createStatement().executeQuery(query);
-            Assert.assertTrue("New Transaction cannot see created object",resultSet.next());
-        } finally {
-            // drop/delete the damn thing
-            try {
-                connection1.createStatement().execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_NAME_TABLE3));
                 connection1.commit();
-            } catch (SQLException e) {
-                // ignore
+
+                //connection2 still shouldn't be able to see the table
+                try{
+                    SQLClosures.query(connection2,query, siFailAction);
+                }catch(SQLException se){
+                    Assert.assertTrue("Unknown exception", se.getMessage().contains("does not exist"));
+                }
+
+                //commit, then see if the new transaction can see it
+                connection2.commit();
+                SQLClosures.query(connection2,query,new SQLClosures.SQLAction<ResultSet>() {
+                    @Override
+                    public void execute(ResultSet resultSet) throws Exception {
+                        Assert.assertTrue("New Transaction cannot see created object",resultSet.next());
+                    }
+                });
+
+            }finally{
+                //drop the table to clear it out for other tests
+                try{
+                    SQLClosures.execute(connection1,new SQLClosures.SQLAction<Statement>() {
+                        @Override
+                        public void execute(Statement statement) throws Exception {
+                            statement.execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_NAME_TABLE3));
+                        }
+                    });
+                }finally{
+                    connection2.rollback();
+                    connection2.close();
+                }
             }
+        }finally{
+            connection1.commit();
+            connection1.close();
         }
     }
 
     @Test
     public void testTableDropIsolation() throws Exception {
-        String create = String.format("create table %s.%s %s",tableSchema.schemaName,EMP_NAME_TABLE4,ePrivDef);
-        String query = String.format("select * from %s.%s", tableSchema.schemaName, EMP_NAME_TABLE4);
+        final String create = String.format("create table %s.%s %s",tableSchema.schemaName,EMP_NAME_TABLE4,ePrivDef);
+        final String query = String.format("select * from %s.%s", tableSchema.schemaName, EMP_NAME_TABLE4);
 
         Connection connection1 = methodWatcher.createConnection();
-        Statement statement1 = connection1.createStatement();
-        Connection connection2 = methodWatcher.createConnection();
-        try {
+        try{
             connection1.setAutoCommit(false);
-            connection2.setAutoCommit(false);
-            statement1.execute(create);
-            loadTable(statement1, tableSchema.schemaName + "." + EMP_NAME_TABLE4, empNameVals);
+            Connection connection2 = methodWatcher.createConnection();
+            try{
+                connection2.setAutoCommit(false);
+                SQLClosures.execute(connection1, new SQLClosures.SQLAction<Statement>() {
+                    @Override
+                    public void execute(Statement statement) throws Exception {
+                        statement.execute(create);
+                        loadTable(statement, tableSchema.schemaName + "." + EMP_NAME_TABLE4, empNameVals);
+                    }
+                });
 
-            ResultSet resultSet;
-            try {
-                resultSet = connection2.createStatement().executeQuery(query);
-                Assert.fail("Read committed violated, access to non committed table didn't raise exception");
-            } catch (SQLException e) {
-                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
-            }
+                try{
+                    SQLClosures.query(connection2, query, siFailAction);
+                }catch(SQLException e){
+                    Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
+                }
 
-            resultSet = connection1.createStatement().executeQuery(query);
-            Assert.assertTrue("Connection should see its own writes",resultSet.next());
+                SQLClosures.query(connection1, query,new SQLClosures.SQLAction<ResultSet>() {
+                    @Override
+                    public void execute(ResultSet resultSet) throws Exception {
+                        Assert.assertTrue("Connection should see its own writes",resultSet.next());
+                    }
+                });
 
-            connection1.rollback();
-            try {
-                resultSet = connection2.createStatement().executeQuery(query);
-                Assert.fail("Read committed violated, access to non committed table didn't raise exception");
-            } catch (SQLException e) {
-                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
-            }
+                connection1.rollback();
+                try{
+                    SQLClosures.query(connection2, query, siFailAction);
+                }catch(SQLException e){
+                    Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
+                }
 
-            connection2.commit();
-            try {
-                resultSet = connection2.createStatement().executeQuery(query);
-                Assert.fail("Read committed violated, access to non committed table didn't raise exception");
-            } catch (SQLException e) {
-                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
+                connection2.commit();
+                try{
+                    SQLClosures.query(connection2, query, siFailAction);
+                }catch(SQLException e){
+                    Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
+                }
+            }finally{
+                try{
+                    SQLClosures.execute(connection1, new SQLClosures.SQLAction<Statement>() {
+                        @Override
+                        public void execute(Statement statement) throws Exception {
+                            statement.execute(String.format("drop table if exists %s.%s", tableSchema.schemaName, EMP_NAME_TABLE4));
+                        }
+                    });
+                }finally{
+                    connection2.rollback();
+                    connection2.close();
+                }
             }
-        } finally {
-            // drop/delete the damn thing
-            try {
-                connection1.createStatement().execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_NAME_TABLE4));
-                connection1.commit();
-            } catch (SQLException e) {
-                // ignore
-            }
+        }finally{
+            connection1.commit();
+            connection1.close();
         }
     }
 
     @Test
     public void testTableCreationConflict() throws Exception {
-        String create = String.format("create table %s.%s %s",tableSchema.schemaName,EMP_NAME_TABLE5,ePrivDef);
-        String query = String.format("select * from %s.%s", tableSchema.schemaName, EMP_NAME_TABLE5);
+        final String create = String.format("create table %s.%s %s",tableSchema.schemaName,EMP_NAME_TABLE5,ePrivDef);
+        final String query = String.format("select * from %s.%s", tableSchema.schemaName, EMP_NAME_TABLE5);
 
         Connection connection1 = methodWatcher.createConnection();
-        Connection connection2 = methodWatcher.createConnection();
-        try {
+        try{
             connection1.setAutoCommit(false);
-            connection2.setAutoCommit(false);
-            connection1.createStatement().execute(create);
-            loadTable(connection1.createStatement(), tableSchema.schemaName + "." + EMP_NAME_TABLE5, empNameVals);
+            Connection connection2 = methodWatcher.createConnection();
+            try{
+                connection2.setAutoCommit(false);
+                SQLClosures.execute(connection1, new SQLClosures.SQLAction<Statement>() {
+                    @Override
+                    public void execute(Statement statement) throws Exception {
+                        statement.execute(create);
+                        loadTable(statement, tableSchema.schemaName + "." + EMP_NAME_TABLE5, empNameVals);
+                    }
+                });
 
-            ResultSet resultSet;
-            try {
-                connection2.createStatement().execute(create);
-                Assert.fail("Isolation violated, write conflict undetected");
-            } catch (SQLException e) {
-                Assert.assertTrue("Unknown exception", e.getCause().getMessage().contains("serializable"));
+                try{
+                    SQLClosures.execute(connection2,new SQLClosures.SQLAction<Statement>() {
+                        @Override
+                        public void execute(Statement statement) throws Exception {
+                            statement.execute(create);
+                            Assert.fail("Isolation violated, write conflict undetected");
+                        }
+                    });
+                }catch (SQLException e){
+                    //TODO -sf- better error message will break this
+                    Assert.assertTrue("Unknown exception", e.getCause().getMessage().contains("serializable"));
+                }
+                connection2.rollback();
+
+                try{
+                    SQLClosures.query(connection2,query,siFailAction);
+                }catch(SQLException se){
+                    Assert.assertTrue("Unknown exception", se.getMessage().contains("does not exist"));
+                }
+
+                SQLClosures.query(connection1,query,new SQLClosures.SQLAction<ResultSet>() {
+                    @Override
+                    public void execute(ResultSet resultSet) throws Exception {
+                        Assert.assertTrue("Connection should see its own writes",resultSet.next());
+                    }
+                });
+
+                connection1.rollback();
+                SQLClosures.execute(connection2, new SQLClosures.SQLAction<Statement>() {
+                    @Override
+                    public void execute(Statement statement) throws Exception {
+                        statement.execute(create);
+                        loadTable(statement, tableSchema.schemaName + "." + EMP_NAME_TABLE5, empNameVals);
+                    }
+                });
+
+                connection2.commit();
+                SQLClosures.query(connection1,query,new SQLClosures.SQLAction<ResultSet>() {
+                    @Override
+                    public void execute(ResultSet resultSet) throws Exception {
+                        Assert.assertTrue("New Transaction cannot see created object",resultSet.next());
+                    }
+                });
+
+            }finally{
+                try{
+                    SQLClosures.execute(connection1,new SQLClosures.SQLAction<Statement>() {
+                        @Override
+                        public void execute(Statement statement) throws Exception {
+                            statement.execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_NAME_TABLE5));
+                        }
+                    });
+                }finally{
+                    connection2.rollback();
+                    connection2.close();
+                }
             }
-            connection2.rollback();
-            try {
-                resultSet = connection2.createStatement().executeQuery(query);
-                Assert.fail("Read committed violated, access to not-in-snapshot table didn't raise exception");
-            } catch (SQLException e) {
-                Assert.assertTrue("Unknown exception", e.getMessage().contains("does not exist"));
-            }
-
-            resultSet = connection1.createStatement().executeQuery(query);
-            Assert.assertTrue("Connection should see its own writes",resultSet.next());
-
-            connection1.rollback();
-
-            connection2.createStatement().execute(create);
-            loadTable(connection2.createStatement(), tableSchema.schemaName + "." + EMP_NAME_TABLE5, empNameVals);
-            connection2.commit();
-            resultSet = connection2.createStatement().executeQuery(query);
-            Assert.assertTrue("New Transaction cannot see created object",resultSet.next());
-        } finally {
-            // drop/delete the damn thing
-            try {
-                connection1.createStatement().execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_NAME_TABLE5));
-                connection1.commit();
-            } catch (SQLException e) {
-                // ignore
-            }
+        }finally{
+            connection1.commit();
+            connection1.close();
         }
     }
 
