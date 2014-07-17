@@ -80,7 +80,12 @@ public class AsyncReadResolver  {
 
 				@Override
 				public void onEvent(ResolveEvent event, long sequence, boolean endOfBatch) throws Exception {
-            SynchronousReadResolver.INSTANCE.resolve(event.region,event.rowKey,event.txnId,txnSupplier);
+            try{
+                SynchronousReadResolver.INSTANCE.resolve(event.region,event.rowKey,event.txnId,txnSupplier);
+            }catch(Exception e){
+                LOG.info("Error during read resolution",e);
+                throw e;
+            }
 				}
 		}
 
@@ -107,7 +112,7 @@ public class AsyncReadResolver  {
                 ResolveEvent event = ringBuffer.get(sequence);
                 event.region = region;
                 event.txnId = txnId;
-                event.rowKey = rowKey;
+                event.rowKey.set(rowKey.getByteCopy());
             }finally{
                 ringBuffer.publish(sequence);
             }

@@ -61,7 +61,7 @@ public class TransactionalRegions {
 				synchronized (lock){
 						AsyncReadResolver arr = readResolver;
 						if(arr==null){
-								arr = new AsyncReadResolver(4,1<<14,TransactionStorage.getTxnSupplier()); //TODO -sf- move these to constants
+								arr = new AsyncReadResolver(4,1<<16,TransactionStorage.getTxnSupplier()); //TODO -sf- move these to constants
 								arr.start();
 								readResolver = arr;
 						}
