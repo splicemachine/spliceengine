@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.storage;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-<<<<<<< HEAD
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
 import org.apache.hadoop.hbase.KeyValue;
