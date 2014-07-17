@@ -92,7 +92,11 @@ public final class WindowDefinitionNode extends WindowNode
 
         // bind order by
         if (orderByList != null) {
-            orderByList.bindOrderByColumns(target);
+            FromList fromList = target.getFromList();
+            for (int i=0; i<orderByList.size(); ++i) {
+                OrderByColumn obc = orderByList.getOrderByColumn(i);
+                obc.getColumnExpression().bindExpression(fromList, null, null);
+            }
         }
     }
 
