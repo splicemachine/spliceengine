@@ -75,6 +75,13 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
     private static Map<String,Stats> unameStats = new HashMap<String,Stats>();
     private static final int size = 10;
 
+
+    @Test
+    public void testGroupedAggregateReturnsNoRowsForEmpty() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select username, count(i) from %s where username is null group by username",spliceTableWatcher));
+        Assert.assertFalse("Results were returned!",rs.next());
+    }
+
     @Test
     public void testGroupedWithInOperator() throws Exception{
         ResultSet rs = methodWatcher.executeQuery(format("select username, count(i) from %s where username in ('sfines','jzhang') group by username",this.getTableReference(TABLE_NAME_1)));
@@ -108,6 +115,9 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 //				Assert.assertEquals("Incorrect count for uname "+ uname,correctCount,count);
             row++;
         }
+//        for(String result:results){
+//            System.out.println(result);
+//        }
         Assert.assertEquals("Not all groups found!", unameStats.size(),row);
     }
 
@@ -115,8 +125,8 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 //    @Ignore
     public void testRepeatedGroupedCount() throws Exception {
         /* Regression test for Bug 306 */
-        for(int i=0;i<100;i++){
-//            System.out.println(i);
+        for(int i=0;i<1000;i++){
+            System.out.println(i);
             testGroupedCountOperation();
         }
     }

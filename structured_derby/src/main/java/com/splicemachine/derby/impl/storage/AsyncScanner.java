@@ -49,12 +49,16 @@ public class AsyncScanner implements SpliceResultScanner, Callback<ArrayList<Arr
     }
 
     public AsyncScanner(byte[] table, Scan scan, MetricFactory metricFactory, int batchSize) {
+       this(table,scan,metricFactory,batchSize,true);
+    }
+
+    public AsyncScanner(byte[] table, Scan scan, MetricFactory metricFactory, int batchSize,boolean populateBlockCache) {
         this.batchSize = batchSize;
         this.timer = metricFactory.newTimer();
         this.remoteBytesCounter = metricFactory.newCounter();
 
         //TODO -sf- use a different HBaseClient singleton pattern so it can be shutdown easily
-        this.scanner = AsyncScannerUtils.convertScanner(scan,table,HBASE_CLIENT);
+        this.scanner = AsyncScannerUtils.convertScanner(scan,table,HBASE_CLIENT,populateBlockCache);
         this.resultQueue = new LinkedList<List<KeyValue>>();
     }
 
@@ -89,8 +93,8 @@ public class AsyncScanner implements SpliceResultScanner, Callback<ArrayList<Arr
         if(kvs.size()>=batchSize){
             outstandingRequest = scanner.nextRows().addCallback(this);
         }
-        List<KeyValue> first = kvs.remove(0);
-        for(int i=0;i<kvs.size();i++){
+        List<KeyValue> first = kvs.get(0);
+        for(int i=1;i<kvs.size();i++){
             resultQueue.offer(kvs.get(i));
         }
         return first;

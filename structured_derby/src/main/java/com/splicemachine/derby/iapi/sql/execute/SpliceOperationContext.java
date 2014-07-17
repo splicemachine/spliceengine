@@ -82,6 +82,7 @@ public class SpliceOperationContext {
 																	Txn txn){
         this.activation = activation;
         this.preparedStatement = preparedStatement;
+
 				if(SpliceConstants.useReadAheadScanner)
 						this.scanner = new ReadAheadRegionScanner(region, scan.getCaching(), scanner,spliceRuntimeContext);
 				else
