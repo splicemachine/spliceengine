@@ -52,7 +52,7 @@ public class MicrostrategiesCustomerIT extends SpliceUnitTest {
 	    PreparedStatement ps = methodWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (?, ?, null,null,?,',',null,null,null,null)");
 	    ps.setString(1,CLASS_NAME);
 	    ps.setString(2,TABLE_NAME);  
-	    ps.setString(3,userDir+"/src/test/resources/customer_iso.csv");
+	    ps.setString(3,userDir+"/src/test/test-data/customer_iso.csv");
 	    ps.executeUpdate();
 	    
         ResultSet rs = methodWatcher.executeQuery(format("select distinct cst_city_id from %s",this.getTableReference(TABLE_NAME)));

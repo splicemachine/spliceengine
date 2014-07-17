@@ -44,8 +44,9 @@ public class SpliceUnitTest {
 	    	userDir = userDir+"/structured_derby/";
 	    return userDir;
 	}
-	public static String getResourceDirectory() {
-		return getBaseDirectory()+"/src/test/resources/";
+
+    public static String getResourceDirectory() {
+		return getBaseDirectory()+"/src/test/test-data/";
 	}
 
 

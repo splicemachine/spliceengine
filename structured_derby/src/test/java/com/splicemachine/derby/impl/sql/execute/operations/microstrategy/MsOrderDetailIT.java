@@ -52,7 +52,7 @@ public class MsOrderDetailIT extends SpliceUnitTest {
         PreparedStatement ps = methodWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (?, ?, null,null,?,',',null,null,null,null)");
         ps.setString(1,CLASS_NAME);
         ps.setString(2,TABLE_NAME);        
-        ps.setString(3,userDir+"/src/test/resources/order_detail_small.csv");
+        ps.setString(3,userDir+"/src/test/test-data/order_detail_small.csv");
         ps.executeUpdate();
         ResultSet groupedRs = methodWatcher.executeQuery(format("select orl_customer_id, count(*) from %s group by orl_customer_id",this.getTableReference(TABLE_NAME)));
         Set<String> uniqueGroups = Sets.newHashSet();
