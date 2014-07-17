@@ -25,7 +25,7 @@
 			</excludes>
 		</fileSet>
 		<fileSet>
-			<directory>target/classes/bin</directory>
+			<directory>src/main/bin</directory>
 			<outputDirectory>splicemachine/bin</outputDirectory>
 			<fileMode>0755</fileMode>
 			<directoryMode>0755</directoryMode>
@@ -34,7 +34,7 @@
 			</includes>
 		</fileSet>
 		<fileSet>
-			<directory>target/classes/bin</directory>
+			<directory>src/main/bin</directory>
 			<outputDirectory>splicemachine</outputDirectory>
 			<fileMode>0644</fileMode>
 			<includes>

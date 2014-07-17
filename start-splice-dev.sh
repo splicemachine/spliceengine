@@ -56,7 +56,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd )"
 pushd "${SCRIPT_DIR}/structured_derby" &>/dev/null
 ROOT_DIR="$( pwd )"
 
-source ${ROOT_DIR}/target/classes/bin/functions.sh
+source ${ROOT_DIR}/src/main/bin/functions.sh
 
 SPLICE_SINGLE_PATTERN="${ROOT_DIR}/target/splice_machine-*-${PROFILE}_simple.tar.gz"
 TARBALL=`ls ${SPLICE_SINGLE_PATTERN}`
@@ -84,7 +84,7 @@ S=$(ps -ef | awk '/SpliceTestPlatform/ && !/awk/ {print $2}')
 Z=$(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}')
 if [[ -n ${S} || -n ${Z} ]]; then
     echo "Splice server is running. Shutting down."
-    "${SCRIPT_DIR}"/stop-splice.sh
+    "${SCRIPT_DIR}"/stop-splice-dev.sh
 fi
 
 currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
