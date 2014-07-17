@@ -8,6 +8,7 @@ angular
 		'ngRoute',
 		'angularTreeview',
 		'treeControl',
+		'ui.bootstrap',
 		'ui.tree',
 		'spliceAdminServices',
 		'spliceAdminControllers',
