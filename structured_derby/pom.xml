@@ -26,6 +26,7 @@
 			<groupId>org.apache.derby</groupId>
 			<artifactId>derbyTesting</artifactId>
 			<version>${derby.version}</version>
+            <scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.derby</groupId>
