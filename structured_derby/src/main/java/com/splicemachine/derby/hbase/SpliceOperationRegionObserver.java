@@ -67,6 +67,7 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
         if(filter instanceof HbaseAttributeHolder){
             setAttributesFromFilter(scan, (HbaseAttributeHolder) filter);
             scan.setFilter(null); //clear the filter
+//            scan.setMaxVersions();
         }else if (filter instanceof FilterList){
             FilterList fl = (FilterList)filter;
             List<Filter> filters = fl.getFilters();
@@ -76,6 +77,7 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
                 if(next instanceof HbaseAttributeHolder){
                     setAttributesFromFilter(scan,(HbaseAttributeHolder)next);
                     fIter.remove();
+//                    scan.setMaxVersions();
                 }
             }
         }

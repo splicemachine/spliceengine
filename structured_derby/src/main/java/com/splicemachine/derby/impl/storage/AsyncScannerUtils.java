@@ -38,6 +38,7 @@ public class AsyncScannerUtils {
         scanner.setStartKey(scan.getStartRow());
         scanner.setStopKey(scan.getStopRow());
         scanner.setServerBlockCache(populateBlockCache);
+        scanner.setMaxVersions(scan.getMaxVersions());
 
         Map<String,byte[]> attributesMap = scan.getAttributesMap();
         if(attributesMap!=null && attributesMap.size()>0){

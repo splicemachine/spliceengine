@@ -206,6 +206,24 @@ public class TableScanOperationIT extends SpliceUnitTest {
 	}
 
     @Test
+    public void testQualifierTableScanPreparedStatementRepeated() throws Exception {
+        PreparedStatement stmt = methodWatcher.prepareStatement(format("select * from %s where si = ?", this.getTableReference(TABLE_NAME)));
+        for(int iter=0;iter<10;iter++){
+            stmt.setString(1,Integer.toString(iter));
+            ResultSet rs = stmt.executeQuery();
+            int i = 0;
+            while (rs.next()) {
+                i++;
+                LOG.info("a.si="+rs.getString(1)+",b.si="+rs.getString(2)+",c.si="+rs.getString(3));
+                Assert.assertNotNull(rs.getString(1));
+                Assert.assertNotNull(rs.getString(2));
+                Assert.assertNotNull(rs.getString(3));
+            }
+            Assert.assertEquals(1, i);
+        }
+    }
+
+    @Test
 	public void testOrQualifiedTableScanPreparedStatement() throws Exception {
 		PreparedStatement stmt = methodWatcher.prepareStatement(format("select * from %s where si = ? or si = ?",this.getTableReference(TABLE_NAME)));
 		stmt.setString(1,"5");
