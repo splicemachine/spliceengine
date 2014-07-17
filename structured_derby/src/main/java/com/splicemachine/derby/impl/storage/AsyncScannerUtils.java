@@ -40,24 +40,31 @@ public class AsyncScannerUtils {
         scanner.setServerBlockCache(populateBlockCache);
         scanner.setMaxVersions(scan.getMaxVersions());
 
-        Map<String,byte[]> attributesMap = scan.getAttributesMap();
-        if(attributesMap!=null && attributesMap.size()>0){
-            scanner.setFilter(new AsyncAttributeHolder(attributesMap));
-        }
         Filter f= scan.getFilter();
+        List<ScanFilter> scanFilters = Lists.newArrayListWithExpectedSize(1);
         if(f instanceof FilterList){
             FilterList oldFl = (FilterList)f;
-            List<ScanFilter> scanFilters = Lists.newArrayListWithCapacity(oldFl.getFilters().size());
+//            List<ScanFilter> flScanFilters = Lists.newArrayListWithCapacity(oldFl.getFilters().size());
             for(Filter subFilter:oldFl.getFilters()){
                 scanFilters.add(convertFilter(subFilter));
             }
-            org.hbase.async.FilterList newFl = new org.hbase.async.FilterList(scanFilters);
-            scanner.setFilter(newFl);
         }else if (f!=null){
-            scanner.setFilter(convertFilter(f));
+            scanFilters.add(convertFilter(f));
         }
-        //TODO -sf- set scan filters
-//        scanner.setFilter(scan.getFilter());
+        Map<String,byte[]> attributesMap = scan.getAttributesMap();
+        if(attributesMap!=null && attributesMap.size()>0){
+            scanFilters.add(new AsyncAttributeHolder(attributesMap));
+        }
+        switch(scanFilters.size()){
+            case 0:
+                break;
+            case 1:
+                scanner.setFilter(scanFilters.get(0));
+                break;
+            default:
+                scanner.setFilter(new org.hbase.async.FilterList(scanFilters));
+        }
+
         return scanner;
     }
 
