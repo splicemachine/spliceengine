@@ -26,6 +26,7 @@ import org.apache.hadoop.ipc.RemoteException;
 
 import org.apache.hadoop.hbase.client.ScannerTimeoutException;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
@@ -85,6 +86,8 @@ public class Exceptions {
             return ((SpliceStandardException)rootCause).generateStandardException();
         }else if(rootCause instanceof RetriesExhaustedWithDetailsException){
             return parseException((RetriesExhaustedWithDetailsException)rootCause);
+        } else if(rootCause instanceof org.hbase.async.RemoteException){
+            return parseException(getRemoteIOException((org.hbase.async.RemoteException)rootCause));
         }
 
         ErrorState state = ErrorState.stateFor(rootCause);
@@ -131,9 +134,31 @@ public class Exceptions {
     }
 
     public static IOException getIOException(Throwable t){
+        t = Throwables.getRootCause(t);
         if(t instanceof StandardException) return getIOException((StandardException)t);
+        else if(t instanceof org.hbase.async.RemoteException){
+            return getRemoteIOException((org.hbase.async.RemoteException)t);
+        }
         else if(t instanceof IOException) return (IOException)t;
         else return new IOException(t);
+    }
+
+    protected static IOException getRemoteIOException(org.hbase.async.RemoteException t) {
+        String text = t.getMessage();
+        String type = t.getType();
+        try{
+            return getIOException((Throwable)Class.forName(type).getConstructor(String.class).newInstance(text));
+        } catch (InvocationTargetException e) {
+            return new IOException(t);
+        } catch (NoSuchMethodException e) {
+            return new IOException(t);
+        } catch (ClassNotFoundException e) {
+            return new IOException(t);
+        } catch (InstantiationException e) {
+            return new IOException(t);
+        } catch (IllegalAccessException e) {
+            return new IOException(t);
+        }
     }
 
     /**
