@@ -58,7 +58,31 @@ public class Exceptions {
         }else if(rootCause instanceof ConstraintViolation.PrimaryKeyViolation
                 || rootCause instanceof ConstraintViolation.UniqueConstraintViolation){
             return createStandardExceptionForConstraintError(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT, (ConstraintViolation.ConstraintViolationException) e);
-        }else if(rootCause instanceof SpliceDoNotRetryIOException){
+        }else if (rootCause instanceof org.hbase.async.RemoteException){
+            org.hbase.async.RemoteException re = (org.hbase.async.RemoteException)rootCause;
+            String fullMessage = re.getMessage();
+            String type = re.getType();
+            try{
+                return parseException((Throwable)Class.forName(type).getConstructor(String.class).newInstance(fullMessage));
+            }catch(ClassNotFoundException cnfe){
+                //just parse  the actual remote directly
+                ErrorState state = ErrorState.stateFor(rootCause);
+                return state.newException(rootCause);
+            } catch (NoSuchMethodException e1) {
+                //just parse  the actual remote directly
+                ErrorState state = ErrorState.stateFor(rootCause);
+                return state.newException(rootCause);
+            } catch (InvocationTargetException e1) {
+                ErrorState state = ErrorState.stateFor(rootCause);
+                return state.newException(rootCause);
+            } catch (InstantiationException e1) {
+                ErrorState state = ErrorState.stateFor(rootCause);
+                return state.newException(rootCause);
+            } catch (IllegalAccessException e1) {
+                ErrorState state = ErrorState.stateFor(rootCause);
+                return state.newException(rootCause);
+            }
+        } else if(rootCause instanceof SpliceDoNotRetryIOException){
             SpliceDoNotRetryIOException spliceException = (SpliceDoNotRetryIOException)rootCause;
             String fullMessage = spliceException.getMessage();
             int firstColonIndex = fullMessage.indexOf(COLON);

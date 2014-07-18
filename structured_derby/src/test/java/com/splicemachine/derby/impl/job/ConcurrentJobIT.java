@@ -45,7 +45,7 @@ public class ConcurrentJobIT {
 
     private static final int size = 100;
     private static final int numThreads = 5;
-    private static final int numIterations = 100;
+    private static final int numIterations = 1000;
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
