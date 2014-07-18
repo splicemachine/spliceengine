@@ -36,7 +36,9 @@ public class AsyncScannerUtils {
     public static Scanner convertScanner(Scan scan, byte[] table, HBaseClient hbaseClient,boolean populateBlockCache){
         Scanner scanner = hbaseClient.newScanner(table);
         scanner.setStartKey(scan.getStartRow());
-        scanner.setStopKey(scan.getStopRow());
+        byte[] stop = scan.getStopRow();
+        if(stop.length>0)
+            scanner.setStopKey(stop);
         scanner.setServerBlockCache(populateBlockCache);
         scanner.setMaxVersions(scan.getMaxVersions());
 

@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.storage;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.utils.AsyncScanIterator;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.metrics.*;
 import com.stumbleupon.async.Callback;
@@ -12,9 +13,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
+import org.apache.log4j.*;
 import org.hbase.async.*;
 import org.hbase.async.Scanner;
 
@@ -90,9 +89,9 @@ public class AsyncScanner implements SpliceResultScanner, Callback<ArrayList<Arr
         finishedRequest=null;
 
         if(kvs==null||kvs.size()<=0) return null;
-        if(kvs.size()>=batchSize){
-            outstandingRequest = scanner.nextRows().addCallback(this);
-        }
+        //issue the next request
+        outstandingRequest = scanner.nextRows().addCallback(this);
+
         List<KeyValue> first = kvs.get(0);
         for(int i=1;i<kvs.size();i++){
             resultQueue.offer(kvs.get(i));
@@ -132,27 +131,6 @@ public class AsyncScanner implements SpliceResultScanner, Callback<ArrayList<Arr
     @Override
     public Iterator<Result> iterator() {
         throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    public static void main(String...args) throws Exception {
-        Logger.getRootLogger().addAppender(new ConsoleAppender(new SimpleLayout()));
-        byte[] table = Bytes.toBytes(Long.toString(16));
-        HBaseClient client = new HBaseClient("localhost","/hbase");
-        client.ensureTableExists(table).join();
-        System.out.println("Client constructed, opening scanner");
-        Scanner scanner = client.newScanner(table);
-        Deferred<ArrayList<ArrayList<KeyValue>>> arrayListDeferred = scanner.nextRows();
-        System.out.println(arrayListDeferred);
-        arrayListDeferred.addErrback(new Callback<Object, Object>() {
-            @Override
-            public Object call(Object arg) throws Exception {
-                System.out.println("Error!"+arg);
-                return null;
-            }
-        });
-        ArrayList<ArrayList<KeyValue>> join = arrayListDeferred.join();
-        System.out.println("Received rows");
-        client.shutdown().join();
     }
 
     @Override
