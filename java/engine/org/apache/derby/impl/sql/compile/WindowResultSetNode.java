@@ -518,7 +518,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             }
         }
         if (orderByList != null) {
-            for (int i=0; i<partitionSize; ++i) {
+            for (int i=0; i<orderByList.size(); ++i) {
                 cols.add((OrderedColumn) orderByList.elementAt(i));
             }
         }
