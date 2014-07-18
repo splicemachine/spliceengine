@@ -46,7 +46,10 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 
     @Override
     public final void setValue(byte[] theValue) {
-    	this.slice = ByteSlice.wrap(theValue);
+        if(slice==null)
+            slice = ByteSlice.wrap(theValue);
+        else
+            slice.set(theValue);
 	}
     
     public final byte[]	getBytes() throws StandardException {
