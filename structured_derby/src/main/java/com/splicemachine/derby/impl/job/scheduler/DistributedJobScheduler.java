@@ -143,7 +143,8 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
 				for(Map.Entry<? extends RegionTask,Pair<byte[],byte[]>> taskEntry:tasks.entrySet()){
 						RegionTask task = taskEntry.getKey();
 						try {
-								Txn childTxn = txnLifecycle.beginChildTransaction(parentTxn,destTable);
+                //create a dependent child transaction
+								Txn childTxn = txnLifecycle.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),true,destTable);
 								task.setTxn(childTxn);
 						} catch (IOException e) {
 								/*
