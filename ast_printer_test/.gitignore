@@ -1,0 +1,12 @@
+*.class
+*.jad
+*.iml
+*.ipr
+*.iws
+javadoc/
+**/target/
+.project
+.classpath
+**/.project
+**/.classpath
+*.log

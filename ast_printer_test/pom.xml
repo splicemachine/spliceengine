@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>derby</groupId>
+  <artifactId>ast_printer_test</artifactId>
+  <version>1.0-SNAPSHOT</version>
+
+  <properties>
+    <derby.version>10.9.1.0-splice</derby.version>
+    <junit.version>4.11</junit.version>
+    <maven.jar.plugin.version>2.3.1</maven.jar.plugin.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.derby</groupId>
+      <artifactId>derbyclient</artifactId>
+      <version>${derby.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.derby</groupId>
+      <artifactId>derby</artifactId>
+      <version>${derby.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.derby</groupId>
+      <artifactId>derbytools</artifactId>
+      <version>${derby.version}</version>
+    </dependency>
+    <dependency>
+      <!-- NOTE: splice dependency is required because we've done something to  -->
+      <!-- derby embedded connection to require the splice libraries. -->
+      <!-- ALSO NOTE: that the splice must come after the derby deps -->
+      <!-- ALSO NOTE: that the splice server must be running to acquire a connection -->
+      <!-- ALSO NOTE: the hard-coded splice version specifier -->
+      <groupId>com.splicemachine</groupId>
+      <artifactId>splice_machine</artifactId>
+      <version>FUJI.0-SNAPSHOT</version>
+      <classifier>cloudera-cdh4.3.0_complete</classifier>
+      <type>jar</type>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-dbutils</groupId>
+      <artifactId>commons-dbutils</artifactId>
+      <version>1.5</version>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
+    </dependency>
+  </dependencies>
+  <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
+    <testResources>
+      <testResource>
+        <directory>src/test/resources</directory>
+        <filtering>true</filtering>
+      </testResource>
+    </testResources>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>${maven.jar.plugin.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>2.1.1</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>2.4</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.16</version>
+        <configuration>
+          <!--<classpathDependencyExcludes>-->
+            <!--<classpathDependencyExclude>com.splicemachine:splice_machine</classpathDependencyExclude>-->
+          <!--</classpathDependencyExcludes>-->
+          <redirectTestOutputToFile>true</redirectTestOutputToFile>
+          <includes>
+            <include>**/*Test.java</include>
+          </includes>
+          <excludes>
+            <exclude>**/*IT.java</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+
+</project>
