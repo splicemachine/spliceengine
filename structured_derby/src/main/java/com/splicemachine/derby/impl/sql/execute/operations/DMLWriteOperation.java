@@ -308,7 +308,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				public void open()  {
 						SpliceLogUtils.trace(LOG, "open");
 						this.isOpen = true;
-						if(!getNodeTypes().contains(NodeType.REDUCE)){
+
+            if(!getNodeTypes().contains(NodeType.REDUCE)){
                 try {
                     if (rowProvider != null)
                         rowProvider.open();
