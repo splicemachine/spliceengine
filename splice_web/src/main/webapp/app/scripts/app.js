@@ -114,6 +114,17 @@ angular
 			.when('/d3-bars', {
 				templateUrl: 'views/d3-bars.html'
 			})
+			.when('/charts-region-server-stats', {
+				templateUrl: 'views/charts-region-server-stats.html',
+				controller: 'chartsRegionServerStatsController',
+				// Do not render until the region server stats have been returned from the Splice REST services.
+				// In the future, we can start rendering the tree and refresh it as the REST services return.
+				resolve: {
+					regionServerStats: ['getRegionServerStatsService', '$route', function(getRegionServerStatsService, $route) {
+						return getRegionServerStatsService.query().$promise;
+					}]
+				}
+			})
 			.otherwise({
 				redirectTo: '/home'
 			});

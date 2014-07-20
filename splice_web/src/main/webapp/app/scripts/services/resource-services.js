@@ -7,7 +7,7 @@ spliceAdminServices.factory('tracedStatementListService',
 	['$resource',
 		function($resource){
 			return $resource('/splice_web/webresources/sqlresource/query2js?query=' +
-				encodeURIComponent('select * from SYS.SYSSTATEMENTHISTORY order by STARTTIMEMS desc'), {}, {
+				encodeURIComponent('select * from SYS.SYSSTATEMENTHISTORY order by STARTTIMEMS desc {LIMIT 100}'), {}, {
 				query: {method:'GET', isArray:true}
 			});
 		}]);
@@ -38,6 +38,16 @@ spliceAdminServices.factory('sysTableCheckService',
 		function($resource){
 			return $resource('/splice_web/webresources/sqlresource/query2js?query=' +
 				encodeURIComponent('select CONGLOMERATENUMBER from SYS.SYSCONGLOMERATES where CONGLOMERATENUMBER >= 1168 {LIMIT 1}'), {}, {
+				query: {method:'GET', isArray:true}
+			});
+		}]);
+
+// Return the statistics for all region servers.
+spliceAdminServices.factory('getRegionServerStatsService',
+	['$resource',
+		function($resource){
+			return $resource('/splice_web/webresources/sqlresource/query2js?query=' +
+				encodeURIComponent('call syscs_util.SYSCS_GET_REGION_SERVER_STATS_INFO()'), {}, {
 				query: {method:'GET', isArray:true}
 			});
 		}]);
