@@ -1,14 +1,15 @@
 <div class="header">
   <ul class="nav nav-pills pull-right">
     <li><a ng-href="#">Home</a></li>
-    <li class="active"><a ng-href="#/traced-statements">Trace Plans</a></li>
+    <li class="active"><a ng-href="#/traced-statements">Explain Traces</a></li>
+    <li><a ng-href="#/charts-region-server-stats">Charts</a></li>
     <li><a ng-href="#/contact">Contact</a></li>
   </ul>
   <h3 class="text-muted"><img class="header-logo" src="images/splice-logo.jpg" alt="We are Splice Machine"> Admin Console</h3>
 </div>
 
 <div class="row marketing">
-  <h4>Trace Plans</h4>
+  <h4>Explain Traces</h4>
   <ul>
     <li ng-repeat="statement in tracedStatements">
       <a href="#/traced-statements/{{statement.STATEMENTID}}">{{statement.STATEMENTSQL}}</a>

@@ -1,0 +1,31 @@
+<div class="header">
+  <ul class="nav nav-pills pull-right">
+    <li><a ng-href="#">Home</a></li>
+    <li><a ng-href="#/traced-statements">Explain Traces</a></li>
+    <li class="active"><a ng-href="#/charts-region-server-stats">Charts</a></li>
+    <li><a ng-href="#/contact">Contact</a></li>
+  </ul>
+  <h3 class="text-muted"><img class="header-logo" src="images/splice-logo.jpg" alt="We are Splice Machine"> Admin Console</h3>
+</div>
+
+<div class="row marketing" ng-controller="chartsRegionServerStatsSelectBoxController">
+  <!-- Selection box for region server statistics to view. -->
+  Region Server Statistic:
+  <select ng-model="selectedRegionServerStat" ng-options="regionServerStatsOption.name group by regionServerStatsOption.group for regionServerStatsOption in regionServerStatsSelectList">
+  </select><br/>
+
+  <!-- Bar chart for selected region server statistics. -->
+  <div class="row marketing" ng-controller="chartsRegionServerStatsD3BarsController">
+    <span>{{title}}</span>
+    <d3-bars data="d3Data" label="name" on-click="d3OnClick(item)"></d3-bars>
+    <p>Debug Edit Fields Below</p>
+    <p ng-repeat="foo in d3Data">
+      {{foo.name}}:
+      <input type="text" ng-model="foo.score"/>
+    </p>
+  </div>
+</div>
+
+<div class="footer">
+  <p>&copy; 2014 Splice Machine, Inc. All rights reserved.</p>
+</div>
