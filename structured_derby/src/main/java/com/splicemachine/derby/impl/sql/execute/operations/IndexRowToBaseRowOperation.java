@@ -21,6 +21,7 @@ import com.splicemachine.stats.TimeView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
+
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
@@ -44,6 +45,8 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 /**
  * Maps between an Index Table and a data Table.
@@ -229,10 +232,22 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 										Arrays.asList(rowArray),compactRow,resultRow,resultSetNumber);
 
 						//get the mainTable version
-						DataDictionary dataDictionary = activation.getLanguageConnectionContext().getDataDictionary();
-						UUID tableID = dataDictionary.getConglomerateDescriptor(conglomId).getTableID();
-						TableDescriptor td = dataDictionary.getTableDescriptor(tableID);
-						mainTableVersion = td.getVersion();
+						
+						if(mainTableVersion==null){
+							try {
+									this.mainTableVersion = DerbyScanInformation.tableVersionCache.get(conglomId,new Callable<String>() {
+											@Override
+											public String call() throws Exception {
+													DataDictionary dataDictionary = activation.getLanguageConnectionContext().getDataDictionary();
+													UUID tableID = dataDictionary.getConglomerateDescriptor(conglomId).getTableID();
+													TableDescriptor td = dataDictionary.getTableDescriptor(tableID);
+													return td.getVersion();
+											}
+									});
+							} catch (ExecutionException e) {
+									throw Exceptions.parseException(e);
+							}
+					}						
 				} catch (StandardException e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!",e);
 				}
