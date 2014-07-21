@@ -71,7 +71,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     private int colRefItem;
 		private String tableVersion;
 
-		private static final Cache<Long,String> tableVersionCache = CacheBuilder.newBuilder()
+		public static final Cache<Long,String> tableVersionCache = CacheBuilder.newBuilder()
 						.maximumSize(4096)
 						.build();
 		@SuppressWarnings("UnusedDeclaration")
