@@ -38,10 +38,27 @@ Here are the key constants that drive the planning optimization and selection:
 
 \subsubsection{Row Count Computation}
 
+The row count is computed currently via the following algorithm.
+
+$ $
+$ N=Number of Base Conglomerate Regions$
+$ $
+$ \beta=Region Row Estimate $
+$ $
+$\sum_{n=1}^{N}(RegionStoreSize_n/MaxRegionStoreSize)*\beta$
+$ $
+
+\subsubsection{Row Count Computation}
+
 The row count is computed via the following algorithm.
 
-
-\emph{Row }
+$ $
+$ N=Number of Base Conglomerate Regions$
+$ $
+$ \beta=Region Row Estimate $
+$ $
+$\sum_{n=1}^{N}(RegionStoreSize_n/MaxRegionStoreSize)*\beta$
+$ $
 
 
 %End Authentication and Authorization Chapter
