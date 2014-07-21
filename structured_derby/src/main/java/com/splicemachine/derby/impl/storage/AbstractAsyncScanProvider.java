@@ -7,7 +7,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
 import org.hbase.async.KeyValue;
 
