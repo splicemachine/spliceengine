@@ -14059,7 +14059,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
     }
 
     /** Map ( schemaName, sequenceName ) to sequenceID */
-    private void    putSequenceID( SequenceDescriptor sd )
+    protected void    putSequenceID( SequenceDescriptor sd )
         throws StandardException
     {
         if ( sd == null ) { return; }
@@ -14083,7 +14083,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
     }
 
     /** Drop a sequenceID from the ( schemaName, sequenceName ) map */
-    private void    dropSequenceID( SequenceDescriptor sd )
+    protected void    dropSequenceID( SequenceDescriptor sd )
         throws StandardException
     {
         if ( sd == null ) { return; }
@@ -14106,7 +14106,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
      * Get the uuid string of a sequence given its schema and sequence name.
      * </p>
      */
-    private String  getSequenceID( String schemaName, String sequenceName )
+    protected String  getSequenceID( String schemaName, String sequenceName )
         throws StandardException
     {
         HashMap sequencesInSchema = (HashMap) sequenceIDs.get( schemaName );
@@ -14134,7 +14134,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
      * , null if no table-level permissions have been granted to him on the table.
      * @throws StandardException
      */
-    PermDescriptor getUncachedGenericPermDescriptor(PermDescriptor key)
+    protected PermDescriptor getUncachedGenericPermDescriptor(PermDescriptor key)
             throws StandardException
     {
     	if (key.getObjectID() == null)
