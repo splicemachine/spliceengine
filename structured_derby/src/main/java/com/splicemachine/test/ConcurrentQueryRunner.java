@@ -3,9 +3,7 @@ package com.splicemachine.test;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
-import com.splicemachine.stats.Metrics;
-import com.splicemachine.stats.TimeView;
-import com.splicemachine.stats.Timer;
+import com.splicemachine.stats.*;
 import org.apache.commons.cli.*;
 
 import java.io.BufferedWriter;
@@ -91,7 +89,9 @@ public class ConcurrentQueryRunner {
 				List<RunStats> stats = Lists.newArrayList();
 				for(int i=0;i<threads;i++){
 						Future<RunStats> take = completionService.take();
-						take.get().print();
+            RunStats runStats = take.get();
+            runStats.print();
+            stats.add(runStats);
 						System.out.println("----");
 				}
 				long stop = System.nanoTime();
@@ -104,6 +104,40 @@ public class ConcurrentQueryRunner {
 				System.out.printf("Total Time taken(s):%f%n", totalElapsedTime);
 				System.out.printf("Total Queries/s:%d%n", (long)(totalQueries/totalElapsedTime));
 
+        double maxAvgLatency = 0d;
+        long maxMedianLatency = 0;
+        long max75pLatency = 0;
+        long max90pLatency = 0;
+        long max95pLatency = 0;
+        long max99pLatency = 0;
+        for(RunStats stat:stats){
+            LatencyView runTimeData = stat.runTimeData.wallLatency();
+
+            double avg = runTimeData.getOverallLatency();
+            if(avg>maxAvgLatency)
+                maxAvgLatency = avg;
+            long med = runTimeData.getP50Latency();
+            if(med>maxMedianLatency)
+                maxMedianLatency = med;
+            long p75 = runTimeData.getP75Latency();
+            if(p75>max75pLatency)
+                max75pLatency = p75;
+            long p90 = runTimeData.getP90Latency();
+            if(p90>max90pLatency)
+                max90pLatency = p90;
+            long p95 = runTimeData.getP95Latency();
+            if(p95>max95pLatency)
+                max95pLatency = p95;
+            long p99 = runTimeData.getP99Latency();
+            if(p99>max99pLatency)
+                max99pLatency = p99;
+        }
+        System.out.printf("Overall Avg. Latency(ms):%f%n",maxAvgLatency/NANOS_TO_MILLIS);
+        System.out.printf("Overall Median Latency(ms):%f%n",maxMedianLatency/NANOS_TO_MILLIS);
+        System.out.printf("Overall 75%% Latency(ms):%f%n",max75pLatency/NANOS_TO_MILLIS);
+        System.out.printf("Overall 90%% Latency(ms):%f%n",max90pLatency/NANOS_TO_MILLIS);
+        System.out.printf("Overall 95%% Latency(ms):%f%n",max95pLatency/NANOS_TO_MILLIS);
+        System.out.printf("Overall 99%% Latency(ms):%f%n",max99pLatency/NANOS_TO_MILLIS);
 		}
 
 		private static Connection getConnection(String connectString) throws SQLException {
@@ -146,7 +180,7 @@ public class ConcurrentQueryRunner {
 						startLatch.await();
 						PreparedStatement ps = connection.prepareStatement(sql);
 						try{
-								Timer timer = Metrics.newTimer();
+								LatencyTimer timer = Metrics.sampledLatencyTimer(iterations / 100);
 								int numErrors = 0;
 								int onePercentIter = iterations/100;
 								int s = 1;
@@ -173,7 +207,7 @@ public class ConcurrentQueryRunner {
 												System.out.printf("[Thread-%d] Completed %d iterations%n",threadId,i+1);
 										}
 								}
-								return new RunStats(iterations,timer.getTime(),numErrors,threadId);
+								return new RunStats(iterations,timer.getDistribution(),numErrors,threadId);
 						}catch(Exception e){
 								e.printStackTrace();
 								throw e;
@@ -193,14 +227,15 @@ public class ConcurrentQueryRunner {
 				}
 		}
 
-		private static final double NANOS_TO_SECONDS = 1000d*1000d*1000;
+    private static final double NANOS_TO_MILLIS = 1000d*1000d;
+		private static final double NANOS_TO_SECONDS = NANOS_TO_MILLIS*1000;
 		private static class RunStats{
 				private final int threadId;
 				private final int numIterations;
-				private final TimeView runTimeData;
+				private final DistributionTimeView runTimeData;
 				private final int numErrors;
 
-				private RunStats(int numIterations, TimeView runTimeData, int numErrors,int threadId) {
+				private RunStats(int numIterations, DistributionTimeView runTimeData, int numErrors,int threadId) {
 						this.numIterations = numIterations;
 						this.runTimeData = runTimeData;
 						this.numErrors = numErrors;

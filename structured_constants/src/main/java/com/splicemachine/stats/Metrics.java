@@ -158,7 +158,14 @@ public class Metrics {
 				return new SimpleMultiTimeView(Folders.sumFolder(),Folders.sumFolder(),Folders.sumFolder(),Folders.minLongFolder(),Folders.maxLongFolder());
 		}
 
-		/*private helper classes*/
+    public static LatencyTimer sampledLatencyTimer(int sampleSize) {
+        if(!supportsCPUTime)
+            return new SampledTimer(sampleSize,new NanoTimeMeasure(),NOOP_TIME_MEASURE,NOOP_TIME_MEASURE);
+        else
+            return new SampledTimer(sampleSize,new NanoTimeMeasure(),new CpuTimeMeasure(),new UserTimeMeasure());
+    }
+
+    /*private helper classes*/
 		private static class BasicCounter implements Counter {
 				private long count;
 
