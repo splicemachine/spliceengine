@@ -72,6 +72,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 		protected Timer timer;
 		protected long stopExecutionTime;
+		protected double optimizerEstimatedRowCount;
+		protected double optimizerEstimatedCost;
 
 		/**
 		 * Used to communicate a child transaction ID down to the sink operation in a sub-class.
@@ -134,6 +136,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				this.operationInformation = new DerbyOperationInformation(activation,optimizerEstimatedRowCount,optimizerEstimatedCost,resultSetNumber);
 				this.activation = activation;
 				this.resultSetNumber = resultSetNumber;
+				this.optimizerEstimatedRowCount = optimizerEstimatedRowCount;
+				this.optimizerEstimatedCost = optimizerEstimatedCost;
 				sequence = new DataValueDescriptor[1];
 				sequence[0] = operationInformation.getSequenceField(uniqueSequenceID);
 				if (activation.getLanguageConnectionContext().getStatementContext() == null) {
@@ -147,6 +151,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+				this.optimizerEstimatedCost = in.readDouble();
+				this.optimizerEstimatedRowCount = in.readDouble();
 				this.operationInformation = (OperationInformation)in.readObject();
 				transactionID = readNullableString(in);
 				isTopResultSet = in.readBoolean();
@@ -163,6 +169,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		@Override
 		public void writeExternal(ObjectOutput out) throws IOException {
 				SpliceLogUtils.trace(LOG, "writeExternal");
+				out.writeDouble(optimizerEstimatedCost);
+				out.writeDouble(optimizerEstimatedRowCount);
 				out.writeObject(operationInformation);
 				writeNullableString(getTransactionID(), out);
 				out.writeBoolean(isTopResultSet);
@@ -321,15 +329,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 			 * In this case, we encode with either the current row location or a
 			 * random UUID (if the current row location is null).
 			 */
-//				DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
-//						@Override
-//						public byte[] get() throws StandardException {
-//								if(currentRowLocation!=null)
-//										return currentRowLocation.getBytes();
-//								return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-//						}
-//				});
-
 				return new KeyEncoder(NoOpPrefix.INSTANCE,NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
 		}
 
