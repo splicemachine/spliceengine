@@ -340,6 +340,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				String indent = "\n"+ Strings.repeat("\t",indentLevel);
 				return new StringBuilder("Scan:")
 								.append(indent).append("resultSetNumber:").append(resultSetNumber)
+								.append(indent).append("optimizerEstimatedCost:").append(optimizerEstimatedCost).append(",")
+								.append(indent).append("optimizerEstimatedRowCount:").append(optimizerEstimatedRowCount).append(",")								
 								.append(indent).append("scanInformation:").append(scanInformation)
 								.append(indent).append("tableName:").append(tableName)
 								.toString();

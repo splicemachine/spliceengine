@@ -110,7 +110,7 @@ public class TableScanOperation extends ScanOperation {
 				this.indexName = indexName;
 				runTimeStatisticsOn = operationInformation.isRuntimeStatisticsEnabled();
 				if (LOG.isTraceEnabled())
-						SpliceLogUtils.trace(LOG, "statisticsTimingOn=%s,isTopResultSet=%s,runTimeStatisticsOn%s",statisticsTimingOn,isTopResultSet,runTimeStatisticsOn);
+						SpliceLogUtils.trace(LOG, "statisticsTimingOn=%s,isTopResultSet=%s,runTimeStatisticsOn%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",statisticsTimingOn,isTopResultSet,runTimeStatisticsOn,optimizerEstimatedCost,optimizerEstimatedRowCount);
 				try {
 						init(SpliceOperationContext.newContext(activation));
 				} catch (IOException e) {
@@ -184,50 +184,6 @@ public class TableScanOperation extends ScanOperation {
 								return generator.nextBytes();
 						}
 				});
-//				columnOrdering = scanInformation.getColumnOrdering();
-//
-//				if(columnOrdering != null && columnOrdering.length > 0) {
-//
-//						hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
-//								@Override
-//								public byte[] get() throws StandardException {
-////										if(currentRowLocation!=null)
-////												return currentRowLocation.getBytes();
-//										return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-//								}
-//						}){
-//								@Override
-//								public KeyHashDecoder getDecoder() {
-//										try {
-//												SerializerMap serializerMap = VersionedSerializers.forVersion(scanInformation.getTableVersion(), true);
-//												DescriptorSerializer[] serializers = serializerMap.getSerializers(currentRow);
-//												TypeProvider  typeProvider = VersionedSerializers.typesForVersion(scanInformation.getTableVersion());
-//												final int[] allKeyCols = scanInformation.getColumnOrdering();
-//												FormatableBitSet accessedKeys = scanInformation.getAccessedPkColumns();
-//												int[] keyColumnTypes = scanInformation.getConglomerate().getFormat_ids();
-//												return SkippingKeyDecoder.decoder(
-//																												typeProvider,
-//																												serializers,
-//																												allKeyCols,
-//																												keyColumnTypes,
-//																												scanInformation.getConglomerate().getAscDescInfo(),
-//																getAccessedPksToTemplateRowMap(),
-//																accessedKeys);
-//										} catch (StandardException e) {
-//												throw new RuntimeException(e);
-//										}
-//								}
-//						};
-//				}else{
-//						hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
-//								@Override
-//								public byte[] get() throws StandardException {
-//										if(currentRowLocation!=null)
-//												return currentRowLocation.getBytes();
-//										return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-//								}
-//						});
-//				}
 
 				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
 		}
@@ -334,9 +290,9 @@ public class TableScanOperation extends ScanOperation {
 		@Override
 		public String toString() {
 				try {
-						return String.format("TableScanOperation {tableName=%s,isKeyed=%b,resultSetNumber=%s}",tableName,scanInformation.isKeyed(),resultSetNumber);
+						return String.format("TableScanOperation {tableName=%s,isKeyed=%b,resultSetNumber=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f}",tableName,scanInformation.isKeyed(),resultSetNumber,optimizerEstimatedCost,optimizerEstimatedRowCount);
 				} catch (Exception e) {
-						return String.format("TableScanOperation {tableName=%s,isKeyed=%s,resultSetNumber=%s}", tableName, "UNKNOWN", resultSetNumber);
+						return String.format("TableScanOperation {tableName=%s,isKeyed=%s,resultSetNumber=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f}", tableName, "UNKNOWN", resultSetNumber,optimizerEstimatedCost,optimizerEstimatedRowCount);
 				}
 		}
 
@@ -368,7 +324,6 @@ public class TableScanOperation extends ScanOperation {
 		{
 				if (scanProperties == null)
 						scanProperties = new Properties();
-
 				scanProperties.setProperty("numPagesVisited", "0");
 				scanProperties.setProperty("numRowsVisited", "0");
 				scanProperties.setProperty("numRowsQualified", "0");
