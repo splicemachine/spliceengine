@@ -43,7 +43,10 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     public JoinNode visit(JoinNode j) throws StandardException {
         AccessPath ap = ((Optimizable) j.getRightResultSet()).getTrulyTheBestAccessPath();
         if (RSUtils.isHashableJoin(ap)){
-            return pullUpPreds(j);
+            if(ap.getJoinStrategy() instanceof HashNestedLoopJoinStrategy)
+                return pullUpPreds(j,false);
+            else
+                return pullUpPreds(j,true);
         } else if (RSUtils.isNLJ(ap)){
             return rewriteNLJColumnRefs(j);
         } else {
@@ -58,7 +61,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
     // Machinery for pulling up predicates (for hash-based joins)
 
-    public JoinNode pullUpPreds(JoinNode j) throws StandardException {
+    public JoinNode pullUpPreds(JoinNode j, boolean ignoreIndex) throws StandardException {
         List<Predicate> toPullUp = new LinkedList<Predicate>();
 
         // Collect PRs, FBTs until a binary node (Union, Join) found, or end
@@ -73,9 +76,26 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             //  when can't evaluate on node but can evaluate at join
             com.google.common.base.Predicate<Predicate> shouldPull =
                     Predicates.and(Predicates.not(evalableAtNode(rsn)), joinScoped);
-            toPullUp.addAll(rsn instanceof ProjectRestrictNode ?
-                                pullPredsFromPR((ProjectRestrictNode)rsn, shouldPull) :
-                                    pullPredsFromTable((FromBaseTable)rsn, shouldPull));
+            if(rsn instanceof ProjectRestrictNode)
+                toPullUp.addAll(pullPredsFromPR((ProjectRestrictNode)rsn,shouldPull));
+            else if(rsn instanceof FromBaseTable){
+                /*
+                 * If we are a HashNestedLoopJoin, then we can keep join predicates on the base node--in
+                 * fact, we need them there for correct performance. However, we ALSO need them
+                 * to be present on the Join node ( to ensure that the hash indices are properly found). This
+                 * is a pretty ugly attempt to ensure that this works correctly.
+                 */
+                if(ignoreIndex)
+                    toPullUp.addAll(pullPredsFromTable((FromBaseTable)rsn,shouldPull,true)); //avoid pulling predicates from base table when doing a hash nlj
+                else
+                    toPullUp.addAll(pullPredsFromTable((FromBaseTable)rsn,shouldPull, false));
+            }else if(rsn instanceof IndexToBaseRowNode){
+                if(!ignoreIndex){
+                    List<? extends Predicate> c = pullPredsFromIndex((IndexToBaseRowNode) rsn, shouldPull);
+                    toPullUp.addAll(c);
+                }
+            }else
+                throw new IllegalArgumentException("Programmer error: unable to find proper class for pulling predicates: "+ rsn);
         }
 
         for (Predicate p: toPullUp){
@@ -88,6 +108,26 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         }
 
         return j;
+    }
+
+    private List<? extends Predicate> pullPredsFromIndex(IndexToBaseRowNode rsn,
+                                                         com.google.common.base.Predicate<Predicate> shouldPull) throws StandardException {
+        List<Predicate> pulled = new LinkedList<Predicate>();
+        if (rsn.restrictionList != null) {
+            for (int i = rsn.restrictionList.size() - 1; i >= 0; i--) {
+                Predicate p = (Predicate)rsn.restrictionList.getOptPredicate(i);
+                if (shouldPull.apply(p)) {
+                    pulled.add(p);
+                    if (LOG.isDebugEnabled()){
+                        LOG.debug(String.format("Pulled pred %s from PR=%s",
+                                PredicateUtils.predToString.apply(p),
+                                rsn.getResultSetNumber()));
+                    }
+                    rsn.restrictionList.removeOptPredicate(i);
+                }
+            }
+        }
+        return pulled;
     }
 
     public List<Predicate> pullPredsFromPR(ProjectRestrictNode pr,
@@ -112,23 +152,25 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     }
 
     public List<Predicate> pullPredsFromTable(FromBaseTable t,
-                                              com.google.common.base.Predicate<Predicate> shouldPull)
+                                              com.google.common.base.Predicate<Predicate> shouldPull,
+                                              boolean shouldRemove)
             throws StandardException {
         List<Predicate> pulled = new LinkedList<Predicate>();
         PredicateList pl = new PredicateList();
         t.pullOptPredicates(pl);
         for (int i = 0, s = pl.size(); i < s; i++) {
             Predicate p = (Predicate)pl.getOptPredicate(i);
-            if (shouldPull.apply(p)) {
+            boolean pull = shouldPull.apply(p);
+            if (pull) {
                 pulled.add(p);
                 p.setPulled(true);
                 if (LOG.isDebugEnabled()) {
                     LOG.debug(String.format("Pulled pred %s from Table=%s",
                             PredicateUtils.predToString.apply((Predicate) p), t.getResultSetNumber()));
                 }
-            } else {
-                t.pushOptPredicate(p);
             }
+            if(!pull || !shouldRemove)
+                t.pushOptPredicate(p);
         }
         return pulled;
     }

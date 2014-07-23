@@ -1,4 +1,4 @@
-package org.apache.derby.impl.sql.execute.operations.joins;
+package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.splicemachine.derby.test.framework.DefaultedSpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;

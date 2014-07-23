@@ -29,6 +29,7 @@ import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.ipc.ExecRPCInvoker;
 
 import java.io.Externalizable;
 import java.io.IOException;

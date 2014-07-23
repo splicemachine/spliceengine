@@ -26,6 +26,32 @@ public class NullPredicate implements Predicate{
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof NullPredicate)) return false;
+
+        NullPredicate that = (NullPredicate) o;
+
+        if (column != that.column) return false;
+        if (filterIfMissing != that.filterIfMissing) return false;
+        if (isDoubleColumn != that.isDoubleColumn) return false;
+        if (isFloatColumn != that.isFloatColumn) return false;
+        if (isNullNumericalComparision != that.isNullNumericalComparision) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (filterIfMissing ? 1 : 0);
+        result = 31 * result + (isNullNumericalComparision ? 1 : 0);
+        result = 31 * result + (isDoubleColumn ? 1 : 0);
+        result = 31 * result + (isFloatColumn ? 1 : 0);
+        result = 31 * result + column;
+        return result;
+    }
+
+    @Override
     public boolean applies(int column) {
         return this.column==column;
     }
