@@ -54,7 +54,8 @@ public class AsyncClientScanProvider extends AbstractAsyncScanProvider {
     public void open() {
         SpliceLogUtils.trace(LOG, "open");
         try {
-            scanner = new AsyncScanner(tableName,scan,spliceRuntimeContext);
+            scanner = new SimpleAsyncScanner(tableName,scan,spliceRuntimeContext);
+//            scanner = GatheringScanner.newScanner(tableName,scan,spliceRuntimeContext);
             scanner.open();
         } catch (IOException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG,"unable to open table "+ Bytes.toString(tableName),e);
