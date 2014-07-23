@@ -236,7 +236,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 										nonNullRight();
 										returnedRight=true;
 
-										mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);
+										mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
 								}else {
 										SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin Right: ",rightRow);
 										populated = false;
