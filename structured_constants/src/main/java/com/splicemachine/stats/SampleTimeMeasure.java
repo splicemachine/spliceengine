@@ -13,6 +13,8 @@ final class SampleTimeMeasure implements TimeMeasure,LatencyView{
     private final int sampleSize;
     private long iterationCount = 0l;
     private final Random random = new Random(System.nanoTime());
+    private long minElapsedTime = Long.MAX_VALUE;
+    private long maxElapsedTime = 0l;
 
     protected SampleTimeMeasure(TimeMeasure delegate,int sampleSize) {
         int s = 1;
@@ -26,19 +28,23 @@ final class SampleTimeMeasure implements TimeMeasure,LatencyView{
 
     @Override
     public void startTime() {
-        iterationCount++;
         delegate.startTime();
     }
 
     @Override
     public long stopTime() {
         long elapsedTime = delegate.stopTime();
+        if(elapsedTime<minElapsedTime)
+            minElapsedTime = elapsedTime;
+        if(elapsedTime > maxElapsedTime)
+            maxElapsedTime = elapsedTime;
         int spot = (int)iterationCount;
         if(spot>sampleSize)
             spot = random.nextInt(spot+1);
 
         if(spot<sampleSize)
             samples[spot] = elapsedTime;
+        iterationCount++;
         return elapsedTime;
     }
 
@@ -49,32 +55,41 @@ final class SampleTimeMeasure implements TimeMeasure,LatencyView{
     @Override public double getOverallLatency() { return ((double)delegate.getElapsedTime())/iterationCount; }
 
     @Override
+    public long getP25Latency() {
+        return get(0.25f);
+    }
+
+    private long get(float quartile) {
+        Arrays.sort(samples,0,Math.min(samples.length,(int)iterationCount));
+        int pos = (int)(quartile*Math.min(sampleSize,iterationCount));
+        return samples[pos];
+    }
+
+    @Override
     public long getP50Latency() {
-        Arrays.sort(samples);
-        return samples[sampleSize/2];
+        return get(0.5f);
     }
 
     @Override
     public long getP75Latency() {
-        Arrays.sort(samples);
-        return samples[75*sampleSize/100];
+        return get(0.75f);
     }
 
     @Override
     public long getP90Latency() {
-        Arrays.sort(samples);
-        return samples[90*sampleSize/100];
+        return get(0.90f);
     }
 
     @Override
     public long getP95Latency() {
-        Arrays.sort(samples);
-        return samples[95*sampleSize/100];
+        return get(0.95f);
     }
 
     @Override
     public long getP99Latency() {
-        Arrays.sort(samples);
-        return samples[99*sampleSize/100];
+        return get(0.99f);
     }
+
+    @Override public long getMinLatency() { return iterationCount == 0 ? 0 : minElapsedTime; }
+    @Override public long getMaxLatency() { return iterationCount == 0 ? 0: maxElapsedTime; }
 }
