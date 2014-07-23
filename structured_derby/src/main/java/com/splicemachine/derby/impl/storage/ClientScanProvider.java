@@ -56,7 +56,9 @@ public class ClientScanProvider extends AbstractScanProvider {
 				if(htable==null)
 						htable = SpliceAccessManager.getHTable(tableName);
 				try {
-						scanner = new MeasuredResultScanner(htable, scan, htable.getScanner(scan),spliceRuntimeContext);
+           scanner = new SimpleAsyncScanner(tableName,scan,spliceRuntimeContext);
+//						scanner = new MeasuredResultScanner(htable, scan, htable.getScanner(scan),spliceRuntimeContext);
+            scanner.open();
 				} catch (IOException e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG,"unable to open table "+ Bytes.toString(tableName),e);
 				}
