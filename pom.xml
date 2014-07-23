@@ -299,23 +299,22 @@
 		</profile>
 		<profile>
 			<!-- =========================================================== -->
-			<!--                    cloudera-cdh4.3.0                        -->
+			<!--                    cloudera-cdh4.5.0                        -->
 			<!-- =========================================================== -->
-			<id>cloudera-cdh4.3.0</id>
+			<id>cloudera-cdh4.5.0</id>
 			<activation>
 				<property>
 					<!-- This is the default profile - runs when NO -Dhbase.profile=<profileid> is specified -->
-					<!-- NOTE: since maven does not know about OR (ie, prop not set OR prop set to cloudera-cdh4.3.0), -->
-					<!--     this will NOT run when you set -Dhbase.profile=cloudera-cdh4.3.0 -->
+					<!-- NOTE: since maven does not know about OR (ie, prop not set OR prop set to cloudera-cdh4.5.0), -->
+					<!--     this will NOT run when you set -Dhbase.profile=cloudera-cdh4.5.0 -->
 					<name>!hbase.profile</name>
 				</property>
 			</activation>
 			<properties>
-				<zookeeper.version>3.4.5-cdh4.3.0-splice</zookeeper.version>
-				<hbase.version>0.94.6-cdh4.3.0-splice</hbase.version>
-				<hadoop.version>2.0.0-cdh4.3.0</hadoop.version>
-				<envClassifier>cloudera-cdh4.3.0</envClassifier>
-				<obfuscationClassifier></obfuscationClassifier>
+				<zookeeper.version>3.4.5-cdh4.5.0.1-splice</zookeeper.version>
+				<hbase.version>0.94.6-cdh4.5.0-splice</hbase.version>
+				<hadoop.version>2.0.0-cdh4.5.0</hadoop.version>
+				<envClassifier>cloudera-cdh4.5.0</envClassifier>
 			</properties>
 			<dependencies>
 				<dependency>
@@ -354,6 +353,7 @@
 					<artifactId>hadoop-common</artifactId>
 					<version>${hadoop.version}</version>
 					<classifier>tests</classifier>
+                    <scope>test</scope>
 					<exclusions>
 						<exclusion>
 							<artifactId>junit</artifactId>
@@ -405,20 +405,20 @@
 		</profile>
 		<profile>
 			<!-- =========================================================== -->
-			<!--                    cloudera-cdh4.5.0                        -->
+			<!--                    cloudera-cdh4.3.0                        -->
 			<!-- =========================================================== -->
-			<id>cloudera-cdh4.5.0</id>
+			<id>cloudera-cdh4.3.0</id>
 			<activation>
 				<property>
 					<name>hbase.profile</name>
-					<value>cloudera-cdh4.5.0</value>
+					<value>cloudera-cdh4.3.0</value>
 				</property>
 			</activation>
 			<properties>
-				<zookeeper.version>3.4.5-cdh4.5.0.1-splice</zookeeper.version>
-				<hbase.version>0.94.6-cdh4.5.0-splice</hbase.version>
-				<hadoop.version>2.0.0-cdh4.5.0</hadoop.version>
-				<envClassifier>cloudera-cdh4.5.0</envClassifier>
+				<zookeeper.version>3.4.5-cdh4.3.0-splice</zookeeper.version>
+				<hbase.version>0.94.6-cdh4.3.0-splice</hbase.version>
+				<hadoop.version>2.0.0-cdh4.3.0</hadoop.version>
+				<envClassifier>cloudera-cdh4.3.0</envClassifier>
 			</properties>
 			<dependencies>
 				<dependency>
@@ -457,7 +457,6 @@
 					<artifactId>hadoop-common</artifactId>
 					<version>${hadoop.version}</version>
 					<classifier>tests</classifier>
-                    <scope>test</scope>
 					<exclusions>
 						<exclusion>
 							<artifactId>junit</artifactId>
