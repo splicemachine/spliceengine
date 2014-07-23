@@ -11,7 +11,7 @@ import java.util.Arrays;
  * Date: 7/22/14
  */
 public class RingBuffer<T> {
-    private final int mask;
+    private int mask;
     private Object[] buffer;
     private int writePosition;
     private int readPosition;
@@ -34,9 +34,7 @@ public class RingBuffer<T> {
      */
     @SuppressWarnings("unchecked")
     public T next(){
-        if(readPosition>=writePosition) return null; //buffer is currently empty
-        int pos = readPosition & mask;
-        T n = (T)buffer[pos];
+        T n = peek();
         readPosition++;
         return n;
     }
@@ -62,6 +60,7 @@ public class RingBuffer<T> {
 
     @SuppressWarnings("unchecked")
     public T peek() {
+        if(readPosition>=writePosition) return null; //buffer has already been fully read
         return (T)buffer[readPosition & mask];
     }
 
@@ -71,6 +70,7 @@ public class RingBuffer<T> {
 
     public void expand(){
         buffer = Arrays.copyOf(buffer,2*buffer.length);
+        mask = buffer.length -1;
     }
 
     public void readReset() {

@@ -103,51 +103,63 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 		public void open(boolean useProbe) throws StandardException{
 			open(useProbe,true);
 		}
+
+    public void executeScan(boolean useProbe, SpliceRuntimeContext context) throws StandardException {
+        try{
+            delegate = useProbe? topOperation.executeProbeScan(): topOperation.executeScan(context);
+            delegate.setScrollId(scrollUuid);
+            delegate.openCore();
+        }catch(RuntimeException re){
+            throw Exceptions.parseException(re);
+        }
+        if(PLAN_LOG.isDebugEnabled() && Boolean.valueOf(System.getProperty("derby.language.logQueryPlan"))){
+            PLAN_LOG.debug(topOperation.prettyPrint(1));
+        }
+
+    }
+
+    public SpliceRuntimeContext sinkOpen(boolean useProbe, boolean showStatementInfo) throws StandardException{
+        SpliceLogUtils.trace(LOG,"openCore");
+        closed=false;
+        if(delegate!=null) delegate.close();
+        try {
+            SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation);
+            topOperation.init(operationContext);
+            topOperation.open();
+            if(showStatementInfo)
+                statementInfo = initStatmentInfo(statementInfo, operationContext);
+
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+
+        try{
+            SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
+            if(showStatementInfo)
+                runtimeContext.setStatementInfo(statementInfo);
+            if(activation.getLanguageConnectionContext().getStatisticsTiming()){
+                runtimeContext.recordTraceMetrics();
+                String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
+                runtimeContext.setXplainSchema(xplainSchema);
+            }
+
+            List<byte[]> taskChain = OperationSink.taskChain.get();
+            if (taskChain != null && taskChain.size() > 0){
+                runtimeContext.setParentTaskId(taskChain.get(taskChain.size() - 1));
+            }
+
+            OperationTree.sink(topOperation, runtimeContext);
+            return runtimeContext;
+        }catch(RuntimeException e){
+            throw Exceptions.parseException(e);
+        }
+    }
+
 		public void open(boolean useProbe,boolean showStatementInfo) throws StandardException{
-				SpliceLogUtils.trace(LOG,"openCore");
-				closed=false;
-				if(delegate!=null) delegate.close();
-				try {
-						SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation);
-						topOperation.init(operationContext);
-						topOperation.open();
-						if(showStatementInfo)
-								statementInfo = initStatmentInfo(statementInfo, operationContext);
-
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-
-				try{
-						SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
-						if(showStatementInfo)
-								runtimeContext.setStatementInfo(statementInfo);
-						if(activation.getLanguageConnectionContext().getStatisticsTiming()){
-								runtimeContext.recordTraceMetrics();
-								String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-								runtimeContext.setXplainSchema(xplainSchema);
-						}
-
-                  List<byte[]> taskChain = OperationSink.taskChain.get();
-                  if (taskChain != null && taskChain.size() > 0){
-                     runtimeContext.setParentTaskId(taskChain.get(taskChain.size() - 1));
-                  }
-
-						delegate = OperationTree.executeTree(topOperation,runtimeContext,useProbe);
-						delegate.setScrollId(scrollUuid);
-						//open the delegate
-						delegate.openCore();
-				}catch(RuntimeException e){
-						throw Exceptions.parseException(e);
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-
-				if(PLAN_LOG.isDebugEnabled() && Boolean.valueOf(System.getProperty("derby.language.logQueryPlan"))){
-						PLAN_LOG.debug(topOperation.prettyPrint(1));
-				}
-
+        SpliceRuntimeContext ctx = sinkOpen(useProbe,showStatementInfo);
+        executeScan(useProbe,ctx);
 		}
+
     @Override
     public void openCore() throws StandardException {
 				open(false);
@@ -217,8 +229,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
     @Override
     public double getEstimatedRowCount() {
-        checkDelegate();
-        return delegate.getEstimatedRowCount();
+        return topOperation.getOperationInformation().getEstimatedRowCount();
     }
 
     @Override
@@ -520,5 +531,5 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 		this.activation = activation;
 		topOperation.setActivation(activation);
 	}
-		
+
 }

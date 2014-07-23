@@ -202,7 +202,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				return jobResults;
 		}
 
-		@Override public boolean shouldRecordStats() { return statisticsTimingOn; }
+    @Override
+    public OperationInformation getOperationInformation() {
+        return operationInformation;
+    }
+
+    @Override public boolean shouldRecordStats() { return statisticsTimingOn; }
 
 		@Override
 		public SpliceOperation getLeftOperation() {

@@ -1,4 +1,4 @@
-package org.apache.derby.impl.sql.execute.operations.joins;
+package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -11,7 +11,6 @@ import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.internal.ArrayComparisonFailure;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -20,10 +19,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
-import static com.splicemachine.homeless.TestUtils.executeSql;
 import static com.splicemachine.homeless.TestUtils.o;
 
 /**
@@ -125,7 +122,8 @@ public class MergeJoinIT extends SpliceUnitTest {
 
     @Test
     public void testSimpleJoinOverAllStrategies() throws Exception {
-        String query = "select count(*) from orders, lineitem --splice-properties joinStrategy=%s \n" +
+        String query = "select count(*) from --SPLICE-PROPERTIES joinOrder=FIXED \n" +
+                "orders, lineitem --splice-properties joinStrategy=%s \n" +
                 "where o_orderkey = l_orderkey";
         List<Integer> counts = Lists.newArrayList();
 

@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import java.io.IOException;
 import java.util.List;
 
+import com.splicemachine.derby.impl.sql.execute.operations.OperationInformation;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.job.JobResults;
@@ -13,6 +14,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.client.Scan;
 
 /**
  * 
@@ -45,7 +47,9 @@ public interface SpliceOperation extends StandardCloseable {
 
 	 JobResults getJobResults();
 
-		/**
+    OperationInformation getOperationInformation();
+
+    /**
 	 * 
 	 * Enumeration with the following types:
 	 * 

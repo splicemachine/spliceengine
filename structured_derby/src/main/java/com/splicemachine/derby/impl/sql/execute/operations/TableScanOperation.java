@@ -61,8 +61,6 @@ public class TableScanOperation extends ScanOperation {
 
 		private int[] baseColumnMap;
 
-		private Scan scan;
-
 		private SITableScanner tableScanner;
 
 		public TableScanOperation() { super(); }
@@ -162,7 +160,12 @@ public class TableScanOperation extends ScanOperation {
 		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "getMapRowProvider");
 				beginTime = System.currentTimeMillis();
-				Scan scan = getNonSIScan(spliceRuntimeContext);
+        if(scan==null || !scanSet){
+            scan = getNonSIScan(spliceRuntimeContext);
+        }else{
+            scanSet=false; //don't re-use the scan
+        }
+
 				SpliceUtils.setInstructions(scan, activation, top,spliceRuntimeContext);
         AsyncClientScanProvider provider = new AsyncClientScanProvider("tableScan",Bytes.toBytes(tableName),scan,decoder,spliceRuntimeContext);
 //				ClientScanProvider provider = new ClientScanProvider("tableScan",Bytes.toBytes(tableName),scan, decoder,spliceRuntimeContext);

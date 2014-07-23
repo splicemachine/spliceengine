@@ -7,10 +7,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.splicemachine.utils.Partition;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.AccessPath;
-import org.apache.derby.iapi.sql.compile.Optimizable;
-import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
-import org.apache.derby.iapi.sql.compile.Visitable;
+import org.apache.derby.iapi.sql.compile.*;
 import org.apache.derby.impl.sql.compile.*;
 
 import javax.annotation.Nullable;
@@ -131,7 +128,8 @@ public class RSUtils {
     }
 
     public static final Predicate<ResultSetNode> rsnHasPreds =
-            Predicates.or(Predicates.instanceOf(ProjectRestrictNode.class), Predicates.instanceOf(FromBaseTable.class));
+            Predicates.or(Predicates.instanceOf(ProjectRestrictNode.class), Predicates.instanceOf(FromBaseTable.class),
+                    Predicates.instanceOf(IndexToBaseRowNode.class));
 
     public static PredicateList getPreds(FromBaseTable t) throws StandardException {
         PredicateList pl = new PredicateList();
@@ -147,6 +145,10 @@ public class RSUtils {
         return pr.restrictionList != null ? pr.restrictionList : new PredicateList();
     }
 
+    public static PredicateList getPreds(IndexToBaseRowNode in) throws StandardException {
+        return in.restrictionList != null ? in.restrictionList : new PredicateList();
+    }
+
     public static boolean isMSJ(AccessPath ap){
         return (ap != null && ap.getJoinStrategy().getClass() == MergeSortJoinStrategy.class);
     }
@@ -156,7 +158,9 @@ public class RSUtils {
     }
 
     public static boolean isHashableJoin(AccessPath ap){
-        return (ap != null && ap.getJoinStrategy() instanceof HashableJoinStrategy);
+        if(ap==null) return false;
+        JoinStrategy strategy = ap.getJoinStrategy();
+        return strategy instanceof HashableJoinStrategy;
     }
 
     public static boolean isSinkingJoin(AccessPath ap){

@@ -95,14 +95,10 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "init");
-				super.init(context);
-				try {
-						emptyRightRowsReturned = 0;
-						emptyRowFun = (emptyRowFunMethodName == null) ? null :
-										context.getPreparedStatement().getActivationClass().getMethod(emptyRowFunMethodName);
-				} catch (StandardException e) {
-						SpliceLogUtils.logAndThrowRuntime(LOG, "Error initiliazing node", e);
-				}
+        super.init(context);
+        emptyRightRowsReturned = 0;
+        emptyRowFun = (emptyRowFunMethodName == null) ? null :
+                context.getPreparedStatement().getActivationClass().getMethod(emptyRowFunMethodName);
 		}
 
 		@Override

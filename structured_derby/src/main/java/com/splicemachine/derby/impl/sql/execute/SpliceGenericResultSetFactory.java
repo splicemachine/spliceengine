@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import java.util.List;
 
+import com.splicemachine.derby.impl.sql.execute.operations.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -18,45 +19,6 @@ import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.AnyOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.BroadcastJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.BroadcastLeftOuterJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.BulkTableScanOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.CachedOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.CallStatementOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DeleteOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DependentOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DistinctGroupedAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DistinctScalarAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DistinctScanOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.HashJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.HashLeftOuterJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.HashTableOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.IndexRowToBaseRowOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LastIndexKeyOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MergeLeftOuterJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MergeSortJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MergeSortLeftOuterJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MiscOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopLeftOuterJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.NormalizeOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.OnceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.RowCountOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.RowOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.ScalarAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.SetTransactionOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.SortOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.UnionOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.UpdateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.WindowOperation;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -185,33 +147,33 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }
     }
 
-	@Override
-	public NoPutResultSet getHashJoinResultSet(NoPutResultSet leftResultSet,
-			int leftNumCols,
-            NoPutResultSet rightResultSet,
-            int rightNumCols,
-			GeneratedMethod joinClause,
-            int resultSetNumber,
-			boolean oneRowRightSide,
-            boolean notExistsRightSide,
-			double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost,
-			String userSuppliedOptimizerOverrides) throws StandardException {
-		SpliceLogUtils.trace(LOG, "getHashJoinResultSet");
+    @Override
+    public NoPutResultSet getHashJoinResultSet(NoPutResultSet leftResultSet,
+                                               int leftNumCols,
+                                               NoPutResultSet rightResultSet,
+                                               int rightNumCols,
+                                               int leftHashKeyItem,
+                                               int righthashKeyItem,
+                                               GeneratedMethod joinClause,
+                                               int resultSetNumber,
+                                               boolean oneRowRightSide,
+                                               boolean notExistsRightSide,
+                                               double optimizerEstimatedRowCount,
+                                               double optimizerEstimatedCost,
+                                               String userSuppliedOptimizerOverrides) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getHashJoinResultSet");
         ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
         ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
-		SpliceOperation op =  new HashJoinOperation(left.getOperation(), leftNumCols,
-				   right.getOperation(), rightNumCols,
-				   leftResultSet.getActivation(), joinClause,
-				   resultSetNumber, 
-				   oneRowRightSide, 
-				   notExistsRightSide, 
-				   optimizerEstimatedRowCount,
-				   optimizerEstimatedCost,
-				   userSuppliedOptimizerOverrides);
-
+        HashNestedLoopJoinOperation op = new HashNestedLoopJoinOperation(left.getOperation(), leftNumCols,
+                right.getOperation(), rightNumCols, leftHashKeyItem, righthashKeyItem,
+                leftResultSet.getActivation(), joinClause,
+                resultSetNumber, oneRowRightSide,
+                null,false,
+                notExistsRightSide, optimizerEstimatedRowCount,
+                optimizerEstimatedCost, userSuppliedOptimizerOverrides
+        );
         return new OperationResultSet(leftResultSet.getActivation(),op);
-	}
+    }
 	
 	@Override
 	public NoPutResultSet getHashScanResultSet(Activation activation,
@@ -290,6 +252,8 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         int leftNumCols,
 		NoPutResultSet rightResultSet,
         int rightNumCols,
+        int leftHashKeyItem,
+        int rightHashKeyItem,
 		GeneratedMethod joinClause,
         int resultSetNumber,
 		GeneratedMethod emptyRowFun,
@@ -467,41 +431,35 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }
     }
 
-	@Override
-	public NoPutResultSet getHashLeftOuterJoinResultSet(
-			NoPutResultSet leftResultSet,
+    @Override
+    public NoPutResultSet getHashLeftOuterJoinResultSet(
+            NoPutResultSet leftResultSet,
             int leftNumCols,
-			NoPutResultSet rightResultSet,
+            NoPutResultSet rightResultSet,
             int rightNumCols,
-			GeneratedMethod joinClause,
+            int leftHashKeyItem,
+            int rightHashKeyItem,
+            GeneratedMethod joinClause,
             int resultSetNumber,
-			GeneratedMethod emptyRowFun,
+            GeneratedMethod emptyRowFun,
             boolean wasRightOuterJoin,
-			boolean oneRowRightSide,
+            boolean oneRowRightSide,
             boolean notExistsRightSide,
-			double optimizerEstimatedRowCount,
+            double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
-			String userSuppliedOptimizerOverrides) throws StandardException {
-		SpliceLogUtils.trace(LOG, "getHashLeftOuterJoinResultSet");
-        try{
-            ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
-            ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
-            SpliceOperation op = new HashLeftOuterJoinOperation(left.getOperation(), leftNumCols,
-                    right.getOperation(), rightNumCols,
-                    leftResultSet.getActivation(), joinClause,
-                    resultSetNumber,
-                    emptyRowFun,
-                    wasRightOuterJoin,
-                    oneRowRightSide,
-                    notExistsRightSide,
-                    optimizerEstimatedRowCount,
-                    optimizerEstimatedCost,
-                    userSuppliedOptimizerOverrides);
-
-            return new OperationResultSet(leftResultSet.getActivation(),op);
-        }catch(Exception e){
-            throw Exceptions.parseException(e);
-        }
+            String userSuppliedOptimizerOverrides) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getHashLeftOuterJoinResultSet");
+        ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
+        ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
+        HashNestedLoopLeftOuterJoinOperation op = new HashNestedLoopLeftOuterJoinOperation(left.getOperation(), leftNumCols,
+                right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem,
+                leftResultSet.getActivation(), joinClause,
+                resultSetNumber, oneRowRightSide,
+                emptyRowFun,wasRightOuterJoin,
+                notExistsRightSide, optimizerEstimatedRowCount,
+                optimizerEstimatedCost, userSuppliedOptimizerOverrides
+        );
+        return new OperationResultSet(leftResultSet.getActivation(),op);
     }
 
 	@Override
@@ -1065,6 +1023,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
     public NoPutResultSet getNestedLoopJoinResultSet(
             NoPutResultSet leftResultSet, int leftNumCols,
             NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem,int rightHashKeyItem,
             GeneratedMethod joinClause, int resultSetNumber,
             boolean oneRowRightSide, boolean notExistsRightSide,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,

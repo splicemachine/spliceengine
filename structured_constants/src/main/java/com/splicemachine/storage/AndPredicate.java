@@ -18,8 +18,32 @@ public class AndPredicate implements Predicate{
     private ObjectArrayList<Predicate> ands;
 
 
+    public static Predicate newAndPredicate(ObjectArrayList<Predicate> ands){
+        if(ands.size()==1){
+            return ands.get(0);
+        }
+        return new AndPredicate(ands);
+    }
+
     public AndPredicate(ObjectArrayList<Predicate> ands) {
         this.ands = new ObjectArrayList<Predicate>(ands);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof AndPredicate)) return false;
+
+        AndPredicate that = (AndPredicate) o;
+
+        if (ands != null ? !ands.equals(that.ands) : that.ands != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return ands != null ? ands.hashCode() : 0;
     }
 
     @Override

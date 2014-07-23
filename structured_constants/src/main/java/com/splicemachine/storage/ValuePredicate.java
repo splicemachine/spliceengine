@@ -6,6 +6,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import com.carrotsearch.hppc.BitSet;
 
+import java.util.Arrays;
+
 
 /**
  * @author Scott Fines
@@ -35,6 +37,32 @@ public class ValuePredicate implements Predicate {
     @Override
     public boolean applies(int column) {
         return this.column==column;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ValuePredicate)) return false;
+
+        ValuePredicate that = (ValuePredicate) o;
+
+        if (column != that.column) return false;
+        if (desc != that.desc) return false;
+        if (removeNullEntries != that.removeNullEntries) return false;
+        if (compareOp != that.compareOp) return false;
+        if (!Arrays.equals(compareValue, that.compareValue)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = compareOp.hashCode();
+        result = 31 * result + column;
+        result = 31 * result + Arrays.hashCode(compareValue);
+        result = 31 * result + (desc ? 1 : 0);
+        result = 31 * result + (removeNullEntries ? 1 : 0);
+        return result;
     }
 
     @Override
