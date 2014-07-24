@@ -67,7 +67,7 @@ public class IndexToBaseRowNode extends FromTable
 	protected FromBaseTable	source;
 	protected ConglomerateDescriptor	baseCD;
 	protected boolean	cursorTargetTable;
-	protected PredicateList restrictionList;
+	public PredicateList restrictionList;
 	protected boolean	forUpdate;
 	private FormatableBitSet	heapReferencedCols;
 	private FormatableBitSet	indexReferencedCols;
