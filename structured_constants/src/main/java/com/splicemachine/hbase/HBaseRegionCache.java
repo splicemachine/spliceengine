@@ -6,16 +6,20 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.catalog.MetaReader;
 import org.apache.hadoop.hbase.client.MetaScanner;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.regionserver.RegionServerStoppedException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Writables;
 import org.apache.log4j.Logger;
+
 import javax.management.*;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.SortedSet;
@@ -144,7 +148,13 @@ public class HBaseRegionCache implements RegionCache {
             try {
                 MetaScanner.metaScan(SpliceConstants.config,visitor);
             } catch (IOException e) {
-                SpliceLogUtils.error(CACHE_LOG,"Unable to update region cache",e);
+            	if (e instanceof RegionServerStoppedException) {
+                    getInstance().shutdown();
+                    SpliceLogUtils.info(CACHE_LOG, "The region cache is shutting down as the server has stopped");
+
+                } else {
+                    SpliceLogUtils.error(CACHE_LOG, "Unable to update region cache", e);
+                }
             }
             cacheUpdatedTimestamp = System.currentTimeMillis();
         }
@@ -190,7 +200,14 @@ public class HBaseRegionCache implements RegionCache {
             try {
                 MetaScanner.metaScan(configuration,visitor);
             } catch (IOException e) {
-                SpliceLogUtils.error(CACHE_LOG,"Unable to update region cache",e);
+            	if (e instanceof RegionServerStoppedException) {
+                    getInstance().shutdown();
+                    SpliceLogUtils.info(CACHE_LOG, "The region cache is shutting down as the server has stopped");
+
+                    throw e;
+                } else {
+                    SpliceLogUtils.error(CACHE_LOG, "Unable to update region cache", e);
+                }
             }
             SpliceLogUtils.trace(CACHE_LOG,"loaded regions %s",regionInfos);
             return regionInfos;
