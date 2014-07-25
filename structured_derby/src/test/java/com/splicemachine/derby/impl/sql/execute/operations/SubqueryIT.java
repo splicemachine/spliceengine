@@ -177,6 +177,21 @@ public class SubqueryIT {
                     "create table tWithNulls2 (c1 int, c2 int); \n" +
                     "insert into tWithNulls1 values (null, null), (1,1), (null, null), (2,1), (3,1), (10,10); \n" +
                     "insert into tWithNulls2 values (null, null), (1,1), (null, null), (2,1), (3,1), (10,10); "
+                    , CLASS_NAME))
+            .around(TestUtils.createStringDataWatcher(spliceClassWatcher,
+                    "create table parentT ( i int, j int, k int); \n" +
+                        "create table childT ( i int, j int, k int); \n" +
+                        "insert into parentT values (1,1,1), (2,2,2), (3,3,3), (4,4,4); \n" +
+                        "insert into parentT select i+4, j+4, k+4 from parentT; \n" +
+                        "insert into parentT select i+8, j+8, k+8 from parentT; \n" +
+                        "insert into parentT select i+16, j+16, k+16 from parentT; \n" +
+                        "insert into parentT select i+32, j+32, k+32 from parentT; \n" +
+                        "insert into parentT select i+64, j+64, k+64 from parentT; \n" +
+                        "insert into parentT select i+128, j+128, k+128 from parentT; \n" +
+                        "insert into parentT select i+256, j+256, k+256 from parentT; \n" +
+                        "insert into parentT select i+512, j+512, k+512 from parentT; \n" +
+                        "insert into parentT select i+1024, j+1024, k+1024 from parentT; \n" +
+                        "insert into childT select * from parentT; \n"
                     , CLASS_NAME));
 
     @Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
@@ -432,6 +447,20 @@ public class SubqueryIT {
         List<Object[]> actual = TestUtils.resultSetToArrays(rs);
 
         Assert.assertArrayEquals(expected.toArray(), actual.toArray());
+    }
+
+    @Test
+    // JIRA 1121
+    public void testSubqueryTooBigToMaterialize() throws Exception {
+        List<Object[]> expected = Collections.singletonList(new Object[]{0L});
+
+        ResultSet rs = methodWatcher.executeQuery(
+                "select count(*) from parentT where i < 10 and i not in (select i from childT)");
+
+        List<Object[]> actual = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertArrayEquals(expected.toArray(), actual.toArray());
+
     }
 
 		@Test(expected = SQLException.class)
