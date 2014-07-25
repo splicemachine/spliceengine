@@ -8,6 +8,10 @@ import com.carrotsearch.hppc.BitSet;
  */
 public interface Predicate{
 
+//    boolean isFinished();
+//
+//    boolean isFailed();
+
     boolean applies(int column);
 
     boolean match(int column,byte[] data, int offset, int length);

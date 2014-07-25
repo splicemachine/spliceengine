@@ -85,10 +85,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                  * to be present on the Join node ( to ensure that the hash indices are properly found). This
                  * is a pretty ugly attempt to ensure that this works correctly.
                  */
-                if(ignoreIndex)
-                    toPullUp.addAll(pullPredsFromTable((FromBaseTable)rsn,shouldPull,true)); //avoid pulling predicates from base table when doing a hash nlj
-                else
-                    toPullUp.addAll(pullPredsFromTable((FromBaseTable)rsn,shouldPull, false));
+                toPullUp.addAll(pullPredsFromTable((FromBaseTable)rsn,shouldPull,ignoreIndex)); //avoid pulling predicates from base table when doing a hash nlj
             }else if(rsn instanceof IndexToBaseRowNode){
                 if(!ignoreIndex){
                     List<? extends Predicate> c = pullPredsFromIndex((IndexToBaseRowNode) rsn, shouldPull);
