@@ -162,8 +162,6 @@ public class TableScanOperation extends ScanOperation {
 				beginTime = System.currentTimeMillis();
         if(scan==null || !scanSet){
             scan = getNonSIScan(spliceRuntimeContext);
-        }else{
-            scanSet=false; //don't re-use the scan
         }
 
 				SpliceUtils.setInstructions(scan, activation, top,spliceRuntimeContext);

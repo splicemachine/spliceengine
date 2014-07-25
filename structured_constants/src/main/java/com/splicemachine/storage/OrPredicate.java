@@ -84,14 +84,13 @@ public class OrPredicate implements Predicate {
 
     @Override
     public boolean match(int column,byte[] data, int offset, int length) {
-        if(matched) return true;
         if(visitedCount>=ors.size()) return false; //we've visited all of our fields, and none matched
 
-        
-    	Object[] buffer = ors.buffer;
-    	int iBuffer = ors.size();
-    	for (int i = 0; i < iBuffer; i++) {
-    		Predicate predicate = (Predicate) buffer[i];
+
+        Object[] buffer = ors.buffer;
+        int iBuffer = ors.size();
+        for (int i = 0; i < iBuffer; i++) {
+            Predicate predicate = (Predicate) buffer[i];
             if(!predicate.applies(column))
                 continue;
 

@@ -414,8 +414,8 @@ public class InnerJoinIT extends SpliceUnitTest {
     public void testThreeTableJoinOnItemsWithCriteriaNestedLoopOverBroadcast() throws Exception{
         ResultSet rs = methodWatcher.executeQuery("select t1.itm_name, t2.sbc_desc, t3.cat_name " +
                 "from item t1, " +
-                "category_sub t2 --SPLICE-PROPERTIES joinStrategy=BROADCAST" +
-                ", category t3 --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP" +
+                "category_sub t2 --SPLICE-PROPERTIES joinStrategy=BROADCAST \n" +
+                ", category t3 --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP \n" +
                 "where t1.itm_subcat_id = t2.sbc_id and t2.sbc_category_id = t3.cat_id " +
                 "and t1.itm_name = 'Seal (94)'");
 
