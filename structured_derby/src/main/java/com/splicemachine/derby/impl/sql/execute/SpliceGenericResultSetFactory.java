@@ -23,12 +23,12 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
-	private static Logger LOG = Logger.getLogger(SpliceGenericResultSetFactory.class);
+    private static Logger LOG = Logger.getLogger(SpliceGenericResultSetFactory.class);
 //	HTablePool htablePool = new HTablePool();
 
-	public SpliceGenericResultSetFactory() {
-		super();
-		SpliceLogUtils.trace(LOG, "instantiating SpliceGenericResultSetFactory");
+    public SpliceGenericResultSetFactory() {
+        super();
+        SpliceLogUtils.trace(LOG, "instantiating SpliceGenericResultSetFactory");
     }
 
     @Override
@@ -56,11 +56,11 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
     }
 
     @Override
-	public NoPutResultSet getOnceResultSet(NoPutResultSet source,
-			GeneratedMethod emptyRowFun, int cardinalityCheck,
-			int resultSetNumber, int subqueryNumber, int pointOfAttachment,
-			double optimizerEstimatedRowCount, double optimizerEstimatedCost)
-			throws StandardException {
+    public NoPutResultSet getOnceResultSet(NoPutResultSet source,
+                                           GeneratedMethod emptyRowFun, int cardinalityCheck,
+                                           int resultSetNumber, int subqueryNumber, int pointOfAttachment,
+                                           double optimizerEstimatedRowCount, double optimizerEstimatedCost)
+            throws StandardException {
         try{
             SpliceLogUtils.trace(LOG, "getOnceResultSet");
             ConvertedResultSet below = (ConvertedResultSet)source;
@@ -77,23 +77,23 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
     }
 
 
-	@Override
-	public NoPutResultSet getIndexRowToBaseRowResultSet(long conglomId,
-			int scociItem,
-            NoPutResultSet source,
-			GeneratedMethod resultRowAllocator,
-            int resultSetNumber,
-			String indexName,
-            int heapColRefItem,
-            int allColRefItem,
-			int heapOnlyColRefItem,
-            int indexColMapItem,
-			GeneratedMethod restriction,
-            boolean forUpdate,
-			double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost)
-			throws StandardException {
-		SpliceLogUtils.trace(LOG, "getIndexRowToBaseRowResultSet");
+    @Override
+    public NoPutResultSet getIndexRowToBaseRowResultSet(long conglomId,
+                                                        int scociItem,
+                                                        NoPutResultSet source,
+                                                        GeneratedMethod resultRowAllocator,
+                                                        int resultSetNumber,
+                                                        String indexName,
+                                                        int heapColRefItem,
+                                                        int allColRefItem,
+                                                        int heapOnlyColRefItem,
+                                                        int indexColMapItem,
+                                                        GeneratedMethod restriction,
+                                                        boolean forUpdate,
+                                                        double optimizerEstimatedRowCount,
+                                                        double optimizerEstimatedCost)
+            throws StandardException {
+        SpliceLogUtils.trace(LOG, "getIndexRowToBaseRowResultSet");
         try{
             SpliceOperation belowOp = ((ConvertedResultSet)source).getOperation();
             SpliceOperation op = new IndexRowToBaseRowOperation(
@@ -118,19 +118,19 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }
     }
 
-	@Override
-	public NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
-			GeneratedMethod restriction,
-            GeneratedMethod projection,
-			int resultSetNumber,
-            GeneratedMethod constantRestriction,
-			int mapRefItem,
-            int cloneMapItem,
-            boolean reuseResult,
-			boolean doesProjection,
-            double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost) throws StandardException {
-		SpliceLogUtils.trace(LOG, "getProjectRestrictResultSet");
+    @Override
+    public NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
+                                                      GeneratedMethod restriction,
+                                                      GeneratedMethod projection,
+                                                      int resultSetNumber,
+                                                      GeneratedMethod constantRestriction,
+                                                      int mapRefItem,
+                                                      int cloneMapItem,
+                                                      boolean reuseResult,
+                                                      boolean doesProjection,
+                                                      double optimizerEstimatedRowCount,
+                                                      double optimizerEstimatedCost) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getProjectRestrictResultSet");
         try{
             ConvertedResultSet opSet = (ConvertedResultSet)source;
             SpliceOperation op =  new ProjectRestrictOperation(opSet.getOperation(),
@@ -174,38 +174,38 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         );
         return new OperationResultSet(leftResultSet.getActivation(),op);
     }
-	
-	@Override
-	public NoPutResultSet getHashScanResultSet(Activation activation,
-			long conglomId,
-            int scociItem,
-            GeneratedMethod resultRowAllocator,
-			int resultSetNumber,
-            GeneratedMethod startKeyGetter,
-			int startSearchOperator,
-            GeneratedMethod stopKeyGetter,
-			int stopSearchOperator,
-            boolean sameStartStopPosition,
-			String scanQualifiersField,
-            String nextQualifierField,
-			int initialCapacity,
-            float loadFactor,
-            int maxCapacity,
-			int hashKeyColumn,
-            String tableName,
-			String userSuppliedOptimizerOverrides,
-            String indexName,
-			boolean isConstraint,
-            boolean forUpdate,
-            int colRefItem,
-			int indexColItem,
-            int lockMode,
-            boolean tableLocked,
-			int isolationLevel,
-            double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost) throws StandardException {
+
+    @Override
+    public NoPutResultSet getHashScanResultSet(Activation activation,
+                                               long conglomId,
+                                               int scociItem,
+                                               GeneratedMethod resultRowAllocator,
+                                               int resultSetNumber,
+                                               GeneratedMethod startKeyGetter,
+                                               int startSearchOperator,
+                                               GeneratedMethod stopKeyGetter,
+                                               int stopSearchOperator,
+                                               boolean sameStartStopPosition,
+                                               String scanQualifiersField,
+                                               String nextQualifierField,
+                                               int initialCapacity,
+                                               float loadFactor,
+                                               int maxCapacity,
+                                               int hashKeyColumn,
+                                               String tableName,
+                                               String userSuppliedOptimizerOverrides,
+                                               String indexName,
+                                               boolean isConstraint,
+                                               boolean forUpdate,
+                                               int colRefItem,
+                                               int indexColItem,
+                                               int lockMode,
+                                               boolean tableLocked,
+                                               int isolationLevel,
+                                               double optimizerEstimatedRowCount,
+                                               double optimizerEstimatedCost) throws StandardException {
         SpliceLogUtils.trace(LOG, "getHashScanResultSet");
-			throw new UnsupportedOperationException("HashScan operation shouldn't be called");
+        throw new UnsupportedOperationException("HashScan operation shouldn't be called");
 //        try{
 //            StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().
 //                    getSavedObject(scociItem));
@@ -246,23 +246,21 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 //        }
     }
 
-	@Override
-	public NoPutResultSet getNestedLoopLeftOuterJoinResultSet(
-		NoPutResultSet leftResultSet,
-        int leftNumCols,
-		NoPutResultSet rightResultSet,
-        int rightNumCols,
-        int leftHashKeyItem,
-        int rightHashKeyItem,
-		GeneratedMethod joinClause,
-        int resultSetNumber,
-		GeneratedMethod emptyRowFun,
-        boolean wasRightOuterJoin,
-		boolean oneRowRightSide,
-        boolean notExistsRightSide,
-		double optimizerEstimatedRowCount,
-        double optimizerEstimatedCost,
-		String userSuppliedOptimizerOverrides) throws StandardException {
+    @Override
+    public NoPutResultSet getNestedLoopLeftOuterJoinResultSet(
+            NoPutResultSet leftResultSet,
+            int leftNumCols,
+            NoPutResultSet rightResultSet,
+            int rightNumCols,
+            GeneratedMethod joinClause,
+            int resultSetNumber,
+            GeneratedMethod emptyRowFun,
+            boolean wasRightOuterJoin,
+            boolean oneRowRightSide,
+            boolean notExistsRightSide,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides) throws StandardException {
         try{
             SpliceLogUtils.trace(LOG, "getNestedLoopLeftOuterJoinResultSet");
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -302,33 +300,33 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }
     }
 
-	@Override
-	public NoPutResultSet getTableScanResultSet(Activation activation,
-			long conglomId,
-            int scociItem,
-            GeneratedMethod resultRowAllocator,
-			int resultSetNumber,
-            GeneratedMethod startKeyGetter,
-			int startSearchOperator,
-            GeneratedMethod stopKeyGetter,
-			int stopSearchOperator,
-            boolean sameStartStopPosition,
-			String qualifiersField,
-            String tableName,
-			String userSuppliedOptimizerOverrides,
-            String indexName,
-			boolean isConstraint,
-            boolean forUpdate,
-            int colRefItem,
-			int indexColItem,
-            int lockMode,
-            boolean tableLocked,
-			int isolationLevel,
-            boolean oneRowScan,
-			double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost)
-			throws StandardException {
-		SpliceLogUtils.trace(LOG, "getTableScanResultSet");
+    @Override
+    public NoPutResultSet getTableScanResultSet(Activation activation,
+                                                long conglomId,
+                                                int scociItem,
+                                                GeneratedMethod resultRowAllocator,
+                                                int resultSetNumber,
+                                                GeneratedMethod startKeyGetter,
+                                                int startSearchOperator,
+                                                GeneratedMethod stopKeyGetter,
+                                                int stopSearchOperator,
+                                                boolean sameStartStopPosition,
+                                                String qualifiersField,
+                                                String tableName,
+                                                String userSuppliedOptimizerOverrides,
+                                                String indexName,
+                                                boolean isConstraint,
+                                                boolean forUpdate,
+                                                int colRefItem,
+                                                int indexColItem,
+                                                int lockMode,
+                                                boolean tableLocked,
+                                                int isolationLevel,
+                                                boolean oneRowScan,
+                                                double optimizerEstimatedRowCount,
+                                                double optimizerEstimatedCost)
+            throws StandardException {
+        SpliceLogUtils.trace(LOG, "getTableScanResultSet");
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().
                     getSavedObject(scociItem));
@@ -462,12 +460,12 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         return new OperationResultSet(leftResultSet.getActivation(),op);
     }
 
-	@Override
-	public NoPutResultSet getGroupedAggregateResultSet(NoPutResultSet source,
-			boolean isInSortedOrder, int aggregateItem, int orderItem,
-			GeneratedMethod rowAllocator, int maxRowSize, int resultSetNumber,
-			double optimizerEstimatedRowCount, double optimizerEstimatedCost,
-			boolean isRollup) throws StandardException {
+    @Override
+    public NoPutResultSet getGroupedAggregateResultSet(NoPutResultSet source,
+                                                       boolean isInSortedOrder, int aggregateItem, int orderItem,
+                                                       GeneratedMethod rowAllocator, int maxRowSize, int resultSetNumber,
+                                                       double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+                                                       boolean isRollup) throws StandardException {
         try{
             SpliceLogUtils.trace(LOG, "getGroupedAggregateResultSet");
             ConvertedResultSet below = (ConvertedResultSet)source;
@@ -479,20 +477,20 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
-	}
+    }
 
-	@Override
-	public NoPutResultSet getScalarAggregateResultSet(NoPutResultSet source,
-			boolean isInSortedOrder,
-            int aggregateItem,
-            int orderItem,
-			GeneratedMethod rowAllocator,
-            int maxRowSize,
-            int resultSetNumber,
-			boolean singleInputRow,
-            double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost) throws StandardException {
-		SpliceLogUtils.trace(LOG, "getScalarAggregateResultSet");
+    @Override
+    public NoPutResultSet getScalarAggregateResultSet(NoPutResultSet source,
+                                                      boolean isInSortedOrder,
+                                                      int aggregateItem,
+                                                      int orderItem,
+                                                      GeneratedMethod rowAllocator,
+                                                      int maxRowSize,
+                                                      int resultSetNumber,
+                                                      boolean singleInputRow,
+                                                      double optimizerEstimatedRowCount,
+                                                      double optimizerEstimatedCost) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getScalarAggregateResultSet");
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation op =  new ScalarAggregateOperation(
@@ -507,18 +505,18 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
         }
     }
-	
-	@Override
-	public NoPutResultSet getSortResultSet(NoPutResultSet source, 
-											boolean distinct,
-											boolean isInSortedOrder,
-											int orderingItem,
-											GeneratedMethod ra,
-											int numColumns,
-											int resultSetNumber,
-											double optimizerEstimatedRowCount,
-											double optimizerEstimatedCost) throws StandardException{
-		SpliceLogUtils.trace(LOG, "getSortResultSet");
+
+    @Override
+    public NoPutResultSet getSortResultSet(NoPutResultSet source,
+                                           boolean distinct,
+                                           boolean isInSortedOrder,
+                                           int orderingItem,
+                                           GeneratedMethod ra,
+                                           int numColumns,
+                                           int resultSetNumber,
+                                           double optimizerEstimatedRowCount,
+                                           double optimizerEstimatedCost) throws StandardException{
+        SpliceLogUtils.trace(LOG, "getSortResultSet");
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation op =  new SortOperation(below.getOperation(),distinct,
@@ -533,14 +531,14 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             if(e instanceof StandardException) throw (StandardException)e;
             throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
         }
-	}
-	
-	@Override
-	public NoPutResultSet getUnionResultSet(NoPutResultSet leftResultSet,
-			NoPutResultSet rightResultSet,
-			int resultSetNumber,
-			double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost) throws StandardException {
+    }
+
+    @Override
+    public NoPutResultSet getUnionResultSet(NoPutResultSet leftResultSet,
+                                            NoPutResultSet rightResultSet,
+                                            int resultSetNumber,
+                                            double optimizerEstimatedRowCount,
+                                            double optimizerEstimatedCost) throws StandardException {
         try{
             SpliceLogUtils.trace(LOG, "getUnionResultSet");
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -555,22 +553,22 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
-	}
+    }
 
-	@Override
-	public NoPutResultSet getRowResultSet(Activation activation,
-			GeneratedMethod row, boolean canCacheRow, int resultSetNumber,
-			double optimizerEstimatedRowCount, double optimizerEstimatedCost) {
-		SpliceLogUtils.trace(LOG, "getRowResultSet");
-		try {
-			SpliceOperation op = new RowOperation(activation, row, canCacheRow, resultSetNumber,optimizerEstimatedRowCount, optimizerEstimatedCost);
+    @Override
+    public NoPutResultSet getRowResultSet(Activation activation,
+                                          GeneratedMethod row, boolean canCacheRow, int resultSetNumber,
+                                          double optimizerEstimatedRowCount, double optimizerEstimatedCost) {
+        SpliceLogUtils.trace(LOG, "getRowResultSet");
+        try {
+            SpliceOperation op = new RowOperation(activation, row, canCacheRow, resultSetNumber,optimizerEstimatedRowCount, optimizerEstimatedCost);
 
             return new ConversionResultSet(op, activation);
-		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, "Cannot get Row Result Set",e);
-			return null;
-		}
-	}
+        } catch (StandardException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG, "Cannot get Row Result Set",e);
+            return null;
+        }
+    }
 
 
     @Override
@@ -590,20 +588,20 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 
     @Override
     public NoPutResultSet getCachedResultSet(Activation activation, List rows, int resultSetNumber) throws StandardException {
-       try {
-           SpliceOperation op = new CachedOperation(activation, (List<ExecRow>)rows, resultSetNumber);
-           return new ConversionResultSet(op, activation);
-       } catch (StandardException e) {
-           SpliceLogUtils.logAndThrowRuntime(LOG, "Cannot get Cached Result Set", e);
-           return null;
-       }
+        try {
+            SpliceOperation op = new CachedOperation(activation, (List<ExecRow>)rows, resultSetNumber);
+            return new ConversionResultSet(op, activation);
+        } catch (StandardException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG, "Cannot get Cached Result Set", e);
+            return null;
+        }
     }
 
-	@Override
-	public NoPutResultSet getNormalizeResultSet(NoPutResultSet source,
-			int resultSetNumber, int erdNumber,
-			double optimizerEstimatedRowCount, double optimizerEstimatedCost,
-			boolean forUpdate) throws StandardException {
+    @Override
+    public NoPutResultSet getNormalizeResultSet(NoPutResultSet source,
+                                                int resultSetNumber, int erdNumber,
+                                                double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+                                                boolean forUpdate) throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation op = new NormalizeOperation(below.getOperation(),source.getActivation(),resultSetNumber,erdNumber,
@@ -612,26 +610,26 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
-	}
-	
-	@Override
-	public NoPutResultSet getDistinctScanResultSet(
-			Activation activation,
-			long conglomId,
-			int scociItem,
-			GeneratedMethod resultRowAllocator,
-			int resultSetNumber,
-			int hashKeyColumn,
-			String tableName,
-			String userSuppliedOptimizerOverrides,
-			String indexName,
-			boolean isConstraint,
-			int colRefItem,
-			int lockMode,
-			boolean tableLocked,
-			int isolationLevel,
-			double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost) throws StandardException {
+    }
+
+    @Override
+    public NoPutResultSet getDistinctScanResultSet(
+            Activation activation,
+            long conglomId,
+            int scociItem,
+            GeneratedMethod resultRowAllocator,
+            int resultSetNumber,
+            int hashKeyColumn,
+            String tableName,
+            String userSuppliedOptimizerOverrides,
+            String indexName,
+            boolean isConstraint,
+            int colRefItem,
+            int lockMode,
+            boolean tableLocked,
+            int isolationLevel,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost) throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().getSavedObject(scociItem));
             SpliceOperation op = new DistinctScanOperation(
@@ -657,15 +655,15 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }
     }
 
-	@Override
-	public NoPutResultSet getHashTableResultSet(NoPutResultSet source,
-			GeneratedMethod singleTableRestriction,
-			String equijoinQualifiersField, GeneratedMethod projection,
-			int resultSetNumber, int mapRefItem, boolean reuseResult,
-			int keyColItem, boolean removeDuplicates, long maxInMemoryRowCount,
-			int initialCapacity, float loadFactor,
-			double optimizerEstimatedRowCount, double optimizerEstimatedCost)
-			throws StandardException {
+    @Override
+    public NoPutResultSet getHashTableResultSet(NoPutResultSet source,
+                                                GeneratedMethod singleTableRestriction,
+                                                String equijoinQualifiersField, GeneratedMethod projection,
+                                                int resultSetNumber, int mapRefItem, boolean reuseResult,
+                                                int keyColItem, boolean removeDuplicates, long maxInMemoryRowCount,
+                                                int initialCapacity, float loadFactor,
+                                                double optimizerEstimatedRowCount, double optimizerEstimatedCost)
+            throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation op =  new HashTableOperation(below.getOperation(), source.getActivation(),
@@ -688,16 +686,16 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }
     }
 
-	@Override
-	public NoPutResultSet getVTIResultSet(Activation activation,
-			GeneratedMethod row, int resultSetNumber,
-			GeneratedMethod constructor, String javaClassName,
-			String pushedQualifiersField, int erdNumber, boolean version2,
-			boolean reuseablePs, int ctcNumber, boolean isTarget,
-			int scanIsolationLevel, double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost, boolean isDerbyStyleTableFunction,
-			int returnTypeNumber, int vtiProjectionNumber,
-			int vtiRestrictionNumber) throws StandardException {
+    @Override
+    public NoPutResultSet getVTIResultSet(Activation activation,
+                                          GeneratedMethod row, int resultSetNumber,
+                                          GeneratedMethod constructor, String javaClassName,
+                                          String pushedQualifiersField, int erdNumber, boolean version2,
+                                          boolean reuseablePs, int ctcNumber, boolean isTarget,
+                                          int scanIsolationLevel, double optimizerEstimatedRowCount,
+                                          double optimizerEstimatedCost, boolean isDerbyStyleTableFunction,
+                                          int returnTypeNumber, int vtiProjectionNumber,
+                                          int vtiRestrictionNumber) throws StandardException {
         try{
             SpliceOperation op = new VTIOperation(activation, row, resultSetNumber,
                     constructor,
@@ -722,63 +720,63 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }
     }
 
-	@Override
-	public NoPutResultSet getVTIResultSet(
-			Activation activation,
-			GeneratedMethod row,
-			int resultSetNumber,
-			GeneratedMethod constructor,
-			String javaClassName,
-			org.apache.derby.iapi.store.access.Qualifier[][] pushedQualifiersField,
-			int erdNumber,
-			boolean version2,
-			boolean reuseablePs,
-			int ctcNumber,
-			boolean isTarget,
-			int scanIsolationLevel,
-			double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost,
-			boolean isDerbyStyleTableFunction,
-			int returnTypeNumber,
-			int vtiProjectionNumber,
-			int vtiRestrictionNumber
-			) throws StandardException {
-		return getVTIResultSet(
-				activation,
-				row,
-				resultSetNumber,
-				constructor,
-				javaClassName,
-				(String) null,
-				erdNumber,
-				version2,
-				reuseablePs,
-				ctcNumber,
-				isTarget,
-				scanIsolationLevel,
-				optimizerEstimatedRowCount,
-				optimizerEstimatedCost,
-				isDerbyStyleTableFunction,
-				returnTypeNumber,
-				vtiProjectionNumber,
-				vtiRestrictionNumber
-				);
-	}
+    @Override
+    public NoPutResultSet getVTIResultSet(
+            Activation activation,
+            GeneratedMethod row,
+            int resultSetNumber,
+            GeneratedMethod constructor,
+            String javaClassName,
+            org.apache.derby.iapi.store.access.Qualifier[][] pushedQualifiersField,
+            int erdNumber,
+            boolean version2,
+            boolean reuseablePs,
+            int ctcNumber,
+            boolean isTarget,
+            int scanIsolationLevel,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            boolean isDerbyStyleTableFunction,
+            int returnTypeNumber,
+            int vtiProjectionNumber,
+            int vtiRestrictionNumber
+    ) throws StandardException {
+        return getVTIResultSet(
+                activation,
+                row,
+                resultSetNumber,
+                constructor,
+                javaClassName,
+                (String) null,
+                erdNumber,
+                version2,
+                reuseablePs,
+                ctcNumber,
+                isTarget,
+                scanIsolationLevel,
+                optimizerEstimatedRowCount,
+                optimizerEstimatedCost,
+                isDerbyStyleTableFunction,
+                returnTypeNumber,
+                vtiProjectionNumber,
+                vtiRestrictionNumber
+        );
+    }
 
-	@Override
-	public NoPutResultSet getMultiProbeTableScanResultSet(
-			Activation activation, long conglomId, int scociItem,
-			GeneratedMethod resultRowAllocator, int resultSetNumber,
-			GeneratedMethod startKeyGetter, int startSearchOperator,
-			GeneratedMethod stopKeyGetter, int stopSearchOperator,
-			boolean sameStartStopPosition, String qualifiersField,
-			DataValueDescriptor[] probeVals, int sortRequired,
-			String tableName, String userSuppliedOptimizerOverrides,
-			String indexName, boolean isConstraint, boolean forUpdate,
-			int colRefItem, int indexColItem, int lockMode,
-			boolean tableLocked, int isolationLevel, boolean oneRowScan,
-			double optimizerEstimatedRowCount, double optimizerEstimatedCost)
-			throws StandardException {
+    @Override
+    public NoPutResultSet getMultiProbeTableScanResultSet(
+            Activation activation, long conglomId, int scociItem,
+            GeneratedMethod resultRowAllocator, int resultSetNumber,
+            GeneratedMethod startKeyGetter, int startSearchOperator,
+            GeneratedMethod stopKeyGetter, int stopSearchOperator,
+            boolean sameStartStopPosition, String qualifiersField,
+            DataValueDescriptor[] probeVals, int sortRequired,
+            String tableName, String userSuppliedOptimizerOverrides,
+            String indexName, boolean isConstraint, boolean forUpdate,
+            int colRefItem, int indexColItem, int lockMode,
+            boolean tableLocked, int isolationLevel, boolean oneRowScan,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost)
+            throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)
                     activation.getPreparedStatement().getSavedObject(scociItem);
@@ -817,68 +815,68 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }
     }
 
-	@Override
-	public NoPutResultSet getRaDependentTableScanResultSet(
-			Activation activation, long conglomId, int scociItem,
-			GeneratedMethod resultRowAllocator, int resultSetNumber,
-			GeneratedMethod startKeyGetter, int startSearchOperator,
-			GeneratedMethod stopKeyGetter, int stopSearchOperator,
-			boolean sameStartStopPosition, String qualifiersField,
-			String tableName, String userSuppliedOptimizerOverrides,
-			String indexName, boolean isConstraint, boolean forUpdate,
-			int colRefItem, int indexColItem, int lockMode,
-			boolean tableLocked, int isolationLevel, boolean oneRowScan,
-			double optimizerEstimatedRowCount, double optimizerEstimatedCost,
-			String parentResultSetId, long fkIndexConglomId,
-			int fkColArrayItem, int rltItem) throws StandardException {
-		SpliceLogUtils.trace(LOG, "getRaDependentTableScanResultSet");
+    @Override
+    public NoPutResultSet getRaDependentTableScanResultSet(
+            Activation activation, long conglomId, int scociItem,
+            GeneratedMethod resultRowAllocator, int resultSetNumber,
+            GeneratedMethod startKeyGetter, int startSearchOperator,
+            GeneratedMethod stopKeyGetter, int stopSearchOperator,
+            boolean sameStartStopPosition, String qualifiersField,
+            String tableName, String userSuppliedOptimizerOverrides,
+            String indexName, boolean isConstraint, boolean forUpdate,
+            int colRefItem, int indexColItem, int lockMode,
+            boolean tableLocked, int isolationLevel, boolean oneRowScan,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String parentResultSetId, long fkIndexConglomId,
+            int fkColArrayItem, int rltItem) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getRaDependentTableScanResultSet");
         StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().
-						getSavedObject(scociItem));
-		SpliceOperation op =  new DependentOperation(
-								conglomId,
-								scoci,
-								activation,
-								resultRowAllocator,
-								resultSetNumber,
-								startKeyGetter,
-								startSearchOperator,
-								stopKeyGetter,
-								stopSearchOperator,
-								sameStartStopPosition,
-								qualifiersField,
-								tableName,
-								userSuppliedOptimizerOverrides,
-								indexName,
-								isConstraint,
-								forUpdate,
-								colRefItem,
-								lockMode,
-								tableLocked,
-								isolationLevel,
-								1,
-								oneRowScan,
-								optimizerEstimatedRowCount,
-								optimizerEstimatedCost,
-								parentResultSetId,
-								fkIndexConglomId,
-								fkColArrayItem,
-								rltItem);
+                getSavedObject(scociItem));
+        SpliceOperation op =  new DependentOperation(
+                conglomId,
+                scoci,
+                activation,
+                resultRowAllocator,
+                resultSetNumber,
+                startKeyGetter,
+                startSearchOperator,
+                stopKeyGetter,
+                stopSearchOperator,
+                sameStartStopPosition,
+                qualifiersField,
+                tableName,
+                userSuppliedOptimizerOverrides,
+                indexName,
+                isConstraint,
+                forUpdate,
+                colRefItem,
+                lockMode,
+                tableLocked,
+                isolationLevel,
+                1,
+                oneRowScan,
+                optimizerEstimatedRowCount,
+                optimizerEstimatedCost,
+                parentResultSetId,
+                fkIndexConglomId,
+                fkColArrayItem,
+                rltItem);
 
         return new ConversionResultSet(op,activation);
-	}
-	
-	@Override
-	public NoPutResultSet getDistinctScalarAggregateResultSet(NoPutResultSet source,
-			boolean isInSortedOrder,
-			int aggregateItem,
-			int orderItem,
-			GeneratedMethod rowAllocator, 
-			int maxRowSize,
-			int resultSetNumber, 
-			boolean singleInputRow,
-			double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost) throws StandardException {
-		SpliceLogUtils.trace(LOG, "getDistinctScalarAggregateResultSet");
+    }
+
+    @Override
+    public NoPutResultSet getDistinctScalarAggregateResultSet(NoPutResultSet source,
+                                                              boolean isInSortedOrder,
+                                                              int aggregateItem,
+                                                              int orderItem,
+                                                              GeneratedMethod rowAllocator,
+                                                              int maxRowSize,
+                                                              int resultSetNumber,
+                                                              boolean singleInputRow,
+                                                              double optimizerEstimatedRowCount,
+                                                              double optimizerEstimatedCost) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getDistinctScalarAggregateResultSet");
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation op  = new DistinctScalarAggregateOperation(below.getOperation(),
@@ -896,20 +894,20 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
-	}
+    }
 
-	@Override
-	public NoPutResultSet getDistinctGroupedAggregateResultSet(NoPutResultSet source,
-			boolean isInSortedOrder,
-			int aggregateItem,
-			int orderItem,
-			GeneratedMethod rowAllocator, 
-			int maxRowSize,
-			int resultSetNumber, 
-			double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost,
-			boolean isRollup) throws StandardException {
-		SpliceLogUtils.trace(LOG, "getDistinctGroupedAggregateResultSet");
+    @Override
+    public NoPutResultSet getDistinctGroupedAggregateResultSet(NoPutResultSet source,
+                                                               boolean isInSortedOrder,
+                                                               int aggregateItem,
+                                                               int orderItem,
+                                                               GeneratedMethod rowAllocator,
+                                                               int maxRowSize,
+                                                               int resultSetNumber,
+                                                               double optimizerEstimatedRowCount,
+                                                               double optimizerEstimatedCost,
+                                                               boolean isRollup) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getDistinctGroupedAggregateResultSet");
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation op =  new DistinctGroupedAggregateOperation (
@@ -921,7 +919,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
-	}
+    }
 
     @Override
     public NoPutResultSet getMergeSortLeftOuterJoinResultSet(
@@ -1019,11 +1017,10 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }
     }
 
-	@Override
+    @Override
     public NoPutResultSet getNestedLoopJoinResultSet(
             NoPutResultSet leftResultSet, int leftNumCols,
             NoPutResultSet rightResultSet, int rightNumCols,
-            int leftHashKeyItem,int rightHashKeyItem,
             GeneratedMethod joinClause, int resultSetNumber,
             boolean oneRowRightSide, boolean notExistsRightSide,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
@@ -1043,16 +1040,16 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }
     }
 
-	@Override
-	public NoPutResultSet getMergeSortJoinResultSet(
-			NoPutResultSet leftResultSet, int leftNumCols,
-			NoPutResultSet rightResultSet, int rightNumCols,
-			int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
-			int resultSetNumber, boolean oneRowRightSide,
-			boolean notExistsRightSide, double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost, String userSuppliedOptimizerOverrides)
-			throws StandardException {
-		SpliceLogUtils.trace(LOG, "getMergeSortJoinResultSet");
+    @Override
+    public NoPutResultSet getMergeSortJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
+            int resultSetNumber, boolean oneRowRightSide,
+            boolean notExistsRightSide, double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost, String userSuppliedOptimizerOverrides)
+            throws StandardException {
+        SpliceLogUtils.trace(LOG, "getMergeSortJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
@@ -1064,18 +1061,18 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
-	}
+    }
 
     @Override
-	public NoPutResultSet getMergeJoinResultSet(
-			NoPutResultSet leftResultSet, int leftNumCols,
-			NoPutResultSet rightResultSet, int rightNumCols,
-			int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
-			int resultSetNumber, boolean oneRowRightSide,
-			boolean notExistsRightSide, double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost, String userSuppliedOptimizerOverrides)
-			throws StandardException {
-		SpliceLogUtils.trace(LOG, "getMergeSortJoinResultSet");
+    public NoPutResultSet getMergeJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
+            int resultSetNumber, boolean oneRowRightSide,
+            boolean notExistsRightSide, double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost, String userSuppliedOptimizerOverrides)
+            throws StandardException {
+        SpliceLogUtils.trace(LOG, "getMergeSortJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
@@ -1087,18 +1084,18 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
-	}
+    }
 
-	@Override
-	public NoPutResultSet getBroadcastJoinResultSet(
-			NoPutResultSet leftResultSet, int leftNumCols,
-			NoPutResultSet rightResultSet, int rightNumCols,
-			int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
-			int resultSetNumber, boolean oneRowRightSide,
-			boolean notExistsRightSide, double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost, String userSuppliedOptimizerOverrides)
-			throws StandardException {
-		SpliceLogUtils.trace(LOG, "getBroadcastJoinResultSet");
+    @Override
+    public NoPutResultSet getBroadcastJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
+            int resultSetNumber, boolean oneRowRightSide,
+            boolean notExistsRightSide, double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost, String userSuppliedOptimizerOverrides)
+            throws StandardException {
+        SpliceLogUtils.trace(LOG, "getBroadcastJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
@@ -1111,22 +1108,22 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
-	}
+    }
 
-	@Override
-	public NoPutResultSet getDDLResultSet(Activation activation)
-			throws StandardException {
+    @Override
+    public NoPutResultSet getDDLResultSet(Activation activation)
+            throws StandardException {
         SpliceLogUtils.trace(LOG, "getDDLResultSet");
         try{
             return getMiscResultSet(activation);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
-	}
+    }
 
-	@Override
-	public NoPutResultSet getMiscResultSet(Activation activation)
-			throws StandardException {
+    @Override
+    public NoPutResultSet getMiscResultSet(Activation activation)
+            throws StandardException {
         try{
             SpliceLogUtils.trace(LOG, "getMiscResultSet");
             SpliceOperation top = new MiscOperation(activation);
@@ -1138,8 +1135,8 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }
     }
 
-	@Override
-	public NoPutResultSet getCallStatementResultSet(GeneratedMethod methodCall,
+    @Override
+    public NoPutResultSet getCallStatementResultSet(GeneratedMethod methodCall,
                                                     Activation activation) throws StandardException {
         SpliceLogUtils.trace(LOG, "getCallStatementResultSet");
         try{
@@ -1149,12 +1146,12 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
-	}
+    }
 
-	@Override
-	public ResultSet getSetTransactionResultSet(Activation activation) 
-			throws StandardException {	
-		SpliceLogUtils.trace(LOG, "getSetTransactionResultSet");
+    @Override
+    public ResultSet getSetTransactionResultSet(Activation activation)
+            throws StandardException {
+        SpliceLogUtils.trace(LOG, "getSetTransactionResultSet");
         try{
             SpliceOperation top = new SetTransactionOperation(activation);
             top.markAsTopResultSet();
@@ -1162,12 +1159,12 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
-	}
+    }
 
-	@Override
-	public NoPutResultSet getInsertResultSet(NoPutResultSet source,
-			GeneratedMethod generationClauses, GeneratedMethod checkGM)
-			throws StandardException {
+    @Override
+    public NoPutResultSet getInsertResultSet(NoPutResultSet source,
+                                             GeneratedMethod generationClauses, GeneratedMethod checkGM)
+            throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new InsertOperation(below.getOperation(), generationClauses, checkGM);
@@ -1178,11 +1175,11 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
-     }
-	
-	@Override
-	public NoPutResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
-			GeneratedMethod checkGM) throws StandardException {
+    }
+
+    @Override
+    public NoPutResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
+                                             GeneratedMethod checkGM) throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new UpdateOperation(below.getOperation(), generationClauses, checkGM, source.getActivation());
@@ -1193,11 +1190,11 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
-	}
-	
-	@Override
-	public NoPutResultSet getDeleteResultSet(NoPutResultSet source)
-			throws StandardException {
+    }
+
+    @Override
+    public NoPutResultSet getDeleteResultSet(NoPutResultSet source)
+            throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new DeleteOperation(below.getOperation(), source.getActivation());
@@ -1209,36 +1206,36 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             throw Exceptions.parseException(e);
         }
     }
-	
-	@Override
-	public NoPutResultSet getDeleteCascadeResultSet(NoPutResultSet source, 
-			   int constantActionItem,
-			   ResultSet[] dependentResultSets,
-			   String resultSetId)
-			throws StandardException
-	{
+
+    @Override
+    public NoPutResultSet getDeleteCascadeResultSet(NoPutResultSet source,
+                                                    int constantActionItem,
+                                                    ResultSet[] dependentResultSets,
+                                                    String resultSetId)
+            throws StandardException
+    {
         throw StandardException.newException(SQLState.HEAP_UNIMPLEMENTED_FEATURE);
-	}
-	
-	public NoPutResultSet getRowCountResultSet(
-			NoPutResultSet source,
-			Activation activation,
-			int resultSetNumber,
-			GeneratedMethod offsetMethod,
-			GeneratedMethod fetchFirstMethod,
-			boolean hasJDBClimitClause,
-			double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost) throws StandardException {		 
-		SpliceLogUtils.trace(LOG, "getRowCountResultSet");
+    }
+
+    public NoPutResultSet getRowCountResultSet(
+            NoPutResultSet source,
+            Activation activation,
+            int resultSetNumber,
+            GeneratedMethod offsetMethod,
+            GeneratedMethod fetchFirstMethod,
+            boolean hasJDBClimitClause,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getRowCountResultSet");
         ConvertedResultSet below = (ConvertedResultSet)source;
-		SpliceOperation op =  new RowCountOperation(below.getOperation(),
-				activation,
-				resultSetNumber,
-				offsetMethod,
-				fetchFirstMethod,
-				hasJDBClimitClause,
-				optimizerEstimatedRowCount,
-				optimizerEstimatedCost);
+        SpliceOperation op =  new RowCountOperation(below.getOperation(),
+                activation,
+                resultSetNumber,
+                offsetMethod,
+                fetchFirstMethod,
+                hasJDBClimitClause,
+                optimizerEstimatedRowCount,
+                optimizerEstimatedCost);
 
         return new OperationResultSet(source.getActivation(),op);
 	}

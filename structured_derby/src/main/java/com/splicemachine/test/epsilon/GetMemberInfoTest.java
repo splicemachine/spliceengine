@@ -25,12 +25,11 @@ public class GetMemberInfoTest extends BaseQueryRunner {
             "m.city, m.state, m.pin_no, m.purge_date, r.description \n" +
             "FROM --SPLICE-PROPERTIES joinOrder=FIXED \n" +
             "EPS.member_info m \n" +
-            "INNER JOIN EPS.points p --SPLICE-PROPERTIES index=ie_point3 \n" +
+            "INNER JOIN EPS.points p --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP, index=ie_point3 \n" +
             "ON m.id_member = p.id_member \n";
 
     private static final String rewardJoinBaseSql = "SELECT p.id_member, p.num_point, p.id_point, p.id_reward, \n" +
-            "p.bonus_code, p.expire_date, m.service_dte, m.end_dte, \n" +
-            "r.description \n" +
+            "p.bonus_code, p.expire_date,r.description \n" +
             "FROM --SPLICE-PROPERTIES joinOrder=FIXED \n" +
             "EPS.points p --SPLICE-PROPERTIES index=ie_point3 \n";
 
