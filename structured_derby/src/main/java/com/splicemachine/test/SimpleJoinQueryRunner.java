@@ -25,6 +25,11 @@ public class SimpleJoinQueryRunner extends BaseQueryRunner {
             "t \n" +
             ",t2 --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP \n" +
             "where t.b = t2.b";
+    private static final String bcastSql = "select t.a,t.b,t2.b,t2.c \n" +
+            "from --SPLICE-PROPERTIES joinOrder=FIXED \n" +
+            "t \n" +
+            ",t2 --SPLICE-PROPERTIES joinStrategy=BROADCAST \n" +
+            "where t.b = t2.b";
 
     private static final String sql = hashSql;
     @Override
