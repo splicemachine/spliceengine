@@ -49,11 +49,6 @@ public class RingBuffer<T> {
         return writePosition-readPosition;
     }
 
-    @SuppressWarnings("unchecked")
-    public T[] raw(){
-        return (T[])buffer;
-    }
-
     public int bufferSize() {
         return buffer.length;
     }
@@ -77,12 +72,14 @@ public class RingBuffer<T> {
         readPosition = offsetReadPosition;
     }
 
-    public void advance() {
+    public void readAdvance() {
         readPosition++;
     }
 
-    public int readPosition() {
-        return readPosition;
+    public void clear(){
+        //skip the read position to the write position, so that you never see any of the old data
+        readPosition = writePosition;
+        offsetReadPosition = readPosition;
     }
 
     public void mark(){

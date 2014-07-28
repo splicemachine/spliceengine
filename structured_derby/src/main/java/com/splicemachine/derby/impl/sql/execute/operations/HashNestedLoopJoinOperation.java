@@ -11,7 +11,6 @@ import com.splicemachine.storage.AndPredicate;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.OrPredicate;
 import com.splicemachine.storage.Predicate;
-import com.splicemachine.utils.Provider;
 import com.splicemachine.utils.RingBuffer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -21,7 +20,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -40,7 +38,7 @@ import java.util.List;
  * Date: 7/22/14
  */
 public class HashNestedLoopJoinOperation extends JoinOperation{
-    private static final Logger LOG = Logger.getLogger(HashNestedLoopJoinOperation.class);
+//    private static final Logger LOG = Logger.getLogger(HashNestedLoopJoinOperation.class);
     private static final List<NodeType> nodeTypes;
     static{
         nodeTypes = Arrays.asList(NodeType.MAP, NodeType.SCROLL);
@@ -53,7 +51,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
     private int[] rightHashKeys;
 
     private RingBuffer<ExecRow> leftRowBuffer;
-    private ExecRowHashTable rightHashTable;
+    private DualHashHashTable<ExecRow> rightHashTable;
     private boolean returnedRight;
 
     private ScanProvider scanProvider;
@@ -131,7 +129,6 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
          * 4. Construct a skip scan filter to seek to the proper row key ranges
          * 5. Issue a single scan to pull back the proper rows.
          */
-
         if(leftRowBuffer==null || leftRowBuffer.size()<=0){
             nextBatch(context);
         }
@@ -218,9 +215,8 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
         return false;
     }
 
-
     protected ExecRow advanceLeft(SpliceRuntimeContext context) throws IOException, StandardException {
-        leftRowBuffer.advance(); //clear the left row
+        leftRowBuffer.readAdvance(); //clear the left row
         if(leftRowBuffer.size()<=0){
             nextBatch(context);
         }
@@ -239,16 +235,16 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
     /*private helper methods*/
 
     private static final Function<ScanRange, byte[]> toPredicateFunction = new Function<ScanRange, byte[]>() {
-        @Nullable
-        @Override
+        @SuppressWarnings("ConstantConditions")
+        @Nullable @Override
         public byte[] apply(@Nullable ScanRange input) {
             return input.predicate;
         }
     };
 
     private static final Function<ScanRange, Pair<byte[],byte[]>> toPairFunction = new Function<ScanRange, Pair<byte[],byte[]>>() {
-        @Nullable
-        @Override
+        @SuppressWarnings("ConstantConditions")
+        @Nullable @Override
         public Pair<byte[],byte[]> apply(@Nullable ScanRange input) {
             return Pair.newPair(input.start,input.stop);
         }
@@ -258,7 +254,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
         if(leftRowBuffer==null)
             leftRowBuffer = new RingBuffer<ExecRow>(128); //TODO -sf- make this configurable
         if(rightHashTable==null){
-            ExecRowHashTable.RowHasher rightRowHasher = new ExecRowHashTable.RowHasher() {
+            DualHashHashTable.EntryHasher<ExecRow> rightEntryHasher = new DualHashHashTable.EntryHasher<ExecRow>() {
                 @Override
                 public int hash(ExecRow row) {
                     int pos = 17;
@@ -281,7 +277,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
                 }
             };
 
-            ExecRowHashTable.RowHasher leftRowHasher = new ExecRowHashTable.RowHasher(){
+            DualHashHashTable.EntryHasher<ExecRow> leftEntryHasher = new DualHashHashTable.EntryHasher<ExecRow>(){
                 @Override
                 public int hash(ExecRow row) {
                     int pos = 17;
@@ -305,7 +301,8 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
                 }
             };
 
-            rightHashTable = new ExecRowHashTable(128,rightRowHasher,leftRowHasher);
+            //TODO -sf- move this batch size to a configurable parameter
+            rightHashTable = new DualHashHashTable<ExecRow>(128, rightEntryHasher, leftEntryHasher);
         }
         //fill the left side buffer
         for(int i=0;i<leftRowBuffer.bufferSize();i++){
@@ -323,7 +320,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
         leftRowBuffer.mark();
 
         List<ScanRange> keyData = Lists.newArrayListWithCapacity(remaining);
-        OperationResultSet rightRs = new OperationResultSet(activation,rightResultSet);
+        @SuppressWarnings("SuspiciousNameCombination") OperationResultSet rightRs = new OperationResultSet(activation,rightResultSet);
         while(remaining>0){
             ExecRow next = leftRowBuffer.next();
             leftResultSet.setCurrentRow(next);
@@ -498,8 +495,6 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
         private byte[] start;
         private byte[] stop;
         private byte[] predicate;
-
-        private ScanRange() { }
 
         public ScanRange(byte[] start, byte[] stop, byte[] predicate){
             this.start = start;

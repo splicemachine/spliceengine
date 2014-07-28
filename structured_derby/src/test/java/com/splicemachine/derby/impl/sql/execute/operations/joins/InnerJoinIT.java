@@ -114,8 +114,7 @@ public class InnerJoinIT extends SpliceUnitTest {
 						.around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/hits.sql", CLASS_NAME))
 						.around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME));
 
-		@Rule
-		public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+		@Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
 		public static void insertData(String t1,String t2,SpliceWatcher spliceWatcher) throws Exception {
 				PreparedStatement psC = spliceWatcher.prepareStatement("insert into "+t1+" values (?,?)");

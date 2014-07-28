@@ -23,7 +23,7 @@ import java.util.*;
  * Date: 6/10/13
  */
 @RunWith(Parameterized.class)
-public class EquiJoinOperationIT extends SpliceUnitTest {
+public class EquiJoinOperationIT {
 
     private static Logger LOG = Logger.getLogger(EquiJoinOperationIT.class);
 
