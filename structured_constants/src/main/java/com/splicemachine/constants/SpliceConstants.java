@@ -26,7 +26,7 @@ public class SpliceConstants {
 		public static int sampleTimingSize = 10000;
 		
 		@Parameter public static final String SEQUENTIAL_IMPORT_FILESIZE_THREASHOLD="splice.import.sequentialImportFileSizeThreshold";
-		@DefaultValue(SEQUENTIAL_IMPORT_FILESIZE_THREASHOLD) public static final long DEFAULT_SEQUENTIAL_FILESIZE_IMPORT_THRESHOLD = 5*1024*1024*1024; //defaults to 5GB
+		@DefaultValue(SEQUENTIAL_IMPORT_FILESIZE_THREASHOLD) public static final long DEFAULT_SEQUENTIAL_FILESIZE_IMPORT_THRESHOLD = 5L*1024L*1024L*1024L; //defaults to 5GB
 		public static long sequentialImportFileSizeThreshold;
 
 		@SpliceConstants.Parameter public static final String CONSTRAINTS_ENABLED ="splice.constraints.enabled";
