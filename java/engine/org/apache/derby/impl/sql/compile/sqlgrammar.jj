@@ -9954,6 +9954,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 	winOrAgg = generalAggregate() [ window = overClause() ]
 	{
 		if (window != null) {
+            ((AggregateNode)winOrAgg).setWindowFunction(true);
 			winOrAgg =  (ValueNode) nodeFactory.getNode(
 				C_NodeTypes.AGGREGATE_WINDOW_FUNCTION_NODE,
 				window,

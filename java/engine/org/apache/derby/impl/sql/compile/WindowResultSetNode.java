@@ -164,6 +164,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		*/
         addAggregates();
 
+        addBottomRCL(resultColumns, newBottomRCL);
+        addBottomRCL(childResult.resultColumns, newBottomRCL);
 		/* We say that the source is never in sorted order if there is a distinct aggregate.
 		 * (Not sure what happens if it is, so just skip it for now.)
 		 * Otherwise, we check to see if the source is in sorted order on any permutation
@@ -1091,6 +1093,27 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 return refCount2 - refCount1;
             } catch (StandardException e) {
                 throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private void addBottomRCL(ResultColumnList resultColumns, ResultColumnList bottomRCL) throws StandardException{
+
+        for (int i = 0; i < bottomRCL.size(); ++i) {
+            ResultColumn brc = bottomRCL.getResultColumn(i+1);
+            String name = brc.exposedName;
+            String wname = "##PartitionColumn_" + name;
+            boolean matches = false;
+            int size = resultColumns.size();
+            for (int j = 0; j < size; ++j) {
+                ResultColumn rc = resultColumns.getResultColumn(j+1);
+                if (rc.columnNameMatches(name) || rc.columnNameMatches(wname)) {
+                    matches = true;
+                    break;
+                }
+            }
+            if (!matches && !(brc.expression instanceof AggregateNode)) {
+                resultColumns.addResultColumn(brc.cloneMe());
             }
         }
     }
