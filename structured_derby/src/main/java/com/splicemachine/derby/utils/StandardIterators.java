@@ -1,14 +1,23 @@
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.sql.execute.StandardCloseable;
+import com.splicemachine.derby.impl.storage.KeyValueUtils;
+import com.splicemachine.derby.impl.storage.SpliceResultScanner;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.stats.IOStats;
 import com.splicemachine.stats.Metrics;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -37,6 +46,13 @@ public class StandardIterators {
 
     public static StandardIterator<ExecRow> wrap(NoPutResultSet NPRS) {
         return new ResultSetStandardIterator(NPRS);
+    }
+
+    public static PartitionAwareIterator<ExecRow> wrap(SpliceResultScanner resultScanner,
+                                                       PairDecoder decoder,
+                                                       int[] partitionKeyColumns,
+                                                       DataValueDescriptor[] dvds) {
+        return new SpliceResultScannerPartitionAwareIterator(resultScanner, decoder, partitionKeyColumns, dvds);
     }
 
     public static <T> StandardIterator<T> wrap(Callable<T> callable) {
@@ -159,6 +175,75 @@ public class StandardIterators {
         @Override
         public void close() throws StandardException, IOException {
             noPut.close();
+        }
+    }
+
+    private static class SpliceResultScannerPartitionAwareIterator implements PartitionAwareIterator<ExecRow> {
+        private final SpliceResultScanner scanner;
+        private final PairDecoder decoder;
+        private final int[] partitionColumns;
+        private byte[] partition;
+        private DataValueDescriptor[] dvds;
+        private MultiFieldDecoder keyDecoder;
+
+        private SpliceResultScannerPartitionAwareIterator(SpliceResultScanner scanner,
+                                                          PairDecoder decoder,
+                                                          int[] partitionColumns,
+                                                          DataValueDescriptor[] dvds) {
+            this.scanner = scanner;
+            this.decoder = decoder;
+            this.partitionColumns = partitionColumns;
+            this.dvds = dvds;
+        }
+
+        @Override
+        public void open() throws StandardException, IOException {
+            scanner.open();
+        }
+
+        private void createKeyDecoder() {
+            if (keyDecoder == null)
+                keyDecoder = MultiFieldDecoder.create();
+            else
+                keyDecoder.reset();
+        }
+
+        private void copyPartitionKey(KeyValue kv) {
+            // partition key is the first few columns of row key
+            createKeyDecoder();
+            byte[] key = kv.getRow();
+            keyDecoder.set(key, 9, key.length - 9); // skip 9 bytes for hash prefix (bucket# + uuid)
+            for (int i = 0; i < partitionColumns.length; ++i) {
+                DerbyBytesUtil.skip(keyDecoder, dvds[i]);
+            }
+
+            int offset = keyDecoder.offset();
+            if (partition == null || Bytes.compareTo(partition, 0, partition.length, key, 0, offset) < 0) {
+                partition = new byte[offset];
+                System.arraycopy(key, 0, partition, 0, offset);
+            }
+        }
+
+        @Override
+        public ExecRow next(SpliceRuntimeContext ctx) throws StandardException, IOException {
+            Result result = scanner.next();
+            if(result==null) return null;
+
+            KeyValue kv = KeyValueUtils.matchDataColumn(result.raw());
+            copyPartitionKey(kv);
+            ExecRow row = decoder.decode(kv);
+
+            return row;
+        }
+
+        @Override
+        public byte[] getPartition() {
+            return partition;
+        }
+
+        @Override
+        public void close() throws StandardException, IOException {
+            scanner.close();
         }
     }
 
