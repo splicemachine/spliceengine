@@ -1846,7 +1846,7 @@ public class JoinNode extends TableOperatorNode {
 
             Optimizable nodeOpt = (Optimizable) node;
 
-            result = nodeOpt.getTrulyTheBestAccessPath().getJoinStrategy() instanceof BaseJoinStrategy;
+            result = nodeOpt.getTrulyTheBestAccessPath().getJoinStrategy() instanceof HashableJoinStrategy;
         }
 
         return result;
