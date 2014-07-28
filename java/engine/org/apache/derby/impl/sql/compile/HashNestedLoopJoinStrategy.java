@@ -3,6 +3,7 @@ package org.apache.derby.impl.sql.compile;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.Optimizable;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicateList;
+import org.apache.derby.iapi.sql.compile.Optimizer;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 
 /**
@@ -42,5 +43,36 @@ public class HashNestedLoopJoinStrategy extends HashableJoinStrategy {
 		     ** necessary for non-covering index scans.
 		     */
         originalRestrictionList.setPredicatesAndProperties(storeRestrictionList);
+    }
+
+    @Override
+    public boolean isHashJoin() {
+        return false;
+    }
+
+    @Override
+    public boolean feasible(Optimizable innerTable, OptimizablePredicateList predList, Optimizer optimizer) throws StandardException {
+        /*
+         * Somewhat Temporary Fix.
+         *
+         * The HashNestedLoopJoinStrategy doesn't make a whole lot of sense unless it is used over
+         * a raw table scan or index lookup (e.g. doing it over a sink operation isn't very useful). Additionally,
+         * in that case the raw NestedLoopJoin or MergeSortJoin are both more preferable operations than this anyway.
+         * Thus, we just make this plan infeasible if there is a sink node under this tree. In addition to
+         * this, we also don't want to use MultiProbe scans under this instance--better to use Raw NLJ or MergeSort
+         * to make those work.
+         */
+//        if(isOverSink(innerTable)){
+//            optimizer.trace(Optimizer.HJ_SKIP_NOT_MATERIALIZABLE,0,0,0.0,null);
+//            return false;
+//        }
+        return super.feasible(innerTable,predList,optimizer);
+    }
+
+    private boolean isOverSink(Optimizable innerTable) {
+        //be infeasible if we don't know what the hell it is
+        if(!(innerTable instanceof ResultSetNode)) return true;
+        else if(innerTable instanceof JoinNode) return false; //TODO -sf- distinguish between merge sort and other types of joins
+        else return ((ResultSetNode) innerTable).isParallelizable();
     }
 }

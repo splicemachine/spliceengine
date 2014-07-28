@@ -143,12 +143,12 @@ public class OptimizerFactoryImpl
 		{
         JoinStrategy[] jss = new JoinStrategy[]{
                 new NestedLoopJoinStrategy(),
-                new HashNestedLoopJoinStrategy(), //batch nlj?
                 //jss[1] = new HashJoinStrategy();
                 //	jss[2] = new MergeSortJoinStrategy();
                 new MergeSortJoinStrategy(),
                 new BroadcastJoinStrategy(),
-                new MergeJoinStrategy()
+                new MergeJoinStrategy(),
+                new HashNestedLoopJoinStrategy()
         };
 			joinStrategySet = jss;
 		}

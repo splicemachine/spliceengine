@@ -38,7 +38,12 @@ public class OrderByNode extends SingleChildResultSetNode
 
 	OrderByList		orderByList;
 
-	/**
+    @Override
+    public boolean isParallelizable() {
+        return true; //represented by a sort operation
+    }
+
+    /**
 	 * Initializer for a OrderByNode.
 	 *
 	 * @param childResult	The child ResultSetNode

@@ -87,6 +87,14 @@ public abstract class ResultSetNode extends QueryTreeNode
 	// query. Subclasses will set this value where appropriate.
 	CostEstimate		finalCostEstimate;
 
+    /**
+     * @return true if this node is represented by a Sinking operation on
+     * the execution side.
+     */
+    public boolean isParallelizable(){
+        return false;
+    }
+
 	/**
 	 * Convert this object to a String.  See comments in QueryTreeNode.java
 	 * for how this should be done for tree printing.

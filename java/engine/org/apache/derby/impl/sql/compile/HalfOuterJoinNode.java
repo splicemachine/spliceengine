@@ -43,7 +43,7 @@ public class HalfOuterJoinNode extends JoinNode
 	private boolean rightOuterJoin;
 	private boolean transformed = false;
 
-	/**
+    /**
 	 * Initializer for a HalfOuterJoinNode.
 	 *
 	 * @param leftResult		The ResultSetNode on the left side of this join

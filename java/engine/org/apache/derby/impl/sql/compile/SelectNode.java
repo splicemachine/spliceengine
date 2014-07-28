@@ -128,7 +128,22 @@ public class SelectNode extends ResultSetNode
 	ValueNode havingClause;
 	
 	private int nestingLevel;
-	public void init(Object selectList,
+
+    @Override
+    public boolean isParallelizable() {
+        if(isDistinct) return true;
+        else if(selectAggregates!=null && selectAggregates.size()>0) return true;
+        else return targetTable.isParallelizable();
+    }
+
+    @Override
+    public CostEstimate getCostEstimate() {
+        if(costEstimate==null)
+            costEstimate = optimizer.newCostEstimate();
+        return costEstimate;
+    }
+
+    public void init(Object selectList,
 			  Object aggregateVector,
 			  Object fromList,
 			  Object whereClause,
@@ -2142,19 +2157,19 @@ public class SelectNode extends ResultSetNode
 			rightRCList.genVirtualColumnNodes(rightResultSet, rightResultSet.resultColumns);
 			rightRCList.adjustVirtualColumnIds(leftRCList.size());
 
-            if(leftBaseTable != null && rightBaseTable != null){
-                int size = rightBaseTable.restrictionList.size();
-
-                for(int i=0; i < size; i++){
-
-                    ColumnReference colRef = getJoinColumn((Predicate) rightBaseTable.restrictionList.getOptPredicate(i));
-
-                    if(colRef.getTableNumber() == leftBaseTable.getTableNumber()){
-                        leftBaseTable.storeRestrictionList.addPredicate(createNotNullPredicate(colRef));
-                    }
-
-                }
-            }
+//            if(leftBaseTable != null && rightBaseTable != null){
+//                int size = rightBaseTable.restrictionList.size();
+//
+//                for(int i=0; i < size; i++){
+//
+//                    ColumnReference colRef = getJoinColumn((Predicate) rightBaseTable.restrictionList.getOptPredicate(i));
+//
+//                    if(colRef.getTableNumber() == leftBaseTable.getTableNumber()){
+//                        leftBaseTable.storeRestrictionList.addPredicate(createNotNullPredicate(colRef));
+//                    }
+//
+//                }
+//            }
 
 			/* Concatenate the 2 ResultColumnLists */
 			leftRCList.nondestructiveAppend(rightRCList);

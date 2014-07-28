@@ -110,8 +110,13 @@ public class GroupByNode extends SingleChildResultSetNode
 	private ValueNode havingClause;
 	
 	private SubqueryList havingSubquerys;
-	
-	/**
+
+    @Override
+    public boolean isParallelizable() {
+        return true; //is a grouped aggregate
+    }
+
+    /**
 	 * Intializer for a GroupByNode.
 	 *
 	 * @param bottomPR	The child FromTable
