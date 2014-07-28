@@ -3,9 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.window;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.List;
 
-import com.google.common.collect.Lists;
 import org.apache.derby.iapi.error.SQLWarningFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
@@ -15,9 +13,7 @@ import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.operations.AggregateContext;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
-import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateContext;
+import org.apache.derby.iapi.sql.execute.ExecRow;
 
 /**
  * This class records the window definition (partition, orderby and frame)
@@ -26,15 +22,17 @@ import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.Grou
  * @author Jeff Cunningham
  *         Date: 7/8/14
  */
-public class DerbyWindowContext implements GroupedAggregateContext {
+public class DerbyWindowContext implements WindowContext {
     private Activation activation;
     private int partitionItemIdx;
     private int orderingItemIdx;
     private int frameDefnIdx;
-    private int[] groupingKeys;
-    private boolean[] groupingKeyOrder;
-    private int[] nonGroupedUniqueColumns;
-    private int numDistinctAggs;
+    private int[] partitionColumns;
+    private int[] sortColumns;
+    private boolean[] sortOrders;
+    private int[] keyColumns;
+    private boolean[] keyOrders;
+    WindowFrameDefinition windowFrame;
 
     public DerbyWindowContext() {
     }
@@ -46,7 +44,7 @@ public class DerbyWindowContext implements GroupedAggregateContext {
     }
 
     @Override
-    public void init(SpliceOperationContext context, AggregateContext genericAggregateContext) throws StandardException {
+    public void init(SpliceOperationContext context) throws StandardException {
         this.activation = context.getActivation();
 
         GenericStorablePreparedStatement statement = context.getPreparedStatement();
@@ -56,38 +54,28 @@ public class DerbyWindowContext implements GroupedAggregateContext {
         ColumnOrdering[] orderings = (ColumnOrdering[])
             ((FormatableArrayHolder) (statement.getSavedObject(orderingItemIdx))).getArray(ColumnOrdering.class);
 
-        // TODO: Window Frame definition
-        WindowFrameDefinition frameDefinition = WindowFrameDefinition.create((FormatableHashtable) statement.getSavedObject(frameDefnIdx));
+        windowFrame = WindowFrameDefinition.create((FormatableHashtable) statement.getSavedObject(frameDefnIdx));
 
-        int[] allKeyedColumns = new int[partition.length + orderings.length];
-        boolean[] allSortOrders = new boolean[partition.length + orderings.length];
+        keyColumns = new int[partition.length + orderings.length];
+        keyOrders = new boolean[partition.length + orderings.length];
+
+        partitionColumns = new int[partition.length];
+        sortColumns = new int[orderings.length];
+
         int pos=0;
         for(ColumnOrdering partCol:partition){
-            allKeyedColumns[pos] = partCol.getColumnId();
-            allSortOrders[pos] = partCol.getIsAscending();
+            partitionColumns[pos] = partCol.getColumnId();
+            keyColumns[pos] = partCol.getColumnId();
+            keyOrders[pos] = partCol.getIsAscending();
             pos++;
         }
+        pos = 0;
         for(ColumnOrdering order:orderings){
-            allKeyedColumns[pos] = order.getColumnId();
-            allSortOrders[pos] = order.getIsAscending();
+            sortColumns[pos] = order.getColumnId();
+            keyColumns[partition.length + pos] = order.getColumnId();
+            keyOrders[partition.length + pos] = order.getIsAscending();
             pos++;
         }
-
-        List<Integer> nonUniqueColumns = Lists.newArrayListWithExpectedSize(0);
-        SpliceGenericAggregator[] aggregates = genericAggregateContext.getAggregators();
-        for(SpliceGenericAggregator aggregate: aggregates){
-            if(aggregate.isDistinct()){
-                int inputColNum = aggregate.getAggregatorInfo().getInputColNum();
-                if(!keysContain(allKeyedColumns,inputColNum)){
-                    nonUniqueColumns.add(inputColNum);
-                }
-                numDistinctAggs++;
-            }
-        }
-
-        groupingKeys = allKeyedColumns;
-        groupingKeyOrder = allSortOrders;
-        nonGroupedUniqueColumns = new int[]{};
     }
 
     private boolean keysContain(int[] keyColumns, int inputColNum) {
@@ -99,24 +87,20 @@ public class DerbyWindowContext implements GroupedAggregateContext {
     }
 
     @Override
-    public int[] getGroupingKeys() {
-        return groupingKeys;
+    public int[] getPartitionColumns() {
+        return partitionColumns;
     }
 
     @Override
-    public boolean[] getGroupingKeyOrder() {
-        return groupingKeyOrder;
+    public int[] getSortColumns() {
+        return sortColumns;
     }
 
     @Override
-    public int[] getNonGroupedUniqueColumns() {
-        return nonGroupedUniqueColumns;
+    public boolean[] getSortOrders() {
+        return sortOrders;
     }
 
-    @Override
-    public int getNumDistinctAggregates() {
-        return numDistinctAggs;
-    }
 
     @Override
     public void addWarning(String warningState) throws StandardException {
@@ -135,6 +119,21 @@ public class DerbyWindowContext implements GroupedAggregateContext {
         partitionItemIdx = in.readInt();
         orderingItemIdx = in.readInt();
         frameDefnIdx = in.readInt();
+    }
+
+    @Override
+    public int[] getKeyColumns() {
+        return keyColumns;
+    }
+
+    @Override
+    public boolean[] getKeyOrders() {
+        return keyOrders;
+    }
+
+    @Override
+    public WindowFrameDefinition getWindowFrame() {
+        return windowFrame;
     }
 
 }
