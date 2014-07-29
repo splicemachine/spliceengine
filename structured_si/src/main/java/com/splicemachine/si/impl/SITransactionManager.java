@@ -1,5 +1,7 @@
 package com.splicemachine.si.impl;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.TransactionManager;
@@ -7,6 +9,7 @@ import com.splicemachine.si.api.TransactorListener;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -190,7 +193,24 @@ public class SITransactionManager implements TransactionManager {
 				return result;
 		}
 
-		@Override
+    @Override
+    public List<TransactionId> getAllActiveTransactionIds() throws IOException {
+        final long currentMin = timestampSource.retrieveTimestamp();
+        final TransactionParams missingParams = new TransactionParams(Transaction.rootTransaction.getTransactionId(),
+                true, false, false, false, false);
+        @SuppressWarnings("unchecked") final List<Transaction> oldestActiveTransactions = transactionStore.getOldestActiveTransactions(
+                currentMin, Long.MAX_VALUE, Integer.MAX_VALUE, missingParams, TransactionStatus.ERROR);
+        final List<TransactionId> result = Lists.transform(oldestActiveTransactions,new Function<Transaction, TransactionId>() {
+            @Nullable
+            @Override
+            public TransactionId apply(@Nullable Transaction input) {
+                return input.getTransactionId();
+            }
+        });
+        return result;
+    }
+
+    @Override
 		public List<TransactionId> getActiveWriteTransactionIds(TransactionId max, byte[] table) throws IOException {
 				final long currentMin = timestampSource.retrieveTimestamp();
 				final TransactionParams missingParams = new TransactionParams(Transaction.rootTransaction.getTransactionId(),

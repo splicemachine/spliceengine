@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.impl.TransactionStore;
@@ -69,6 +70,31 @@ public class TransactionAdmin {
 				}
 				resultSet[0] = new EmbedResultSet40(defaultConn,rs,false,null,true);
 		}
+
+    public static void SYSCS_GET_ACTIVE_TRANSACTIONS(ResultSet[] resultSet) throws SQLException{
+        try{
+            EmbedConnection defaultConn = (EmbedConnection)SpliceAdmin.getDefaultConn();
+            List<TransactionId> activeTransactionIds = HTransactorFactory.getTransactionManager().getAllActiveTransactionIds();
+            ExecRow row = new ValueRow(CURRENT_TXN_ID_COLUMNS.length);
+            for(int i=0;i<CURRENT_TXN_ID_COLUMNS.length;i++){
+                row.setColumn(i+1,CURRENT_TXN_ID_COLUMNS[i].getType().getNull());
+            }
+
+            Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+            List<ExecRow> rows = Lists.newArrayListWithCapacity(activeTransactionIds.size());
+            for(TransactionId id:activeTransactionIds){
+                row.getColumn(1).setValue(id.getId());
+                rows.add(row.getClone());
+            }
+            IteratorNoPutResultSet rs = new IteratorNoPutResultSet(rows,CURRENT_TXN_ID_COLUMNS,lastActivation);
+            rs.openCore();
+            resultSet[0] = new EmbedResultSet40(defaultConn,rs,false,null,true);
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+    }
 
 		public static void SYSCS_DUMP_TRANSACTIONS(ResultSet[] resultSet) throws SQLException {
 				try {
