@@ -510,7 +510,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
     		        	.sqlControl(RoutineAliasInfo.NO_SQL)
     		        	.returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
     		        	.isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-    		        	.arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+    		        	.arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.JAVA_OBJECT))
     		        	.varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
     		        	.build(),
     		        Procedure.newBuilder().name("TRUNC_DATE")
