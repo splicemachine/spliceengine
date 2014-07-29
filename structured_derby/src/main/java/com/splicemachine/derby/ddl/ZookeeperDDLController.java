@@ -3,6 +3,7 @@ package com.splicemachine.derby.ddl;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.shared.common.reference.SQLState;
@@ -15,83 +16,56 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.ZooDefs;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.ZkUtils;
-import org.apache.derby.catalog.UUID;
 
 public class ZookeeperDDLController implements DDLController, Watcher {
+
     private static final Logger LOG = Logger.getLogger(ZookeeperDDLController.class);
 
-    private final Object lock = new Object();
-    private static final long REFRESH_TIMEOUT = 2000; // timeout to refresh the info, in case some server is dead or a new server came up
-    private static final long MAXIMUM_WAIT = 60000; // maximum wait for everybody to respond, after this we fail the DDL change
-    private Gson gson = new GsonBuilder().
-            registerTypeAdapter(TentativeDDLDesc.class, new InterfaceSerializer<TentativeDDLDesc>()).
-            registerTypeAdapter(UUID.class, new InterfaceSerializer<UUID>()).
-            create();
+    private final Object LOCK = new Object();
+
+    // timeout to refresh the info, in case some server is dead or a new server came up
+    private static final long REFRESH_TIMEOUT = TimeUnit.SECONDS.toMicros(2);
+    // maximum wait for everybody to respond, after this we fail the DDL change
+    private static final long MAXIMUM_WAIT = TimeUnit.SECONDS.toMillis(60);
 
     @Override
     public String notifyMetadataChange(DDLChange change) throws StandardException {
-        String changeId;
-        String jsonChange = gson.toJson(change);
-        try {
-            changeId = ZkUtils.create(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/", Bytes.toBytes(jsonChange),
-                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
-        } catch (KeeperException e) {
-            throw Exceptions.parseException(e);
-        } catch (InterruptedException e) {
-            throw Exceptions.parseException(e);
-        }
+
+        String jsonChange = DDLCoordinationFactory.GSON.toJson(change);
+        String changeId = createZkNode(jsonChange);
 
         LOG.debug("Notifying metadata change with id " + changeId + ": " + jsonChange);
 
         long startTimestamp = System.currentTimeMillis();
-        synchronized (lock) {
+        synchronized (LOCK) {
             while (true) {
-                Collection<String> servers;
-                try {
-                    servers = ZkUtils.getChildren(SpliceConstants.zkSpliceDDLActiveServersPath, this);
-                } catch (IOException e) {
-                    throw Exceptions.parseException(e);
-                }
-                List<String> children;
-                try {
-                    children = ZkUtils.getChildren(changeId, this);
-                } catch (IOException e) {
-                    throw Exceptions.parseException(e);
-                }
-                boolean missing = false;
-                for (String server : servers) {
-                    if (!children.contains(server)) {
-                        missing = true;
-                        break;
-                    }
-                }
+                Collection<String> activeServers = getActiveServers();
+                Collection<String> finishedServers = getFinishedServers(changeId);
 
-
-                if (!missing) {
+                if (finishedServers.containsAll(activeServers)) {
                     // everybody responded, leave loop
                     break;
                 }
 
-                
-                if (System.currentTimeMillis() - startTimestamp > MAXIMUM_WAIT) {
-                    LOG.error("Maximum wait for all servers exceeded. Waiting response from " + servers
-                            + ". Received response from " + children);
+                long elapsedTime = System.currentTimeMillis() - startTimestamp;
+
+                if (elapsedTime > MAXIMUM_WAIT) {
+                    LOG.error("Maximum wait for all servers exceeded. Waiting response from " + activeServers
+                            + ". Received response from " + finishedServers);
                     try {
                         ZkUtils.recursiveDelete(changeId);
                     } catch (Exception e) {
                         LOG.error("Couldn't kill transaction " + change.getTransactionId() + " for DDL change "
-                                + change.getType() + " with id "+ changeId, e);
+                                + change.getType() + " with id " + changeId, e);
                     }
-                    throw StandardException.newException(SQLState.LOCK_TIMEOUT,  "Wait of "
-                            + (System.currentTimeMillis() - startTimestamp) + " exceeded timeout of " + MAXIMUM_WAIT);
+                    throw StandardException.newException(SQLState.LOCK_TIMEOUT, "Wait of "
+                            + elapsedTime + " exceeded timeout of " + MAXIMUM_WAIT);
                 }
                 try {
-                    lock.wait(REFRESH_TIMEOUT);
+                    LOCK.wait(REFRESH_TIMEOUT);
                 } catch (InterruptedException e) {
                     throw Exceptions.parseException(e);
                 }
@@ -104,11 +78,11 @@ public class ZookeeperDDLController implements DDLController, Watcher {
     public void finishMetadataChange(String identifier) throws StandardException {
         LOG.debug("Finishing metadata change with id " + identifier);
         try {
-        	if (identifier != null && !identifier.startsWith("/")) {
+            if (identifier != null && !identifier.startsWith("/")) {
                 ZkUtils.recursiveDelete(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + identifier);
-        	} else {
-                ZkUtils.recursiveDelete(identifier);        		
-        	}
+            } else {
+                ZkUtils.recursiveDelete(identifier);
+            }
         } catch (Exception e) {
             LOG.warn("Couldn't remove DDL change " + identifier, e);
         }
@@ -117,9 +91,36 @@ public class ZookeeperDDLController implements DDLController, Watcher {
     @Override
     public void process(WatchedEvent event) {
         if (event.getType().equals(EventType.NodeChildrenChanged)) {
-            synchronized (lock) {
-                lock.notify();
+            synchronized (LOCK) {
+                LOCK.notify();
             }
+        }
+    }
+
+    private List<String> getFinishedServers(String changeId) throws StandardException {
+        try {
+            return ZkUtils.getChildren(changeId, this);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    private Collection<String> getActiveServers() throws StandardException {
+        try {
+            return ZkUtils.getChildren(SpliceConstants.zkSpliceDDLActiveServersPath, this);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    private static String createZkNode(String jsonChange) throws StandardException {
+        try {
+            String path = SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/";
+            return ZkUtils.create(path, Bytes.toBytes(jsonChange), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
+        } catch (KeeperException e) {
+            throw Exceptions.parseException(e);
+        } catch (InterruptedException e) {
+            throw Exceptions.parseException(e);
         }
     }
 }

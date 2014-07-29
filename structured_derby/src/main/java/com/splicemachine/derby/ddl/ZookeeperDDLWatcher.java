@@ -13,7 +13,6 @@ import java.util.concurrent.*;
 
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.google.gson.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.reference.SQLState;
@@ -36,24 +35,25 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.ZkUtils;
-import org.apache.derby.catalog.UUID;
 
 public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
+
     private static final Logger LOG = Logger.getLogger(ZookeeperDDLWatcher.class);
-    private static final long REFRESH_TIMEOUT = 30000; // in ms
-    private static final long MAXIMUM_DDL_WAIT = 90000; // in ms
+
+    private static final long REFRESH_TIMEOUT = TimeUnit.SECONDS.toMillis(30);
+    private static final long MAXIMUM_DDL_WAIT = TimeUnit.SECONDS.toMillis(90);
 
     private Map<String, DDLChange> currentDDLChanges = new HashMap<String, DDLChange>();
-    private Gson gson = new GsonBuilder().
-            registerTypeAdapter(TentativeDDLDesc.class, new InterfaceSerializer<TentativeDDLDesc>()).
-            registerTypeAdapter(UUID.class, new InterfaceSerializer<UUID>()).
-            create();
+
     private Set<String> seenDDLChanges = new HashSet<String>();
     private Map<String, Long> changesTimeouts = new HashMap<String, Long>();
     private List<LanguageConnectionContext> contexts = new ArrayList<LanguageConnectionContext>();
+
     private String id;
-    private ScheduledExecutorService executor = Executors.newScheduledThreadPool(1, 
+
+    private ScheduledExecutorService executor = Executors.newScheduledThreadPool(1,
             new ThreadFactoryBuilder().setNameFormat("ZookeeperDDLWatcherRefresh").build());
+
     private SpliceAccessManager accessManager;
     private Map<String, DDLChange> tentativeDDLs = new ConcurrentHashMap<String, DDLChange>();
 
@@ -118,12 +118,9 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         for (String path : new String[] { SpliceConstants.zkSpliceDDLPath,
                 SpliceConstants.zkSpliceDDLOngoingTransactionsPath, SpliceConstants.zkSpliceDDLActiveServersPath }) {
             try {
-                ZkUtils.create(path, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                        CreateMode.PERSISTENT);
+                ZkUtils.create(path, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
             } catch (KeeperException e) {
-                if (e.code().equals(Code.NODEEXISTS)) {
-                    // ignore
-                } else {
+                if (!e.code().equals(Code.NODEEXISTS)) {
                     throw Exceptions.parseException(e);
                 }
             } catch (InterruptedException e) {
@@ -171,8 +168,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
                 }
             }
         }
-        for (Iterator<String> iterator = children.iterator(); iterator.hasNext();) {
-            String changeId = iterator.next();
+        for (String changeId : children) {
             if (!seenDDLChanges.contains(changeId)) {
                 byte[] data;
                 try {
@@ -182,7 +178,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
                 }
                 String jsonChange = Bytes.toString(data);
                 LOG.debug("New change with id " + changeId + " :" + jsonChange);
-                DDLChange ddlChange = gson.fromJson(jsonChange, DDLChange.class);
+                DDLChange ddlChange = DDLCoordinationFactory.GSON.fromJson(jsonChange, DDLChange.class);
                 ddlChange.setIdentifier(changeId);
                 newChanges.add(changeId);
                 seenDDLChanges.add(changeId);
@@ -269,6 +265,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         }
     }
 
+    @Override
     public Set<DDLChange> getTentativeDDLs() {
         return new HashSet<DDLChange>(tentativeDDLs.values());
     }
