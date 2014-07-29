@@ -7,6 +7,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.storage.AndPredicate;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.OrPredicate;
@@ -74,7 +75,11 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
         this.rightHashKeyItem = rightHashKeyItem;
         this.emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
         this.wasRightOuterJoin = wasRightOuterJoin;
-        init(SpliceOperationContext.newContext(activation));
+        try {
+            init(SpliceOperationContext.newContext(activation));
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
     @Override public List<NodeType> getNodeTypes() { return nodeTypes; }
@@ -95,7 +100,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
     }
 
     @Override
-    public void init(SpliceOperationContext context) throws StandardException {
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);

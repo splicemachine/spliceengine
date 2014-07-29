@@ -178,7 +178,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				private boolean returnedRight=false;
 				private boolean outerJoin = false;
 
-				NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin,SpliceRuntimeContext context) throws StandardException {
+				NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin,SpliceRuntimeContext context) throws StandardException, IOException {
 						SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
 						this.leftRow = leftRow;
 						probeResultSet = getRightResultSet();
