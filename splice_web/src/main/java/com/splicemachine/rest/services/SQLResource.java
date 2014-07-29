@@ -25,9 +25,13 @@ import javax.ws.rs.core.MediaType;
 @Path("/sqlresource")
 public class SQLResource {
 
+	public static String DEFAULT_HOST = "localhost";
+	public static String DEFAULT_PORT = "1527";
+
 	/**
 	 * RESTful service that returns a JSON document containing the traced statement plan (SQL operation tree)
 	 * for the specified statement.
+	 * TODO: Add example of what the JSON would look like.
      * @param statementId	STATEMENTID from SYS.SYSSTATEMENTHISTORY table in a Splice database
 	 * @return String with a response type of "application/json".
 	 */
@@ -46,6 +50,75 @@ public class SQLResource {
 	}
 
 	/**
+	 * RESTful service that returns a JSON document containing the "up" status of all Splice servers.
+	 * TODO: Add example of what the JSON would look like.
+	 * @return Map of objects that are transformed into a response type of "application/json".
+	 */
+	@GET
+	@Path("/servers/status")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Map<String, Object> getServersStatus() {
+
+		List<Map<String, String>> objects = getQueryResultsAsJavaScriptObjects("CALL SYSCS_UTIL.SYSCS_GET_ACTIVE_SERVERS()");
+		if (objects == null) return null;
+
+//		// TODO: Add some more servers for UI testing.
+//		if (objects.size() > 0 && objects.get(0) != null) {
+//			objects.add(new HashMap(objects.get(0)));
+//			objects.add(new HashMap(objects.get(0)));
+//			objects.add(new HashMap(objects.get(0)));
+//			objects.add(new HashMap(objects.get(0)));
+//		}
+
+		// Count the servers that are up/down and store their status in the respective server object.
+		int upCount = 0, downCount = 0;
+		for (Map<String, String> object : objects) {
+			if (object != null) {
+				boolean upStatus = isServerUp(object);
+				if (upStatus) {
+					upCount++;
+				} else {
+					downCount++;
+				}
+				object.put("UP", Boolean.toString(upStatus));
+			}
+		}
+
+    	Map<String, Object> objectMap = new HashMap<String, Object>(3);
+    	objectMap.put("servers", objects);
+    	objectMap.put("serverUpCount", upCount);
+    	objectMap.put("serverDownCount", downCount);
+
+    	// TODO: Add dead servers to down count.
+		return objectMap;
+	}
+
+	// TODO: Just for testing purposes...
+	private static short tempServerUp = 0;
+
+	private boolean isServerUp(Map<String, String> serverObject) {
+//		// Return random up/down status for UI testing.
+//		return (Math.random() < 0.5 ? true : false);
+		// TODO: Make this a lighter test.  There is no need to create a bunch of lists and maps for a simple test
+		// that may get run over and over repeatedly.
+		// TODO: Add log4j and log all of the cases where false is returned due to a null value.
+		if (serverObject == null) return false;
+		String host = serverObject.get("HOSTNAME");
+		if (host == null) return false;
+
+		// Don't use the port from the server object since that is the region server port.
+		// Splice only supports listening to port 1527 currently, so use the DEFAULT_PORT.
+    	Map<String, List> map = getQueryResults("select tabletype from sys.systables {limit 1}", host, DEFAULT_PORT);
+    	if (map == null) return false;
+    	List<String> headers = map.get("headers");
+    	List<List<String>> rows = map.get("rows");
+    	if (headers == null || rows == null) return false;
+    	if (headers.size() == 0 || rows.size() == 0) return false;
+
+		return true;
+	}
+
+	/**
 	 * RESTful service that queries a Splice database with the specified SQL query and returns the results as a
 	 * JSON document.  The JSON document is an array of "object literals" where each object maps directly to a
 	 * row in the result set.
@@ -59,7 +132,7 @@ public class SQLResource {
     public List<Map<String, String>> getQueryResultsAsJavaScriptObjects(@QueryParam("query")String query) {
 
     	// Get the "raw" JDBC results stored in lists and maps.
-    	Map<String, List> map = getQueryResults(query);
+    	Map<String, List> map = getQueryResults(query, DEFAULT_HOST, DEFAULT_PORT);
     	if (map == null) return null;
 
     	List<String> headers = map.get("headers");
@@ -95,7 +168,7 @@ public class SQLResource {
     @Path("/query2jdbc")
     @Produces(MediaType.APPLICATION_JSON)
     public Map<String, List> getQueryResultsAsJDBCObjects(@QueryParam("query")String query) {
-        return getQueryResults(query);
+        return getQueryResults(query, DEFAULT_HOST, DEFAULT_PORT);
     }
 
     /**
@@ -104,10 +177,16 @@ public class SQLResource {
      * @param query	SQL select statement
 	 * @return Map of "headers" and "rows" lists
      */
-	private Map<String, List> getQueryResults(String query) {
+	private Map<String, List> getQueryResults(String query, String host, String port) {
 		if (query == null) {
 			// TODO: Remove this default and throw the appropriate exception.
 			query = "SELECT * FROM SYS.SYSTABLES";
+		}
+		if (host == null) {
+			host = DEFAULT_HOST;
+		}
+		if (port == null) {
+			port = DEFAULT_PORT;
 		}
 		Connection conn = null;
         Statement stmt = null;
@@ -115,7 +194,8 @@ public class SQLResource {
         	Class.forName("org.apache.derby.jdbc.ClientDriver").newInstance();
         	// TODO: Remove hard coded JDBC URL.  Pull URL from config.  Use same config module as HBase uses (*-site.xml, *-default.xml).
         	// TODO: Add connection pooling.
-        	conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;create=true", "app", "app");
+        	String jdbcURL = String.format("jdbc:splice://%s:%s/splicedb;create=true", host, port);
+        	conn = DriverManager.getConnection(jdbcURL, "app", "app");
         	stmt = conn.createStatement();
         	ResultSet rs = stmt.executeQuery(query);
         	List<String> queries = new ArrayList<String>(1);

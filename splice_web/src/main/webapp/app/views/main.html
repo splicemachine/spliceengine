@@ -1,45 +1,16 @@
 <div class="header">
   <ul class="nav nav-pills pull-right">
     <li class="active"><a ng-href="#">Home</a></li>
-    <li><a ng-href="#/traced-statements">Explain Traces</a></li>
-    <li><a ng-href="#/charts-region-server-stats">Charts</a></li>
     <li><a ng-href="#/contact">Contact</a></li>
   </ul>
-  <h3 class="text-muted"><img class="header-logo" src="images/splice-logo.jpg" alt="We are Splice Machine"> Admin Console</h3>
+  <h3 class="text-muted"><img class="header-logo" src="images/splice-logo.jpg" alt="We are Splice Machine"> Explain Trace Tool</h3>
 </div>
 
-<div class="jumbotron" ng-show="sysTableCheckSuccess">
-  <h1>Yay!</h1>
-  <p class="lead">
-    Your local Splice Machine instance is running.
-  </p>
-  <p><a class="btn btn-lg btn-success" ng-href="#"><span class="glyphicon glyphicon-thumbs-up glyphicon-big"></span></a></p>
+<div class="jumbotron">
+  <span ng-hide="primaryServerStatusCheckSuccess" class="btn-sm btn-danger glyphicon glyphicon-thumbs-down"> Cluster unreachable.</span>
+  <span ng-show="serversStatusCheckResponse.serverUpCount > 0" class="btn-sm btn-success glyphicon glyphicon-thumbs-up"> {{serversStatusCheckResponse.serverUpCount}}</span>
+  <span ng-show="serversStatusCheckResponse.serverDownCount > 0" class="btn-sm btn-danger glyphicon glyphicon-thumbs-down"> {{serversStatusCheckResponse.serverDownCount}}</span>
 </div>
-
-<div class="jumbotron" ng-hide="sysTableCheckSuccess">
-  <h1>Uh oh...</h1>
-  <p class="lead">
-    Your local Splice Machine instance is NOT running.
-  </p>
-  <p><a class="btn btn-lg btn-danger" ng-href="#"><span class="glyphicon glyphicon-thumbs-down glyphicon-big"></span></a></p>
-</div>
-
-<!--
-<div class="row marketing">
-  <h4>HTML5 Boilerplate</h4>
-  <p>
-    HTML5 Boilerplate is a professional front-end template for building fast, robust, and adaptable web apps or sites.
-  </p>
-
-  <h4>Angular</h4>
-  <p>
-    AngularJS is a toolset for building the framework most suited to your application development.
-  </p>
-
-  <h4>Karma</h4>
-  <p>Spectacular Test Runner for JavaScript.</p>
-</div>
--->
 
 <div class="footer">
   <p>&copy; 2014 Splice Machine, Inc. All rights reserved.</p>
