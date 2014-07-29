@@ -89,10 +89,15 @@ public class SpliceDateFunctions {
     /**
      * Implements the to_char function
      */
-    public static String TO_CHAR(Date source, String format) {
+    public static String TO_CHAR(Object source, String format) {
         if (source == null || format == null) return null;
-        SimpleDateFormat fmt = new SimpleDateFormat(format.toLowerCase().replaceAll("m", "M"));
-        return fmt.format(source);
+        if(source instanceof Date || source instanceof Timestamp) {
+            SimpleDateFormat fmt = new SimpleDateFormat(format.toLowerCase().replaceAll("m", "M"));
+            return fmt.format(source);
+        }
+        else{
+            return null;
+        }
     }
 
     /**
