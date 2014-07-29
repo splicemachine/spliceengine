@@ -27,6 +27,9 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.RowKeyDistributor;
+import com.splicemachine.hbase.FilteredRowKeyDistributor;
+import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.utils.IntArrays;
@@ -436,7 +439,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         if(!spliceRuntimeContext.isSink()){
             TempTable tempTable = SpliceDriver.driver().getTempTable();
             byte[] temp = tempTable.getTempTableName();
-            AbstractRowKeyDistributor distributor = new FilteredRowKeyDistributor(new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(tempTable.getCurrentSpread())),getUsedTempBuckets());
+            RowKeyDistributor distributor = new FilteredRowKeyDistributor(new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(tempTable.getCurrentSpread())),getUsedTempBuckets());
             sourceIterator = AsyncScanIterator.create(temp, distributor.getDistributedScans(reduceScan), pairDecoder,spliceRuntimeContext);
         }else{
             scanner = getResultScanner(groupingKeys,spliceRuntimeContext,getHashPrefix().getPrefixLength());

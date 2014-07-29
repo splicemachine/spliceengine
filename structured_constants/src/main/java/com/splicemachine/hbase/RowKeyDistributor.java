@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.hbase;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -11,7 +11,7 @@ import org.apache.hadoop.hbase.util.Pair;
  * Defines the way row keys are distributed
  * 
  */
-public abstract class AbstractRowKeyDistributor {
+public abstract class RowKeyDistributor {
     public abstract byte[] getDistributedKey(byte[] originalKey);
 
     public abstract byte[] getOriginalKey(byte[] adjustedKey);

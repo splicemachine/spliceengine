@@ -2,6 +2,7 @@ package com.splicemachine.hbase.async;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.stats.*;
 import com.splicemachine.stats.Timer;
@@ -21,7 +22,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * @author Scott Fines
- *         Date: 7/22/14
+ * Date: 7/22/14
  */
 public class GatheringScanner implements AsyncScanner {
     private final Timer timer;
@@ -37,7 +38,8 @@ public class GatheringScanner implements AsyncScanner {
                                           RegionCache regionCache,
                                           int maxQueueSize,
                                           MetricFactory metricFactory,
-                                          Function<Scan, Scanner> toScannerFunction) throws IOException {
+                                          Function<Scan, Scanner> toScannerFunction,
+                                          RowKeyDistributor rowKeyDistributor) throws IOException {
         try {
             SortedSet<HRegionInfo> regionsInRange = regionCache.getRegionsInRange(tableName, baseScan.getStartRow(), baseScan.getStopRow());
             if(regionsInRange.size()<=1){
@@ -45,30 +47,34 @@ public class GatheringScanner implements AsyncScanner {
             }
 
             //split base scan around region points
-            List<Scanner> scans = Lists.newArrayListWithExpectedSize(regionsInRange.size());
-            byte[] scanStart = baseScan.getStartRow();
-            byte[] totalScanEnd = baseScan.getStopRow();
-            // the first region should contain the scan start key, and the last region will contain the scan stop key
-            boolean isFirst = true;
-            for(HRegionInfo info:regionsInRange){
-                Scan newScan = new Scan(baseScan);
-                if(isFirst){
-                    newScan.setStartRow(scanStart);
-                    isFirst = false;
-                }else
-                    newScan.setStartRow(info.getStartKey());
-
-                if(info.containsRow(totalScanEnd)){
-                    newScan.setStopRow(totalScanEnd);
-                    scans.add(toScannerFunction.apply(newScan));
-//                    scans.add(AsyncScannerUtils.convertScanner(newScan,tableName,hbaseClient,baseScan.getCacheBlocks()));
-                    break; //just for safety, in case regionCache is broken
-                }else{
-                    newScan.setStopRow(info.getEndKey());
-                    scans.add(toScannerFunction.apply(newScan));
-//                    scans.add(AsyncScannerUtils.convertScanner(newScan,tableName,hbaseClient,baseScan.getCacheBlocks()));
-                }
+            Scan[] distributedScans = rowKeyDistributor.getDistributedScans(baseScan);
+            List<Scanner> scans = Lists.newArrayListWithExpectedSize(distributedScans.length);
+            for(Scan scan:distributedScans){
+                scans.add(toScannerFunction.apply(scan));
             }
+//            byte[] scanStart = baseScan.getStartRow();
+//            byte[] totalScanEnd = baseScan.getStopRow();
+//            // the first region should contain the scan start key, and the last region will contain the scan stop key
+//            boolean isFirst = true;
+//            for(HRegionInfo info:regionsInRange){
+//                Scan newScan = new Scan(baseScan);
+//                if(isFirst){
+//                    newScan.setStartRow(scanStart);
+//                    isFirst = false;
+//                }else
+//                    newScan.setStartRow(info.getStartKey());
+//
+//                if(info.containsRow(totalScanEnd)){
+//                    newScan.setStopRow(totalScanEnd);
+//                    scans.add(toScannerFunction.apply(newScan));
+////                    scans.add(AsyncScannerUtils.convertScanner(newScan,tableName,hbaseClient,baseScan.getCacheBlocks()));
+//                    break; //just for safety, in case regionCache is broken
+//                }else{
+//                    newScan.setStopRow(info.getEndKey());
+//                    scans.add(toScannerFunction.apply(newScan));
+////                    scans.add(AsyncScannerUtils.convertScanner(newScan,tableName,hbaseClient,baseScan.getCacheBlocks()));
+//                }
+//            }
             return new GatheringScanner(scans,maxQueueSize,metricFactory);
         } catch (ExecutionException e) {
             throw new IOException(e.getCause());
