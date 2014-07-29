@@ -270,6 +270,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         					.build();
         			procedures.add(dumpTransactions);
 
+                Procedure activeTransactions = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_TRANSACTIONS")
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .ownerClass(TransactionAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(activeTransactions);
+
         			Procedure currTxn = Procedure.newBuilder().name("SYSCS_GET_CURRENT_TRANSACTION")
         					.numOutputParams(0)
         					.numResultSets(1)
