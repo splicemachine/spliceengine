@@ -1,19 +1,15 @@
-package com.splicemachine.derby.impl.storage;
+package com.splicemachine.hbase.async;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.hbase.HBaseRegionCache;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.stats.*;
 import com.splicemachine.stats.Timer;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
-import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.hbase.async.HBaseClient;
 import org.hbase.async.KeyValue;
 import org.hbase.async.Scanner;
 
@@ -37,43 +33,15 @@ public class GatheringScanner implements AsyncScanner {
     private final int maxQueueSize;
 
     public static AsyncScanner newScanner(byte[] tableName,
-                                              Scan baseScan,
-                                              int maxQueueSize) throws IOException{
-        return newScanner(tableName, baseScan, HBaseRegionCache.getInstance(),
-                SimpleAsyncScanner.HBASE_CLIENT,maxQueueSize, Metrics.noOpMetricFactory());
-    }
-
-    public static AsyncScanner newScanner(byte[] tableName,
-                                              Scan baseScan,
-                                              RegionCache regionCache,
-                                              int maxQueueSize) throws IOException{
-        return newScanner(tableName, baseScan, regionCache, SimpleAsyncScanner.HBASE_CLIENT,maxQueueSize, Metrics.noOpMetricFactory());
-    }
-
-    public static AsyncScanner newScanner(byte[] tableName,
-                                              Scan baseScan,
-                                              MetricFactory metricFactory) throws IOException{
-       return newScanner(tableName,baseScan,HBaseRegionCache.getInstance(),1<<16,metricFactory); //TODO -sf- a better maxQueueSize
-    }
-
-    public static AsyncScanner newScanner(byte[] tableName,
-                                              Scan baseScan,
-                                              RegionCache regionCache,
-                                              int maxQueueSize,
-                                              MetricFactory metricFactory) throws IOException{
-       return newScanner(tableName, baseScan, regionCache, SimpleAsyncScanner.HBASE_CLIENT,maxQueueSize, metricFactory);
-    }
-
-    public static AsyncScanner newScanner(byte[] tableName,
-                                              Scan baseScan,
-                                              RegionCache regionCache,
-                                              HBaseClient hbaseClient,
-                                              int maxQueueSize,
-                                              MetricFactory metricFactory) throws IOException {
+                                          Scan baseScan,
+                                          RegionCache regionCache,
+                                          int maxQueueSize,
+                                          MetricFactory metricFactory,
+                                          Function<Scan, Scanner> toScannerFunction) throws IOException {
         try {
             SortedSet<HRegionInfo> regionsInRange = regionCache.getRegionsInRange(tableName, baseScan.getStartRow(), baseScan.getStopRow());
             if(regionsInRange.size()<=1){
-                return new SimpleAsyncScanner(tableName,baseScan,metricFactory);
+                return new SimpleAsyncScanner(toScannerFunction.apply(baseScan),metricFactory);
             }
 
             //split base scan around region points
@@ -92,16 +60,18 @@ public class GatheringScanner implements AsyncScanner {
 
                 if(info.containsRow(totalScanEnd)){
                     newScan.setStopRow(totalScanEnd);
-                    scans.add(AsyncScannerUtils.convertScanner(newScan,tableName,hbaseClient,baseScan.getCacheBlocks()));
+                    scans.add(toScannerFunction.apply(newScan));
+//                    scans.add(AsyncScannerUtils.convertScanner(newScan,tableName,hbaseClient,baseScan.getCacheBlocks()));
                     break; //just for safety, in case regionCache is broken
                 }else{
                     newScan.setStopRow(info.getEndKey());
-                    scans.add(AsyncScannerUtils.convertScanner(newScan,tableName,hbaseClient,baseScan.getCacheBlocks()));
+                    scans.add(toScannerFunction.apply(newScan));
+//                    scans.add(AsyncScannerUtils.convertScanner(newScan,tableName,hbaseClient,baseScan.getCacheBlocks()));
                 }
             }
             return new GatheringScanner(scans,maxQueueSize,metricFactory);
         } catch (ExecutionException e) {
-            throw Exceptions.getIOException(e);
+            throw new IOException(e.getCause());
         }
     }
 
@@ -119,7 +89,7 @@ public class GatheringScanner implements AsyncScanner {
     }
 
     @Override
-    public void open() throws IOException, StandardException {
+    public void open() throws IOException {
         //kick off all the scanners
         //noinspection ForLoopReplaceableByForEach
         for(int i=0;i<scanners.length;i++){
@@ -318,20 +288,20 @@ public class GatheringScanner implements AsyncScanner {
         }
     }
 
-    public static void main(String...args) throws Exception{
-        byte[] table = Bytes.toBytes(Long.toString(1184));
-        Scan baseScan = new Scan();
-        try{
-            AsyncScanner scanner = GatheringScanner.newScanner(table,baseScan,1<<16);
-            int count =0;
-            Result r;
-            while((r = scanner.next())!=null){
-                count++;
-            }
-            System.out.println(count);
-        }finally{
-            HBaseRegionCache.getInstance().shutdown();
-            SimpleAsyncScanner.HBASE_CLIENT.shutdown().join();
-        }
-    }
+//    public static void main(String...args) throws Exception{
+//        byte[] table = Bytes.toBytes(Long.toString(1184));
+//        Scan baseScan = new Scan();
+//        try{
+//            AsyncScanner scanner = GatheringScanner.newScanner(table,baseScan,1<<16);
+//            int count =0;
+//            Result r;
+//            while((r = scanner.next())!=null){
+//                count++;
+//            }
+//            System.out.println(count);
+//        }finally{
+//            HBaseRegionCache.getInstance().shutdown();
+//            SimpleAsyncScanner.HBASE_CLIENT.shutdown().join();
+//        }
+//    }
 }

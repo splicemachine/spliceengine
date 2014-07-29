@@ -5,8 +5,10 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.hbase.*;
+import com.splicemachine.hbase.async.AsyncScanner;
+import com.splicemachine.hbase.async.SimpleAsyncScanner;
 import com.splicemachine.stats.BaseIOStats;
 import com.splicemachine.stats.IOStats;
 import com.splicemachine.stats.TimeView;
@@ -32,7 +34,7 @@ public class ClientScanProvider extends AbstractScanProvider {
 		private final byte[] tableName;
 		private HTableInterface htable;
 		private final Scan scan;
-		private SpliceResultScanner scanner;
+		private AsyncScanner scanner;
 		private long stopExecutionTime;
 		private long startExecutionTime;
 
@@ -56,14 +58,12 @@ public class ClientScanProvider extends AbstractScanProvider {
 				if(htable==null)
 						htable = SpliceAccessManager.getHTable(tableName);
 				try {
-           scanner = new SimpleAsyncScanner(tableName,scan,spliceRuntimeContext);
+           scanner = new SimpleAsyncScanner(DerbyAsyncScannerUtils.convertScanner(scan,tableName,SimpleAsyncScanner.HBASE_CLIENT),spliceRuntimeContext);
 //						scanner = new MeasuredResultScanner(htable, scan, htable.getScanner(scan),spliceRuntimeContext);
             scanner.open();
 				} catch (IOException e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG,"unable to open table "+ Bytes.toString(tableName),e);
-				} catch (StandardException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG,"unable to open table "+ Bytes.toString(tableName),e);
-        }
+				}
         startExecutionTime = System.currentTimeMillis();
 		}
 
