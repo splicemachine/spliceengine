@@ -80,8 +80,19 @@ SHA-512 (Default) algorithm.  The
       \item splice.authentication.native.algorithm=MD5,SHA-256,SHA-512(Default)
 \end{enumerate}
 
-Defaul user:  \emph{splice}	
+Default user:  \emph{splice}	
 Default password: \emph{admin}
+
+Using Native mode, you log in using a modified connection string:
+
+\texttt{splice> connect 'jdbc:derby://localhost:1527/splicedb;user=\emph{user};password=\emph{password}'}
+
+Therefore the administrative login is as follows:
+
+\texttt{splice> connect 'jdbc:derby://localhost:1527/splicedb;user=splice;password=admin'}
+
+
+
 
 \subsubsection{LDAP}
 
