@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.hbase;
 
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -7,7 +7,7 @@ import org.apache.hadoop.hbase.util.Bytes;
  * 
  * @author Alex Baranau
  */
-public class RowKeyDistributorByHashPrefix extends AbstractRowKeyDistributor {
+public class RowKeyDistributorByHashPrefix extends RowKeyDistributor {
     private Hasher hasher;
 
     /** Constructor reflection. DO NOT USE */

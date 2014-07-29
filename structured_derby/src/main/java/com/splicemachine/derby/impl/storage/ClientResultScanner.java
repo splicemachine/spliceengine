@@ -1,11 +1,12 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.sql.execute.operations.AbstractRowKeyDistributor;
-import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHashPrefix;
+import com.splicemachine.hbase.RowKeyDistributor;
+import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.marshall.BucketHasher;
 import com.splicemachine.derby.utils.marshall.SpreadBucket;
+import com.splicemachine.hbase.FilteredRowKeyDistributor;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
@@ -28,7 +29,7 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
     private SpliceResultScanner scanner;
     private final byte[] tableName;
     private final Scan scan;
-    private final AbstractRowKeyDistributor keyDistributor;
+    private final RowKeyDistributor keyDistributor;
     private final MetricFactory metricFactory;
     private HTableInterface table;
 
@@ -54,7 +55,7 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
         this.scan = scan;
         if(bucketed){
 						SpreadBucket bucketingStrategy = SpliceDriver.driver().getTempTable().getCurrentSpread();
-            AbstractRowKeyDistributor distributor = new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(bucketingStrategy));
+            RowKeyDistributor distributor = new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(bucketingStrategy));
             if(usedBuckets!=null)
                 keyDistributor = new FilteredRowKeyDistributor(distributor,usedBuckets);
             else

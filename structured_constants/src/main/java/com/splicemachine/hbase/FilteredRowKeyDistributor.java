@@ -1,7 +1,6 @@
-package com.splicemachine.derby.impl.storage;
+package com.splicemachine.hbase;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.impl.sql.execute.operations.AbstractRowKeyDistributor;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
@@ -13,11 +12,11 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 7/14/14
  */
-public class FilteredRowKeyDistributor extends AbstractRowKeyDistributor{
-    private final AbstractRowKeyDistributor delegate;
+public class FilteredRowKeyDistributor extends RowKeyDistributor {
+    private final RowKeyDistributor delegate;
     private final boolean[] filterMask;
 
-    public FilteredRowKeyDistributor(AbstractRowKeyDistributor delegate, boolean[] filterMask) {
+    public FilteredRowKeyDistributor(RowKeyDistributor delegate, boolean[] filterMask) {
         this.delegate = delegate;
         this.filterMask = filterMask;
     }

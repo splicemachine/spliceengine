@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.storage;
 
-import com.splicemachine.derby.impl.sql.execute.operations.AbstractRowKeyDistributor;
+import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.stats.*;
 import com.splicemachine.stats.util.Folders;
 import org.apache.derby.iapi.error.StandardException;
@@ -21,13 +21,13 @@ import java.util.List;
  * @author Alex Baranau
  */
 public class DistributedScanner implements SpliceResultScanner {
-    private final AbstractRowKeyDistributor keyDistributor;
+    private final RowKeyDistributor keyDistributor;
     private final SpliceResultScanner[] scanners;
     private final List<Result>[] scannerResultCache;
     private Result next = null;
 
     @SuppressWarnings("unchecked")
-    public DistributedScanner(AbstractRowKeyDistributor keyDistributor, SpliceResultScanner[] scanners) throws IOException {
+    public DistributedScanner(RowKeyDistributor keyDistributor, SpliceResultScanner[] scanners) throws IOException {
         this.keyDistributor = keyDistributor;
         this.scanners = scanners;
         this.scannerResultCache = new List[scanners.length];
@@ -104,7 +104,7 @@ public class DistributedScanner implements SpliceResultScanner {
     }
 
     public static DistributedScanner create(HTableInterface hTable, Scan originalScan,
-            AbstractRowKeyDistributor keyDistributor,MetricFactory metricFactory) throws IOException {
+            RowKeyDistributor keyDistributor,MetricFactory metricFactory) throws IOException {
         Scan[] scans = keyDistributor.getDistributedScans(originalScan);
 
         SpliceResultScanner[] rss = new SpliceResultScanner[scans.length];
