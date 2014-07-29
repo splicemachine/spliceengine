@@ -100,7 +100,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 				return delegate;
 		}
 
-		public void open(boolean useProbe) throws StandardException{
+		public void open(boolean useProbe) throws StandardException, IOException {
 			open(useProbe,true);
 		}
 
@@ -118,7 +118,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
     }
 
-    public SpliceRuntimeContext sinkOpen(boolean useProbe, boolean showStatementInfo) throws StandardException{
+    public SpliceRuntimeContext sinkOpen(boolean useProbe, boolean showStatementInfo) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG,"openCore");
         closed=false;
         if(delegate!=null) delegate.close();
@@ -155,14 +155,18 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         }
     }
 
-		public void open(boolean useProbe,boolean showStatementInfo) throws StandardException{
+		public void open(boolean useProbe,boolean showStatementInfo) throws StandardException, IOException {
         SpliceRuntimeContext ctx = sinkOpen(useProbe,showStatementInfo);
         executeScan(useProbe,ctx);
 		}
 
     @Override
     public void openCore() throws StandardException {
-				open(false);
+        try {
+            open(false);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
 		private List<OperationInfo> getOperationInfo(long statementId) {

@@ -41,7 +41,7 @@ public class HashNestedLoopLeftOuterJoinOperation extends HashNestedLoopJoinOper
     }
 
     @Override
-    public void init(SpliceOperationContext context) throws StandardException {
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         emptyRightRowsReturned = 0;
         emptyRowFun = (emptyRowFunMethodName == null) ? null :
