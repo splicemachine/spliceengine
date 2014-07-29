@@ -6,6 +6,7 @@ angular
 		'ngResource',
 		'ngSanitize',
 		'ngRoute',
+		'nvd3ChartDirectives',
 		'angularTreeview',
 		'treeControl',
 		'ui.bootstrap',
@@ -105,6 +106,9 @@ angular
 				}
 			})
 			.when('/home', {
+				redirectTo: '/traced-statements'
+			})
+			.when('/main', {
 				templateUrl: 'views/main.html',
 				controller: 'mainController'
 			})
