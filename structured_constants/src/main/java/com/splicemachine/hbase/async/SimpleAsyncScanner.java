@@ -1,11 +1,10 @@
-package com.splicemachine.derby.impl.storage;
+package com.splicemachine.hbase.async;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.stats.*;
 import com.splicemachine.stats.Timer;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
-import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -26,7 +25,7 @@ import java.util.*;
  * Date: 7/14/14
  */
 public class SimpleAsyncScanner implements AsyncScanner,Callback<ArrayList<ArrayList<KeyValue>>, ArrayList<ArrayList<KeyValue>>> {
-    static final HBaseClient HBASE_CLIENT;
+    public static final HBaseClient HBASE_CLIENT;
     static{
         String zkQuorumStr = SpliceConstants.config.get(HConstants.ZOOKEEPER_QUORUM);
         HBASE_CLIENT = new HBaseClient(zkQuorumStr);
@@ -43,26 +42,18 @@ public class SimpleAsyncScanner implements AsyncScanner,Callback<ArrayList<Array
     private volatile Deferred<ArrayList<ArrayList<KeyValue>>> finishedRequest;
 
 
-    public SimpleAsyncScanner(byte[] table, Scan scan, MetricFactory metricFactory) {
-       this(table,scan,metricFactory,scan.getCaching());
-    }
-
-    public SimpleAsyncScanner(byte[] table, Scan scan, MetricFactory metricFactory, int batchSize) {
-       this(table,scan,metricFactory,batchSize,true);
-    }
-
-    public SimpleAsyncScanner(byte[] table, Scan scan, MetricFactory metricFactory, int batchSize, boolean populateBlockCache) {
-        this.batchSize = batchSize;
+    public SimpleAsyncScanner(Scanner scanner,
+                              MetricFactory metricFactory){
+        this.batchSize = scanner.getMaxNumRows();
         this.timer = metricFactory.newTimer();
         this.remoteBytesCounter = metricFactory.newCounter();
 
-        //TODO -sf- use a different HBaseClient singleton pattern so it can be shutdown easily
-        this.scanner = AsyncScannerUtils.convertScanner(scan,table,HBASE_CLIENT,populateBlockCache);
+        this.scanner = scanner;
         this.resultQueue = new LinkedList<List<KeyValue>>();
     }
 
     @Override
-    public void open() throws IOException, StandardException {
+    public void open() throws IOException {
        //initiate the first scan
         outstandingRequest = scanner.nextRows().addCallback(this);
     }
@@ -141,22 +132,5 @@ public class SimpleAsyncScanner implements AsyncScanner,Callback<ArrayList<Array
         finishedRequest = outstandingRequest;
         outstandingRequest = null;
         return arg;
-    }
-
-    public static void main(String...args) throws Exception{
-        Logger.getRootLogger().addAppender(new ConsoleAppender(new PatternLayout(PatternLayout.TTCC_CONVERSION_PATTERN)));
-        Logger.getRootLogger().setLevel(Level.INFO);
-
-        Scan scan = new Scan();
-        scan.setMaxVersions();
-        SimpleAsyncScanner results = new SimpleAsyncScanner(Bytes.toBytes(Long.toString(1184)), scan, Metrics.noOpMetricFactory());
-        results.open();
-        Result r;
-        int count = 0;
-        while((r = results.next())!=null)
-            count++;
-        System.out.println(count);
-
-        HBASE_CLIENT.shutdown().join();
     }
 }

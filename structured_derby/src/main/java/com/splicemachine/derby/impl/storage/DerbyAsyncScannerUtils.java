@@ -20,15 +20,9 @@ import java.util.Map;
  * @author Scott Fines
  * Date: 7/15/14
  */
-public class AsyncScannerUtils {
+public class DerbyAsyncScannerUtils {
 
-    private static final Function<? super org.hbase.async.KeyValue, ? extends org.apache.hadoop.hbase.KeyValue> toHBaseKvFunction
-            = new Function<org.hbase.async.KeyValue, org.apache.hadoop.hbase.KeyValue>() {
-        @Override
-        public org.apache.hadoop.hbase.KeyValue apply(@Nullable org.hbase.async.KeyValue input) {
-            return new org.apache.hadoop.hbase.KeyValue(input.key(),input.family(),input.qualifier(),input.timestamp(),input.value());
-        }
-    };
+
 
     public static Scanner convertScanner(Scan scan, byte[] table, HBaseClient hbaseClient){
         return convertScanner(scan, table, hbaseClient, true);
@@ -86,7 +80,5 @@ public class AsyncScannerUtils {
         throw new IllegalArgumentException("Unknown Filter of type "+ filter.getClass());
     }
 
-    public static List<KeyValue> convertFromAsync(List<org.hbase.async.KeyValue> kvs){
-        return Lists.transform(kvs,toHBaseKvFunction);
-    }
+
 }
