@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.derby.utils.*;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.RoutineAliasInfo;
 import org.apache.derby.iapi.error.StandardException;
@@ -18,10 +19,6 @@ import org.apache.derby.impl.sql.catalog.Procedure;
 import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.impl.storage.TempSplit;
-import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.derby.utils.SpliceDateFunctions;
-import com.splicemachine.derby.utils.SpliceStringFunctions;
-import com.splicemachine.derby.utils.TransactionAdmin;
 
 /**
  * @author Scott Fines
@@ -536,9 +533,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
 	   		    });
     	        sysProcedures.put(sysFunUUID, sysFunProcs);
             }
-    		
+
             // Initialization was successful.  Mark the class as initialized.
-        	initialized = true;
+            initialized = true;
         } // end of synchronized block
 
         return sysProcedures;
