@@ -81,7 +81,7 @@ public class PredicateBuilder {
 				for(DescriptorSerializer serializer:serializers)
 						Closeables.closeQuietly(serializer);
 				serializers = null; //unlink the serializers to force new ones to be created if needed
-				return new AndPredicate(predicates);
+				return AndPredicate.newAndPredicate(predicates);
 		}
 
 		private static CompareFilter.CompareOp getHBaseCompareOp(int operator, boolean negateResult) {

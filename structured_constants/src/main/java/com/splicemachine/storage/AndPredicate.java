@@ -6,6 +6,7 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,11 +17,52 @@ import java.util.List;
  */
 public class AndPredicate implements Predicate{
     private ObjectArrayList<Predicate> ands;
+    private int matchedCount = 0;
+    private boolean failed = false;
 
+    public static Predicate newAndPredicate(Predicate...preds) {
+        if(preds.length==1)
+            return preds[0];
+        return new AndPredicate(ObjectArrayList.from(preds));
+    }
+
+    public static Predicate newAndPredicate(ObjectArrayList<Predicate> ands){
+        if(ands.size()==1){
+            return ands.get(0);
+        }
+        return new AndPredicate(ands);
+    }
 
     public AndPredicate(ObjectArrayList<Predicate> ands) {
         this.ands = new ObjectArrayList<Predicate>(ands);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof AndPredicate)) return false;
+
+        AndPredicate that = (AndPredicate) o;
+
+        if (ands != null ? !ands.equals(that.ands) : that.ands != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return ands != null ? ands.hashCode() : 0;
+    }
+
+//    @Override
+//    public boolean isFinished(){
+//        return matchedCount==ands.size();
+//    }
+//
+//    @Override
+//    public boolean isFailed(){
+//        return failed;
+//    }
 
     @Override
     public boolean applies(int column) {
@@ -35,6 +77,7 @@ public class AndPredicate implements Predicate{
 
     @Override
     public boolean match(int column, byte[] data, int offset, int length) {
+        if(failed) return false; //once we've failed, keep failing until we reset
         if(ands != null){
         	Object[] buffer = ands.buffer;
         	int iBuffer = ands.size();
@@ -43,10 +86,12 @@ public class AndPredicate implements Predicate{
                 if(!predicate.applies(column)) 
                 	continue; //skip non-applicable columns
                 if(!predicate.match(column, data, offset, length)){
+                    failed = true;
                     return false;
                 }
             }
         }
+        matchedCount++;
         return true;
     }
 
@@ -74,13 +119,16 @@ public class AndPredicate implements Predicate{
     @Override
     public void reset() {
         //reset children
-    	Object[] buffer = ands.buffer;
-    	int iBuffer = ands.size();
-    	for (int i = 0; i < iBuffer; i++) {
-    		Predicate predicate = (Predicate) buffer[i];
+        Object[] buffer = ands.buffer;
+        int iBuffer = ands.size();
+        for (int i = 0; i < iBuffer; i++) {
+            Predicate predicate = (Predicate) buffer[i];
             predicate.reset();
         }
+        failed =false;
+        matchedCount = 0;
     }
+
 
     @Override
     public byte[] toBytes() {

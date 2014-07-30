@@ -1,9 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.StandardIterator;
@@ -21,10 +24,7 @@ import com.splicemachine.stats.Counter;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
-import com.splicemachine.storage.EntryAccumulator;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Indexed;
+import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Provider;
 import com.splicemachine.utils.Providers;
@@ -39,7 +39,9 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -81,9 +83,10 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		private FormatableBitSet accessedKeys;
 
 		private final SIFilterFactory filterFactory;
+    private ExecRowAccumulator accumulator;
 
 
-		SITableScanner(MeasuredRegionScanner scanner,
+    SITableScanner(MeasuredRegionScanner scanner,
 													ExecRow template,
 													MetricFactory metricFactory,
 													Scan scan,
@@ -243,6 +246,15 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				this.regionScanner = scanner;
 		}
 
+
+    public long getBytesVisited() {
+        return regionScanner.getBytesVisited();
+    }
+
+    public void setPredicates(ObjectArrayList<Predicate> newPredicates){
+        predicateFilter.setValuePredicates(newPredicates);
+    }
+
 /*********************************************************************************************************************/
 		/*Private helper methods*/
 		private Provider<MultiFieldDecoder> getKeyDecoder(FormatableBitSet accessedPks,
@@ -268,19 +280,51 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		private SIFilter getSIFilter() throws IOException {
 				if(siFilter==null){
 						boolean isCountStar = scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null;
-						predicateFilter= decodePredicateFilter();
-						ExecRowAccumulator accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowDecodingMap, tableVersion);
+						predicateFilter= decodePredicateFilter(checkForSkipScanFilters());
+						accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowDecodingMap, tableVersion);
 						siFilter = filterFactory.newFilter(predicateFilter,getRowEntryDecoder(),accumulator,isCountStar);
 				}
 				return siFilter;
 		}
 
-		protected EntryDecoder getRowEntryDecoder() {
+    private ObjectArrayList<Predicate> checkForSkipScanFilters() throws IOException {
+        Filter filter = scan.getFilter();
+        if(filter instanceof SkippingScanFilter){
+            SkippingScanFilter ssF = (SkippingScanFilter)filter;
+            ssF.setSITableScanner(this);
+            return ssF.getNextPredicates();
+        }else if(filter instanceof FilterList){
+            FilterList fl = (FilterList) filter;
+            for(Filter f:fl.getFilters()){
+                if(f instanceof SkippingScanFilter){
+                    SkippingScanFilter ssF = (SkippingScanFilter)f;
+                    ssF.setSITableScanner(this);
+                    return ssF.getNextPredicates();
+                }
+            }
+        }
+        return null;
+    }
+
+    protected EntryDecoder getRowEntryDecoder() {
 				return new EntryDecoder();
 		}
 
-		private EntryPredicateFilter decodePredicateFilter() throws IOException {
-				return EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
+		private EntryPredicateFilter decodePredicateFilter(ObjectArrayList<Predicate> predicates) throws IOException {
+        EntryPredicateFilter entryPredicateFilter = EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
+        BitSet checkedColumns = entryPredicateFilter.getCheckedColumns();
+        if(predicates!=null){
+                /*
+                 * We have to be careful--EMPTY_PREDICATE could have been returned, in which case
+                 * setting predicates can cause all kinds of calamituous behavior. To avoid that, when
+                 * we have a skipscan filter (e.g. some kind of block scanning like a Batch NLJ) and we
+                 * have an empty Predicate Filter to begin with, then we clone the predicate filter to a new
+                 * one to avoid contamination.
+                 *
+                 */
+            entryPredicateFilter = new EntryPredicateFilter(checkedColumns,predicates,entryPredicateFilter.indexReturned());
+        }
+        return entryPredicateFilter;
 		}
 
 		protected void setRowLocation(KeyValue sampleKv) throws StandardException {
@@ -337,11 +381,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				return predicateFilter.match(primaryKeyIndex, keyDecoderProvider, keyAccumulator);
 		}
 
-		public long getBytesVisited() {
-				return regionScanner.getBytesVisited();
-		}
-
-		private class KeyIndex implements Indexed{
+    private class KeyIndex implements Indexed{
 				private final int[] allPkColumns;
 				private final int[] keyColumnTypes;
 				private final TypeProvider typeProvider;

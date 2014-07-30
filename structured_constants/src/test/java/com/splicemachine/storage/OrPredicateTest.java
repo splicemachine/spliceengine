@@ -2,18 +2,36 @@ package com.splicemachine.storage;
 
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.encoding.Encoding;
-
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.util.Arrays;
 
 /**
  * @author Scott Fines
  * Created on: 10/3/13
  */
 public class OrPredicateTest {
+
+    @Test
+    public void testMatchesOrsAndAnds() throws Exception {
+        byte[] first = Encoding.encode(10030);
+        byte[] second = Encoding.encode(2);
+        byte[] third = Encoding.encode(3);
+        Predicate firstPred = new ValuePredicate(CompareFilter.CompareOp.EQUAL,0,first,true,false);
+        Predicate secondPred = new ValuePredicate(CompareFilter.CompareOp.EQUAL,1,second,true,false);
+        Predicate thirdPred = new ValuePredicate(CompareFilter.CompareOp.EQUAL,0,first,true,false);
+        Predicate fourthPred = new ValuePredicate(CompareFilter.CompareOp.EQUAL,1,third,true,false);
+
+        Predicate firstAnd = AndPredicate.newAndPredicate(firstPred,secondPred);
+        Predicate secondAnd = AndPredicate.newAndPredicate(thirdPred,fourthPred);
+
+        OrPredicate newOr = OrPredicate.or(firstAnd,secondAnd);
+
+        byte[] noMatch = Encoding.encode(10031);
+
+        Assert.assertTrue(newOr.match(1, second, 0, second.length));
+        Assert.assertFalse(newOr.match(0,noMatch,0,noMatch.length));
+    }
 
     @Test
     public void testMatchesOneColumnNull() throws Exception {

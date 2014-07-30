@@ -65,10 +65,10 @@ public class ActivationSerializer {
         factories = Lists.newArrayList();
         factories.add(new DataValueDescriptorFactory());
         factories.add(new ExecRowFactory());
+        factories.add(new CachedOpFieldFactory());
         factories.add(new OperationResultSetFactory());
         arrayFactory = new ArrayFactory();
         factories.add(arrayFactory);
-        factories.add(new CachedOpFieldFactory());
 
         //always add SerializableFactory last, because otherwise it'll swallow everything else.
         factories.add(new SerializableFactory());
@@ -301,7 +301,7 @@ public class ActivationSerializer {
 
         @Override
         public boolean isType(Object instance, Class type) {
-        	return type.equals(ResultSet.class);
+            return instance instanceof ResultSet;
         }
     }  
 

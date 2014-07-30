@@ -1,7 +1,6 @@
-package org.apache.derby.impl.sql.execute.operations.joins;
+package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.log4j.Logger;

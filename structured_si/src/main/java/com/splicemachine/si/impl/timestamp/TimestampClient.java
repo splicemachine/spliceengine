@@ -1,13 +1,11 @@
 package com.splicemachine.si.impl.timestamp;
 
 import java.net.InetSocketAddress;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.ipc.HMasterInterface;
 import org.apache.log4j.Logger;
@@ -83,11 +81,12 @@ public class TimestampClient extends TimestampBaseHandler {
     	_port = SpliceConstants.timestampServerBindPort;
     	
     	_clientCallbacks = new ConcurrentHashMap<Short, ClientCallback>();
-    	
+
+        ExecutorService workerExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("timestampClient-worker-%d").setDaemon(true).build());
+        ExecutorService bossExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("timestampClient-boss-%d").setDaemon(true).build());
     	_factory = new NioClientSocketChannelFactory(
-			Executors.newCachedThreadPool(),
-			Executors.newCachedThreadPool());
-     
+              bossExecutor,workerExecutor);
+
 		_bootstrap = new ClientBootstrap(_factory);
 		
     	// If we end up needing to use one of the memory aware executors,

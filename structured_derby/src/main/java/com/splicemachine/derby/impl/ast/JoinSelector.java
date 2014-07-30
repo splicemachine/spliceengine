@@ -208,8 +208,16 @@ public class JoinSelector extends AbstractSpliceVisitor {
     }
 
     public static List<Predicate> preds(ResultSetNode t) throws StandardException {
-        PredicateList pl = t instanceof FromBaseTable ?
-                                RSUtils.getPreds((FromBaseTable) t) : RSUtils.getPreds((ProjectRestrictNode) t);
+        PredicateList pl;
+        if(t instanceof FromBaseTable)
+            pl = RSUtils.getPreds((FromBaseTable)t);
+        else if(t instanceof ProjectRestrictNode)
+            pl = RSUtils.getPreds((ProjectRestrictNode)t);
+        else if(t instanceof IndexToBaseRowNode)
+            pl = RSUtils.getPreds((IndexToBaseRowNode)t);
+        else
+            throw new IllegalArgumentException("Programmer error: Unable to determine class with predicates:"+t.getClass());
+
         return PredicateUtils.PLtoList(pl);
     }
 

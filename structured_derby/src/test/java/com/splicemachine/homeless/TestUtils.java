@@ -34,7 +34,9 @@ public class TestUtils {
 
     public static void executeSql(SpliceWatcher spliceWatcher, String sqlStatements, String schema){
         try {
-            for (String s : sqlStatements.replaceAll("<SCHEMA>", schema).split(";")){
+            String str = sqlStatements.replaceAll("<SCHEMA>",schema);
+            str = str.replaceAll("<DIR>",SpliceUnitTest.getResourceDirectory());
+            for (String s : str.split(";")){
                 String trimmed = s.trim();
                 if (!trimmed.equals("")){
                     Statement stmt = spliceWatcher.getStatement();

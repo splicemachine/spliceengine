@@ -26,7 +26,7 @@ public class SpliceConstants {
 		public static int sampleTimingSize = 10000;
 		
 		@Parameter public static final String SEQUENTIAL_IMPORT_FILESIZE_THREASHOLD="splice.import.sequentialImportFileSizeThreshold";
-		@DefaultValue(SEQUENTIAL_IMPORT_FILESIZE_THREASHOLD) public static final long DEFAULT_SEQUENTIAL_FILESIZE_IMPORT_THRESHOLD = 5*1024*1024*1024; //defaults to 5GB
+		@DefaultValue(SEQUENTIAL_IMPORT_FILESIZE_THREASHOLD) public static final long DEFAULT_SEQUENTIAL_FILESIZE_IMPORT_THRESHOLD = 5L*1024L*1024L*1024L; //defaults to 5GB
 		public static long sequentialImportFileSizeThreshold;
 
 		@SpliceConstants.Parameter public static final String CONSTRAINTS_ENABLED ="splice.constraints.enabled";
@@ -432,12 +432,31 @@ public class SpliceConstants {
 		
 		
         public static long regionMaxFileSize;
-        public static long hbaseRegionRowEstimate = 1500000;
-		public static double indexPerRowCost = 0.20d;
-		public static double baseTablePerRowCost = 1.0d;
-		public static double fetchFromRowLocationCost = 3.0d;
-		public static double getBaseTableFetchFromFullKeyCost = 1.0d;
-		public static double getIndexFetchFromFullKeyCost = 0.0d;
+        
+        
+		@Parameter private static final String HBASE_REGION_ROWS_ESTIMATE = "splice.optimizer.hbaseRegionRowsEstimate";
+		@DefaultValue(HBASE_REGION_ROWS_ESTIMATE) public static final long DEFAULT_HBASE_REGION_ROWS_ESTIMATE = 1500000;
+        public static long hbaseRegionRowEstimate;
+
+		@Parameter private static final String INDEX_PER_ROW_COST = "splice.optimizer.indexPerRowCost";
+		@DefaultValue(INDEX_PER_ROW_COST) public static final double DEFAULT_INDEX_PER_ROW_COST = 0.20d;
+		public static double indexPerRowCost;
+		
+		@Parameter private static final String BASE_TABLE_PER_ROW_COST = "splice.optimizer.baseTablePerRowCost";
+		@DefaultValue(BASE_TABLE_PER_ROW_COST) public static final double DEFAULT_BASE_TABLE_PER_ROW_COST = 1.0d;		
+		public static double baseTablePerRowCost;
+
+		@Parameter private static final String FETCH_FROM_ROW_LOCATION_COST = "splice.optimizer.fetchFromRowLocationCost";
+		@DefaultValue(FETCH_FROM_ROW_LOCATION_COST) public static final double DEFAULT_FETCH_FROM_ROW_LOCATION_COST = 3.0d;		
+		public static double fetchFromRowLocationCost;
+
+		@Parameter private static final String GET_BASE_TABLE_FETCH_FROM_FULL_KEY_COST = "splice.optimizer.getBaseTableFetchFromFullKeyCost";
+		@DefaultValue(GET_BASE_TABLE_FETCH_FROM_FULL_KEY_COST) public static final double DEFAULT_GET_BASE_TABLE_FETCH_FROM_FULL_KEY_COST = 1.0d;				
+		public static double getBaseTableFetchFromFullKeyCost;
+
+		@Parameter private static final String GET_INDEX_FETCH_FROM_FULL_KEY_COST = "splice.optimizer.getIndexFetchFromFullKeyCost";
+		@DefaultValue(GET_INDEX_FETCH_FROM_FULL_KEY_COST) public static final double DEFAULT_GET_INDEX_FETCH_FROM_FULL_KEY_COST = 0.0d;						
+		public static double getIndexFetchFromFullKeyCost;
         
         
 		/**
@@ -926,7 +945,17 @@ public class SpliceConstants {
 				maxTreeThreads = config.getInt(MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
 				siDelayRollForwardMaxSize = config.getInt(SI_DELAY_ROLL_FORWARD_MAX_SIZE, DEFAULT_SI_DELAY_ROLL_FORWARD_MAX_SIZE);
 				ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
+
+				// Optimizer Settings
+				
 				regionMaxFileSize = SpliceConstants.config.getLong(HConstants.HREGION_MAX_FILESIZE,1024 * 1024 * 1024L);
+				hbaseRegionRowEstimate = SpliceConstants.config.getLong(HBASE_REGION_ROWS_ESTIMATE, DEFAULT_HBASE_REGION_ROWS_ESTIMATE);
+				indexPerRowCost = SpliceConstants.config.getFloat(INDEX_PER_ROW_COST, (float)DEFAULT_INDEX_PER_ROW_COST);
+				baseTablePerRowCost = SpliceConstants.config.getFloat(BASE_TABLE_PER_ROW_COST, (float) DEFAULT_BASE_TABLE_PER_ROW_COST);
+				fetchFromRowLocationCost = SpliceConstants.config.getFloat(FETCH_FROM_ROW_LOCATION_COST, (float) DEFAULT_FETCH_FROM_ROW_LOCATION_COST);
+				getBaseTableFetchFromFullKeyCost = SpliceConstants.config.getFloat(GET_BASE_TABLE_FETCH_FROM_FULL_KEY_COST, (float) DEFAULT_GET_BASE_TABLE_FETCH_FROM_FULL_KEY_COST);
+				getIndexFetchFromFullKeyCost = SpliceConstants.config.getFloat(GET_INDEX_FETCH_FROM_FULL_KEY_COST, (float) DEFAULT_GET_INDEX_FETCH_FROM_FULL_KEY_COST);
+				
 				if(ipcThreads < maxThreads){
             /*
              * Some of our writes will also write out to indices and/or read data from HBase, which
