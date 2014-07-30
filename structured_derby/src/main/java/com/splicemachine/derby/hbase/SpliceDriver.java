@@ -325,7 +325,7 @@ public class SpliceDriver extends SIConstants {
 
         	return false;
         }  catch (PleaseHoldException pe) {
-        	Thread.currentThread().sleep(5000);
+        	Thread.sleep(5000);
         	SpliceLogUtils.info(LOG, "Waiting for Splice Schema to Create");
         	return bootDatabase();
         } catch (Exception e) {
@@ -348,8 +348,6 @@ public class SpliceDriver extends SIConstants {
 			connection = maker.createNew();
 			return true;
         } finally{
-//        	if (connection != null)
-//        		connection.close();
         	Closeables.close(admin,true);
         }
     }
@@ -464,12 +462,12 @@ public class SpliceDriver extends SIConstants {
     }
 
     private boolean startServer() {
-        SpliceLogUtils.info(LOG, "Services successfully started, enabling Connections");
+        SpliceLogUtils.info(LOG, "Services successfully started, enabling JDBC connections...");
         try{
             server = new NetworkServerControl(InetAddress.getByName(derbyBindAddress),derbyBindPort);
             server.setLogConnections(true);
             server.start(new DerbyOutputLoggerWriter());
-            SpliceLogUtils.info(LOG,"Ready to accept connections");
+            SpliceLogUtils.info(LOG,"Ready to accept JDBC connections on %s:%s", derbyBindAddress, derbyBindPort);
             return true;
         }catch(Exception e){
             SpliceLogUtils.error(LOG,"Unable to start Client/Server Protocol",e);
