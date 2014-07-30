@@ -21,36 +21,25 @@
 
 package	org.apache.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.services.context.ContextManager;
-
 import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.sql.compile.Optimizable;
-import org.apache.derby.iapi.sql.compile.OptimizableList;
-import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicateList;
 import org.apache.derby.iapi.sql.compile.Optimizer;
-import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.compile.Visitor;
 import org.apache.derby.iapi.sql.compile.RequiredRowOrdering;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
 
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ResultSet;
 
 import org.apache.derby.iapi.error.StandardException;
 
 import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.impl.sql.compile.ActivationClassBuilder;
 
 import org.apache.derby.iapi.services.sanity.SanityManager;
 
 import org.apache.derby.iapi.util.JBitSet;
 
-import java.util.Properties;
 import java.util.Vector;
 
 /**
@@ -69,7 +58,12 @@ abstract class SingleChildResultSetNode extends FromTable
 	protected boolean hasTrulyTheBestAccessPath;
 
 
-	/**
+    @Override
+    public boolean isParallelizable() {
+        return childResult.isParallelizable();
+    }
+
+    /**
 	 * Initialilzer for a SingleChildResultSetNode.
 	 *
 	 * @param childResult	The child ResultSetNode

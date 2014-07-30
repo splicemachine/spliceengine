@@ -175,7 +175,7 @@ public class FromBaseTable extends FromTable
 	PredicateList baseTableRestrictionList;
 	PredicateList nonBaseTableRestrictionList;
 	PredicateList restrictionList;
-	PredicateList storeRestrictionList;
+	public PredicateList storeRestrictionList;
 	PredicateList nonStoreRestrictionList;
 	PredicateList requalificationRestrictionList;
 
@@ -192,7 +192,12 @@ public class FromBaseTable extends FromTable
     // true if we are running with sql authorization and this is the SYSUSERS table
     private boolean authorizeSYSUSERS;
 
-	/**
+    @Override
+    public boolean isParallelizable() {
+        return false;
+    }
+
+    /**
 	 * Initializer for a table in a FROM list. Parameters are as follows:
 	 *
 	 * <ul>

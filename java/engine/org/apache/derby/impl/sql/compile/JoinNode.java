@@ -89,8 +89,7 @@ public class JoinNode extends TableOperatorNode {
 	public int[] leftHashKeys;
 	public int[] rightHashKeys;
 
-
-	/**
+    /**
 	 * Initializer for a JoinNode.
 	 *
 	 * @param leftResult	The ResultSetNode on the left side of this join

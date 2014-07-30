@@ -71,7 +71,12 @@ public class DistinctNode extends SingleChildResultSetNode
 {
 	boolean inSortedOrder;
 
-	/**
+    @Override
+    public boolean isParallelizable() {
+        return true; //is a distinct scan and/or aggregate
+    }
+
+    /**
 	 * Initializer for a DistinctNode.
 	 *
 	 * @param childResult	The child ResultSetNode

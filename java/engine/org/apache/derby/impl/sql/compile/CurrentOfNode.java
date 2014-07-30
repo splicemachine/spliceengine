@@ -95,7 +95,12 @@ public final class CurrentOfNode extends FromTable {
 	private TableName 				baseTableName;
 	private CostEstimate 			singleScanCostEstimate;
 
-	//
+    @Override
+    public boolean isParallelizable() {
+        return true; //since it's for updates and deletes
+    }
+
+    //
 	// initializers
 	//
 	public void init( Object correlationName, Object cursor, Object tableProperties)

@@ -286,11 +286,6 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         return numArgs;
     }
 
-
-
-
-
-
     /**
      * @see JoinStrategy#divideUpPredicateLists
      *
