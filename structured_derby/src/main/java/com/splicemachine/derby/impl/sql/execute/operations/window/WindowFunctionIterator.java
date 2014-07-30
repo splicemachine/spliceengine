@@ -29,6 +29,7 @@ public class WindowFunctionIterator implements StandardIterator<ExecRow> {
     private int[] partitionColumns;
     private WindowFunctionWorker windowFunctionWorker;
     private SpliceRuntimeContext runtimeContext;
+    private ExecRow templateRow;
 
     public WindowFunctionIterator() {
 
@@ -39,14 +40,15 @@ public class WindowFunctionIterator implements StandardIterator<ExecRow> {
                                   AggregateContext aggregateContext,
                                   SpliceResultScanner scanner,
                                   PairDecoder decoder,
-                                  DataValueDescriptor[] dvds) {
+                                  ExecRow templateRow) {
         this.runtimeContext = runtimeContext;
         this.windowContext = windowContext;
         this.aggregateContext = aggregateContext;
         this.scanner = scanner;
         this.decoder = decoder;
         this.partitionColumns = windowContext.getPartitionColumns();
-        this.dvds = dvds;
+        this.templateRow = templateRow;
+        this.dvds = templateRow.getRowArray();
     }
 
     public boolean init() throws StandardException, IOException {
@@ -64,24 +66,24 @@ public class WindowFunctionIterator implements StandardIterator<ExecRow> {
         return retval;
     }
 
-    private void initWindow() throws StandardException{
+    private void initWindow() throws StandardException, IOException{
         if (windowFunctionWorker == null) {
-            windowFunctionWorker = new WindowFunctionWorker(rowSource, windowContext.getWindowFrame(), aggregateContext);
+            windowFunctionWorker = new WindowFunctionWorker(runtimeContext, rowSource, windowContext.getWindowFrame(), aggregateContext, templateRow);
         }
     }
 
     @Override
     public void open() throws StandardException, IOException{
-        rowSource.open();
+        //rowSource.open();
     }
 
     @Override
     public void close() throws StandardException, IOException{
-        rowSource.close();
+        //rowSource.close();
     }
 
     @Override
     public ExecRow next(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
-        return rowSource.next(runtimeContext);
+        return windowFunctionWorker.next(runtimeContext);
     }
 }
