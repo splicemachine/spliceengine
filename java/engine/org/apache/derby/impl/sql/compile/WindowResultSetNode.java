@@ -23,8 +23,10 @@ package org.apache.derby.impl.sql.compile;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
 
@@ -313,12 +315,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                                              getContextManager()));
 
         /*
-         * Set the Windowing RCL to be empty
+         * Don't empty the Windowing RCL yet. It's required to calculate
+         * addUnAggColumns()
          */
-        resultColumns = (ResultColumnList) getNodeFactory().getNode(
-            C_NodeTypes.RESULT_COLUMN_LIST,
-            getContextManager());
-
     }
 
     /**
@@ -413,14 +412,22 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      */
     private void addUnAggColumns() throws StandardException {
         ResultColumnList bottomRCL = childResult.getResultColumns();
+
+        List<OrderedColumn> allColumns  =
+            collectColumns(resultColumns, this.partition, wdn.getOrderByList());
+        /*
+         * Set the Windowing RCL to be empty
+         */
+        resultColumns = (ResultColumnList) getNodeFactory().getNode(
+            C_NodeTypes.RESULT_COLUMN_LIST,
+            getContextManager());
         ResultColumnList groupByRCL = resultColumns;
 
-        List<OrderedColumn> overClauseColumns = collectOverClauseColumns();
         ArrayList referencesToSubstitute = new ArrayList();
-        for (OrderedColumn oc : overClauseColumns) {
+        for (OrderedColumn oc : allColumns) {
             ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##PartitionColumn_"+oc.getColumnExpression().getColumnName(),
+                "##UnaggColumn" + oc.getColumnExpression().getColumnName(),
                 oc.getColumnExpression(),
                 getContextManager());
 
@@ -433,7 +440,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             // now add this column to the groupbylist
             ResultColumn gbRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##PartitionColumn_"+oc.getColumnExpression().getColumnName(),
+                "##UnaggColumn" + oc.getColumnExpression().getColumnName(),
                 oc.getColumnExpression(),
                 getContextManager());
             groupByRCL.addElement(gbRC);
@@ -509,21 +516,63 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 (SubstituteExpressionVisitor) referencesToSubstitute.get(r));
     }
 
-    private List<OrderedColumn> collectOverClauseColumns() {
+    /**
+     * Window functions differ from group by in that not all columns in a select clause
+     * need be listed in the partition clause.  We need to collect and pull up all columns
+     * in this query so that we can "project" the complete result.  This is done prior to
+     * creating the "aggregate" result, which includes the aggregate function, its input
+     * column and its output column.
+     *
+     * @param resultColumns all result columns projected from below the window function
+     * @param partition columns listed in partition clause
+     * @param orderByList columns listed in order by clause
+     * @return all columns in the query
+     */
+    private List<OrderedColumn> collectColumns(ResultColumnList resultColumns, Partition partition, OrderByList orderByList) {
         int partitionSize = (partition != null ? partition.size() : 0);
-        OrderByList orderByList = wdn.getOrderByList();
         int oderbySize = (orderByList != null? orderByList.size():0);
-        List<OrderedColumn> cols = new ArrayList<OrderedColumn>(partitionSize + oderbySize);
+
+        // ordered list of partition and order by columns
+        List<OrderedColumn> colSet = new ArrayList<OrderedColumn>(partitionSize + oderbySize);
+        // Set of column name to quickly check containment
+        Set<String> names = new HashSet<String>(partitionSize + oderbySize);
+
+        // partition - we need all of these columns
         if (partition != null) {
             for (int i=0; i<partitionSize; ++i) {
-                cols.add((OrderedColumn) partition.elementAt(i));
+                OrderedColumn pCol = (OrderedColumn) partition.elementAt(i);
+                colSet.add(pCol);
+                names.add(pCol.getColumnExpression().getColumnName());
             }
         }
+
+        // order by - we add order by columns to the end so rows will be ordered by
+        // [P1,P2,..][O1,O2,...], where Pn are partition columns and On are order by.
         if (orderByList != null) {
             for (int i=0; i<orderByList.size(); ++i) {
-                cols.add((OrderedColumn) orderByList.elementAt(i));
+                OrderedColumn oCol = (OrderedColumn) orderByList.elementAt(i);
+                colSet.add(oCol);
+                names.add(oCol.getColumnExpression().getColumnName());
             }
         }
+
+        // remaining columns from select (placed in front of list)
+        List<OrderedColumn> cols = new ArrayList<OrderedColumn>();
+        for (int i=0; i<resultColumns.size(); i++) {
+            ResultColumn aCol = (ResultColumn) resultColumns.elementAt(i);
+            if (aCol.getExpression() instanceof ColumnReference) {
+                ColumnReference node = (ColumnReference) aCol.getExpression();
+                if (! names.contains(aCol.getBaseColumnNode().getColumnName())) {
+                    // create fake OrderedColumn to fit into calling code
+                    GroupByColumn gbc = new GroupByColumn();
+                    gbc.init(node);
+                    cols.add(gbc);
+                }
+            }
+        }
+
+        // now add all remaining ordered columns
+        cols.addAll(colSet);
         return cols;
     }
 

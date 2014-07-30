@@ -21,7 +21,6 @@
 package org.apache.derby.impl.sql.compile;
 
 import java.sql.Types;
-import java.util.Vector;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.TypeId;
@@ -52,13 +51,13 @@ public final class RankFunctionNode extends WindowFunctionNode {
      *
      * @see org.apache.derby.impl.sql.compile.ValueNode#bindExpression
      */
-    public ValueNode bindExpression(
-        FromList fromList,
-        SubqueryList subqueryList,
-        Vector aggregateVector) throws StandardException {
-        super.bindExpression(fromList, subqueryList, aggregateVector);
-        return this;
-    }
+//    public ValueNode bindExpression(
+//        FromList fromList,
+//        SubqueryList subqueryList,
+//        Vector aggregateVector) throws StandardException {
+//        super.bindExpression(fromList, subqueryList, aggregateVector);
+//        return this;
+//    }
 
     @Override
     public ColumnReference getGeneratedRef() {

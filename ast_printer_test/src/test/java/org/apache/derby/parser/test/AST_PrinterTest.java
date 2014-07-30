@@ -62,6 +62,12 @@ public class AST_PrinterTest {
     }
 
     @Test
+    public void testAllColsAggregateGroupbyOrderby() throws Exception {
+        String query = "SELECT empnum, dept, salary, max(salary) as maxsal from emptab group by empnum, dept, salary order by salary";
+        grapher.execute(query);
+    }
+
+    @Test
     public void testAggregateWindow() throws Exception {
         String query = "SELECT dept, max(salary) over (Partition by dept) as maxsal from emptab";
         ASTVisitorConfig.Factory.printResult(query, grapher.execute(query), System.out);
