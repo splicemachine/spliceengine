@@ -1066,6 +1066,10 @@ public class SpliceConstants {
 
 				importLogQueueWaitTimeMs = config.getLong(IMPORT_LOG_QUEUE_WAIT_TIME,DEFAULT_IMPORT_LOG_QUEUE_WAIT_TIME);
 				useReadAheadScanner = config.getBoolean(USE_READ_AHEAD_SCANNER,DEFAULT_USE_READ_AHEAD_SCANNER);
+
+        ddlDrainingMaximumWait = config.getLong(DDL_DRAINING_MAXIMUM_WAIT,DEFAULT_DDL_DRAINING_MAXIMUM_WAIT);
+        ddlDrainingInitialWait = config.getLong(DDL_DRAINING_INITIAL_WAIT,DEFAULT_DDL_DRAINING_INITIAL_WAIT);
+
 		}
 
 		public static void reloadConfiguration(Configuration configuration) {

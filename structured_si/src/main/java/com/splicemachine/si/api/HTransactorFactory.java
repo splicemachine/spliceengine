@@ -16,6 +16,7 @@ import com.splicemachine.utils.Provider;
 import com.splicemachine.utils.Providers;
 import com.splicemachine.utils.ZkUtils;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -125,8 +126,13 @@ public class HTransactorFactory extends SIConstants {
 										SpliceConstants.tablePoolMaxSize,SpliceConstants.tablePoolCoreSize);
 						final HPoolTableSource tableSource = new HPoolTableSource(hTablePool);
 						SDataLib dataLib = new HDataLib();
-						final STableReader reader = new HTableReader(tableSource);
-						final STableWriter writer = new HTableWriter();
+            final STableReader reader;
+            try {
+                reader = new HTableReader(tableSource);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            final STableWriter writer = new HTableWriter();
 						final TransactionSchema transactionSchema = new TransactionSchema(TRANSACTION_TABLE,
 										DEFAULT_FAMILY,
 										SI_PERMISSION_FAMILY,

@@ -122,9 +122,9 @@ public class BytesUtil {
 		 * @return True or false.
 		 */
 		public static boolean toBoolean(final byte [] b,int offset) {
-				if (b.length != 1) {
-						throw new IllegalArgumentException("Array has wrong size: " + b.length);
-				}
+//				if (b.length != 1) {
+//						throw new IllegalArgumentException("Array has wrong size: " + b.length);
+//				}
 				return b[offset] != (byte) 0;
 		}
 

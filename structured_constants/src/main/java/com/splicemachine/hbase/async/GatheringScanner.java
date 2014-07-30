@@ -3,12 +3,11 @@ package com.splicemachine.hbase.async;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.hbase.RowKeyDistributor;
-import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.stats.*;
 import com.splicemachine.stats.Timer;
+import com.splicemachine.utils.NullStopIterator;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
-import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.hbase.async.KeyValue;
@@ -17,7 +16,6 @@ import org.hbase.async.Scanner;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -33,52 +31,19 @@ public class GatheringScanner implements AsyncScanner {
     private final SubScanner[] scanners;
     private final int maxQueueSize;
 
-    public static AsyncScanner newScanner(byte[] tableName,
-                                          Scan baseScan,
-                                          RegionCache regionCache,
+    public static AsyncScanner newScanner(Scan baseScan,
                                           int maxQueueSize,
                                           MetricFactory metricFactory,
                                           Function<Scan, Scanner> toScannerFunction,
                                           RowKeyDistributor rowKeyDistributor) throws IOException {
-        try {
-            SortedSet<HRegionInfo> regionsInRange = regionCache.getRegionsInRange(tableName, baseScan.getStartRow(), baseScan.getStopRow());
-            if(regionsInRange.size()<=1){
-                return new SimpleAsyncScanner(toScannerFunction.apply(baseScan),metricFactory);
-            }
 
-            //split base scan around region points
-            Scan[] distributedScans = rowKeyDistributor.getDistributedScans(baseScan);
-            List<Scanner> scans = Lists.newArrayListWithExpectedSize(distributedScans.length);
-            for(Scan scan:distributedScans){
-                scans.add(toScannerFunction.apply(scan));
-            }
-//            byte[] scanStart = baseScan.getStartRow();
-//            byte[] totalScanEnd = baseScan.getStopRow();
-//            // the first region should contain the scan start key, and the last region will contain the scan stop key
-//            boolean isFirst = true;
-//            for(HRegionInfo info:regionsInRange){
-//                Scan newScan = new Scan(baseScan);
-//                if(isFirst){
-//                    newScan.setStartRow(scanStart);
-//                    isFirst = false;
-//                }else
-//                    newScan.setStartRow(info.getStartKey());
-//
-//                if(info.containsRow(totalScanEnd)){
-//                    newScan.setStopRow(totalScanEnd);
-//                    scans.add(toScannerFunction.apply(newScan));
-////                    scans.add(AsyncScannerUtils.convertScanner(newScan,tableName,hbaseClient,baseScan.getCacheBlocks()));
-//                    break; //just for safety, in case regionCache is broken
-//                }else{
-//                    newScan.setStopRow(info.getEndKey());
-//                    scans.add(toScannerFunction.apply(newScan));
-////                    scans.add(AsyncScannerUtils.convertScanner(newScan,tableName,hbaseClient,baseScan.getCacheBlocks()));
-//                }
-//            }
-            return new GatheringScanner(scans,maxQueueSize,metricFactory);
-        } catch (ExecutionException e) {
-            throw new IOException(e.getCause());
+        Scan[] distributedScans = rowKeyDistributor.getDistributedScans(baseScan);
+        List<Scanner> scans = Lists.newArrayListWithExpectedSize(distributedScans.length);
+        for(Scan scan:distributedScans){
+            scans.add(toScannerFunction.apply(scan));
         }
+
+        return new GatheringScanner(scans,maxQueueSize,metricFactory);
     }
 
     public GatheringScanner(List<Scanner> scanners, int maxQueueSize, MetricFactory metricFactory){
@@ -201,7 +166,13 @@ public class GatheringScanner implements AsyncScanner {
         }
     }
 
-    @Override public Iterator<Result> iterator() { return null; }
+    @Override
+    public Iterator<Result> iterator() {
+        return new NullStopIterator<Result>() {
+            @Override protected Result nextItem() throws IOException { return GatheringScanner.this.next(); }
+            @Override public void close() throws IOException { GatheringScanner.this.close(); }
+        };
+    }
 
     private static class SubScanner implements Callback<Void, ArrayList<ArrayList<KeyValue>>> {
         private final Queue<List<KeyValue>> resultQueue;

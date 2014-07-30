@@ -3,6 +3,7 @@ package com.splicemachine.hbase.async;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.stats.*;
 import com.splicemachine.stats.Timer;
+import com.splicemachine.utils.NullStopIterator;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 import org.apache.hadoop.hbase.HConstants;
@@ -124,7 +125,10 @@ public class SimpleAsyncScanner implements AsyncScanner,Callback<ArrayList<Array
 
     @Override
     public Iterator<Result> iterator() {
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return new NullStopIterator<Result>() {
+            @Override public void close() throws IOException { SimpleAsyncScanner.this.close();  }
+            @Override protected Result nextItem() throws IOException { return SimpleAsyncScanner.this.next(); }
+        };
     }
 
     @Override
