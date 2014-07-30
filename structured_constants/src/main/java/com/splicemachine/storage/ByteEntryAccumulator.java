@@ -11,7 +11,6 @@ public class ByteEntryAccumulator extends BaseEntryAccumulator<ByteEntryAccumula
 
     protected ByteSlice[] fields;
 
-
 		public ByteEntryAccumulator(EntryPredicateFilter filter, boolean returnIndex, BitSet fieldsToCollect){
 				super(filter,returnIndex,fieldsToCollect);
 				if(fieldsToCollect!=null && !fieldsToCollect.isEmpty())

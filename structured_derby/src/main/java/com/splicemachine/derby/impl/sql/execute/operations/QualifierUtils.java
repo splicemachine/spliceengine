@@ -32,6 +32,7 @@ public class QualifierUtils {
      * @throws StandardException if something goes wrong.
      */
     public static Qualifier adjustQualifier(Qualifier qualifier, int columnFormat,DataValueFactory dataValueFactory) throws StandardException {
+        if(qualifier.getOrderable().isNull()) return qualifier;
         if(isFloatType(columnFormat)){
             return convertFloatingPoint(qualifier,columnFormat,dataValueFactory);
         }else if(isScalarType(columnFormat)){

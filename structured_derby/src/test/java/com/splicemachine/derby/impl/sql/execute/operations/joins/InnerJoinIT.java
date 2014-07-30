@@ -1,4 +1,4 @@
-package org.apache.derby.impl.sql.execute.operations.joins;
+package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.google.common.collect.Maps;
 import com.splicemachine.test.SlowTest;
@@ -114,8 +114,7 @@ public class InnerJoinIT extends SpliceUnitTest {
 						.around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/hits.sql", CLASS_NAME))
 						.around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME));
 
-		@Rule
-		public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+		@Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
 		public static void insertData(String t1,String t2,SpliceWatcher spliceWatcher) throws Exception {
 				PreparedStatement psC = spliceWatcher.prepareStatement("insert into "+t1+" values (?,?)");
@@ -408,8 +407,25 @@ public class InnerJoinIT extends SpliceUnitTest {
 				Assert.assertEquals("Seal (94)", results.get(0).get("ITM_NAME"));
 				Assert.assertEquals("MicroStrategy Music", results.get(0).get("CAT_NAME"));
 				Assert.assertEquals("Alternative", results.get(0).get("SBC_DESC"));
-
 		}
+
+    @Test
+    public void testThreeTableJoinOnItemsWithCriteriaNestedLoopOverBroadcast() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select t1.itm_name, t2.sbc_desc, t3.cat_name " +
+                "from item t1, " +
+                "category_sub t2 --SPLICE-PROPERTIES joinStrategy=BROADCAST \n" +
+                ", category t3 --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP \n" +
+                "where t1.itm_subcat_id = t2.sbc_id and t2.sbc_category_id = t3.cat_id " +
+                "and t1.itm_name = 'Seal (94)'");
+
+        List<Map> results = TestUtils.resultSetToMaps(rs);
+
+        Assert.assertEquals(1, results.size());
+
+        Assert.assertEquals("Seal (94)", results.get(0).get("ITM_NAME"));
+        Assert.assertEquals("MicroStrategy Music", results.get(0).get("CAT_NAME"));
+        Assert.assertEquals("Alternative", results.get(0).get("SBC_DESC"));
+    }
 
 		@Test
 		public void testFourTableJoin() throws Exception {

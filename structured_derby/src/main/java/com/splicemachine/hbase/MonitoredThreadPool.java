@@ -5,6 +5,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
+import org.apache.hadoop.hbase.regionserver.RegionServerStoppedException;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -85,8 +86,16 @@ public class MonitoredThreadPool implements ThreadPoolStatus {
                 totalSuccessfulTasks.incrementAndGet();
                 return item;
             }catch(Exception e){
-                numFailedTasks.incrementAndGet();
-                throw e;
+               if(e  instanceof RegionServerStoppedException) {
+                   writerPool.shutdown();
+                   numFailedTasks.incrementAndGet();
+                   throw new RegionServerStoppedException("The region server has stopped");
+               }
+               else {
+                   numFailedTasks.incrementAndGet();
+                   throw e;
+               }
+
             }
         }
     }

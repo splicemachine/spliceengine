@@ -224,12 +224,12 @@ public class Scans extends SpliceUtils {
 						for(Qualifier orQual:orQuals){
 								orPreds.add(pb.getPredicate(orQual));
 						}
-						andedOrPreds.add(new OrPredicate(orPreds));
+						andedOrPreds.add(OrPredicate.or(orPreds));
 				}
 				if(andedOrPreds.size()>0)
 						andPreds.addAll(andedOrPreds);
 
-				Predicate firstAndPredicate = new AndPredicate(andPreds);
+				Predicate firstAndPredicate = AndPredicate.newAndPredicate(andPreds);
 				return ObjectArrayList.from(firstAndPredicate);
 		}
 

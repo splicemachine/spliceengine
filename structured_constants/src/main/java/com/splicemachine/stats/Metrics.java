@@ -22,8 +22,8 @@ public class Metrics {
 
 		static {
 				threadMXBean = ManagementFactory.getThreadMXBean();
-				supportsCPUTime = threadMXBean.isCurrentThreadCpuTimeSupported();
-//				supportsCPUTime = false;
+//				supportsCPUTime = threadMXBean.isCurrentThreadCpuTimeSupported();
+				supportsCPUTime = false;
 		}
 
 		private static final MetricFactory NOOP_FACTORY = new MetricFactory() {
@@ -158,7 +158,29 @@ public class Metrics {
 				return new SimpleMultiTimeView(Folders.sumFolder(),Folders.sumFolder(),Folders.sumFolder(),Folders.minLongFolder(),Folders.maxLongFolder());
 		}
 
-		/*private helper classes*/
+    public static LatencyTimer sampledLatencyTimer(int sampleSize) {
+        if(!supportsCPUTime)
+            return new SampledTimer(sampleSize,new NanoTimeMeasure(),NOOP_TIME_MEASURE,NOOP_TIME_MEASURE);
+        else
+            return new SampledTimer(sampleSize,new NanoTimeMeasure(),new CpuTimeMeasure(),new UserTimeMeasure());
+    }
+
+    private static final LatencyView NOOP_LATENCY_VIEW = new LatencyView() {
+        @Override public double getOverallLatency() { return 0; }
+        @Override public long getP25Latency() { return 0; }
+        @Override public long getP50Latency() { return 0; }
+        @Override public long getP75Latency() { return 0; }
+        @Override public long getP90Latency() { return 0; }
+        @Override public long getP95Latency() { return 0; }
+        @Override public long getP99Latency() { return 0; }
+        @Override public long getMinLatency() { return 0; }
+        @Override public long getMaxLatency() { return 0; }
+    };
+    public static LatencyView noOpLatencyView() {
+        return NOOP_LATENCY_VIEW;
+    }
+
+    /*private helper classes*/
 		private static class BasicCounter implements Counter {
 				private long count;
 

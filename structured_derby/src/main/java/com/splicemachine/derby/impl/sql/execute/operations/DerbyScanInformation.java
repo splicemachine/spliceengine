@@ -29,11 +29,13 @@ import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.ipc.ExecRPCInvoker;
 
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -71,7 +73,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     private int colRefItem;
 		private String tableVersion;
 
-		private static final Cache<Long,String> tableVersionCache = CacheBuilder.newBuilder()
+		public static final Cache<Long,String> tableVersionCache = CacheBuilder.newBuilder()
 						.maximumSize(4096)
 						.build();
 		@SuppressWarnings("UnusedDeclaration")
@@ -331,43 +333,51 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
         }
         //convert types of filters against column type
         if(scanQualifiers!=null){
-            getConglomerate();
-            int[] format_ids = conglomerate.getFormat_ids();
-            for(Qualifier[] qualifiers:scanQualifiers){
-                for(int qualPos=0;qualPos<qualifiers.length;qualPos++){
-                    Qualifier qualifier = qualifiers[qualPos];
-										qualifier.clearOrderableCache();
-                    int columnFormat = format_ids[qualifier.getColumnId()];
-                    DataValueDescriptor dvd = qualifier.getOrderable();
-                    if (dvd==null)
-                        continue;
-                    if(dvd.getTypeFormatId()!=columnFormat){
-                        //we need to convert the types to match
-                        qualifier = QualifierUtils.adjustQualifier(qualifier, columnFormat,activation.getDataValueFactory());
-                        qualifiers[qualPos] = qualifier;
-                    }
-                    //make sure that SQLChar qualifiers strip out \u0000 padding
-                    if(dvd.getTypeFormatId()== StoredFormatIds.SQL_CHAR_ID){
-                        String value = dvd.getString();
-                        if(value!=null){
-                            char[] valChars = value.toCharArray();
-                            int finalPosition = valChars.length;
-                            for(int i=valChars.length-1;i>=0;i--){
-                                if(valChars[i]!='\u0000'){
-                                    finalPosition=i+1;
-                                    break;
-                                }
-                            }
-                            value = value.substring(0,finalPosition);
+            Qualifier[][] qualCopy = new Qualifier[scanQualifiers.length][];
+            for(int i=0;i<scanQualifiers.length;i++){
+                Qualifier[] scanQualifier = scanQualifiers[i];
+                qualCopy[i] = Arrays.copyOf(scanQualifier, scanQualifier.length);
+            }
+            adjustQualifiers(qualCopy);
+            scanQualifiers = qualCopy;
+        }
+        return scanQualifiers;
+    }
 
-                            dvd.setValue(value);
+    private void adjustQualifiers(Qualifier[][] scanQualifiers) throws StandardException {
+        int[] format_ids = getConglomerate().getFormat_ids();
+        for(Qualifier[] qualifiers:scanQualifiers){
+            for(int qualPos=0;qualPos<qualifiers.length;qualPos++){
+                Qualifier qualifier = qualifiers[qualPos];
+                qualifier.clearOrderableCache();
+                int columnFormat = format_ids[qualifier.getColumnId()];
+                DataValueDescriptor dvd = qualifier.getOrderable();
+                if (dvd==null)
+                    continue;
+                if(dvd.getTypeFormatId()!=columnFormat){
+                    //we need to convert the types to match
+                    qualifier = QualifierUtils.adjustQualifier(qualifier, columnFormat, activation.getDataValueFactory());
+                    qualifiers[qualPos] = qualifier;
+                }
+                //make sure that SQLChar qualifiers strip out \u0000 padding
+                if(dvd.getTypeFormatId()== StoredFormatIds.SQL_CHAR_ID){
+                    String value = dvd.getString();
+                    if(value!=null){
+                        char[] valChars = value.toCharArray();
+                        int finalPosition = valChars.length;
+                        for(int i=valChars.length-1;i>=0;i--){
+                            if(valChars[i]!='\u0000'){
+                                finalPosition=i+1;
+                                break;
+                            }
                         }
+                        value = value.substring(0,finalPosition);
+
+                        dvd.setValue(value);
                     }
                 }
             }
-
         }
-        return scanQualifiers;
     }
 
     protected ExecIndexRow getStopPosition() throws StandardException {

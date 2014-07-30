@@ -1,7 +1,9 @@
 package com.splicemachine.derby.hbase;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.Result;
@@ -9,11 +11,15 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
+import org.hbase.async.HbaseAttributeHolder;
+
 /**
  * Region Observer looking for a scan with <i>SpliceServerInstructions</i> set on the attribute map of the scan.
  * 
@@ -39,6 +45,38 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
 		SpliceLogUtils.info(LOG, "Stopping the CoProcessor %s",SpliceOperationRegionObserver.class);
 		super.stop(e);
 	}
+
+    @Override
+    public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan, RegionScanner s) throws IOException {
+        if(scan.getAttribute(SPLICE_OBSERVER_INSTRUCTIONS)!=null)
+            return super.preScannerOpen(e,scan,s);
+
+        Filter filter = scan.getFilter();
+        if(filter instanceof HbaseAttributeHolder){
+            setAttributesFromFilter(scan, (HbaseAttributeHolder) filter);
+            scan.setFilter(null); //clear the filter
+        }else if (filter instanceof FilterList){
+            FilterList fl = (FilterList)filter;
+            List<Filter> filters = fl.getFilters();
+            Iterator<Filter> fIter = filters.iterator();
+            while(fIter.hasNext()){
+                Filter next = fIter.next();
+                if(next instanceof HbaseAttributeHolder){
+                    setAttributesFromFilter(scan,(HbaseAttributeHolder)next);
+                    fIter.remove();
+                }
+            }
+        }
+        return super.preScannerOpen(e, scan, s);
+    }
+
+    protected void setAttributesFromFilter(Scan scan, HbaseAttributeHolder filter) {
+        Map<String,byte[]> attributes = ((HbaseAttributeHolder)filter).getAttributes();
+        for(Map.Entry<String,byte[]> attribute:attributes.entrySet()){
+            if(scan.getAttribute(attribute.getKey())==null)
+                scan.setAttribute(attribute.getKey(),attribute.getValue());
+        }
+    }
 
     /**
 	 * Override the postScannerOpen to wrap the scan with the SpliceOperationRegionScanner.  This allows for cases

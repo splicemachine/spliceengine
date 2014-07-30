@@ -1,8 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.impl.sql.execute.SpliceGenericResultSetFactory;
+import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
@@ -12,7 +14,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -177,22 +178,11 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				private boolean returnedRight=false;
 				private boolean outerJoin = false;
 
-				NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin,SpliceRuntimeContext context) throws StandardException {
+				NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin,SpliceRuntimeContext context) throws StandardException, IOException {
 						SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
 						this.leftRow = leftRow;
 						probeResultSet = getRightResultSet();
 						probeResultSet.open(hash,false);
-//						if (hash) {
-//								SpliceLogUtils.trace(LOG, "Iterator - executeProbeScan on %s",getRightResultSet());
-//						}
-//						else {
-//								SpliceLogUtils.trace(LOG, "Iterator - executeScan on %s",getRightResultSet());
-//								ors.openCore();
-//								probeResultSet = (getRightResultSet()).executeScan(context);
-//						}
-//
-//						SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Opening ",(outerJoin?"Outer ":""),"join. Left: ",(leftRow != null ? leftRow : "NULL Left Row"));
-//						probeResultSet.openCore();
 						populated=false;
 						this.outerJoin = outerJoin;
 				}
@@ -228,7 +218,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 					/*
 					 * the right result set's row might be used in other branches up the stack which
 					 * occur under serialization, so the activation has to be sure and set the current row
-					 * on rightResultSet, or that row won't be serialized over, potentially breaking ProjectRestricts
+               * on rightResultSet, or that row won't be serialized over, potentially breaking ProjectRestricts
 					 * up the stack.
 					 */
 										rightResultSet.setCurrentRow(rightRow); //set this here for serialization up the stack
@@ -236,7 +226,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 										nonNullRight();
 										returnedRight=true;
 
-										mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);
+										mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
 								}else {
 										SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin Right: ",rightRow);
 										populated = false;

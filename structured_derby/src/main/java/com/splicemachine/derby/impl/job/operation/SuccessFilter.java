@@ -101,4 +101,8 @@ public class SuccessFilter extends FilterBase {
             failedTasks.add(next);
         }
     }
+
+    public List<byte[]> getTaskList() {
+        return failedTasks;
+    }
 }

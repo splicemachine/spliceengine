@@ -443,6 +443,11 @@ public class PipingWriteBufferTest{
         @Override
         public void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
         }
+
+        @Override
+        public SortedSet<HRegionInfo> getRegionsInRange(byte[] tableName, byte[] startRow, byte[] stopRow) throws ExecutionException {
+            throw new UnsupportedOperationException("IMPLEMENT");
+        }
     }
 
     private static class Monitor implements WriteCoordinatorStatus,BufferConfiguration{

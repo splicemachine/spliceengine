@@ -1,12 +1,12 @@
 package com.splicemachine.concurrent;
 
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
+
 import java.nio.ByteBuffer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import com.splicemachine.concurrent.TSOpenBitSet;
 
 public class BloomFilter extends Filter {
-    private static final Logger logger = LoggerFactory.getLogger(BloomFilter.class);
+    private static final Logger logger = Logger.getLogger(BloomFilter.class);
     private static final int EXCESS = 20;
     public TSOpenBitSet bitset;
 
@@ -39,7 +39,7 @@ public class BloomFilter extends Filter {
         }
         BloomCalculations.BloomSpecification spec = BloomCalculations.computeBloomSpec(bucketsPerElement);
         if (logger.isTraceEnabled())
-            logger.trace("Creating bloom filter for {} elements and spec {}", numElements, spec);
+            SpliceLogUtils.trace(logger,"Creating bloom filter for %d elements and spec %s",numElements,spec);
         return new BloomFilter(spec.K, bucketsFor(numElements, spec.bucketsPerElement));
     }
 

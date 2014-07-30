@@ -2,7 +2,9 @@ package com.splicemachine.derby.impl.sql.catalog;
 
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.UUID;
+import org.apache.derby.iapi.db.Database;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.cache.Cacheable;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
@@ -11,9 +13,13 @@ import org.apache.derby.iapi.sql.execute.ScanQualifier;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.Orderable;
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.derby.impl.sql.catalog.*;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
+import com.splicemachine.utils.SpliceLogUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -203,4 +209,148 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 		}
 		return list;
 	}
+
+	@Override
+	protected void setDependencyManager() {
+		SpliceLogUtils.trace(LOG, "Initializing the Splice Dependency Manager");
+		this.dmgr = new SpliceDependencyManager(this);
+	}
+
+	@Override
+	public void boot(boolean create, Properties startParams) throws StandardException {
+		SpliceLogUtils.trace(LOG, "boot with create=%s,startParams=%s",create,startParams);
+		super.boot(create, startParams);
+	}
+
+	@Override
+	public boolean canSupport(Properties startParams) {
+		SpliceLogUtils.trace(LOG, "canSupport startParam=%s",startParams);
+		return super.canSupport(startParams);
+	}
+
+	@Override
+	public void addDescriptor(TupleDescriptor td, TupleDescriptor parent,
+			int catalogNumber, boolean duplicatesAllowed,
+			TransactionController tc) throws StandardException {
+		super.addDescriptor(td, parent, catalogNumber, duplicatesAllowed, tc);
+	}
+
+	@Override
+	public void addDescriptorArray(TupleDescriptor[] td,
+			TupleDescriptor parent, int catalogNumber, boolean allowDuplicates,
+			TransactionController tc) throws StandardException {
+		// TODO Auto-generated method stub
+		super.addDescriptorArray(td, parent, catalogNumber, allowDuplicates, tc);
+	}
+
+	@Override
+	public RoleClosureIterator createRoleClosureIterator(
+			TransactionController tc, String role, boolean inverse)
+			throws StandardException {
+		// TODO Auto-generated method stub
+		return super.createRoleClosureIterator(tc, role, inverse);
+	}
+
+	@Override
+	public void addSPSDescriptor(SPSDescriptor descriptor,
+			TransactionController tc) throws StandardException {
+		// TODO Auto-generated method stub
+		super.addSPSDescriptor(descriptor, tc);
+	}
+
+	@Override
+	public boolean activeConstraint(ConstraintDescriptor constraint)
+			throws StandardException {
+		// TODO Auto-generated method stub
+		return super.activeConstraint(constraint);
+	}
+
+	@Override
+	public void addConstraintDescriptor(ConstraintDescriptor descriptor,
+			TransactionController tc) throws StandardException {
+		// TODO Auto-generated method stub
+		super.addConstraintDescriptor(descriptor, tc);
+	}
+
+	@Override
+	public RowLocation[] computeAutoincRowLocations(TransactionController tc,
+			TableDescriptor td) throws StandardException {
+		// TODO Auto-generated method stub
+		return super.computeAutoincRowLocations(tc, td);
+	}
+
+	@Override
+	public void clearCaches() throws StandardException {
+		// TODO Auto-generated method stub
+		super.clearCaches();
+	}
+
+	@Override
+	public void clearSequenceCaches() throws StandardException {
+		// TODO Auto-generated method stub
+		super.clearSequenceCaches();
+	}
+
+	@Override
+	public void addTableDescriptorToOtherCache(TableDescriptor td, Cacheable c)
+			throws StandardException {
+		// TODO Auto-generated method stub
+		super.addTableDescriptorToOtherCache(td, c);
+	}
+
+	@Override
+	public boolean checkVersion(int requiredMajorVersion, String feature)
+			throws StandardException {
+		// TODO Auto-generated method stub
+		return super.checkVersion(requiredMajorVersion, feature);
+	}
+
+	@Override
+	protected void createSPSSet(TransactionController tc, boolean net,
+			UUID schemaID) throws StandardException {
+		// TODO Auto-generated method stub
+		super.createSPSSet(tc, net, schemaID);
+	}
+
+	@Override
+	public boolean addRemovePermissionsDescriptor(boolean add,
+			PermissionsDescriptor perm, String grantee, TransactionController tc)
+			throws StandardException {
+		// TODO Auto-generated method stub
+		return super.addRemovePermissionsDescriptor(add, perm, grantee, tc);
+	}
+
+	@Override
+	public void createOrUpdateSystemProcedure(String schemaName,
+			String procName, TransactionController tc) throws StandardException {
+		// TODO Auto-generated method stub
+		super.createOrUpdateSystemProcedure(schemaName, procName, tc);
+	}
+
+	@Override
+	public void createOrUpdateAllSystemProcedures(TransactionController tc)
+			throws StandardException {
+		// TODO Auto-generated method stub
+		super.createOrUpdateAllSystemProcedures(tc);
+	}
+
+	@Override
+	public void disableIndexStatsRefresher() {
+		// TODO Auto-generated method stub
+		super.disableIndexStatsRefresher();
+	}
+
+	@Override
+	public boolean doCreateIndexStatsRefresher() {
+		// TODO Auto-generated method stub
+		return super.doCreateIndexStatsRefresher();
+	}
+
+	@Override
+	public void createIndexStatsRefresher(Database db, String dbName) {
+		// TODO Auto-generated method stub
+		super.createIndexStatsRefresher(db, dbName);
+	}
+    
+    
 }

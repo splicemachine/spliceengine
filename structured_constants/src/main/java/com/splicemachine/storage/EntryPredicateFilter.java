@@ -200,8 +200,11 @@ public class EntryPredicateFilter {
         return valuePredicates;
     }
 
+    public void setValuePredicates(ObjectArrayList<Predicate> valuePredicates) {
+        this.valuePredicates = valuePredicates;
+    }
 
-		private void skipField(MultiFieldDecoder decoder, int position, Indexed index) {
+    private void skipField(MultiFieldDecoder decoder, int position, Indexed index) {
 				if(index.isScalarType(position)){
 						decoder.skipLong();
 				}else if(index.isFloatType(position)){
@@ -222,4 +225,8 @@ public class EntryPredicateFilter {
 				else
 						accumulator.add(position,buffer,offset,length);
 		}
+
+    public boolean indexReturned() {
+        return returnIndex;
+    }
 }

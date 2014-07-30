@@ -21,6 +21,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -53,8 +54,10 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		protected EntryPredicateFilter predicateFilter;
 		private boolean cachedPredicateFilter = false;
 		protected int[] keyDecodingMap;
+    protected Scan scan;
+    protected boolean scanSet = false;
 
-		public ScanOperation () {
+    public ScanOperation () {
 				super();
 		}
 
@@ -167,7 +170,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				SpliceLogUtils.trace(LOG, "initIsolationLevel");
 		}
 
-		protected Scan getNonSIScan(SpliceRuntimeContext spliceRuntimeContext) {
+		public Scan getNonSIScan(SpliceRuntimeContext spliceRuntimeContext) {
 				/*
 				 * Intended to get a scan which does NOT set up SI underneath us (since
 				 * we are doing it ourselves).
@@ -340,6 +343,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				String indent = "\n"+ Strings.repeat("\t",indentLevel);
 				return new StringBuilder("Scan:")
 								.append(indent).append("resultSetNumber:").append(resultSetNumber)
+								.append(indent).append("optimizerEstimatedCost:").append(optimizerEstimatedCost).append(",")
+								.append(indent).append("optimizerEstimatedRowCount:").append(optimizerEstimatedRowCount).append(",")								
 								.append(indent).append("scanInformation:").append(scanInformation)
 								.append(indent).append("tableName:").append(tableName)
 								.toString();
@@ -348,4 +353,9 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		public int[] getKeyColumns() {
 				return columnOrdering;
 		}
+
+    public void setScan(Scan scan) {
+        this.scan = scan;
+        this.scanSet = true;
+    }
 }

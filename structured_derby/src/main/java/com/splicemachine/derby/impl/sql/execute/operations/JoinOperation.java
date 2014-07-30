@@ -222,7 +222,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
 		@Override
 		public String toString() {
-				return String.format("JoinOperation {resultSetNumber=%d,left=%s,right=%s}",operationInformation.getResultSetNumber(),leftResultSet,rightResultSet);
+				return String.format("JoinOperation {resultSetNumber=%d,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f,left=%s,right=%s}",operationInformation.getResultSetNumber(),optimizerEstimatedCost,optimizerEstimatedRowCount,leftResultSet,rightResultSet);
 		}
 		@Override
 		public void	close() throws StandardException, IOException {
@@ -268,9 +268,10 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		@Override
 		public String prettyPrint(int indentLevel) {
 				String indent = "\n"+Strings.repeat("\t",indentLevel);
-
 				return new StringBuilder()
 								.append(indent).append("resultSetNumber:").append(operationInformation.getResultSetNumber())
+								.append(indent).append("optimizerEstimatedCost:").append(optimizerEstimatedCost).append(",")
+								.append(indent).append("optimizerEstimatedRowCount:").append(optimizerEstimatedRowCount).append(",")								
 								.append(indent).append("leftNumCols:").append(leftNumCols).append(",")
 								.append(indent).append("leftResultSetNumber:").append(leftResultSetNumber)
 								.append(indent).append("leftResultSet:").append(leftResultSet.prettyPrint(indentLevel+1))

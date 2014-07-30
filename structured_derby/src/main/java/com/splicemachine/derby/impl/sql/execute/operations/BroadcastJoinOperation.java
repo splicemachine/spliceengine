@@ -8,10 +8,7 @@ import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.SameThreadExecutorService;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -303,8 +300,10 @@ public class BroadcastJoinOperation extends JoinOperation {
             rightRowCounter = runtimeContext.newCounter();
             SpliceRuntimeContext ctxNoSink = runtimeContext.copy();
             ctxNoSink.unMarkAsSink();
-            SpliceNoPutResultSet resultSet = rightResultSet.executeScan(ctxNoSink);
-            resultSet.openCore();
+            OperationResultSet ors = new OperationResultSet(activation,rightResultSet);
+            ors.sinkOpen(false,false);
+            ors.executeScan(false,ctxNoSink);
+            SpliceNoPutResultSet resultSet = ors.getDelegate();
             DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(rightTemplate);
             KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE,
                                                       BareKeyHash.encoder(rightHashKeys, null, serializers),
