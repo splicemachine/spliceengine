@@ -181,14 +181,14 @@ public class SITransactionManager implements TransactionManager {
 						if (oldestId > currentMin) {
 								timestampSource.rememberTimestamp(oldestId);
 						}
-						final TransactionId youngestId = oldestActiveTransactions.get(oldestActiveTransactions.size() - 1).getTransactionId();
-						if (youngestId.equals(max)) {
+//						final TransactionId youngestId = oldestActiveTransactions.get(oldestActiveTransactions.size() - 1).getTransactionId();
+//						if (youngestId.equals(max)) {
 								for (Transaction t : oldestActiveTransactions) {
 										result.add(t.getTransactionId());
 								}
-						} else {
-								throw new RuntimeException("expected max id of " + max + " but was " + youngestId);
-						}
+//						} else {
+//								throw new RuntimeException("expected max id of " + max + " but was " + youngestId);
+//						}
 				}
 				return result;
 		}

@@ -22,6 +22,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -45,7 +46,12 @@ public class HStoreSetup implements StoreSetup {
 		private TestHTableSource tableSource;
 
 		public HStoreSetup(boolean usePacked) {
-        setupHBaseHarness(usePacked);
+        try {
+            setupHBaseHarness(usePacked);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+
+        }
     }
 
     public static Map<String, HRegion> regionMap = new HashMap<String, HRegion>();
@@ -86,7 +92,7 @@ public class HStoreSetup implements StoreSetup {
         testCluster.getConfiguration().setInt("hbase.regionserver.info.port", basePort + 3);
     }
 
-    private void setupHBaseHarness(boolean usePacked) {
+    private void setupHBaseHarness(boolean usePacked) throws IOException {
         dataLib = new HDataLib();
         final STableReader<IHTable, Get, Scan> rawReader = new HTableReader(setupHTableSource(getNextBasePort(), usePacked));
         reader = new STableReaderDelegate<IHTable, Get, Scan>(rawReader) {

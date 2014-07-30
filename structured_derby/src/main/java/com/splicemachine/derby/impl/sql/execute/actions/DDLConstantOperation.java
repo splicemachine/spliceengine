@@ -8,10 +8,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import com.carrotsearch.hppc.LongArrayList;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.index.ForbidPastWritesJob;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.utils.CloseableIterator;
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.DependableFinder;
 import org.apache.derby.catalog.UUID;
@@ -63,6 +67,8 @@ import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import javax.annotation.Nullable;
 
 /**
  * Abstract class that has actions that are across
@@ -918,50 +924,71 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
     /**
      * Waits for concurrent transactions that started before the tentative
      * change completed.
-     * 
+     *
      * Performs an exponential backoff until a configurable timeout triggers,
      * then returns the list of transactions still running. The caller has to
      * forbid those transactions to ever write to the tables subject to the DDL
      * change.
-     * 
+     *
      * @param maximum
      *            wait for all transactions started before this one. It should
      *            be the transaction created just after the tentative change
      *            committed.
      * @return list of transactions still running after timeout
-     * @throws IOException 
+     * @throws IOException
      */
-	public List<TransactionId> waitForConcurrentTransactions(TransactionId maximum, List<TransactionId> toIgnore,long tableConglomId) throws IOException {
-	    if (!waitsForConcurrentTransactions()) {
-	        return Collections.emptyList();
+    public long waitForConcurrentTransactions(TransactionId maximum, List<TransactionId> toIgnore,long tableConglomId) throws IOException {
+        if (!waitsForConcurrentTransactions()) {
+	        return -1l;
 	    }
 			byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
-	    List<TransactionId> active = transactor.getActiveWriteTransactionIds(maximum,conglomBytes);
-			active.removeAll(toIgnore);
 
-	    long waitTime = SpliceConstants.ddlDrainingInitialWait;
-	    long totalWait = 0;
-	    while (!active.isEmpty() && totalWait < SpliceConstants.ddlDrainingMaximumWait) {
-	        try {
-                Thread.sleep(waitTime);
-            } catch (InterruptedException e) {
-                throw new IOException(e);
+      ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getId(),conglomBytes);
+      List<Long> ignoreIds = Lists.transform(toIgnore,new Function<TransactionId, Long>() {
+          @Nullable
+          @Override
+          public Long apply(@Nullable TransactionId input) {
+              return input.getId();
+          }
+      });
+        long waitTime = SpliceConstants.ddlDrainingInitialWait;
+        long totalWait = 0;
+        long activeTxnId = -1l;
+        do{
+            CloseableIterator<Long> activeTxns = transactionReader.getActiveTransactionIds();
+            try{
+                boolean shouldWait = false;
+                while(activeTxns.hasNext()){
+                    Long next = activeTxns.next();
+                    if(!ignoreIds.contains(next)){
+                        activeTxnId = next;
+                        shouldWait = true;
+                        break;
+                    }
+                }
+                if(!shouldWait) return -1l;
+                try {
+                    Thread.sleep(waitTime);
+                } catch (InterruptedException e) {
+                    throw new IOException(e);
+                }
+                totalWait += waitTime;
+                waitTime *= 10;
+            }finally{
+                activeTxns.close();
             }
-	        totalWait += waitTime;
-	        waitTime *= 10;
-	        active = transactor.getActiveWriteTransactionIds(maximum,conglomBytes);
-					active.removeAll(toIgnore);
-	    }
-	    if (!active.isEmpty()) {
-	        LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %.100s", toString(), active));
-	    }
-	    return active;
-	}
+        } while(totalWait < SpliceConstants.ddlDrainingMaximumWait);
 
-	/**
-	 * Declares whether this DDL operation has to wait for the draining of concurrent transactions or not
-	 * @return true if it has to wait for the draining of concurrent transactions
-	 */
+        if (activeTxnId>=0) {
+            LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %d", toString(), activeTxnId));
+        }
+        return activeTxnId;
+    }
+
+    /**
+     * Declares whether this DDL operation has to wait for the draining of concurrent transactions or not
+     * @return true if it has to wait for the draining of concurrent transactions
+     */
     protected boolean waitsForConcurrentTransactions() {
         return false;
     }

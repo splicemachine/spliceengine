@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.google.common.primitives.Longs;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.hbase.async.GatheringScanner;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.TransactorListener;
@@ -670,38 +671,6 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
 						}
 				});
 		}
-
-    private ContiguousIterator<Long, Result> makeContiguousIterator(Table transactionTable, long startTransactionId, TransactionParams missingParams, TransactionStatus missingStatus) throws IOException {
-        List<CloseableIterator<Result>> scanners = makeScanners(transactionTable, startTransactionId);
-        return new ContiguousIterator<Long, Result>(startTransactionId,
-                new OrderedMuxer<Long, Result>(scanners, decoder), decoder, makeCallbacks(transactionTable, missingParams, missingStatus));
-    }
-
-    private ContiguousIteratorFunctions<Long, Result> makeCallbacks(final Table transactionTable, final TransactionParams missingParams, final TransactionStatus missingStatus) {
-        return new ContiguousIteratorFunctions<Long, Result>() {
-            @Override
-            public Long increment(Long transactionId) {
-                return transactionId + 1;
-            }
-
-            @Override
-            public Result missing(Long transactionId) throws IOException {
-                recordNewTransactionDirect(transactionTable, transactionId, missingParams, missingStatus, transactionId, 0);
-                return readTransaction(transactionTable, transactionId);
-            }
-        };
-    }
-
-    private List<CloseableIterator<Result>> makeScanners(Table transactionTable, long startTransactionId) throws IOException {
-        List<CloseableIterator<Result>> scanners = Lists.newArrayList();
-        for (byte i = 0; i < SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT; i++) {
-            final byte[] rowKey = dataLib.newRowKey(new Object[]{i, startTransactionId});
-            final byte[] endKey = i == (SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT-1) ? null : dataLib.newRowKey(new Object[]{(byte) (i + 1)});
-            final Scan scan = dataLib.newScan(rowKey, endKey, null, null, null);
-            scanners.add(reader.scan(transactionTable, scan));
-        }
-        return scanners;
-    }
 
     public void confirmPermission(TransactionId transactionId, String tableName) throws IOException {
         Byte p = readPermission(transactionId, tableName);
