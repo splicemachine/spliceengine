@@ -9,6 +9,7 @@ import java.util.Properties;
 import java.util.concurrent.CancellationException;
 
 import com.google.common.io.Closeables;
+import com.splicemachine.derby.hbase.SpliceMasterObserverRestoreAction;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -232,7 +233,7 @@ public class SpliceDatabase extends BasicDatabase {
 			HBaseAdmin admin = null;
 	    	try {
 				HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.RESTORE_TABLE);
-				desc.setValue(SpliceMasterObserver.BACKUP_PATH, restoreDir);
+				desc.setValue(SpliceMasterObserverRestoreAction.BACKUP_PATH, restoreDir);
 				admin = SpliceAccessManager.getAdmin();
 				admin.createTable(desc);
 			} catch (Exception E) {
