@@ -2,22 +2,30 @@ package com.splicemachine.hbase.async;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.RowKeyDistributor;
+import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
 import com.splicemachine.stats.*;
+import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.NullStopIterator;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.SimpleLayout;
+import org.hbase.async.HBaseClient;
 import org.hbase.async.KeyValue;
 import org.hbase.async.Scanner;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -28,8 +36,10 @@ import java.util.concurrent.LinkedBlockingQueue;
  * Date: 7/30/14
  */
 public class SortedGatheringScanner implements AsyncScanner{
+    private static final Logger LOG = Logger.getLogger(SortedGatheringScanner.class);
     private final Timer timer;
     private final Counter remoteBytesCounter;
+    private final Comparator<byte[]> sortComparator;
 
     private final SubScanner[] scanners;
     private List<KeyValue>[] nextAnswers;
@@ -38,7 +48,8 @@ public class SortedGatheringScanner implements AsyncScanner{
     public static AsyncScanner newScanner(Scan baseScan,int maxQueueSize,
                                           MetricFactory metricFactory,
                                           Function<Scan,Scanner> conversionFunction,
-                                          RowKeyDistributor rowKeyDistributor) throws IOException {
+                                          RowKeyDistributor rowKeyDistributor,
+                                          Comparator<byte[]> sortComparator) throws IOException {
 
         Scan[] distributedScans = rowKeyDistributor.getDistributedScans(baseScan);
         if(distributedScans.length<=1){
@@ -47,15 +58,20 @@ public class SortedGatheringScanner implements AsyncScanner{
 
         List<Scanner> scans = Lists.newArrayListWithExpectedSize(distributedScans.length);
         for(Scan scan:distributedScans){
+            SpliceLogUtils.info(LOG,"Scanning area [%s,%s)",Bytes.toStringBinary(scan.getStartRow()),Bytes.toStringBinary(scan.getStopRow()));
             scans.add(conversionFunction.apply(scan));
         }
 
-        return new GatheringScanner(scans,maxQueueSize,metricFactory);
+        return new SortedGatheringScanner(scans,maxQueueSize,sortComparator,metricFactory);
     }
 
-    public SortedGatheringScanner(List<Scanner> scanners, int maxQueueSize, MetricFactory metricFactory){
+    public SortedGatheringScanner(List<Scanner> scanners, int maxQueueSize, Comparator<byte[]> sortComparator,MetricFactory metricFactory){
         this.timer = metricFactory.newTimer();
         this.remoteBytesCounter = metricFactory.newCounter();
+        if(sortComparator==null)
+            this.sortComparator = Bytes.BYTES_COMPARATOR;
+        else
+            this.sortComparator = sortComparator;
 
         this.scanners = new SubScanner[scanners.size()];
         for(int i=0;i<scanners.size();i++){
@@ -116,35 +132,44 @@ public class SortedGatheringScanner implements AsyncScanner{
         timer.startTiming();
         List<KeyValue> currMinList = null;
         KeyValue currMinFirst = null;
+        int currMinPos = -1;
         for(int i=0;i<nextAnswers.length;i++){
             if(exhaustedScanners[i]) continue;
 
-            if(nextAnswers[i]==null){
+            List<KeyValue> next;
+            if(nextAnswers[i]!=null)
+                next = nextAnswers[i];
+            else{
                 /*
                  * We used this value last time, make sure it's filled
                  */
-                List<KeyValue> next = scanners[i].next();
+                next = scanners[i].next();
                 if(next==null || next.size()<=0){
                     exhaustedScanners[i] = true;
                     continue;
                 }
                 nextAnswers[i] = next;
-                if(currMinFirst==null){
-                    currMinFirst = next.get(0);
+            }
+
+            if(currMinFirst==null){
+                currMinFirst = next.get(0);
+                currMinList = next;
+                currMinPos = i;
+            }else{
+                KeyValue first = next.get(0);
+                if(sortComparator.compare(first.key(),currMinFirst.key())<0){
                     currMinList = next;
-                }else{
-                    KeyValue first = next.get(0);
-                    if(Bytes.compareTo(first.key(),currMinFirst.key())<0){
-                        currMinList = next;
-                        currMinFirst = first;
-                    }
+                    currMinFirst = first;
+                    currMinPos = i;
                 }
             }
         }
         if(currMinFirst==null)
             timer.stopTiming();
-        else
+        else{
             timer.tick(1);
+            nextAnswers[currMinPos] = null;
+        }
         return currMinList;
     }
 
@@ -177,15 +202,15 @@ public class SortedGatheringScanner implements AsyncScanner{
 
         private List<KeyValue> peekNext() throws IOException{
             if(peeked!=null) return peeked;
-            if(done) return null;
-            if(request==null)
-                request = scanner.nextRows().addCallback(this);
 
             try {
                 List<KeyValue> take = resultQueue.take();
                 if(take==POISON_PILL) //the scanner finished, but there's nothing left
                     return null;
                 peeked = take;
+                if(!done && request==null){
+                    request = scanner.nextRows().addCallback(this); //initiate a new request
+                }
                 return take;
             } catch (InterruptedException e) {
                 throw new IOException(e);
@@ -200,23 +225,28 @@ public class SortedGatheringScanner implements AsyncScanner{
 
         @Override
         public Void call(ArrayList<ArrayList<KeyValue>> arg) throws Exception {
+            SpliceLogUtils.info(LOG, "Received callback with %d rows", arg == null ? 0 : arg.size());
             if(arg==null || done){
+                SpliceLogUtils.info(LOG,"Completed scan");
                 resultQueue.offer(POISON_PILL);
                 done = true;
                 return null;
             }
             resultQueue.addAll(arg);
             if(resultQueue.size()>=maxQueueSize){
+                SpliceLogUtils.info(LOG,"Exceeded queue size, pausing processing");
                 request = null;
                 return null;
             }
 
             if(scanner.onFinalRegion() && arg.size()<scanner.getMaxNumRows()){
+                SpliceLogUtils.info(LOG,"Completed scanning rows, terminating early");
+                resultQueue.offer(POISON_PILL); //make sure that poison_pill is on the queue
                 done = true;
                 scanner.close();
+                request = null;
                 return null;
             }
-            request = scanner.nextRows().addCallback(this);
 
             return null;
         }
@@ -228,6 +258,63 @@ public class SortedGatheringScanner implements AsyncScanner{
         public void close() {
             done = true;
             scanner.close();
+        }
+    }
+
+    public static void main(String...args) throws Exception{
+        Logger.getRootLogger().addAppender(new ConsoleAppender(new SimpleLayout()));
+        Logger.getRootLogger().setLevel(Level.INFO);
+        Scan baseScan = new Scan();
+        byte[] startRow = Bytes.toBytesBinary("5\\x14x\\xDB\\xE7I@\\x01");
+        baseScan.setStartRow(startRow);
+        baseScan.setStopRow(BytesUtil.unsignedCopyAndIncrement(startRow));
+
+        RowKeyDistributorByHashPrefix.Hasher hasher = new RowKeyDistributorByHashPrefix.Hasher(){
+
+            @Override
+            public byte[] getHashPrefix(byte[] originalKey) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public byte[][] getAllPossiblePrefixes() {
+                byte[][] buckets = new byte[16][];
+                for(int i=0;i<buckets.length;i++){
+                    buckets[i] = new byte[]{(byte)(i*0xF0)};
+                }
+                return buckets;
+            }
+
+            @Override
+            public int getPrefixLength(byte[] adjustedKey) {
+                return 1;
+            }
+        };
+        RowKeyDistributor keyDistributor = new RowKeyDistributorByHashPrefix(hasher);
+
+        final HBaseClient client = SimpleAsyncScanner.HBASE_CLIENT;
+        try{
+            AsyncScanner scanner = SortedGatheringScanner.newScanner(baseScan,1024,
+                    Metrics.noOpMetricFactory(), new Function<Scan, Scanner>() {
+                @Nullable
+                @Override
+                public Scanner apply(@Nullable Scan scan) {
+                    Scanner scanner = client.newScanner(SpliceConstants.TEMP_TABLE_BYTES);
+                    scanner.setStartKey(scan.getStartRow());
+                    byte[] stop = scan.getStopRow();
+                    if(stop.length>0)
+                        scanner.setStopKey(stop);
+                    return scanner;
+                }
+            },keyDistributor,null);
+            scanner.open();
+
+            Result r;
+            while((r = scanner.next())!=null){
+                System.out.println(Bytes.toStringBinary(r.getRow()));
+            }
+        }finally{
+            client.shutdown().join();
         }
     }
 }
