@@ -227,7 +227,10 @@ public class StandardIterators {
         @Override
         public ExecRow next(SpliceRuntimeContext ctx) throws StandardException, IOException {
             Result result = scanner.next();
-            if(result==null) return null;
+            if(result==null) {
+                partition = null;
+                return null;
+            }
 
             KeyValue kv = KeyValueUtils.matchDataColumn(result.raw());
             copyPartitionKey(kv);

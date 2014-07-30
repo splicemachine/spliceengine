@@ -7,7 +7,6 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by jyuan on 7/28/14.
@@ -15,10 +14,14 @@ import java.util.List;
 public abstract class SpliceGenericWindowFunction implements ExecAggregator {
 
     protected static int CHUNKSIZE = 100;
-    protected List<WindowChunk> values;
+    protected ArrayList<WindowChunk> values;
     protected WindowChunk first, last;
 
     public SpliceGenericWindowFunction() {
+        reset();
+    }
+
+    public void reset() {
         WindowChunk chunk = new WindowChunk();
         first = last = chunk;
         values = new ArrayList<WindowChunk>();
@@ -26,7 +29,7 @@ public abstract class SpliceGenericWindowFunction implements ExecAggregator {
     }
 
     @Override
-    public ExecAggregator setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType )
+    public ExecAggregator setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType)
     {
         return this;
     }
@@ -37,19 +40,35 @@ public abstract class SpliceGenericWindowFunction implements ExecAggregator {
             values.add(last);
         }
         last.add(addend);
-        recalculate();
+        calculateOnAdd(last, addend);
     }
 
-    public DataValueDescriptor remove() {
+    public DataValueDescriptor remove() throws StandardException{
+
+        DataValueDescriptor dvd = first.remove();
         if (first.consumed()) {
             values.remove(first);
+            if (values.size() == 0) {
+                return null;
+            }
             first = values.get(0);
         }
-        return first.remove();
+        else {
+            calculateOnRemove(first, dvd);
+        }
+        return dvd;
     }
 
-    public void recalculate() {
+    protected DataValueDescriptor getChunkResult(WindowChunk chunk) {
+        return chunk.getResult();
+    }
 
+    protected abstract void calculateOnAdd(WindowChunk chunk, DataValueDescriptor dvd) throws StandardException;
+
+    protected abstract void calculateOnRemove(WindowChunk chunk, DataValueDescriptor dvd) throws StandardException;
+
+    protected ArrayList<WindowChunk> getValues() {
+        return values;
     }
 
     protected class WindowChunk {
@@ -67,19 +86,28 @@ public abstract class SpliceGenericWindowFunction implements ExecAggregator {
         }
 
         public boolean consumed () {
-            return (last == CHUNKSIZE);
+            return (first >= last);
         }
 
         public boolean isFull() {
             return (last == CHUNKSIZE);
         }
+
         public DataValueDescriptor remove() {
             DataValueDescriptor v = values[first++];
             return v;
         }
 
         public void add(DataValueDescriptor v) {
-            values[last] = v;
+            values[last++] = v;
+        }
+
+        public void setResult(DataValueDescriptor v) {
+            this.result = v;
+        }
+
+        public DataValueDescriptor get(int i) {
+            return values[i];
         }
     }
 }

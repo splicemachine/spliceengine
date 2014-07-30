@@ -306,7 +306,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             timer = spliceRuntimeContext.newTimer();
             rowDecoder = getTempDecoder();
             scanner = getResultScanner(windowContext.getPartitionColumns(), spliceRuntimeContext, extraUniqueSequenceID);
-            windowFunctionIterator = new WindowFunctionIterator(spliceRuntimeContext, windowContext, aggregateContext, scanner, rowDecoder, templateRow.getRowArray());
+            windowFunctionIterator = new WindowFunctionIterator(spliceRuntimeContext, windowContext, aggregateContext, scanner, rowDecoder, templateRow);
             if (!windowFunctionIterator.init()) {
                 return null;
             }
