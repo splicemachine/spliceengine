@@ -18,7 +18,7 @@
 <div class="row marketing" ng-controller="operationsTreeController">
   <div class="row marketing">
     <span><h4 class="text-primary">{{tracedStatementSQL}}</h4></span>
-    <operations-tree data="tree[0]" label="operationType" on-click="d3OnClick(item)"></operations-tree>
+    <splice-operations-tree data="tree[0]" label="operationType" on-click="d3OnClick(item)"></splice-operations-tree>
   </div>
   <div class="row marketing operation-details-box round-corners" ng-hide="!clickedOperation">
     <div class="operation-details-title">{{clickedOperation.operationType}} Details</div>
