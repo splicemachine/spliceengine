@@ -4,13 +4,19 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
 
 /**
- * -Dlog4j.configuration=file:src/main/resources/log4j.properties
+ * Add an additional member to the cluster started with SpliceTestPlatform.
+ *
+ * Although MiniHBaseCluster can be used to create a multi region-server cluster all within a single JVM our system
+ * currently requires each member to be in a separate JVM (because of static-state/singletons, SpliceDriver, for instance).
+ *
+ * Running: mvn exec:exec -PspliceClusterMember
  */
 public class SpliceTestClusterParticipant {
 
     private final int regionServerPort;
     private final int regionServerInfoPort;
     private final String hbaseTargetDirectory;
+    private final int derbyPort;
 
     /**
      * MAIN:
@@ -38,6 +44,7 @@ public class SpliceTestClusterParticipant {
         this.hbaseTargetDirectory = hbaseTargetDirectory;
         this.regionServerPort = regionServerPort;
         this.regionServerInfoPort = regionServerInfoPort;
+        this.derbyPort = derbyPort;
     }
 
     private void start() throws Exception {
@@ -45,9 +52,9 @@ public class SpliceTestClusterParticipant {
                 hbaseTargetDirectory,
                 0,
                 0,
-                regionServerPort + 1,
-                regionServerInfoPort + 1,
-                1528,
+                regionServerPort,
+                regionServerInfoPort,
+                derbyPort,
                 false
         );
 
