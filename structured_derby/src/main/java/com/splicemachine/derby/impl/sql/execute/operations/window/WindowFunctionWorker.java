@@ -168,7 +168,7 @@ public class WindowFunctionWorker {
             int aggregatorColumnId = aggregator.getAggregatorColumnId();
             int resultColumnId = aggregator.getResultColumnId();
             SpliceGenericWindowFunction function = (SpliceGenericWindowFunction)resultRow.getColumn(aggregatorColumnId).getObject();
-            currentRow.setColumn(resultColumnId, function.getResult());
+            currentRow.setColumn(resultColumnId, function.getResult().cloneValue(false));
         }
 
         // Move the window
