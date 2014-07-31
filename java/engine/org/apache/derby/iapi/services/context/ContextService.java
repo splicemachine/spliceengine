@@ -168,7 +168,7 @@ public final class ContextService //OLD extends Hashtable
      * @see #newContextManager()
      * @see SystemContext#cleanupOnError(Throwable)
      */
-	private HashSet allContexts;
+	private HashSet<ContextManager> allContexts;
 
     /**
      * Create a new ContextService for a Derby system.
@@ -182,7 +182,7 @@ public final class ContextService //OLD extends Hashtable
 
 		ContextService.factory = this;
 
-		allContexts = new HashSet();
+		allContexts = new HashSet<ContextManager>();
 
 	}
 
