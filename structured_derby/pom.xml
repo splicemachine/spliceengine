@@ -666,6 +666,10 @@
 					<name>ij</name>
 				</property>
 			</activation>
+            <properties>
+                <!-- Override from command line with -Dij.connection.port=1528 -->
+                <ij.connection.port>1527</ij.connection.port>
+            </properties>
 			<build>
 				<plugins>
 					<plugin>
@@ -683,7 +687,7 @@
 							<systemProperties>
 								<systemProperty>
 									<key>ij.connection.splice</key>
-									<value>jdbc:splice://localhost:1527/splicedb;user=splice;password=admin</value>
+									<value>jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin</value>
 								</systemProperty>
 							</systemProperties>
 							<mainClass>org.apache.derby.tools.ij</mainClass>
