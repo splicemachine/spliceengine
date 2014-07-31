@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 import com.splicemachine.test.SerialTest;
+import org.apache.derby.iapi.reference.ClassName;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -32,46 +33,51 @@ public class PrimaryKeyIT extends SpliceUnitTest {
 	public static final String TABLE_NAME = "A";
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(name varchar(50),val int, CONSTRAINT FOO PRIMARY KEY(name))");
-    protected static SpliceTableWatcher doubleKeyTableWatcher = new SpliceTableWatcher("AB",spliceSchemaWatcher.schemaName,"(name varchar(50),val int,age int, CONSTRAINT AB_PK PRIMARY KEY(name,age))");
+    protected static SpliceTableWatcher doubleKeyTableWatcher = new SpliceTableWatcher("AB",CLASS_NAME,"(name varchar(50),val int, CONSTRAINT AB_PK PRIMARY KEY(val, name))");
 	protected static String INSERT = String.format("insert into %s.%s (name, val) values (?,?)",CLASS_NAME, TABLE_NAME);
 	protected static String SELECT_BY_NAME = String.format("select * from %s.%s where name = ?",CLASS_NAME, TABLE_NAME);
 	protected static String SELECT_NAME_BY_NAME = String.format("select name from %s.%s where name = ?",CLASS_NAME, TABLE_NAME);	
 	protected static String UPDATE_NAME_BY_NAME = String.format("update %s.%s set name = ? where name = ?",CLASS_NAME, TABLE_NAME);
 	protected static String UPDATE_VALUE_BY_NAME = String.format("update %s.%s set val = ? where name = ?",CLASS_NAME, TABLE_NAME);
+    protected static String INSERT_COMPOSITE_PK = String.format("insert into %s.%s (name, val) values (?,?)",CLASS_NAME, "AB");
 	
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
 		.around(spliceTableWatcher)
-		.around(new SpliceDataWatcher(){
-		@Override
-		protected void starting(Description description) {
-			try {
-				PreparedStatement ps = spliceClassWatcher.prepareStatement(INSERT);
-				ps.setString(1,"sfines");
-				ps.setInt(2,1);
-				ps.executeUpdate();
-				ps.setString(1,"jleach");
-				ps.setInt(2,2);
-				ps.executeUpdate();
-				ps.setString(1,"mzweben");
-				ps.setInt(2,3);
-				ps.executeUpdate();
-                ps.setString(1,"gdavis");
-                ps.setInt(2,4);
-                ps.executeUpdate();
-                ps.setString(1,"dgf");
-                ps.setInt(2,5);
-                ps.executeUpdate();
-            } catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-			finally {
-				spliceClassWatcher.closeAll();
-			}
-		}
-		
-	});
+        .around(doubleKeyTableWatcher)
+		.around(new SpliceDataWatcher() {
+            @Override
+            protected void starting(Description description) {
+                try {
+                    PreparedStatement ps = spliceClassWatcher.prepareStatement(INSERT);
+                    ps.setString(1, "sfines");
+                    ps.setInt(2, 1);
+                    ps.executeUpdate();
+                    ps.setString(1, "jleach");
+                    ps.setInt(2, 2);
+                    ps.executeUpdate();
+                    ps.setString(1, "mzweben");
+                    ps.setInt(2, 3);
+                    ps.executeUpdate();
+                    ps.setString(1, "gdavis");
+                    ps.setInt(2, 4);
+                    ps.executeUpdate();
+                    ps.setString(1, "dgf");
+                    ps.setInt(2, 5);
+                    ps.executeUpdate();
+                    ps = spliceClassWatcher.prepareStatement(INSERT_COMPOSITE_PK);
+                    ps.setString(1, "dgf");
+                    ps.setInt(2, 1);
+                    ps.executeUpdate();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    spliceClassWatcher.closeAll();
+                }
+            }
+
+        });
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 
@@ -183,7 +189,7 @@ public class PrimaryKeyIT extends SpliceUnitTest {
         updateStatement.setString(2,"jleach");
         updateStatement.executeUpdate();
         PreparedStatement validator = methodWatcher.prepareStatement(SELECT_BY_NAME);
-        validator.setString(1,"jleach");
+        validator.setString(1, "jleach");
         ResultSet rs = validator.executeQuery();
         while(rs.next()){
             Assert.fail("Should have returned nothing");
@@ -222,6 +228,17 @@ public class PrimaryKeyIT extends SpliceUnitTest {
             }
         }
         Assert.assertEquals("Incorrect number of updated rows!",1,matchCount);
+    }
+
+
+    @Test(timeout=10000)
+    // Test for DB-1316
+    public void updateKeyColumnOfUnorderedPK() throws Exception{
+        PreparedStatement updateStatement = methodWatcher.prepareStatement(String.format("update %s.AB set val = 44", CLASS_NAME));
+        updateStatement.executeUpdate();
+        ResultSet rs = methodWatcher.executeQuery(String.format("select val from %s.AB", CLASS_NAME));
+        Assert.assertTrue("No values returned", rs.next());
+        Assert.assertEquals("Update unsuccessful", 44, rs.getInt(1));
     }
 
     @Test(timeout=10000)
