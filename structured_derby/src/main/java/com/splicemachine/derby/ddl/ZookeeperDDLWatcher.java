@@ -11,11 +11,13 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.*;
 
+import org.apache.derby.iapi.services.context.Context;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.store.access.AccessFactory;
@@ -47,7 +49,6 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
 
     private Set<String> seenDDLChanges = new HashSet<String>();
     private Map<String, Long> changesTimeouts = new HashMap<String, Long>();
-    private List<LanguageConnectionContext> contexts = new ArrayList<LanguageConnectionContext>();
 
     private String id;
 
@@ -59,7 +60,6 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
 
     @Override
     public synchronized void registerLanguageConnectionContext(LanguageConnectionContext lcc) {
-        contexts.add(lcc);
         if (!currentDDLChanges.isEmpty()) {
             lcc.startGlobalDDLChange();
         }
@@ -196,19 +196,22 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         }
 
         if (currentWasEmpty != currentDDLChanges.isEmpty()) {
-            if (currentDDLChanges.isEmpty()) {
-                LOG.debug("Finishing global ddl changes ");
-                // we can use caches again
-                for (LanguageConnectionContext c : contexts) {
-                    c.finishGlobalDDLChange();
-                }
-            } else {
-                LOG.debug("Starting global ddl changes, invalidate and disable caches");
-                // we have to invalidate and disable caches
-                for (LanguageConnectionContext c : contexts) {
-                    c.startGlobalDDLChange();
+
+            List<Context> contexts = ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+            LOG.debug("Context count = " + contexts.size());
+            for (Context context : contexts) {
+                LanguageConnectionContext langContext = (LanguageConnectionContext) context;
+                if (currentDDLChanges.isEmpty()) {
+                    LOG.debug("Finishing global ddl changes ");
+                    // we can use caches again
+                    langContext.finishGlobalDDLChange();
+                } else {
+                    LOG.debug("Starting global ddl changes, invalidate and disable caches");
+                    // we have to invalidate and disable caches
+                    langContext.startGlobalDDLChange();
                 }
             }
+
         }
 
         // notify ddl operation we processed the change
