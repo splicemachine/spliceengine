@@ -939,44 +939,38 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
      */
     public long waitForConcurrentTransactions(TransactionId maximum, List<TransactionId> toIgnore,long tableConglomId) throws IOException {
         if (!waitsForConcurrentTransactions()) {
-	        return -1l;
-	    }
-			byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
+            return -1l;
+        }
+        byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
 
-      ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getId(),conglomBytes);
-      List<Long> ignoreIds = Lists.transform(toIgnore,new Function<TransactionId, Long>() {
-          @Nullable
-          @Override
-          public Long apply(@Nullable TransactionId input) {
-              return input.getId();
-          }
-      });
+        ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getId(),conglomBytes);
+        List<Long> ignoreIds = Lists.transform(toIgnore,new Function<TransactionId, Long>() {
+            @Nullable
+            @Override
+            public Long apply(@Nullable TransactionId input) {
+                return input.getId();
+            }
+        });
         long waitTime = SpliceConstants.ddlDrainingInitialWait;
         long totalWait = 0;
         long activeTxnId = -1l;
         do{
-            CloseableIterator<Long> activeTxns = transactionReader.getActiveTransactionIds();
+            CloseableIterator<Long> activeTxns = transactionReader.getActiveTransactionIds(1);
             try{
-                boolean shouldWait = false;
-                while(activeTxns.hasNext()){
-                    Long next = activeTxns.next();
-                    if(!ignoreIds.contains(next)){
-                        activeTxnId = next;
-                        shouldWait = true;
-                        break;
-                    }
+                if(activeTxns.hasNext()){
+                    activeTxnId = activeTxns.next();
                 }
-                if(!shouldWait) return -1l;
-                try {
-                    Thread.sleep(waitTime);
-                } catch (InterruptedException e) {
-                    throw new IOException(e);
-                }
-                totalWait += waitTime;
-                waitTime *= 10;
             }finally{
                 activeTxns.close();
             }
+            if(activeTxnId<0) return activeTxnId;
+            try {
+                Thread.sleep(waitTime);
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
+            totalWait += waitTime;
+            waitTime *= 10;
         } while(totalWait < SpliceConstants.ddlDrainingMaximumWait);
 
         if (activeTxnId>=0) {

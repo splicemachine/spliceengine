@@ -284,6 +284,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         					.build();
         			procedures.add(currTxn);
 
+                Procedure activeTxn = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_TRANSACTION_IDS")
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .ownerClass(TransactionAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(activeTxn);
+
         			/*
         			 * Procedure to get the log level for the given logger
         			 */

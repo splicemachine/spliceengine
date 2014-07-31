@@ -52,13 +52,12 @@ public class SortedGatheringScanner implements AsyncScanner{
                                           Comparator<byte[]> sortComparator) throws IOException {
 
         Scan[] distributedScans = rowKeyDistributor.getDistributedScans(baseScan);
-        if(distributedScans.length<=1){
-            return new SimpleAsyncScanner(conversionFunction.apply(baseScan),metricFactory);
-        }
+//        if(distributedScans.length<=1){
+//            return new QueuedAsyncScanner(conversionFunction.apply(distributedScans[0]),metricFactory,maxQueueSize);
+//        }
 
         List<Scanner> scans = Lists.newArrayListWithExpectedSize(distributedScans.length);
         for(Scan scan:distributedScans){
-            SpliceLogUtils.info(LOG,"Scanning area [%s,%s)",Bytes.toStringBinary(scan.getStartRow()),Bytes.toStringBinary(scan.getStopRow()));
             scans.add(conversionFunction.apply(scan));
         }
 
@@ -225,22 +224,18 @@ public class SortedGatheringScanner implements AsyncScanner{
 
         @Override
         public Void call(ArrayList<ArrayList<KeyValue>> arg) throws Exception {
-            SpliceLogUtils.info(LOG, "Received callback with %d rows", arg == null ? 0 : arg.size());
             if(arg==null || done){
-                SpliceLogUtils.info(LOG,"Completed scan");
                 resultQueue.offer(POISON_PILL);
                 done = true;
                 return null;
             }
             resultQueue.addAll(arg);
             if(resultQueue.size()>=maxQueueSize){
-                SpliceLogUtils.info(LOG,"Exceeded queue size, pausing processing");
                 request = null;
                 return null;
             }
 
             if(scanner.onFinalRegion() && arg.size()<scanner.getMaxNumRows()){
-                SpliceLogUtils.info(LOG,"Completed scanning rows, terminating early");
                 resultQueue.offer(POISON_PILL); //make sure that poison_pill is on the queue
                 done = true;
                 scanner.close();
@@ -265,7 +260,7 @@ public class SortedGatheringScanner implements AsyncScanner{
         Logger.getRootLogger().addAppender(new ConsoleAppender(new SimpleLayout()));
         Logger.getRootLogger().setLevel(Level.INFO);
         Scan baseScan = new Scan();
-        byte[] startRow = Bytes.toBytesBinary("5\\x14x\\xDB\\xE7I@\\x01");
+        byte[] startRow = Bytes.toBytesBinary("\\x90\\xF4y\\x1D\\xBF\\xE9\\xF0\\x01");
         baseScan.setStartRow(startRow);
         baseScan.setStopRow(BytesUtil.unsignedCopyAndIncrement(startRow));
 
