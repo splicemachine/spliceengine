@@ -1064,7 +1064,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             IndexColumnOrder[] ordering = new IndexColumnOrder[map.size()];
             int j = 0;
             for (OrderedColumn oc : map.values()) {
-                ordering[j++] = new IndexColumnOrder(oc.getColumnPosition(), oc.isAscending(), oc.isNullsOrderedLow());
+                ordering[j++] = new IndexColumnOrder(oc.getColumnPosition()-1, oc.isAscending(), oc.isNullsOrderedLow());
             }
             colOrdering = new FormatableArrayHolder(ordering);
         }
