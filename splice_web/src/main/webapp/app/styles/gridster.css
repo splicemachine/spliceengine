@@ -1,0 +1,64 @@
+/* TODO: Some styles are used for demo purposes. Clean up is needed */
+.table td {
+   text-align: left;   
+}
+.table th {
+   text-align: center;   
+}
+.page-header {
+    margin-top: 20px;
+}
+ul {
+    list-style: none;
+}
+.box {
+    height: 100%;
+    border: 1px solid #ccc;
+    background-color: #fff;
+}
+.box-header {
+    background-color: #fff;
+    padding: 0 30px 0 10px;
+    border-bottom: 1px solid #fff;
+    cursor: move;
+    position: relative;
+}
+.box-header h3 {
+    margin-top: 10px;
+    display: inline-block;
+}
+.box-content {
+    padding: 10px;
+}
+.box-header-btns {
+    top: 15px;
+    right: 10px;
+    cursor: pointer;
+    position: absolute;
+}
+a {
+    color: #ccc;
+}
+form {
+    margin-bottom: 0;
+}
+.gridster {
+    border: 1px solid #ccc;
+}
+.navbar {
+    padding: 0 20px;
+}
+a:hover {
+    cursor: pointer;
+}
+input {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    padding: 4px;
+}
+.code-coverage {
+    color: #fff;
+    font-weight: bold;
+    float: right;
+    padding: 10px;
+}

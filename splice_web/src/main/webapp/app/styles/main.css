@@ -93,3 +93,23 @@ body {
 .glyphicon-big {
   font-size: 300%;
 }
+/* Warning circle status light. Use with red/green/orange */ 
+.circle { 
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  font-weight: 500;
+  line-height: 1.1;
+  float: none;
+  margin: 0 auto;
+  color: inherit;
+  display: inline-block;
+  position:relative; 
+  /* width and height can be anything, as long as they're equal */ 
+}
+.circle-red
+{ background-color: #e73c3c; }
+.circle-green
+{ background-color: #12AD2A; }
+.circle-orange
+{ background-color: #FF9900; }
