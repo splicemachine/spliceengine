@@ -5,6 +5,9 @@ angular.module('spliceAdminControllers')
 	// In the future, this may change and the tree structure will refresh when the service returns.
 	.controller('tracedStatementDetailController',
 	['$scope', '$routeParams', 'tracedStatement', 'tracedStatementSQL', 'formatUnitsService', function ($scope, $routeParams, tracedStatement, tracedStatementSQL, formatUnitsService) {
+		// Set the active tab to be highlighted in the top nav bar.
+		$scope.homeTab = 'active';
+
 		$scope.tree = [tracedStatement];
 		$scope.tracedStatementSQL = tracedStatementSQL[0].STATEMENTSQL;
 
