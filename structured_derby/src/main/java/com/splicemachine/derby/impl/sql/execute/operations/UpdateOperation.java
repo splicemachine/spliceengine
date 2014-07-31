@@ -200,8 +200,8 @@ public class UpdateOperation extends DMLWriteOperation{
 				if(pkCols!=null){
 						finalPkColumns =new int[pkCols.length];
 						int count = 0;
-						for(int i= pkColumns.anySetBit();i!=-1;i=pkColumns.anySetBit(i)){
-								finalPkColumns[count] = colPositionMap[i+1];
+						for(int i : pkCols){
+								finalPkColumns[count] = colPositionMap[i];
 								count++;
 						}
 				}else{
