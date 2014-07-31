@@ -67,7 +67,12 @@ public class CountAggregateDefinition
 	public final DataTypeDescriptor	getAggregator(DataTypeDescriptor inputType,
 				StringBuffer aggregatorClass) 
 	{
-		aggregatorClass.append( ClassName.CountAggregator);
+        if (isWindowFunction) {
+            aggregatorClass.append(ClassName.WindowCountAggregator);
+        }
+        else {
+            aggregatorClass.append(ClassName.CountAggregator);
+        }
 		/*
 		** COUNT never returns NULL
 		*/

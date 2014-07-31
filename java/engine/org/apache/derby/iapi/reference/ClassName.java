@@ -115,6 +115,9 @@ public interface ClassName
 	String UserDefinedAggregator = "org.apache.derby.impl.sql.execute.UserDefinedAggregator";
 
     String WindowMaxMinAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.MaxMinAggregator";
+    String WindowSumAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.SumAggregator";
+    String WindowAvgAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.AvgAggregator";
+    String WindowCountAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.CountAggregator";
 
 	String ExecutionFactory = "org.apache.derby.iapi.sql.execute.ExecutionFactory";
 	String LanguageFactory ="org.apache.derby.iapi.sql.LanguageFactory";

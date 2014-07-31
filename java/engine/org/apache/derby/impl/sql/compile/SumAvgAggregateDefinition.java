@@ -125,10 +125,18 @@ public class SumAvgAggregateDefinition
 	 */
 	private String getAggregatorClassName()
 	{
-		if ( isSum )
-				return ClassName.SumAggregator;
-		else
-				return ClassName.AvgAggregator;
+        if (isWindowFunction) {
+            if (isSum)
+                return ClassName.WindowSumAggregator;
+            else
+                return ClassName.WindowAvgAggregator;
+        } else {
+            if (isSum)
+                return ClassName.SumAggregator;
+            else
+                return ClassName.AvgAggregator;
+        }
+
 	}
 
 	/**
