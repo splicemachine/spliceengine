@@ -23,8 +23,7 @@ package org.apache.derby.iapi.services.context;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.*;
 
 import org.apache.derby.iapi.error.ShutdownException;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -584,9 +583,25 @@ public final class ContextService //OLD extends Hashtable
 		public void forceRemoveContext(ContextManager cm){
 			if(allContexts!=null)
 				allContexts.remove(cm);
-			
+
 			if(threadContextList!=null){
 				threadContextList.remove();
 			}
 		}
+
+    /**
+     * Returns all contexts of a given type (id).
+     *
+     * @param contextId ConnectionContext.CONTEXT_ID, AccessFactoryGlobals.RAMXACT_CONTEXT_ID,
+     *                  AccessFactoryGlobals.USER_TRANS_NAME, LanguageConnectionContext.CONTEXT_ID, etc
+     */
+    public List<Context> getAllContexts(String contextId) {
+        List<Context> contexts = new ArrayList<Context>();
+        synchronized (this) {
+            for (ContextManager contextManager : allContexts) {
+                contexts.addAll(contextManager.getContextStack(contextId));
+            }
+        }
+        return contexts;
+    }
 }
