@@ -7353,10 +7353,10 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public List getDependentsDescriptorList(String dependentID)
+	public List<DependencyDescriptor> getDependentsDescriptorList(String dependentID)
 		throws StandardException
 	{
-		List					ddlList = newSList();
+		List<DependencyDescriptor> ddlList = newSList();
 		DataValueDescriptor		dependentIDOrderable;
 		TabInfoImpl					ti = getNonCoreTI(SYSDEPENDS_CATALOG_NUM);
 
@@ -7390,10 +7390,10 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public List getProvidersDescriptorList(String providerID)
+	public List<DependencyDescriptor> getProvidersDescriptorList(String providerID)
 		throws StandardException
 	{
-		List					ddlList = newSList();
+		List<DependencyDescriptor> ddlList = newSList();
 		DataValueDescriptor		providerIDOrderable;
 		TabInfoImpl					ti = getNonCoreTI(SYSDEPENDS_CATALOG_NUM);
 
@@ -7425,14 +7425,13 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public List getAllDependencyDescriptorsList()
+	public List<DependencyDescriptor> getAllDependencyDescriptorsList()
 				throws StandardException
 	{
 		ScanController			 	scanController;
 		TransactionController	  	tc;
 		ExecRow					  	outRow;
-		ExecRow					 	templateRow;
-		List						ddl = newSList();
+		List<DependencyDescriptor>	ddl = newSList();
 		TabInfoImpl						ti = getNonCoreTI(SYSDEPENDS_CATALOG_NUM);
 		SYSDEPENDSRowFactory		rf = (SYSDEPENDSRowFactory) ti.getCatalogRowFactory();
 
@@ -13229,8 +13228,8 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	}
 
 
-	private static List newSList() {
-		return java.util.Collections.synchronizedList(new java.util.LinkedList());
+	private static <T> List<T> newSList() {
+		return Collections.synchronizedList(new LinkedList<T>());
 	}
 
     /**
