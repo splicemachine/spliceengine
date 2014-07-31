@@ -1,6 +1,7 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionStatus;
@@ -8,6 +9,7 @@ import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.impl.TransactionStore;
 
+import com.splicemachine.utils.CloseableIterator;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -71,24 +73,23 @@ public class TransactionAdmin {
 				resultSet[0] = new EmbedResultSet40(defaultConn,rs,false,null,true);
 		}
 
-    public static void SYSCS_GET_ACTIVE_TRANSACTIONS(ResultSet[] resultSet) throws SQLException{
-        try{
-            EmbedConnection defaultConn = (EmbedConnection)SpliceAdmin.getDefaultConn();
-            List<TransactionId> activeTransactionIds = HTransactorFactory.getTransactionManager().getAllActiveTransactionIds();
-            ExecRow row = new ValueRow(CURRENT_TXN_ID_COLUMNS.length);
-            for(int i=0;i<CURRENT_TXN_ID_COLUMNS.length;i++){
-                row.setColumn(i+1,CURRENT_TXN_ID_COLUMNS[i].getType().getNull());
+    public static void SYSCS_GET_ACTIVE_TRANSACTION_IDS(ResultSet[] resultSets) throws SQLException{
+        ActiveTransactionReader reader = new ActiveTransactionReader(0l,Long.MAX_VALUE,null);
+        try {
+            CloseableIterator<Long> activeTxns = reader.getActiveTransactionIds();
+            ExecRow template = toRow(CURRENT_TXN_ID_COLUMNS);
+            List<ExecRow> results = Lists.newArrayList();
+            while(activeTxns.hasNext()){
+                template.getColumn(1).setValue(activeTxns.next().longValue());
+                results.add(template.getClone());
             }
 
+            EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
             Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-            List<ExecRow> rows = Lists.newArrayListWithCapacity(activeTransactionIds.size());
-            for(TransactionId id:activeTransactionIds){
-                row.getColumn(1).setValue(id.getId());
-                rows.add(row.getClone());
-            }
-            IteratorNoPutResultSet rs = new IteratorNoPutResultSet(rows,CURRENT_TXN_ID_COLUMNS,lastActivation);
+            IteratorNoPutResultSet rs = new IteratorNoPutResultSet(results,CURRENT_TXN_ID_COLUMNS,lastActivation);
             rs.openCore();
-            resultSet[0] = new EmbedResultSet40(defaultConn,rs,false,null,true);
+
+            resultSets[0] = new EmbedResultSet40(defaultConn,rs,false,null,true);
         } catch (IOException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         } catch (StandardException e) {
@@ -96,7 +97,17 @@ public class TransactionAdmin {
         }
     }
 
-		public static void SYSCS_DUMP_TRANSACTIONS(ResultSet[] resultSet) throws SQLException {
+    private static ExecRow toRow(ResultColumnDescriptor[] columns) throws StandardException {
+        DataValueDescriptor[] dvds = new DataValueDescriptor[columns.length];
+        for(int i=0;i<columns.length;i++){
+            dvds[i] = columns[i].getType().getNull();
+        }
+        ExecRow row = new ValueRow(columns.length);
+        row.setRowArray(dvds);
+        return row;
+    }
+
+    public static void SYSCS_DUMP_TRANSACTIONS(ResultSet[] resultSet) throws SQLException {
 				try {
 						TransactionStore store = HTransactorFactory.getTransactionStore();
 						//noinspection unchecked
@@ -156,8 +167,8 @@ public class TransactionAdmin {
 				} catch (StandardException e) {
 						throw PublicAPI.wrapStandardException(e);
 				}
-
 		}
+
 
 		protected  static void setLong(DataValueDescriptor dvd, Long value) throws StandardException{
 				if(value !=null)

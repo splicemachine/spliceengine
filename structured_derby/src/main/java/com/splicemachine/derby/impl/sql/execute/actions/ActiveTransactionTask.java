@@ -14,8 +14,13 @@ import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionStatus;
+import com.splicemachine.si.impl.Transaction;
+import com.splicemachine.si.impl.TransactionStore;
 import com.splicemachine.stats.Metrics;
+import com.splicemachine.utils.Snowflake;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.hash.ByteHash32;
 import com.splicemachine.utils.hash.HashFunctions;
 import org.apache.hadoop.hbase.HConstants;
@@ -24,6 +29,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.util.Arrays;
@@ -35,27 +41,33 @@ import java.util.concurrent.ExecutionException;
  * Date: 7/30/14
  */
 public class ActiveTransactionTask extends ZkTask {
-
+    private static final Logger LOG = Logger.getLogger(ActiveTransactionTask.class);
     private long minTxnId;
     private long maxTxnId;
     private byte[] writeTable;
     private byte[] operationUUID;
+    //the number of active txns to fetch before giving up--allows us to be efficient with our search
+    private int numActiveTxns;
 
     //serialization constructor
     public ActiveTransactionTask() { }
 
     public ActiveTransactionTask(String jobId,long minTxnId,long maxTxnId,byte[] writeTable, byte[] operationUUID) {
+        this(jobId, minTxnId, maxTxnId, writeTable, operationUUID,Integer.MAX_VALUE);
+    }
+
+    public ActiveTransactionTask(String jobId,long minTxnId,long maxTxnId,byte[] writeTable, byte[] operationUUID, int numActiveTxns) {
         super(jobId, 0, null, true);
         this.minTxnId = minTxnId;
         this.maxTxnId = maxTxnId;
         this.writeTable = writeTable;
         this.operationUUID = operationUUID;
+        this.numActiveTxns = numActiveTxns;
     }
 
     @Override
     protected void doExecute() throws ExecutionException, InterruptedException {
-        //get a scanner
-        //get the bucket id for the region
+        TransactionStore txnStore = HTransactorFactory.getTransactionStore();
         /*
          * Get the bucket id for the region.
          *
@@ -63,9 +75,11 @@ public class ActiveTransactionTask extends ZkTask {
          * OR an empty end, but will never have both
          */
         byte[] regionKey = region.getStartKey();
+        byte bucket;
         if(regionKey.length<=0)
-            regionKey = region.getEndKey();
-        byte bucket = regionKey[0];
+            bucket = 0;
+        else
+            bucket = regionKey[0];
         byte[] startKey = BytesUtil.concat(Arrays.asList(new byte[]{bucket}, Bytes.toBytes(minTxnId)));
         if(BytesUtil.startComparator.compare(region.getStartKey(),startKey)>0)
             startKey = region.getStartKey();
@@ -75,17 +89,20 @@ public class ActiveTransactionTask extends ZkTask {
 
         Scan scan = new Scan(startKey,stopKey);
         scan.setFilter(new ActiveTxnFilter(writeTable));
+        scan.setMaxVersions(1); //only consider the latest data points
 
         TempTable tempTable = SpliceDriver.driver().getTempTable();
         SpreadBucket currentSpread = tempTable.getCurrentSpread();
-        String txnId = Long.toString(Bytes.toLong(operationUUID));
+        String txnId = Long.toString(Snowflake.timestampFromUUID(Bytes.toLong(operationUUID)));
         CallBuffer<KVPair> callBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(tempTable.getTempTableName(), txnId);
-        MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(3);
+        MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(2);
 
         ByteHash32 hashFunction = HashFunctions.murmur3(0);
-        byte[] hashBytes = new byte[1];
+        byte[] hashBytes = new byte[1+operationUUID.length];
+        System.arraycopy(operationUUID,0,hashBytes,1,operationUUID.length);
         boolean[] usedTempBuckets = new boolean[currentSpread.getNumBuckets()];
 
+        int rows = 0;
         RegionScanner scanner = null;
         try {
             scanner = region.getScanner(scan);
@@ -99,31 +116,53 @@ public class ActiveTransactionTask extends ZkTask {
                 shouldContinue = bufferedRegionScanner.next(kvs);
                 if(kvs.size()<=0) break;
                 keyEncoder.reset();
+                rows++;
 
+                if(!isActiveChildTxn(txnStore,kvs)) continue;
                 KeyValue first = kvs.get(0);
-                byte[] key = first.getKey();
+                byte[] key = first.getRow();
                 //we skip the first byte in the key because it's a Transaction table bucket
-                hashBytes[0] = currentSpread.bucket(hashFunction.hash(key, 1, key.length));
-                usedTempBuckets[hashBytes[0]] = true; //mark temp bucket as used
+                hashBytes[0] = currentSpread.bucket(hashFunction.hash(key, 1, key.length-1));
+                usedTempBuckets[currentSpread.bucketIndex(hashBytes[0])] = true; //mark temp bucket as used
                 keyEncoder.setRawBytes(hashBytes);
-                keyEncoder.setRawBytes(operationUUID);
-                keyEncoder.setRawBytes(key,1,key.length);
+                keyEncoder.setRawBytes(key,1,key.length-1);
 
-                KVPair kvPair = new KVPair(key, HConstants.EMPTY_BYTE_ARRAY); //data will be sorted into
+                byte[] newKey = keyEncoder.build();
+                KVPair kvPair = new KVPair(newKey, HConstants.EMPTY_BYTE_ARRAY); //data will be sorted into
                 callBuffer.add(kvPair);
+
+                if(rows>=numActiveTxns)
+                    shouldContinue = false;
             }while(shouldContinue);
 
             callBuffer.flushBuffer();
             callBuffer.close();
+            status.setStats(new TaskStats(0l, 0l, 0l, usedTempBuckets)); //TODO -sf- add Stats
         } catch (IOException e) {
             throw new ExecutionException(e);
         } catch (Exception e) {
             throw new ExecutionException(e);
         } finally{
             Closeables.closeQuietly(scanner);
-
-            status.setStats(new TaskStats(0l,0l,0l,usedTempBuckets)); //TODO -sf- add Stats
         }
+    }
+
+    private boolean isActiveChildTxn(TransactionStore txnStore,List<KeyValue> kvs) throws IOException {
+        /*
+         * Returns true if this transaction is actually a child of an active transaction,
+         * even if its committed.
+         *
+         * This is probably really slow (since it will have to do a network lookup for every committed
+         * child transaction of a parent). As a result, we will probably need to rewire this at some point.
+         */
+        for(KeyValue kv:kvs){
+            if(matchesQualifier(PARENT_ID,kv.getBuffer(),kv.getQualifierOffset(),kv.getQualifierLength())){
+                Transaction transaction = txnStore.getTransaction(Bytes.toLong(kv.getBuffer(), kv.getValueOffset(), kv.getValueLength()));
+                return transaction.getEffectiveStatus() == TransactionStatus.ACTIVE;
+            }
+        }
+        //if we get this far, then we are a parent transaction
+        return true;
     }
 
     @Override protected String getTaskType() { return "ActiveTransaction"; }
@@ -136,10 +175,13 @@ public class ActiveTransactionTask extends ZkTask {
         super.readExternal(in);
         minTxnId = in.readLong();
         maxTxnId = in.readLong();
-        writeTable = new byte[in.readInt()];
-        in.readFully(writeTable);
+        if(in.readBoolean()){
+            writeTable = new byte[in.readInt()];
+            in.readFully(writeTable);
+        }
         operationUUID = new byte[in.readInt()];
         in.readFully(operationUUID);
+        numActiveTxns = in.readInt();
     }
 
     @Override
@@ -147,23 +189,38 @@ public class ActiveTransactionTask extends ZkTask {
         super.writeExternal(out);
         out.writeLong(minTxnId);
         out.writeLong(maxTxnId);
-        out.writeInt(writeTable.length);
-        out.write(writeTable);
+        out.writeBoolean(writeTable!=null);
+        if(writeTable!=null){
+            out.writeInt(writeTable.length);
+            out.write(writeTable);
+        }
         out.writeInt(operationUUID.length);
         out.write(operationUUID);
+        out.writeInt(numActiveTxns);
     }
 
     private static final byte[] ACTIVE_STATE = Bytes.toBytes(TransactionStatus.ACTIVE.ordinal());
     private static final byte[] ROLLED_BACK_STATE = Bytes.toBytes(TransactionStatus.ROLLED_BACK.ordinal());
     private static final byte[] GLOBAL_COMMIT_COL = Bytes.toBytes(SIConstants.TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN);
+    private static final byte[] COMMIT_TIMESTAMP_COL = Bytes.toBytes(SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN);
+    private static final byte[] PARENT_ID = SIConstants.TRANSACTION_PARENT_COLUMN_BYTES;
+    private static final byte[] DEPENDENT = SIConstants.TRANSACTION_DEPENDENT_COLUMN_BYTES;
     private static final byte[] STATUS = Bytes.toBytes(SIConstants.TRANSACTION_STATUS_COLUMN);
-    private static final byte[] ALLOWS_WRITES = Bytes.toBytes(SIConstants.TRANSACTION_ALLOW_WRITES_COLUMN);
+    private static final byte[] ALLOWS_WRITES = SIConstants.TRANSACTION_ALLOW_WRITES_COLUMN_BYTES;
     private static final byte[] WRITE_TABLE = Bytes.toBytes(SIConstants.WRITE_TABLE_COLUMN);
+
+    private static boolean matchesQualifier(byte[] qualifier, byte[] buffer, int qualifierOffset, int qualifierLength) {
+        return Bytes.equals(qualifier, 0, qualifier.length, buffer, qualifierOffset, qualifierLength);
+    }
 
     private static class ActiveTxnFilter extends FilterBase{
         private final byte[] writeTable;
 
         private boolean filter = false;
+        private boolean dependent = true;
+        private boolean committed = false;
+        private boolean isChild = false;
+        private boolean writeTableSeen = false;
 
         private ActiveTxnFilter(byte[] writeTable) {
             this.writeTable = writeTable;
@@ -188,43 +245,73 @@ public class ActiveTransactionTask extends ZkTask {
             byte[] buffer = kv.getBuffer();
             int valueOffset = kv.getValueOffset();
             int valueLength = kv.getValueLength();
-            if(KeyValueUtils.singleMatchingColumn(kv,SIConstants.TRANSACTION_FAMILY_BYTES, ALLOWS_WRITES)){
+
+            int qualifierOffset = kv.getQualifierOffset();
+            int qualifierLength = kv.getQualifierLength();
+            if(matchesQualifier(ALLOWS_WRITES,buffer, qualifierOffset, qualifierLength)){
                 if(!BytesUtil.toBoolean(buffer, valueOffset)){
                     //this transaction does not allow writes, ignore
                     filter = true;
                     return ReturnCode.NEXT_ROW;
                 }
                 return ReturnCode.INCLUDE;
-            }else if(KeyValueUtils.singleMatchingColumn(kv,SIConstants.TRANSACTION_FAMILY_BYTES,STATUS)){
+            }else if(matchesQualifier(STATUS,buffer,qualifierOffset,qualifierLength)){
                 if(Bytes.equals(ROLLED_BACK_STATE,0,ROLLED_BACK_STATE.length, buffer, valueOffset, valueLength)){
                     //this transaction has been rolled back, disregard
                     filter = true;
                     return ReturnCode.NEXT_ROW;
                 }
                 return ReturnCode.INCLUDE;
-            }else if(KeyValueUtils.singleMatchingColumn(kv,SIConstants.TRANSACTION_FAMILY_BYTES,GLOBAL_COMMIT_COL)){
+            }else if(matchesQualifier(GLOBAL_COMMIT_COL,buffer,qualifierOffset,qualifierLength)){
                 //this transaction has a global commit timestamp, disregard, it's been committed
                 filter = true;
                 return ReturnCode.NEXT_ROW;
-            }else if(KeyValueUtils.singleMatchingColumn(kv,SIConstants.TRANSACTION_FAMILY_BYTES,WRITE_TABLE)){
+            }else if(writeTable!=null && matchesQualifier(WRITE_TABLE,buffer,qualifierOffset,qualifierLength)){
+                writeTableSeen = true;
                 if(!Bytes.equals(writeTable,0,writeTable.length,buffer,valueOffset,valueLength)){
                     filter = true;
                     return ReturnCode.NEXT_ROW;
                 }else return ReturnCode.INCLUDE;
-            }else{
+            }else if(matchesQualifier(COMMIT_TIMESTAMP_COL,buffer,qualifierOffset,qualifierLength)){
+                committed=true;
+                if(!dependent){
+                    filter = true;
+                    return ReturnCode.NEXT_ROW;
+                }
+                return ReturnCode.INCLUDE;
+            }else if(matchesQualifier(DEPENDENT,buffer,qualifierOffset,qualifierLength)){
+                dependent = BytesUtil.toBoolean(buffer,valueOffset);
+                if(committed &&!dependent){
+                    filter = true;
+                    return ReturnCode.NEXT_ROW;
+                }
+                return ReturnCode.INCLUDE;
+            }else if(matchesQualifier(PARENT_ID,buffer,qualifierOffset,qualifierLength)){
+                isChild=true;
+                return ReturnCode.INCLUDE;
+            } else{
                 //this column is not relevant, throw it in for decoding
                 return ReturnCode.INCLUDE;
             }
         }
 
+
+
         @Override
         public boolean filterRow() {
-            return filter;
+            if(filter) return true; //if we have explicitely decided it doesn't apply
+            else if (!isChild && committed) return true; //if it's a committed parent transaction, discard
+            else if(writeTable!=null && !writeTableSeen) return true; //if we have a write table, but never saw the write table column
+            else return false;
         }
 
         @Override
         public void reset() {
             filter = false;
+            isChild = false;
+            committed = false;
+            dependent = true;
+            writeTableSeen = false;
         }
 
         @Override

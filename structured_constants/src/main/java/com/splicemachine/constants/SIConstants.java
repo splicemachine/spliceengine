@@ -88,4 +88,11 @@ public class SIConstants extends SpliceConstants {
 				transactionTimeout = config.getInt(TRANSACTION_TIMEOUT,DEFAULT_TRANSACTION_TIMEOUT);
 				transactionKeepAliveInterval = config.getInt(TRANSACTION_KEEP_ALIVE_INTERVAL,DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL);
 		}
+
+    public static void main(String...args) throws Exception{
+        System.out.println(Bytes.toStringBinary(TRANSACTION_DEPENDENT_COLUMN_BYTES));
+        System.out.println(Bytes.toStringBinary(TRANSACTION_ALLOW_WRITES_COLUMN_BYTES));
+        System.out.println(Bytes.toStringBinary(TRANSACTION_ADDITIVE_COLUMN_BYTES));
+        System.out.println(Encoding.decodeInt(Bytes.toBytesBinary("\\x85")));
+    }
 }
