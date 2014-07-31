@@ -2,7 +2,7 @@
 	'use strict';
 
 	angular.module('spliceAdminDirectives')
-		.directive('operationsTree', ['formatNanoTimeService', function(formatNanoTimeService) {  // TODO: Dependency injection of D3 is not working and suspect the value that it provides.
+		.directive('spliceOperationsTree', ['formatNanoTimeService', function(formatNanoTimeService) {  // TODO: Dependency injection of D3 is not working and suspect the value that it provides.
 			return {
 				restrict: 'EA',
 				scope: {
