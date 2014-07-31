@@ -13,17 +13,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import org.apache.commons.dbutils.BasicRowProcessor;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.runner.Description;
 
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 public class TestUtils {
@@ -61,6 +61,29 @@ public class TestUtils {
         } catch (IOException e) {
             throw new RuntimeException("Unable to open file " + fileName, e);
         }
+    }
+
+    private static List<Map> resultSetToOrderedMaps(ResultSet rs) throws SQLException{
+
+        List<Map> results = new ArrayList<Map>();
+
+        while(rs.next()){
+            results.add(resultSetToOrderedMap(rs));
+        }
+
+        return results;
+    }
+
+    private static Map<String, Object> resultSetToOrderedMap(ResultSet rs) throws SQLException {
+        Map<String, Object> result = new LinkedHashMap<String, Object>();
+        ResultSetMetaData rsmd = rs.getMetaData();
+        int cols = rsmd.getColumnCount();
+
+        for (int i = 1; i <= cols; i++) {
+            result.put(rsmd.getColumnName(i), rs.getObject(i));
+        }
+
+        return result;
     }
 
     public static List<Map> resultSetToMaps(ResultSet rs) throws SQLException{
@@ -169,10 +192,9 @@ public class TestUtils {
         int resultSetSize = 0;
         out.println();
         out.println(statement);
-        List<Map> maps = TestUtils.resultSetToMaps(rs);
+        List<Map> maps = TestUtils.resultSetToOrderedMaps(rs);
         if (maps.size() > 0) {
             List<String> keys = new ArrayList<String>(maps.get(0).keySet());
-            Collections.sort(keys);
             for (String col : keys) {
                 out.print(" "+col+" |");
             }
