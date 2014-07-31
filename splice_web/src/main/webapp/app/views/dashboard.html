@@ -1,0 +1,72 @@
+<admin-header></admin-header>
+<div gridster="gridsterOptions">
+  <ul>
+    <li gridster-item="widget" ng-repeat="widget in dashboard.widgets">
+      <div class="box" ng-controller="customWidgetController">
+        <div class="box-header">
+          <h5><a class="circle circle-green"></a> {{ widget.name }} </h5>
+          <div class="box-header-btns pull-right">
+            <a title="settings" ng-click="openSettings(widget)"><i class="glyphicon glyphicon-cog"></i></a>
+            <a title="Remove widget" ng-click="remove(widget)"><i class="glyphicon glyphicon-trash"></i></a>
+          </div>
+        </div>
+        <div class="box-content">
+          <table class="table table-hover table-condensed">
+            <thead>
+              <td></td>
+              <td></td>
+            </thead>
+            <tbody>
+              <tr>
+                <td><a class="circle circle-green"></a>   Master</td>
+              </tr>
+              <tr>
+                <td><a class="circle circle-red"></a>   Region Server 1</td>
+              </tr>
+              <tr>
+                <td><a class="circle circle-orange"></a>   Region Server 2</td>
+              </tr>
+            </tbody>
+          </table>   
+        </div>
+      </div>
+    </li>
+  </ul>
+</div>
+<!--
+<div class="jumbotron" ng-show="sysTableCheckSuccess">
+  <h1>Yay!</h1>
+  <p class="lead">
+    Your local Splice Machine instance is running.
+  </p>
+  <p><a class="btn btn-lg btn-success" ng-href="#"><span class="glyphicon glyphicon-thumbs-up glyphicon-big"></span></a></p>
+</div>
+
+<div class="jumbotron" ng-hide="sysTableCheckSuccess">
+  <h1>Uh oh...</h1>
+  <p class="lead">
+    Your local Splice Machine instance is NOT running.
+  </p>
+  <p><a class="btn btn-lg btn-danger" ng-href="#"><span class="glyphicon glyphicon-thumbs-down glyphicon-big"></span></a></p>
+</div>
+
+
+<div class="row marketing">
+  <h4>HTML5 Boilerplate</h4>
+  <p>
+    HTML5 Boilerplate is a professional front-end template for building fast, robust, and adaptable web apps or sites.
+  </p>
+
+  <h4>Angular</h4>
+  <p>
+    AngularJS is a toolset for building the framework most suited to your application development.
+  </p>
+
+  <h4>Karma</h4>
+  <p>Spectacular Test Runner for JavaScript.</p>
+</div>
+-->
+
+<div class="footer">
+  <p>&copy; 2014 Splice Machine, Inc. All rights reserved.</p>
+</div>

@@ -16,11 +16,16 @@
     <link rel="stylesheet" href="bower_components/angular.treeview/css/angular.treeview.css">
     <link rel="stylesheet" href="bower_components/angular-tree-control/css/tree-control-attribute.css">
     <link rel="stylesheet" href="bower_components/angular-ui-tree/dist/angular-ui-tree.min.css">
+    <link rel="stylesheet" href="bower_components/angular-gridster/dist/angular-gridster.min.css">
+    <link rel="stylesheet" href="bower_components/jquery-ui/jquery-ui.min.css">
     <!-- endbower -->
     <!-- endbuild -->
     <!-- build:css({.tmp,app}) styles/main.css -->
+
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/traced-statement-detail.css">
+    <link rel="stylesheet" href="styles/dashboard.css">
+    <link rel="stylesheet" href="styles/gridster.css">
     <!-- endbuild -->
   </head>
   <body ng-app="spliceAdminApp">
@@ -64,6 +69,13 @@
     <script src="bower_components/angular-ui-tree/dist/angular-ui-tree.js"></script>
     <script src="bower_components/angular-ui-bootstrap-bower/ui-bootstrap.js"></script>
     <script src="bower_components/angular-ui-bootstrap-bower/ui-bootstrap-tpls.js"></script>
+    <script src="bower_components/angular-gridster/src/angular-gridster.js"></script>
+    <script src="bower_components/javascript-detect-element-resize/detect-element-resize.js"></script>
+    <script src="bower_components/jquery-ui/jquery-ui.js"></script>
+    <script src="bower_components/cubism/cubism.v1.js"></script>
+    <script src="bower_components/jolokia-cubism/src/jolokia.js"></script>
+    <script src="bower_components/jolokia-cubism/src/jolokia-simple.js"></script>
+    <script src="bower_components/jolokia-cubism/src/jolokia-cubism.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
 
@@ -84,12 +96,17 @@
     <script src="scripts/controllers/charts-region-server-stats-d3-bars-controller.js"></script>
     <script src="scripts/controllers/charts-region-server-stats-nvd3-controller.js"></script>
     <script src="scripts/controllers/charts-region-server-stats-select-box-controller.js"></script>
+    <script src="scripts/controllers/dashboard-controller.js"></script>
+    <script src="scripts/controllers/jolokia-controller.js"></script>
+    <script src="scripts/directives/cubism-directive.js"></script>
     <script src="scripts/directives/d3-bars-directive.js"></script>
     <script src="scripts/directives/admin-header-directive.js"></script>
     <script src="scripts/directives/admin-footer-directive.js"></script>
     <script src="scripts/directives/operations-tree-directive.js"></script>
+    <script src="scripts/services/jolokia-services.js"></script>
     <script src="scripts/services/resource-services.js"></script>
     <script src="scripts/services/utility-services.js"></script>
+    <script src="scripts/services/jolokia-services.js"></script>
     <!-- endbuild -->
 </body>
 </html>
