@@ -96,7 +96,12 @@ public class SpliceDateFunctions {
             return fmt.format(source);
 
     }
+    public static String TIMESTAMP_TO_CHAR(Timestamp stamp, String output) {
+        if (stamp == null || output == null) return null;
+        SimpleDateFormat fmt = new SimpleDateFormat(output.toLowerCase().replaceAll("m", "M"));
+        return fmt.format(stamp);
 
+    }
     /**
      * Implements the trunc_date function
      */

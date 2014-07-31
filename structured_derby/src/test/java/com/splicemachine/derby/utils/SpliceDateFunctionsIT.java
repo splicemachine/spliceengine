@@ -48,6 +48,8 @@ public class SpliceDateFunctionsIT {
             "F", schemaWatcher.schemaName, "(col1 date, col2 varchar(10), col3 varchar(10))");
     private static final SpliceTableWatcher tableWatcherG = new SpliceTableWatcher(
             "G", schemaWatcher.schemaName, "(col1 Timestamp, col2 varchar(10), col3 Timestamp)");
+    private static final SpliceTableWatcher tableWatcherH = new SpliceTableWatcher(
+            "H", schemaWatcher.schemaName, "(col1 Timestamp, col2 varchar(10), col3 varchar(10))");
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
@@ -58,6 +60,7 @@ public class SpliceDateFunctionsIT {
             .around(tableWatcherE)
             .around(tableWatcherF)
             .around(tableWatcherG)
+            .around(tableWatcherH)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -106,6 +109,14 @@ public class SpliceDateFunctionsIT {
                             "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-12-31 20:38:40'), 'quarter', Timestamp('2012-10-01 00:00:00'))");
                         ps = classWatcher.prepareStatement(
                             "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-12-31 20:38:40'), 'year', Timestamp('2012-01-01 00:00:00'))");
+                        ps = classWatcher.prepareStatement(
+                            "insert into " + tableWatcherH + " (col1, col2, col3) values (Timestamp('2012-12-31 20:38:40'), 'YYYY', '2012')");
+                        ps = classWatcher.prepareStatement(
+                            "insert into " + tableWatcherH + " (col1, col2, col3) values (Timestamp('2012-12-31 20:38:40'), 'MM', '12')");
+                        ps = classWatcher.prepareStatement(
+                            "insert into " + tableWatcherH + " (col1, col2, col3) values (Timestamp('2012-12-31 20:38:40'), 'DD', '31')");
+                        ps = classWatcher.prepareStatement(
+                            "insert into " + tableWatcherH + " (col1, col2, col3) values (Timestamp('2012-12-31 20:38:40'), 'YYYY-MM-DD', '2012-12-31')");
                         ps.execute();
                         
                     } catch (Exception e) {
@@ -180,5 +191,12 @@ public class SpliceDateFunctionsIT {
             Assert.assertEquals("Wrong result value", rs.getTimestamp(2), rs.getTimestamp(1));
         }
     }
-    
+    @Test
+    public void testTimeStampToChar() throws Exception {
+        ResultSet rs;
+        rs = methodWatcher.executeQuery("SELECT TIMESTAMP_TO_CHAR(col1, col2), col3 from " + tableWatcherH);
+        while (rs.next()) {
+            Assert.assertEquals("Wrong result value", rs.getString(2), rs.getString(1));
+        }
+    }
 }
