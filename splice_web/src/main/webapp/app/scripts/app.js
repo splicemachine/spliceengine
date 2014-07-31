@@ -109,10 +109,12 @@ angular
 				redirectTo: '/traced-statements'
 			})
 			.when('/main', {
-				templateUrl: 'views/main.html'
+				templateUrl: 'views/main.html',
+				controller: 'mainController'
 			})
 			.when('/contact', {
-				templateUrl: 'views/contact.html'
+				templateUrl: 'views/contact.html',
+				controller: 'contactController'
 			})
 			.when('/d3-bars', {
 				templateUrl: 'views/d3-bars.html'
