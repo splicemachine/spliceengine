@@ -8,7 +8,6 @@ angular
 		'ngRoute',
 		'nvd3ChartDirectives',
 		'angularTreeview',
-		'gridster',
 		'treeControl',
 		'ui.bootstrap',
 		'ui.tree',
@@ -112,14 +111,6 @@ angular
 			.when('/main', {
 				templateUrl: 'views/main.html',
 				controller: 'mainController'
-			})
-			.when('/dashboard', {
-				templateUrl: 'views/dashboard.html',
-				controller: 'dashboardController'
-			})
-			.when('/jolokia', {
-				templateUrl: 'views/charts-jolokia.html',
-				controller: 'jolokiaController'
 			})
 			.when('/contact', {
 				templateUrl: 'views/contact.html',
