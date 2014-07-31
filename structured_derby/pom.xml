@@ -398,51 +398,6 @@
 			</build>
 		</profile>
 		<profile>
-			<id>spliceClusterMember</id>
-			<activation>
-				<property>
-					<name>spliceClusterMember</name>
-				</property>
-			</activation>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.codehaus.mojo</groupId>
-						<artifactId>exec-maven-plugin</artifactId>
-						<version>1.2.1</version>
-						<executions>
-							<execution>
-								<goals>
-									<goal>exec</goal>
-								</goals>
-							</execution>
-						</executions>
-						<configuration>
-							<classpathScope>compile</classpathScope>
-							<executable>java</executable>
-							<arguments>
-								<argument>-cp</argument>
-								<classpath>${maven.runtime.classpath}</classpath>
-								<argument>-Xdebug</argument>
-								<argument>-Djava.awt.headless=true</argument>
-								<argument>-Djava.net.preferIPv4Stack=true</argument>
-								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties</argument>
-								<argument>-Xmx2g</argument>
-								<argument>-Xms1g</argument>
-                <argument>-XX:MaxPermSize=256M</argument>
-                <argument>-XX:+CMSClassUnloadingEnabled</argument>
-								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
-								<argument>com.splicemachine.test.SpliceTestClusterParticipant</argument>
-								<argument>${project.build.directory}/hbase</argument>
-								<argument>60021</argument>
-								<argument>60031</argument>
-							</arguments>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-		<profile>
 			<id>spliceZoo</id>
 			<activation>
 				<property>
@@ -570,10 +525,10 @@
 			</build>
 		</profile>
 		<profile>
-			<id>spliceClusterMemberFast</id>
+			<id>spliceClusterMember</id>
 			<activation>
 				<property>
-					<name>spliceClusterMemberFast</name>
+					<name>spliceClusterMember</name>
 				</property>
 			</activation>
 			<build>
@@ -595,6 +550,7 @@
 							<arguments>
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
+                                <argument>-Xdebug</argument>
 								<argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
