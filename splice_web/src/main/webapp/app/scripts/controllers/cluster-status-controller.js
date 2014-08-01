@@ -9,13 +9,34 @@ angular.module('spliceAdminControllers')
 		// The admin server (or client) could cache JDBC URLs to all Splice servers.
 		$scope.primaryServerStatusCheckResponse = primaryServerStatusCheckService.query(
 			[],
-			function(value, responseHeaders) {
+			function(value, responseHeaders) {  // Success callback
 				$scope.primaryServerStatusCheckSuccess = true;
 			},
-			function(httpResponse) {
+			function(httpResponse) {  // Failure callback
 				$scope.primaryServerStatusCheckSuccess = false;
 			}
 		);
 		// Check that every Splice server is able to process SQL requests.
-		$scope.serversStatusCheckResponse = serversStatusCheckService.query();
+		$scope.serversStatusCheckResponse = serversStatusCheckService.query(
+			[],
+			function(value, responseHeaders) {  // Success callback
+				// Create the message to display when a user mouses over the green thumbs-up icon for the cluster.
+				var servers = {
+					UP: [],
+					DOWN: []
+				};
+				angular.forEach(value.servers, function(value2, key) {
+					if (value2.UP === 'true') {
+						this.UP.push(value2.HOSTNAME);
+					} else {
+						this.DOWN.push(value2.HOSTNAME);
+					}
+				}, servers);
+				$scope.upServersMessage = servers.UP.join(', ');
+				$scope.downServersMessage = servers.DOWN.join(', ');
+			},
+			function(httpResponse) {  // Failure callback
+				// No-op
+			}
+		);
 	}]);

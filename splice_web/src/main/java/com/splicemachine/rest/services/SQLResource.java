@@ -25,8 +25,17 @@ import javax.ws.rs.core.MediaType;
 @Path("/sqlresource")
 public class SQLResource {
 
+	/**
+	 * Default Splice host/port for the primary JDBC connection.
+	 */
 	public static String DEFAULT_HOST = "localhost";
 	public static String DEFAULT_PORT = "1527";
+
+	/**
+	 * Switch for fake debug cluster.  Randomly report up/down status for a 5 node cluster.
+	 * Helpful for testing the green/red status of a cluster of Splice servers.
+	 */
+	private static boolean isFakeCluster = false;
 
 	/**
 	 * RESTful service that returns a JSON document containing the traced statement plan (SQL operation tree)
@@ -39,8 +48,7 @@ public class SQLResource {
 	@Path("/tracedStatements/{statementId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public String getTracedStatementTree(@PathParam("statementId")String statementId) {
-		// TODO: This method is a quick hack to get some data flowing.
-		// Prepared statements should be used at a minimum.
+		// TODO: Prepared statements should be used.
 		if (statementId == null) return null;
 		List<Map<String, String>> objects = getQueryResultsAsJavaScriptObjects(String.format("call syscs_util.syscs_get_xplain_trace(%s, 1, 'json')", statementId));
 		if (objects == null) return null;
@@ -62,15 +70,18 @@ public class SQLResource {
 		List<Map<String, String>> objects = getQueryResultsAsJavaScriptObjects("CALL SYSCS_UTIL.SYSCS_GET_ACTIVE_SERVERS()");
 		if (objects == null) return null;
 
-//		// TODO: Add some more servers for UI testing.
-//		if (objects.size() > 0 && objects.get(0) != null) {
-//			objects.add(new HashMap(objects.get(0)));
-//			objects.add(new HashMap(objects.get(0)));
-//			objects.add(new HashMap(objects.get(0)));
-//			objects.add(new HashMap(objects.get(0)));
-//		}
+		// Add some more fake servers for UI testing.
+		if (isFakeCluster) {
+			if (objects.size() > 0 && objects.get(0) != null) {
+				objects.add(new HashMap(objects.get(0)));
+				objects.add(new HashMap(objects.get(0)));
+				objects.add(new HashMap(objects.get(0)));
+				objects.add(new HashMap(objects.get(0)));
+			}
+		}
 
 		// Count the servers that are up/down and store their status in the respective server object.
+		// Also, move PORT into RPCPORT (for HBase) and add the JDBC port (hard coded to 1527 currently).
 		int upCount = 0, downCount = 0;
 		for (Map<String, String> object : objects) {
 			if (object != null) {
@@ -81,6 +92,8 @@ public class SQLResource {
 					downCount++;
 				}
 				object.put("UP", Boolean.toString(upStatus));
+				object.put("RPCPORT", object.remove("PORT"));
+				object.put("JDBCPORT", DEFAULT_PORT);
 			}
 		}
 
@@ -93,12 +106,13 @@ public class SQLResource {
 		return objectMap;
 	}
 
-	// TODO: Just for testing purposes...
-	private static short tempServerUp = 0;
-
 	private boolean isServerUp(Map<String, String> serverObject) {
-//		// Return random up/down status for UI testing.
-//		return (Math.random() < 0.5 ? true : false);
+
+		// Return random up/down status for UI testing.
+		if (isFakeCluster) {
+			return (Math.random() < 0.5 ? true : false);
+		}
+
 		// TODO: Make this a lighter test.  There is no need to create a bunch of lists and maps for a simple test
 		// that may get run over and over repeatedly.
 		// TODO: Add log4j and log all of the cases where false is returned due to a null value.
@@ -179,7 +193,7 @@ public class SQLResource {
      */
 	private Map<String, List> getQueryResults(String query, String host, String port) {
 		if (query == null) {
-			// TODO: Remove this default and throw the appropriate exception.
+			// TODO: Remove this default and throw the appropriate exception or just null/empty map/map with empty arrays.
 			query = "SELECT * FROM SYS.SYSTABLES";
 		}
 		if (host == null) {
