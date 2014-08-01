@@ -2,15 +2,19 @@ package com.splicemachine.derby.impl.ast;
 
 import com.google.common.base.*;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.utils.Partition;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.*;
 import org.apache.derby.impl.sql.compile.*;
 
 import javax.annotation.Nullable;
+
 import java.util.*;
 
 /**
@@ -89,6 +93,7 @@ public class RSUtils {
     public static final Predicate<Object> isBinaryRSN =
             Predicates.compose(Predicates.in(binaryRSNs), classOf);
 
+    // leafRSNs might need VTI eventually
     public static final Set<?> leafRSNs = ImmutableSet.of(FromBaseTable.class, RowResultSetNode.class);
 
     public static List<ResultSetNode> nodesUntilBinaryNode(ResultSetNode rsn) throws StandardException {
@@ -200,5 +205,40 @@ public class RSUtils {
     public static AccessPath ap(JoinNode j){
          return ((Optimizable) j.getRightResultSet())
                  .getTrulyTheBestAccessPath();
+    }
+
+    public static Map<Class<?>,String> sinkingNames =
+        ImmutableMap.<Class<?>, String>of(
+			JoinNode.class, "join",
+			HalfOuterJoinNode.class, "join",
+			AggregateNode.class, "aggregate",
+			DistinctNode.class, "distinct",
+			OrderByNode.class, "sort");
+
+    public final static Set<?> sinkers =
+        ImmutableSet.of(
+			JoinNode.class,
+			HalfOuterJoinNode.class,
+			AggregateNode.class,
+			DistinctNode.class,
+			OrderByNode.class);
+
+    public final static Predicate<ResultSetNode> isSinkingNode = new Predicate<ResultSetNode>(){
+        @Override
+        public boolean apply(ResultSetNode rsn) {
+            return sinkers.contains(rsn.getClass()) &&
+            	(!(rsn instanceof JoinNode) || RSUtils.isSinkingJoin(RSUtils.ap((JoinNode)rsn)));
+        }
+    };
+
+    public static Iterable<ResultSetNode> sinkingChildren(ResultSetNode node)
+        throws StandardException {
+        return Iterables.filter(RSUtils.getSelfAndDescendants(node), isSinkingNode);
+    }
+
+    public static boolean hasSinkingChildren(ResultSetNode node)
+        throws StandardException {
+        List<ResultSetNode> sinks = Lists.newLinkedList(sinkingChildren(node));
+        return (sinks != null && sinks.size() > 0);
     }
 }

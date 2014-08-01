@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.db;
 
 import javax.security.auth.login.Configuration;
+
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,6 +39,7 @@ import com.splicemachine.derby.impl.ast.JoinSelector;
 import com.splicemachine.derby.impl.ast.JoinConditionVisitor;
 import com.splicemachine.derby.impl.ast.PlanPrinter;
 import com.splicemachine.derby.impl.ast.RepeatedPredicateVisitor;
+import com.splicemachine.derby.impl.ast.RowLocationColumnVisitor;
 import com.splicemachine.derby.impl.ast.SpliceASTWalker;
 import com.splicemachine.derby.impl.ast.UnsupportedFormsDetector;
 import com.splicemachine.derby.impl.job.JobInfo;
@@ -137,9 +139,12 @@ public class SpliceDatabase extends BasicDatabase {
         
         DDLCoordinationFactory.getWatcher().registerLanguageConnectionContext(lctx);
 
+        // If you add a visitor, be careful of ordering.
+        
         List<Class<? extends ISpliceVisitor>> afterOptVisitors = new ArrayList<Class<? extends ISpliceVisitor>>();
         afterOptVisitors.add(UnsupportedFormsDetector.class);
         afterOptVisitors.add(AssignRSNVisitor.class);
+        afterOptVisitors.add(RowLocationColumnVisitor.class);
         afterOptVisitors.add(JoinSelector.class);
         afterOptVisitors.add(JoinConditionVisitor.class);
         afterOptVisitors.add(FindHashJoinColumns.class);
