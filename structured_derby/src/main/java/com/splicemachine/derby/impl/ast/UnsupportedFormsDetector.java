@@ -24,18 +24,18 @@ import java.util.*;
 public class UnsupportedFormsDetector extends AbstractSpliceVisitor {
     @Override
     public Visitable visit(DeleteNode node) throws StandardException {
-        checkForUnsupported(node);
+        // checkForUnsupported(node);
         return node;
     }
 
     @Override
     public Visitable visit(UpdateNode node) throws StandardException {
-        checkForUnsupported(node);
+        // checkForUnsupported(node);
         return node;
     }
 
     public static void checkForUnsupported(DMLStatementNode node) throws StandardException {
-        List<ResultSetNode> sinks = Lists.newLinkedList(sinkingChildren(node.getResultSetNode()));
+        List<ResultSetNode> sinks = Lists.newLinkedList(RSUtils.sinkingChildren(node.getResultSetNode()));
         if (sinks.size() > 0){
             throw StandardException.newException(MessageId.SPLICE_UNSUPPORTED_OPERATION,
                                                     unsupportedSinkingMsg(node, sinks));
@@ -47,39 +47,12 @@ public class UnsupportedFormsDetector extends AbstractSpliceVisitor {
         List<String> sinkingOps = Lists.transform(rsns, new Function<ResultSetNode, String>() {
             @Override
             public String apply(ResultSetNode input) {
-                return sinkingNames.get(input.getClass());
+                return RSUtils.sinkingNames.get(input.getClass());
             }
         });
         return String.format("%s over %s operations", modder,
                                 StringUtils.asEnglishList(sinkingOps, "or"));
 
-    }
-
-    public static Map<Class<?>,String> sinkingNames =
-        ImmutableMap.<Class<?>, String>of(JoinNode.class, "join",
-                                             HalfOuterJoinNode.class, "join",
-                                             AggregateNode.class, "aggregate",
-                                             DistinctNode.class, "distinct",
-                                             OrderByNode.class, "sort");
-
-    public final static Set<?> sinkers =
-        ImmutableSet.of(JoinNode.class,
-                           HalfOuterJoinNode.class,
-                           AggregateNode.class,
-                           DistinctNode.class,
-                           OrderByNode.class);
-
-    public final static Predicate<ResultSetNode> isSinkingNode = new Predicate<ResultSetNode>(){
-        @Override
-        public boolean apply(ResultSetNode rsn) {
-            return sinkers.contains(rsn.getClass()) &&
-                       (!(rsn instanceof JoinNode) || RSUtils.isSinkingJoin(RSUtils.ap((JoinNode)rsn)));
-        }
-    };
-
-    public static Iterable<ResultSetNode> sinkingChildren(ResultSetNode node)
-        throws StandardException {
-        return Iterables.filter(RSUtils.getSelfAndDescendants(node), isSinkingNode);
     }
 
 }

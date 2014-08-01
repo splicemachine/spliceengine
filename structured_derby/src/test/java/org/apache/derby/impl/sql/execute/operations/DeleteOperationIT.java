@@ -8,10 +8,12 @@ import java.util.List;
 import java.util.Map;
 
 import com.splicemachine.test.SerialTest;
+
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -119,7 +121,10 @@ public class DeleteOperationIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore
     public void testDeleteOverJoinUnsupported() throws Exception {
+    	// Now that deletes over sink operations are supported (DB-1603),
+    	// this test is no longer valid. Delete permanently later.
         try {
             methodWatcher
                 .executeUpdate("DELETE FROM deleteoperationit.a_test a " +

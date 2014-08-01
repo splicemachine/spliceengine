@@ -1,6 +1,7 @@
 package com.splicemachine.derby.utils.marshall.dvd;
 
 import com.splicemachine.SpliceKryoRegistry;
+
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
@@ -19,13 +20,14 @@ public class V1SerializerMap implements SerializerMap,TypeProvider {
 				factories[1]  = NullDescriptorSerializer.nullFactory(LazyDescriptorSerializer.factory(ScalarDescriptorSerializer.INSTANCE_FACTORY, version),sparse);
 				factories[2]  = NullDescriptorSerializer.floatChecker(RealDescriptorSerializer.INSTANCE_FACTORY, sparse);
 				factories[3]  = NullDescriptorSerializer.doubleChecker(LazyDescriptorSerializer.factory(DoubleDescriptorSerializer.INSTANCE_FACTORY, version), sparse);
-            factories[4]  = NullDescriptorSerializer.nullFactory(LazyDescriptorSerializer.factory(StringDescriptorSerializer.INSTANCE_FACTORY, version),sparse);
+				factories[4]  = NullDescriptorSerializer.nullFactory(LazyDescriptorSerializer.factory(StringDescriptorSerializer.INSTANCE_FACTORY, version),sparse);
 				factories[5]  = NullDescriptorSerializer.nullFactory(KryoDescriptorSerializer.newFactory(SpliceKryoRegistry.getInstance()),sparse);
 				factories[6]  = NullDescriptorSerializer.nullFactory(DateDescriptorSerializer.INSTANCE_FACTORY,sparse);
 				factories[7]  = NullDescriptorSerializer.nullFactory(TimeDescriptorSerializer.INSTANCE_FACTORY,sparse);
 				factories[8]  = NullDescriptorSerializer.nullFactory(LazyTimeValuedSerializer.newFactory(TimestampV1DescriptorSerializer.INSTANCE_FACTORY,version),sparse);
 				factories[9]  = NullDescriptorSerializer.nullFactory(UnsortedBinaryDescriptorSerializer.INSTANCE_FACTORY,sparse);
 				factories[10] = NullDescriptorSerializer.nullFactory(LazyDescriptorSerializer.factory(DecimalDescriptorSerializer.INSTANCE_FACTORY, version),sparse);
+				factories[11] = NullDescriptorSerializer.nullFactory(RefDescriptorSerializer.INSTANCE_FACTORY, sparse);
 
 				eagerFactories[0]  = NullDescriptorSerializer.nullFactory(BooleanDescriptorSerializer.INSTANCE_FACTORY,sparse);
 				eagerFactories[1]  = NullDescriptorSerializer.nullFactory(ScalarDescriptorSerializer.INSTANCE_FACTORY,sparse);
@@ -38,6 +40,7 @@ public class V1SerializerMap implements SerializerMap,TypeProvider {
 				eagerFactories[8]  = NullDescriptorSerializer.nullFactory(TimestampV1DescriptorSerializer.INSTANCE_FACTORY,sparse);
 				eagerFactories[9]  = NullDescriptorSerializer.nullFactory(UnsortedBinaryDescriptorSerializer.INSTANCE_FACTORY,sparse);
 				eagerFactories[10] = NullDescriptorSerializer.nullFactory(DecimalDescriptorSerializer.INSTANCE_FACTORY,sparse);
+				eagerFactories[11] = NullDescriptorSerializer.nullFactory(RefDescriptorSerializer.INSTANCE_FACTORY,sparse);
 		}
 
 		public static final V1SerializerMap SPARSE_MAP = new V1SerializerMap(true);
@@ -48,8 +51,8 @@ public class V1SerializerMap implements SerializerMap,TypeProvider {
 		}
 
 		public V1SerializerMap(boolean sparse) {
-				this.factories = new DescriptorSerializer.Factory[11];
-				this.eagerFactories = new DescriptorSerializer.Factory[11];
+				this.factories = new DescriptorSerializer.Factory[12];
+				this.eagerFactories = new DescriptorSerializer.Factory[12];
 				populateFactories(sparse);
 		}
 

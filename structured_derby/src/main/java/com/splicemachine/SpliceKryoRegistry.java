@@ -5,6 +5,79 @@ import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
+import com.splicemachine.derby.impl.sql.execute.operations.*;
+import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
+
+import org.apache.derby.catalog.types.AggregateAliasInfo;
+import org.apache.derby.catalog.types.BaseTypeIdImpl;
+import org.apache.derby.catalog.types.DecimalTypeIdImpl;
+import org.apache.derby.catalog.types.DefaultInfoImpl;
+import org.apache.derby.catalog.types.IndexDescriptorImpl;
+import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
+import org.apache.derby.catalog.types.RoutineAliasInfo;
+import org.apache.derby.catalog.types.RowMultiSetImpl;
+import org.apache.derby.catalog.types.SynonymAliasInfo;
+import org.apache.derby.catalog.types.TypeDescriptorImpl;
+import org.apache.derby.catalog.types.UserDefinedTypeIdImpl;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableArrayHolder;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.io.FormatableHashtable;
+import org.apache.derby.iapi.services.io.FormatableInstanceGetter;
+import org.apache.derby.iapi.services.io.FormatableIntHolder;
+import org.apache.derby.iapi.services.io.FormatableLongHolder;
+import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
+import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
+import org.apache.derby.iapi.store.raw.ContainerKey;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.iapi.types.SQLBit;
+import org.apache.derby.iapi.types.SQLBlob;
+import org.apache.derby.iapi.types.SQLBoolean;
+import org.apache.derby.iapi.types.SQLChar;
+import org.apache.derby.iapi.types.SQLClob;
+import org.apache.derby.iapi.types.SQLDate;
+import org.apache.derby.iapi.types.SQLDecimal;
+import org.apache.derby.iapi.types.SQLDouble;
+import org.apache.derby.iapi.types.SQLInteger;
+import org.apache.derby.iapi.types.SQLLongVarbit;
+import org.apache.derby.iapi.types.SQLLongint;
+import org.apache.derby.iapi.types.SQLLongvarchar;
+import org.apache.derby.iapi.types.SQLReal;
+import org.apache.derby.iapi.types.SQLRef;
+import org.apache.derby.iapi.types.SQLSmallint;
+import org.apache.derby.iapi.types.SQLTime;
+import org.apache.derby.iapi.types.SQLTimestamp;
+import org.apache.derby.iapi.types.SQLTinyint;
+import org.apache.derby.iapi.types.SQLVarbit;
+import org.apache.derby.iapi.types.SQLVarchar;
+import org.apache.derby.iapi.types.UserType;
+import org.apache.derby.impl.services.uuid.BasicUUID;
+import org.apache.derby.impl.sql.CursorInfo;
+import org.apache.derby.impl.sql.CursorTableReference;
+import org.apache.derby.impl.sql.GenericColumnDescriptor;
+import org.apache.derby.impl.sql.GenericParameter;
+import org.apache.derby.impl.sql.GenericParameterValueSet;
+import org.apache.derby.impl.sql.GenericResultDescription;
+import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.derby.impl.sql.catalog.DDColumnDependableFinder;
+import org.apache.derby.impl.sql.catalog.DD_Version;
+import org.apache.derby.impl.sql.catalog.DDdependableFinder;
+import org.apache.derby.impl.sql.execute.AggregatorInfo;
+import org.apache.derby.impl.sql.execute.AggregatorInfoList;
+import org.apache.derby.impl.sql.execute.AvgAggregator;
+import org.apache.derby.impl.sql.execute.CountAggregator;
+import org.apache.derby.impl.sql.execute.DecimalBufferedSumAggregator;
+import org.apache.derby.impl.sql.execute.DoubleBufferedSumAggregator;
+import org.apache.derby.impl.sql.execute.FKInfo;
+import org.apache.derby.impl.sql.execute.FloatBufferedSumAggregator;
+import org.apache.derby.impl.sql.execute.IndexColumnOrder;
+import org.apache.derby.impl.sql.execute.LongBufferedSumAggregator;
+import org.apache.derby.impl.sql.execute.MaxMinAggregator;
+import org.apache.derby.impl.sql.execute.SumAggregator;
+import org.apache.derby.impl.sql.execute.UserDefinedAggregator;
+import org.apache.derby.impl.sql.execute.ValueRow;
+import org.apache.derby.impl.store.access.PC_XenaVersion;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -379,7 +452,18 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 dvd.setValue(input.readFloat());
             }
         },42);
-        instance.register(SQLRef.class,EXTERNALIZABLE_SERIALIZER,43);
+        // Note that serialization of SQLRef as part of an ExecRow is handled by RefDescriptorSerializer
+        instance.register(SQLRef.class, new DataValueDescriptorSerializer<SQLRef>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLRef object) throws StandardException {
+                kryo.writeObjectOrNull(output, object.getObject(), HBaseRowLocation.class);
+            }
+
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLRef dvd) throws StandardException {
+                dvd.setValue((RowLocation)(kryo.readObjectOrNull(input, HBaseRowLocation.class)));
+            }
+        },43);
         instance.register(LazyDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,44);
         instance.register(LazyNumberDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,45);
         instance.register(LazyStringDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,46);
