@@ -49,6 +49,9 @@ class SpliceMasterObserverInitAction {
             evaluateState();
             createSplice();
             throw new PleaseHoldException("pre create succeeded");
+        } catch (PleaseHoldException phe) {
+            // Expected when state != RUNNING, catch at this level to avoid logging full stack trace.
+            throw phe;
         } catch (DoNotRetryIOException dnr) {
             throw dnr;
         } catch (Exception e) {
