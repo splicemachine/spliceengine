@@ -34,7 +34,10 @@
         <li ng-show="clickedOperation.totalCPUTime">Total CPU Time: {{formatRawNanoTime(clickedOperation.totalCPUTime)}}</li>
         <li ng-show="clickedOperation.totalUserTime">Total User Time: {{formatRawNanoTime(clickedOperation.totalUserTime)}}</li>
         <li ng-show="clickedOperation.totalWallTime">Total Wall Time: {{formatRawNanoTime(clickedOperation.totalWallTime)}}</li>
-        <li ng-show="clickedOperation.regionShort">Region: <a popover-title="Region Name" popover="{{clickedOperation.region}}" popover-placement="bottom">{{clickedOperation.regionShort}}</a></li>
+        <li ng-show="clickedOperation.regionShort">Region:
+          <a ng-show="clickedOperation.region.length > 10" popover-title="Region Name" popover="{{clickedOperation.region}}" popover-trigger="mouseenter" popover-placement="bottom">{{clickedOperation.regionShort}}</a>
+          <span ng-hide="clickedOperation.region.length > 10">{{clickedOperation.regionShort}}</span>
+        </li>
       </ul>
     </div>
     <div id="operation-details-input">
