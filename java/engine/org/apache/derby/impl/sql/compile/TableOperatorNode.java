@@ -57,7 +57,10 @@ import java.util.Properties;
  *
  */
 
-abstract class TableOperatorNode extends FromTable
+// Splice fork: changed TableOperatorNode to public from package protected.
+// It's understandable that this is an abstract class, but it's really annoying
+// that we can't even refer to it from outside as an abstract type.
+public abstract class TableOperatorNode extends FromTable
 {
 	ResultSetNode	leftResultSet;
 	ResultSetNode	rightResultSet;

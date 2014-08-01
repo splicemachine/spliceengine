@@ -1502,7 +1502,8 @@ public class ResultColumn extends ValueNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	ResultColumn cloneMe() throws StandardException
+        // Splice fork: changed to public from package protected
+	public ResultColumn cloneMe() throws StandardException
 	{
 		ResultColumn	newResultColumn;
 		ValueNode		cloneExpr;
@@ -1545,7 +1546,9 @@ public class ResultColumn extends ValueNode
 
 		/* Set the VirtualColumnId and name in the new node */
 		newResultColumn.setVirtualColumnId(getVirtualColumnId());
-
+        // Splice fork: also set the result set number on the new node
+		newResultColumn.setResultSetNumber(getResultSetNumber());
+		
 		/* Set the type and name information in the new node */
 		newResultColumn.setName(getName());
 		newResultColumn.setType(getTypeServices());

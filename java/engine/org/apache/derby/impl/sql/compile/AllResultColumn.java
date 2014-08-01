@@ -72,7 +72,8 @@ public class AllResultColumn extends ResultColumn
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	ResultColumn cloneMe() throws StandardException
+	// Splice fork: changed from package protected to public
+	public ResultColumn cloneMe() throws StandardException
 	{
 		if (SanityManager.DEBUG)
 		{
