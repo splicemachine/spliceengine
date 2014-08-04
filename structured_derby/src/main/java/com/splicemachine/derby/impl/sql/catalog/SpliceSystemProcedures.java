@@ -515,6 +515,15 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
                                 .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
                                 .build(),
+                        Procedure.newBuilder().name("TIMESTAMP_TO_CHAR")
+                                .numOutputParams(0)
+                                .numResultSets(0)
+                                .sqlControl(RoutineAliasInfo.NO_SQL)
+                                .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
+                                .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                                .arg("STAMP", DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
+                                .varchar("OUTPUT", Limits.DB2_VARCHAR_MAXWIDTH)
+                                .build(),
                         Procedure.newBuilder().name("TRUNC_DATE")
                                 .numOutputParams(0)
                                 .numResultSets(0)
