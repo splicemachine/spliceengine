@@ -28,8 +28,9 @@ import java.util.*;
 public class SimpleAsyncScanner implements AsyncScanner,Callback<ArrayList<ArrayList<KeyValue>>, ArrayList<ArrayList<KeyValue>>> {
     public static final HBaseClient HBASE_CLIENT;
     static{
-        String zkQuorumStr = SpliceConstants.config.get(HConstants.ZOOKEEPER_QUORUM);
-        HBASE_CLIENT = new HBaseClient(zkQuorumStr);
+    	String zkQuorumStr = SpliceConstants.config.get(HConstants.ZOOKEEPER_QUORUM);
+    	String baseNode = SpliceConstants.config.get(HConstants.ZOOKEEPER_ZNODE_PARENT);
+    	HBASE_CLIENT = new HBaseClient(zkQuorumStr,baseNode);
     }
 
     private final Timer timer;
