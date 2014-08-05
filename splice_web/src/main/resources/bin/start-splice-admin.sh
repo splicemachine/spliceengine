@@ -16,14 +16,21 @@ usage() {
     echo "Usage: ${0} [-d] [-h]"
     echo "Where: "
     echo "  -d => Start the server with debug logging enabled"
+    echo "  -p <port_#> is the optional Splice Admin HTTP port to listen to.  The default HTTP port is 8080."
     echo "  -h => print this message"
 }
 
-while getopts "dh" flag ; do
+PORT="8080"  # Default Jetty HTTP port
+
+while getopts ":dhp:" flag ; do
     case ${flag} in
         h* | \?)
             usage
             exit 0 # This is not an error, User asked help. Don't do "exit 1"
+        ;;
+        p)
+        # the Jetty HTTP port
+            PORT=$(echo "$OPTARG" | tr -d [[:space:]])
         ;;
         d)
         # start server with the debug
@@ -35,6 +42,8 @@ while getopts "dh" flag ; do
         ;;
     esac
 done
+
+echo "Running with HTTP port = ${PORT} and debug = ${DEBUG}"
 
 # server still running? - must stop first
 S=$(ps -ef | awk '/splice_web/ && !/awk/ {print $2}')
@@ -97,6 +106,7 @@ if [[ ${UNAME} == CYGWIN* ]]; then
 fi
 
 # Start server with retry logic
+# TODO: Remove hard coding of versioned file names.  Fetch the most recently built archives.
 JETTY_RUNNER_JAR="${ROOT_DIR}/lib/jetty-runner-8.1.15.v20140411.jar"
 ADMIN_MAIN_WAR="${ROOT_DIR}/lib/splice_web.war"
-_retryAdmin "${ROOT_DIR}" "${LOGFILE}" "${LOG4J_PATH}" "${JETTY_RUNNER_JAR}" ${ADMIN_MAIN_WAR}
+_retryAdmin "${ROOT_DIR}" "${LOGFILE}" "${LOG4J_PATH}" "${JETTY_RUNNER_JAR}" ${ADMIN_MAIN_WAR} ${PORT}

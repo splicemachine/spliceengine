@@ -8,6 +8,7 @@ _retryAdmin() {
     LOG4J_PATH="${3}"
     JETTY_RUNNER_JAR="${4}"
     ADMIN_MAIN_WAR="${5}"
+    PORT="${6}"
 
     # Number of seconds we should allow for isReady to return 0
     # Jetty takes very little time to start up...
@@ -27,7 +28,7 @@ _retryAdmin() {
     RETURN_CODE=0
     ERROR_CODE=0
     for (( RETRY=1; RETRY<=MAXRETRY; RETRY++ )); do
-        _startAdmin "${ROOT_DIR}" "${ADMINLOGFILE}" "${LOG4J_PATH}"
+        _startAdmin "${ROOT_DIR}" "${ADMINLOGFILE}" "${LOG4J_PATH}" "${PORT}"
         _waitfor "${ADMINLOGFILE}" "${ADMIN_TIMEOUT}" 'oejs.AbstractConnector:Started SelectChannelConnector'
         RETURN_CODE=$?
         if [[ ${RETURN_CODE} -eq 0 ]]; then
@@ -54,7 +55,7 @@ _retryAdmin() {
     else
         echo
         echo "Splice Admin Server is ready"
-        echo "The Admin URI is http://localhost:8080/app"
+        echo "The Admin URI is http://${HOSTNAME}:${PORT}/app"
         return 0;
     fi
 }
@@ -63,14 +64,14 @@ _startAdmin() {
     ROOT_DIR="${1}"
     LOGFILE="${2}"
     LOG4J_PATH="${3}"
+    PORT="${4}"
 
     ADMIN_PID_FILE="${ROOT_DIR}"/admin_pid
     export CLASSPATH
     LOG4J_CONFIG="-Dlog4j.configuration=$LOG4J_PATH"
 
     SYS_ARGS=" -Xmx512m -Xms256m -Djava.awt.headless=true ${LOG4J_CONFIG} -Djava.net.preferIPv4Stack=true"
-
-    (java ${SYS_ARGS} -jar "${JETTY_RUNNER_JAR}" --path / "${ADMIN_MAIN_WAR}" > "${LOGFILE}" 2>&1 ) &
+    (java ${SYS_ARGS} -jar "${JETTY_RUNNER_JAR}" --path / --port "${PORT}" "${ADMIN_MAIN_WAR}" > "${LOGFILE}" 2>&1 ) &
     echo "$!" > ${ADMIN_PID_FILE}
 }
 
