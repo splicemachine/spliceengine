@@ -1,8 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations.window;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -113,62 +110,4 @@ public abstract class SpliceGenericWindowFunction implements ExecAggregator {
             return values[i];
         }
     }
-
-    public static class WindowFunctionWrapper extends SpliceGenericWindowFunction {
-        private final ExecAggregator delegate;
-        public WindowFunctionWrapper(ExecAggregator delegate) {
-            super();
-            this.delegate = delegate;
-        }
-
-        @Override
-        protected void calculateOnAdd(WindowChunk chunk, DataValueDescriptor dvd) throws StandardException {
-        }
-
-        @Override
-        protected void calculateOnRemove(WindowChunk chunk, DataValueDescriptor dvd) throws StandardException {
-
-        }
-
-        @Override
-        public void accumulate(DataValueDescriptor addend, Object ga) throws StandardException {
-            delegate.accumulate(addend, ga);
-        }
-
-        @Override
-        public void merge(ExecAggregator inputAggregator) throws StandardException {
-            delegate.merge(inputAggregator);
-        }
-
-        @Override
-        public DataValueDescriptor getResult() throws StandardException {
-            return delegate.getResult();
-        }
-
-        @Override
-        public ExecAggregator newAggregator() {
-            return delegate.newAggregator();
-        }
-
-        @Override
-        public boolean didEliminateNulls() {
-            return delegate.didEliminateNulls();
-        }
-
-        @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
-            delegate.writeExternal(out);
-        }
-
-        @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            delegate.readExternal(in);
-        }
-
-        @Override
-        public int getTypeFormatId() {
-            return delegate.getTypeFormatId();
-        }
-    }
-
 }
