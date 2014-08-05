@@ -13,8 +13,14 @@
 	</parent>
 	<properties>
 		<guava.version>11.0.2</guava.version>
+    <junit.version>4.11</junit.version>
 	</properties>
 	<dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
+    </dependency>
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_constants</artifactId>
