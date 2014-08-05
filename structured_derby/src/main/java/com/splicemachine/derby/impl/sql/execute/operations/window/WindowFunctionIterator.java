@@ -12,7 +12,7 @@ import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
 import com.splicemachine.derby.utils.PartitionAwareIterator;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-
+import java.util.ArrayList;
 import java.io.IOException;
 
 /**
@@ -25,11 +25,11 @@ public class WindowFunctionIterator implements StandardIterator<ExecRow> {
     private PairDecoder decoder;
     private SpliceResultScanner scanner;
     private DataValueDescriptor[] dvds;
-    private PartitionAwarePushBackIterator<ExecRow> rowSource;
+    private PartitionAwarePushBackIterator<ExecRow> source;
     private int[] partitionColumns;
-    private WindowFunctionWorker windowFunctionWorker;
     private SpliceRuntimeContext runtimeContext;
     private ExecRow templateRow;
+    FrameBuffer frameBuffer;
 
     public WindowFunctionIterator() {
 
@@ -52,24 +52,26 @@ public class WindowFunctionIterator implements StandardIterator<ExecRow> {
     }
 
     public boolean init() throws StandardException, IOException {
-        boolean retval = false;
+        boolean retVal = false;
         PartitionAwareIterator<ExecRow> iterator = StandardIterators.wrap(scanner, decoder, partitionColumns, dvds);
-        rowSource = new PartitionAwarePushBackIterator<ExecRow>(iterator);
-        rowSource.open();
-        ExecRow row = rowSource.next(runtimeContext);
+        source = new PartitionAwarePushBackIterator<ExecRow>(iterator);
+        source.open();
+        ExecRow row = source.next(runtimeContext);
         if (row != null) {
-            rowSource.pushBack(row);
-            initWindow();
-            retval = true;
+            source.pushBack(row);
+            initWindowFrame();
+            retVal = true;
         }
 
-        return retval;
+        return retVal;
     }
 
-    private void initWindow() throws StandardException, IOException{
-        if (windowFunctionWorker == null) {
-            windowFunctionWorker = new WindowFunctionWorker(runtimeContext, rowSource, windowContext.getWindowFrame(), aggregateContext, templateRow);
+
+    private void initWindowFrame() throws StandardException, IOException{
+        if (frameBuffer == null) {
+            frameBuffer = new FrameBuffer(runtimeContext, aggregateContext, source, windowContext, templateRow);
         }
+        frameBuffer.init(source);
     }
 
     @Override
@@ -84,6 +86,27 @@ public class WindowFunctionIterator implements StandardIterator<ExecRow> {
 
     @Override
     public ExecRow next(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
-        return windowFunctionWorker.next(runtimeContext);
+
+        ExecRow row = frameBuffer.next();
+
+        if (row == null) {
+            // This is the end of one partition, peek the next row
+            row = source.next(runtimeContext);
+            if (row == null) {
+                // This is the end of the region
+                return null;
+            }
+            else {
+                // init a new window buffer for the next partition
+                source.pushBack(row);
+                frameBuffer.init(source);
+                row = frameBuffer.next();
+            }
+
+        }
+
+        frameBuffer.move();
+
+        return row;
     }
 }

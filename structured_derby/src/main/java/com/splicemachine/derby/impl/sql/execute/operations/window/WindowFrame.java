@@ -9,7 +9,7 @@ import org.apache.derby.iapi.services.io.FormatableHashtable;
  * @author Jeff Cunningham
  *         Date: 7/10/14
  */
-public class WindowFrameDefinition {
+public class WindowFrame {
 
     public enum FrameMode { ROWS, RANGE }
 
@@ -22,11 +22,10 @@ public class WindowFrameDefinition {
     }
 
     public static class FrameType implements Serializable {
-        public static final long NON_VAL = -1;
         private final Frame frame;
-        private final int value;
+        private final long value;
 
-        private FrameType(int frame, int value) {
+        private FrameType(int frame, long value) {
             this.frame = Frame.values()[frame];
             this.value = value;
         }
@@ -48,13 +47,6 @@ public class WindowFrameDefinition {
 
             return value == frameType.value && frame == frameType.frame;
         }
-
-        @Override
-        public int hashCode() {
-            int result = frame.hashCode();
-            result = 31 * result + value;
-            return result;
-        }
     }
 
     private final FrameMode frameMode;
@@ -67,10 +59,45 @@ public class WindowFrameDefinition {
      * @param frameStart start of the window frame
      * @param frameEnd end of the window frame
      */
-    private WindowFrameDefinition(int frameMode, int frameStart, int frameStartRows,
-                                  int frameEnd, int frameEndRows) {
+    private WindowFrame(int frameMode, int frameStart, long frameStartRows,
+                                  int frameEnd, long frameEndRows) {
         this.frameMode = FrameMode.values()[frameMode];
+        switch (Frame.values()[frameStart]) {
+            case  UNBOUNDED_PRECEDING:
+                frameStartRows = Long.MIN_VALUE;
+                break;
+            case PRECEDING:
+                frameStartRows = -1 * frameStartRows;
+                break;
+            case CURRENT_ROW:
+                frameStartRows = 0;
+                break;
+            case FOLLOWING:
+                break;
+            case UNBOUNDED_FOLLOWING:
+                // This is an error
+            default:
+                break;
+        }
         this.frameStart = new FrameType(frameStart, frameStartRows);
+
+
+        switch (Frame.values()[frameEnd]) {
+            case  UNBOUNDED_FOLLOWING:
+                frameEndRows = Long.MAX_VALUE;
+                break;
+            case PRECEDING:
+                frameEndRows = -1 * frameEndRows;
+                break;
+            case CURRENT_ROW:
+                frameEndRows = 0;
+            case FOLLOWING:
+                break;
+            case UNBOUNDED_PRECEDING:
+                // This is an error
+            default:
+                break;
+        }
         this.frameEnd = new FrameType(frameEnd, frameEndRows);
     }
 
@@ -86,16 +113,16 @@ public class WindowFrameDefinition {
         return frameStart;
     }
 
-    public boolean isEquivalent(WindowFrameDefinition other) {
+    public boolean isEquivalent(WindowFrame other) {
         return this == other || other != null && !(frameMode != null ? !frameMode.equals(other.frameMode) :
             other.frameMode != null) && frameStart.equals(other.frameStart) && frameEnd.equals (other.frameEnd);
     }
 
-    public static WindowFrameDefinition create(FormatableHashtable data) {
-        return new WindowFrameDefinition((Integer)data.get("MODE"),
-                                         (Integer)data.get("START_FRAME"),
-                                         (Integer)data.get("START_FRAME_ROWS"),
-                                         (Integer)data.get("END_FRAME"),
-                                         (Integer)data.get("END_FRAME_ROWS"));
+    public static WindowFrame create(FormatableHashtable data) {
+        return new WindowFrame((Integer)data.get("MODE"),
+                               (Integer)data.get("START_FRAME"),
+                               (Integer)data.get("START_FRAME_ROWS"),
+                               (Integer)data.get("END_FRAME"),
+                               (Integer)data.get("END_FRAME_ROWS"));
     }
 }

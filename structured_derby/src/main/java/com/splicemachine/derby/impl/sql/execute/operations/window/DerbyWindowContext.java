@@ -32,7 +32,7 @@ public class DerbyWindowContext implements WindowContext {
     private boolean[] sortOrders;
     private int[] keyColumns;
     private boolean[] keyOrders;
-    WindowFrameDefinition windowFrame;
+    WindowFrame windowFrame;
 
     public DerbyWindowContext() {
     }
@@ -54,7 +54,7 @@ public class DerbyWindowContext implements WindowContext {
         ColumnOrdering[] orderings = (ColumnOrdering[])
             ((FormatableArrayHolder) (statement.getSavedObject(orderingItemIdx))).getArray(ColumnOrdering.class);
 
-        windowFrame = WindowFrameDefinition.create((FormatableHashtable) statement.getSavedObject(frameDefnIdx));
+        windowFrame = WindowFrame.create((FormatableHashtable) statement.getSavedObject(frameDefnIdx));
 
         keyColumns = new int[partition.length + orderings.length];
         keyOrders = new boolean[partition.length + orderings.length];
@@ -132,7 +132,7 @@ public class DerbyWindowContext implements WindowContext {
     }
 
     @Override
-    public WindowFrameDefinition getWindowFrame() {
+    public WindowFrame getWindowFrame() {
         return windowFrame;
     }
 

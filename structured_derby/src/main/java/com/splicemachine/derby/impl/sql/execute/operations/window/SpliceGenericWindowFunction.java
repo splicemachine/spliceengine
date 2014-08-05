@@ -35,6 +35,10 @@ public abstract class SpliceGenericWindowFunction implements ExecAggregator {
     }
 
     public void add(DataValueDescriptor addend) throws StandardException{
+        if (first == null && last == null) {
+            reset();
+        }
+
         if (last.isFull()) {
             last = new WindowChunk();
             values.add(last);
@@ -49,6 +53,7 @@ public abstract class SpliceGenericWindowFunction implements ExecAggregator {
         if (first.consumed()) {
             values.remove(first);
             if (values.size() == 0) {
+                first = last = null;
                 return null;
             }
             first = values.get(0);
