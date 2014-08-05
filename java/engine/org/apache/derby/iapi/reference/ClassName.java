@@ -113,7 +113,9 @@ public interface ClassName
 	String CountAggregator = "org.apache.derby.impl.sql.execute.CountAggregator";
 	String AvgAggregator = "org.apache.derby.impl.sql.execute.AvgAggregator";
 	String UserDefinedAggregator = "org.apache.derby.impl.sql.execute.UserDefinedAggregator";
-
+    String RowNumberFunction = "org.apache.derby.impl.sql.execute.RowNumberFunction";
+    String DenseRankFunction = "org.apache.derby.impl.sql.execute.DenseRankFunction";
+    String RankFunction = "org.apache.derby.impl.sql.execute.RankFunction";
     String WindowMaxMinAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.MaxMinAggregator";
     String WindowSumAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.SumAggregator";
     String WindowAvgAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.AvgAggregator";

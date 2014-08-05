@@ -80,6 +80,42 @@ public class AST_PrinterTest {
     }
 
     @Test
+    public void testRankWindowPartitionOrderbySmall() throws Exception {
+        String query = "SELECT empnum, dept, salary, RANK() OVER (Partition by dept ORDER BY salary) AS DenseRank FROM emptab";
+        ASTVisitorConfig.Factory.printResult(query, grapher.execute(query), System.out);
+    }
+
+    @Test
+    public void testRankWindowOrderbySmall() throws Exception {
+        String query = "SELECT empnum, dept, salary, RANK() OVER (ORDER BY salary) AS DenseRank FROM emptab";
+        ASTVisitorConfig.Factory.printResult(query, grapher.execute(query), System.out);
+    }
+
+    @Test
+    public void testDenseRankWindowPartitionOrderbySmall() throws Exception {
+        String query = "SELECT empnum, dept, salary, DENSE_RANK() OVER (Partition by dept ORDER BY salary) AS DenseRank FROM emptab";
+        ASTVisitorConfig.Factory.printResult(query, grapher.execute(query), System.out);
+    }
+
+    @Test
+    public void testDenseRankWindowOrderbySmall() throws Exception {
+        String query = "SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY salary) AS DenseRank FROM emptab";
+        ASTVisitorConfig.Factory.printResult(query, grapher.execute(query), System.out);
+    }
+
+    @Test
+    public void testRowNumWindowPartitionOrderbySmall() throws Exception {
+        String query = "SELECT empnum, dept, salary, ROW_NUMBER() OVER (Partition by dept ORDER BY salary) AS DenseRank FROM emptab";
+        ASTVisitorConfig.Factory.printResult(query, grapher.execute(query), System.out);
+    }
+
+    @Test
+    public void testRowNumWindowOrderbySmall() throws Exception {
+        String query = "SELECT empnum, dept, salary, ROW_NUMBER() OVER (ORDER BY salary) AS DenseRank FROM emptab";
+        ASTVisitorConfig.Factory.printResult(query, grapher.execute(query), System.out);
+    }
+
+    @Test
     public void testAggregateWindowOrderby() throws Exception {
         String query = "SELECT dept, max(salary) over (Partition by dept ORDER BY salary) as maxsal from emptab";
         grapher.execute(query);

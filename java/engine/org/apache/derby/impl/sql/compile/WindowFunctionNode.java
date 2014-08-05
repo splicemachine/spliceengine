@@ -38,8 +38,7 @@ public abstract class WindowFunctionNode extends AggregateNode
      * @param arg2 function mame (operator)
      * @param arg3 window node (definition or reference)
      */
-    public void init(Object arg1, Object arg2, Object arg3)
-    {
+    public void init(Object arg1, Object arg2, Object arg3) {
         super.init(arg1, arg2, null);
         this.window = (WindowNode)arg3;
     }

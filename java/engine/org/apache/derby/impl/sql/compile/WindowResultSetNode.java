@@ -398,9 +398,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         throws StandardException {
         aggInfo = new AggregatorInfoList();
 
-        if (partition != null) {
-            addUnAggColumns();
-        }
+        addUnAggColumns();
         addAggregateColumns();
     }
 

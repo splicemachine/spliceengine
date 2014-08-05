@@ -9968,30 +9968,51 @@ windowOrAggregateFunctionNode() throws StandardException :
 |
 	<DENSERANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
 	{
+        winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
+                            null,
+                            DenseRankFunctionDefinition.class,
+                            Boolean.FALSE,
+                            "DENSE_RANK",
+                            getContextManager());
+
 		winOrAgg = (ValueNode) nodeFactory.getNode(
 			C_NodeTypes.DENSERANK_FUNCTION_NODE,
-			null,
 			window,
+			winOrAgg,
 			getContextManager());
 		return winOrAgg;
 	}
 |
 	<RANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
 	{
+        winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
+                            null,
+                            RankFunctionDefinition.class,
+                            Boolean.FALSE,
+                            "RANK",
+                            getContextManager());
+
 		winOrAgg = (ValueNode) nodeFactory.getNode(
 			C_NodeTypes.RANK_FUNCTION_NODE,
-			null,
 			window,
+			winOrAgg,
 			getContextManager());
 		return winOrAgg;
 	}
 |
 	<ROWNUMBER> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
 	{
+        winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
+                            null,
+                            RowNumberFunctionDefinition.class,
+                            Boolean.FALSE,
+                            "ROW_NUMBER",
+                            getContextManager());
+
 		winOrAgg = (ValueNode) nodeFactory.getNode(
 			C_NodeTypes.ROW_NUMBER_FUNCTION_NODE,
-			null,
 			window,
+			winOrAgg,
 			getContextManager());
 		return winOrAgg;
 	}
