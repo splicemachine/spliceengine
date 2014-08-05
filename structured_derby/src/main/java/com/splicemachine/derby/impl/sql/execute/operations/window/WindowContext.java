@@ -24,5 +24,5 @@ public interface WindowContext extends WarningCollector,Externalizable {
 
     boolean[] getKeyOrders();
 
-    WindowFrameDefinition getWindowFrame();
+    WindowFrame getWindowFrame();
 }

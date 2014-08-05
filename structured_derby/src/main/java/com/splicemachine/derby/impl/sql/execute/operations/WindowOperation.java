@@ -69,32 +69,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
-/**
- * WindowResultSet
- *
- * This ResultSet handles a window function ResultSet.
- *
- * This ResultSet evaluates grouped, non distinct aggregates.
- * It will scan the entire source result set and calculate
- * the grouped aggregates when scanning the source during the
- * first call to next().
- *
- * This implementation has 2 variations, which it chooses according to
- * the following rules:
- * - If the data are guaranteed to arrive already in sorted order, we make
- *   a single pass over the data, computing the aggregates in-line as the
- *   data are read.
- * - Otherwise, the data are sorted, and a SortObserver is used to compute
- *   the aggregations inside the sort, and the results are read back directly
- *   from the sorter.
- *
- * Note that, we ALWAYS compute the aggregates using a SortObserver, which is an
- * arrangement by which the sorter calls back into the aggregates during
- * the sort process each time it consolidates two rows with the same
- * sort key. Using aggregate sort observers is an efficient technique.
- *
- *
- */
+
 public class WindowOperation extends SpliceBaseOperation implements SinkingOperation {
     private static final long serialVersionUID = 1l;
     private static Logger LOG = Logger.getLogger(WindowOperation.class);

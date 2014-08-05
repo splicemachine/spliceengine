@@ -260,4 +260,116 @@ public class WindowFunctionIT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void TestRangeUnbounded() throws Exception {
+        {
+            int[] result = {384000, 334000, 282000, 229000, 154000, 78000, 103000, 52000, 293000, 238000, 163000, 84000};
+            String sqlText =
+                    "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary range between current row and unbounded following) from %s";
+            ResultSet rs = methodWatcher.executeQuery(
+                    String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+            int i = 0;
+            while (rs.next()) {
+                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+            }
+            rs.close();
+        }
+
+        {
+            int[] result = {50000, 102000, 155000, 230000, 306000, 384000, 51000, 103000, 55000, 130000, 209000, 293000};
+            String sqlText =
+                    "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary range between unbounded preceding and current row) as sumsal from %s";
+
+            ResultSet rs = methodWatcher.executeQuery(
+                    String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+            int i = 0;
+            while (rs.next()) {
+                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+            }
+            rs.close();
+        }
+
+        {
+            int[] result = {384000, 384000, 384000, 384000, 384000, 384000, 103000, 103000, 293000, 293000, 293000, 293000};
+            String sqlText =
+                    "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary range between unbounded preceding and unbounded following) as sumsal from %s";
+            ResultSet rs = methodWatcher.executeQuery(
+                    String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+            int i = 0;
+            while (rs.next()) {
+                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+            }
+            rs.close();
+        }
+    }
+
+    @Test
+    public void TestRangeDescOrder() throws Exception {
+
+        {
+            int[] result = {75000, 53000, 52000, 50000, 50000, 50000, 51000, 51000, 75000, 55000, 55000, 55000};
+            String sqlText =
+                    "SELECT empnum,dept,salary,min(salary) over (Partition by dept ORDER BY salary desc ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING ) as minsal from %s";
+
+            ResultSet rs = methodWatcher.executeQuery(
+                    String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+            int i = 0;
+            while (rs.next()) {
+                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+            }
+            rs.close();
+        }
+
+
+        {
+            int[] result = {78000, 154000, 229000, 282000, 334000, 384000, 52000, 103000, 84000, 163000, 238000, 293000};
+            String sqlText =
+                    "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary desc) as sumsal from %s";
+
+            ResultSet rs = methodWatcher.executeQuery(
+                    String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+            int i = 0;
+            while (rs.next()) {
+                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+            }
+            rs.close();
+        }
+    }
+    @Test
+    public void testSingleRow() throws Exception {
+        {
+            int[] result = {50000, 52000, 53000, 75000, 76000, 78000, 51000, 52000, 55000, 75000, 79000, 84000};
+            String sqlText =
+                    "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary range between current row and current row) as sumsal from %s";
+
+            ResultSet rs = methodWatcher.executeQuery(
+                    String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+            int i = 0;
+            while (rs.next()) {
+                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+            }
+            rs.close();
+        }
+
+        {
+            int[] result = {50000, 52000, 53000, 75000, 76000, 78000, 51000, 52000, 55000, 75000, 79000, 84000};
+            String sqlText =
+                    "SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary rows between current row and current row) as sumsal from %s";
+
+            ResultSet rs = methodWatcher.executeQuery(
+                    String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+            int i = 0;
+            while (rs.next()) {
+                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+            }
+            rs.close();
+        }
+    }
 }
