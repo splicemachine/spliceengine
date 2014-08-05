@@ -28,7 +28,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("unchecked")
-//@Ignore
+@Ignore
 public class SITransactorTest extends SIConstants {
     boolean useSimple = true;
     static StoreSetup storeSetup;
