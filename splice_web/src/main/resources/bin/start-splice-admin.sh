@@ -105,8 +105,7 @@ if [[ ${UNAME} == CYGWIN* ]]; then
     fi
 fi
 
-# Start server with retry logic
-# TODO: Remove hard coding of versioned file names.  Fetch the most recently built archives.
-JETTY_RUNNER_JAR="${ROOT_DIR}/lib/jetty-runner-8.1.15.v20140411.jar"
-ADMIN_MAIN_WAR="${ROOT_DIR}/lib/splice_web.war"
+# Start server with retry logic and with the most recently built archive files.
+JETTY_RUNNER_JAR=`ls -1r ${ROOT_DIR}/lib/jetty-runner-*.jar | head -1`
+ADMIN_MAIN_WAR=`ls -1r ${ROOT_DIR}/lib/splice_web*.war | head -1`
 _retryAdmin "${ROOT_DIR}" "${LOGFILE}" "${LOG4J_PATH}" "${JETTY_RUNNER_JAR}" ${ADMIN_MAIN_WAR} ${PORT}

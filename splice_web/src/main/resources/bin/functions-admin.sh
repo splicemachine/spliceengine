@@ -20,6 +20,8 @@ _retryAdmin() {
 
     echo "Starting Splice Machine Admin..."
     echo "Log file is ${ADMINLOGFILE}"
+    echo "Jetty Runner jar file is ${JETTY_RUNNER_JAR}"
+    echo "Admin war file is ${ADMIN_MAIN_WAR}"
     echo "Waiting for Splice Admin..."
 
     MAXRETRY=3
