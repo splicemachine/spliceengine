@@ -692,20 +692,20 @@
 		</profile>
 		<profile>
 			<!-- =========================================================== -->
-			<!--                        MapR 0.94.9                          -->
+			<!--                        MapR 0.94.17                          -->
 			<!-- =========================================================== -->
-			<id>mapr-0.94.9</id>
+			<id>mapr-0.94.17</id>
 			<activation>
 				<property>
 					<name>hbase.profile</name>
-					<value>mapr-0.94.9</value>
+					<value>mapr-0.94.17</value>
 				</property>
 			</activation>
 			<properties>
-				<zookeeper.version>3.4.5</zookeeper.version>
-				<hbase.version>0.94.9-mapr</hbase.version>
-				<hadoop.version>1.0.3-mapr-2.1.2.1</hadoop.version>
-				<envClassifier>mapr-0.94.9</envClassifier>
+				<zookeeper.version>3.4.5-mapr-1406</zookeeper.version>
+				<hbase.version>0.94.17-mapr-splice-2</hbase.version>
+				<hadoop.version>1.0.3-mapr-3.1.1</hadoop.version>
+				<envClassifier>mapr-0.94.17</envClassifier>
 			</properties>
 			<dependencies>
 				<dependency>
@@ -740,7 +740,12 @@
 					<artifactId>maprfs</artifactId>
 					<version>${hadoop.version}</version>
 				</dependency>
-			</dependencies>
+				<dependency>
+					<groupId>com.mapr.hadoop</groupId>
+					<artifactId>maprfs-core</artifactId>
+					<version>${hadoop.version}</version>
+				</dependency>
+            </dependencies>
 			<repositories>
 				<repository>
 					<id>mapr-releases</id>
@@ -766,6 +771,7 @@
 								<exclude>**/WorkdayTinyIT.java</exclude>
 								<exclude>**/HdfsImportIT.java</exclude>
 								<exclude>**/ImportErrorIT.java</exclude>
+								<exclude>**/ImportDefaultValueIT.java</exclude>
 								<exclude>**/IndexIT.java</exclude>
 								<exclude>**/MicrostrategiesCustomerIT.java</exclude>
 								<exclude>**/MicrostrategiesDemoIT.java</exclude>
@@ -776,6 +782,8 @@
 								<exclude>**/InnerJoinIT.java</exclude>
 								<exclude>**/MergeJoinIT.java</exclude>
 								<exclude>**/OuterJoinIT.java</exclude>
+								<exclude>**/ThreeTableEquiJoinIT.java</exclude>
+								<exclude>**/DropColumnIT.java</exclude>
 							</excludes>
 						</configuration>
 					</plugin>

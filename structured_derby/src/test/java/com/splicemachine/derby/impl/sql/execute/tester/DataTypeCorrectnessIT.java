@@ -1,69 +1,34 @@
 package com.splicemachine.derby.impl.sql.execute.tester;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SlowTest;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import java.sql.ResultSet;
 
-import org.junit.Assert;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 
 @Category(SlowTest.class)
 public class DataTypeCorrectnessIT extends SpliceUnitTest {
 
     private static boolean done;
-    private static boolean DEBUG;
 
-    private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static final String CLASS_NAME = DataTypeCorrectnessIT.class.getSimpleName().toUpperCase();
+    private static final SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
-    private static String TABLE_1 = "A";
-    private static String TABLE_2 = "B";
-    private static String TABLE_3 = "C";
-    private static String TABLE_4 = "D";
-    private static String TABLE_5 = "E";
-    private static String TABLE_6 = "F";
-    private static String TABLE_7 = "G";
-    private static String TABLE_8 = "H";
-    private static String TABLE_9 = "I";
-    private static String TABLE_10 = "J";
-    private static String TABLE_11 = "K";
-    private static String TABLE_12 = "L";
-    private static String TABLE_13 = "M";
-    private static String TABLE_14 = "N";
-    private static String TABLE_15 = "O";
-    private static String TABLE_16 = "P";
-    private static String TABLE_17 = "Q";
-    private static String TABLE_18 = "R";
-    private static String TABLE_30 = "AA";
-    private static String TABLE_31 = "BB";
-    private static String TABLE_32 = "CC";
-    private static String TABLE_33 = "DD";
-    private static String TABLE_34 = "EE";
-    private static String TABLE_35 = "FF";
-    private static String TABLE_36 = "GG";
-    private static String TABLE_37 = "HH";
-    private static String TABLE_38 = "II";
-    private static String TABLE_39 = "JJ";
-    private static String TABLE_40 = "KK";
-    private static String TABLE_41 = "LL";
+    private static String TABLE_1 = "A", TABLE_2 = "B", TABLE_3 = "C", TABLE_4 = "D", TABLE_5 = "E", TABLE_6 = "F",
+            TABLE_7 = "G", TABLE_8 = "H", TABLE_9 = "I", TABLE_10 = "J", TABLE_11 = "K", TABLE_12 = "L", TABLE_13 = "M",
+            TABLE_14 = "N", TABLE_15 = "O", TABLE_16 = "P", TABLE_17 = "Q", TABLE_18 = "R";
+
+    private static String TABLE_30 = "AA", TABLE_31 = "BB", TABLE_32 = "CC", TABLE_33 = "DD", TABLE_34 = "EE",
+            TABLE_35 = "FF", TABLE_36 = "GG", TABLE_37 = "HH", TABLE_38 = "II", TABLE_39 = "JJ", TABLE_40 = "KK",
+            TABLE_41 = "LL";
 
     private static String TABLE_50 = "AAA";
     private static String TABLE_51 = "BBB";
@@ -153,102 +118,45 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
                 @Override
                 protected void starting(Description description) {
                     try {
-                        if (true) {
-                            PreparedStatement ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_1 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_2 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_3 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_4 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_5 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_6 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_7 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_8 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_9 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_10 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_11 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_12 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_13 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_14 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_15 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_16 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_17 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA('" + CLASS_NAME + "','" + TABLE_18 + "',null,null,'" + getResource("testdata.csv") + "',',','\"',null,null,null)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE1 ON " + CLASS_NAME + "." + TABLE_1 + " (smallint3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE2 ON " + CLASS_NAME + "." + TABLE_2 + " (boolean3,smallint3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE3 ON " + CLASS_NAME + "." + TABLE_3 + " (boolean3,smallint3,integer3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE4 ON " + CLASS_NAME + "." + TABLE_4 + " (boolean3,smallint3,integer3,bigint3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE5 ON " + CLASS_NAME + "." + TABLE_5 + " (boolean3,smallint3,integer3,bigint3,decimal3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE6 ON " + CLASS_NAME + "." + TABLE_6 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE7 ON " + CLASS_NAME + "." + TABLE_7 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE8 ON " + CLASS_NAME + "." + TABLE_8 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE9 ON " + CLASS_NAME + "." + TABLE_9 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE10 ON " + CLASS_NAME + "." + TABLE_10 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE11 ON " + CLASS_NAME + "." + TABLE_11 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE12 ON " + CLASS_NAME + "." + TABLE_12 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE13 ON " + CLASS_NAME + "." + TABLE_13 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE14 ON " + CLASS_NAME + "." + TABLE_14 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE15 ON " + CLASS_NAME + "." + TABLE_15 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE16 ON " + CLASS_NAME + "." + TABLE_16 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE17 ON " + CLASS_NAME + "." + TABLE_17 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE18 ON " + CLASS_NAME + "." + TABLE_18 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE30 ON " + CLASS_NAME + "." + TABLE_30 + " (charforbitdata3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE31 ON " + CLASS_NAME + "." + TABLE_31 + " (varcharforbitdata3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE35 ON " + CLASS_NAME + "." + TABLE_35 + " (charforbitdata3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE36 ON " + CLASS_NAME + "." + TABLE_36 + " (charforbitdata3,varcharforbitdata3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE37 ON " + CLASS_NAME + "." + TABLE_37 + " (charforbitdata3,varcharforbitdata3,date3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE38 ON " + CLASS_NAME + "." + TABLE_38 + " (charforbitdata3,varcharforbitdata3,date3,time3)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE39 ON " + CLASS_NAME + "." + TABLE_39 + " (charforbitdata3,varcharforbitdata3,date3,time3,timestamp2)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE41 ON " + CLASS_NAME + "." + TABLE_41 + " (varcharforbitdata3,date3,time3,timestamp2)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE50 ON " + CLASS_NAME + "." + TABLE_50 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3,varcharforbitdata3,date3,time3,timestamp2)");
-                            ps.execute();
-                            ps = spliceClassWatcher.prepareStatement("CREATE INDEX TABLE51 ON " + CLASS_NAME + "." + TABLE_51 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3,varcharforbitdata3,date3,time3,timestamp2)");
-                            ps.execute();
+                        for (char tableName = 'A'; tableName <= 'R'; tableName++) {
+                            spliceClassWatcher.executeUpdate("insert into " + tableName +
+                                    " VALUES(true,true,false, 1,2,3, 1,2,3, 1,2,3, 1,2,3, 1.0,2.0,3.0, 1.0,2.0,3.0, 1.0,2.0,3.0, 'a','c','d', 'a','c','d')");
+                            spliceClassWatcher.executeUpdate("insert into " + tableName +
+                                    " VALUES(true,false,true, 2,4,2, 2,4,2, 2,4,2, 2,4,2, 2.0,4.0,2.0, 2.0,4.0,2.0, 2.0,4.0,2.0, 'b','b','b', 'b','b','b')");
+                            spliceClassWatcher.executeUpdate("insert into " + tableName +
+                                    " VALUES(false,true,true, 3,2,1, 3,1,2, 3,1,2, 3,3,1, 3.0,3.0,1.0, 3.0,3.0,1.0, 3.0,3.0,1.0, 'c','a','e', 'c','a','e')");
                         }
+
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE1 ON " + TABLE_1 + " (smallint3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE2 ON " + TABLE_2 + " (boolean3,smallint3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE3 ON " + TABLE_3 + " (boolean3,smallint3,integer3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE4 ON " + TABLE_4 + " (boolean3,smallint3,integer3,bigint3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE5 ON " + TABLE_5 + " (boolean3,smallint3,integer3,bigint3,decimal3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE6 ON " + TABLE_6 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE7 ON " + TABLE_7 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE8 ON " + TABLE_8 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE9 ON " + TABLE_9 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE10 ON " + TABLE_10 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE11 ON " + TABLE_11 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE12 ON " + TABLE_12 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE13 ON " + TABLE_13 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE14 ON " + TABLE_14 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE15 ON " + TABLE_15 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE16 ON " + TABLE_16 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE17 ON " + TABLE_17 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE18 ON " + TABLE_18 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE30 ON " + TABLE_30 + " (charforbitdata3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE31 ON " + TABLE_31 + " (varcharforbitdata3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE35 ON " + TABLE_35 + " (charforbitdata3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE36 ON " + TABLE_36 + " (charforbitdata3,varcharforbitdata3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE37 ON " + TABLE_37 + " (charforbitdata3,varcharforbitdata3,date3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE38 ON " + TABLE_38 + " (charforbitdata3,varcharforbitdata3,date3,time3)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE39 ON " + TABLE_39 + " (charforbitdata3,varcharforbitdata3,date3,time3,timestamp2)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE41 ON " + TABLE_41 + " (varcharforbitdata3,date3,time3,timestamp2)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE50 ON " + TABLE_50 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3,varcharforbitdata3,date3,time3,timestamp2)").execute();
+                        spliceClassWatcher.prepareStatement("CREATE INDEX TABLE51 ON " + TABLE_51 + " (boolean3,smallint3,integer3,bigint3,decimal3,real3,double3,float3,char3,varchar3,varcharforbitdata3,date3,time3,timestamp2)").execute();
+
                     } catch (Exception e) {
-                        e.printStackTrace();
                         throw new RuntimeException(e);
                     } finally {
                         spliceClassWatcher.closeAll();
@@ -256,74 +164,6 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
                 }
 
             });
-
-
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception {
-        //	System.out.println("Here 1");
-    }
-
-    @AfterClass
-    public static void tearDownAfterClass() throws Exception {
-        try {
-            PreparedStatement ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE1");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE2");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE3");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE4");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE5");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE6");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE7");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE8");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE9");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE10");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE11");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE12");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE13");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE14");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE15");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE16");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE17");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE18");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE30");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE31");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE35");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE36");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE37");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE39");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE41");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE50");
-            ps.execute();
-            ps = spliceClassWatcher.prepareStatement("DROP INDEX TABLE51");
-            ps.execute();
-        } catch (Exception e) {
-            e.getMessage();
-        }
-    }
 
     @Before
     public void setUp() throws Exception {
@@ -345,7 +185,7 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
                             + ",'2014-05-01','2014-05-01','2014-05-01'"
                             + ",'05:05:05','05:05:05','05:05:05'"
                             + ",'2014-05-01 00:00:00','2014-05-01 00:00:00','2014-05-01 00:00:00')";
-                    //System.out.println(i1);
+
                     String i2 = "insert into " + CLASS_NAME + "." + btable + "(lvarchar1,lvarchar2,lvarchar3"
                             + ",charforbitdata1,charforbitdata2,charforbitdata3"
                             + ",varcharforbitdata1,varcharforbitdata2,varcharforbitdata3"
@@ -360,7 +200,7 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
                             + ",'2014-05-02','2014-05-02','2014-05-02'"
                             + ",'06:06:06','06:06:06','06:06:06'"
                             + ",'2014-05-02 00:00:00','2014-05-02 00:00:00','2014-05-02 00:00:00')";
-                    //System.out.println(i2);
+
                     String i3 = "insert into " + CLASS_NAME + "." + btable + "(lvarchar1,lvarchar2,lvarchar3"
                             + ",charforbitdata1,charforbitdata2,charforbitdata3"
                             + ",varcharforbitdata1,varcharforbitdata2,varcharforbitdata3"
@@ -404,7 +244,7 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
                         + ",'2014-05-01','2014-05-01','2014-05-01'"
                         + ",'05:05:05','05:05:05','05:05:05'"
                         + ",'2014-05-01 00:00:00','2014-05-01 00:00:00','2014-05-01 00:00:00')";
-                //System.out.println(i1);
+
                 String ii2 = "insert into " + CLASS_NAME + "." + TABLE_50 + "(boolean1, boolean2,boolean3"
                         + ",smallint1, smallint2,smallint3"
                         + ",integer1,integer2,integer3"
@@ -430,7 +270,7 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
                         + ",'2014-05-02','2014-05-02','2014-05-02'"
                         + ",'06:06:06','06:06:06','06:06:06'"
                         + ",'2014-05-02 00:00:00','2014-05-02 00:00:00','2014-05-02 00:00:00')";
-                //System.out.println(i2);
+
                 String ii3 = "insert into " + CLASS_NAME + "." + TABLE_50 + "(boolean1,boolean2,boolean3"
                         + ",smallint1, smallint2,smallint3"
                         + ",integer1,integer2,integer3"
@@ -484,7 +324,7 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
                         + ",'2014-05-01','2014-05-01','2014-05-01'"
                         + ",'05:05:05','05:05:05','05:05:05'"
                         + ",'2014-05-01 00:00:00','2014-05-01 00:00:00','2014-05-01 00:00:00')";
-                //System.out.println(i1);
+
                 ii2 = "insert into " + CLASS_NAME + "." + TABLE_51 + "(boolean1, boolean2,boolean3"
                         + ",smallint1, smallint2,smallint3"
                         + ",integer1,integer2,integer3"
@@ -510,7 +350,7 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
                         + ",'2014-05-02','2014-05-02','2014-05-02'"
                         + ",'06:06:06','06:06:06','06:06:06'"
                         + ",'2014-05-02 00:00:00','2014-05-02 00:00:00','2014-05-02 00:00:00')";
-                //System.out.println(i2);
+
                 ii3 = "insert into " + CLASS_NAME + "." + TABLE_51 + "(boolean1,boolean2,boolean3"
                         + ",smallint1, smallint2,smallint3"
                         + ",integer1,integer2,integer3"
@@ -540,76 +380,62 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
                 methodWatcher.executeUpdate(ii2);
                 methodWatcher.executeUpdate(ii3);
             } catch (Exception e) {
-                System.out.println(e.getMessage());
+                throw new RuntimeException(e);
             }
             done = true;
         }
     }
 
-    @After
-    public void tearDown() throws Exception {
-    }
-
     private void runAndTestQueryRI(String query, int lookFor, String field) throws Exception {
-        if (DEBUG) System.out.println("Q:" + query + " looking:" + lookFor + " fetch:" + field);
         ResultSet rs = methodWatcher.executeQuery(query);
         if (rs.next()) {
-            Assert.assertEquals(lookFor, rs.getInt(field));
+            assertEquals(lookFor, rs.getInt(field));
         }
         rs.close();
     }
 
     private void runAndTestQueryRI3(String query, int lf[], String field) throws Exception {
-        if (DEBUG) System.out.println("Q:" + query + " looking:" + lf[0] + " fetch:" + field);
         int pos = 0;
         ResultSet rs = methodWatcher.executeQuery(query);
         while (rs.next()) {
-            Assert.assertEquals(lf[pos++], rs.getInt(field));
+            assertEquals(lf[pos++], rs.getInt(field));
         }
         rs.close();
     }
 
     private void runAndTestQueryRD(String query, double lookFor, String field) throws Exception {
-        if (DEBUG) System.out.println("Q:" + query + " looking:" + lookFor + " fetch:" + field);
         ResultSet rs = methodWatcher.executeQuery(query);
         if (rs.next()) {
-            Assert.assertEquals(lookFor, rs.getDouble(field), 0.0001);
+            assertEquals(lookFor, rs.getDouble(field), 0.0001);
         }
         rs.close();
     }
 
-    private void runAndTestQueryRS(String query, String lookFor, String field) throws Exception {
-        if (DEBUG) System.out.println("Q:" + query + " looking:" + lookFor + " fetch:" + field);
+    private void runAndTestQueryRS(String query, String expectedValue, String column) throws Exception {
         ResultSet rs = methodWatcher.executeQuery(query);
         if (rs.next()) {
-            Assert.assertTrue(lookFor.equals(rs.getString(field)));
+            assertEquals(expectedValue, rs.getString(column));
         }
         rs.close();
     }
 
     private void runAndTestQueryRB(String query, boolean lookFor, String field) throws Exception {
-        if (DEBUG) System.out.println("Q:" + query + " looking:" + lookFor + " fetch:" + field);
         ResultSet rs = methodWatcher.executeQuery(query);
         if (rs.next()) {
-            Assert.assertEquals(lookFor, rs.getInt(field) == 1);
+            assertEquals(lookFor, rs.getInt(field) == 1);
         }
         rs.close();
     }
 
     private void runAndTestQueryR3(String query, int lookFor1, int lookFor2, int lookFor3, String field) throws Exception {
-        if (DEBUG)
-            System.out.println("Q:" + query + " looking 1:" + lookFor1 + " looking 2:" + lookFor2 + " fetch:" + field);
         ResultSet rs = methodWatcher.executeQuery(query);
         while (rs.next()) {
-            Assert.assertTrue(rs.getInt(field) == lookFor1 || rs.getInt(field) == lookFor2 || rs.getInt(field) == lookFor3);
+            assertTrue(rs.getInt(field) == lookFor1 || rs.getInt(field) == lookFor2 || rs.getInt(field) == lookFor3);
         }
         rs.close();
     }
 
     private void runAndTestQueryJ2(String query, int A1[][], String B1[][], String C1[][]) throws Exception {
-        if (DEBUG)
-            System.out.println("Q:" + query + " looking 1:" + A1[0][0] + " looking 2:" + B1[0][0] + " fetch:" + C1[0][0]);
-
         ResultSet rs = methodWatcher.executeQuery(query);
         while (rs.next()) {
             int r1 = rs.getInt(C1[0][0]);
@@ -620,15 +446,12 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
             String c2 = rs.getString(C1[2][1]);
             String c3 = rs.getString(C1[3][0]);
             String c4 = rs.getString(C1[3][1]);
-            Assert.assertTrue(A1[0][0] == r1 && A1[1][0] == r2 && A1[2][0] == r3 && A1[3][0] == r4 && B1[0][0].equals(c1.trim()) && B1[1][0].equals(c2.trim()) && B1[2][0].equals(c3.trim()) && B1[3][0].equals(c4.trim()) || A1[0][1] == r1 && A1[1][1] == r2 && A1[2][1] == r3 && A1[3][1] == r4 && B1[0][1].equals(c1.trim()) && B1[1][1].equals(c2.trim()) && B1[2][1].equals(c3.trim()) && B1[3][1].equals(c4.trim()));
+            assertTrue(A1[0][0] == r1 && A1[1][0] == r2 && A1[2][0] == r3 && A1[3][0] == r4 && B1[0][0].equals(c1.trim()) && B1[1][0].equals(c2.trim()) && B1[2][0].equals(c3.trim()) && B1[3][0].equals(c4.trim()) || A1[0][1] == r1 && A1[1][1] == r2 && A1[2][1] == r3 && A1[3][1] == r4 && B1[0][1].equals(c1.trim()) && B1[1][1].equals(c2.trim()) && B1[2][1].equals(c3.trim()) && B1[3][1].equals(c4.trim()));
         }
         rs.close();
     }
 
     private void runAndTestQueryJ3(String query, int A1[][], String B1[][], String C1[][]) throws Exception {
-        if (DEBUG)
-            System.out.println("Q:" + query + " looking 1:" + A1[0][0] + " looking 2:" + B1[0][0] + " fetch:" + C1[0][0]);
-
         ResultSet rs = methodWatcher.executeQuery(query);
         while (rs.next()) {
             int r1 = rs.getInt(C1[0][0]);
@@ -639,29 +462,24 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
             String c2 = rs.getString(C1[2][1]);
             String c3 = rs.getString(C1[3][0]);
             String c4 = rs.getString(C1[3][1]);
-            Assert.assertTrue(A1[0][0] == r1 && A1[1][0] == r2 && A1[2][0] == r3 && A1[3][0] == r4 && B1[0][0].equals(c1.trim()) && B1[1][0].equals(c2.trim()) && B1[2][0].equals(c3.trim()) && B1[3][0].equals(c4.trim()) || A1[0][1] == r1 && A1[1][1] == r2 && A1[2][1] == r3 && A1[3][1] == r4 && B1[0][1].equals(c1.trim()) && B1[1][1].equals(c2.trim()) && B1[2][1].equals(c3.trim()) && B1[3][1].equals(c4.trim()) || A1[0][2] == r1 && A1[1][2] == r2 && A1[2][2] == r3 && A1[3][2] == r4 && B1[0][2].equals(c1.trim()) && B1[1][2].equals(c2.trim()) && B1[2][2].equals(c3.trim()) && B1[3][2].equals(c4.trim()));
+            assertTrue(A1[0][0] == r1 && A1[1][0] == r2 && A1[2][0] == r3 && A1[3][0] == r4 && B1[0][0].equals(c1.trim()) && B1[1][0].equals(c2.trim()) && B1[2][0].equals(c3.trim()) && B1[3][0].equals(c4.trim()) || A1[0][1] == r1 && A1[1][1] == r2 && A1[2][1] == r3 && A1[3][1] == r4 && B1[0][1].equals(c1.trim()) && B1[1][1].equals(c2.trim()) && B1[2][1].equals(c3.trim()) && B1[3][1].equals(c4.trim()) || A1[0][2] == r1 && A1[1][2] == r2 && A1[2][2] == r3 && A1[3][2] == r4 && B1[0][2].equals(c1.trim()) && B1[1][2].equals(c2.trim()) && B1[2][2].equals(c3.trim()) && B1[3][2].equals(c4.trim()));
         }
         rs.close();
     }
 
     private void runAndTestQueryR3D(String query, double lookfor1, double lookfor2, double lookfor3, String field) throws Exception {
-        if (DEBUG)
-            System.out.println("Q:" + query + " looking 1:" + lookfor1 + " looking 2:" + lookfor2 + " fetch:" + field);
-
         ResultSet rs = methodWatcher.executeQuery(query);
         while (rs.next()) {
             Double returnVal = rs.getDouble(field);
-            Assert.assertTrue(Math.abs(lookfor1 - returnVal) < 0.0001 || Math.abs(lookfor2 - returnVal) < 0.0001 || Math.abs(lookfor3 - returnVal) < 0.0001);
+            assertTrue(Math.abs(lookfor1 - returnVal) < 0.0001 || Math.abs(lookfor2 - returnVal) < 0.0001 || Math.abs(lookfor3 - returnVal) < 0.0001);
         }
         rs.close();
     }
 
     private void runAndTestQueryR3S(String query, String lookfor1, String lookfor2, String lookfor3, String field) throws Exception {
-        if (DEBUG)
-            System.out.println("Q:" + query + " looking 1:" + lookfor1 + " looking 2:" + lookfor2 + " fetch:" + field);
         ResultSet rs = methodWatcher.executeQuery(query);
         while (rs.next()) {
-            Assert.assertTrue(rs.getString(field).equals(lookfor1) || rs.getString(field).equals(lookfor2) || rs.getString(field).equals(lookfor3));
+            assertTrue(rs.getString(field).equals(lookfor1) || rs.getString(field).equals(lookfor2) || rs.getString(field).equals(lookfor3));
         }
         rs.close();
     }
@@ -678,151 +496,143 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
                 runAndTestQueryRB("select count(*) as retval from " + CLASS_NAME + "." + table + " group by boolean3 having boolean3 = false", true, "retval");
             }
         } catch (Exception e) {
-            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
 
     @Test
     public void testSmallInt() throws Exception {
-        try {
-            for (String table : tables) {
-                runAndTestQueryRI("select * from " + CLASS_NAME + "." + table + " where smallint1 = 1", 1, "smallint1");
-                runAndTestQueryR3("select * from " + CLASS_NAME + "." + table + " where smallint1 between 1 and 3", 1, 2, 3, "smallint1");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by smallint1 having smallint1 = 2", 1, "retval");
-                runAndTestQueryRI("select * from " + CLASS_NAME + "." + table + " where smallint2 = 1", 3, "smallint2");
-                runAndTestQueryR3("select * from " + CLASS_NAME + "." + table + " where smallint2 between 1 and 3", 1, 2, 3, "smallint2");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by smallint2 having smallint2 = 2", 2, "retval");
-                runAndTestQueryRI("select * from " + CLASS_NAME + "." + table + " where smallint3 = 1", 1, "smallint3");
-                runAndTestQueryR3("select * from " + CLASS_NAME + "." + table + " where smallint3 between 1 and 3", 1, 2, 3, "smallint3");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by smallint3 having smallint3 = 2", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 < 1", 0, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 < 2", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 < 3", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 < 4", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 < 1", 0, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 < 2", 0, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 < 3", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 < 4", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 < 1", 0, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 < 2", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 < 3", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 < 4", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 <= 1", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 <= 2", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 <= 3", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 <= 4", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 <= 1", 0, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 <= 2", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 <= 3", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 <= 4", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 <= 1", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 <= 2", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 <= 3", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 <= 4", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 > 0", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 > 1", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 > 2", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 > 3", 0, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 > 0", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 > 1", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 > 2", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 > 3", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 > 0", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 > 1", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 > 2", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 > 3", 0, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 >= 0", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 >= 1", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 >= 2", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 >= 3", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 >= 4", 0, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 >= 0", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 >= 1", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 >= 2", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 >= 3", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 >= 4", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 >= 0", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 >= 1", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 >= 2", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 >= 3", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 >= 4", 0, "retval");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
+        for (String table : tables) {
+            runAndTestQueryRI("select * from " + CLASS_NAME + "." + table + " where smallint1 = 1", 1, "smallint1");
+            runAndTestQueryR3("select * from " + CLASS_NAME + "." + table + " where smallint1 between 1 and 3", 1, 2, 3, "smallint1");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by smallint1 having smallint1 = 2", 1, "retval");
+            runAndTestQueryRI("select * from " + CLASS_NAME + "." + table + " where smallint2 = 1", 3, "smallint2");
+            runAndTestQueryR3("select * from " + CLASS_NAME + "." + table + " where smallint2 between 1 and 3", 1, 2, 3, "smallint2");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by smallint2 having smallint2 = 2", 2, "retval");
+            runAndTestQueryRI("select * from " + CLASS_NAME + "." + table + " where smallint3 = 1", 1, "smallint3");
+            runAndTestQueryR3("select * from " + CLASS_NAME + "." + table + " where smallint3 between 1 and 3", 1, 2, 3, "smallint3");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by smallint3 having smallint3 = 2", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 < 1", 0, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 < 2", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 < 3", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 < 4", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 < 1", 0, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 < 2", 0, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 < 3", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 < 4", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 < 1", 0, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 < 2", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 < 3", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 < 4", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 <= 1", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 <= 2", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 <= 3", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 <= 4", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 <= 1", 0, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 <= 2", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 <= 3", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 <= 4", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 <= 1", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 <= 2", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 <= 3", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 <= 4", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 > 0", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 > 1", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 > 2", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 > 3", 0, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 > 0", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 > 1", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 > 2", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 > 3", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 > 0", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 > 1", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 > 2", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 > 3", 0, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 >= 0", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 >= 1", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 >= 2", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 >= 3", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint1 >= 4", 0, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 >= 0", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 >= 1", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 >= 2", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 >= 3", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint2 >= 4", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 >= 0", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 >= 1", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 >= 2", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 >= 3", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where smallint3 >= 4", 0, "retval");
         }
+
     }
 
     @Test
     public void testInteger() throws Exception {
-        try {
-            for (String table : tables) {
-                runAndTestQueryRI("select * from " + CLASS_NAME + "." + table + " where integer1 = 1", 1, "integer1");
-                runAndTestQueryR3("select * from " + CLASS_NAME + "." + table + " where integer1 between 1 and 3", 1, 2, 3, "integer1");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by integer1 having integer1 = 2", 1, "retval");
-                runAndTestQueryRI("select * from " + CLASS_NAME + "." + table + " where integer2 = 1", 1, "integer2");
-                runAndTestQueryR3("select * from " + CLASS_NAME + "." + table + " where integer2 between 1 and 3", 1, 2, 3, "integer2");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by integer2 having integer2 = 2", 1, "retval");
-                runAndTestQueryRI("select * from " + CLASS_NAME + "." + table + " where integer3 = 1", 1, "integer3");
-                runAndTestQueryR3("select * from " + CLASS_NAME + "." + table + " where integer3 between 1 and 3", 1, 2, 3, "integer3");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by integer3 having integer3 = 2", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 < 1", 0, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 < 2", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 < 3", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 < 4", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 < 1", 0, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 < 2", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 < 3", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 < 4", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 < 1", 0, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 < 2", 0, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 < 3", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 < 4", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 <= 1", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 <= 2", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 <= 3", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 <= 4", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 <= 1", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 <= 2", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 <= 3", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 <= 4", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 <= 1", 0, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 <= 2", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 <= 3", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 <= 4", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 > 0", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 > 1", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 > 2", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 > 3", 0, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 > 0", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 > 1", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 > 2", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 > 3", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 > 0", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 > 1", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 > 2", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 > 3", 0, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 >= 0", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 >= 1", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 >= 2", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 >= 3", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 >= 4", 0, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 >= 0", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 >= 1", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 >= 2", 2, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 >= 3", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 >= 4", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 >= 0", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 >= 1", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 >= 2", 3, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 >= 3", 1, "retval");
-                runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 >= 4", 0, "retval");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
+
+        for (String table : tables) {
+            runAndTestQueryRI("select * from " + CLASS_NAME + "." + table + " where integer1 = 1", 1, "integer1");
+            runAndTestQueryR3("select * from " + CLASS_NAME + "." + table + " where integer1 between 1 and 3", 1, 2, 3, "integer1");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by integer1 having integer1 = 2", 1, "retval");
+            runAndTestQueryRI("select * from " + CLASS_NAME + "." + table + " where integer2 = 1", 1, "integer2");
+            runAndTestQueryR3("select * from " + CLASS_NAME + "." + table + " where integer2 between 1 and 3", 1, 2, 3, "integer2");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by integer2 having integer2 = 2", 1, "retval");
+            runAndTestQueryRI("select * from " + CLASS_NAME + "." + table + " where integer3 = 1", 1, "integer3");
+            runAndTestQueryR3("select * from " + CLASS_NAME + "." + table + " where integer3 between 1 and 3", 1, 2, 3, "integer3");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by integer3 having integer3 = 2", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 < 1", 0, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 < 2", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 < 3", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 < 4", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 < 1", 0, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 < 2", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 < 3", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 < 4", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 < 1", 0, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 < 2", 0, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 < 3", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 < 4", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 <= 1", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 <= 2", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 <= 3", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 <= 4", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 <= 1", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 <= 2", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 <= 3", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 <= 4", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 <= 1", 0, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 <= 2", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 <= 3", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 <= 4", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 > 0", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 > 1", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 > 2", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 > 3", 0, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 > 0", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 > 1", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 > 2", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 > 3", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 > 0", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 > 1", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 > 2", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 > 3", 0, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 >= 0", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 >= 1", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 >= 2", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 >= 3", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer1 >= 4", 0, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 >= 0", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 >= 1", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 >= 2", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 >= 3", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer2 >= 4", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 >= 0", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 >= 1", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 >= 2", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 >= 3", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 >= 4", 0, "retval");
         }
+
     }
 
     @Test
@@ -1013,14 +823,15 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
     public void testChar() throws Exception {
 
         for (String table : tables) {
-            runAndTestQueryRS("select * from " + CLASS_NAME + "." + table + " where char1 = 'a'", "a", "char1");
-            runAndTestQueryR3S("select * from " + CLASS_NAME + "." + table + " where char1 between 'a' and 'c'", "a", "b", "c", "char1");
+            runAndTestQueryRS("select * from " + CLASS_NAME + "." + table + " where char1 = 'a'", "a         ", "char1");
+            runAndTestQueryR3S("select * from " + CLASS_NAME + "." + table + " where char1 between 'a' and 'c'", "a         ", "b         ", "c         ", "char1");
             runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by char1 having char1 = 'b'", 1, "retval");
-            runAndTestQueryRS("select * from " + CLASS_NAME + "." + table + " where char2 = 'a'", "a", "char2");
-            runAndTestQueryR3S("select * from " + CLASS_NAME + "." + table + " where char2 between 'a' and 'c'", "a", "b", "c", "char2");
+            runAndTestQueryRS("select * from " + CLASS_NAME + "." + table + " where char2 = 'a'", "a         ", "char2");
+            runAndTestQueryR3S("select * from " + CLASS_NAME + "." + table + " where char2 between 'a' and 'c'", "a         ", "b         ", "c         ", "char2");
             runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by char2 having char2 = 'b'", 1, "retval");
-            runAndTestQueryRS("select * from " + CLASS_NAME + "." + table + " where char3 = 'a'", "a", "char3");
-            runAndTestQueryR3S("select * from " + CLASS_NAME + "." + table + " where char3 between 'a' and 'c'", "a", "b", "c", "char3");
+            runAndTestQueryRS("select * from " + CLASS_NAME + "." + table + " where char3 = 'a'", "a         ", "char3");
+            runAndTestQueryR3S("select * from " + CLASS_NAME + "." + table + " where char3 between 'a' and 'c'", "a         ", "b         ", "c         ", "char3");
+
             runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by char3 having char3 = 'b'", 1, "retval");
             runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by char1 having char1 < 'b'", 1, "retval");
             runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " group by char2 having char2 < 'b'", 1, "retval");
@@ -1040,7 +851,6 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
 
     @Test
     public void testVarChar() throws Exception {
-
 
         for (String table : tables) {
             runAndTestQueryRS("select * from " + CLASS_NAME + "." + table + " where varchar1 = 'a'", "a", "varchar1");
@@ -1439,7 +1249,4 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
         runAndTestQueryRI3(query, lf, "retval");
     }
 
-    public static String getResource(String name) {
-        return getResourceDirectory() + "/datatypedata/" + name;
-    }
 }
