@@ -1,16 +1,20 @@
 package com.splicemachine.derby.impl.sql.execute.operations.window;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.operations.AggregateContext;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
-import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
+import java.io.IOException;
+import java.util.ArrayList;
+
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
-import com.splicemachine.derby.impl.sql.execute.operations.window.WindowFrame.*;
-import java.io.IOException;
-import java.util.ArrayList;
+
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.sql.execute.operations.AggregateContext;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
+import com.splicemachine.derby.impl.sql.execute.operations.window.WindowFrame.Frame;
+import com.splicemachine.derby.impl.sql.execute.operations.window.WindowFrame.FrameMode;
+import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
 
 /**
  * Created by jyuan on 8/4/14.
@@ -42,8 +46,13 @@ public class FrameBuffer {
         this.resultRow = resultRow;
         aggregators = aggregateContext.getAggregators();
         for (SpliceGenericAggregator aggregator:aggregators) {
-           SpliceGenericWindowFunction windowFunction =
-                    (SpliceGenericWindowFunction)aggregator.getAggregatorInstance();
+            SpliceGenericWindowFunction windowFunction = null;
+            ExecAggregator function = aggregator.getAggregatorInstance();
+            if (! (function instanceof SpliceGenericWindowFunction)) {
+                windowFunction = (SpliceGenericWindowFunction) function.newAggregator();
+            } else {
+                windowFunction = (SpliceGenericWindowFunction)function;
+            }
             windowFunction.reset();
             aggregator.initialize(resultRow);
         }
