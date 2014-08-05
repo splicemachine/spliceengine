@@ -1,17 +1,18 @@
 package com.splicemachine.derby.impl.sql.execute.operations.window;
 
-import com.splicemachine.constants.bytes.BytesUtil;
+import java.io.IOException;
+import java.util.ArrayList;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecAggregator;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.hadoop.hbase.util.Bytes;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.AggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
-import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowFrameDefinition.FrameType;
-import org.apache.hadoop.hbase.util.Bytes;
-
-import java.io.IOException;
-import java.util.ArrayList;
+import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
 /**
  * Created by jyuan on 7/27/14.
  */
@@ -54,8 +55,13 @@ public class WindowFunctionWorker {
     private void init() throws StandardException, IOException{
         aggregators = aggregateContext.getAggregators();
         for (SpliceGenericAggregator aggregator:aggregators) {
-            SpliceGenericWindowFunction windowFunction =
-                    (SpliceGenericWindowFunction)aggregator.getAggregatorInstance();
+            SpliceGenericWindowFunction windowFunction = null;
+            ExecAggregator function = aggregator.getAggregatorInstance();
+            if (! (function instanceof SpliceGenericWindowFunction)) {
+                windowFunction = (SpliceGenericWindowFunction) function.newAggregator();
+            } else {
+                windowFunction = (SpliceGenericWindowFunction)function;
+            }
             windowFunction.reset();
             aggregator.initialize(resultRow);
         }
