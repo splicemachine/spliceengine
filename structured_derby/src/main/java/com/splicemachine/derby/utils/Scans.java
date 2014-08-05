@@ -242,11 +242,7 @@ public class Scans extends SpliceUtils {
 																			 int[] keyTablePositionMap, //the location in the ENTIRE row of the key columns
 																			 DataValueFactory dataValueFactory,
 																			 String tableVersion) throws IOException {
-				if(scanColumnList!=null && (scanColumnList.anySetBit() != -1)) {
-						scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES);
-				}
-				try{
-
+				try {
 						// Determines whether we can generate a key and also handles type conversion...
 
 						boolean generateKey = true;
