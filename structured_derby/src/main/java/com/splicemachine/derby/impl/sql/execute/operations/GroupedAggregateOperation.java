@@ -37,6 +37,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.hash.ByteHash32;
 import com.splicemachine.utils.hash.HashFunctions;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
