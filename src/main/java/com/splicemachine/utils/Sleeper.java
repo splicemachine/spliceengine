@@ -1,9 +1,9 @@
 package com.splicemachine.utils;
 
-import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.stats.Metrics;
-import com.splicemachine.stats.TimeView;
-import com.splicemachine.stats.Timer;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.metrics.TimeView;
+import com.splicemachine.metrics.Timer;
 
 /**
  * An unfortunate abstraction that will allow us better control
