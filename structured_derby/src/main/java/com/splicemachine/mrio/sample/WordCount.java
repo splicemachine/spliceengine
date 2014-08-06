@@ -93,7 +93,9 @@ public class WordCount {
 				try {
 					DataValueDescriptor dvd[]  = value.getRowArray();
 					if(dvd[0] != null)
+						{
 						word = dvd[0].getString();
+						}
 					
 				} catch (StandardException e) {
 					// TODO Auto-generated catch block
@@ -139,11 +141,6 @@ public class WordCount {
 		  
 		 }
 		}
-
-	private void createTable()
-	{
-		
-	}
 	
 	public static final String NAME = "WordCount";
 	
@@ -155,7 +152,8 @@ public class WordCount {
 		// TODO Auto-generated method stub
 		Configuration config = HBaseConfiguration.create();
 		
-		SpliceJob job = new SpliceJob(config, "WordCount");
+		SpliceJob job = new SpliceJob(config, NAME);
+		//Job job = new Job(config, NAME);
 		//System.out.println("***"+config.get(spliceio.SpliceConstants.SPLICE_TRANSACTION_ID));
 		job.setJarByClass(WordCount.class);     // class that contains mapper
 
@@ -163,7 +161,7 @@ public class WordCount {
 		scan.setCaching(500);        // 1 is the default in Scan, which will be bad for MapReduce jobs
 		scan.setCacheBlocks(false);  // don't set to true for MR jobs
 	    
-		String inputTableName = "WIKIDIC";
+		String inputTableName = "WIKIDATA";
 		String outputTableName = "USERTEST1";
 		
 		//String outputPath = "output_test11";

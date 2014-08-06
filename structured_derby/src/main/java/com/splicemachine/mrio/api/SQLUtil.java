@@ -170,7 +170,7 @@ public class SQLUtil {
 		                 "from sys.sysschemas s, sys.systables t, sys.sysconglomerates c "+
 				         "where s.schemaid = t.schemaid and "+
 		                 "t.tableid = c.tableid and "+
-				         "s.schemaname = 'APP' and "+
+				         "s.schemaname = 'SPLICE' and "+
 		                 "t.tablename = '"+tableName+"'";
 		  PreparedStatement statement;
 		try {
@@ -178,7 +178,7 @@ public class SQLUtil {
 			resultSet = statement.executeQuery();
 		    while (resultSet.next()) {
 		        conglom_id = resultSet.getString("CONGLOMERATENUMBER");   
-		        System.out.println("CONGLOMERATENUMBER: " + conglom_id);        
+		        break;
 		      }
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block

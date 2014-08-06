@@ -97,18 +97,24 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 
 	
 	@Override
-	public void restart(byte[] firstRow) throws IOException {
+	public void restart(byte[] firstRow) {
 		scan = new Scan();
 		
 		scan.setStartRow(firstRow);
 		scan.setMaxVersions();
 		scan.setAttribute(SIConstants.SI_EXEMPT, Bytes.toBytes(true));
 		if(htable != null)
-			this.scanner = this.htable.getScanner(scan);
+			try {
+				this.scanner = this.htable.getScanner(scan);
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 		
 		try {
 			//String transaction_id = sqlUtil.getTransactionID();
 			String transaction_id = conf.get(com.splicemachine.mrio.api.SpliceConstants.SPLICE_TRANSACTION_ID);
+			System.out.println("transaction id:"+transaction_id);
 			buildTableScannerBuilder(transaction_id);
 			tableScanner = this.builder.build();
 			//tableScanner.setColumnTypes(colTypes);
@@ -217,7 +223,6 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
      */
     private void buildTableScannerBuilder(String txsId) throws NumberFormatException, StandardException
     {  	
-    	
 		int[] rowEncodingMap;
 		
 		ExecRow row = new ValueRow(colTypes.size());
@@ -285,7 +290,7 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
     }
     
     @Override
-	public boolean nextKeyValue() throws IOException, InterruptedException {  	
+	public boolean nextKeyValue() throws IOException, InterruptedException { 
 		if (rowkey == null)
 			rowkey = new ImmutableBytesWritable();
 		if (value == null)

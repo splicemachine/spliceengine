@@ -93,7 +93,6 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 		}
 		
 		}
-		System.out.println("End createRecordReader ------ ");
 		return trr;
 	}
 	
@@ -115,6 +114,8 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 	}
 	
 	public void setConf(Configuration configuration) {
+		if (this.conf != null)
+			return;
 		this.conf = configuration;
 		
 		/**
@@ -122,6 +123,7 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 		 * Here to convert tableName to tableID. 
 		 */
 		tableName = conf.get(INPUT_TABLE);
+		
 		tableID = convertToTableID(tableName);
 		
 		System.out.println("Converted tableID: "+tableID);
