@@ -1,8 +1,10 @@
-package com.splicemachine.utils;
+package com.splicemachine.collections;
 
 import com.google.common.collect.Iterables;
 import java.util.Arrays;
 import java.util.List;
+
+import com.splicemachine.collections.Partition;
 import org.junit.Assert;
 import org.junit.Test;
 

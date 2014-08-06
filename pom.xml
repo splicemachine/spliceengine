@@ -8,7 +8,23 @@
   <packaging>jar</packaging>
 
   <name>utilities</name>
-  <url>http://maven.apache.org</url>
+
+    <scm>
+        <connection>scm:git:git@github.com:splicemachine/utilities.git</connection>
+        <developerConnection>scm:git:git@github.com:splicemachine/utilities.git</developerConnection>
+    </scm>
+    <distributionManagement>
+        <repository>
+            <id>structured-hbase-release</id>
+            <name>Structured HBase Release</name>
+            <url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>structured-hbase-snapshot</id>
+            <name>Structured HBase Snapshot</name>
+            <url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

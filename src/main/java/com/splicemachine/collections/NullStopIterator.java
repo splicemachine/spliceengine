@@ -1,4 +1,4 @@
-package com.splicemachine.utils;
+package com.splicemachine.collections;
 
 import java.io.IOException;
 import java.util.NoSuchElementException;
