@@ -84,7 +84,6 @@ public class BasicSnowflakeTest {
     @Test
     public void testRepeatedNoDuplicatesManyThreadsSameSnowflake() throws Exception {
         for(int i=0;i<10;i++){
-            System.out.println("Trying iteration "+ i);
             testNoDuplicatesManyThreadsSameSnowflake();
         }
     }
@@ -92,7 +91,6 @@ public class BasicSnowflakeTest {
     @Test
     public void testRepeatedNoDuplicatesManyThreads() throws Exception {
         for(int i=0;i<10;i++){
-            System.out.println("Trying iteration "+ i);
             testNoDuplicatesManyThreads();
         }
     }

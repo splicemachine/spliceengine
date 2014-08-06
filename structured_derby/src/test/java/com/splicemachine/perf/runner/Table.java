@@ -1,16 +1,13 @@
 package com.splicemachine.perf.runner;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
-import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.Stats;
 import com.splicemachine.derby.stats.TimeUtils;
-import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.perf.runner.qualifiers.Result;
+import com.splicemachine.stats.Metrics;
+import com.splicemachine.stats.Timer;
 import com.splicemachine.tools.ConnectionPool;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.PrintStream;
@@ -91,12 +88,12 @@ public class Table {
         ExecutorService dataInserter = Executors.newFixedThreadPool(insertThreads);
         try{
             List<Future<Void>> futures = Lists.newArrayListWithCapacity(insertThreads + 1);
-            final Accumulator insertAccumulator = TimingStats.uniformSafeAccumulator();
-            insertAccumulator.start();
+
             for(int i=0;i<insertThreads;i++){
                 futures.add(dataInserter.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
+                        final Timer insertTimer = Metrics.newTimer();
                         int rowsToInsert = numRows/insertThreads;
                         int tenPercentSize = rowsToInsert>10?rowsToInsert/10 : 1;
                         int written = 0;
@@ -109,9 +106,9 @@ public class Table {
                                 ps.addBatch();
                                 written++;
                                 if(numRowsInserted>0&&numRowsInserted%insertBatch==0){
-                                    long start = System.nanoTime();
+                                    insertTimer.startTiming();
                                     int numInserted = ps.executeBatch().length;
-                                    insertAccumulator.tick(numInserted,System.nanoTime()-start);
+                                    insertTimer.tick(numInserted);
 
                                     if((written-1)%tenPercentSize==0){
                                         conn.commit();
@@ -119,12 +116,13 @@ public class Table {
                                     }
                                 }
                             }
-                            long start = System.nanoTime();
+                            insertTimer.startTiming();
                             int numInserted = ps.executeBatch().length;
                             if(numInserted>0){
-                                insertAccumulator.tick(numInserted, System.nanoTime() - start);
+                                insertTimer.tick(numInserted);
                                 SpliceLogUtils.info(LOG,"writing complete");
-                            }
+                            }else
+                                insertTimer.stopTiming();
                             conn.commit();
                             return null;
                         }catch(SQLException se){
@@ -140,7 +138,7 @@ public class Table {
             for(Future<Void> future:futures){
                 future.get();
             }
-            return new InsertResult(insertAccumulator.finish());
+            return new InsertResult(null);
         }finally{
             dataInserter.shutdown();
         }

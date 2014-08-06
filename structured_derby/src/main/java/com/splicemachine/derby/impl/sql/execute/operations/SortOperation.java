@@ -437,11 +437,11 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 		}
 
 		public long getRowsInput() {
-				return getRegionStats() == null ? 0l : getRegionStats().getTotalProcessedRecords();
+        return 0l; //TODO -sf- implement
 		}
 
 		public long getRowsOutput() {
-				return getRegionStats() == null ? 0l : getRegionStats().getTotalSunkRecords();
+        return 0l; //TODO -sf- implement
 		}
 
 		@Override

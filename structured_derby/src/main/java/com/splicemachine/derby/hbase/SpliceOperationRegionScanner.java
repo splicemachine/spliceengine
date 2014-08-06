@@ -5,13 +5,11 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.management.XplainTaskReporter;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.stats.TimeUtils;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -49,8 +47,6 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		protected SpliceOperation topOperation;
 		protected RegionScanner regionScanner;
 		protected Activation activation; // has to be passed by reference... jl
-		private TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
-		private TaskStats finalStats;
 		private SpliceOperationContext context;
 		private final List<Pair<byte[],byte[]>> additionalColumns = Lists.newArrayListWithExpectedSize(0);
 		private boolean finished = false;
@@ -62,8 +58,6 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
 		public SpliceOperationRegionScanner(SpliceOperation topOperation,
 																				SpliceOperationContext context) throws StandardException, IOException {
-				stats.start();
-				SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at %d",stats.getStartTime());
 				this.topOperation = topOperation;
 				this.statement = context.getPreparedStatement();
 				this.context = context;
@@ -81,8 +75,6 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
 		public SpliceOperationRegionScanner(final RegionScanner regionScanner, final Scan scan, final HRegion region) throws IOException {
 				SpliceLogUtils.trace(LOG, "instantiated with %s, and scan %s",regionScanner,scan);
-				stats.start();
-				SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at %d",stats.getStartTime());
 				this.regionScanner = regionScanner;
 				boolean prepared = false;
 				try {
@@ -124,20 +116,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 				if(finished)return false;
 				try {
 						ExecRow nextRow;
-						long start = 0l;
 
-						if(stats.readAccumulator().shouldCollectStats()){
-								start = System.nanoTime();
-						}
-
-						if ( (nextRow = topOperation.nextRow(spliceRuntimeContext)) != null) {
-
-								if(stats.readAccumulator().shouldCollectStats()){
-										stats.readAccumulator().tick(System.nanoTime()-start);
-										start = System.nanoTime();
-								}else{
-										stats.readAccumulator().tickRecords();
-								}
+            if ( (nextRow = topOperation.nextRow(spliceRuntimeContext)) != null) {
 
 								/*
 								 * We build the rowkey as meaninglessly as possible, to avoid
@@ -178,12 +158,6 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 								}
 
 								SpliceLogUtils.trace(LOG,"next returns results: %s",nextRow);
-
-								if(stats.writeAccumulator().shouldCollectStats()){
-										stats.writeAccumulator().tick(System.nanoTime()-start);
-								}else{
-										stats.writeAccumulator().tickRecords();
-								}
 
 						}else{
 								finished=true;
@@ -249,9 +223,6 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 								if (regionScanner != null) {
 										regionScanner.close();
 								}
-								finalStats = stats.finish();
-								((SpliceBaseOperation)topOperation).nextTime +=finalStats.getTotalTime();
-								SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for SpliceOperationRegionScanner at %d",stats.getFinishTime());
 								try {
 										context.close();
 								} catch (StandardException e) {
@@ -283,21 +254,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 //		return topOperation.sink();
 		}
 
-		public void reportMetrics() {
-				//Report statistics with the top operation logger
-				Logger logger = Logger.getLogger(topOperation.getClass());
-
-				if(!logger.isDebugEnabled()) return; //no stats should be printed
-
-				logger.debug("Scanner Time: " + TimeUtils.toSeconds(finalStats.getTotalTime())
-								+ "\t" + "Region name: " + regionScanner.getRegionInfo().getRegionNameAsString()
-								+ "\n" + "ProcessStats:\n"
-								+ "\t" + "Total Rows Processed: "  + finalStats.getTotalRowsProcessed()
-								+ "\t" + "Total Rows Written: " + finalStats.getTotalRowsWritten()
-								+ "\t" + "Total Time(ns): " + finalStats.getTotalTime());
-		}
-
-		@Override
+    @Override
 		public boolean next(List<KeyValue> results, String metric)throws IOException {
 				return next(results);
 		}

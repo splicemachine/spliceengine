@@ -23,16 +23,6 @@ public class TimeUtils {
         return nanoTime/NANOS_TO_SECONDS;
     }
 
-    /**
-     * Converts nanoTime into a decimal seconds representation.
-     *
-     * @param nanoTime the time in nanoseconds
-     * @return the time in seconds (with fractions of a second)
-     */
-    public static double toSeconds(double nanoTime){
-        return nanoTime/NANOS_TO_SECONDS;
-    }
-
     public static double toMillis(long nanoTime){
         return nanoTime/NANOS_TO_MILLIS;
     }

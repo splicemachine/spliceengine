@@ -2,6 +2,8 @@ package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
@@ -77,7 +79,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		private boolean isKeyed = true;
 		private KeyIndex primaryKeyIndex;
 		private MultiFieldDecoder keyDecoder;
-		private final Provider<MultiFieldDecoder> keyDecoderProvider;
+		private final Supplier<MultiFieldDecoder> keyDecoderProvider;
 		private ExecRowAccumulator keyAccumulator;
 		private int[] keyDecodingMap;
 		private FormatableBitSet accessedKeys;
@@ -257,7 +259,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 
 /*********************************************************************************************************************/
 		/*Private helper methods*/
-		private Provider<MultiFieldDecoder> getKeyDecoder(FormatableBitSet accessedPks,
+		private Supplier<MultiFieldDecoder> getKeyDecoder(FormatableBitSet accessedPks,
 																											int[] allPkColumns,
 																											int[] keyColumnTypes,
 																											TypeProvider typeProvider) {
@@ -269,7 +271,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				primaryKeyIndex = getIndex(allPkColumns,keyColumnTypes,typeProvider);
 
 				keyDecoder = MultiFieldDecoder.create();
-				return Providers.basicProvider(keyDecoder);
+				return Suppliers.ofInstance(keyDecoder);
 		}
 
 		private KeyIndex getIndex(final int[] allPkColumns, int[] keyColumnTypes,TypeProvider typeProvider) {
