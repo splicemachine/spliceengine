@@ -63,6 +63,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     private GroupedAggregateContext groupedAggregateContext;
     private Scan baseScan;
     private SpliceResultScanner scanner;
+    private boolean[] usedTempBuckets;
 
     public GroupedAggregateOperation() {
         super();
@@ -125,6 +126,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         isInSortedOrder = in.readBoolean();
         isRollup = in.readBoolean();
         groupedAggregateContext = (GroupedAggregateContext) in.readObject();
+        if(in.readBoolean())
+            usedTempBuckets = ArrayUtil.readBooleanArray(in);
     }
 
     @Override
@@ -133,6 +136,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         out.writeBoolean(isInSortedOrder);
         out.writeBoolean(isRollup);
         out.writeObject(groupedAggregateContext);
+        out.writeBoolean(usedTempBuckets!=null);
+        if(usedTempBuckets!=null){
+            ArrayUtil.writeBooleanArray(out,usedTempBuckets);
+        }
     }
 
     @Override
@@ -197,7 +204,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext);
         nextTime += System.currentTimeMillis() - start;
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
-        return rowProvider.shuffleRows(soi, OperationUtils.cleanupSubTasks(this));
+        JobResults jobResults = rowProvider.shuffleRows(soi, OperationUtils.cleanupSubTasks(this));
+        usedTempBuckets = getUsedTempBuckets(jobResults);
+        return jobResults;
     }
 
     @Override
@@ -416,8 +425,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				}
 		}
 
-    protected boolean[] getUsedTempBuckets() {
-        List<TaskStats> resultTaskStats = getJobResults().getJobStats().getTaskStats();
+    protected boolean[] getUsedTempBuckets(JobResults results) {
+        List<TaskStats> resultTaskStats = results.getJobStats().getTaskStats();
         boolean [] usedTempBuckets = null;
         for(TaskStats stats:resultTaskStats){
             if(usedTempBuckets==null)
@@ -439,8 +448,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         if(!spliceRuntimeContext.isSink()){
             TempTable tempTable = SpliceDriver.driver().getTempTable();
             byte[] temp = tempTable.getTempTableName();
-            RowKeyDistributor distributor = new FilteredRowKeyDistributor(new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(tempTable.getCurrentSpread())),getUsedTempBuckets());
-            sourceIterator = AsyncScanIterator.create(temp, distributor.getDistributedScans(reduceScan), pairDecoder,spliceRuntimeContext);
+            RowKeyDistributor distributor = new FilteredRowKeyDistributor(new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(tempTable.getCurrentSpread())),usedTempBuckets);
+//            RowKeyDistributor distributor = new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(tempTable.getCurrentSpread()));
+            sourceIterator = AsyncScanIterator.create(temp,reduceScan, pairDecoder,distributor,spliceRuntimeContext);
         }else{
             scanner = getResultScanner(groupingKeys,spliceRuntimeContext,getHashPrefix().getPrefixLength());
             sourceIterator = new ScanIterator(scanner, pairDecoder);
