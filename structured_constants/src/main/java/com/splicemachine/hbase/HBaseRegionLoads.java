@@ -125,17 +125,19 @@ public class HBaseRegionLoads {
         return admin;
     }
 
-    private static final Supplier<Map<String,HServerLoad.RegionLoad>> newMap =
-        new Supplier<Map<String, HServerLoad.RegionLoad>>() {
-            @Override
-            public Map<String, HServerLoad.RegionLoad> get() {
-                return Maps.newHashMap();
-            }
-        };
-
     private static Map<String, Map<String,HServerLoad.RegionLoad>> fetchRegionLoads() {
         Map<String, Map<String,HServerLoad.RegionLoad>> regionLoads =
-            new HashMap<String, Map<String,HServerLoad.RegionLoad>>();
+            new HashMap<String, Map<String,HServerLoad.RegionLoad>>(){
+                @Override
+                public Map<String, HServerLoad.RegionLoad> get(Object key) {
+                    Map<String, HServerLoad.RegionLoad> value = super.get(key);
+                    if(value==null)
+                        value = Maps.newHashMap();
+                    super.put((String)key,value);
+
+                    return value;
+                }
+            };
         HBaseAdmin admin = getAdmin();
         try {
             ClusterStatus clusterStatus = admin.getClusterStatus();
@@ -145,8 +147,7 @@ public class HBaseRegionLoads {
                 for (Map.Entry<byte[], HServerLoad.RegionLoad> entry : serverLoad.getRegionsLoad().entrySet()) {
                     String regionName = Bytes.toString(entry.getKey());
                     String tableName = tableForRegion(regionName);
-                    Map<String,HServerLoad.RegionLoad> loads =
-                        Misc.lookupOrDefault(regionLoads, tableName, newMap);
+                    Map<String,HServerLoad.RegionLoad> loads = regionLoads.get(tableName);
                     loads.put(regionName, entry.getValue());
                 }
             }

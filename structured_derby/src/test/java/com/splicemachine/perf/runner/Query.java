@@ -1,11 +1,11 @@
 package com.splicemachine.perf.runner;
 
-import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.Stats;
 import com.splicemachine.derby.stats.TimeUtils;
-import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.perf.runner.qualifiers.Qualifier;
 import com.splicemachine.perf.runner.qualifiers.Result;
+import com.splicemachine.stats.Metrics;
+import com.splicemachine.stats.Timer;
 import com.splicemachine.tools.ConnectionPool;
 import org.apache.log4j.Logger;
 
@@ -13,7 +13,6 @@ import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -189,24 +188,23 @@ public class Query {
     }
 
     private static class QueryAccumulator{
-        private Accumulator timings = TimingStats.uniformSafeAccumulator();
-        private Accumulator records = TimingStats.uniformSafeAccumulator();
+        private Timer timer = Metrics.newTimer();
+//        private Accumulator timings = TimingStats.uniformSafeAccumulator();
+//        private Accumulator records = TimingStats.uniformSafeAccumulator();
 
         private Stats timeStats;
         private Stats recordStats;
 
         public void tick(long numRecords, long time){
-            timings.tick(numRecords,time);
-            records.tick(numRecords);
+            timer.tick(numRecords);
         }
 
         public void start() {
-            timings.start();
+            timer.startTiming();;
         }
 
         public void finish() {
-            timeStats = timings.finish();
-            recordStats = records.finish();
+            timer.stopTiming();
         }
     }
 

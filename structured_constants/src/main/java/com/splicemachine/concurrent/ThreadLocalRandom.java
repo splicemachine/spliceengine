@@ -4,7 +4,6 @@ import java.util.Random;
 /**
  * Copied directly from the JSR-166 project.
  */
-@SuppressWarnings("UnusedDeclaration")
 public final class ThreadLocalRandom extends Random {
     // same constants as Random, but must be redeclared because private
     private static final long multiplier = 0x5DEECE66DL;

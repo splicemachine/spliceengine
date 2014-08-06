@@ -50,10 +50,6 @@ public class TaskStats implements Externalizable{
         this.tempBuckets = tempBuckets;
 		}
 
-    public static SinkAccumulator uniformAccumulator(){
-        return new SinkAccumulator(TimingStats.uniformAccumulator(), TimingStats.uniformAccumulator());
-    }
-
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
 				out.writeLong(totalRowsProcessed);
@@ -83,45 +79,5 @@ public class TaskStats implements Externalizable{
     }
 
 
-    public static class SinkAccumulator{
-        private Accumulator processAccumulator;
-        private Accumulator sinkAccumulator;
-        private long startTime;
-        private long finishTime;
-        
-        public SinkAccumulator(Accumulator processAccumulator,Accumulator sinkAccumulator){
-            this.processAccumulator = processAccumulator;
-            this.sinkAccumulator = sinkAccumulator;
-        }
-
-        public Accumulator readAccumulator(){
-            return processAccumulator;
-        }
-
-        public Accumulator writeAccumulator(){
-            return sinkAccumulator;
-        }
-
-        public void start(){
-            startTime = System.nanoTime();
-            processAccumulator.start();
-            sinkAccumulator.start();
-        }
-
-        public TaskStats finish(){
-            Stats processStats = processAccumulator.finish();
-            Stats sinkStats = sinkAccumulator.finish();
-            finishTime = System.nanoTime()-startTime;
-            return new TaskStats(processStats,sinkStats,finishTime);
-        }
-        
-        public long getStartTime() {
-        	return startTime;
-        }
-        
-        public long getFinishTime() {
-        	return finishTime;
-        }
-    }
 }
 

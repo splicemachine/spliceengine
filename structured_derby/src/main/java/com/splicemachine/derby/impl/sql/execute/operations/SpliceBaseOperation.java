@@ -9,12 +9,11 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.SerializerMap;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStatsUtils;
@@ -22,7 +21,6 @@ import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.sql.Activation;
@@ -93,13 +91,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		protected long rowsSunk;
 
 		protected boolean isOpen = true;
-		RegionStats regionStats;
 
-		/*
-		 * held locally to ensure that Task statistics reporting doesn't
-		 * attempt to write the same data from the same operation multiple
-		 * times with the same taskid;
-		 */
+    /*
+     * held locally to ensure that Task statistics reporting doesn't
+     * attempt to write the same data from the same operation multiple
+     * times with the same taskid;
+     */
 		private transient long reportedTaskId = -1l;
 
 		/*
@@ -483,11 +480,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 						return 0;
 		}
 
-		public RegionStats getRegionStats() {
-				return this.regionStats;
-		}
-
-		public static String printQualifiers(Qualifier[][] qualifiers)
+    public static String printQualifiers(Qualifier[][] qualifiers)
 		{
 				String idt = "";
 

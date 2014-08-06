@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;
 
+import com.google.common.base.Supplier;
 import com.splicemachine.utils.Provider;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
@@ -14,7 +15,7 @@ import com.splicemachine.utils.ByteSlice;
  * @author Scott Fines
  * Created on: 7/5/13
  */
-public class EntryDecoder implements FieldSkipper,Provider<MultiFieldDecoder>{
+public class EntryDecoder implements FieldSkipper,Supplier<MultiFieldDecoder> {
     private BitIndex bitIndex;
     private int dataOffset;
     private MultiFieldDecoder decoder;
