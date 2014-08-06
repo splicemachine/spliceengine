@@ -2,7 +2,7 @@ package com.splicemachine.stats;
 
 import com.splicemachine.stats.util.DoubleFolder;
 import com.splicemachine.stats.util.Folders;
-import com.splicemachine.utils.ThreadSafe;
+import com.splicemachine.utils.annotation.ThreadSafe;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;

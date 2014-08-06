@@ -1,4 +1,4 @@
-package com.splicemachine.utils;
+package com.splicemachine.utils.annotation;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;

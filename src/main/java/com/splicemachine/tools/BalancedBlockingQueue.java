@@ -1,6 +1,6 @@
 package com.splicemachine.tools;
 
-import com.splicemachine.utils.ThreadSafe;
+import com.splicemachine.utils.annotation.ThreadSafe;
 
 import java.util.AbstractQueue;
 import java.util.Collection;
