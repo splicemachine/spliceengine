@@ -1,7 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations.framework;
 
-import com.splicemachine.utils.hash.ByteHash32;
-import com.splicemachine.utils.hash.HashFunctions;
+import com.splicemachine.hash.ByteHash32;
+import com.splicemachine.hash.HashFunctions;
+
 /**
  * Baseline constants for AbstractAggregateBuffer
  *

@@ -1,9 +1,8 @@
 package com.splicemachine.derby.impl.load;
 
+import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.utils.ThreadSafe;
-import org.apache.derby.iapi.sql.execute.ExecRow;
 
 import java.io.Closeable;
 

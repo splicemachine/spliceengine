@@ -1,15 +1,13 @@
 package com.splicemachine.si.data.hbase;
 
+import com.splicemachine.collections.CloseableIterator;
+import com.splicemachine.collections.ForwardingCloseableIterator;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
 import com.splicemachine.hbase.async.AsyncScanner;
-import com.splicemachine.hbase.async.AsyncScannerUtils;
-import com.splicemachine.hbase.async.GatheringScanner;
 import com.splicemachine.hbase.async.SimpleAsyncScanner;
-import com.splicemachine.stats.Metrics;
-import com.splicemachine.utils.CloseableIterator;
-import com.splicemachine.utils.ForwardingCloseableIterator;
+import com.splicemachine.metrics.Metrics;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;

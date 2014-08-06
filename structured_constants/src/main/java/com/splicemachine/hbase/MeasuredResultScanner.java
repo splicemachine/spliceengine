@@ -1,9 +1,8 @@
 package com.splicemachine.hbase;
 
-import com.splicemachine.stats.TimeView;
+import com.splicemachine.metrics.TimeView;
 import org.apache.hadoop.hbase.client.ResultScanner;
 
-import java.io.IOException;
 
 /**
  * @author Scott Fines

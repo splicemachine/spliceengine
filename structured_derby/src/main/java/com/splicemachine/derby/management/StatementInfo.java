@@ -1,15 +1,12 @@
 package com.splicemachine.derby.management;
 
-import com.google.common.collect.Sets;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.JobInfo;
-import com.splicemachine.utils.Snowflake;
 
-import javax.management.openmbean.*;
 import java.beans.ConstructorProperties;
-import java.io.Closeable;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -49,7 +46,7 @@ public class StatementInfo {
 												 String user,
 												 String txnId,
 												 int numSinks,
-												 Snowflake snowflake) {
+												 com.splicemachine.uuid.Snowflake uuidGenerator) {
 				this.numSinks = numSinks;
 				this.user = user;
 				this.sql = sql;
@@ -63,7 +60,7 @@ public class StatementInfo {
 				}
 				this.operationInfo = Collections.newSetFromMap(new ConcurrentHashMap<OperationInfo, Boolean>());
 
-				this.statementUuid = snowflake.nextUUID();
+				this.statementUuid = uuidGenerator.nextUUID();
 				this.startTimeMs = System.currentTimeMillis();
 		}
 

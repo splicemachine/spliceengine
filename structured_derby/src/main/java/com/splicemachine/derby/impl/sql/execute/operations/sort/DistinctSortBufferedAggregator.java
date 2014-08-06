@@ -1,15 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations.sort;
 
-import com.splicemachine.stats.Counter;
-import com.splicemachine.stats.MetricFactory;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.log4j.Logger;
-
-import com.splicemachine.derby.impl.sql.execute.operations.SortOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.BufferedAggregator;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.log4j.Logger;
 /*
  * This handles distinct merging of data.
  * 

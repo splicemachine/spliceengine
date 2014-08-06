@@ -7,8 +7,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.splicemachine.utils.Partition;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.*;
 import org.apache.derby.impl.sql.compile.*;
@@ -101,20 +99,6 @@ public class RSUtils {
                    .onAxis(isRSN)
                    .until(isBinaryRSN)
                    .collect(rsn);
-    }
-
-    /**
-     * If rsn subtree contains a node with 2 children, return the node above
-     * it, else return the leaf node
-     */
-    public static ResultSetNode getLastNonBinaryNode(ResultSetNode rsn) throws StandardException {
-        List<ResultSetNode> rsns = getSelfAndDescendants(rsn);
-        for (List<ResultSetNode> pair : Partition.partition(rsns, 2, 1, true)) {
-            if (pair.get(1) != null && binaryRSNs.contains(pair.get(1).getClass())) {
-                return pair.get(0);
-            }
-        }
-        return rsns.get(rsns.size() - 1);
     }
 
     /**

@@ -1,6 +1,6 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.stats.IOStats;
+import com.splicemachine.metrics.IOStats;
 
 /**
  * @author Scott Fines

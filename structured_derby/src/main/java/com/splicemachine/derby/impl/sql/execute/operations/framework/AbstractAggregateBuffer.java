@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations.framework;
 
-import com.splicemachine.stats.Counter;
-import com.splicemachine.stats.Gauge;
-import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.utils.hash.ByteHash32;
+import com.splicemachine.hash.ByteHash32;
+import com.splicemachine.metrics.Counter;
+import com.splicemachine.metrics.Gauge;
+import com.splicemachine.metrics.MetricFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;

@@ -1,6 +1,6 @@
 package com.splicemachine.hbase.writer;
 
-import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.metrics.MetricFactory;
 
 /**
  * @author Scott Fines

@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.load;
 
 import au.com.bytecode.opencsv.CSVParser;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.stats.*;
+import com.splicemachine.metrics.*;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.LongWritable;

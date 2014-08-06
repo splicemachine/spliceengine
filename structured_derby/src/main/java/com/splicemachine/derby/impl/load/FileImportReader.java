@@ -4,9 +4,10 @@ import au.com.bytecode.opencsv.CSVReader;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.stats.*;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derbyTesting.functionTests.harness.currentjvm;
+import com.splicemachine.metrics.BaseIOStats;
+import com.splicemachine.metrics.IOStats;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.metrics.Timer;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -44,7 +45,6 @@ public class FileImportReader implements ImportReader{
 
         reader = new MeasuredReader(new InputStreamReader(stream));
 				timer = ctx.shouldRecordStats() ? Metrics.samplingTimer(SpliceConstants.sampleTimingSize,SpliceConstants.sampleTimingSize) : Metrics.noOpTimer();
-//				timer = ctx.shouldRecordStats() ? Metrics.newTimer() : Metrics.noOpTimer();
         csvReader = getCsvReader(reader,ctx);
 				this.lines = new String[lineBatchSize][];
 		}

@@ -1,7 +1,5 @@
 package com.splicemachine.hbase.table;
 
-import java.util.Random;
-
 import com.splicemachine.concurrent.ThreadLocalRandom;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTable;
