@@ -245,7 +245,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 			// TODO Auto-generated method stub
 			
 			try {
-				System.out.println(this.taskID);
+				
 				if (conf.get(this.taskID) != null)
 					System.out.println("-------  txsID: "+conf.get(this.taskID));
 				if(callBuffer == null)
@@ -302,7 +302,6 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	public RecordWriter getRecordWriter(TaskAttemptContext arg0)
 			throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
-		System.out.println("Calling getRecordWriter...");
 		tableStructure = sqlUtil.getTableStructure(tableName);
 		pks = sqlUtil.getPrimaryKey(tableName);
 		ArrayList<String> pkColNames = null;

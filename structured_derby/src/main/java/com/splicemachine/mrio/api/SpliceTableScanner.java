@@ -162,36 +162,45 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			this.resultScanner = scanner;
 			this.keyDecodingMap = keyDecodingMap;
 			this.accessedKeys = accessedPks;
+			
 			this.keyDecoderProvider = getKeyDecoder(accessedPks, keyColumnEncodingOrder,
 							keyColumnTypes, VersionedSerializers.typesForVersion(tableVersion));
+			
 			this.tableVersion = tableVersion;
 			
 			this.readTimer = metricFactory.newTimer();
+			
 			if(scan!=null)
 				this.scanFilters = scan.getFilter();
 			else
 				this.scanFilters = null;
+			
 			if(filterFactory==null){
+				
 					this.filterFactory = new SIFilterFactory() {
 							
-							@SuppressWarnings({ "unchecked", "rawtypes" })
+							@SuppressWarnings("unchecked")
 							public SIFilter newFilter(EntryPredicateFilter predicateFilter,
 													EntryDecoder rowEntryDecoder,
 													EntryAccumulator accumulator,
-													boolean isCountStar) throws IOException {
+													boolean isCountStar) throws IOException{
+									
 									TransactionId transactionId= new TransactionId(transactionID);
-									IFilterState iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, transactionId);
-
+									
+									IFilterState iFilterState = null;	
+									iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, transactionId);
 									HRowAccumulator hRowAccumulator = new HRowAccumulator(predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
-									//noinspection unchecked
+									
 									return new FilterStatePacked((FilterState)iFilterState, hRowAccumulator){
 											@Override
 											public Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
 												//System.out.println("accumulating ---------");
 													if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
-															if (!accumulator.accumulate(dataKeyValue)) {
-																	return Filter.ReturnCode.NEXT_ROW;
-															}
+														
+																if (!accumulator.accumulate(dataKeyValue)) {
+																		return Filter.ReturnCode.NEXT_ROW;
+																}
+															
 															return Filter.ReturnCode.INCLUDE;
 													}else return Filter.ReturnCode.INCLUDE;
 											}
@@ -201,6 +210,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			}
 			else
 					this.filterFactory = filterFactory;
+			
 			this.htable = htable;
 			this.colTypes = colTypes;
 			this.pkColNames = pkColNames;

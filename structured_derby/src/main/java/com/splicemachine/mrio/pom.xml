@@ -1,0 +1,187 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.splicemachine</groupId>
+  <artifactId>mrio</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+
+ <repositories>
+    <repository>
+      <id>cloudera</id>
+      <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
+    </repository>
+
+    <repository>
+        <id>sonatype-nexus-public</id>
+        <name>SonaType public snapshots and releases repository</name>
+        <url>https://oss.sonatype.org/content/groups/public</url>
+        <releases> 
+            <!-- set to true if you wish to fetch releases from this repo too. -->
+            <enabled>false</enabled>
+        </releases> 
+        <snapshots>
+            <enabled>true</enabled>
+        </snapshots>
+    </repository>
+
+  </repositories>
+
+  <name>mrio</name>
+  <url>http://maven.apache.org</url>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.3.1</version>
+        <configuration>
+          <archive>
+            <index>true</index>
+            <manifest>
+              <mainClass>com.splicemachine.mrio.sample.Driver</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+	<dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>2.4.0a</version>
+      </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-core</artifactId>
+      <version>2.0.0-mr1-cdh4.7.0</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-common</artifactId>
+      <version>2.0.0-cdh4.7.0</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-hdfs</artifactId>
+      <version>2.0.0-cdh4.7.0</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+    <groupId>org.apache.hbase</groupId>
+    <artifactId>hbase</artifactId>
+    <version>0.94.6-cdh4.3.0</version>
+    </dependency>
+    <dependency>
+  <groupId>org.apache.hadoop</groupId>
+  <artifactId>hadoop-mapreduce-client-core</artifactId>
+  <version>2.0.0-cdh4.7.0</version>
+    </dependency>
+
+<dependency>
+	<groupId>org.apache.lucene</groupId>
+	<artifactId>lucene-core</artifactId>
+	<version>4.3.1</version>
+</dependency>	
+
+    <dependency>
+    <groupId>com.splicemachine</groupId>
+    <artifactId>structured_constants</artifactId>
+    <version>FUJI.0-SNAPSHOT</version>
+    </dependency>
+
+    <dependency>
+    <groupId>com.splicemachine</groupId>
+    <artifactId>splice_machine</artifactId>
+    <version>FUJI.0-SNAPSHOT</version>
+    </dependency>
+
+    <dependency>
+    <groupId>com.splicemachine</groupId>
+    <artifactId>structured_si</artifactId>
+    <version>FUJI.0-SNAPSHOT</version>
+    </dependency>
+
+    <dependency>
+    <groupId>com.carrotsearch</groupId>
+    <artifactId>hppc</artifactId>
+    <version>0.6.0</version>
+    </dependency>
+
+    <!--<dependency>
+	<groupId>yjian.test.hbasemr.v1</groupId>
+	<artifactId>derbyclient</artifactId>
+	<version>10.9.1.0</version>
+    </dependency>
+
+    <dependency>
+	<groupId>org.apache.derby</groupId>
+	<artifactId>derby</artifactId>
+	<version>10.10.1.1</version>
+    </dependency> -->
+
+    <dependency>
+	<groupId>com.esotericsoftware.kryo</groupId>
+	<artifactId>kryo</artifactId>
+	<version>2.22</version>
+    </dependency>
+
+  </dependencies>
+
+
+  
+  <profiles>
+    <profile>
+      <id>fatjar</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+        <property>
+          <name>fatjar</name>
+        </property>
+      </activation>
+      
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <version>2.2.1</version>
+            <configuration>
+              <tarLongFileMode>gnu</tarLongFileMode>
+              <descriptors>
+                <descriptor>src/main/assembly/job.xml</descriptor>
+              </descriptors>
+              
+              <archive>
+                <index>true</index>
+                <manifest>
+                  <mainClass>com/splicemachine/mrio/sample/Driver</mainClass>
+                </manifest>
+              </archive>
+            </configuration>
+            <executions>
+              <execution>
+                <id>tarball</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>
