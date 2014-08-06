@@ -6,7 +6,7 @@ import java.util.Comparator;
  * @author Scott Fines
  *         Date: 8/5/14
  */
-public class ComparableComparator<E extends Comparable<E>> {
+public class ComparableComparator<E extends Comparable<E>> implements Comparator<E>{
     private static final ComparableComparator INSTANCE = new ComparableComparator();
 
     @SuppressWarnings("unchecked")
