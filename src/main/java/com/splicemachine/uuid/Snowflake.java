@@ -1,4 +1,6 @@
-package com.splicemachine.utils;
+package com.splicemachine.uuid;
+
+import com.splicemachine.utils.Bytes;
 
 import java.util.Arrays;
 
@@ -195,7 +197,7 @@ public class Snowflake {
         return new Generator(this,s);
     }
 
-    public static class Generator implements UUIDGenerator{
+    public static class Generator implements UUIDGenerator {
         private final Snowflake snowflake;
         private long[] currentUuids;
         private int currentPosition;

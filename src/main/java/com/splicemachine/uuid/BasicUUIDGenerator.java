@@ -1,4 +1,7 @@
-package com.splicemachine.utils;
+package com.splicemachine.uuid;
+
+import com.splicemachine.utils.Bytes;
+import com.splicemachine.uuid.UUIDGenerator;
 
 import java.util.UUID;
 
@@ -7,7 +10,7 @@ import java.util.UUID;
  * @author Scott Fines
  * Date: 2/26/14
  */
-public class BasicUUIDGenerator implements UUIDGenerator{
+public class BasicUUIDGenerator implements UUIDGenerator {
 		@Override
 		public byte[] nextBytes() {
 				UUID next = UUID.randomUUID();

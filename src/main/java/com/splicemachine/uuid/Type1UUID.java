@@ -1,4 +1,6 @@
-package com.splicemachine.utils;
+package com.splicemachine.uuid;
+
+import com.splicemachine.utils.Bytes;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -84,7 +86,7 @@ public class Type1UUID {
 				return lowBits;
 		}
 
-		public static class Generator implements UUIDGenerator{
+		public static class Generator implements UUIDGenerator {
 				private final long[] lowBitsBuffer;
 				private int currentPosition;
 				private final Type1UUID generator;

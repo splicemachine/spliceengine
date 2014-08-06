@@ -1,5 +1,8 @@
-package com.splicemachine.utils;
+package com.splicemachine.uuid;
 
+import com.splicemachine.utils.Bytes;
+import com.splicemachine.uuid.Type1UUID;
+import com.splicemachine.uuid.UUIDGenerator;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -42,7 +45,7 @@ public class Type1UUIDGeneratorTest {
             long low = Bytes.toLong(next,8);
             Map<Long, Boolean> longBooleanMap = uuids.get(high);
             Assert.assertFalse("uuidSet already contains entry " + high + "" + low, longBooleanMap.containsKey(low));
-            uuids.get(high).put(low,Boolean.TRUE);
+            uuids.get(high).put(low, Boolean.TRUE);
 				}
 		}
 

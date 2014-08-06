@@ -1,4 +1,6 @@
-package com.splicemachine.utils;
+package com.splicemachine.uuid;
+
+import com.splicemachine.utils.Bytes;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -12,7 +14,7 @@ import java.util.concurrent.locks.LockSupport;
 public class Type1UUIDGenerator implements UUIDGenerator {
 		private static final UUIDGenerator INSTANCE = new Type1UUIDGenerator();
 		private static final byte[] IP_ADDRESS;
-		private static final byte[] JVM_UNIQUE = Bytes.toBytes((int)(System.currentTimeMillis() >>> 8));
+		private static final byte[] JVM_UNIQUE = Bytes.toBytes((int) (System.currentTimeMillis() >>> 8));
 		static{
 				byte[] addr;
 				try{

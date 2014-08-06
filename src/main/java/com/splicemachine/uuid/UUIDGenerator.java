@@ -1,4 +1,4 @@
-package com.splicemachine.utils;
+package com.splicemachine.uuid;
 
 /**
  * Abstraction for generating UUIDs.
