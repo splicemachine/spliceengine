@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.job.load;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -19,8 +20,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import static org.junit.Assert.assertTrue;
+
 public class HdfsImportIT extends SpliceUnitTest {
-		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = HdfsImportIT.class.getSimpleName().toUpperCase();
 	protected static String TABLE_1 = "A";
 	protected static String TABLE_2 = "B";
@@ -127,13 +130,13 @@ public class HdfsImportIT extends SpliceUnitTest {
             String name = rs.getString(1);
             String title = rs.getString(2);
             int age = rs.getInt(3);
-            Assert.assertTrue("age was null!",!rs.wasNull());
+            Assert.assertTrue("age was null!", !rs.wasNull());
             Assert.assertNotNull("Name is null!", name);
             Assert.assertNotNull("Title is null!", title);
             Assert.assertNotNull("Age is null!",age);
             results.add(String.format("name:%s,title:%s,age:%d",name,title,age));
         }
-        Assert.assertTrue("no rows imported!",results.size()>0);
+        Assert.assertTrue("no rows imported!", results.size() > 0);
     }
     
     // uses new syntax
@@ -150,7 +153,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             String name = rs.getString(1);
             String title = rs.getString(2);
             int age = rs.getInt(3);
-            Assert.assertTrue("age was null!",!rs.wasNull());
+            Assert.assertTrue("age was null!", !rs.wasNull());
             Assert.assertNotNull("Name is null!", name);
             Assert.assertNotNull("Title is null!", title);
             Assert.assertNotNull("Age is null!",age);
@@ -232,20 +235,20 @@ public class HdfsImportIT extends SpliceUnitTest {
 			float discount = rs.getFloat(10);
 			int cust_id = rs.getInt(11);
 			Assert.assertNotNull("No Order Id returned!",orderId);
-			Assert.assertTrue("ItemId incorrect!",item_id>0);
-			Assert.assertTrue("Order amt incorrect!",order_amt>0);
+			Assert.assertTrue("ItemId incorrect!", item_id > 0);
+			Assert.assertTrue("Order amt incorrect!", order_amt > 0);
 			Assert.assertNotNull("order_date incorrect",order_date);
-			Assert.assertTrue("EmpId incorrect",emp_id>0);
+			Assert.assertTrue("EmpId incorrect", emp_id > 0);
 			Assert.assertEquals("prom_id incorrect",0,prom_id);
-			Assert.assertTrue("qty_sold incorrect",qty_sold>0);
-			Assert.assertTrue("unit price incorrect!",unit_price>0);
-			Assert.assertTrue("unit cost incorrect",unit_cost>0);
+			Assert.assertTrue("qty_sold incorrect", qty_sold > 0);
+			Assert.assertTrue("unit price incorrect!", unit_price > 0);
+			Assert.assertTrue("unit cost incorrect", unit_cost > 0);
 			Assert.assertEquals("discount incorrect",0.0f,discount,1/100f);
-			Assert.assertTrue("cust_id incorrect",cust_id!=0);
+			Assert.assertTrue("cust_id incorrect", cust_id != 0);
 			results.add(String.format("orderId:%s,item_id:%d,order_amt:%d,order_date:%s,emp_id:%d,prom_id:%d,qty_sold:%d," +
 					"unit_price:%f,unit_cost:%f,discount:%f,cust_id:%d",orderId,item_id,order_amt,order_date,emp_id,prom_id,qty_sold,unit_price,unit_cost,discount,cust_id));
 		}
-		Assert.assertTrue("import failed!",results.size()>0);
+		Assert.assertTrue("import failed!", results.size() > 0);
 	}
 	
 	@Test
@@ -263,7 +266,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 			Assert.assertEquals(order_date.toString(),"2013-06-06 15:02:48.0");
 			results.add(String.format("order_date:%s",order_date));
 		}
-		Assert.assertTrue("import failed!",results.size()==1);
+		Assert.assertTrue("import failed!", results.size() == 1);
 	}
 
 		@Test
@@ -287,7 +290,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 						Assert.assertEquals("2013-04-21 09:21:24.980",textualFormat);
 						results.add(String.format("order_date:%s",order_date));
 				}
-				Assert.assertTrue("import failed!",results.size()==1);
+				Assert.assertTrue("import failed!", results.size() == 1);
 		}
 		@Test
 		public void testImportCustomTimeFormat() throws Exception{
@@ -310,7 +313,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 						Assert.assertEquals("2013-06-06 15:02:48.0",textualFormat);
 						results.add(String.format("order_date:%s",order_date));
 				}
-				Assert.assertTrue("import failed!",results.size()==1);
+				Assert.assertTrue("import failed!", results.size() == 1);
 		}
 
 		@Test
@@ -333,7 +336,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 			Assert.assertNull("Timestamp failure " + l,l);
 			count++;
 		}
-		Assert.assertTrue("import failed!" + count,count==1);
+		Assert.assertTrue("import failed!" + count, count == 1);
 	}
 
     @Test
@@ -404,8 +407,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 		while(rs.next()){
 			String colName = rs.getString(4);
 			int  colType = rs.getInt(5);
-			Assert.assertTrue("ColName not contained in map: "+ colName,
-											colNameToTypeMap.containsKey(colName));
+			Assert.assertTrue("ColName not contained in map: " + colName,
+                    colNameToTypeMap.containsKey(colName));
 			Assert.assertEquals("colType incorrect!",
 								colNameToTypeMap.get(colName).intValue(),colType);
 			count++;
@@ -422,7 +425,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         while(rs.next()){
         	count++;
         }
-        Assert.assertTrue("At least one row returned", count>0);
+        Assert.assertTrue("At least one row returned", count > 0);
     }
 
     @Test
@@ -485,7 +488,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         int i =0;
         while(rs.next()){
         	i++;
-        	Assert.assertTrue("Date is still null",rs.getDate(1) != null);
+        	Assert.assertTrue("Date is still null", rs.getDate(1) != null);
         }
 		Assert.assertEquals("10 Records not imported",10,i);
 	}
@@ -500,21 +503,26 @@ public class HdfsImportIT extends SpliceUnitTest {
         int i =0;
         while(rs.next()){
         	i++;
-        	Assert.assertTrue("Date is still null",rs.getDate(1) != null);
+        	Assert.assertTrue("Date is still null", rs.getDate(1) != null);
         }
 		Assert.assertEquals("10 Records not imported",10,i);
 	}
-	
-	@Test
-	@Category(SlowTest.class)
-	public void testGZImportWithWarning() throws Exception {
-	    String location = getResourceDirectory()+"t1M.tbl.gz";
-		PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_14,location));
-		ps.execute();
-		SQLWarning warning = ps.getWarnings();
-		String twarning = warning.getMessage();
-		Assert.assertTrue(twarning.contains("To load a large single file of data faster,"));
-	}
+
+    @Test
+    @Category(SlowTest.class)
+    public void testGZImportWithWarning() throws Exception {
+        long ORIGINAL_VALUE = SpliceConstants.sequentialImportFileSizeThreshold;
+        try {
+            SpliceConstants.sequentialImportFileSizeThreshold = 1000;
+            String location = getResourceDirectory()+"t1M.tbl.gz";
+            PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_14,location));
+            ps.execute();
+            String warning = ps.getWarnings().getMessage();
+            assertTrue("actual warning=" + warning, warning.contains("To load a large single file of data faster,"));
+        } finally {
+            SpliceConstants.sequentialImportFileSizeThreshold = ORIGINAL_VALUE;
+        }
+    }
 
 	@Test
 	public void testGZImportWithoutWarning() throws Exception {
