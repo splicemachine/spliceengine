@@ -3,7 +3,7 @@
 <configuration>
   <property>
     <name>splice.authentication</name>
-    <value>NONE</value>
+    <value>NATIVE</value>
     <description>Native authentication</description>
   </property>
 </configuration>
