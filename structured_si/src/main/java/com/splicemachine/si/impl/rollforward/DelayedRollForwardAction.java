@@ -1,9 +1,9 @@
 package com.splicemachine.si.impl.rollforward;
 
+import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.impl.*;
-import com.splicemachine.utils.Provider;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
@@ -28,16 +28,16 @@ public class DelayedRollForwardAction<Table,Put extends OperationWithAttributes>
         protected static AtomicLong notFinishedRollForwards = new AtomicLong(0);	  
         
         protected Table region;
-		protected Provider<TransactionStore> transactionStoreProvider;
-		protected Provider<DataStore> dataStoreProvider;
+		protected Supplier<TransactionStore> transactionStoreProvider;
+		protected Supplier<DataStore> dataStoreProvider;
 	    protected int mutationBucket;
 	    public static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5,
 	            new ThreadFactoryBuilder().setNameFormat("delayedRollForwardEvent-%d").build());
 
 	    
 		public DelayedRollForwardAction(Table region,
-										Provider<TransactionStore> transactionStoreProvider,
-										Provider<DataStore> dataStoreProvider) {
+										Supplier<TransactionStore> transactionStoreProvider,
+										Supplier<DataStore> dataStoreProvider) {
 				this.region = region;
 				this.transactionStoreProvider = transactionStoreProvider;
 				this.dataStoreProvider = dataStoreProvider;

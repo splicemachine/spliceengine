@@ -15,7 +15,7 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.stats.IOStats;
+import com.splicemachine.metrics.IOStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;

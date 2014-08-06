@@ -8,7 +8,7 @@ import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintHandler;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.tools.ResettableCountDownLatch;
+import com.splicemachine.concurrent.ResettableCountDownLatch;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;

@@ -1,15 +1,13 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.impl.TransactionStore;
-
-import com.splicemachine.utils.CloseableIterator;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;

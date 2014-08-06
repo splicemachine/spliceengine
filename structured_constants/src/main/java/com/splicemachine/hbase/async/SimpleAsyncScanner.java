@@ -1,19 +1,16 @@
 package com.splicemachine.hbase.async;
 
+import com.splicemachine.collections.NullStopIterator;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.stats.*;
-import com.splicemachine.stats.Timer;
-import com.splicemachine.utils.NullStopIterator;
+import com.splicemachine.metrics.Counter;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.metrics.TimeView;
+import com.splicemachine.metrics.Timer;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
 import org.hbase.async.HBaseClient;
 import org.hbase.async.KeyValue;
 import org.hbase.async.Scanner;

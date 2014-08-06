@@ -8,7 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.WriteStats;
-import com.splicemachine.stats.TimeView;
+import com.splicemachine.metrics.TimeView;
 
 import java.util.ArrayList;
 import java.util.Arrays;

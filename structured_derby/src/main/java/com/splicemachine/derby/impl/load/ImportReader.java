@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.load;
 
-import com.splicemachine.stats.IOStats;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.metrics.IOStats;
 import org.apache.hadoop.fs.FileSystem;
 
 import java.io.Closeable;

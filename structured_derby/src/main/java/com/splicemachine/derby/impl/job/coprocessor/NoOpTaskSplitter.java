@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
-import com.splicemachine.utils.SingletonSortedSet;
+
+import com.splicemachine.collections.SingletonSortedSet;
 
 import java.io.IOException;
 import java.util.SortedSet;
@@ -14,7 +15,7 @@ public class NoOpTaskSplitter implements TaskSplitter{
 
 		@Override
 		public SortedSet<SizedInterval> split(RegionTask task, byte[] taskStart, byte[] taskStop) throws IOException {
-				return new SingletonSortedSet(new SizedInterval(taskStart, taskStop, 0));
+				return SingletonSortedSet.wrap(new SizedInterval(taskStart, taskStop, 0));
 		}
 
 

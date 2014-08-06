@@ -17,7 +17,7 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.utils.IntArrays;
-import com.splicemachine.utils.Snowflake;
+import com.splicemachine.uuid.UUIDGenerator;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -57,7 +57,7 @@ public class RowTransformer implements Closeable {
         this.droppedColumnPosition = droppedColumnPosition;
     }
 
-    private Snowflake.Generator getRandomGenerator(){
+    private UUIDGenerator getRandomGenerator(){
         return SpliceDriver.driver().getUUIDGenerator().newGenerator(100);
     }
 

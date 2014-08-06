@@ -1,7 +1,6 @@
 package com.splicemachine.hbase.writer;
 
-import com.splicemachine.stats.IOStats;
-import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.metrics.MetricFactory;
 
 import javax.management.*;
 import java.util.concurrent.ExecutionException;

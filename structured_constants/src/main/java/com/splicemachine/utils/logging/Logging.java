@@ -1,7 +1,7 @@
 package com.splicemachine.utils.logging;
 
-import com.splicemachine.utils.annotation.Description;
-import com.splicemachine.utils.annotation.PName;
+import com.splicemachine.annotations.Description;
+import com.splicemachine.annotations.PName;
 import javax.management.MXBean;
 
 /**

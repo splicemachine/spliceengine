@@ -3,10 +3,10 @@ package com.splicemachine.test;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
-import com.splicemachine.stats.DistributionTimeView;
-import com.splicemachine.stats.LatencyTimer;
-import com.splicemachine.stats.LatencyView;
-import com.splicemachine.stats.Metrics;
+import com.splicemachine.metrics.DistributionTimeView;
+import com.splicemachine.metrics.LatencyTimer;
+import com.splicemachine.metrics.LatencyView;
+import com.splicemachine.metrics.Metrics;
 import org.apache.commons.cli.*;
 
 import java.io.BufferedWriter;

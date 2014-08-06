@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.metrics.MetricFactory;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;

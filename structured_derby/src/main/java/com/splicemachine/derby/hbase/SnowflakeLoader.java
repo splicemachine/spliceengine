@@ -4,7 +4,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.encoding.Encoding;
-import com.splicemachine.utils.Snowflake;
+import com.splicemachine.uuid.Snowflake;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;

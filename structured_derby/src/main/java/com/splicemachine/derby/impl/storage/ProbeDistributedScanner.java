@@ -6,8 +6,11 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import com.splicemachine.stats.*;
-import com.splicemachine.stats.util.Folders;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.MultiTimeView;
+import com.splicemachine.metrics.SimpleMultiTimeView;
+import com.splicemachine.metrics.TimeView;
+import com.splicemachine.metrics.util.Folders;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;

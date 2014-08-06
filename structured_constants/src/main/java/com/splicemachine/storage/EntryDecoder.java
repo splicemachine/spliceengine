@@ -5,7 +5,6 @@ import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;
 
 import com.google.common.base.Supplier;
-import com.splicemachine.utils.Provider;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;

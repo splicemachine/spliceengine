@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.distinctscalar;
 
-import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.metrics.MetricFactory;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.WarningCollector;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractAggregateBuffer;

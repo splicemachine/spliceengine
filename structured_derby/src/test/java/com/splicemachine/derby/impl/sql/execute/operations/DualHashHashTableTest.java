@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.utils.RingBuffer;
+import com.splicemachine.collections.RingBuffer;
 import org.junit.Assert;
 import org.junit.Test;
 

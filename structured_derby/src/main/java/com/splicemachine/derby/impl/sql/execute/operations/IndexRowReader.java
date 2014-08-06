@@ -10,7 +10,8 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.KeyDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
-import com.splicemachine.stats.*;
+import com.splicemachine.metrics.*;
+import com.splicemachine.hbase.HBaseStatUtils;
 import com.splicemachine.storage.EntryDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -410,7 +411,7 @@ class IndexRowReader {
 						timer.startTiming();
 						Result[] results = table.get(gets);
 						timer.tick(results.length);
-						StatUtils.countBytes(bytesCounter,results);
+						HBaseStatUtils.countBytes(bytesCounter, results);
 
 						int i=0;
 						List<Pair<RowAndLocation,Result>> locations = Lists.newArrayListWithCapacity(sourceRows.size());

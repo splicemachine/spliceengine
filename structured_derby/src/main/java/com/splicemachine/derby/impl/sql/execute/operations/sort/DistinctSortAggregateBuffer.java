@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.sort;
 
-import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.metrics.MetricFactory;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractAggregateBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.BufferedAggregator;

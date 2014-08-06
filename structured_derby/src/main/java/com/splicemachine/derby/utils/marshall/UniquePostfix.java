@@ -1,7 +1,8 @@
 package com.splicemachine.derby.utils.marshall;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.utils.Snowflake;
+import com.splicemachine.uuid.Snowflake;
+import com.splicemachine.uuid.UUIDGenerator;
 import org.apache.derby.iapi.error.StandardException;
 
 import java.io.IOException;
@@ -14,13 +15,13 @@ import java.io.IOException;
  */
 public class UniquePostfix implements KeyPostfix{
 		private final byte[] baseBytes;
-		private final Snowflake.Generator generator;
+		private final UUIDGenerator generator;
 
 		public UniquePostfix(byte[] baseBytes) {
 				this(baseBytes,SpliceDriver.driver().getUUIDGenerator().newGenerator(100));
 		}
 
-		public UniquePostfix(byte[] baseBytes, Snowflake.Generator generator) {
+		public UniquePostfix(byte[] baseBytes, UUIDGenerator generator) {
 				this.generator = generator;
 				this.baseBytes = baseBytes;
 		}

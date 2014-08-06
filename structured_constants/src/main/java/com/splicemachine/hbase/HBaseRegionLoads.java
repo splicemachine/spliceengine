@@ -1,11 +1,9 @@
 package com.splicemachine.hbase;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.DynamicSchedule;
-import com.splicemachine.utils.Misc;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import org.apache.hadoop.hbase.*;
@@ -18,7 +16,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -69,9 +69,9 @@ public class HBaseRegionLoads {
         if (started.compareAndSet(false, true)) {
             updateService
                 .execute(DynamicSchedule.runAndScheduleAsMultiple(updater,
-                                                                     updateService,
-                                                                     UPDATE_MULTIPLE,
-                                                                     SMALLEST_UPDATE_INTERVAL));
+                        updateService,
+                        UPDATE_MULTIPLE,
+                        SMALLEST_UPDATE_INTERVAL));
         }
     }
 

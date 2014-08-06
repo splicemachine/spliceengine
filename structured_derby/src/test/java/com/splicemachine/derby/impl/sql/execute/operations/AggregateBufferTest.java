@@ -7,7 +7,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGener
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateBuffer;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.encoding.Encoding;
-import com.splicemachine.stats.Metrics;
+import com.splicemachine.metrics.Metrics;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecAggregator;

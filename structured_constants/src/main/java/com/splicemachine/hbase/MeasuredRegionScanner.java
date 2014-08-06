@@ -1,10 +1,9 @@
 package com.splicemachine.hbase;
 
 import java.io.IOException;
-import java.util.List;
 
-import com.splicemachine.stats.TimeView;
 
+import com.splicemachine.metrics.TimeView;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 

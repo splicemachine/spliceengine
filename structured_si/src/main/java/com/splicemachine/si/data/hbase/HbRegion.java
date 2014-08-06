@@ -1,7 +1,7 @@
 package com.splicemachine.si.data.hbase;
 
-import com.splicemachine.utils.CloseableIterator;
 
+import com.splicemachine.collections.CloseableIterator;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;

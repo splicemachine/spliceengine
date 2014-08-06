@@ -1,7 +1,8 @@
 package com.splicemachine.derby.utils.marshall;
 
 
-import com.splicemachine.utils.hash.ByteHash32;
+
+import com.splicemachine.hash.ByteHash32;
 
 import java.io.IOException;
 
