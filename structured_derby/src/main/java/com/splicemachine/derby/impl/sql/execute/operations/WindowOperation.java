@@ -8,6 +8,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.splicemachine.hash.Hash32;
+import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.derby.impl.sql.execute.operations.window.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
