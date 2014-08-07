@@ -37,7 +37,7 @@ import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
+
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
@@ -112,9 +112,7 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 			}
 		
 		try {
-			//String transaction_id = sqlUtil.getTransactionID();
-			String transaction_id = conf.get(com.splicemachine.mrio.api.SpliceConstants.SPLICE_TRANSACTION_ID);
-			System.out.println("transaction id:"+transaction_id);
+			String transaction_id = conf.get(SpliceConstants.SPLICE_TRANSACTION_ID);
 			buildTableScannerBuilder(transaction_id);
 			tableScanner = this.builder.build();
 			//tableScanner.setColumnTypes(colTypes);

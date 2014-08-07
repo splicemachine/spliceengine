@@ -88,6 +88,7 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 			trr.setHTable(table);
 			trr.restart(scan.getStartRow());
 			
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -128,7 +129,6 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 		
 		System.out.println("Converted tableID: "+tableID);
 		String transactionID = conf.get(SpliceConstants.SPLICE_TRANSACTION_ID);
-		System.out.println("TransactionID: "+transactionID);
 		if(tableID == null)
 			return;
 		try {

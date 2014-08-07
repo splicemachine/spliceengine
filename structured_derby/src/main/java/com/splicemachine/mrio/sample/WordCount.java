@@ -41,7 +41,6 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 import com.splicemachine.mrio.api.SpliceInputFormat;
 import com.splicemachine.mrio.api.SpliceOutputFormat;
-import com.splicemachine.mrio.api.SpliceReducer;
 import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
 import com.splicemachine.mrio.api.SpliceJob;
 
@@ -113,7 +112,7 @@ public class WordCount {
 		}
 	}
 	
-	public static class MyReducer extends SpliceReducer<Text, IntWritable, ImmutableBytesWritable, ExecRow> {
+	public static class MyReducer extends Reducer<Text, IntWritable, ImmutableBytesWritable, ExecRow> {
 		
 		  
 		 @Override
