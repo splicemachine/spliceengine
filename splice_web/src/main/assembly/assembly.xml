@@ -40,5 +40,12 @@
 				<include>*sh</include>
 			</includes>
 		</fileSet>
+		<fileSet>
+			<directory>target/classes/etc</directory>
+			<outputDirectory>spliceadmin/etc</outputDirectory>
+			<includes>
+				<include>*xml</include>
+			</includes>
+		</fileSet>
 	</fileSets>
 </assembly>

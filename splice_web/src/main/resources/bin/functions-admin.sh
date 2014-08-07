@@ -8,7 +8,9 @@ _retryAdmin() {
     LOG4J_PATH="${3}"
     JETTY_RUNNER_JAR="${4}"
     ADMIN_MAIN_WAR="${5}"
-    PORT="${6}"
+    CONFIG_FILE="${6}"
+    PORT="${7}"
+    JDBC_ARGS="${8}"
 
     # Number of seconds we should allow for isReady to return 0
     # Jetty takes very little time to start up...
@@ -30,7 +32,7 @@ _retryAdmin() {
     RETURN_CODE=0
     ERROR_CODE=0
     for (( RETRY=1; RETRY<=MAXRETRY; RETRY++ )); do
-        _startAdmin "${ROOT_DIR}" "${ADMINLOGFILE}" "${LOG4J_PATH}" "${PORT}"
+        _startAdmin "${ROOT_DIR}" "${ADMINLOGFILE}" "${LOG4J_PATH}" "${CONFIG_FILE}" "${PORT}" "${JDBC_ARGS}"
         _waitfor "${ADMINLOGFILE}" "${ADMIN_TIMEOUT}" 'oejs.AbstractConnector:Started SelectChannelConnector'
         RETURN_CODE=$?
         if [[ ${RETURN_CODE} -eq 0 ]]; then
@@ -66,14 +68,16 @@ _startAdmin() {
     ROOT_DIR="${1}"
     LOGFILE="${2}"
     LOG4J_PATH="${3}"
-    PORT="${4}"
+    CONFIG_FILE="${4}"
+    PORT="${5}"
+    JDBC_ARGS="${6}"
 
     ADMIN_PID_FILE="${ROOT_DIR}"/admin_pid
     export CLASSPATH
     LOG4J_CONFIG="-Dlog4j.configuration=$LOG4J_PATH"
 
     SYS_ARGS=" -Xmx512m -Xms256m -Djava.awt.headless=true ${LOG4J_CONFIG} -Djava.net.preferIPv4Stack=true"
-    (java ${SYS_ARGS} -jar "${JETTY_RUNNER_JAR}" --path / --port "${PORT}" "${ADMIN_MAIN_WAR}" > "${LOGFILE}" 2>&1 ) &
+    (java ${SYS_ARGS} -jar "${JETTY_RUNNER_JAR}" --config "${CONFIG_FILE}" --port "${PORT}" --jdbc "${JDBC_ARGS}" --path / "${ADMIN_MAIN_WAR}" > "${LOGFILE}" 2>&1 ) &
     echo "$!" > ${ADMIN_PID_FILE}
 }
 

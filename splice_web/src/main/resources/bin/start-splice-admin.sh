@@ -5,32 +5,45 @@ source ${ROOT_DIR}/bin/functions-admin.sh
 
 # Start with debug logging by passing this script the "-debug" argument
 
+# Defaults
 LOGFILE="${ROOT_DIR}"/splice-admin.log
 DEBUG=false
+CONFIG_FILE="${ROOT_DIR}"/etc/jetty-splice-admin.xml
+PORT="8080"  # Default Jetty HTTP port
+JDBC_ARGS="'org.apache.derby.jdbc.ClientDriver' 'databaseName=testdb;createDatabase=create' 'jdbc/mydatasource'"  # Default JDBC connect string
 
 usage() {
     # $1 is an error, if any
     if [[ -n "${1}" ]]; then
         echo "Error: ${1}"
     fi
-    echo "Usage: ${0} [-d] [-h]"
+    echo "Usage: ${0} [-d] [-c <splice-admin.xml>] [-p <port_#>] [-j <jdbc_connect_strings>] [-h]"
     echo "Where: "
     echo "  -d => Start the server with debug logging enabled"
+    echo "  -c <jetty-splice-admin.xml> is the optional Splice Admin XML configuration file.  The default is etc/jetty-splice-admin.xml."
     echo "  -p <port_#> is the optional Splice Admin HTTP port to listen to.  The default HTTP port is 8080."
+    echo "  -j \"<jdbc_driver_class_name> <db_properties> <jndi_name>\" is the optional JDBC connect string."
+    echo "     The default is: \"'org.apache.derby.jdbc.ClientDriver' 'databaseName=testdb;createDatabase=create' 'jdbc/mydatasource'\""
     echo "  -h => print this message"
 }
 
-PORT="8080"  # Default Jetty HTTP port
-
-while getopts ":dhp:" flag ; do
+while getopts ":dhc:p:j:" flag ; do
     case ${flag} in
         h* | \?)
             usage
             exit 0 # This is not an error, User asked help. Don't do "exit 1"
         ;;
+        c)
+        # the jetty.xml config file
+            CONFIG_FILE=$(echo "$OPTARG" | tr -d [[:space:]])
+        ;;
         p)
         # the Jetty HTTP port
             PORT=$(echo "$OPTARG" | tr -d [[:space:]])
+        ;;
+        j)
+        # the JDBC classname, driver, and JNDI name
+            JDBC_ARGS="${OPTARG}"
         ;;
         d)
         # start server with the debug
@@ -43,7 +56,7 @@ while getopts ":dhp:" flag ; do
     esac
 done
 
-echo "Running with HTTP port = ${PORT} and debug = ${DEBUG}"
+echo "Running with debug = ${DEBUG}, config file = ${CONFIG_FILE}, HTTP port = ${PORT}, and JDBC args = \"${JDBC_ARGS}\""
 
 # server still running? - must stop first
 S=$(ps -ef | awk '/splice_web/ && !/awk/ {print $2}')
@@ -108,4 +121,4 @@ fi
 # Start server with retry logic and with the most recently built archive files.
 JETTY_RUNNER_JAR=`ls -1r ${ROOT_DIR}/lib/jetty-runner-*.jar | head -1`
 ADMIN_MAIN_WAR=`ls -1r ${ROOT_DIR}/lib/splice_web*.war | head -1`
-_retryAdmin "${ROOT_DIR}" "${LOGFILE}" "${LOG4J_PATH}" "${JETTY_RUNNER_JAR}" ${ADMIN_MAIN_WAR} ${PORT}
+_retryAdmin "${ROOT_DIR}" "${LOGFILE}" "${LOG4J_PATH}" "${JETTY_RUNNER_JAR}" ${ADMIN_MAIN_WAR} ${CONFIG_FILE} ${PORT} ${JDBC_ARGS}

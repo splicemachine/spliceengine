@@ -8,10 +8,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -26,16 +27,158 @@ import javax.ws.rs.core.MediaType;
 public class SQLResource {
 
 	/**
-	 * Default Splice host/port for the primary JDBC connection.
-	 */
-	public static String DEFAULT_HOST = "localhost";
-	public static String DEFAULT_PORT = "1527";
-
-	/**
 	 * Switch for fake debug cluster.  Randomly report up/down status for a 5 node cluster.
 	 * Helpful for testing the green/red status of a cluster of Splice servers.
 	 */
 	private static boolean isFakeCluster = false;
+
+	/**
+	 * JNDI names for the configured values for the primary JDBC connection.
+	 */
+    public static String JNDI_NAME_DRIVER   = "java:comp/env/driver";
+    public static String JNDI_NAME_HOST     = "java:comp/env/host";
+    public static String JNDI_NAME_PORT     = "java:comp/env/port";
+    public static String JNDI_NAME_USER     = "java:comp/env/user";
+    public static String JNDI_NAME_PASSWORD = "java:comp/env/password";
+
+	/**
+	 * Defaults for the primary Splice JDBC connection.
+	 */
+	public static String DEFAULT_DRIVER   = "org.apache.derby.jdbc.ClientDriver";
+	public static String DEFAULT_HOST     = "localhost";
+	public static String DEFAULT_PORT     = "1527";
+	public static String DEFAULT_USER     = "app";
+	public static String DEFAULT_PASSWORD = "app";
+
+	/**
+	 * Primary Splice JDBC connection.
+	 */
+	private static String driver;
+	private static String host;
+	private static String port;
+	private static String user;
+	private static String password;
+
+	/**
+	 * Static initializer.
+	 */
+	static {
+		init();
+	}
+
+	/**
+	 * Initialize the primary JDBC connection from JNDI.
+	 */
+    private static void init() {
+		try {
+		    InitialContext ic = new InitialContext();
+		    driver   = getValueFromJNDI(ic, JNDI_NAME_DRIVER, DEFAULT_DRIVER);
+		    host     = getValueFromJNDI(ic, JNDI_NAME_HOST, DEFAULT_HOST);
+		    port     = getValueFromJNDI(ic, JNDI_NAME_PORT, DEFAULT_PORT);
+		    user     = getValueFromJNDI(ic, JNDI_NAME_USER, DEFAULT_USER);
+		    password = getValueFromJNDI(ic, JNDI_NAME_PASSWORD, DEFAULT_PASSWORD);
+		} catch (NamingException e) {
+			// TODO: Add ERROR level logging statement.
+        	throw new RuntimeException("Problem creating javax.naming.InitialContext instance", e);
+		}
+	}
+
+	/**
+	 * @param ic
+	 * @throws NamingException
+	 */
+	private static String getValueFromJNDI(InitialContext ic, String jndiName, String defaultValue) {
+		try {
+			String value = (String)ic.lookup(jndiName);
+			// TODO: Change to TRACE level logging statement.
+			System.out.println(jndiName + " is bound to: " + value);
+			return (value == null ? defaultValue : value);
+		} catch (NamingException e) {
+			// TODO: Change to INFO level logging statement.
+			System.err.println(String.format("Problem looking up '%s'.  Value may be missing from jetty.xml, so using default value of %s", jndiName, defaultValue));
+			return defaultValue;
+		}
+	}
+
+	/**
+	 * Return the driver for the primary Splice JDBC connection.
+	 * @return the driver
+	 */
+	public static String getDriver() {
+		return driver;
+	}
+
+	/**
+	 * Set the driver for the primary Splice JDBC connection.
+	 * @param driver the driver to set
+	 */
+	public static void setDriver(String driver) {
+		SQLResource.driver = driver;
+	}
+
+	/**
+	 * Return the host for the primary Splice JDBC connection.
+	 * @return the host
+	 */
+	public static String getHost() {
+		return host;
+	}
+
+	/**
+	 * Set the host for the primary Splice JDBC connection.
+	 * @param host the host to set
+	 */
+	public static void setHost(String host) {
+		SQLResource.host = host;
+	}
+
+	/**
+	 * Return the port for the primary Splice JDBC connection.
+	 * @return the port
+	 */
+	public static String getPort() {
+		return port;
+	}
+
+	/**
+	 * Set the port for the primary Splice JDBC connection.
+	 * @param port the port to set
+	 */
+	public static void setPort(String port) {
+		SQLResource.port = port;
+	}
+
+	/**
+	 * Return the user for the primary Splice JDBC connection.
+	 * @return the user
+	 */
+	public static String getUser() {
+		return user;
+	}
+
+	/**
+	 * Set the user for the primary Splice JDBC connection.
+	 * @param user the user to set
+	 */
+	public static void setUser(String user) {
+		SQLResource.user = user;
+	}
+
+	/**
+	 * Return the password for the primary Splice JDBC connection.
+	 * @return the password
+	 */
+	public static String getPassword() {
+		return password;
+	}
+
+	/**
+	 * Set the password for the primary Splice JDBC connection.
+	 * @param password the password to set
+	 */
+	public static void setPassword(String password) {
+		SQLResource.password = password;
+	}
 
 	/**
 	 * RESTful service that returns a JSON document containing the traced statement plan (SQL operation tree)
@@ -93,7 +236,7 @@ public class SQLResource {
 				}
 				object.put("UP", Boolean.toString(upStatus));
 				object.put("RPCPORT", object.remove("PORT"));
-				object.put("JDBCPORT", DEFAULT_PORT);
+				object.put("JDBCPORT", getPort());
 			}
 		}
 
@@ -120,9 +263,9 @@ public class SQLResource {
 		String host = serverObject.get("HOSTNAME");
 		if (host == null) return false;
 
-		// Don't use the port from the server object since that is the region server port.
-		// Splice only supports listening to port 1527 currently, so use the DEFAULT_PORT.
-    	Map<String, List> map = getQueryResults("select tabletype from sys.systables {limit 1}", host, DEFAULT_PORT);
+		// Don't use the port from the server object since that is the HBase region server RPC port.
+		// Splice only supports listening to port 1527 currently, so use the configured port for forward compatibility.
+    	Map<String, List> map = getQueryResults("select tabletype from sys.systables {limit 1}", host, getPort());
     	if (map == null) return false;
     	List<String> headers = map.get("headers");
     	List<List<String>> rows = map.get("rows");
@@ -146,7 +289,7 @@ public class SQLResource {
     public List<Map<String, String>> getQueryResultsAsJavaScriptObjects(@QueryParam("query")String query) {
 
     	// Get the "raw" JDBC results stored in lists and maps.
-    	Map<String, List> map = getQueryResults(query, DEFAULT_HOST, DEFAULT_PORT);
+    	Map<String, List> map = getQueryResults(query, getHost(), getPort());
     	if (map == null) return null;
 
     	List<String> headers = map.get("headers");
@@ -182,7 +325,7 @@ public class SQLResource {
     @Path("/query2jdbc")
     @Produces(MediaType.APPLICATION_JSON)
     public Map<String, List> getQueryResultsAsJDBCObjects(@QueryParam("query")String query) {
-        return getQueryResults(query, DEFAULT_HOST, DEFAULT_PORT);
+        return getQueryResults(query, getHost(), getPort());
     }
 
     /**
@@ -191,25 +334,24 @@ public class SQLResource {
      * @param query	SQL select statement
 	 * @return Map of "headers" and "rows" lists
      */
-	private Map<String, List> getQueryResults(String query, String host, String port) {
+	private static Map<String, List> getQueryResults(String query, String host, String port) {
 		if (query == null) {
 			// TODO: Remove this default and throw the appropriate exception or just null/empty map/map with empty arrays.
 			query = "SELECT * FROM SYS.SYSTABLES";
 		}
 		if (host == null) {
-			host = DEFAULT_HOST;
+			host = getHost();
 		}
 		if (port == null) {
-			port = DEFAULT_PORT;
+			port = getPort();
 		}
 		Connection conn = null;
         Statement stmt = null;
         try {
-        	Class.forName("org.apache.derby.jdbc.ClientDriver").newInstance();
-        	// TODO: Remove hard coded JDBC URL.  Pull URL from config.  Use same config module as HBase uses (*-site.xml, *-default.xml).
+        	Class.forName(getDriver()).newInstance();
         	// TODO: Add connection pooling.
         	String jdbcURL = String.format("jdbc:splice://%s:%s/splicedb;create=true", host, port);
-        	conn = DriverManager.getConnection(jdbcURL, "app", "app");
+        	conn = DriverManager.getConnection(jdbcURL, getUser(), getPassword());
         	stmt = conn.createStatement();
         	ResultSet rs = stmt.executeQuery(query);
         	List<String> queries = new ArrayList<String>(1);
@@ -249,7 +391,7 @@ public class SQLResource {
 	 * @throws SQLException
 	 * @throws java.io.IOException
 	 */
-	private List<String> getHeaders(ResultSet rs) throws SQLException, java.io.IOException {
+	private static List<String> getHeaders(ResultSet rs) throws SQLException, java.io.IOException {
 		ResultSetMetaData md = rs.getMetaData();
 		int colCount = md.getColumnCount();
 		List<String> headers = new ArrayList<String>(colCount); 
@@ -267,7 +409,7 @@ public class SQLResource {
 	 * @throws SQLException
 	 * @throws java.io.IOException
 	 */
-	private List<List<String>> getRows(ResultSet rs) throws SQLException, java.io.IOException {
+	private static List<List<String>> getRows(ResultSet rs) throws SQLException, java.io.IOException {
 		ResultSetMetaData md = rs.getMetaData();
 		int colCount = md.getColumnCount();
 		List<List<String>> rows = new ArrayList<List<String>>(); 
