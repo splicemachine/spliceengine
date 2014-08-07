@@ -3,7 +3,6 @@ package com.splicemachine.hash;
 import com.google.common.collect.Lists;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
-import com.splicemachine.hash.MurmurHash;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,7 +16,7 @@ import java.util.Random;
  *         Created on: 11/2/13
  */
 @RunWith(Parameterized.class)
-public class MurmurHashTest {
+public class Murmur32Test {
     private static final int maxRuns=1000;
 
     @Parameterized.Parameters
@@ -34,7 +33,7 @@ public class MurmurHashTest {
 
     private final byte[] sampleData;
 
-    public MurmurHashTest(byte[] sampleData) {
+    public Murmur32Test(byte[] sampleData) {
         this.sampleData = sampleData;
     }
 
@@ -43,7 +42,7 @@ public class MurmurHashTest {
         HashCode hashCode = Hashing.murmur3_32(0).hashBytes(sampleData, 0, sampleData.length);
         int actual =hashCode.asInt();
 
-        int hash = MurmurHash.murmur3_32(sampleData, 0, sampleData.length, 0);
+        int hash = new Murmur32(0).hash(sampleData, 0, sampleData.length);
 
         Assert.assertEquals(actual,hash);
     }

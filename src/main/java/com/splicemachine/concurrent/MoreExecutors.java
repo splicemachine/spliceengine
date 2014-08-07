@@ -2,9 +2,7 @@ package com.splicemachine.concurrent;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.*;
 
 /**
  * @author Scott Fines
@@ -17,6 +15,15 @@ public class MoreExecutors {
     public static ExecutorService namedSingleThreadExecutor(String nameFormat) {
         ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
         return Executors.newSingleThreadExecutor(factory);
+    }
+
+    public static ThreadPoolExecutor namedThreadPool(int coreWorkers,int maxWorkers,
+                                                     String nameFormat,
+                                                     long keepAliveSeconds,
+                                                     boolean daemon){
+        ThreadFactory factory = new ThreadFactoryBuilder().setDaemon(daemon).setNameFormat(nameFormat).build();
+        return new ThreadPoolExecutor(coreWorkers,maxWorkers,keepAliveSeconds,
+                TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(),factory);
     }
 
 }
