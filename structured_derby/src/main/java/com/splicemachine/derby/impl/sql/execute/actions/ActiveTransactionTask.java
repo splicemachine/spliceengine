@@ -11,7 +11,7 @@ import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.SpreadBucket;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hash.ByteHash32;
+import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
@@ -96,7 +96,7 @@ public class ActiveTransactionTask extends ZkTask {
         CallBuffer<KVPair> callBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(tempTable.getTempTableName(), txnId);
         MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(2);
 
-        ByteHash32 hashFunction = HashFunctions.murmur3(0);
+        Hash32 hashFunction = HashFunctions.murmur3(0);
         byte[] hashBytes = new byte[1+operationUUID.length];
         System.arraycopy(operationUUID,0,hashBytes,1,operationUUID.length);
         boolean[] usedTempBuckets = new boolean[currentSpread.getNumBuckets()];

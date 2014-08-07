@@ -27,7 +27,7 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hash.ByteHash32;
+import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.hbase.FilteredRowKeyDistributor;
@@ -287,7 +287,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         private final int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
         private final DataValueDescriptor[] fields = sortTemplateRow.getRowArray();
 
-        public AggregateBucketingPrefix(HashPrefix delegate, ByteHash32 hashFunction, SpreadBucket spreadBucket) {
+        public AggregateBucketingPrefix(HashPrefix delegate, Hash32 hashFunction, SpreadBucket spreadBucket) {
             super(delegate, hashFunction, spreadBucket);
         }
 

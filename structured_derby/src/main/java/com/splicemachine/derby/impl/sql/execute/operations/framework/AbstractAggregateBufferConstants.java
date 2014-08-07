@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.framework;
 
-import com.splicemachine.hash.ByteHash32;
+import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 
 /**
@@ -12,7 +12,7 @@ public class AbstractAggregateBufferConstants {
 	 * Default Hash strategies: we only use HashFunctions.murmur3(0)
 	 * 
 	 */
-	protected static final ByteHash32[] DEFAULT_HASHES = new ByteHash32[]{
+	protected static final Hash32[] DEFAULT_HASHES = new Hash32[]{
 		HashFunctions.murmur3(0),
 		HashFunctions.murmur3(5),
 		HashFunctions.murmur3(7)
