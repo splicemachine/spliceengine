@@ -24,8 +24,6 @@ public class NonTransactionalCounterTask extends DebugTask{
     public NonTransactionalCounterTask() { }
 
     public NonTransactionalCounterTask(String jobId,
-                                       int priority,
-                                       boolean readOnly,
                                        String destinationDirectory) {
         super(jobId, destinationDirectory);
     }
@@ -89,7 +87,7 @@ public class NonTransactionalCounterTask extends DebugTask{
 
 		@Override
 		public RegionTask getClone() {
-				return new NonTransactionalCounterTask(jobId,getPriority(),readOnly,destinationDirectory);
+				return new NonTransactionalCounterTask(jobId,destinationDirectory);
 		}
 
 		@Override

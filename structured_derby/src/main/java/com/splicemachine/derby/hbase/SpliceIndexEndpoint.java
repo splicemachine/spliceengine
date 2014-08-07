@@ -76,15 +76,9 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 
 		@Override
 		public void start(CoprocessorEnvironment env) {
-				RegionCoprocessorEnvironment rce = ((RegionCoprocessorEnvironment)env);
+				final RegionCoprocessorEnvironment rce = ((RegionCoprocessorEnvironment)env);
 				HRegionServer rs = (HRegionServer) rce.getRegionServerServices();
 				metrics = rs.getMetrics();
-				region = TransactionalRegions.get(rce.getRegion(), new SegmentedRollForward.Action() {
-						@Override
-						public void submitAction(HRegion region, byte[] startKey, byte[] stopKey, SegmentedRollForward.Context context) {
-								throw new UnsupportedOperationException("IMPLEMENT");
-						}
-				});
 				String tableName = rce.getRegion().getTableDesc().getNameAsString();
 				try{
 						conglomId = Long.parseLong(tableName);
@@ -106,6 +100,12 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
                 @Override
                 public boolean start() {
                     factoryPair.getFirst().prepare();
+                    region = TransactionalRegions.get(rce.getRegion(), new SegmentedRollForward.Action() {
+                        @Override
+                        public void submitAction(HRegion region, byte[] startKey, byte[] stopKey, SegmentedRollForward.Context context) {
+                            throw new UnsupportedOperationException("IMPLEMENT");
+                        }
+                    });
                     SpliceDriver.driver().deregisterService(this);
                     return true;
                 }

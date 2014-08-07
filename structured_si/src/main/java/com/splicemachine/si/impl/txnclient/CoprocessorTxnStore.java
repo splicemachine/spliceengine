@@ -15,7 +15,7 @@ import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.coprocessors.TxnLifecycleProtocol;
 import com.splicemachine.si.impl.InheritingTxnView;
 import com.splicemachine.si.impl.TxnUtils;
-import com.splicemachine.utils.ThreadSafe;
+import com.splicemachine.annotations.ThreadSafe;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.HTableInterfaceFactory;

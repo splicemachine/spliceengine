@@ -206,7 +206,7 @@ public class SITransactor<Table,
 														return !statusMap.containsKey(input.getRow()) || statusMap.get(input.getRow()).getOperationStatusCode() == HConstants.OperationStatusCode.SUCCESS;
 												}
 										}));										
-										OperationStatus[] statuses = processKvBatch(table,null,family,qualifier,kvPairs,txnId,null);
+										OperationStatus[] statuses = processKvBatch(table,null,family,qualifier,kvPairs,txnId,ConstraintChecker.NO_CONSTRAINT);
 										for(int i=0;i<statuses.length;i++){
 												byte[] row = kvPairs.get(i).getRow();
 												OperationStatus status = statuses[i];
@@ -265,7 +265,12 @@ public class SITransactor<Table,
 				return null;
 		}
 
-		protected OperationStatus[] processInternal(Table table, RollForward rollForwardQueue, Txn txn, byte[] family, byte[] qualifier, Collection<KVPair> mutations, ConstraintChecker constraintChecker) throws IOException {
+		protected OperationStatus[] processInternal(Table table,
+                                                RollForward rollForwardQueue,
+                                                Txn txn,
+                                                byte[] family, byte[] qualifier,
+                                                Collection<KVPair> mutations,
+                                                ConstraintChecker constraintChecker) throws IOException {
 				OperationStatus[] finalStatus = new OperationStatus[mutations.size()];
 				Pair<KVPair,Integer>[] lockPairs = new Pair[mutations.size()];
 				TxnFilter constraintState = null;
@@ -317,15 +322,7 @@ public class SITransactor<Table,
 //        }
     }
 
-    private Set<TransactionId> getTransactionIds(Mutation[] mutations) {
-        Set<TransactionId> writingTransactions = new HashSet<TransactionId>();
-        for (Mutation m : mutations) {
-            writingTransactions.add(dataStore.getTransactionIdFromOperation(m));
-        }
-        return writingTransactions;
-    }
-
-		private void releaseLocksForKvBatch(Table table, Pair<KVPair, Integer>[] locks){
+    private void releaseLocksForKvBatch(Table table, Pair<KVPair, Integer>[] locks){
 				if(locks==null) return;
 				for(Pair<KVPair,Integer>lock:locks){
 						if(lock==null) continue;
@@ -351,39 +348,46 @@ public class SITransactor<Table,
 				}
 		}
 
-		private IntObjectOpenHashMap<Pair<Mutation, Integer>> checkConflictsForKvBatch(Table table,
-																																									 RollForward rollForwardQueue,
-																															 Pair<KVPair, Integer>[] dataAndLocks,
-																															 Set<Long>[] conflictingChildren,
-																															 Txn transaction,
-																															 byte[] family, byte[] qualifier,
-																															 ConstraintChecker constraintChecker,
-																															 TxnFilter constraintStateFilter,
-																															 OperationStatus[] finalStatus) throws IOException{
-				IntObjectOpenHashMap<Pair<Mutation,Integer>> finalMutationsToWrite = IntObjectOpenHashMap.newInstance();
-				for(int i=0;i<dataAndLocks.length;i++){
-						Pair<KVPair,Integer> baseDataAndLock = dataAndLocks[i];
-						if(baseDataAndLock==null) continue;
+    private IntObjectOpenHashMap<Pair<Mutation, Integer>> checkConflictsForKvBatch(Table table,
+                                                                                   RollForward rollForwardQueue,
+                                                                                   Pair<KVPair, Integer>[] dataAndLocks,
+                                                                                   Set<Long>[] conflictingChildren,
+                                                                                   Txn transaction,
+                                                                                   byte[] family, byte[] qualifier,
+                                                                                   ConstraintChecker constraintChecker,
+                                                                                   TxnFilter constraintStateFilter,
+                                                                                   OperationStatus[] finalStatus) throws IOException{
+        IntObjectOpenHashMap<Pair<Mutation,Integer>> finalMutationsToWrite = IntObjectOpenHashMap.newInstance();
+        for(int i=0;i<dataAndLocks.length;i++){
+            Pair<KVPair,Integer> baseDataAndLock = dataAndLocks[i];
+            if(baseDataAndLock==null) continue;
 
-						ConflictResults conflictResults = ConflictResults.NO_CONFLICT;
-						KVPair kvPair = baseDataAndLock.getFirst();
-						if(unsafeWrites && constraintChecker!=null){
-								//still have to check the constraint
-								Result row = dataStore.getCommitTimestampsAndTombstonesSingle(table, kvPair.getRow());
-								if (applyConstraint(constraintChecker,constraintStateFilter, i, kvPair,row,finalStatus))
-										continue;
-						} else{
-								Result possibleConflicts = dataStore.getCommitTimestampsAndTombstonesSingle(table, kvPair.getRow());
-								if (possibleConflicts != null) {
-										conflictResults = ensureNoWriteConflict(transaction,possibleConflicts);
-										//if we've got this far, we have no write conflicts
-										if (applyConstraint(constraintChecker,constraintStateFilter, i, kvPair, possibleConflicts, finalStatus))
-												continue;
-								}
-						}
-						conflictingChildren[i] = conflictResults.childConflicts;
-						Mutation mutationToRun = getMutationToRun(table, rollForwardQueue, kvPair,
-																											family, qualifier, transaction, conflictResults);
+            ConflictResults conflictResults = ConflictResults.NO_CONFLICT;
+            KVPair kvPair = baseDataAndLock.getFirst();
+            if(constraintChecker!=null || !KVPair.Type.INSERT.equals(kvPair.getType())){
+                /*
+                 *
+                 * If the table has no keys, then the hbase row key is a randomly generated UUID, so it's not
+                 * going to incur a write/write penalty, because there isn't any other row there (as long as we are inserting).
+                 * Therefore, we do not need to perform a write/write conflict check or a constraint check
+                 *
+                 * We know that this is the case because there is no constraint checker (constraint checkers are only
+                 * applied on key elements.
+                 */
+                Result possibleConflicts = dataStore.getCommitTimestampsAndTombstonesSingle(table, kvPair.getRow());
+                if(!unsafeWrites && possibleConflicts!=null){
+                    //we need to check for write conflicts
+                    conflictResults = ensureNoWriteConflict(transaction,possibleConflicts);
+                }
+                if (applyConstraint(constraintChecker,constraintStateFilter, i, kvPair, possibleConflicts, finalStatus)){
+                    //filter this row out, it fails the constraint
+                    continue;
+                }
+            }
+
+            conflictingChildren[i] = conflictResults.childConflicts;
+            Mutation mutationToRun = getMutationToRun(table, rollForwardQueue, kvPair,
+                    family, qualifier, transaction, conflictResults);
 						finalMutationsToWrite.put(i, Pair.newPair(mutationToRun, baseDataAndLock.getSecond()));
 				}
 				return finalMutationsToWrite;

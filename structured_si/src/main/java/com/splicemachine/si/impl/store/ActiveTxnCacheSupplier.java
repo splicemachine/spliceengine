@@ -1,8 +1,9 @@
 package com.splicemachine.si.impl.store;
 
+import com.splicemachine.hash.Hash32;
+import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
-import com.splicemachine.utils.hash.MurmurHash;
 
 import java.io.IOException;
 import java.lang.ref.SoftReference;
@@ -24,6 +25,7 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 		private final int maxSize;
 		private final TxnSupplier delegate;
 		private boolean cacheGlobally;
+    private final Hash32 hashFunction;
 
 		public ActiveTxnCacheSupplier(TxnSupplier delegate, int maxSize){
 				this(delegate, maxSize,false);
@@ -38,7 +40,8 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 				data = new SoftReference[s];
 				this.delegate = delegate;
 				this.maxSize = maxSize;
-		}
+        this.hashFunction = HashFunctions.murmur3(0);
+    }
 
 		@Override
 		public Txn getTransaction(long txnId) throws IOException {
@@ -47,12 +50,12 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 
 		@Override
 		public Txn getTransaction(long txnId, boolean getDestinationTables) throws IOException {
-				int hash = MurmurHash.murmur3_32(txnId,0);
+				int hash = hashFunction.hash(txnId);
 				Txn txn = getFromCache(hash,txnId);
 				if(txn!=null) return txn;
 				//bummer, not cached. try delegate
 				txn = delegate.getTransaction(txnId,getDestinationTables);
-				if(txn==null) return txn;
+				if(txn==null) return null;
 
 				if(txn.getState()== Txn.State.ACTIVE)
 						addToCache(hash, txn);
@@ -61,7 +64,7 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 
 		@Override
 		public boolean transactionCached(long txnId) {
-				int hash = MurmurHash.murmur3_32(txnId,0);
+				int hash = hashFunction.hash(txnId);
 				Txn txn = getFromCache(hash,txnId);
 				return txn!=null;
 		}
@@ -71,13 +74,13 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 //				if(cacheGlobally){
 						delegate.cache(toCache);
 //				}else{
-						addToCache(MurmurHash.murmur3_32(toCache.getTxnId(), 0), toCache);
+						addToCache(hashFunction.hash(toCache.getTxnId()), toCache);
 //		}
 		}
 
     @Override
     public Txn getTransactionFromCache(long txnId) {
-        int hash = MurmurHash.murmur3_32(txnId,0);
+        int hash = hashFunction.hash(txnId);
         return getFromCache(hash,txnId);
     }
 

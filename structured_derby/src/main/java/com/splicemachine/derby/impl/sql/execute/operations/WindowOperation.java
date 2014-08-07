@@ -197,7 +197,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             byte[] range = new byte[uniqueId.length+1];
             range[0] = spliceRuntimeContext.getHashBucket();
             System.arraycopy(uniqueId,0,range,1,uniqueId.length);
-            reduceScan = Scans.buildPrefixRangeScan(uniqueId, SpliceUtils.NA_TRANSACTION_ID);
+            reduceScan = Scans.buildPrefixRangeScan(uniqueId, null);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -470,7 +470,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
                 return start;
             }
         };
-        return RegionAwareScanner.create(getTransactionID(),region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary,ctx);
+        return RegionAwareScanner.create(null,region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary,ctx);
     }
 
     @Override

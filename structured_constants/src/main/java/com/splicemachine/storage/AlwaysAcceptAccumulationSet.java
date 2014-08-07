@@ -38,7 +38,13 @@ public class AlwaysAcceptAccumulationSet extends EntryAccumulationSet {
 
 		@Override public boolean isFinished() { return completed; }
 
-		@Override public boolean isInteresting(BitIndex potentialIndex) { return true; }
+		@Override
+    public boolean isInteresting(BitIndex potentialIndex) {
+        for(int i=potentialIndex.nextSetBit(0);i>=0;i=potentialIndex.nextSetBit(i+1)){
+            if(!occupiedFields.get(i)) return true;
+        }
+        return false;
+    }
 
 		public void complete(){ this.completed = true; }
 

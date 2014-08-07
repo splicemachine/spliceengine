@@ -51,11 +51,8 @@ public class SIObserver extends BaseRegionObserver {
 		private static Logger LOG = Logger.getLogger(SIObserver.class);
 //		protected HRegion region;
 		private boolean tableEnvMatch = false;
-		private String tableName;
+//		private String tableName;
 		private static final int S = 1000;
-//		private RollForwardQueue rollForwardQueue;
-//		private ReadResolver readResolver;
-//		private RollForward rollForward;
 
 		private TxnOperationFactory txnOperationFactory;
 		private TransactionalRegion region;
@@ -63,17 +60,12 @@ public class SIObserver extends BaseRegionObserver {
 		@Override
 		public void start(CoprocessorEnvironment e) throws IOException {
 				SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
-				region = TransactionalRegions.get(((RegionCoprocessorEnvironment)e).getRegion(),new SegmentedRollForward.Action(){
-
-						@Override
-						public void submitAction(HRegion region, byte[] startKey, byte[] stopKey, SegmentedRollForward.Context context) {
-							throw new UnsupportedOperationException("IMPLEMENT");
-						}
-				});
-				tableName = region.getTableName();
-				Tracer.traceRegion(tableName, ((RegionCoprocessorEnvironment)e).getRegion());
-				tableEnvMatch = doesTableNeedSI(region.getRegionName());
-				txnOperationFactory = new SimpleOperationFactory(TransactionStorage.getTxnSupplier());
+				tableEnvMatch = doesTableNeedSI(((RegionCoprocessorEnvironment)e).getRegion().getTableDesc().getNameAsString());
+        if(tableEnvMatch){
+            txnOperationFactory = new SimpleOperationFactory(TransactionStorage.getTxnSupplier());
+            region = TransactionalRegions.get(((RegionCoprocessorEnvironment) e).getRegion(), SegmentedRollForward.NOOP_ACTION);
+            Tracer.traceRegion(region.getTableName(), ((RegionCoprocessorEnvironment)e).getRegion());
+        }
 //				readResolver = HTransactorFactory.getReadResolver(region);
 //				this.rollForward = NoopRollForward.INSTANCE;
 //				RollForwardAction action = HTransactorFactory.getRollForwardQueueFactory().newAction(new HbRegion(region));
@@ -85,14 +77,14 @@ public class SIObserver extends BaseRegionObserver {
 
     public static boolean doesTableNeedSI(String tableName) {
         SpliceConstants.TableEnv tableEnv = EnvUtils.getTableEnv(tableName);
-//        SpliceLogUtils.info(LOG,"table %s has Env %s",tableName,tableEnv);
-//        if(tableEnv.equals(SpliceConstants.TableEnv.TRANSACTION_TABLE)) return false;
+        SpliceLogUtils.trace(LOG,"table %s has Env %s",tableName,tableEnv);
+        if(SpliceConstants.TableEnv.ROOT_TABLE.equals(tableEnv)||
+                SpliceConstants.TableEnv.META_TABLE.equals(tableEnv)||
+                SpliceConstants.TableEnv.TRANSACTION_TABLE.equals(tableEnv)) return false;
+        if(SpliceConstants.TEMP_TABLE.equals(tableName)||
+                SpliceConstants.TEST_TABLE.equals(tableName)) return false;
 
-        return (tableEnv.equals(SpliceConstants.TableEnv.USER_TABLE)
-                || tableEnv.equals(SpliceConstants.TableEnv.USER_INDEX_TABLE)
-                || tableEnv.equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE))
-                && !tableName.equals(SpliceConstants.TEMP_TABLE)
-                && !tableName.equals(SpliceConstants.TEST_TABLE);
+        return true;
     }
 
     @Override
@@ -230,7 +222,7 @@ public class SIObserver extends BaseRegionObserver {
 						byte[] fam = family.getKey();
 						Map<byte[],KVPair> cols = family.getValue();
 						for(Map.Entry<byte[],KVPair> column:cols.entrySet()){
-								OperationStatus[] status = region.bulkWrite(txn,fam,column.getKey(),null, Collections.singleton(column.getValue()));
+								OperationStatus[] status = region.bulkWrite(txn,fam,column.getKey(),ConstraintChecker.NO_CONSTRAINT, Collections.singleton(column.getValue()));
 								switch(status[0].getOperationStatusCode()){
 										case NOT_RUN:
 												break;

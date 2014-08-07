@@ -12,9 +12,10 @@ import com.splicemachine.si.data.hbase.HPoolTableSource;
 import com.splicemachine.si.data.hbase.HTableReader;
 import com.splicemachine.si.data.hbase.HTableWriter;
 import com.splicemachine.si.impl.DataStore;
-import com.splicemachine.utils.ThreadSafe;
+import com.splicemachine.annotations.ThreadSafe;
 import org.apache.hadoop.hbase.HConstants;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -57,8 +58,13 @@ public class TxnDataStore {
 										SpliceConstants.tablePoolCleanerInterval, TimeUnit.SECONDS,
 										SpliceConstants.tablePoolMaxSize,SpliceConstants.tablePoolCoreSize);
 						final HPoolTableSource tableSource = new HPoolTableSource(hTablePool);
-						final STableReader reader = new HTableReader(tableSource);
-						final STableWriter writer = new HTableWriter();
+            final STableReader reader;
+            try {
+                reader = new HTableReader(tableSource);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            final STableWriter writer = new HTableWriter();
 						//noinspection unchecked
 						dataStore = new DataStore(dl,reader,writer,
 										SIConstants.SI_NEEDED,

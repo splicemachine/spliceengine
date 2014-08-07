@@ -1,7 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.carrotsearch.hppc.LongArrayList;
-import com.splicemachine.constants.SpliceConstants;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.collections.CloseableIterator;
@@ -17,19 +15,17 @@ import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.DependableFinder;
 import org.apache.derby.catalog.TypeDescriptor;
-import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.AggregateAliasInfo;
 import org.apache.derby.catalog.types.RoutineAliasInfo;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.Authorizer;
@@ -43,14 +39,11 @@ import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.*;
 import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -892,51 +885,47 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
      * @return list of transactions still running after timeout
      * @throws IOException
      */
-    private static final LongArrayList EMPTY_LIST = LongArrayList.newInstanceWithCapacity(0);
-	public LongArrayList waitForConcurrentTransactions(Txn maximum, List<Txn> toIgnore,long tableConglomId) throws IOException {
-	    if (!waitsForConcurrentTransactions()) {
-          return EMPTY_LIST; //save on object creation in this case
-	    }
-			byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
-      long minTs = TransactionTimestamps.getTimestampSource().retrieveTimestamp();
-      long maxTs = maximum.getBeginTimestamp();
-      long wait = SpliceConstants.ddlDrainingInitialWait;
-      long totalWait = 0;
-      LongArrayList active = null;
-      do{
-          long[] activeTransactions = TransactionStorage.getTxnStore().getActiveTransactionIds(minTs, maxTs, conglomBytes);
-          if(activeTransactions.length<=0) return EMPTY_LIST; //unlikely, but you never know
-          if(active==null)
-              active = LongArrayList.newInstanceWithCapacity(activeTransactions.length);
-          else
-            active.clear();
-          for(long activeTxnId:activeTransactions){
-              boolean found = false;
-              for(Txn txn:toIgnore){
-                  if(txn.getTxnId()==activeTxnId){
-                      found = true;
-                      break;
-                  }
-              }
-              if(!found){
-                  active.add(activeTxnId);
-              }
-          }
+    public long waitForConcurrentTransactions(Txn maximum, List<Txn> toIgnore,long tableConglomId) throws IOException {
+        if (!waitsForConcurrentTransactions()) {
+            return -1l;
+        }
+        byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
 
-          if(active.size()>0){
-              //we still have active transactions, need to wait
-              try{
-                  Thread.sleep(wait);
-              } catch (InterruptedException e) {
-                  throw new IOException(e);
-              }
-              totalWait+=wait;
-              wait *=10;
-          }
-      }while(totalWait<SpliceConstants.ddlDrainingMaximumWait);
+        ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getTxnId(),conglomBytes);
+        List<Long> ignoreIds = Lists.transform(toIgnore,new Function<Txn, Long>() {
+            @Nullable
+            @Override
+            public Long apply(@Nullable Txn input) {
+                return input.getTxnId();
+            }
+        });
+        long waitTime = SpliceConstants.ddlDrainingInitialWait;
+        long totalWait = 0;
+        long activeTxnId = -1l;
+        do{
+            CloseableIterator<Long> activeTxns = transactionReader.getActiveTransactionIds(1);
+            try{
+                if(activeTxns.hasNext()){
+                    activeTxnId = activeTxns.next();
+                }
+            }finally{
+                activeTxns.close();
+            }
+            if(activeTxnId<0) return activeTxnId;
+            try {
+                Thread.sleep(waitTime);
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
+            totalWait += waitTime;
+            waitTime *= 10;
+        } while(totalWait < SpliceConstants.ddlDrainingMaximumWait);
 
-      return active;
-	}
+        if (activeTxnId>=0) {
+            LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %d", toString(), activeTxnId));
+        }
+        return activeTxnId;
+    }
 
 	/**
 	 * Declares whether this DDL operation has to wait for the draining of concurrent transactions or not

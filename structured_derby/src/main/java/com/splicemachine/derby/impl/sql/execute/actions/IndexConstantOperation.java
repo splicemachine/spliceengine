@@ -117,17 +117,17 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 //        }
 
         // Wait for past transactions to die
-        LongArrayList active;
         List<Txn> toIgnore = Arrays.asList(parentTxn,wrapperTxn,indexTxn);
+        long oldestActiveTxn;
         try {
-            active = waitForConcurrentTransactions(indexTxn, toIgnore,tableConglomId);
+            oldestActiveTxn = waitForConcurrentTransactions(indexTxn, toIgnore,tableConglomId);
         } catch (IOException e) {
             LOG.error("Unexpected error while waiting for past transactions to complete", e);
             throw Exceptions.parseException(e);
         }
-        if (!active.isEmpty()) {
+        if (oldestActiveTxn>=0) {
             throw StandardException.newException(SQLState.LANG_SERIALIZABLE,
-                    new RuntimeException(String.format("There are active transactions %s", active)));
+                    new RuntimeException(String.format("Transaction %d is still active.", oldestActiveTxn)));
         }
         return indexTxn;
     }

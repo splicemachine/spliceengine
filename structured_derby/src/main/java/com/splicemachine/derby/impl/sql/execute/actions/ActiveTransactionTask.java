@@ -16,8 +16,8 @@ import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionStatus;
+import com.splicemachine.si.api.*;
+import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionStore;
 import com.splicemachine.metrics.Metrics;
@@ -56,7 +56,7 @@ public class ActiveTransactionTask extends ZkTask {
     }
 
     public ActiveTransactionTask(String jobId,long minTxnId,long maxTxnId,byte[] writeTable, byte[] operationUUID, int numActiveTxns) {
-        super(jobId, 0, null, true);
+        super(jobId, 0);
         this.minTxnId = minTxnId;
         this.maxTxnId = maxTxnId;
         this.writeTable = writeTable;
@@ -66,7 +66,7 @@ public class ActiveTransactionTask extends ZkTask {
 
     @Override
     protected void doExecute() throws ExecutionException, InterruptedException {
-        TransactionStore txnStore = HTransactorFactory.getTransactionStore();
+        TxnSupplier txnStore = TransactionStorage.getTxnSupplier();
         /*
          * Get the bucket id for the region.
          *
@@ -92,8 +92,9 @@ public class ActiveTransactionTask extends ZkTask {
 
         TempTable tempTable = SpliceDriver.driver().getTempTable();
         SpreadBucket currentSpread = tempTable.getCurrentSpread();
-        String txnId = Long.toString(Snowflake.timestampFromUUID(Bytes.toLong(operationUUID)));
-        CallBuffer<KVPair> callBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(tempTable.getTempTableName(), txnId);
+        long l = Snowflake.timestampFromUUID(Bytes.toLong(operationUUID));
+        Txn writeTxn =  new ActiveWriteTxn(l,l,Txn.ROOT_TRANSACTION);
+        CallBuffer<KVPair> callBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(tempTable.getTempTableName(), writeTxn);
         MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(2);
 
         Hash32 hashFunction = HashFunctions.murmur3(0);
@@ -153,7 +154,7 @@ public class ActiveTransactionTask extends ZkTask {
 
     @Override public boolean isSplittable() { return false; }
 
-    private boolean isActiveChildTxn(TransactionStore txnStore,List<KeyValue> kvs) throws IOException {
+    private boolean isActiveChildTxn(TxnSupplier txnStore,List<KeyValue> kvs) throws IOException {
         /*
          * Returns true if this transaction is actually a child of an active transaction,
          * even if its committed.
@@ -163,8 +164,8 @@ public class ActiveTransactionTask extends ZkTask {
          */
         for(KeyValue kv:kvs){
             if(matchesQualifier(PARENT_ID,kv.getBuffer(),kv.getQualifierOffset(),kv.getQualifierLength())){
-                Transaction transaction = txnStore.getTransaction(Bytes.toLong(kv.getBuffer(), kv.getValueOffset(), kv.getValueLength()));
-                return transaction.getEffectiveStatus() == TransactionStatus.ACTIVE;
+                Txn transaction = txnStore.getTransaction(Bytes.toLong(kv.getBuffer(), kv.getValueOffset(), kv.getValueLength()));
+                return transaction.getEffectiveState() == Txn.State.ACTIVE;
             }
         }
         //if we get this far, then we are a parent transaction
@@ -174,7 +175,6 @@ public class ActiveTransactionTask extends ZkTask {
     @Override protected String getTaskType() { return "ActiveTransaction"; }
     @Override public boolean invalidateOnClose() { return true; }
     @Override public int getPriority() { return 0; }
-    @Override public boolean isTransactional() { return false; }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {

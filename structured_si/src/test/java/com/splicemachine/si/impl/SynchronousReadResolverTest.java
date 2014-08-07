@@ -33,7 +33,7 @@ public class SynchronousReadResolverTest {
 				HRegion region = TxnTestUtils.getMockRegion();
 
         TxnStore store = new InMemoryTxnStore(new SimpleTimestampSource(),Long.MAX_VALUE);
-				ReadResolver resolver = SynchronousReadResolver.INSTANCE.getResolver(region,store);
+				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store);
 
 				Txn rolledBackTxn = new RolledBackTxn(0l);
 				store.recordNewTransaction(rolledBackTxn);
@@ -68,7 +68,7 @@ public class SynchronousReadResolverTest {
 				HRegion region = TxnTestUtils.getMockRegion();
 
         TxnStore store = new InMemoryTxnStore(new SimpleTimestampSource(),Long.MAX_VALUE);
-				ReadResolver resolver = SynchronousReadResolver.INSTANCE.getResolver(region,store);
+				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store);
 
 				Txn committedTxn = new CommittedTxn(0l,1l);
 				store.recordNewTransaction(committedTxn);
@@ -108,7 +108,7 @@ public class SynchronousReadResolverTest {
 
         SimpleTimestampSource timestampSource = new SimpleTimestampSource();
         TxnStore store = new InMemoryTxnStore(timestampSource,Long.MAX_VALUE);
-				ReadResolver resolver = SynchronousReadResolver.INSTANCE.getResolver(region,store);
+				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store);
 
 				ClientTxnLifecycleManager tc = new ClientTxnLifecycleManager(timestampSource);
 				tc.setStore(store);

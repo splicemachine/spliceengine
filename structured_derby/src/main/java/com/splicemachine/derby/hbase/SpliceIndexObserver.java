@@ -50,19 +50,15 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     private TxnOperationFactory operationFactory;
 
 		@Override
-    public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
+    public void postOpen(final ObserverContext<RegionCoprocessorEnvironment> e) {
         //get the Conglomerate Id. If it's not a table that we can index (e.g. META, ROOT, SYS_TEMP,__TXN_LOG, etc)
         //then don't bother with setting things up
         String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
-				this.region = TransactionalRegions.get(e.getEnvironment().getRegion(), new SegmentedRollForward.Action() {
-            @Override
-            public void submitAction(HRegion region, byte[] startKey, byte[] stopKey, SegmentedRollForward.Context context) {
-                throw new UnsupportedOperationException("IMPLEMENT");
-            }
-        });
-        this.operationFactory = new SimpleOperationFactory(TransactionStorage.getTxnSupplier());
         try{
             conglomId = Long.parseLong(tableName);
+
+            operationFactory = new SimpleOperationFactory(TransactionStorage.getTxnSupplier());
+            region = TransactionalRegions.get(e.getEnvironment().getRegion(),SegmentedRollForward.NOOP_ACTION);
         }catch(NumberFormatException nfe){
             SpliceLogUtils.debug(LOG, "Unable to parse Conglomerate Id for table %s, indexing is will not be set up", tableName);
             conglomId=-1;

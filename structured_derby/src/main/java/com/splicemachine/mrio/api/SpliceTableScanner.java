@@ -18,6 +18,7 @@ import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.SIFilter;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.storage.EntryAccumulator;
@@ -106,7 +107,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 												MetricFactory metricFactory,
 												Scan scan,
 												int[] rowDecodingMap,
-												String transactionID,
+												long transactionID,
 												int[] allPkColumns,
 												boolean[] keyColumnSortOrder,
 												int[] keyColumnTypes,
@@ -138,7 +139,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 												MetricFactory metricFactory,
 												Scan scan,
 												final int[] rowDecodingMap,
-												final String transactionID,
+												final long transactionID,
 												int[] keyColumnEncodingOrder,
 												boolean[] keyColumnSortOrder,
 												int[] keyColumnTypes,
@@ -183,14 +184,12 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 													EntryDecoder rowEntryDecoder,
 													EntryAccumulator accumulator,
 													boolean isCountStar) throws IOException{
-									
-									TransactionId transactionId= new TransactionId(transactionID);
-									
-									IFilterState iFilterState = null;	
-									iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, transactionId);
+
+                  Txn baseTxn = ReadOnlyTxn.create(transactionID, Txn.IsolationLevel.SNAPSHOT_ISOLATION,null);
+									TxnFilter iFilterState = HTransactorFactory.getTransactionReadController().newFilterState(null, baseTxn);
 									HRowAccumulator hRowAccumulator = new HRowAccumulator(predicateFilter, getRowEntryDecoder(), accumulator, isCountStar);
 									
-									return new FilterStatePacked((FilterState)iFilterState, hRowAccumulator){
+									return new PackedTxnFilter(iFilterState, hRowAccumulator){
 											@Override
 											public Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
 												//System.out.println("accumulating ---------");

@@ -1,11 +1,11 @@
 package com.splicemachine.si.api;
 
+import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.store.LazyTxnSupplier;
 import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
-import com.splicemachine.utils.ThreadSafe;
 
 /**
  * Factory class for obtaining a transaction store, Transaction supplier, etc.

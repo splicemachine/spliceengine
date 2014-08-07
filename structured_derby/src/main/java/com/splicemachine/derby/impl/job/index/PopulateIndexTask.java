@@ -108,8 +108,9 @@ public class PopulateIndexTask extends ZkTask {
 
 		@Override
 		public RegionTask getClone() {
-				return new PopulateIndexTask(transactionId,indexConglomId,baseConglomId,mainColToIndexPosMap,indexedColumns,isUnique,
-								isUniqueWithDuplicateNulls,jobId,descColumns,isTraced,statementId,operationId,columnOrdering,format_ids);
+				return new PopulateIndexTask(indexConglomId,baseConglomId,mainColToIndexPosMap,indexedColumns,isUnique,
+								isUniqueWithDuplicateNulls,jobId,descColumns,xplainSchema,statementId,operationId,columnOrdering,format_ids);
+        //TODO -sf- deal with transactions
 		}
 
 		@Override

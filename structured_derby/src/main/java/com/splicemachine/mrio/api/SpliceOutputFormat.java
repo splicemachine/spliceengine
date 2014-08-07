@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.ActiveWriteTxn;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.ParseException;
 import org.apache.derby.iapi.error.StandardException;
@@ -269,8 +271,8 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 									conf.get(SpliceConstants.SPLICE_TRANSACTION_ID), Long.parseLong(tableID));
 					System.out.println("SpliceOutputFormat, Parent TXSID: "+conf.get(SpliceConstants.SPLICE_TRANSACTION_ID));
 					System.out.println("SpliceOutputFormat, Child TXSID: "+childTxsID);
-					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
-									childTxsID, 1);	
+            Txn txn = new ActiveWriteTxn(childTxsID,childTxsID);
+					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), txn, 1);
 				}		
 				byte[] key = this.keyEncoder.getKey(value);
 				rowHash.setRow(value);

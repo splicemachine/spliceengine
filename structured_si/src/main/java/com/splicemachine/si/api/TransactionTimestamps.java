@@ -1,7 +1,7 @@
 package com.splicemachine.si.api;
 
 import com.splicemachine.si.txn.SpliceTimestampSource;
-import com.splicemachine.utils.ThreadSafe;
+import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.utils.ZkUtils;
 
 /**

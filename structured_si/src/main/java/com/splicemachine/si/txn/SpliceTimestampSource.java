@@ -42,6 +42,8 @@ public class SpliceTimestampSource implements TimestampSource {
     		if (_tc == null) {
 		    	LOG.info("Creating the TimestampClient...");
 		    	_tc = TimestampClientFactory.createNewInstance();
+            LOG.info("Timestamp client created");
+            LOG.info("Stack:",new NullPointerException());
     		}
     	}
     }

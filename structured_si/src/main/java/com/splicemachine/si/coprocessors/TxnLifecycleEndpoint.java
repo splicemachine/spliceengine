@@ -3,7 +3,9 @@ package com.splicemachine.si.coprocessors;
 import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.LongStripedSynchronizer;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -45,8 +47,11 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 		@Override
 		public void start(CoprocessorEnvironment env) {
 				region = ((RegionCoprocessorEnvironment)env).getRegion();
-				regionStore = new RegionTxnStore(region);
-				timestampSource = TransactionTimestamps.getTimestampSource();
+        SpliceConstants.TableEnv table = EnvUtils.getTableEnv((RegionCoprocessorEnvironment)env);
+        if(table.equals(SpliceConstants.TableEnv.TRANSACTION_TABLE)){
+            regionStore = new RegionTxnStore(region);
+            timestampSource = TransactionTimestamps.getTimestampSource();
+        }
 		}
 
 		@Override
@@ -68,8 +73,6 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
             unlock(lock);
         }
 		}
-
-
 
     @Override
 		public void elevateTransaction(long txnId, byte[] newDestinationTable) throws IOException {

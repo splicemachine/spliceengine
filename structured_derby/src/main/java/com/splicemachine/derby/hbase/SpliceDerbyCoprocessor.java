@@ -25,10 +25,8 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
      */
     @Override
     public void start(CoprocessorEnvironment e) {
-        tableEnvMatch = EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.USER_TABLE)
-                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.USER_INDEX_TABLE)
-                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE)
-                || EnvUtils.getTableEnv((RegionCoprocessorEnvironment) e).equals(SpliceConstants.TableEnv.META_TABLE);
+        SpliceConstants.TableEnv tableEvn = EnvUtils.getTableEnv((RegionCoprocessorEnvironment)e);
+        tableEnvMatch = !SpliceConstants.TableEnv.ROOT_TABLE.equals(tableEvn);
 
         if (tableEnvMatch) {
             SpliceDriver.driver().start();
@@ -45,11 +43,11 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor {
      */
     @Override
     public void stop(CoprocessorEnvironment e) {
-        if (tableEnvMatch) {
+//        if (tableEnvMatch) {
             if (runningCoprocessors.decrementAndGet() <= 0l) {
                 SpliceDriver.driver().shutdown();
             }
-        }
+//        }
     }
 
 }

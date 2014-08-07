@@ -5,7 +5,7 @@ import com.splicemachine.concurrent.ThreadLocalRandom;
 import com.splicemachine.si.api.TransactionTimeoutException;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnStore;
-import com.splicemachine.utils.ThreadSafe;
+import com.splicemachine.annotations.ThreadSafe;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
