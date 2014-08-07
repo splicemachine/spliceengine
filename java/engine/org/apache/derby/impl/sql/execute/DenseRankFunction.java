@@ -10,35 +10,18 @@ import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.WindowFunction;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLLongint;
 
 /**
- * Implementation of DENSE_RANK -  Ranks each row in the result set. If values in the ranking column
- * are the same, they receive the same rank. The next number in the ranking sequence is then used
- * to rank the row or rows that follow.
+ * Factory for spliceengine DenseRankFunction.
  *
  * @author Jeff Cunningham
  *         Date: 8/4/14
  */
-public class DenseRankFunction implements WindowFunction {
-
-    @Override
-    public DataValueDescriptor apply(DataValueDescriptor leftDvd,
-                                     DataValueDescriptor rightDvd,
-                                     DataValueDescriptor previousValue) throws StandardException {
-        DataValueDescriptor result = null;
-        if (previousValue == null || previousValue.isNull()) {
-            result = new SQLLongint(1);
-        } else {
-            // TODO - can this be made more efficient?
-            result = previousValue.cloneValue(false);
-            result.setValue(result.getInt()+1);
-        }
-        return result;
-    }
+public class DenseRankFunction extends WindowFunctionBase implements WindowFunction {
 
     @Override
     public WindowFunction setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType) {
+        super.setup(classFactory, aggregateName, returnDataType);
         return this;
     }
 
@@ -64,21 +47,7 @@ public class DenseRankFunction implements WindowFunction {
 
     @Override
     public ExecAggregator newAggregator() {
-        Class<?> clazz = null;
-        try {
-            clazz = Class.forName("com.splicemachine.derby.impl.sql.execute.operations.window.DenseRankFunction");
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-        Object instance = null;
-        try {
-            instance = clazz.newInstance();
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-        return (ExecAggregator)instance;
+        return super.newAggregator("com.splicemachine.derby.impl.sql.execute.operations.window.DenseRankFunction");
     }
 
     @Override

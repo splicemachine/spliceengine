@@ -10,31 +10,18 @@ import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.WindowFunction;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLLongint;
 
 /**
- * Implementation of ROW_NUMBER -  Assigns a sequential number to each row in the result.
+ * Factory for spliceengine RowNumberFunction.
  *
  * @author Jeff Cunningham
  *         Date: 8/4/14
  */
-public class RowNumberFunction implements WindowFunction {
-
-    @Override
-    public DataValueDescriptor apply(DataValueDescriptor leftDvd,
-                                     DataValueDescriptor rightDvd,
-                                     DataValueDescriptor previousValue) throws StandardException {
-        DataValueDescriptor result = null;
-        if (previousValue == null || previousValue.isNull()) {
-            result = new SQLLongint(1);
-        } else {
-            // TODO - ...
-        }
-        return result;
-    }
+public class RowNumberFunction extends WindowFunctionBase implements WindowFunction {
 
     @Override
     public WindowFunction setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType) {
+        super.setup(classFactory, aggregateName, returnDataType);
         return this;
     }
 
@@ -60,21 +47,7 @@ public class RowNumberFunction implements WindowFunction {
 
     @Override
     public ExecAggregator newAggregator() {
-        Class<?> clazz = null;
-        try {
-            clazz = Class.forName("com.splicemachine.derby.impl.sql.execute.operations.window.RowNumberFunction");
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-        Object instance = null;
-        try {
-            instance = clazz.newInstance();
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-        return (ExecAggregator)instance;
+        return super.newAggregator("com.splicemachine.derby.impl.sql.execute.operations.window.RowNumberFunction");
     }
 
     @Override

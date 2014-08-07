@@ -20,7 +20,7 @@ public interface WindowFunction extends ExecAggregator {
      * @param previousValue the running value of previous calls to this method, if needed.
      * @return the accumulation of this execution and previousValue
      */
-    DataValueDescriptor apply(DataValueDescriptor leftDvd, DataValueDescriptor rightDvd, DataValueDescriptor previousValue) throws StandardException;
+//    DataValueDescriptor apply(DataValueDescriptor leftDvd, DataValueDescriptor rightDvd, DataValueDescriptor previousValue) throws StandardException;
 
-    public WindowFunction newWindowFunction();
+    WindowFunction newWindowFunction();
 }

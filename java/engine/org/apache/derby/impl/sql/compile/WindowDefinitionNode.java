@@ -78,7 +78,7 @@ public final class WindowDefinitionNode extends WindowNode
             super.init(arg1);
             inlined = false;
         } else {
-            super.init("IN-LINE");
+            super.init("IN-LINE_WINDOW");
             inlined = true;
         }
     }
@@ -150,13 +150,18 @@ public final class WindowDefinitionNode extends WindowNode
 
     private boolean isEquivalent(OrderByList thisOne, OrderByList thatOne) throws StandardException {
         if (thisOne == thatOne) return true;
-        if (thatOne == null) return false;
+        if ((thisOne != null && thatOne == null) || (thisOne == null)) return false;
         if (thisOne.allAscending() != thatOne.allAscending()) return false;
         if (thisOne.size() != thatOne.size()) return false;
 
         for (int i=0; i<thatOne.size(); i++) {
-            if (! thisOne.getOrderByColumn(i).getResultColumn().isEquivalent(thatOne.getOrderByColumn(i)
-                                                                                    .getResultColumn()))
+            ResultColumn thisResultCol = thisOne.getOrderByColumn(i).getResultColumn();
+            ResultColumn thatResultCol = thatOne.getOrderByColumn(i).getResultColumn();
+            if (thisResultCol != null && thatResultCol != null) {
+                if (! thisResultCol.isEquivalent(thatResultCol)) {
+                    return false;
+                }
+            } else if (thisResultCol == null)
                 return false;
         }
         return true;

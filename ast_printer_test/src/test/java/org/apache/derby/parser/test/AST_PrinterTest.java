@@ -154,22 +154,25 @@ public class AST_PrinterTest {
 
     @Test
     public void testEmbeddedRankWindowPartitionOrderBy() throws Exception {
-        // BROKEN: RANK function not fully implemented
         String query = "SELECT * FROM (SELECT RANK() OVER (PARTITION BY dept ORDER BY empnum) AS ranks, emptab.* FROM emptab ) AS foo";
         grapher.execute(query);
     }
 
     @Test
     public void testRankWindowPartitionOrderBy() throws Exception {
-        // BROKEN: RANK function not fully implemented
         String query = "SELECT RANK() OVER (PARTITION BY dept ORDER BY empnum) AS ranks, emptab.* FROM emptab";
         grapher.execute(query);
     }
 
     @Test
     public void testRowNumWindowBetweenFrame() throws Exception {
-        // BROKEN: ROW_NUMBER function not fully implemented
         String query = "SELECT * FROM (SELECT ROW_NUMBER() OVER (PARTITION BY dept ORDER BY empnum NULLS LAST RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS rownumber, emptab.* FROM emptab ) AS foo WHERE rownumber > 2";
+        grapher.execute(query);
+    }
+
+    @Test
+    public void testAllRankingFunctions() throws Exception {
+        String query = "SELECT empnum, dept, salary, ROW_NUMBER() OVER (ORDER BY dept) AS RowNumber, RANK() OVER (ORDER BY salary) AS Rank, DENSE_RANK() OVER (ORDER BY salary) AS DenseRank FROM emptab";
         grapher.execute(query);
     }
 
