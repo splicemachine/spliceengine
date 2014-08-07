@@ -10,9 +10,11 @@ import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.WindowFunction;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLLongint;
 
 /**
+ * Implementation of RANK -  Ranks each row in a partition. If values in the ranking column are the same,
+ * they receive the same rank, however, the next number in the ranking sequence is skipped.
+ *
  * @author Jeff Cunningham
  *         Date: 8/5/14
  */
@@ -22,23 +24,10 @@ public class RankFunction extends SpliceGenericWindowFunction implements WindowF
     // the row rank. If values in the ranking column are the same, they receive the same rank.
     // If not, the next number(s) in the ranking sequence are skipped
     private long rank;
-    private DataValueDescriptor previousValue;
-
-    @Override
-    public DataValueDescriptor apply(DataValueDescriptor leftDvd,
-                                     DataValueDescriptor rightDvd,
-                                     DataValueDescriptor previousValue) throws StandardException {
-        DataValueDescriptor result = null;
-        if (previousValue == null || previousValue.isNull()) {
-            result = new SQLLongint(1);
-        } else {
-            // TODO...
-        }
-        return result;
-    }
 
     @Override
     public WindowFunction setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType) {
+        super.setup( classFactory, aggregateName, returnDataType );
         return this;
     }
 
@@ -48,14 +37,22 @@ public class RankFunction extends SpliceGenericWindowFunction implements WindowF
     }
 
     @Override
+    public void reset() {
+        super.reset();
+        rowNum = 0;
+        rank = 0;
+    }
+
+    @Override
     protected void calculateOnAdd(WindowChunk chunk, DataValueDescriptor dvd) throws StandardException {
         DataValueDescriptor result = chunk.getResult();
         if (result == null || result.isNull()) {
-            // rank increasing as long as values differ
+            // if previous result is null, rank increases
             rank++;
             rowNum++;
         } else if (dvd.compare(result) == 0) {
-            // if values are equal, only rowNum is increased
+            // rank increasing as long as values differ
+            // if values are equal, only rowNum is increases
             rowNum++;
         } else {
             // values are not equal
