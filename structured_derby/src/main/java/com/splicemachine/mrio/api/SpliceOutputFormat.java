@@ -106,6 +106,9 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 		private ArrayList<Integer> colTypes = null;
 		private DataValueDescriptor[] rowDesc = null;
 		private String taskID = "";
+		private Connection conn = null;
+		private String childTxsID = "";
+		
 		
 		public void setTaskID(String taskID)
 		{
@@ -140,9 +143,16 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 			try {
 				this.callBuffer.flushBuffer();
 				this.callBuffer.close();
+				sqlUtil.commit(conn);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+				try {
+					sqlUtil.rollback(conn);
+				} catch (SQLException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 			}
 		}
 		
@@ -246,12 +256,17 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 			
 			try {
 				
-				if (conf.get(this.taskID) != null)
-					System.out.println("-------  txsID: "+conf.get(this.taskID));
 				if(callBuffer == null)
 				{
+					conn = sqlUtil.createConn();
+					sqlUtil.disableAutoCommit(conn);
+					
+					childTxsID = sqlUtil.getChildTransactionID(conn, 
+									conf.get(SpliceConstants.SPLICE_TRANSACTION_ID));
+					System.out.println("SpliceOutputFormat, Parent TXSID: "+conf.get(SpliceConstants.SPLICE_TRANSACTION_ID));
+					System.out.println("SpliceOutputFormat, Child TXSID: "+childTxsID);
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
-							conf.get(taskID), 1);	
+									childTxsID, 1);	
 				}		
 				byte[] key = this.keyEncoder.getKey(value);
 				rowHash.setRow(value);
@@ -291,11 +306,6 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 			throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
 		return new TableOutputCommitter();
-	}
-
-	public static void startWriteProcedure()
-	{
-		
 	}
 	
 	@Override
