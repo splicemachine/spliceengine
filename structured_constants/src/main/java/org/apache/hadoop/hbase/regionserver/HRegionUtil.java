@@ -5,15 +5,19 @@ import java.util.*;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.io.hfile.HFileBlockIndex;
 import org.apache.hadoop.hbase.regionserver.HRegion.RegionScannerImpl;
 import org.apache.hadoop.hbase.regionserver.StoreFile.Reader;
 import org.apache.hadoop.hbase.regionserver.metrics.SchemaMetrics;
+
 import com.google.common.io.Closeables;
+
 import org.apache.hadoop.hbase.util.Bytes;
 import org.cliffc.high_scale_lib.Counter;
 
@@ -25,7 +29,16 @@ import org.cliffc.high_scale_lib.Counter;
  */
 public class HRegionUtil {
 	public static KeyExists keyExists;
-	public interface KeyExists {
+
+		public static void lockStore(Store store) {
+				store.lock.readLock().lock();
+		}
+
+		public static void unlockStore(Store store){
+				store.lock.readLock().unlock();
+		}
+
+		public interface KeyExists {
 		boolean keyExists(Store store, byte[] key) throws IOException;
 	}
 	
@@ -172,6 +185,33 @@ public class HRegionUtil {
         }
 
         return true;
+    }
+    
+    public static List<byte[]> getCutpoints(Store store, byte[] start, byte[] end) throws IOException {
+    	assert Bytes.compareTo(start, end) <= 0 || start.length == 0 || end.length ==0;
+	    List<StoreFile> storeFiles;
+	      storeFiles = store.getStorefiles();
+	      HFileBlockIndex.BlockIndexReader fileReader;
+	      List<byte[]> cutPoints = new ArrayList<byte[]>();
+	      for (StoreFile file: storeFiles) {
+	    	  if (file != null) {
+	    		  fileReader = file.createReader().getHFileReader().getDataBlockIndexReader();
+	    		  int size = fileReader.getRootBlockCount();
+	    		  for (int i =0; i<size;i++) {
+	    			  byte[] possibleCutpoint = KeyValue.createKeyValueFromKey(fileReader.getRootBlockKey(i)).getRow();
+	    			  if ((start.length == 0 || Bytes.compareTo(start, possibleCutpoint) < 0) && (end.length ==0 || Bytes.compareTo(end, possibleCutpoint) > 0)) // Do not include cutpoints out of bounds
+	    				  cutPoints.add(possibleCutpoint); // Will have to create rowKey anyway for scan...
+	    		  }
+	    	  }  
+	      }
+	      if (storeFiles.size() > 1) { 	    	  // have to sort, hopefully will not happen a lot if major compaction is working properly...
+	    	  Collections.sort(cutPoints, new Comparator<byte[]>() {
+				@Override
+				public int compare(byte[] left, byte[] right) {
+					return Bytes.compareTo(left, right) ;
+				}});
+	      }
+	      return cutPoints;
     }
     
     static class Log1KeyExists implements KeyExists {

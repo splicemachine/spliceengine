@@ -4,6 +4,7 @@ import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.metrics.OperationMetric;
@@ -13,13 +14,13 @@ import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.stats.IOStats;
-import com.splicemachine.stats.Metrics;
-import com.splicemachine.stats.TimeView;
-import com.splicemachine.stats.Timer;
+import com.splicemachine.metrics.IOStats;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.metrics.TimeView;
+import com.splicemachine.metrics.Timer;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-import com.splicemachine.utils.UUIDGenerator;
+import com.splicemachine.uuid.UUIDGenerator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
@@ -287,6 +288,13 @@ public class ImportTask extends ZkTask{
 		}
 
 		@Override
+		public RegionTask getClone() {
+				throw new UnsupportedOperationException("Should not clone Import tasks!");
+		}
+
+		@Override public boolean isSplittable() { return false; }
+
+		@Override
 		public int getPriority() {
 				return SchedulerPriorities.INSTANCE.getBasePriority(ImportTask.class);
 		}
@@ -297,7 +305,7 @@ public class ImportTask extends ZkTask{
 		}
 
 		@Override
-		public void prepareTask(RegionCoprocessorEnvironment rce,
+		public void prepareTask(byte[] start, byte[] stop,RegionCoprocessorEnvironment rce,
 														SpliceZooKeeperManager zooKeeper) throws ExecutionException {
 				HRegion rceRegion = rce.getRegion();
 				if(LOG.isDebugEnabled()){
@@ -308,7 +316,7 @@ public class ImportTask extends ZkTask{
 										importContext.getFilePath(),Bytes.toStringBinary(startKey),Bytes.toStringBinary(endKey));
 				}
 				fileSystem = rceRegion.getFilesystem();
-				super.prepareTask(rce, zooKeeper);
+				super.prepareTask(start,stop,rce, zooKeeper);
 		}
 
 		public static ExecRow getExecRow(ImportContext context) throws StandardException {

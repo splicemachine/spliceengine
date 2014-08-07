@@ -1,14 +1,12 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
-import com.google.common.base.Function;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.concurrent.BalancedBlockingQueue;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.*;
-import com.splicemachine.tools.BalancedBlockingQueue;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nullable;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -23,9 +21,9 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
     public static final int DEFAULT_PRIORITY_LEVELS = 5;
     public static final int DEFAULT_INTERLEAVE_COUNT = 10;
 
-    private static final Function<Runnable,Integer> priorityMapper = new Function<Runnable, Integer>() {
+    private static final BalancedBlockingQueue.PriorityFunction<Runnable> priorityMapper = new BalancedBlockingQueue.PriorityFunction<Runnable>() {
         @Override
-        public Integer apply(@Nullable Runnable input) {
+        public int getPriority(Runnable input) {
             if(input instanceof PriorityRunnable){
                 return ((PriorityRunnable)input).getPriority();
             }

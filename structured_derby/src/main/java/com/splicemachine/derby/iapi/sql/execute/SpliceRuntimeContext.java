@@ -2,12 +2,10 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.carrotsearch.hppc.IntIntOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.management.StatementInfo;
-import com.splicemachine.derby.utils.marshall.dvd.SerializerMap;
-import com.splicemachine.stats.*;
+import com.splicemachine.metrics.*;
 import com.splicemachine.utils.kryo.KryoPool;
 
 import java.io.Externalizable;

@@ -9,7 +9,7 @@ import java.util.List;
 import com.google.common.base.Strings;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.stats.Counter;
+import com.splicemachine.metrics.Counter;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;

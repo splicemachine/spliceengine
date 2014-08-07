@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.debug;
 
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.fs.FileSystem;
@@ -16,10 +17,12 @@ import java.util.concurrent.ExecutionException;
  *         Created on: 9/17/13
  */
 public abstract class DebugTask extends ZkTask {
-    private String destinationDirectory;
+    protected String destinationDirectory;
     protected HRegion region;
+		protected byte[] scanStop;
+		protected byte[] scanStart;
 
-    public DebugTask() { }
+		public DebugTask() { }
 
     protected DebugTask(String jobId, String destinationDirectory) {
         super(jobId, 1,null,true);
@@ -27,9 +30,11 @@ public abstract class DebugTask extends ZkTask {
     }
 
     @Override
-    public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+    public void prepareTask(byte[] start, byte[] stop,RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         this.region = rce.getRegion();
-        super.prepareTask(rce, zooKeeper);
+        super.prepareTask(start,stop,rce, zooKeeper);
+				this.scanStart = start;
+				this.scanStop = stop;
     }
 
     @Override

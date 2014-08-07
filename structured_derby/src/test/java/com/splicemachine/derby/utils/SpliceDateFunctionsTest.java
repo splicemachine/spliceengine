@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils;
 
+import org.apache.commons.net.ntp.TimeStamp;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -103,9 +104,13 @@ public class SpliceDateFunctionsTest {
     public void toChar() throws ParseException {
         DateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
         Date date = new Date(formatter.parse("2014/06/24").getTime());
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        Timestamp timestamp = new Timestamp(calendar.getTimeInMillis());
         String format = "MM/dd/yyyy";
         String compare = "06/24/2014";
         assertEquals(compare, SpliceDateFunctions.TO_CHAR(date, format));
+        assertEquals(compare, SpliceDateFunctions.TIMESTAMP_TO_CHAR(timestamp, format));
     }
 
     @Test

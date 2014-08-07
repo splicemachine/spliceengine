@@ -11,7 +11,6 @@ import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
-import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer2;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.metrics.OperationMetric;
@@ -24,10 +23,10 @@ import com.splicemachine.hbase.ReadAheadRegionScanner;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.hbase.writer.WriteStats;
-import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.stats.Metrics;
-import com.splicemachine.stats.TimeView;
-import com.splicemachine.stats.Timer;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.metrics.TimeView;
+import com.splicemachine.metrics.Timer;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -72,6 +71,8 @@ public class PopulateIndexTask extends ZkTask {
     private KVPair mainPair;
 
 		private String xplainSchema; //could be null, if no stats are to be collected
+		private byte[] scanStart;
+		private byte[] scanStop;
 
 		@SuppressWarnings("UnusedDeclaration")
 		public PopulateIndexTask() { }
@@ -106,10 +107,23 @@ public class PopulateIndexTask extends ZkTask {
         this.format_ids = format_ids;
     }
 
-    @Override
-    public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+		@Override
+		public RegionTask getClone() {
+				return new PopulateIndexTask(transactionId,indexConglomId,baseConglomId,mainColToIndexPosMap,indexedColumns,isUnique,
+								isUniqueWithDuplicateNulls,jobId,descColumns,xplainSchema,statementId,operationId,columnOrdering,format_ids);
+		}
+
+		@Override
+		public boolean isSplittable() {
+				return true;
+		}
+
+		@Override
+    public void prepareTask(byte[] start, byte[] end,RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         this.region = rce.getRegion();
-        super.prepareTask(rce, zooKeeper);
+        super.prepareTask(start,end,rce, zooKeeper);
+				this.scanStart = start;
+				this.scanStop = end;
     }
 
     @Override
@@ -166,12 +180,14 @@ public class PopulateIndexTask extends ZkTask {
     public boolean invalidateOnClose() {
         return true;
     }
-    @Override
+
+
+		@Override
     public void doExecute() throws ExecutionException, InterruptedException {
         Scan regionScan = SpliceUtils.createScan(transactionId);
         regionScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-        regionScan.setStartRow(region.getStartKey());
-        regionScan.setStopRow(region.getEndKey());
+        regionScan.setStartRow(scanStart);
+        regionScan.setStopRow(scanStop);
         regionScan.setCacheBlocks(false);
         regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES);
         //need to manually add the SIFilter, because it doesn't get added by region.getScanner(

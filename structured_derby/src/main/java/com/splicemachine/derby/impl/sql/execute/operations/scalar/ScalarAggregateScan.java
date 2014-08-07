@@ -7,7 +7,7 @@ import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.storage.RegionAwareScanner;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.metrics.MetricFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.hadoop.hbase.client.Result;

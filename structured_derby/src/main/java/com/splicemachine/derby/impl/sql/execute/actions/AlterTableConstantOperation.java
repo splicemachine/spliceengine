@@ -1858,17 +1858,17 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         }
 
         // Wait for past transactions to die
-        List<TransactionId> active;
+        long activeTxnId;
         List<TransactionId> toIgnore = Arrays.asList(parentTransactionId, wrapperTransactionId, dropColumnTransaction);
         try {
-            active = waitForConcurrentTransactions(dropColumnTransaction, toIgnore,tableConglomId);
+            activeTxnId = waitForConcurrentTransactions(dropColumnTransaction, toIgnore,tableConglomId);
         } catch (IOException e) {
             LOG.error("Unexpected error while waiting for past transactions to complete", e);
             throw Exceptions.parseException(e);
         }
-        if (!active.isEmpty()) {
+        if (activeTxnId>=0) {
             throw StandardException.newException(SQLState.LANG_SERIALIZABLE,
-                    new RuntimeException(String.format("There are active transactions %s", active)));
+                    new RuntimeException(String.format("Transaction %d is still active", activeTxnId)));
         }
         return dropColumnTransaction;
     }

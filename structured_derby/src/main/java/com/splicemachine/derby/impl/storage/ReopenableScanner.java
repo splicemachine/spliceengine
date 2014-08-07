@@ -5,7 +5,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.ResultScanner;

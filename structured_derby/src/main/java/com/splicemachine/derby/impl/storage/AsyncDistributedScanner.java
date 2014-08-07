@@ -1,8 +1,10 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.stats.*;
-import com.splicemachine.stats.Timer;
+import com.splicemachine.hbase.async.AsyncScannerUtils;
+import com.splicemachine.hbase.async.SimpleAsyncScanner;
+import com.splicemachine.metrics.*;
+import com.splicemachine.metrics.Timer;
 import com.stumbleupon.async.Callback;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.Result;
@@ -72,7 +74,7 @@ public class AsyncDistributedScanner implements SpliceResultScanner{
         Arrays.fill(activeScanners, true);
         for(int i=0;i<scanners.length;i++){
             //don't populate the block cache for temp results
-            scanners[i] = new SimpleAsyncScanner(tableName,scans[i],factory,batchSize,false);
+            scanners[i] = new SimpleAsyncScanner(DerbyAsyncScannerUtils.convertScanner(scans[i],tableName,hbaseClient,false),factory);
         }
     }
 

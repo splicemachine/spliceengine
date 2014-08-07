@@ -2,6 +2,8 @@ package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
@@ -19,17 +21,17 @@ import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.coprocessors.RollForwardQueueMap;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
-import com.splicemachine.si.impl.*;
-import com.splicemachine.stats.Counter;
-import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.stats.TimeView;
-import com.splicemachine.stats.Timer;
+import com.splicemachine.si.impl.FilterState;
+import com.splicemachine.si.impl.FilterStatePacked;
+import com.splicemachine.si.impl.IFilterState;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.metrics.Counter;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.TimeView;
+import com.splicemachine.metrics.Timer;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.Provider;
-import com.splicemachine.utils.Providers;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -37,11 +39,8 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -77,7 +76,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 		private boolean isKeyed = true;
 		private KeyIndex primaryKeyIndex;
 		private MultiFieldDecoder keyDecoder;
-		private final Provider<MultiFieldDecoder> keyDecoderProvider;
+		private final Supplier<MultiFieldDecoder> keyDecoderProvider;
 		private ExecRowAccumulator keyAccumulator;
 		private int[] keyDecodingMap;
 		private FormatableBitSet accessedKeys;
@@ -257,7 +256,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 
 /*********************************************************************************************************************/
 		/*Private helper methods*/
-		private Provider<MultiFieldDecoder> getKeyDecoder(FormatableBitSet accessedPks,
+		private Supplier<MultiFieldDecoder> getKeyDecoder(FormatableBitSet accessedPks,
 																											int[] allPkColumns,
 																											int[] keyColumnTypes,
 																											TypeProvider typeProvider) {
@@ -269,7 +268,7 @@ public class SITableScanner implements StandardIterator<ExecRow>{
 				primaryKeyIndex = getIndex(allPkColumns,keyColumnTypes,typeProvider);
 
 				keyDecoder = MultiFieldDecoder.create();
-				return Providers.basicProvider(keyDecoder);
+				return Suppliers.ofInstance(keyDecoder);
 		}
 
 		private KeyIndex getIndex(final int[] allPkColumns, int[] keyColumnTypes,TypeProvider typeProvider) {

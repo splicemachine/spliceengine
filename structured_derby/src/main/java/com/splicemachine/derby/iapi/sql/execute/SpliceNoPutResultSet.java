@@ -1,30 +1,25 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
-import java.io.IOException;
-import java.sql.SQLWarning;
-import java.sql.Timestamp;
-
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.job.JobResults;
-import com.splicemachine.stats.IOStats;
+import com.splicemachine.metrics.IOStats;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.ResultSet;
 import org.apache.derby.iapi.sql.conn.StatementContext;
-import org.apache.derby.iapi.sql.execute.CursorResultSet;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.sql.execute.RowChanger;
-import org.apache.derby.iapi.sql.execute.TargetResultSet;
+import org.apache.derby.iapi.sql.execute.*;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.utils.SpliceLogUtils;
+
+import java.sql.SQLWarning;
+import java.sql.Timestamp;
 
 /**
  *

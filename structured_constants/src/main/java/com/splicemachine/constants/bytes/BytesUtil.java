@@ -122,9 +122,9 @@ public class BytesUtil {
 		 * @return True or false.
 		 */
 		public static boolean toBoolean(final byte [] b,int offset) {
-				if (b.length != 1) {
-						throw new IllegalArgumentException("Array has wrong size: " + b.length);
-				}
+//				if (b.length != 1) {
+//						throw new IllegalArgumentException("Array has wrong size: " + b.length);
+//				}
 				return b[offset] != (byte) 0;
 		}
 
@@ -171,7 +171,7 @@ public class BytesUtil {
      * @return whether or not the given byte[] is empty
      */
     private static boolean empty(byte[] x) {
-        return Bytes.compareTo(x, HConstants.EMPTY_BYTE_ARRAY) == 0;
+        return x==null || Bytes.compareTo(x, HConstants.EMPTY_BYTE_ARRAY) == 0;
     }
 
     /**

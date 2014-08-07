@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.utils.IntArrays;
-import com.splicemachine.utils.Snowflake;
+import com.splicemachine.uuid.UUIDGenerator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
@@ -33,7 +33,7 @@ public class DerbyOperationInformation implements OperationInformation,Externali
     //cached values
     private int[] baseColumnMap;
     private NoPutResultSet[] subQueryTrackingArray;
-    private Snowflake.Generator generator;
+    private UUIDGenerator generator;
 
     @Deprecated
     public DerbyOperationInformation() { }
@@ -244,7 +244,7 @@ public class DerbyOperationInformation implements OperationInformation,Externali
     }
 
     @Override
-    public Snowflake.Generator getUUIDGenerator() {
+    public UUIDGenerator getUUIDGenerator() {
         if(generator==null)
             generator = SpliceDriver.driver().getUUIDGenerator().newGenerator(100);
 

@@ -12,6 +12,12 @@
 		<version>FUJI.0-SNAPSHOT</version>
 	</parent>
 	<dependencies>
+
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>utilities</artifactId>
+            <version>${utilities.version}</version>
+        </dependency>
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_constants</artifactId>

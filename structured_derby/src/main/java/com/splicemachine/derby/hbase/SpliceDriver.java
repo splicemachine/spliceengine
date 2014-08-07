@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.google.common.base.Function;
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.uuid.Snowflake;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
 import net.sf.ehcache.Cache;
@@ -75,7 +76,6 @@ import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.ResourcePool;
-import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.utils.kryo.KryoPool;
@@ -325,7 +325,7 @@ public class SpliceDriver extends SIConstants {
 
         	return false;
         }  catch (PleaseHoldException pe) {
-        	Thread.currentThread().sleep(5000);
+        	Thread.sleep(5000);
         	SpliceLogUtils.info(LOG, "Waiting for Splice Schema to Create");
         	return bootDatabase();
         } catch (Exception e) {
@@ -348,8 +348,6 @@ public class SpliceDriver extends SIConstants {
 			connection = maker.createNew();
 			return true;
         } finally{
-//        	if (connection != null)
-//        		connection.close();
         	Closeables.close(admin,true);
         }
     }
@@ -464,12 +462,12 @@ public class SpliceDriver extends SIConstants {
     }
 
     private boolean startServer() {
-        SpliceLogUtils.info(LOG, "Services successfully started, enabling Connections");
+        SpliceLogUtils.info(LOG, "Services successfully started, enabling JDBC connections...");
         try{
             server = new NetworkServerControl(InetAddress.getByName(derbyBindAddress),derbyBindPort);
             server.setLogConnections(true);
             server.start(new DerbyOutputLoggerWriter());
-            SpliceLogUtils.info(LOG,"Ready to accept connections");
+            SpliceLogUtils.info(LOG,"Ready to accept JDBC connections on %s:%s", derbyBindAddress, derbyBindPort);
             return true;
         }catch(Exception e){
             SpliceLogUtils.error(LOG,"Unable to start Client/Server Protocol",e);

@@ -1,9 +1,11 @@
 package com.splicemachine.si.impl.rollforward;
 
-import com.splicemachine.si.impl.*;
-import com.splicemachine.utils.Provider;
+import com.google.common.base.Supplier;
+import com.splicemachine.si.impl.DataStore;
+import com.splicemachine.si.impl.RollForwardAction;
+import com.splicemachine.si.impl.Tracer;
+import com.splicemachine.si.impl.TransactionStore;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
@@ -19,14 +21,14 @@ import java.util.concurrent.atomic.AtomicLong;
 public class PushForwardAction<Table,Put extends OperationWithAttributes> implements RollForwardAction {
 		protected static Logger LOG = Logger.getLogger(PushForwardAction.class);
         protected Table region;
-		protected Provider<TransactionStore> transactionStoreProvider;
-		protected Provider<DataStore> dataStoreProvider;
+		protected Supplier<TransactionStore> transactionStoreProvider;
+		protected Supplier<DataStore> dataStoreProvider;
 	    protected static AtomicLong pushedForwardSize = new AtomicLong(0);	  
 
 	    
 		public PushForwardAction(Table region,
-										Provider<TransactionStore> transactionStoreProvider,
-										Provider<DataStore> dataStoreProvider) {
+										Supplier<TransactionStore> transactionStoreProvider,
+										Supplier<DataStore> dataStoreProvider) {
 				this.region = region;
 				this.transactionStoreProvider = transactionStoreProvider;
 				this.dataStoreProvider = dataStoreProvider;

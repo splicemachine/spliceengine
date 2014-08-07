@@ -1,11 +1,9 @@
 package com.splicemachine.hbase;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.DynamicSchedule;
-import com.splicemachine.utils.Misc;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import org.apache.hadoop.hbase.*;
@@ -18,7 +16,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -69,9 +69,9 @@ public class HBaseRegionLoads {
         if (started.compareAndSet(false, true)) {
             updateService
                 .execute(DynamicSchedule.runAndScheduleAsMultiple(updater,
-                                                                     updateService,
-                                                                     UPDATE_MULTIPLE,
-                                                                     SMALLEST_UPDATE_INTERVAL));
+                        updateService,
+                        UPDATE_MULTIPLE,
+                        SMALLEST_UPDATE_INTERVAL));
         }
     }
 
@@ -125,17 +125,19 @@ public class HBaseRegionLoads {
         return admin;
     }
 
-    private static final Supplier<Map<String,HServerLoad.RegionLoad>> newMap =
-        new Supplier<Map<String, HServerLoad.RegionLoad>>() {
-            @Override
-            public Map<String, HServerLoad.RegionLoad> get() {
-                return Maps.newHashMap();
-            }
-        };
-
     private static Map<String, Map<String,HServerLoad.RegionLoad>> fetchRegionLoads() {
         Map<String, Map<String,HServerLoad.RegionLoad>> regionLoads =
-            new HashMap<String, Map<String,HServerLoad.RegionLoad>>();
+            new HashMap<String, Map<String,HServerLoad.RegionLoad>>(){
+                @Override
+                public Map<String, HServerLoad.RegionLoad> get(Object key) {
+                    Map<String, HServerLoad.RegionLoad> value = super.get(key);
+                    if(value==null)
+                        value = Maps.newHashMap();
+                    super.put((String)key,value);
+
+                    return value;
+                }
+            };
         HBaseAdmin admin = getAdmin();
         try {
             ClusterStatus clusterStatus = admin.getClusterStatus();
@@ -145,8 +147,7 @@ public class HBaseRegionLoads {
                 for (Map.Entry<byte[], HServerLoad.RegionLoad> entry : serverLoad.getRegionsLoad().entrySet()) {
                     String regionName = Bytes.toString(entry.getKey());
                     String tableName = tableForRegion(regionName);
-                    Map<String,HServerLoad.RegionLoad> loads =
-                        Misc.lookupOrDefault(regionLoads, tableName, newMap);
+                    Map<String,HServerLoad.RegionLoad> loads = regionLoads.get(tableName);
                     loads.put(regionName, entry.getValue());
                 }
             }

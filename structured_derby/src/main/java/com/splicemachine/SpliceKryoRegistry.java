@@ -41,6 +41,7 @@ import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.store.raw.ContainerKey;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.types.SQLBit;
 import org.apache.derby.iapi.types.SQLBlob;
 import org.apache.derby.iapi.types.SQLBoolean;
@@ -93,6 +94,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.job.coprocessor.SizedInterval;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
@@ -113,6 +115,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.DistinctGroupedAggreg
 import com.splicemachine.derby.impl.sql.execute.operations.DistinctScalarAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DistinctScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.HashNestedLoopJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.HashNestedLoopLeftOuterJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.IndexRowToBaseRowOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LastIndexKeyOperation;
@@ -144,7 +148,6 @@ import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
 import com.splicemachine.hbase.KVPair;
@@ -477,7 +480,18 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 dvd.setValue(input.readFloat());
             }
         },42);
-        instance.register(SQLRef.class,EXTERNALIZABLE_SERIALIZER,43);
+        // Note that serialization of SQLRef as part of an ExecRow is handled by RefDescriptorSerializer
+        instance.register(SQLRef.class, new DataValueDescriptorSerializer<SQLRef>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLRef object) throws StandardException {
+                kryo.writeObjectOrNull(output, object.getObject(), HBaseRowLocation.class);
+            }
+
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLRef dvd) throws StandardException {
+                dvd.setValue((RowLocation)(kryo.readObjectOrNull(input, HBaseRowLocation.class)));
+            }
+        },43);
         instance.register(LazyDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,44);
         instance.register(LazyNumberDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,45);
         instance.register(LazyStringDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,46);
@@ -562,7 +576,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(IndexColumnOrder.class,EXTERNALIZABLE_SERIALIZER,113);
         instance.register(HBaseRowLocation.class,EXTERNALIZABLE_SERIALIZER,114);
         instance.register(TaskStats.class,EXTERNALIZABLE_SERIALIZER,115);
-        instance.register(TimingStats.class,EXTERNALIZABLE_SERIALIZER,116);
         instance.register(AggregatorInfoList.class,EXTERNALIZABLE_SERIALIZER,117);
         instance.register(AggregatorInfo.class,EXTERNALIZABLE_SERIALIZER,118);
         instance.register(UserType.class,EXTERNALIZABLE_SERIALIZER,119);
@@ -627,7 +640,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(DerbyGroupedAggregateContext.class,EXTERNALIZABLE_SERIALIZER,137);
         instance.register(LastIndexKeyOperation.class,EXTERNALIZABLE_SERIALIZER,138);
         instance.register(MergeJoinOperation.class, EXTERNALIZABLE_SERIALIZER,139);
-        instance.register(MergeLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER,157);
 
         instance.register(AggregateAliasInfo.class, EXTERNALIZABLE_SERIALIZER,140);
         instance.register(UserDefinedAggregator.class, EXTERNALIZABLE_SERIALIZER,141);
@@ -770,6 +782,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 				},161);
 
         instance.register(WindowOperation.class,EXTERNALIZABLE_SERIALIZER,179);
-        instance.register(DerbyWindowContext.class,EXTERNALIZABLE_SERIALIZER,180);
-		}
+        instance.register(HashNestedLoopJoinOperation.class,EXTERNALIZABLE_SERIALIZER,180);
+        instance.register(HashNestedLoopLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,181);
+        instance.register(MergeLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER,182);
+        instance.register(SizedInterval.class,EXTERNALIZABLE_SERIALIZER,183);
+        instance.register(DerbyWindowContext.class,EXTERNALIZABLE_SERIALIZER,184);
+    }
 }

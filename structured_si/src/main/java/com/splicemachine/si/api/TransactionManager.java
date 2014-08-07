@@ -115,6 +115,8 @@ public interface TransactionManager {
 
     public List<TransactionId> getActiveTransactionIds(TransactionId max) throws IOException;
 
+    public List<TransactionId> getAllActiveTransactionIds() throws IOException;
+
     public List<TransactionId> getActiveWriteTransactionIds(TransactionId max, byte[] table) throws IOException;
 
     public boolean forbidWrites(String tableName, TransactionId transactionId) throws IOException;

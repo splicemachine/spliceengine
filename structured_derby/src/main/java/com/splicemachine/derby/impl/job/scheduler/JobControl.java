@@ -52,7 +52,7 @@ class JobControl implements JobFuture {
 		private volatile boolean cleanedUp = false;
 		private volatile boolean intermediateCleanedUp = false;
 
-		JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
+    JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
         this.job = job;
         this.jobPath = jobPath;
         this.zkManager = zkManager;
@@ -207,7 +207,7 @@ class JobControl implements JobFuture {
                 @Override
                 public void processResult(int i, String s, Object o) {
 										if(LOG.isTraceEnabled())
-												LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
+                    LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
                 }
             }, this);
         } catch (ZooKeeperConnectionException e) {
@@ -229,7 +229,7 @@ class JobControl implements JobFuture {
         }
     }
 
-		@Override
+    @Override
 		public void intermediateCleanup() throws ExecutionException {
 				if(intermediateCleanedUp)
 						return; //don't cleanup twice
@@ -275,7 +275,7 @@ class JobControl implements JobFuture {
 				intermediateCleanupTasks.add(callable);
 		}
 
-		@Override public JobStats getJobStats() { return stats; }
+    @Override public JobStats getJobStats() { return stats; }
     @Override public int getNumTasks() { return tasksToWatch.size(); }
 
     @Override
@@ -382,25 +382,28 @@ class JobControl implements JobFuture {
         final byte[] stop = range.getSecond();
 
         try{
-            table.coprocessorExec(SpliceSchedulerProtocol.class,start,stop,
-                    new BoundCall<SpliceSchedulerProtocol, TaskFutureContext>() {
+            table.coprocessorExec(SpliceSchedulerProtocol.class, start, stop,
+                    new BoundCall<SpliceSchedulerProtocol, TaskFutureContext[]>() {
                         @Override
-                        public TaskFutureContext call(SpliceSchedulerProtocol instance) throws IOException {
+                        public TaskFutureContext[] call(SpliceSchedulerProtocol instance) throws IOException {
                             throw new UnsupportedOperationException();
                         }
 
                         @Override
-                        public TaskFutureContext call(byte[] startKey, byte[] stopKey, SpliceSchedulerProtocol instance) throws IOException {
-                            return instance.submit(startKey,stopKey,task);
+                        public TaskFutureContext[] call(byte[] startKey, byte[] stopKey, SpliceSchedulerProtocol instance) throws IOException {
+                            return instance.submit(startKey, stopKey, task, tryCount == 0); //only allow splitting the first time
                         }
-                    }, new Batch.Callback<TaskFutureContext>() {
+                    }, new Batch.Callback<TaskFutureContext[]>() {
                         @Override
-                        public void update(byte[] region, byte[] row, TaskFutureContext result) {
-                            RegionTaskControl control = new RegionTaskControl(row,task,JobControl.this,result,tryCount,zkManager);
-                            tasksToWatch.add(control);
-                            taskChanged(control);
+                        public void update(byte[] region, byte[] row, TaskFutureContext[] results) {
+                            for (TaskFutureContext result : results) {
+                                RegionTaskControl control = new RegionTaskControl(result.getStartRow(), task, JobControl.this, result, tryCount, zkManager);
+                                tasksToWatch.add(control);
+                                taskChanged(control);
+                            }
                         }
-                    });
+                    }
+            );
             jobMetrics.addJob(job);
         }catch (Throwable throwable) {
             throw new ExecutionException(throwable);

@@ -6,7 +6,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.framework.BufferedAgg
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.utils.StandardSupplier;
 
-import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.metrics.MetricFactory;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
 /**

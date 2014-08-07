@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations.framework;
 
-import com.splicemachine.stats.Counter;
-import com.splicemachine.stats.Gauge;
-import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.utils.hash.ByteHash32;
+import com.splicemachine.hash.Hash32;
+import com.splicemachine.metrics.Counter;
+import com.splicemachine.metrics.Gauge;
+import com.splicemachine.metrics.MetricFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
@@ -47,7 +47,7 @@ public abstract class AbstractAggregateBuffer extends AbstractAggregateBufferCon
     private final static Logger LOG = Logger.getLogger(AbstractAggregateBuffer.class);
 		protected byte[][] keys;
 		protected BufferedAggregator[] values;
-		protected final ByteHash32[] hashes;
+		protected final Hash32[] hashes;
 		protected final SpliceGenericAggregator[] aggregates;
 		protected int currentSize= 0;
 		protected GroupedRow groupedRow;
@@ -65,7 +65,7 @@ public abstract class AbstractAggregateBuffer extends AbstractAggregateBufferCon
 		}
 		public AbstractAggregateBuffer(int maxSize,
 																	 SpliceGenericAggregator[] aggregators,
-																	 ByteHash32[] hashes,
+																	 Hash32[] hashes,
 																	 MetricFactory metricFactory) {
 				this.aggregates = aggregators;
 				this.hashes = hashes;
@@ -86,7 +86,7 @@ public abstract class AbstractAggregateBuffer extends AbstractAggregateBufferCon
 				BufferedAggregator aggregate = null;
 				int position = 0;
 				for(int hashPos=0;hashPos<hashes.length && !found;hashPos++){
-						ByteHash32 hashFunction = hashes[hashPos];
+						Hash32 hashFunction = hashes[hashPos];
 						int hashCode = hashFunction.hash(groupingKey,0,groupingKey.length);
 						position = hashCode & (keys.length-1);
 						for(int i=0;i<5 && !found; i++){

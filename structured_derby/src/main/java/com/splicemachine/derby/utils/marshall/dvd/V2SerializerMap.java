@@ -34,6 +34,7 @@ public class V2SerializerMap extends V1SerializerMap {
 				factories[8]  = NullDescriptorSerializer.nullFactory(LazyTimeValuedSerializer.newFactory(TimestampV2DescriptorSerializer.INSTANCE_FACTORY,tableVersion),sparse);
 				factories[9]  = NullDescriptorSerializer.nullFactory(UnsortedBinaryDescriptorSerializer.INSTANCE_FACTORY,sparse);
 				factories[10] = NullDescriptorSerializer.nullFactory(LazyDescriptorSerializer.factory(DecimalDescriptorSerializer.INSTANCE_FACTORY, tableVersion),sparse);
+				factories[11] = NullDescriptorSerializer.nullFactory(RefDescriptorSerializer.INSTANCE_FACTORY, sparse);
 
 				eagerFactories[0]  = NullDescriptorSerializer.nullFactory(BooleanDescriptorSerializer.INSTANCE_FACTORY,sparse);
 				eagerFactories[1]  = NullDescriptorSerializer.nullFactory(ScalarDescriptorSerializer.INSTANCE_FACTORY,sparse);
@@ -46,5 +47,6 @@ public class V2SerializerMap extends V1SerializerMap {
 				eagerFactories[8]  = NullDescriptorSerializer.nullFactory(TimestampV2DescriptorSerializer.INSTANCE_FACTORY,sparse);
 				eagerFactories[9]  = NullDescriptorSerializer.nullFactory(UnsortedBinaryDescriptorSerializer.INSTANCE_FACTORY,sparse);
 				eagerFactories[10] = NullDescriptorSerializer.nullFactory(DecimalDescriptorSerializer.INSTANCE_FACTORY,sparse);
+				eagerFactories[11] = NullDescriptorSerializer.nullFactory(RefDescriptorSerializer.INSTANCE_FACTORY,sparse);
 		}
 }

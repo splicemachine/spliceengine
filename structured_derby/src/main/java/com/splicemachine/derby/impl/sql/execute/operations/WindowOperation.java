@@ -6,7 +6,6 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Properties;
 
 import com.google.common.base.Strings;
 import org.apache.derby.iapi.error.StandardException;
@@ -70,6 +69,32 @@ import com.splicemachine.job.JobResults;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 
+/**
+ * WindowResultSet
+ *
+ * This ResultSet handles a window function ResultSet.
+ *
+ * This ResultSet evaluates grouped, non distinct aggregates.
+ * It will scan the entire source result set and calculate
+ * the grouped aggregates when scanning the source during the
+ * first call to next().
+ *
+ * This implementation has 2 variations, which it chooses according to
+ * the following rules:
+ * - If the data are guaranteed to arrive already in sorted order, we make
+ *   a single pass over the data, computing the aggregates in-line as the
+ *   data are read.
+ * - Otherwise, the data are sorted, and a SortObserver is used to compute
+ *   the aggregations inside the sort, and the results are read back directly
+ *   from the sorter.
+ *
+ * Note that, we ALWAYS compute the aggregates using a SortObserver, which is an
+ * arrangement by which the sorter calls back into the aggregates during
+ * the sort process each time it consolidates two rows with the same
+ * sort key. Using aggregate sort observers is an efficient technique.
+ *
+ *
+ */
 public class WindowOperation extends SpliceBaseOperation implements SinkingOperation {
     private static final long serialVersionUID = 1l;
     private static Logger LOG = Logger.getLogger(WindowOperation.class);
@@ -107,7 +132,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         int maxRowSize,
         int resultSetNumber,
         double optimizerEstimatedRowCount,
-
         double optimizerEstimatedCost) throws StandardException  {
 
 
@@ -231,7 +255,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         return provider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
 
     }
-
 
     @Override
     public KeyEncoder getKeyEncoder(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
@@ -426,13 +449,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         source.close();
     }
 
-    public Properties getSortProperties() {
-        Properties sortProperties = new Properties();
-        sortProperties.setProperty("numRowsInput", ""+getRowsInput());
-        sortProperties.setProperty("numRowsOutput", ""+getRowsOutput());
-        return sortProperties;
-    }
-
     @Override
     public String prettyPrint(int indentLevel) {
         String indent = "\n"+ Strings.repeat("\t", indentLevel);
@@ -463,13 +479,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         return operations;
     }
 
-    public long getRowsInput() {
-        return getRegionStats() == null ? 0l : getRegionStats().getTotalProcessedRecords();
-    }
-
-    public long getRowsOutput() {
-        return getRegionStats() == null ? 0l : getRegionStats().getTotalSunkRecords();
-    }
     @Override
     public byte[] getUniqueSequenceId() {
         return uniqueSequenceID;

@@ -4,6 +4,8 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
@@ -28,7 +30,6 @@ import java.util.concurrent.ExecutionException;
  */
 public class ScanTask extends DebugTask{
     private EntryPredicateFilter predicateFilter;
-    private HRegion region;
 
     private EntryDecoder decoder = new EntryDecoder();
 
@@ -58,17 +59,12 @@ public class ScanTask extends DebugTask{
         out.write(epfBytes);
     }
 
-    @Override
-    public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
-        this.region = rce.getRegion();
-        super.prepareTask(rce, zooKeeper);
-    }
 
     @Override
     protected void doExecute() throws ExecutionException, InterruptedException {
         Scan scan = new Scan();
-        scan.setStartRow(region.getStartKey());
-        scan.setStopRow(region.getEndKey());
+        scan.setStartRow(scanStart);
+        scan.setStopRow(scanStop);
         scan.setCacheBlocks(false);
         scan.setCaching(100);
         scan.setBatch(100);
@@ -149,6 +145,13 @@ public class ScanTask extends DebugTask{
     public boolean invalidateOnClose() {
         return true;
     }
+
+		@Override
+		public RegionTask getClone() {
+				return new ScanTask(jobId,predicateFilter,destinationDirectory);
+		}
+
+		@Override public boolean isSplittable() { return true; }
 
 		private class HBaseEntryPredicateFilter extends FilterBase {
         private EntryPredicateFilter epf;

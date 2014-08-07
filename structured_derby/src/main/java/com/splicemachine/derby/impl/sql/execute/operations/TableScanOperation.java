@@ -8,7 +8,6 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.storage.AsyncClientScanProvider;
-import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
@@ -17,11 +16,11 @@ import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.stats.TimeView;
+import com.splicemachine.metrics.TimeView;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.IntArrays;
-import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.uuid.UUIDGenerator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -31,7 +30,6 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -180,7 +178,7 @@ public class TableScanOperation extends ScanOperation {
 		@Override
 		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 
-				final Snowflake.Generator generator = SpliceDriver.driver().getUUIDGenerator().newGenerator(128);
+				final UUIDGenerator generator = SpliceDriver.driver().getUUIDGenerator().newGenerator(128);
 				DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
 						@Override
 						public byte[] get() throws StandardException {

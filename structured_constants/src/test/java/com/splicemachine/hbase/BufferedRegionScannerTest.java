@@ -1,8 +1,8 @@
 package com.splicemachine.hbase;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.stats.Metrics;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.Metrics;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;

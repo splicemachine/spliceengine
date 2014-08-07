@@ -21,6 +21,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
@@ -33,14 +35,26 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     private TaskScheduler<RegionTask> taskScheduler;
     private Set<RegionTask> runningTasks;
 
-    @Override
-    public void start(CoprocessorEnvironment env) {
-        RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)env;
-        HRegion region = rce.getRegion();
-        runningTasks = SpliceDriver.driver().getTaskMonitor().registerRegion(region.getRegionInfo().getRegionNameAsString());
-        taskScheduler = SpliceDriver.driver().getTaskScheduler();
-        super.start(env);
-    }
+		private TaskSplitter splitter;
+		private String tableName;
+
+		@Override
+		public void start(CoprocessorEnvironment env) {
+				RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)env;
+				HRegion region = rce.getRegion();
+				try{
+						this.tableName = region.getTableDesc().getNameAsString();
+						//make sure we only split around SI regions
+						Long.parseLong(tableName);
+
+						splitter = new BytesCopyTaskSplitter(region);
+				}catch(NumberFormatException nfe){
+						splitter = NoOpTaskSplitter.INSTANCE;
+				}
+				runningTasks = SpliceDriver.driver().getTaskMonitor().registerRegion(region.getRegionInfo().getRegionNameAsString());
+				taskScheduler = SpliceDriver.driver().getTaskScheduler();
+				super.start(env);
+		}
 
     @Override
     public void stop(CoprocessorEnvironment env) {
@@ -63,9 +77,9 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         super.stop(env);
     }
 
-    @Override
-    public TaskFutureContext submit(byte[] taskStart,byte[] taskEnd,final RegionTask task) throws IOException {
-        RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
+		@Override
+		public TaskFutureContext[] submit(byte[] taskStart,byte[] taskEnd,final RegionTask task,boolean allowSplits) throws IOException {
+				RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
 
         //make sure that the task is fully contained within this region
 				HRegion region = rce.getRegion();
@@ -74,15 +88,46 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         if(!HRegionUtil.containsRange(region,taskStart,taskEnd))
             throw new IncorrectRegionException("Incorrect region for Task submission");
 
-        return doSubmit(task, rce);
-    }
+				Collection<SizedInterval> splitPoints = split(task,taskStart,taskEnd,allowSplits);
+				return submitAll(task, splitPoints, rce);
+		}
 
-    private TaskFutureContext doSubmit(final RegionTask task, RegionCoprocessorEnvironment rce) throws IOException {
+		@SuppressWarnings("unchecked")
+		private Collection<SizedInterval> split(RegionTask task, byte[] taskStart, byte[] taskEnd,boolean allowSplits) throws IOException {
+				if(!allowSplits || !task.isSplittable())
+						return Collections.singleton(new SizedInterval(taskStart, taskEnd, 0));
+
+				if(LOG.isTraceEnabled())
+						SpliceLogUtils.trace(LOG,"splitting task on table "+ this.tableName);
+				return splitter.split(task,taskStart,taskEnd);
+		}
+
+		private TaskFutureContext[] submitAll(final RegionTask task,Collection<SizedInterval> splitPoints,RegionCoprocessorEnvironment rce) throws IOException{
+				if(splitPoints.size()==1){
+						//noinspection LoopStatementThatDoesntLoop
+						for(SizedInterval split:splitPoints){
+								return new TaskFutureContext[]{doSubmit(task,split.startKey,split.endKey,rce)};
+						}
+						return null; //can't happen
+				}else{
+						TaskFutureContext[] all = new TaskFutureContext[splitPoints.size()];
+						int i=0;
+						for(SizedInterval split:splitPoints){
+								all[i] = doSubmit(task.getClone(),split.startKey,split.endKey,rce);
+								i++;
+						}
+						return all;
+				}
+		}
+
+    private TaskFutureContext doSubmit(final RegionTask task,byte[] start, byte[] stop,RegionCoprocessorEnvironment rce) throws IOException {
         try {
             //prepare the task for this specific region
-            task.prepareTask(rce,ZkUtils.getZkManager());
+            task.prepareTask(start,stop,rce,ZkUtils.getZkManager());
 
             runningTasks.add(task);
+						if(LOG.isTraceEnabled())
+								SpliceLogUtils.trace(LOG,"Submitting task %s over range [%s,%s)",task.getTaskNode(),Bytes.toStringBinary(start),Bytes.toStringBinary(stop));
             /*
              * Here we attach a listener so that when the task completes, fails, or otherwise
              * becomes invalid, we can remove it from our Region set and thus avoid memory leaks
@@ -105,7 +150,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
             });
 
             TaskFuture future = taskScheduler.submit(task);
-            return new TaskFutureContext(task.getTaskNode(),future.getTaskId(),future.getEstimatedCost());
+            return new TaskFutureContext(task.getTaskNode(),start,future.getTaskId(),future.getEstimatedCost());
         } catch (ExecutionException e) {
             Throwable t = Throwables.getRootCause(e);
             throw Exceptions.getIOException(t);

@@ -5,6 +5,7 @@ import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
@@ -42,8 +43,8 @@ public class DropColumnTask extends ZkTask {
     }
 
     @Override
-    public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
-        super.prepareTask(rce, zooKeeper);
+    public void prepareTask(byte[] start, byte[] stop,RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+        super.prepareTask(start,stop,rce, zooKeeper);
     }
 
     @Override
@@ -55,7 +56,12 @@ public class DropColumnTask extends ZkTask {
     public boolean invalidateOnClose() {
         return true;
     }
-    @Override
+
+		@Override public RegionTask getClone() { throw new UnsupportedOperationException("Should not clone DropColumnTasks!"); }
+
+		@Override public boolean isSplittable() { return false; }
+
+		@Override
     public void doExecute() throws ExecutionException, InterruptedException {
         try{
             TentativeDropColumnDesc tentativeDropColumnDesc = (TentativeDropColumnDesc)ddlChange.getTentativeDDLDesc();

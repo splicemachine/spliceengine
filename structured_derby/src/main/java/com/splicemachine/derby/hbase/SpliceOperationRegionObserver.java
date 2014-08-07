@@ -13,6 +13,7 @@ import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
@@ -94,9 +95,6 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
 
     @Override
     public void postScannerClose(ObserverContext<RegionCoprocessorEnvironment> e, InternalScanner s) throws IOException {
-        if(s instanceof SpliceOperationRegionScanner){
-            ((SpliceOperationRegionScanner)s).reportMetrics();
-        }
         super.postScannerClose(e, s);
     }
 

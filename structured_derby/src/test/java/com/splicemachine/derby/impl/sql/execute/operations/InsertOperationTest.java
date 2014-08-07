@@ -29,13 +29,13 @@ import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.jmx.ManagedTransactor;
-import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
-import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
 
+import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;

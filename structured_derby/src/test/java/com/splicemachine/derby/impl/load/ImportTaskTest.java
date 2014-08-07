@@ -2,14 +2,15 @@ package com.splicemachine.derby.impl.load;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.hbase.writer.Writer;
-import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
-
+import com.splicemachine.uuid.Snowflake;
+import com.splicemachine.uuid.UUIDGenerator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
@@ -21,7 +22,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nullable;
-
 import java.sql.Date;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
@@ -517,7 +517,7 @@ public class ImportTaskTest {
 				KryoPool kryoPool = KryoPool.defaultPool();
 				Importer importer = new SequentialImporter(ctx,template,"TEXT_TXN",fakeBufferFactory, kryoPool,FailAlwaysReporter.INSTANCE){
 						@Override
-						protected Snowflake.Generator getRandomGenerator() {
+						protected UUIDGenerator getRandomGenerator() {
 								return snowflake.newGenerator(lines.size());
 						}
 				};
@@ -532,6 +532,13 @@ public class ImportTaskTest {
 						protected ImportErrorReporter getErrorReporter(ExecRow rowTemplate, RowErrorLogger errorLogger) {
 								return FailAlwaysReporter.INSTANCE;
 						}
+
+						@Override
+						public RegionTask getClone() {
+								return this;
+						}
+
+						@Override public boolean isSplittable() { return false; }
 				};
         importTask.doExecute();
 

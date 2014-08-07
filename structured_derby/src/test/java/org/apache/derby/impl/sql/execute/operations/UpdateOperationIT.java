@@ -260,7 +260,10 @@ public class UpdateOperationIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore
     public void testUpdateOverJoinIsUnsupported() throws Exception {
+    	// Now that updates over sink operations are supported (DB-1603),
+    	// this test is no longer valid. Delete permanently later.
         try {
             methodWatcher
                 .executeUpdate("UPDATE updateoperationit.location a " +

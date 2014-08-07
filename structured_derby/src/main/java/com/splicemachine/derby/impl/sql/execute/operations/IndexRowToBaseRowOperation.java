@@ -17,7 +17,7 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.stats.TimeView;
+import com.splicemachine.metrics.TimeView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
