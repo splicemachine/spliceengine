@@ -10,9 +10,12 @@ import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.WindowFunction;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLLongint;
 
 /**
+ * Implementation of DENSE_RANK -  Ranks each row in a partition. If values in the ranking column
+ * are the same, they receive the same rank. The next number in the ranking sequence is then used
+ * to rank the row or rows that follow.
+ *
  * @author Jeff Cunningham
  *         Date: 8/5/14
  */
@@ -21,20 +24,8 @@ public class DenseRankFunction extends SpliceGenericWindowFunction implements Wi
     private DataValueDescriptor previousValue;
 
     @Override
-    public DataValueDescriptor apply(DataValueDescriptor leftDvd,
-                                     DataValueDescriptor rightDvd,
-                                     DataValueDescriptor previousValue) throws StandardException {
-        DataValueDescriptor result = null;
-        if (previousValue == null || previousValue.isNull()) {
-            result = new SQLLongint(1);
-        } else {
-            // TODO...
-        }
-        return result;
-    }
-
-    @Override
     public WindowFunction setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType) {
+        super.setup( classFactory, aggregateName, returnDataType );
         return this;
     }
 
@@ -44,10 +35,16 @@ public class DenseRankFunction extends SpliceGenericWindowFunction implements Wi
     }
 
     @Override
+    public void reset() {
+        super.reset();
+        rank = 0;
+    }
+
+    @Override
     protected void calculateOnAdd(WindowChunk chunk, DataValueDescriptor dvd) throws StandardException {
         DataValueDescriptor result = chunk.getResult();
-        if (result == null || result.isNull() || result.compare(dvd) != 0) {
-            // rank increasing as long as values differ
+        if ( (result == null || result.isNull()) || result.compare(dvd) != 0) {
+            // if previous result is null or if values differ, rank increases
             rank++;
         }
         // always collect the now previous value

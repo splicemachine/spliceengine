@@ -10,9 +10,10 @@ import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.WindowFunction;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLLongint;
 
 /**
+ * Implementation of ROW_NUMBER -  Assigns a sequential number to each row in partition.
+ *
  * @author Jeff Cunningham
  *         Date: 8/5/14
  */
@@ -20,26 +21,20 @@ public class RowNumberFunction extends SpliceGenericWindowFunction implements Wi
     private long rowNum;
 
     @Override
-    public DataValueDescriptor apply(DataValueDescriptor leftDvd,
-                                     DataValueDescriptor rightDvd,
-                                     DataValueDescriptor previousValue) throws StandardException {
-        DataValueDescriptor result = null;
-        if (previousValue == null || previousValue.isNull()) {
-            result = new SQLLongint(1);
-        } else {
-            // TODO...
-        }
-        return result;
-    }
-
-    @Override
     public WindowFunction setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType) {
+        super.setup( classFactory, aggregateName, returnDataType );
         return this;
     }
 
     @Override
     public void accumulate(DataValueDescriptor addend, Object ga) throws StandardException {
         this.add(addend);
+    }
+
+    @Override
+    public void reset() {
+        super.reset();
+        rowNum = 0;
     }
 
     @Override

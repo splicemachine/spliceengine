@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.test.framework.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -9,8 +11,11 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 /**
  * Created by jyuan on 7/30/14.
@@ -55,9 +60,9 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 protected void starting(Description description) {
                     PreparedStatement ps;
                     try {
-                        for (int i = 0; i < rows.length; ++i) {
+                        for (String row : rows) {
                             ps = spliceClassWatcher.prepareStatement(
-                                    String.format("insert into %s values (%s)", spliceTableWatcher, rows[i]));
+                                String.format("insert into %s values (%s)", spliceTableWatcher, row));
                             ps.execute();
                         }
                     } catch (Exception e) {
@@ -79,7 +84,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
         int i = 0;
         while(rs.next()) {
-            Assert.assertEquals((int) rs.getInt(4), minResult[i++]);
+            Assert.assertEquals(rs.getInt(4), minResult[i++]);
         }
         rs.close();
 
@@ -91,7 +96,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
         i = 0;
         while(rs.next()) {
-            Assert.assertEquals((int) rs.getInt(4), maxResult[i++]);
+            Assert.assertEquals(rs.getInt(4), maxResult[i++]);
         }
         rs.close();
     }
@@ -108,7 +113,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
         int i = 0;
         while(rs.next()) {
-            Assert.assertEquals((int) rs.getInt(4), result[i++]);
+            Assert.assertEquals(rs.getInt(4), result[i++]);
         }
         rs.close();
 
@@ -120,7 +125,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
         i = 0;
         while(rs.next()) {
-            Assert.assertEquals((int) rs.getInt(4), result[i++]);
+            Assert.assertEquals(rs.getInt(4), result[i++]);
         }
         rs.close();
 
@@ -132,7 +137,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
         i = 0;
         while(rs.next()) {
-            Assert.assertEquals((int) rs.getInt(4), result2[i++]);
+            Assert.assertEquals(rs.getInt(4), result2[i++]);
         }
         rs.close();
     }
@@ -149,7 +154,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
             int i = 0;
             while (rs.next()) {
-                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+                Assert.assertEquals(rs.getInt(4), result[i++]);
             }
             rs.close();
         }
@@ -163,7 +168,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
             int i = 0;
             while (rs.next()) {
-                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+                Assert.assertEquals(rs.getInt(4), result[i++]);
             }
             rs.close();
         }
@@ -177,7 +182,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
             int i = 0;
             while (rs.next()) {
-                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+                Assert.assertEquals(rs.getInt(4), result[i++]);
             }
             rs.close();
         }
@@ -191,7 +196,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
             int i = 0;
             while (rs.next()) {
-                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+                Assert.assertEquals(rs.getInt(4), result[i++]);
             }
             rs.close();
         }
@@ -210,7 +215,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
             int i = 0;
             while (rs.next()) {
-                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+                Assert.assertEquals(rs.getInt(4), result[i++]);
             }
             rs.close();
         }
@@ -228,7 +233,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
             int i = 0;
             while (rs.next()) {
-                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+                Assert.assertEquals(rs.getInt(4), result[i++]);
             }
             rs.close();
         }
@@ -241,7 +246,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
             int i = 0;
             while (rs.next()) {
-                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+                Assert.assertEquals(rs.getInt(4), result[i++]);
             }
             rs.close();
         }
@@ -254,7 +259,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
             int i = 0;
             while (rs.next()) {
-                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+                Assert.assertEquals(rs.getInt(4), result[i++]);
             }
             rs.close();
         }
@@ -271,7 +276,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
             int i = 0;
             while (rs.next()) {
-                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+                Assert.assertEquals(rs.getInt(4), result[i++]);
             }
             rs.close();
         }
@@ -286,7 +291,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
             int i = 0;
             while (rs.next()) {
-                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+                Assert.assertEquals(rs.getInt(4), result[i++]);
             }
             rs.close();
         }
@@ -300,7 +305,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
             int i = 0;
             while (rs.next()) {
-                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+                Assert.assertEquals(rs.getInt(4), result[i++]);
             }
             rs.close();
         }
@@ -319,7 +324,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
             int i = 0;
             while (rs.next()) {
-                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+                Assert.assertEquals(rs.getInt(4), result[i++]);
             }
             rs.close();
         }
@@ -335,7 +340,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
             int i = 0;
             while (rs.next()) {
-                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+                Assert.assertEquals(rs.getInt(4), result[i++]);
             }
             rs.close();
         }
@@ -352,7 +357,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
             int i = 0;
             while (rs.next()) {
-                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+                Assert.assertEquals(rs.getInt(4), result[i++]);
             }
             rs.close();
         }
@@ -367,9 +372,104 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
             int i = 0;
             while (rs.next()) {
-                Assert.assertEquals((int) rs.getInt(4), result[i++]);
+                Assert.assertEquals(rs.getInt(4), result[i++]);
             }
             rs.close();
         }
+    }
+
+    @Test
+    public void testRowNumberWithinPartiion() throws Exception {
+        int[] result = {1, 2, 3, 4, 5, 6, 1, 2, 1, 2, 3, 4};
+        int[] colVal = {78000, 76000, 75000, 53000, 52000, 50000, 52000, 51000, 84000, 79000, 75000, 55000};
+        String sqlText =
+            "SELECT empnum, dept, salary, ROW_NUMBER() OVER (partition by dept ORDER BY salary desc) AS RowNumber FROM %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(rs.getInt(3), colVal[i]);
+            Assert.assertEquals(rs.getInt(4), result[i]);
+            ++i;
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testRowNumberWithoutPartiion() throws Exception {
+        int[] result = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+        int[] colVal = {84000, 79000, 78000, 76000, 75000, 75000, 55000, 53000, 52000, 52000, 51000, 50000};
+        String sqlText =
+            "SELECT empnum, dept, salary, ROW_NUMBER() OVER (ORDER BY salary desc) AS RowNumber FROM %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(rs.getInt(3), colVal[i]);
+            Assert.assertEquals(rs.getInt(4), result[i]);
+            ++i;
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testRankWithinPartiion() throws Exception {
+        int[] result = {1, 2, 3, 4, 5, 6, 1, 2, 1, 2, 3, 4};
+        int[] colVal = {78000,76000,75000,53000,52000,50000,52000,51000,84000,79000,75000,55000};
+        String sqlText =
+            "SELECT empnum, dept, salary, RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS Rank FROM %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(rs.getInt(3), colVal[i]);
+            Assert.assertEquals(rs.getInt(4), result[i]);
+            ++i;
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testRankWithoutPartiion() throws Exception {
+        int[] result = {1,2,3,4,5,5,7,8,9,9,11,12};
+        int[] colVal = {84000,79000,78000,76000,75000,75000,55000,53000,52000,52000,51000,50000};
+        String sqlText =
+            "SELECT empnum, dept, salary, RANK() OVER (ORDER BY salary desc) AS Rank FROM %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(rs.getInt(3), colVal[i]);
+            Assert.assertEquals(rs.getInt(4), result[i]);
+            ++i;
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testDenseRankWithinPartiion() throws Exception {
+        int[] result = {1, 2, 3, 4, 5, 6, 1, 2, 1, 2, 3, 4};
+        int[] colVal = {78000,76000,75000,53000,52000,50000,52000,51000,84000,79000,75000,55000};
+        String sqlText =
+            "SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS Rank FROM %s";
+
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(rs.getInt(3), colVal[i]);
+            Assert.assertEquals(rs.getInt(4), result[i]);
+            ++i;
+        }
+        rs.close();
     }
 }
