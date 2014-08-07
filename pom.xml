@@ -57,8 +57,8 @@
 		<envClassifier/>
 		<excluded.categories>com.splicemachine.test.SlowTest</excluded.categories>
 	</properties>
-	<dependencies>
-		<dependency>
+		<dependencies>
+			<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>${junit.version}</version>
@@ -321,16 +321,6 @@
 			<url>http://google-gson.googlecode.com/svn/mavenrepo</url>
 			<snapshots>
 				<enabled>true</enabled>
-			</snapshots>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-		</repository>
-		<repository>
-			<id>sonatype-nexus-staging</id>
-			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-			<snapshots>
-				<enabled>false</enabled>
 			</snapshots>
 			<releases>
 				<enabled>true</enabled>
