@@ -760,7 +760,28 @@ public class JoinNode extends TableOperatorNode {
 		deferredBindExpressions(fromListParam);
 	}
 
-	/**
+	// Splice addition of rebuildRCL method:
+	// Similar to existing buildRCL method, except buildRCL is private
+	// and we need to be able to invoke this externally, in particular
+	// from the splice visitor framework (e.g. RowLocationColumnVisitor).
+	// Also, buildRCL assumes the RCL has not been build yet, by returning
+	// immediately if resultColumns != null, whereas here in rebuildRCL
+	// we assume Derby has built it already and we need to force a rebuild.
+	// We also need to set the result set number again on each
+	// of the result columns, which buildRCL does not do.
+	// Adding this explicit method to the Derby fork seemed less risky
+	// than tweaking the existing buildRCL method or even just making
+	// it public.
+	public void rebuildRCL() throws StandardException
+	{
+		assert resultColumns != null;
+		
+		setResultColumns(null);
+		buildRCL();
+		resultColumns.setResultSetNumber(getResultSetNumber());
+	}
+
+    /**
 	 * Build the RCL for this node.  We propagate the RCLs up from the
 	 * children and splice them to form this node's RCL.
 	 *

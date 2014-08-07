@@ -96,7 +96,8 @@ import org.apache.derby.iapi.services.compiler.LocalField;
 public class DeleteNode extends DMLModStatementNode
 {
 	/* Column name for the RowLocation column in the ResultSet */
-	private static final String COLUMNNAME = "###RowLocationToDelete";
+	// Splice fork: changed this to public, like it is in UpdateNode.
+	public static final String COLUMNNAME = "###RowLocationToDelete";
 
 	/* Filled in by bind. */
 	protected boolean				deferred;

@@ -22,11 +22,8 @@
 package org.apache.derby.iapi.services.context;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
+
 import org.apache.derby.iapi.error.ErrorStringBuilder;
 import org.apache.derby.iapi.error.ExceptionSeverity;
 import org.apache.derby.iapi.error.ExceptionUtil;
@@ -64,9 +61,9 @@ public class ContextManager
 	 */
 	private static final class CtxStack {
 		/** Internal list with all the elements of the stack. */
-		private final ArrayList stack_ = new ArrayList();
+		private final List<Context> stack_ = new ArrayList<Context>();
 		/** Read-only view of the internal list. */
-		private final List view_ = Collections.unmodifiableList(stack_);
+		private final List<Context> view_ = Collections.unmodifiableList(stack_);
 
 		// Keeping a reference to the top element on the stack
 		// optimizes the frequent accesses to this element. The
@@ -79,10 +76,9 @@ public class ContextManager
 			top_ = context; 
 		}
 		void pop() {
-			stack_.remove(stack_.size()-1);
-			top_ = stack_.isEmpty() ? 
-				null : (Context) stack_.get(stack_.size()-1); 
-		}
+            stack_.remove(stack_.size() - 1);
+            top_ = stack_.isEmpty() ? null : stack_.get(stack_.size() - 1);
+        }
 		void remove(Context context) {
 			if (context == top_) {
 				pop();
@@ -94,31 +90,27 @@ public class ContextManager
 			return top_; 
 		}
 		boolean isEmpty() { return stack_.isEmpty(); }
-		List getUnmodifiableList() { 
+		List<Context> getUnmodifiableList() {
 			return view_;
 		}
 	}
-
-	/**
-	 * Empty ArrayList to use as void value
-	 */
-	//private final ArrayList voidArrayList_ = new ArrayList(0);
 
 	/**
 	 * HashMap that holds the Context objects. The Contexts are stored
 	 * with a String key.
 	 * @see ContextManager#pushContext(Context)
 	 */
-	private final HashMap ctxTable = new HashMap();
+	private final Map<String, CtxStack> ctxTable = new HashMap<String, CtxStack>();
 
 	/**
-	 * List of all Contexts
+	 * List of all Contexts of all types.
 	 */
-	private final ArrayList holder = new ArrayList();
+	private final List<Context> holder = new ArrayList<Context>();
 
 	public void setActiveThread(){
 		this.activeThread = Thread.currentThread();
-	}	
+	}
+
 	/**
 	 * Add a Context object to the ContextManager. The object is added
 	 * both to the holder list and to a stack for the specific type of
@@ -129,7 +121,7 @@ public class ContextManager
 	{
 		checkInterrupt();
 		final String contextId = newContext.getIdName();
-		CtxStack idStack = (CtxStack) ctxTable.get(contextId);
+		CtxStack idStack = ctxTable.get(contextId);
 
 		// if the stack is null, create a new one.
 		if (idStack == null) {
@@ -153,7 +145,7 @@ public class ContextManager
 	public Context getContext(String contextId) {
 		checkInterrupt();
 		
-		final CtxStack idStack = (CtxStack) ctxTable.get(contextId);
+		final CtxStack idStack = ctxTable.get(contextId);
 		if (SanityManager.DEBUG)
 			SanityManager.ASSERT( idStack == null ||
 								  idStack.isEmpty() ||
@@ -174,11 +166,11 @@ public class ContextManager
 		}
 
 		// remove the top context from the global stack
-		Context theContext = (Context) holder.remove(holder.size()-1);
+		Context theContext = holder.remove(holder.size()-1);
 
 		// now find its id and remove it from there, too
 		final String contextId = theContext.getIdName();
-		final CtxStack idStack = (CtxStack) ctxTable.get(contextId);
+		final CtxStack idStack = ctxTable.get(contextId);
 
 		if (SanityManager.DEBUG) {
 			SanityManager.ASSERT( idStack != null &&
@@ -206,7 +198,7 @@ public class ContextManager
         }
 
         final String contextId = theContext.getIdName();
-		final CtxStack idStack = (CtxStack) ctxTable.get(contextId);
+		final CtxStack idStack = ctxTable.get(contextId);
 
 		// now remove it from its id's stack.
 		idStack.remove(theContext);
@@ -232,8 +224,8 @@ public class ContextManager
 	 * @see org.apache.derby.impl.sql.conn.GenericLanguageConnectionContext#resetSavepoints()
 	 * @see org.apache.derby.iapi.sql.conn.StatementContext#resetSavePoint()
 	 */
-	public final List getContextStack(String contextId) {
-		final CtxStack cs = (CtxStack) ctxTable.get(contextId);
+	public final List<Context> getContextStack(String contextId) {
+		final CtxStack cs = ctxTable.get(contextId);
 		return (cs==null?Collections.EMPTY_LIST:cs.getUnmodifiableList());
 	}
     
@@ -492,7 +484,7 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
 	}
 
 	/**
-	 * Flush the built up error string to whereever
+	 * Flush the built up error string to wherever
 	 * it is supposed to go, and reset the error string
 	 */
 	private void flushErrorString()
@@ -613,7 +605,7 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
     /**
      * Count of the number of setCurrentContextManager calls
      * by a single thread, for nesting situations with a single
-     * active Contextmanager. If nesting is occuring with multiple
+     * active Contextmanager. If nesting is occurring with multiple
      * different ContextManagers then this value is set to -1
      * and nesting is represented by entries in a stack in the
      * ThreadLocal variable, threadContextList.
