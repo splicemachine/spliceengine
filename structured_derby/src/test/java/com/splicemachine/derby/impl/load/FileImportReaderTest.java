@@ -1,16 +1,13 @@
 package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.stats.IOStats;
-import com.splicemachine.stats.Metrics;
-import com.splicemachine.stats.TimeView;
-import com.splicemachine.stats.Timer;
+import com.splicemachine.metrics.IOStats;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.metrics.TimeView;
+import com.splicemachine.metrics.Timer;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import java.util.Set;
 
 /**
  * @author Scott Fines

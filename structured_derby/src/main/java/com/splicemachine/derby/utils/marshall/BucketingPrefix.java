@@ -1,7 +1,8 @@
 package com.splicemachine.derby.utils.marshall;
 
 
-import com.splicemachine.utils.hash.ByteHash32;
+
+import com.splicemachine.hash.Hash32;
 
 import java.io.IOException;
 
@@ -14,11 +15,11 @@ import java.io.IOException;
  */
 public class BucketingPrefix implements HashPrefix{
 		private final HashPrefix delegate;
-		protected final ByteHash32 hashFunction;
+		protected final Hash32 hashFunction;
 		protected final SpreadBucket spreadBucket;
 
 		public BucketingPrefix(HashPrefix delegate,
-													 ByteHash32 hashFunction,
+													 Hash32 hashFunction,
 													 SpreadBucket spreadBucket) {
 				this.delegate = delegate;
 				this.hashFunction = hashFunction;

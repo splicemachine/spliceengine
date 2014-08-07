@@ -1,5 +1,7 @@
 package com.splicemachine.si.api;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.table.BetterHTablePool;
@@ -12,18 +14,12 @@ import com.splicemachine.si.impl.*;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.si.jmx.TransactorStatus;
 import com.splicemachine.si.txn.SpliceTimestampSource;
-import com.splicemachine.utils.Provider;
-import com.splicemachine.utils.Providers;
 import com.splicemachine.utils.ZkUtils;
+import org.apache.hadoop.hbase.client.*;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Scan;
 
 /**
  * Used to construct a transactor object that is bound to the HBase types and that provides SI functionality. This is
@@ -77,13 +73,13 @@ public class HTransactorFactory extends SIConstants {
 						return rollForwardFactory;
 
 				synchronized (HTransactorFactory.class){
-						rollForwardFactory = new HBaseRollForwardFactory(new Provider<TransactionStore>() {
+						rollForwardFactory = new HBaseRollForwardFactory(new Supplier<TransactionStore>() {
 								@Override
 								public TransactionStore get() {
 										initializeIfNeeded();
 										return transactionStore;
 								}
-						},new Provider<DataStore>() {
+						},new Supplier<DataStore>() {
 								@Override
 								public DataStore get() {
 										initializeIfNeeded();
@@ -125,8 +121,13 @@ public class HTransactorFactory extends SIConstants {
 										SpliceConstants.tablePoolMaxSize,SpliceConstants.tablePoolCoreSize);
 						final HPoolTableSource tableSource = new HPoolTableSource(hTablePool);
 						SDataLib dataLib = new HDataLib();
-						final STableReader reader = new HTableReader(tableSource);
-						final STableWriter writer = new HTableWriter();
+            final STableReader reader;
+            try {
+                reader = new HTableReader(tableSource);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            final STableWriter writer = new HTableWriter();
 						final TransactionSchema transactionSchema = new TransactionSchema(TRANSACTION_TABLE,
 										DEFAULT_FAMILY,
 										SI_PERMISSION_FAMILY,
@@ -139,7 +140,8 @@ public class HTransactorFactory extends SIConstants {
 										TRANSACTION_ADDITIVE_COLUMN_BYTES,
 										TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES,
 										TRANSACTION_READ_COMMITTED_COLUMN_BYTES,
-										TRANSACTION_KEEP_ALIVE_COLUMN, TRANSACTION_STATUS_COLUMN,
+										TRANSACTION_KEEP_ALIVE_COLUMN,
+                    TRANSACTION_STATUS_COLUMN,
 										TRANSACTION_COMMIT_TIMESTAMP_COLUMN,
 										TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN,
 										TRANSACTION_COUNTER_COLUMN,
@@ -165,8 +167,8 @@ public class HTransactorFactory extends SIConstants {
 						if(clientTransactor==null)
 								clientTransactor = new HBaseClientTransactor(dataStore,transactionManager,dataLib);
 						if(rollForwardFactory ==null)
-								rollForwardFactory = new HBaseRollForwardFactory(Providers.basicProvider(transactionStore),
-												Providers.basicProvider(dataStore));
+								rollForwardFactory = new HBaseRollForwardFactory(Suppliers.ofInstance(transactionStore),
+												Suppliers.ofInstance(dataStore));
 
 						if(readController==null)
 								readController = new SITransactionReadController<

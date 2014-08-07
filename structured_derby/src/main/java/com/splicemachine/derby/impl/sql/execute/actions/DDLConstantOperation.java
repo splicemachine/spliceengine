@@ -1,27 +1,30 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import com.splicemachine.collections.CloseableIterator;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.index.ForbidPastWritesJob;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.DependableFinder;
-import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.TypeDescriptor;
+import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.AggregateAliasInfo;
 import org.apache.derby.catalog.types.RoutineAliasInfo;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.services.context.ContextManager;
+import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.Authorizer;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
@@ -29,25 +32,7 @@ import org.apache.derby.iapi.sql.depend.DependencyManager;
 import org.apache.derby.iapi.sql.depend.Dependent;
 import org.apache.derby.iapi.sql.depend.Provider;
 import org.apache.derby.iapi.sql.depend.ProviderInfo;
-import org.apache.derby.iapi.sql.dictionary.AliasDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ColPermsDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.DefaultDescriptor;
-import org.apache.derby.iapi.sql.dictionary.DependencyDescriptor;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.iapi.sql.dictionary.PermissionsDescriptor;
-import org.apache.derby.iapi.sql.dictionary.RoleGrantDescriptor;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.dictionary.StatementColumnPermission;
-import org.apache.derby.iapi.sql.dictionary.StatementPermission;
-import org.apache.derby.iapi.sql.dictionary.StatementGenericPermission;
-import org.apache.derby.iapi.sql.dictionary.StatementSchemaPermission;
-import org.apache.derby.iapi.sql.dictionary.StatementRolePermission;
-import org.apache.derby.iapi.sql.dictionary.StatementRoutinePermission;
-import org.apache.derby.iapi.sql.dictionary.StatementTablePermission;
-import org.apache.derby.iapi.sql.dictionary.RoleClosureIterator;
+import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
@@ -55,14 +40,10 @@ import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.ddl.DDLChange;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.utils.SpliceLogUtils;
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Abstract class that has actions that are across
@@ -918,50 +899,65 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
     /**
      * Waits for concurrent transactions that started before the tentative
      * change completed.
-     * 
+     *
      * Performs an exponential backoff until a configurable timeout triggers,
      * then returns the list of transactions still running. The caller has to
      * forbid those transactions to ever write to the tables subject to the DDL
      * change.
-     * 
+     *
      * @param maximum
      *            wait for all transactions started before this one. It should
      *            be the transaction created just after the tentative change
      *            committed.
      * @return list of transactions still running after timeout
-     * @throws IOException 
+     * @throws IOException
      */
-	public List<TransactionId> waitForConcurrentTransactions(TransactionId maximum, List<TransactionId> toIgnore,long tableConglomId) throws IOException {
-	    if (!waitsForConcurrentTransactions()) {
-	        return Collections.emptyList();
-	    }
-			byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
-	    List<TransactionId> active = transactor.getActiveWriteTransactionIds(maximum,conglomBytes);
-			active.removeAll(toIgnore);
+    public long waitForConcurrentTransactions(TransactionId maximum, List<TransactionId> toIgnore,long tableConglomId) throws IOException {
+        if (!waitsForConcurrentTransactions()) {
+            return -1l;
+        }
+        byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
 
-	    long waitTime = SpliceConstants.ddlDrainingInitialWait;
-	    long totalWait = 0;
-	    while (!active.isEmpty() && totalWait < SpliceConstants.ddlDrainingMaximumWait) {
-	        try {
+        ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getId(),conglomBytes);
+        List<Long> ignoreIds = Lists.transform(toIgnore,new Function<TransactionId, Long>() {
+            @Nullable
+            @Override
+            public Long apply(@Nullable TransactionId input) {
+                return input.getId();
+            }
+        });
+        long waitTime = SpliceConstants.ddlDrainingInitialWait;
+        long totalWait = 0;
+        long activeTxnId = -1l;
+        do{
+            CloseableIterator<Long> activeTxns = transactionReader.getActiveTransactionIds(1);
+            try{
+                if(activeTxns.hasNext()){
+                    activeTxnId = activeTxns.next();
+                }
+            }finally{
+                activeTxns.close();
+            }
+            if(activeTxnId<0) return activeTxnId;
+            try {
                 Thread.sleep(waitTime);
             } catch (InterruptedException e) {
                 throw new IOException(e);
             }
-	        totalWait += waitTime;
-	        waitTime *= 10;
-	        active = transactor.getActiveWriteTransactionIds(maximum,conglomBytes);
-					active.removeAll(toIgnore);
-	    }
-	    if (!active.isEmpty()) {
-	        LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %.100s", toString(), active));
-	    }
-	    return active;
-	}
+            totalWait += waitTime;
+            waitTime *= 10;
+        } while(totalWait < SpliceConstants.ddlDrainingMaximumWait);
 
-	/**
-	 * Declares whether this DDL operation has to wait for the draining of concurrent transactions or not
-	 * @return true if it has to wait for the draining of concurrent transactions
-	 */
+        if (activeTxnId>=0) {
+            LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %d", toString(), activeTxnId));
+        }
+        return activeTxnId;
+    }
+
+    /**
+     * Declares whether this DDL operation has to wait for the draining of concurrent transactions or not
+     * @return true if it has to wait for the draining of concurrent transactions
+     */
     protected boolean waitsForConcurrentTransactions() {
         return false;
     }

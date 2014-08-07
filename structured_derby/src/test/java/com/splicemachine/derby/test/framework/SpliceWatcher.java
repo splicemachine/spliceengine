@@ -30,7 +30,7 @@ import static org.junit.Assert.assertTrue;
 public class SpliceWatcher extends TestWatcher {
 		private static final Logger LOG = Logger.getLogger(SpliceWatcher.class);
 		private List<Connection> connections = new ArrayList<Connection>();
-		private Connection currentConnection;
+		private TestConnection currentConnection;
 		private List<Statement> statements = Collections.synchronizedList(new ArrayList<Statement>());
 		private List<ResultSet> resultSets = Collections.synchronizedList(new ArrayList<ResultSet>());
 
@@ -38,21 +38,22 @@ public class SpliceWatcher extends TestWatcher {
 
 		}
 
-		public Connection getOrCreateConnection() throws Exception {
+		public TestConnection getOrCreateConnection() throws Exception {
 				if (currentConnection == null || !currentConnection.isValid(10))
 						createConnection();
 				return currentConnection;
 		}
 
 
-		public Connection createConnection() throws Exception {
-				currentConnection = SpliceNetConnection.getConnection();
+		public TestConnection createConnection() throws Exception {
+        TestConnection connection = new TestConnection(SpliceNetConnection.getConnection());
+        currentConnection = connection;
 				connections.add(currentConnection);
 				return currentConnection;
 		}
 
 		public Connection createConnection(String userName, String password) throws Exception {
-			currentConnection = SpliceNetConnection.getConnectionAs(userName, password);
+			currentConnection = new TestConnection(SpliceNetConnection.getConnectionAs(userName, password));
 			connections.add(currentConnection);
 			return currentConnection;
 		}

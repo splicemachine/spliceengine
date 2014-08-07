@@ -13,7 +13,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
-import com.splicemachine.stats.IOStats;
+import com.splicemachine.metrics.IOStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;

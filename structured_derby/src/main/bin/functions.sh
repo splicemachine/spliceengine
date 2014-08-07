@@ -58,9 +58,9 @@ _retrySplice() {
             _startSplice "${ROOT_DIR}" "${SPLICELOGFILE}" "${LOG4J_PATH}" "${ZOO_DIR}" "${HBASE_ROOT_DIR_URI}" "${CP}" "${SPLICE_MAIN_CLASS}" "${CHAOS}"
             if [[ ${RETRY} -eq 1 ]]; then
                 # We can only check for error msg the first time, else we'll see the same ones again
-                _waitfor "${SPLICELOGFILE}" "${HBASE_TIMEOUT}" 'Ready to accept connections' 'Master not active after'
+                _waitfor "${SPLICELOGFILE}" "${HBASE_TIMEOUT}" 'Ready to accept JDBC connections' 'Master not active after'
             else
-                _waitfor "${SPLICELOGFILE}" "${HBASE_TIMEOUT}" 'Ready to accept connections'
+                _waitfor "${SPLICELOGFILE}" "${HBASE_TIMEOUT}" 'Ready to accept JDBC connections'
             fi
             RETURN_CODE=$?
             if [[ ${RETURN_CODE} -eq 0 ]]; then

@@ -1,6 +1,6 @@
 package com.splicemachine.hbase.writer;
 
-import com.splicemachine.stats.TimeView;
+import com.splicemachine.metrics.TimeView;
 
 /**
  * @author Scott Fines

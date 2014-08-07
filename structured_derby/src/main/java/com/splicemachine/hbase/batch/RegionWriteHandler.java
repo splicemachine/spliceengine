@@ -17,7 +17,7 @@ import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.impl.WriteConflict;
-import com.splicemachine.tools.ResettableCountDownLatch;
+import com.splicemachine.concurrent.ResettableCountDownLatch;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.hbase.NotServingRegionException;

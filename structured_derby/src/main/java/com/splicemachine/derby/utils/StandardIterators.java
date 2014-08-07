@@ -1,16 +1,9 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.iapi.sql.execute.StandardCloseable;
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
-import com.splicemachine.derby.impl.storage.SpliceResultScanner;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.stats.IOStats;
-import com.splicemachine.stats.Metrics;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.concurrent.Callable;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
@@ -19,9 +12,16 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.concurrent.Callable;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.sql.execute.StandardCloseable;
+import com.splicemachine.derby.impl.storage.KeyValueUtils;
+import com.splicemachine.derby.impl.storage.SpliceResultScanner;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.metrics.IOStats;
+import com.splicemachine.metrics.Metrics;
 
 /**
  * @author Scott Fines

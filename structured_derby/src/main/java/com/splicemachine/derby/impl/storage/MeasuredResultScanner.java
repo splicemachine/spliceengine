@@ -2,7 +2,8 @@ package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.stats.*;
+import com.splicemachine.metrics.*;
+import com.splicemachine.hbase.HBaseStatUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.*;
@@ -54,7 +55,7 @@ public class MeasuredResultScanner extends ReopenableScanner implements SpliceRe
 								rowsRead++;
 								remoteTimer.tick(1);
 								setLastRow(next.getRow());
-								StatUtils.countBytes(remoteBytesCounter, next);
+								HBaseStatUtils.countBytes(remoteBytesCounter, next);
 						} else{
 								remoteTimer.stopTiming();
 								if(LOG.isTraceEnabled())
@@ -83,7 +84,7 @@ public class MeasuredResultScanner extends ReopenableScanner implements SpliceRe
 						if (results != null && results.length > 0) {
 								rowsRead+=results.length;
 								remoteTimer.tick(results.length);
-								StatUtils.countBytes(remoteBytesCounter, results);
+								HBaseStatUtils.countBytes(remoteBytesCounter, results);
 								setLastRow(results[results.length-1].getRow());
 						} else{
 								remoteTimer.stopTiming();

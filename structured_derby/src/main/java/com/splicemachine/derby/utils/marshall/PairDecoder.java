@@ -1,6 +1,8 @@
 package com.splicemachine.derby.utils.marshall;
 
+import com.esotericsoftware.kryo.KryoException;
 import com.splicemachine.hbase.KVPair;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.KeyValue;
@@ -33,11 +35,32 @@ public class PairDecoder {
     }
 
 		public ExecRow decode(KeyValue data) throws StandardException{
+			try {
 				templateRow.resetRowArray();
 				keyDecoder.decode(data.getBuffer(),data.getRowOffset(),data.getRowLength(),templateRow);
 				rowDecoder.set(data.getBuffer(),data.getValueOffset(),data.getValueLength());
+				
+				//System.out.println("templateRow " + templateRow);
+				//int size = templateRow.nColumns();
+				/*System.out.println("templateRow size " + size);
+				for (int i=0;i<size;i++) {
+					if (templateRow != null) {
+					System.out.println(templateRow.getColumn(i+1).getTypeName());
+//					System.out.println(templateRow.getColumn(i).getTraceString());
+					} else {
+						System.out.println("template: " + templateRow);						
+					}
+				}
+				*/
 				rowDecoder.decode(templateRow);
 				return templateRow;
+			} catch (StandardException se) {
+				System.out.println("template Row " + templateRow);
+				throw se;
+			} catch (KryoException ke) {
+				System.out.println("template Row " + templateRow);
+				throw ke;
+			}
 		}
 
 		public ExecRow decode(KVPair kvPair) throws StandardException{

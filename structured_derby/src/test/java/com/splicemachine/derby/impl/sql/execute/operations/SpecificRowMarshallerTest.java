@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
@@ -11,14 +12,11 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.storage.ByteEntryAccumulator;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.utils.Snowflake;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.KeyValue;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.mockito.Mockito.mock;
 
 /**
  * Tests that deal with specific (i.e. regression) issues with RowMarshaller.
@@ -27,8 +25,6 @@ import static org.mockito.Mockito.mock;
  * Created on: 10/2/13
  */
 public class SpecificRowMarshallerTest {
-
-    private static final KryoPool kryoPool = mock(KryoPool.class);
 
     @Test
     public void testProperlyDealsWithMissingColumns() throws Exception {

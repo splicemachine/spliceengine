@@ -1,8 +1,6 @@
 package com.splicemachine.derby.impl.storage;
 
-import com.splicemachine.stats.TimeView;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.hadoop.hbase.client.ResultScanner;
 
 import java.io.IOException;
 
@@ -10,16 +8,8 @@ import java.io.IOException;
  * @author Scott Fines
  * Created on: 10/29/13
  */
-public interface SpliceResultScanner extends ResultScanner {
+public interface SpliceResultScanner extends com.splicemachine.hbase.MeasuredResultScanner {
 
     void open() throws IOException, StandardException;
-
-		TimeView getRemoteReadTime();
-		long getRemoteBytesRead();
-		long getRemoteRowsRead();
-
-		TimeView getLocalReadTime();
-		long getLocalBytesRead();
-		long getLocalRowsRead();
 
 }

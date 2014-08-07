@@ -1,7 +1,9 @@
 package com.splicemachine.si.data.hbase;
 
+import com.splicemachine.collections.CloseableIterator;
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.hbase.async.SimpleAsyncScanner;
 import com.splicemachine.si.data.api.STableReader;
-import com.splicemachine.utils.CloseableIterator;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -9,13 +11,18 @@ import java.io.IOException;
 
 public class HTableReader implements STableReader<IHTable, Get, Scan> {
     private final HTableSource tableSource;
+    private final IHTable transactionTable;
 
-    public HTableReader(HTableSource tableSource) {
+    public HTableReader(HTableSource tableSource) throws IOException {
         this.tableSource = tableSource;
+        this.transactionTable = new TxnTable(tableSource.getTable(SIConstants.TRANSACTION_TABLE), SimpleAsyncScanner.HBASE_CLIENT);
     }
 
     @Override
     public IHTable open(String tableName) throws IOException {
+//        if(SIConstants.TRANSACTION_TABLE.equals(tableName))
+//            return transactionTable;
+
         return new HbTable(tableSource.getTable(tableName));
     }
 

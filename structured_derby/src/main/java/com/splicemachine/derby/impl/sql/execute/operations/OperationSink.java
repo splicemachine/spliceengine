@@ -11,15 +11,14 @@ import com.splicemachine.derby.management.XplainTaskReporter;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.KeyEncoder;
-import com.splicemachine.derby.utils.marshall.PairEncoder;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
-import com.splicemachine.stats.Metrics;
-import com.splicemachine.stats.Timer;
-import com.splicemachine.utils.Snowflake;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.metrics.Timer;
+import com.splicemachine.uuid.Snowflake;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -70,6 +69,7 @@ public class OperationSink {
     }
 
     public TaskStats sink(byte[] destinationTable, SpliceRuntimeContext spliceRuntimeContext) throws Exception {
+        boolean isTemp = isTempTable(destinationTable,spliceRuntimeContext);
 				//add ourselves to the task id list
 				List<byte[]> bytes = taskChain.get();
 				if(bytes==null){
@@ -86,7 +86,26 @@ public class OperationSink {
 
 				KVPair.Type dataType = operation instanceof UpdateOperation? KVPair.Type.UPDATE: KVPair.Type.INSERT;
 				dataType = operation instanceof DeleteOperation? KVPair.Type.DELETE: dataType;
-				PairEncoder encoder = new PairEncoder(keyEncoder,rowHash,dataType);
+        PairEncoder encoder;
+        final boolean[] usedTempBuckets;
+        if(isTemp){
+            final SpreadBucket tempSpread = SpliceDriver.driver().getTempTable().getCurrentSpread();
+            usedTempBuckets = new boolean[tempSpread.getNumBuckets()];
+            encoder = new PairEncoder(keyEncoder,rowHash,dataType){
+                @Override
+                public KVPair encode(ExecRow execRow) throws StandardException, IOException {
+                    byte[] key = keyEncoder.getKey(execRow);
+                    usedTempBuckets[tempSpread.bucketIndex(key[0])] = true;
+                    rowEncoder.setRow(execRow);
+                    byte[] row = rowEncoder.encode();
+
+                    return new KVPair(key,row,pairType);
+                }
+            };
+        }else{
+            usedTempBuckets = null;
+				    encoder = new PairEncoder(keyEncoder,rowHash,dataType);
+        }
         try{
             String txnId = getTransactionId(spliceRuntimeContext, destinationTable);
 						writeBuffer = operation.transformWriteBuffer(tableWriter.writeBuffer(destinationTable, txnId,spliceRuntimeContext));
@@ -150,7 +169,11 @@ public class OperationSink {
 								LOG.debug(String.format("Wrote %d rows from operation %s",rowsWritten,operation.getClass().getSimpleName()));
 						}
         }
-				return new TaskStats(totalTimer.getTime().getWallClockTime(),rowsRead,rowsWritten);
+				return new TaskStats(totalTimer.getTime().getWallClockTime(),rowsRead,rowsWritten,usedTempBuckets);
+    }
+
+    private boolean isTempTable(byte[] destinationTable,SpliceRuntimeContext context){
+        return Bytes.equals(destinationTable,context.getTempTable().getTempTableName());
     }
 
 		private String getTransactionId(SpliceRuntimeContext context, byte[] destinationTable) {

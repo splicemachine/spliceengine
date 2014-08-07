@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.temp;
 import com.google.common.primitives.Longs;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.SpreadBucket;
-import com.splicemachine.utils.Snowflake;
+import com.splicemachine.uuid.Snowflake;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;

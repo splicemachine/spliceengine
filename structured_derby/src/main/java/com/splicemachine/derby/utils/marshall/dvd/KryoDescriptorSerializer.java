@@ -38,7 +38,9 @@ public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable 
 						@Override
 						public boolean applies(int typeFormatId) {
 								switch(typeFormatId){
-										case StoredFormatIds.SQL_REF_ID:
+										// Starting with Fuji release, we handle SQL_REF serialization
+										// with RefDescriptorSerilizer class.
+										// case StoredFormatIds.SQL_REF_ID:
 										case StoredFormatIds.SQL_USERTYPE_ID_V3:
 												return true;
 										default:

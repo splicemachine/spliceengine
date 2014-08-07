@@ -77,4 +77,9 @@ public abstract class ForwardingTransactionManager  implements TransactionManage
 		}
 
 		@Override public boolean forbidWrites(String tableName, TransactionId transactionId) throws IOException { return delegate.forbidWrites(tableName, transactionId); }
+
+    @Override
+    public List<TransactionId> getAllActiveTransactionIds() throws IOException {
+        return delegate.getAllActiveTransactionIds();
+    }
 }

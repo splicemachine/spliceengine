@@ -41,7 +41,7 @@ import com.splicemachine.derby.impl.sql.execute.index.UniqueIndexUpsertWriteHand
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.tools.ResettableCountDownLatch;
+import com.splicemachine.concurrent.ResettableCountDownLatch;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.derby.ddl.TentativeDDLDesc;
 import org.apache.derby.impl.sql.execute.ColumnInfo;

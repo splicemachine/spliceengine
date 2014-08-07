@@ -495,7 +495,7 @@ public final class Encoding {
     public static double decodeDouble(byte[] data,int offset,boolean desc){
         return DoubleEncoding.toDouble(data, offset, desc);
     }
-
+ 
     /**
      * Encode a BigDecimal into an ascending, order-preserving byte[].
      *

@@ -1,13 +1,15 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHashPrefix;
+import com.splicemachine.hbase.RowKeyDistributor;
+import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.marshall.BucketHasher;
 import com.splicemachine.derby.utils.marshall.SpreadBucket;
-import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.stats.Metrics;
-import com.splicemachine.stats.TimeView;
+import com.splicemachine.hbase.FilteredRowKeyDistributor;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.metrics.TimeView;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
@@ -27,8 +29,8 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
     private SpliceResultScanner scanner;
     private final byte[] tableName;
     private final Scan scan;
-    private final RowKeyDistributorByHashPrefix keyDistributor;
-	private final MetricFactory metricFactory;
+    private final RowKeyDistributor keyDistributor;
+    private final MetricFactory metricFactory;
     private HTableInterface table;
 
 //		private final Timer remoteReadTimer;
@@ -37,15 +39,27 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
 		private long rowsRead = 0l;
 
     public ClientResultScanner(byte[] tableName,
+                               Scan scan,
+                               boolean bucketed,
+                               MetricFactory metricFactory) {
+        this(tableName, scan, bucketed, metricFactory,null);
+    }
+
+    public ClientResultScanner(byte[] tableName,
 															 Scan scan,
 															 boolean bucketed,
-															 MetricFactory metricFactory) {
+															 MetricFactory metricFactory,
+                               boolean[] usedBuckets) {
 				this.metricFactory = metricFactory;
         this.tableName = tableName;
         this.scan = scan;
         if(bucketed){
 						SpreadBucket bucketingStrategy = SpliceDriver.driver().getTempTable().getCurrentSpread();
-            keyDistributor = new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(bucketingStrategy));
+            RowKeyDistributor distributor = new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(bucketingStrategy));
+            if(usedBuckets!=null)
+                keyDistributor = new FilteredRowKeyDistributor(distributor,usedBuckets);
+            else
+                keyDistributor = distributor;
 				}else
             keyDistributor = null;
 //				this.remoteReadTimer = metricFactory.newWallTimer();
@@ -61,8 +75,12 @@ public class ClientResultScanner extends ReopenableScanner implements SpliceResu
             scanner.close();
         if(keyDistributor==null)
             scanner = new MeasuredResultScanner(table,scan,table.getScanner(scan),metricFactory);
-        else
+        else{
+            Scan[] scans = keyDistributor.getDistributedScans(scan);
             scanner = DistributedScanner.create(table,scan,keyDistributor,metricFactory);
+//            scanner = AsyncDistributedScanner.create(tableName,scans,metricFactory);
+        }
+        scanner.open();
     }
 
 		@Override public TimeView getRemoteReadTime() { return scanner.getRemoteReadTime(); }

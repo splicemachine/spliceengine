@@ -6,6 +6,7 @@ import java.io.ObjectOutput;
 import java.sql.SQLException;
 import java.util.concurrent.ExecutionException;
 
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import com.splicemachine.derby.impl.job.ZkTask;
@@ -55,11 +56,6 @@ public class CreateBackupTask extends ZkTask {
 	    }
 
 	    @Override
-	    public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
-	        super.prepareTask(rce, zooKeeper);
-	    }
-
-	    @Override
 	    protected String getTaskType() {
 	        return "createBackupTask";
 	    }
@@ -80,7 +76,13 @@ public class CreateBackupTask extends ZkTask {
 	    public boolean invalidateOnClose() {
 	        return true;
 	    }
-	    @Override
+
+    @Override
+    public RegionTask getClone() {
+        return new CreateBackupTask(backupItem,jobId);
+    }
+
+    @Override
 	    public void doExecute() throws ExecutionException, InterruptedException {
 	    	if (LOG.isTraceEnabled())
 	    		SpliceLogUtils.trace(LOG, String.format("executing %S backup on region %s",backupItem.getBackup().isIncrementalBackup()?"incremental":"full", region.toString()));	    		

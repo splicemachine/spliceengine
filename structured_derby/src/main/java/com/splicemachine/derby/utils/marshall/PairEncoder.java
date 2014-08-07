@@ -13,9 +13,9 @@ import java.io.IOException;
  * Date: 11/15/13
  */
 public class PairEncoder implements Closeable {
-		private final KeyEncoder keyEncoder;
-		private final DataHash<ExecRow> rowEncoder;
-		private final KVPair.Type pairType;
+		protected final KeyEncoder keyEncoder;
+		protected  final DataHash<ExecRow> rowEncoder;
+		protected final KVPair.Type pairType;
 
 		public PairEncoder(KeyEncoder keyEncoder, DataHash<ExecRow> rowEncoder, KVPair.Type pairType) {
 				this.keyEncoder = keyEncoder;

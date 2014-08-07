@@ -1,6 +1,6 @@
 package com.splicemachine.derby.utils.marshall;
 
-import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHashPrefix;
+import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
 
 /**
  * Implementation of a compact RowKeyDistributorByHashPrefix.Hasher

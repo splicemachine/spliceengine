@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.db;
 
 import javax.security.auth.login.Configuration;
+
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -9,6 +10,7 @@ import java.util.Properties;
 import java.util.concurrent.CancellationException;
 
 import com.google.common.io.Closeables;
+import com.splicemachine.derby.hbase.SpliceMasterObserverRestoreAction;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -37,6 +39,7 @@ import com.splicemachine.derby.impl.ast.JoinSelector;
 import com.splicemachine.derby.impl.ast.JoinConditionVisitor;
 import com.splicemachine.derby.impl.ast.PlanPrinter;
 import com.splicemachine.derby.impl.ast.RepeatedPredicateVisitor;
+import com.splicemachine.derby.impl.ast.RowLocationColumnVisitor;
 import com.splicemachine.derby.impl.ast.SpliceASTWalker;
 import com.splicemachine.derby.impl.ast.UnsupportedFormsDetector;
 import com.splicemachine.derby.impl.job.JobInfo;
@@ -136,9 +139,12 @@ public class SpliceDatabase extends BasicDatabase {
         
         DDLCoordinationFactory.getWatcher().registerLanguageConnectionContext(lctx);
 
+        // If you add a visitor, be careful of ordering.
+        
         List<Class<? extends ISpliceVisitor>> afterOptVisitors = new ArrayList<Class<? extends ISpliceVisitor>>();
         afterOptVisitors.add(UnsupportedFormsDetector.class);
         afterOptVisitors.add(AssignRSNVisitor.class);
+        afterOptVisitors.add(RowLocationColumnVisitor.class);
         afterOptVisitors.add(JoinSelector.class);
         afterOptVisitors.add(JoinConditionVisitor.class);
         afterOptVisitors.add(FindHashJoinColumns.class);
@@ -232,7 +238,7 @@ public class SpliceDatabase extends BasicDatabase {
 			HBaseAdmin admin = null;
 	    	try {
 				HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.RESTORE_TABLE);
-				desc.setValue(SpliceMasterObserver.BACKUP_PATH, restoreDir);
+				desc.setValue(SpliceMasterObserverRestoreAction.BACKUP_PATH, restoreDir);
 				admin = SpliceAccessManager.getAdmin();
 				admin.createTable(desc);
 			} catch (Exception E) {
