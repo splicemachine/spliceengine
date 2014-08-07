@@ -1,8 +1,8 @@
 package com.splicemachine.si.impl.rollforward;
 
-import com.splicemachine.concurrent.MurmurHash;
+import com.splicemachine.hash.Hash64;
+import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.hash.HashFunctions;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.cliffc.high_scale_lib.Counter;
 
@@ -131,21 +131,23 @@ class RegionSegment {
 				private final AtomicIntegerArray registers;
 
 				private final ReadWriteLock readClearLock = new ReentrantReadWriteLock(false);
+        private final Hash64 hashFunction = HashFunctions.murmur2_64(0);
+
 
 				private ConcurrentHyperLogLogCounter(int precision) {
 						this.precision = precision;
 						this.numRegisters = 1<<precision;
-						this.shift = Integer.SIZE-precision;
+						this.shift = Long.SIZE-precision;
 
 						alphaM = computeAlpha(numRegisters);
 						this.registers = new AtomicIntegerArray(numRegisters);
 				}
 
 				void update(long value){
-						int hash = com.splicemachine.utils.hash.MurmurHash.murmur3_32(value, 0);//TODO -sf- switch to a 64-bit hash
-						int register = hash>>>shift;
-						int w = hash << precision;
-						int p = w==0l?1: (Integer.numberOfLeadingZeros(w)+1);
+						long hash = hashFunction.hash(value);
+						int register = (int)(hash>>>shift);
+						long w = hash << precision;
+						int p = w==0l?1: (Long.numberOfLeadingZeros(w)+1);
 
 						boolean success;
 						do{

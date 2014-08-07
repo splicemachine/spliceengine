@@ -5,7 +5,7 @@ import com.splicemachine.si.impl.ClientTxnLifecycleManager;
 import com.splicemachine.si.impl.KeepAliveScheduler;
 import com.splicemachine.si.impl.QueuedKeepAliveScheduler;
 import com.splicemachine.si.impl.UnsupportedLifecycleManager;
-import com.splicemachine.utils.ThreadSafe;
+import com.splicemachine.annotations.ThreadSafe;
 
 /**
  * @author Scott Fines

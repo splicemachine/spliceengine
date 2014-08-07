@@ -12,6 +12,9 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.splicemachine.si.api.TransactionLifecycle;
+import com.splicemachine.si.api.Txn;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -45,8 +48,9 @@ public class Backup implements InternalTable {
 	 * I = In Process
 	 *
 	 */
-	public static enum BackupStatus {S,F,I};
-	public static final String CREATE_SCHEMA = "create schema %s";
+	public static enum BackupStatus {S,F,I}
+
+    public static final String CREATE_SCHEMA = "create schema %s";
 	public static final String CREATE_TABLE = "create table %s.%s (backup_transaction_id bigint not null, " + 
 	"backup_begin_timestamp timestamp not null, backup_end_timestamp timestamp, backup_status char(1) not null, "
 	+ "backup_filesystem varchar(1024) not null, backup_scope char(1) not null, incremental_backup boolean not null, "
@@ -59,7 +63,7 @@ public class Backup implements InternalTable {
 	public static final String TABLE_CHECK = "select tablename from sys.systables where tablename = ? and schemaid = ?";
 
 	
-	private long backupTransactionID;
+	private Txn backupTransaction;
 	private Timestamp beginBackupTimestamp;
 	private Timestamp endBackupTimestamp;	
 	private BackupStatus backupStatus;
@@ -81,17 +85,14 @@ public class Backup implements InternalTable {
 		
 	}
 	
-	public long getBackupTransactionID() {
-		return backupTransactionID;
-	}
-	public String getBackupTransactionIDAsString() {
-		return backupTransactionID+"";
+	public Txn getBackupTransaction() {
+      return backupTransaction;
 	}
 
-	public void setBackupTransactionID(long backupTransactionID) {
-		this.backupTransactionID = backupTransactionID;
-	}
 
+    public void setBackupTransaction(Txn txn){
+        this.backupTransaction = txn;
+    }
 
 	public Timestamp getBeginBackupTimestamp() {
 		return beginBackupTimestamp;
@@ -165,7 +166,7 @@ public class Backup implements InternalTable {
 		try {
 			connection = SpliceAdmin.getDefaultConn();
 			PreparedStatement preparedStatement = connection.prepareStatement(String.format(INSERT_START_BACKUP,DEFAULT_SCHEMA,DEFAULT_TABLE));
-			preparedStatement.setLong(1, getBackupTransactionID());
+			preparedStatement.setLong(1, backupTransaction.getTxnId());
 			preparedStatement.setTimestamp(2, getBeginBackupTimestamp());
 			preparedStatement.setString(3, getBackupStatus().toString());
 			preparedStatement.setString(4, getBackupFilesystem());
@@ -190,7 +191,7 @@ public class Backup implements InternalTable {
 			PreparedStatement preparedStatement = connection.prepareStatement(String.format(UPDATE_BACKUP_STATUS,DEFAULT_SCHEMA,DEFAULT_TABLE));
 			preparedStatement.setString(1, getBackupStatus().toString());
 			preparedStatement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
-			preparedStatement.setLong(3, getBackupTransactionID());
+			preparedStatement.setLong(3, backupTransaction.getTxnId());
 			preparedStatement.executeUpdate();
 			return;
 		} catch (SQLException e) {
@@ -214,60 +215,64 @@ public class Backup implements InternalTable {
 	 */	
 	public static Backup createBackup(String backupFileSystem, BackupScope backupScope, long incrementalParentBackupID) throws SQLException {
 			try {
-	            TransactionId transactionId = HTransactorFactory.getTransactionManager().beginTransaction(true);
-	            if (incrementalParentBackupID > 0 && incrementalParentBackupID >= transactionId.getId())
-	            	throw new SQLException(String.format("createBackup attempted to create a backup with an incremental parent id timestamp larger than the current timestamp {incrementalParentBackupID=%d,transactionID=%d",incrementalParentBackupID,transactionId));
-	            	
-	            Backup backup = new Backup();
-	            backup.setBackupTransactionID(transactionId.getId());
-	            backup.setBeginBackupTimestamp(new Timestamp(System.currentTimeMillis()));
-	            backup.setBackupScope(backupScope);
-	            backup.setIncrementalBackup(incrementalParentBackupID >= 0);
-	            backup.setIncrementalParentBackupID(incrementalParentBackupID);
-	            backup.setBackupStatus(BackupStatus.I);			
-	            backup.setBackupFilesystem(backupFileSystem);
-				return backup;
-			} 
-			catch (IOException ioe) {
-				 throw new SQLException("Could not obtain timestamp",ioe);
-			}
-	}		
-	/**
-	 * Mark the backup status as F
-	 * 
-	 */
-	public void markBackupFailed() {
-		this.setBackupStatus(BackupStatus.F);
-	}
-	/**
-	 * Mark the backup status as S
-	 */
-	public void markBackupSuccesful() {
-		this.setBackupStatus(BackupStatus.S);
-	}
+//          TransactionId transactionId = HTransactorFactory.getTransactionManager().beginTransaction(true);
+          Txn backupTxn = TransactionLifecycle.getLifecycleManager().beginTransaction();
 
-	public static void createBackupTable() throws SQLException {
-		createBackupTable(DEFAULT_SCHEMA,DEFAULT_TABLE);
-	}
-	
-	public static void validateBackupSchema() throws SQLException {
-		Connection connection = null;
-		try {
-			connection = SpliceAdmin.getDefaultConn();
-			PreparedStatement preparedStatement1 = connection.prepareStatement(SCHEMA_CHECK);
-			preparedStatement1.setString(1,DEFAULT_SCHEMA);
-			ResultSet schemaResultSet = preparedStatement1.executeQuery();
-			if (schemaResultSet.next()) {
-				String schemaID = schemaResultSet.getString(1);
-				PreparedStatement preparedStatement2 = connection.prepareStatement(TABLE_CHECK);
-				preparedStatement2.setString(1, DEFAULT_TABLE);
-				preparedStatement2.setString(2, schemaID);
-				ResultSet backupResultSet = preparedStatement2.executeQuery();
-				if (!backupResultSet.next())
-					Backup.createBackupTable();
-				PreparedStatement preparedStatement3 = connection.prepareStatement(TABLE_CHECK);
-				preparedStatement3.setString(1, BackupItem.DEFAULT_TABLE);
-				preparedStatement3.setString(2, schemaID);
+          if (incrementalParentBackupID > 0 && incrementalParentBackupID >= backupTxn.getTxnId())
+              throw new SQLException(String.format("createBackup attempted to create a backup with an incremental " +
+                      "parent id timestamp larger than the current timestamp {incrementalParentBackupID=%d,transactionID=%d",incrementalParentBackupID,backupTxn.getTxnId()));
+          backupTxn.elevateToWritable(null);
+
+          Backup backup = new Backup();
+          backup.setBackupTransaction(backupTxn);
+          backup.setBeginBackupTimestamp(new Timestamp(System.currentTimeMillis()));
+          backup.setBackupScope(backupScope);
+          backup.setIncrementalBackup(incrementalParentBackupID >= 0);
+          backup.setIncrementalParentBackupID(incrementalParentBackupID);
+          backup.setBackupStatus(BackupStatus.I);
+          backup.setBackupFilesystem(backupFileSystem);
+          return backup;
+      }
+      catch (IOException ioe) {
+          throw new SQLException("Could not obtain timestamp",ioe);
+      }
+  }
+    /**
+     * Mark the backup status as F
+     *
+     */
+    public void markBackupFailed() {
+        this.setBackupStatus(BackupStatus.F);
+    }
+    /**
+     * Mark the backup status as S
+     */
+    public void markBackupSuccesful() {
+        this.setBackupStatus(BackupStatus.S);
+    }
+
+    public static void createBackupTable() throws SQLException {
+        createBackupTable(DEFAULT_SCHEMA,DEFAULT_TABLE);
+    }
+
+    public static void validateBackupSchema() throws SQLException {
+        Connection connection = null;
+        try {
+            connection = SpliceAdmin.getDefaultConn();
+            PreparedStatement preparedStatement1 = connection.prepareStatement(SCHEMA_CHECK);
+            preparedStatement1.setString(1,DEFAULT_SCHEMA);
+            ResultSet schemaResultSet = preparedStatement1.executeQuery();
+            if (schemaResultSet.next()) {
+                String schemaID = schemaResultSet.getString(1);
+                PreparedStatement preparedStatement2 = connection.prepareStatement(TABLE_CHECK);
+                preparedStatement2.setString(1, DEFAULT_TABLE);
+                preparedStatement2.setString(2, schemaID);
+                ResultSet backupResultSet = preparedStatement2.executeQuery();
+                if (!backupResultSet.next())
+                    Backup.createBackupTable();
+                PreparedStatement preparedStatement3 = connection.prepareStatement(TABLE_CHECK);
+                preparedStatement3.setString(1, BackupItem.DEFAULT_TABLE);
+                preparedStatement3.setString(2, schemaID);
 
 				ResultSet backupItemResultSet = preparedStatement3.executeQuery();
 				if (!backupItemResultSet.next())
@@ -369,7 +374,8 @@ public class Backup implements InternalTable {
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		backupTransactionID = in.readLong();
+      if(true)
+          throw new UnsupportedOperationException("DECODE TRANSACTION");
 		backupStatus = BackupStatus.valueOf(in.readUTF());
 		backupFilesystem = in.readUTF();
 		backupScope = BackupScope.valueOf(in.readUTF());
@@ -379,7 +385,8 @@ public class Backup implements InternalTable {
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeLong(backupTransactionID);
+      if(true)
+          throw new UnsupportedOperationException("ENCODE TRANSACTION");
 		out.writeUTF(backupStatus.toString());
 		out.writeUTF(backupFilesystem);
 		out.writeUTF(backupScope.toString());

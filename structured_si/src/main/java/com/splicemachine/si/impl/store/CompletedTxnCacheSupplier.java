@@ -1,5 +1,7 @@
 package com.splicemachine.si.impl.store;
 
+import com.splicemachine.hash.Hash32;
+import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.si.api.TransactionCacheManagement;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
@@ -31,6 +33,8 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 		private final AtomicLong hits = new AtomicLong();
 		private final AtomicLong requests = new AtomicLong();
 		private final AtomicLong evicted = new AtomicLong();
+
+    private final Hash32 hashFunction = HashFunctions.murmur3(0);
 
 		@SuppressWarnings("unchecked")
 		public CompletedTxnCacheSupplier(TxnSupplier delegate, int maxSize, int concurrencyLevel) {
@@ -76,7 +80,7 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 		@Override
 		public Txn getTransaction(long txnId, boolean getDestinationTables) throws IOException {
 				requests.incrementAndGet();
-				int hash = MurmurHash.murmur3_32(txnId,0);
+				int hash = hashFunction.hash(txnId);
 
         int pos = hash & (segments.length-1); //find the lock for this hash
         Txn txn = segments[pos].get(txnId);
@@ -100,7 +104,7 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 
 		@Override
 		public boolean transactionCached(long txnId) {
-				int hash = MurmurHash.murmur3_32(txnId,0);
+				int hash = hashFunction.hash(txnId);
 
 				int pos = hash & (segments.length-1); //find the lock for this hash
 				Txn txn = segments[pos].get(txnId);
@@ -111,7 +115,7 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 		public void cache(Txn toCache) {
 				if(toCache.getState()== Txn.State.ACTIVE) return; //cannot cache incomplete transactions
 				long txnId = toCache.getTxnId();
-				int hash = MurmurHash.murmur3_32(txnId,0);
+				int hash = hashFunction.hash(txnId);
 
 				int pos = hash & (segments.length-1); //find the lock for this hash
 				segments[pos].put(toCache);
@@ -120,7 +124,7 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
     @Override
     public Txn getTransactionFromCache(long txnId) {
         requests.incrementAndGet();
-        int hash = MurmurHash.murmur3_32(txnId,0);
+        int hash =hashFunction.hash(txnId);
 
         int pos = hash & (segments.length-1); //find the lock for this hash
         Txn txn = segments[pos].get(txnId);

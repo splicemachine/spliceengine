@@ -92,7 +92,7 @@ public class SinkTask extends ZkTask {
 				for(Map.Entry<String,byte[]>attribute:scan.getAttributesMap().entrySet()){
 						scanCopy.setAttribute(attribute.getKey(),attribute.getValue());
 				}
-				return new SinkTask(jobId,scanCopy,parentTxnId,parentTaskId,readOnly,getPriority());
+				return new SinkTask(jobId,scanCopy,parentTaskId,getPriority());
 		}
 
 		@Override public boolean isSplittable() { return true; }

@@ -1,6 +1,7 @@
 package com.splicemachine.si.api;
 
 import com.splicemachine.hbase.KVPair;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
@@ -21,6 +22,13 @@ import java.io.IOException;
  * Date: 3/14/14
  */
 public interface ConstraintChecker {
+    public static final ConstraintChecker NO_CONSTRAINT = new ConstraintChecker() {
+        private final OperationStatus SUCCESS = new OperationStatus(HConstants.OperationStatusCode.SUCCESS);
+        @Override
+        public OperationStatus checkConstraint(KVPair mutation, Result existingRow) throws IOException {
+            return SUCCESS;
+        }
+    };
 
 		/**
 		 * Checks the constraint against the current row and the current modification.

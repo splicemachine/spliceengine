@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.ActiveWriteTxn;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.ResultDescription;
@@ -186,7 +188,9 @@ public class WriteToSpliceTest{
 			kv.setValue(bdata);
 			System.out.println(bdata);
 			WriteCoordinator wc = WriteCoordinator.create(writeop.config);
-			RecordingCallBuffer callBuffer = wc.writeBuffer(Bytes.toBytes("3024"), sqlUtil.getTransactionID(), 1);
+        long transactionID = sqlUtil.getTransactionID();
+        Txn txn = new ActiveWriteTxn(transactionID,transactionID);
+        RecordingCallBuffer callBuffer = wc.writeBuffer(Bytes.toBytes("3024"), txn, 1);
 			//callBuffer.add(kv);
 			callBuffer.close();
 			wc.shutdown();

@@ -38,8 +38,6 @@ public class NonTransactionalCounterJob implements CoprocessorJob{
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
         return Collections.singletonMap(new NonTransactionalCounterTask(operationId,
-                1,
-                true,
                 destinationDirectory),
                 Pair.newPair(HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW));
     }

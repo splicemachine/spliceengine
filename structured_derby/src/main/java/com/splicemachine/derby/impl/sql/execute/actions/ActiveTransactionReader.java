@@ -25,6 +25,7 @@ import com.splicemachine.hbase.async.SortedGatheringScanner;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.Task;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.metrics.Metrics;
 import org.apache.hadoop.hbase.HConstants;
@@ -171,8 +172,9 @@ public class ActiveTransactionReader {
             return SpliceAccessManager.getHTable(SIConstants.TRANSACTION_TABLE_BYTES);
         }
 
-        @Override public TransactionId getParentTransaction() { return null; }
-        @Override public boolean isReadOnly() { return true; }
+        @Override public byte[] getDestinationTable() { return SIConstants.TRANSACTION_TABLE_BYTES; }
+
+        @Override public Txn getTxn() { return null; }
 
         @Override
         public <T extends Task> Pair<T, Pair<byte[], byte[]>> resubmitTask(T originalTask, byte[] taskStartKey, byte[] taskEndKey) throws IOException {

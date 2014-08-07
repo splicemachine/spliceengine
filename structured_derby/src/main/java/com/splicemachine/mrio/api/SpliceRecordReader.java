@@ -109,7 +109,7 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 			}
 		
 		try {
-			String transaction_id = conf.get(SpliceConstants.SPLICE_TRANSACTION_ID);
+			long transaction_id = Long.parseLong(conf.get(SpliceConstants.SPLICE_TRANSACTION_ID));
 			buildTableScannerBuilder(transaction_id);
 			tableScanner = this.builder.build();
 			//tableScanner.setColumnTypes(colTypes);
@@ -216,7 +216,7 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
      * rowEncodingMap and rowDecodingMap are set within this function 
      * in order to parse primary key correctly
      */
-    private void buildTableScannerBuilder(String txsId) throws NumberFormatException, StandardException
+    private void buildTableScannerBuilder(long txsId) throws NumberFormatException, StandardException
     {  	
 		int[] rowEncodingMap;
 		

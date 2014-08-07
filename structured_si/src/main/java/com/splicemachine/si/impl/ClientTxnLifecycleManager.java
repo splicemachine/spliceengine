@@ -2,7 +2,7 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.*;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.ThreadSafe;
+import com.splicemachine.annotations.ThreadSafe;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.log4j.Logger;
 

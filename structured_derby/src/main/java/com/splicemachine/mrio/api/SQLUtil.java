@@ -1,18 +1,7 @@
 package com.splicemachine.mrio.api;
 
-import java.lang.reflect.Array;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.sql.*;
+import java.util.*;
 
 
 public class SQLUtil {
@@ -192,15 +181,15 @@ public class SQLUtil {
 	   * For every map job, there should be a different transactionID.
 	   * 
 	   * */
-	  public String getTransactionID()
+	  public long getTransactionID()
 	  {
-		  String trxId = ""; 
+		  long trxId = -1;
 		  try {
 			
 			resultSet = connect.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
 			while(resultSet.next())
 			{
-				trxId = String.valueOf(resultSet.getInt(1));
+				trxId = resultSet.getLong(1);
 			}
 			
 		  } catch (SQLException e) {
@@ -231,7 +220,7 @@ public class SQLUtil {
 		  ResultSet rs3 = ps.executeQuery();
 		  rs3.next();
 		  long childTxsID = rs3.getLong(1);
-		  return new Long(childTxsID).toString();
+        return childTxsID;
 	  }
 	  
 	  private void close() {

@@ -41,11 +41,24 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
      * Logs the start of the observer.
      */
     @Override
-    public void start(CoprocessorEnvironment e) throws IOException {
+    public void start(final CoprocessorEnvironment e) throws IOException {
         SpliceLogUtils.info(LOG, "Starting TransactionalManagerRegionObserver CoProcessor %s", SpliceOperationRegionObserver.class);
 
-        //TODO -sf- implement RollForward
-        this.txnRegion = TransactionalRegions.get(((RegionCoprocessorEnvironment)e).getRegion(), SegmentedRollForward.NOOP_ACTION);
+        SpliceDriver.driver().registerService(new SpliceDriver.Service() {
+            @Override
+            public boolean start() {
+                //TODO -sf- implement RollForward
+                HRegion region = ((RegionCoprocessorEnvironment) e).getRegion();
+                SpliceOperationRegionObserver.this.txnRegion = TransactionalRegions.get(region, SegmentedRollForward.NOOP_ACTION);
+                return true;
+            }
+
+            @Override
+            public boolean shutdown() {
+                return false;
+            }
+        });
+        SpliceLogUtils.info(LOG, "Started CoProcessor %s", SpliceOperationRegionObserver.class);
         super.start(e);
     }
 

@@ -1,10 +1,11 @@
 package com.splicemachine.si.impl.rollforward;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.hash.Hash32;
+import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.si.api.RollForward;
 import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.ThreadSafe;
-import com.splicemachine.utils.hash.MurmurHash;
+import com.splicemachine.annotations.ThreadSafe;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
@@ -48,9 +49,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * Date: 7/2/14
  */
 public class SegmentedRollForward implements RollForward {
-
-
-
     public static class Context{
 				private final RegionSegment segment;
 
@@ -85,6 +83,7 @@ public class SegmentedRollForward implements RollForward {
 		private final Action action;
 
 		private final AtomicLong updateCount = new AtomicLong(0l);
+    private final Hash32 hashFunction = HashFunctions.murmur3(0);
 
 		public SegmentedRollForward(final HRegion region,
 																final ScheduledExecutorService rollForwardScheduler,
@@ -189,7 +188,7 @@ public class SegmentedRollForward implements RollForward {
 
 		@Override
 		public void recordResolved(ByteSlice rowKey, long txnId) {
-				int segment = MurmurHash.murmur3_32(rowKey.array(),rowKey.offset(),rowKey.length(),0) & (segments.length-1);
+				int segment = hashFunction.hash(rowKey.array(),rowKey.offset(),rowKey.length()) & (segments.length-1);
 				RegionSegment regionSegment = segments[segment];
 				regionSegment.rowResolved(); //mark it resolved so that we keep track
 		}

@@ -4,10 +4,10 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lmax.disruptor.*;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
+import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.ThreadSafe;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 
@@ -17,6 +17,12 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Read-Resolver which asynchronously submits regions for execution, discarding
+ * any entries which exceed the size of the processing queue.
+ *
+ * This implementation uses an LMAX disruptor to asynchronously pass Read-resolve events
+ * to a background thread, which in turn uses a SynchronousReadResolver to actually perform the resolution.
+ *
+ * @see com.splicemachine.si.impl.readresolve.SynchronousReadResolver
  * @author Scott Fines
  * Date: 7/1/14
  */

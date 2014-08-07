@@ -222,8 +222,4 @@ public class ByteSlice implements Externalizable {
 		public void set(ByteSlice newData) {
 				set(newData.buffer,newData.offset,newData.length);
 		}
-
-    public void set(byte[] bytes) {
-        set(bytes,0,bytes.length);
-    }
 }

@@ -51,7 +51,7 @@ public class CreateBackupTask extends ZkTask {
 	    public CreateBackupTask() { }
 
 	    public CreateBackupTask(BackupItem backupItem, String jobId) {
-	    	super(jobId, OperationJob.operationTaskPriority,backupItem.getBackup().getBackupTransactionIDAsString(),false);
+	    	super(jobId, OperationJob.operationTaskPriority);
 	    	this.backupItem = backupItem;
 	    }
 

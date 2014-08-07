@@ -30,11 +30,11 @@ public interface Transactor<Table, Mutation extends OperationWithAttributes,Put 
 																		 byte[] packedColumnBytes,
 																		 Collection<KVPair> toProcess,
 																		 long transactionId,
-																		 ConstraintChecker constraintChecker) throws IOException;
+																		 ConstraintChecker constraintChecker ) throws IOException;
 
 		OperationStatus[] processKvBatch(Table table, RollForward rollForwardQueue, Txn txnId,
 																		 byte[] family, byte[] qualifier,
-																		 Collection<KVPair> mutations,ConstraintChecker constraintChecker,boolean ignoreWriteWrite) throws IOException;
+																		 Collection<KVPair> mutations,ConstraintChecker constraintChecker) throws IOException;
 
     /**
      * Create an object to keep track of the state of an HBase table compaction operation.

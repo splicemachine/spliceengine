@@ -10,6 +10,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
+import com.splicemachine.si.api.Txn;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -85,13 +86,10 @@ public class BackupItem implements InternalTable {
 		FileSystem fileSystem = FileSystem.get(URI.create(getBackupItemFilesystem()),SpliceConstants.config);
 		fileSystem.mkdirs(new Path(getBackupItemFilesystem()));		
 	}
-	public Long getBackupTransactionID() {
-		return backup.getBackupTransactionID();
-	}
-	public String getBackupTransactionIDAsString() {
-		return backup.getBackupTransactionIDAsString();
-	}
-	
+    public Txn getBackupTransaction(){
+        return backup.getBackupTransaction();
+    }
+
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(backup); // TODO Needs to be replaced with protobuf
@@ -109,7 +107,7 @@ public class BackupItem implements InternalTable {
 		try {
 			connection = SpliceAdmin.getDefaultConn();
 			PreparedStatement preparedStatement = connection.prepareStatement(String.format(INSERT_BACKUP_ITEM,DEFAULT_SCHEMA,DEFAULT_TABLE));
-			preparedStatement.setLong(1, getBackupTransactionID());
+			preparedStatement.setLong(1, getBackupTransaction().getTxnId());
 			preparedStatement.setString(2, getBackupItem());
 			preparedStatement.setTimestamp(3, getBackupItemBeginTimestamp());	
 			preparedStatement.execute();

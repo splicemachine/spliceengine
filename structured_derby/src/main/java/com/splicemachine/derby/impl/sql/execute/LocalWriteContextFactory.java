@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import com.carrotsearch.hppc.BitSet;
 import com.google.common.collect.Lists;
+import com.splicemachine.concurrent.ResettableCountDownLatch;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.sql.execute.AlterTable.DropColumnHandler;
@@ -13,7 +14,6 @@ import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.DDLFilter;
-import com.splicemachine.tools.ResettableCountDownLatch;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.catalog.UUID;
