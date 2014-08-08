@@ -7,8 +7,8 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 
 import com.splicemachine.hbase.writer.WriteStats;
-import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.stats.Metrics;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.Metrics;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;

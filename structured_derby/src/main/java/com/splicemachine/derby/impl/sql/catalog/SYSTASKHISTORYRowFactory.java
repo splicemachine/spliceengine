@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.derby.iapi.catalog.TaskHistoryDescriptor;
 import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.stats.Metrics;
+import com.splicemachine.metrics.Metrics;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.services.uuid.UUIDFactory;
