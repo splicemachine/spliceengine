@@ -21,20 +21,11 @@
 
 package org.apache.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-
-import org.apache.derby.impl.sql.execute.MaxMinAggregator;
-
-import org.apache.derby.catalog.TypeDescriptor;
-import org.apache.derby.iapi.types.TypeId;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.NumberDataValue;
-
-import org.apache.derby.iapi.error.StandardException;
-
-import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.reference.ClassName;
+import org.apache.derby.iapi.services.context.ContextService;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.TypeId;
 
 /**
  * Defintion for the MAX()/MIN() aggregates.
@@ -44,7 +35,8 @@ public class MaxMinAggregateDefinition
 		implements AggregateDefinition 
 {
 	private boolean isMax;
-  
+    private boolean isWindowFunction;
+
 	/**
 	 * Niladic constructor.  Does nothing.  For ease
 	 * Of use, only.
@@ -84,7 +76,12 @@ public class MaxMinAggregateDefinition
 		if (compType.orderable(
 						lcc.getLanguageConnectionFactory().getClassFactory()))
 		{
-			aggregatorClass.append(ClassName.MaxMinAggregator);
+            if (isWindowFunction) {
+                aggregatorClass.append(ClassName.WindowMaxMinAggregator);
+            }
+            else {
+                aggregatorClass.append(ClassName.MaxMinAggregator);
+            }
 			
 			return dts;
 		}
@@ -108,4 +105,12 @@ public class MaxMinAggregateDefinition
 	{
 		return(isMax);
 	}
+
+    public final boolean isWindowFunction() {
+        return this.isWindowFunction;
+    }
+
+    public void setWindowFunction(boolean isWindowFunction) {
+        this.isWindowFunction = isWindowFunction;
+    }
 }

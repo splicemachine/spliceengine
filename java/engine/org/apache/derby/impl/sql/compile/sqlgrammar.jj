@@ -2054,6 +2054,28 @@ public class SQLParser
         }
     }
 
+    /**
+     * Ranking window functions get their operand column from from the ORDER BY clause.<br/>
+     * Here, we inspect and validate the window ORDER BY clause (within OVER clause) to find
+     * the column with which to create the ranking function node.
+     *
+     * @param window The QueryTreeNode that represents the parsed WindowDefinitionNode.
+     * @return the column reference that is the first item in the window's OrderByList.
+     */
+    private ValueNode columnRefForRankFunct(QueryTreeNode window) throws StandardException {
+        ValueNode columnRef = null;
+        OrderByList orderByList = ((WindowDefinitionNode)window).getOrderByList();
+        if (orderByList == null || orderByList.size() == 0) {
+            SanityManager.THROWASSERT("Missing required ORDER BY clause for ranking window function.");
+        }
+        if (orderByList.size() > 1) {
+            SanityManager.THROWASSERT("ORDER BY clause for ranking window function is restricted to one column only.");
+        }
+
+        columnRef = orderByList.getOrderByColumn(0).getColumnExpression();
+
+        return columnRef;
+    }
 }
 
 PARSER_END(SQLParser)
@@ -9938,6 +9960,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 {
 	ValueNode winOrAgg;
 	QueryTreeNode window = null;
+	ValueNode rankColRef = null;
 }
 {
 	<COUNT> <LEFT_PAREN>
@@ -9957,6 +9980,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 		<RIGHT_PAREN> [ window = overClause() ]
 	{
 		if (window != null) {
+		    ((AggregateNode)winOrAgg).setWindowFunction(true);
 			winOrAgg =  (ValueNode) nodeFactory.getNode(
 				C_NodeTypes.AGGREGATE_WINDOW_FUNCTION_NODE,
 				window,
@@ -9970,6 +9994,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 	winOrAgg = generalAggregate() [ window = overClause() ]
 	{
 		if (window != null) {
+            ((AggregateNode)winOrAgg).setWindowFunction(true);
 			winOrAgg =  (ValueNode) nodeFactory.getNode(
 				C_NodeTypes.AGGREGATE_WINDOW_FUNCTION_NODE,
 				window,
@@ -9982,30 +10007,54 @@ windowOrAggregateFunctionNode() throws StandardException :
 |
 	<DENSERANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
 	{
+	    rankColRef = columnRefForRankFunct(window);
+        winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
+                            rankColRef,
+                            DenseRankFunctionDefinition.class,
+                            Boolean.FALSE,
+                            "DENSE_RANK",
+                            getContextManager());
+
 		winOrAgg = (ValueNode) nodeFactory.getNode(
 			C_NodeTypes.DENSERANK_FUNCTION_NODE,
-			null,
 			window,
+			winOrAgg,
 			getContextManager());
 		return winOrAgg;
 	}
 |
 	<RANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
 	{
+	    rankColRef = columnRefForRankFunct(window);
+        winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
+                            rankColRef,
+                            RankFunctionDefinition.class,
+                            Boolean.FALSE,
+                            "RANK",
+                            getContextManager());
+
 		winOrAgg = (ValueNode) nodeFactory.getNode(
 			C_NodeTypes.RANK_FUNCTION_NODE,
-			null,
 			window,
+			winOrAgg,
 			getContextManager());
 		return winOrAgg;
 	}
 |
 	<ROWNUMBER> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
 	{
+	    rankColRef = columnRefForRankFunct(window);
+        winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
+                            rankColRef,
+                            RowNumberFunctionDefinition.class,
+                            Boolean.FALSE,
+                            "ROW_NUMBER",
+                            getContextManager());
+
 		winOrAgg = (ValueNode) nodeFactory.getNode(
 			C_NodeTypes.ROW_NUMBER_FUNCTION_NODE,
-			null,
 			window,
+			winOrAgg,
 			getContextManager());
 		return winOrAgg;
 	}
@@ -10018,7 +10067,8 @@ overClause() throws StandardException :
 	String windowRef;
 	Partition partitionCols = null;
 	OrderByList orderCols = null;
-	WindowFrameDefinition frameDefn = null;
+	// Default. RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+	WindowFrameDefinition frameDefn = new WindowFrameDefinition();
 }
 {
   LOOKAHEAD({ getToken(2).kind == LEFT_PAREN ||
@@ -10049,77 +10099,89 @@ overClause() throws StandardException :
 }
 
 WindowFrameDefinition
-frameDefinitionClause():
+frameDefinitionClause() throws StandardException:
 {
 	WindowFrameDefinition frameDefn = null;
-	WindowFrameDefinition.Window window = null;
-	WindowFrameDefinition.FrameType startFrame = null;
-	WindowFrameDefinition.FrameType endFrame = null;
+	WindowFrameDefinition.FrameMode frameMode = null;
+	WindowFrameDefinition.FrameType frameStart = null;
+	// If no frameEnd given, defaults to CURRENT ROW
+	WindowFrameDefinition.FrameType frameEnd = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.CURRENT_ROW, WindowFrameDefinition.FrameType.NON_VAL);
 }
 {
-   ( window = frameClause() ( startFrame = frameStartEnd() |
-   <BETWEEN> startFrame = frameStartEnd() <AND> endFrame = frameStartEnd() ) )
+   ( frameMode = frameClause() ( frameStart = frameStartEnd() |
+        ( <BETWEEN> frameStart = frameStartEnd() <AND> frameEnd = frameStartEnd() )
+        ) )
    {
-       if (startFrame != null) {
-           frameDefn = new WindowFrameDefinition(window, startFrame, endFrame);
+       if (frameStart != null) {
+           frameDefn = new WindowFrameDefinition(frameMode, frameStart, frameEnd);
        }
        return frameDefn;
    }
 }
 
-WindowFrameDefinition.Window
+WindowFrameDefinition.FrameMode
 frameClause():
 {
-    WindowFrameDefinition.Window window = null;
+    WindowFrameDefinition.FrameMode frameMode = null;
 }
 {
     ( <ROWS>
-      { window = WindowFrameDefinition.Window.ROWS; } |
+      { frameMode = WindowFrameDefinition.FrameMode.ROWS; } |
       <RANGE>
-      { window = WindowFrameDefinition.Window.RANGE; } )
+      { frameMode = WindowFrameDefinition.FrameMode.RANGE; } )
       {
-          return window;
+          return frameMode;
       }
 }
 
 WindowFrameDefinition.FrameType
-frameStartEnd():
+frameStartEnd() throws StandardException:
 {
-    WindowFrameDefinition.FrameType frame = null;
-    int value = -1;
+    WindowFrameDefinition.FrameType frameType = null;
+    // rowOffset only makes sense for <n> PRECEDING or <n> FOLLOWING and n>0; n=0 implies CURRENT ROW
+    int rowOffset = WindowFrameDefinition.FrameType.NON_VAL;
 }
 {
   ( <CURRENT> <ROW>
-     { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.CURRENT_ROW, value); } |
-  value = nonNegativeInt()
-      (
+     { frameType = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.CURRENT_ROW, rowOffset); } |
+  ( rowOffset = rowOffset()
+        (
           <PRECEDING>
-            { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.PRECEDING, value); }  |
+            { frameType = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.PRECEDING, rowOffset); }  |
           <FOLLOWING>
-            { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.FOLLOWING, value); }
-      )  |
+            { frameType = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.FOLLOWING, rowOffset); }
+        )
+  ) |
   <UNBOUNDED>
       (
           <PRECEDING>
-            { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.UNBOUNDED_PRECEDING, value); } |
+            { frameType = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.UNBOUNDED_PRECEDING, rowOffset); } |
           <FOLLOWING>
-            { frame = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.UNBOUNDED_FOLLOWING, value); }
+            { frameType = new WindowFrameDefinition.FrameType(WindowFrameDefinition.Frame.UNBOUNDED_FOLLOWING, rowOffset); }
       )
   )
   {
-     return frame;
+     return frameType;
   }
 }
 
 int
-nonNegativeInt():
+rowOffset() throws StandardException:
 {
-    Token t;
+    Token intToken;
 }
 {   // non-negative whole numbers: 0 or (1-9)*
-    t = < NON_NEGATIVE_INTEGER: "0" | ["1"-"9"] (<DIGIT>)* >
+//    intToken = <NON_NEGATIVE_INT: "0" | ["1"-"9"] (<DIGIT>)*>
+    intToken = <EXACT_NUMERIC>
     {
-        return Integer.parseInt(t.image);
+        int num = WindowFrameDefinition.FrameType.NON_VAL;
+        try {
+            num = Integer.parseInt(intToken.image);
+        } catch (NumberFormatException nfe) {
+            throw StandardException.newException(
+                   SQLState.LANG_INVALID_INTEGER_LITERAL, intToken.image);
+        }
+        return num;
     }
 }
 

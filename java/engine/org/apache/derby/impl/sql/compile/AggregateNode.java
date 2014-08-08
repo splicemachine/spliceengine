@@ -65,6 +65,7 @@ public class AggregateNode extends UnaryOperatorNode
 	private ResultColumn			generatedRC;
 	private ColumnReference			generatedRef;
 
+    private boolean                 isWindowFunction;
 	/**
 	 * Intializer.  Used for user defined and internally defined aggregates.
 	 * Called when binding a StaticMethodNode that we realize is an aggregate.
@@ -459,61 +460,69 @@ public class AggregateNode extends UnaryOperatorNode
 	{
 		if ( uad == null )
 	    {
-			Class theClass = aggregateDefinitionClass;
+            Class theClass = aggregateDefinitionClass;
 
-			// get the class
-			if (theClass == null)
-			{
-			    String aggClassName = aggregateDefinitionClassName;
-			    verifyClassExist(aggClassName);
+            // get the class
+            if (theClass == null)
+            {
+                String aggClassName = aggregateDefinitionClassName;
+                verifyClassExist(aggClassName);
 
-			    try
-			    {
-			         theClass = classInspector.getClass(aggClassName);
-			    }
-			    catch (Throwable t)
-			    {
-			         throw StandardException.unexpectedUserException(t);
-			    }
-			}
+                try
+                {
+                    theClass = classInspector.getClass(aggClassName);
+                }
+                catch (Throwable t)
+                {
+                    throw StandardException.unexpectedUserException(t);
+                }
+            }
 
 
-		// get an instance
-		Object instance = null;
-		try
-		{
-			instance = theClass.newInstance();
-		}
-		catch (Throwable t)
-		{
-			throw StandardException.unexpectedUserException(t);
-		}
+            // get an instance
+            Object instance = null;
+            try
+            {
+                instance = theClass.newInstance();
+            }
+            catch (Throwable t)
+            {
+                throw StandardException.unexpectedUserException(t);
+            }
 
-		if (!(instance instanceof AggregateDefinition))
-		{
-			throw StandardException.newException(SQLState.LANG_INVALID_USER_AGGREGATE_DEFINITION2, aggregateDefinitionClassName);
-		}
+            if (!(instance instanceof AggregateDefinition))
+            {
+                throw StandardException.newException(SQLState.LANG_INVALID_USER_AGGREGATE_DEFINITION2, aggregateDefinitionClassName);
+            }
 
-		if (instance instanceof MaxMinAggregateDefinition)
-		{
-			MaxMinAggregateDefinition temp = (MaxMinAggregateDefinition)instance;
-			if (aggregateName.equals("MAX"))
-				temp.setMaxOrMin(true);
-			else
-				temp.setMaxOrMin(false);
-		}
+            if (instance instanceof MaxMinAggregateDefinition)
+            {
+                MaxMinAggregateDefinition temp = (MaxMinAggregateDefinition)instance;
+                if (aggregateName.equals("MAX"))
+                    temp.setMaxOrMin(true);
+                else
+                    temp.setMaxOrMin(false);
+                temp.setWindowFunction(isWindowFunction);
+            }
 
-		if (instance instanceof SumAvgAggregateDefinition)
-		{
-			SumAvgAggregateDefinition temp1 = (SumAvgAggregateDefinition)instance;
-			if (aggregateName.equals("SUM"))
-				temp1.setSumOrAvg(true);
-			else
-				temp1.setSumOrAvg(false);
-		}
+            if (instance instanceof SumAvgAggregateDefinition)
+            {
+                SumAvgAggregateDefinition temp1 = (SumAvgAggregateDefinition)instance;
+                if (aggregateName.equals("SUM"))
+                    temp1.setSumOrAvg(true);
+                else
+                    temp1.setSumOrAvg(false);
+                temp1.setWindowFunction(isWindowFunction);
+            }
 
-		this.uad = (AggregateDefinition)instance;
-	    }
+            if (instance instanceof CountAggregateDefinition)
+            {
+                CountAggregateDefinition temp2 = (CountAggregateDefinition)instance;
+                temp2.setWindowFunction(isWindowFunction);
+            }
+
+            this.uad = (AggregateDefinition)instance;
+        }
 		setOperator(aggregateName);
 		setMethodName(aggregateDefinitionClassName);
 
@@ -713,4 +722,11 @@ public class AggregateNode extends UnaryOperatorNode
 	}
 	
 
+    public void setWindowFunction(boolean isWindowFunction) {
+        this.isWindowFunction = isWindowFunction;
+    }
+
+    public boolean isWindowFunction() {
+        return this.isWindowFunction;
+    }
 }

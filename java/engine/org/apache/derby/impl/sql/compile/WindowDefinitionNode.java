@@ -21,6 +21,8 @@
 
 package org.apache.derby.impl.sql.compile;
 
+import java.util.Vector;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 
@@ -76,60 +78,27 @@ public final class WindowDefinitionNode extends WindowNode
             super.init(arg1);
             inlined = false;
         } else {
-            super.init("IN-LINE");
+            super.init("IN-LINE_WINDOW");
             inlined = true;
         }
-
-        // TODO: Remove this exception once window functions fully implemented
-//        if (orderByList != null || partition != null) {
-//            throw StandardException.newException(SQLState.NOT_IMPLEMENTED,
-//                                                 "WINDOW/ORDER BY coming soon.");
-//        }
     }
 
+    public void bind(SelectNode target) throws StandardException {
+        // bind partition
+        if (partition != null) {
+            Vector partitionAggregateVector = new Vector();
+            partition.bindGroupByColumns(target, partitionAggregateVector);
+        }
 
-    /**
-     * java.lang.Object override.
-     * @see QueryTreeNode#toString
-     */
-    public String toString() {
-        return ("name: " + getName() + "\n" +
-                "inlined: " + inlined + "\n" +
-                "()\n");
-    }
-
-
-
-    /**
-     * QueryTreeNode override. Prints the sub-nodes of this object.
-     * @see QueryTreeNode#printSubNodes
-     *
-     * @param depth     The depth of this node in the tree
-     */
-
-    public void printSubNodes(int depth)
-    {
-        if (SanityManager.DEBUG)
-        {
-            super.printSubNodes(depth);
-
-            if (partition != null) {
-                printLabel(depth, "partition: "  + depth);
-                partition.treePrint(depth + 1);
-            }
-
-            if (orderByList != null) {
-                printLabel(depth, "orderByList: "  + depth);
-                orderByList.treePrint(depth + 1);
-            }
-
-            if (frameExtent != null) {
-                printLabel(depth, "frame: "  + depth);
-                frameExtent.treePrint(depth + 1);
+        // bind order by
+        if (orderByList != null) {
+            FromList fromList = target.getFromList();
+            for (int i=0; i<orderByList.size(); ++i) {
+                OrderByColumn obc = orderByList.getOrderByColumn(i);
+                obc.getColumnExpression().bindExpression(fromList, null, null);
             }
         }
     }
-
 
     /**
      * Used to merge equivalent window definitions.
@@ -181,15 +150,80 @@ public final class WindowDefinitionNode extends WindowNode
 
     private boolean isEquivalent(OrderByList thisOne, OrderByList thatOne) throws StandardException {
         if (thisOne == thatOne) return true;
-        if (thatOne == null) return false;
+        if ((thisOne != null && thatOne == null) || (thisOne == null)) return false;
         if (thisOne.allAscending() != thatOne.allAscending()) return false;
         if (thisOne.size() != thatOne.size()) return false;
 
         for (int i=0; i<thatOne.size(); i++) {
-            if (! thisOne.getOrderByColumn(i).getResultColumn().isEquivalent(thatOne.getOrderByColumn(i)
-                                                                                    .getResultColumn()))
+            ResultColumn thisResultCol = thisOne.getOrderByColumn(i).getResultColumn();
+            ResultColumn thatResultCol = thatOne.getOrderByColumn(i).getResultColumn();
+            if (thisResultCol != null && thatResultCol != null) {
+                if (! thisResultCol.isEquivalent(thatResultCol)) {
+                    return false;
+                }
+            } else if (thisResultCol == null)
                 return false;
         }
         return true;
+    }
+
+    /**
+     * java.lang.Object override.
+     * @see QueryTreeNode#toString
+     */
+    public String toString() {
+        return ("name: " + getName() + "\n" +
+            "inlined: " + inlined + "\n" +
+            "partition: " + partition + "\n" +
+            "orderby: " + printOrderByList() + "\n" +
+            frameExtent + "\n");
+    }
+
+    private String printOrderByList() {
+        if (orderByList == null) {
+            return "";
+        }
+        StringBuilder buf = new StringBuilder("\n");
+        for (int i=0; i<orderByList.size(); ++i) {
+            OrderByColumn col = orderByList.getOrderByColumn(i);
+//            buf.append("column_name: ").append(col.getResultColumn().getColumnName()).append("\n");
+            buf.append("column_name: ").append(col.getColumnExpression().getColumnName()).append("\n");
+            // Lang col indexes are 1-based, storage col indexes are zero-based
+            buf.append("columnid: ").append(col.getColumnPosition()).append("\n");
+            buf.append("ascending: ").append(col.isAscending()).append("\n");
+            buf.append("nullsOrderedLow: ").append(col.isAscending()).append("\n");
+        }
+//        if (buf.length() > 0) { buf.setLength(buf.length()-1); }
+        return buf.toString();
+    }
+
+    /**
+     * QueryTreeNode override. Prints the sub-nodes of this object.
+     * @see QueryTreeNode#printSubNodes
+     *
+     * @param depth     The depth of this node in the tree
+     */
+
+    public void printSubNodes(int depth)
+    {
+        if (SanityManager.DEBUG)
+        {
+            super.printSubNodes(depth);
+
+            if (partition != null) {
+                printLabel(depth, "partition: "  + depth);
+                partition.treePrint(depth + 1);
+            }
+
+            if (orderByList != null) {
+                printLabel(depth, "orderByList: "  + depth);
+                orderByList.treePrint(depth + 1);
+            }
+
+            if (frameExtent != null) {
+                printLabel(depth, "frame: "  + depth);
+                frameExtent.treePrint(depth + 1);
+            }
+        }
     }
 }

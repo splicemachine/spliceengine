@@ -21,7 +21,6 @@
 package org.apache.derby.impl.sql.compile;
 
 import java.sql.Types;
-import java.util.Vector;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.TypeId;
@@ -29,8 +28,7 @@ import org.apache.derby.iapi.types.TypeId;
 /**
  * Class that represents a call to the ROW_NUMBER() window function.
  */
-public final class RowNumberFunctionNode extends WindowFunctionNode
-{
+public class RowNumberFunctionNode extends AggregateWindowFunctionNode {
 
     /**
      * Initializer. QueryTreeNode override.
@@ -40,46 +38,13 @@ public final class RowNumberFunctionNode extends WindowFunctionNode
      *
      * @exception StandardException
      */
-    public void init(Object arg1, Object arg2)
-        throws StandardException
-    {
-        super.init(arg1, "ROW_NUMBER", arg2);
+    public void init(Object arg1, Object arg2)  throws StandardException  {
+//        super.init(arg1, "ROW_NUMBER", arg2);
+        super.init(arg1, arg2);
         setType( TypeId.getBuiltInTypeId( Types.BIGINT ),
                  TypeId.LONGINT_PRECISION,
                  TypeId.LONGINT_SCALE,
                  false,
                  TypeId.LONGINT_MAXWIDTH);
-    }
-
-    /**
-     * ValueNode override.
-     * @see ValueNode#bindExpression
-     */
-    public ValueNode bindExpression(
-                    FromList            fromList,
-                    SubqueryList        subqueryList,
-                    Vector              aggregateVector)
-            throws StandardException
-    {
-        super.bindExpression(fromList, subqueryList, aggregateVector);
-        return this;
-    }
-
-    @Override
-    public ColumnReference getGeneratedRef() {
-        // TODO: impl
-        return null;
-    }
-
-    @Override
-    public ResultColumn getGeneratedRC() {
-        // TODO: impl
-        return null;
-    }
-
-    @Override
-    public AggregateNode getWrappedAggregate() {
-        // TODO: impl
-        return null;
     }
 }

@@ -38,6 +38,16 @@ import org.apache.derby.iapi.reference.ClassName;
 public class CountAggregateDefinition 
 		implements AggregateDefinition 
 {
+    private boolean isWindowFunction;
+
+    public final boolean isWindowFunction() {
+        return this.isWindowFunction;
+    }
+
+    public void setWindowFunction(boolean isWindowFunction) {
+        this.isWindowFunction = isWindowFunction;
+    }
+
 	/**
 	 * Niladic constructor.  Does nothing.  For ease
 	 * Of use, only.
@@ -57,7 +67,12 @@ public class CountAggregateDefinition
 	public final DataTypeDescriptor	getAggregator(DataTypeDescriptor inputType,
 				StringBuffer aggregatorClass) 
 	{
-		aggregatorClass.append( ClassName.CountAggregator);
+        if (isWindowFunction) {
+            aggregatorClass.append(ClassName.WindowCountAggregator);
+        }
+        else {
+            aggregatorClass.append(ClassName.CountAggregator);
+        }
 		/*
 		** COUNT never returns NULL
 		*/

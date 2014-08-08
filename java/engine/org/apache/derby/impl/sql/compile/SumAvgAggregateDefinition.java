@@ -48,6 +48,16 @@ public class SumAvgAggregateDefinition
 		implements AggregateDefinition 
 {
 	private boolean isSum;
+    private boolean isWindowFunction;
+
+    public final boolean isWindowFunction() {
+        return this.isWindowFunction;
+    }
+
+    public void setWindowFunction(boolean isWindowFunction) {
+        this.isWindowFunction = isWindowFunction;
+    }
+
 	/**
 	 * Niladic constructor.  Does nothing.  For ease
 	 * Of use, only.
@@ -115,10 +125,18 @@ public class SumAvgAggregateDefinition
 	 */
 	private String getAggregatorClassName()
 	{
-		if ( isSum )
-				return ClassName.SumAggregator;
-		else
-				return ClassName.AvgAggregator;
+        if (isWindowFunction) {
+            if (isSum)
+                return ClassName.WindowSumAggregator;
+            else
+                return ClassName.WindowAvgAggregator;
+        } else {
+            if (isSum)
+                return ClassName.SumAggregator;
+            else
+                return ClassName.AvgAggregator;
+        }
+
 	}
 
 	/**

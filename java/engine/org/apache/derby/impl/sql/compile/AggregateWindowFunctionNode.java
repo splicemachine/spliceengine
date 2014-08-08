@@ -31,7 +31,7 @@ import org.apache.derby.iapi.sql.dictionary.DataDictionary;
  * Represents aggregate function calls on a window. Delegates to real
  * aggregate function.
  */
-public final class AggregateWindowFunctionNode extends WindowFunctionNode {
+public class AggregateWindowFunctionNode extends WindowFunctionNode {
 
     private AggregateNode aggregateFunction;
 
@@ -43,7 +43,7 @@ public final class AggregateWindowFunctionNode extends WindowFunctionNode {
      * @throws StandardException
      */
     public void init(Object arg1, Object arg2) throws StandardException {
-        super.init(null, "?", arg1);
+        super.init(null, ((AggregateNode)arg2).getAggregateName()+"_WINDOW", arg1);
         aggregateFunction = (AggregateNode) arg2;
     }
 

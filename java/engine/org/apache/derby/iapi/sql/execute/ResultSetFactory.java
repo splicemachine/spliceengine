@@ -1162,7 +1162,9 @@ public interface ResultSetFactory {
      filtered by this operation.
      @param isInSortedOrder	true if the source result set is in sorted order
      @param aggregateItem entry in preparedStatement's savedObjects for aggregates
-     @param orderingItem  entry in preparedStatement's savedObjects for order
+     @param partitionItemIndex  entry in preparedStatement's savedObjects for partition
+     @param orderingItemIndex  entry in preparedStatement's savedObjects for order by
+     @param frameDefnIndex  entry in preparedStatement's savedObjects for window frame definition
      @param rowAllocator a reference to a method in the activation
      that generates rows of the right size and shape for the source
      @param rowSize			the size of the row that is allocated by rowAllocator.
@@ -1179,7 +1181,9 @@ public interface ResultSetFactory {
     NoPutResultSet getWindowResultSet(NoPutResultSet source,
                                                boolean isInSortedOrder,
                                                int aggregateItem,
-                                               int orderingItem,
+                                               int partitionItemIndex,
+                                               int orderingItemIndex,
+                                               int frameDefnIndex,
                                                GeneratedMethod rowAllocator,
                                                int rowSize,
                                                int resultSetNumber,

@@ -42,4 +42,17 @@ public class Partition extends GroupByList {
         // Window partitions differ from GroupBy in that we don't have rollups
         return false;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder buf = new StringBuilder("\n");
+        for (int i=0; i<size(); ++i) {
+            GroupByColumn col = getGroupByColumn(i);
+            buf.append("column_name: ").append(col.getColumnName()).append("\n");
+            // Lang col indexes are 1-based, storage col indexes are zero-based
+            buf.append("columnid: ").append(col.getColumnPosition()-1).append("\n");
+        }
+//        if (buf.length() > 0) { buf.setLength(buf.length()-1); }
+        return buf.toString();
+    }
 }

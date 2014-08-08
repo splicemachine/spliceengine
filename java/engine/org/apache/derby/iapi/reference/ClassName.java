@@ -113,7 +113,15 @@ public interface ClassName
 	String CountAggregator = "org.apache.derby.impl.sql.execute.CountAggregator";
 	String AvgAggregator = "org.apache.derby.impl.sql.execute.AvgAggregator";
 	String UserDefinedAggregator = "org.apache.derby.impl.sql.execute.UserDefinedAggregator";
-	
+    String RowNumberFunction = "org.apache.derby.impl.sql.execute.RowNumberFunction";
+    String DenseRankFunction = "org.apache.derby.impl.sql.execute.DenseRankFunction";
+    String RankFunction = "org.apache.derby.impl.sql.execute.RankFunction";
+    // TODO: There's no need to reference spliceengine functions and all the baggage they bring in Derby. See impls of RowNumberFunction, RankFunction and DenseRankFunction
+    String WindowMaxMinAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.MaxMinAggregator";
+    String WindowSumAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.SumAggregator";
+    String WindowAvgAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.AvgAggregator";
+    String WindowCountAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.CountAggregator";
+
 	String ExecutionFactory = "org.apache.derby.iapi.sql.execute.ExecutionFactory";
 	String LanguageFactory ="org.apache.derby.iapi.sql.LanguageFactory";
 	String ParameterValueSetFactory ="org.apache.derby.iapi.sql.ParameterValueSetFactory";

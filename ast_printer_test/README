@@ -1,0 +1,16 @@
+Comments describing AST_PrinterTest
+
+Test that prints the parse tree (AST) for a given query.
+Useful to see the parse tree when making changes to derby's sql grammar.
+
+For each query, a plan tree is printed for each of the three phases;
+parse, bind, optimize.
+
+
+TO BUILD and RUN This test depends on the splice derby jars you have built
+and installed into your local repo. The splice server must be built against
+these jars and it must be running.  (See the pom.xml for dependency details)
+
+mvn clean install
+ 
+NOTE, currently you must have schema and tables populated for the given query you're running.

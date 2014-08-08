@@ -107,4 +107,6 @@ public abstract class OrderedColumn extends QueryTreeNode
 
 		}
 	}
+
+    public abstract ValueNode getColumnExpression();
 }

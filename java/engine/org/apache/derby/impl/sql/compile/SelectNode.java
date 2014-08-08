@@ -210,7 +210,7 @@ public class SelectNode extends ResultSetNode
 					windows = addInlinedWindowDefinition(windows, wfn);
 				} else {
 					// a window reference, bind it later.
-
+                    // FIXME: when, where?
 					if (SanityManager.DEBUG) {
 						SanityManager.ASSERT(
 							wfn.getWindow() instanceof WindowReferenceNode);
@@ -679,19 +679,7 @@ public class SelectNode extends ResultSetNode
         if (hasWindows()) {
             for (int i=0; i<windows.size(); ++i) {
                 WindowDefinitionNode wdn = (WindowDefinitionNode) windows.elementAt(i);
-
-                // Window partition
-                Partition partition = wdn.getPartition();
-                if (partition != null) {
-                    Vector partitionAggregateVector = new Vector();
-                    partition.bindGroupByColumns(this, partitionAggregateVector);
-                }
-
-                // Window order by
-                OrderByList orderBy = wdn.getOrderByList();
-                if (orderBy != null) {
-                    orderBy.bindOrderByColumns(this);
-                }
+                wdn.bind(this);
             }
         }
 
