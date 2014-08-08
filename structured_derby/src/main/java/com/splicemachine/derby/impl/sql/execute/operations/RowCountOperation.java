@@ -49,7 +49,7 @@ import java.io.ObjectOutput;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-
+import com.splicemachine.metrics.Metrics;
 /**
  * @author Scott Fines
  *         Created on: 5/15/13

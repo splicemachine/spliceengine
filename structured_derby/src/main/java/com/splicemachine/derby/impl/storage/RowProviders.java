@@ -35,7 +35,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-import com.splicemachine.stats.Metrics;
+import com.splicemachine.metrics.Metrics;
 
 import java.io.IOException;
 import java.util.*;

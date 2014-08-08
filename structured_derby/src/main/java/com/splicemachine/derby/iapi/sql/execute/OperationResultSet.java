@@ -22,7 +22,7 @@ import org.apache.derby.iapi.sql.execute.*;
 import com.splicemachine.metrics.IOStats;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.impl.sql.execute.ConstantActionActivation;
+import com.splicemachine.uuid.Snowflake;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -150,6 +150,14 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
 
         try {
+            List<SpliceBaseOperation.XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
+            if (operationChain != null && operationChain.size() > 0) {
+                operationChainInfo = operationChain.get(operationChain.size()-1);
+                runtimeContext.recordTraceMetrics();
+                parentOperationID = operationChainInfo.getOperationId();
+                statementId = operationChainInfo.getStatementId();
+            }
+
             SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation);
             topOperation.init(operationContext);
             topOperation.open();
@@ -166,14 +174,6 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
                 runtimeContext.setStatementInfo(statementInfo);
             if(activation.isTraced()){
                 runtimeContext.recordTraceMetrics();
-            }
-
-            List<SpliceBaseOperation.XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
-            if (operationChain != null && operationChain.size() > 0) {
-                operationChainInfo = operationChain.get(operationChain.size()-1);
-                runtimeContext.recordTraceMetrics();
-                parentOperationID = operationChainInfo.getOperationId();
-                statementId = operationChainInfo.getStatementId();
             }
 
             List<byte[]> taskChain = OperationSink.taskChain.get();

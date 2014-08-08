@@ -27,7 +27,7 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.utils.Snowflake;
+import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.catalog.DefaultInfo;
 import org.apache.derby.catalog.Dependable;
 import org.apache.derby.catalog.DependableFinder;

@@ -54,6 +54,7 @@ import com.splicemachine.hbase.backup.CreateBackupJob;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
+import com.splicemachine.derby.impl.ast.XPlainTraceVisitor;
 
 public class SpliceDatabase extends BasicDatabase {
 	private static Logger LOG = Logger.getLogger(SpliceDatabase.class);

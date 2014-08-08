@@ -32,7 +32,7 @@ public class SpliceXPlainTrace extends XPlainTrace{
     public static final String ROW = "ROW";
     public static final String UPDATE = "UPDATE";
     public static final String DELETE = "DELETE";
-    public static final String POPULATEINDEX = "";
+    public static final String POPULATEINDEX = "POPULATEINDEX";
     private SpliceWatcher methodWatcher;
     private Connection connection = null;
     private Statement statement = null;

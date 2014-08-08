@@ -29,12 +29,13 @@ public class XPlainTrace3IT {
     public static final String TABLE1 = "T1";
 
     public static final String TABLE2 = "T2";
+    public static final String TABLE3 = "T3";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static String tableDef = "(I INT)";
     protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE1,CLASS_NAME, tableDef);
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE2,CLASS_NAME, tableDef);
-
+    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE3,CLASS_NAME, tableDef);
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
@@ -57,7 +58,23 @@ public class XPlainTrace3IT {
                     }
                 }
             })
-            .around(spliceTableWatcher2);
+            .around(spliceTableWatcher2)
+            .around(spliceTableWatcher3).around(new SpliceDataWatcher() {
+                    @Override
+                    protected void starting(Description description) {
+                        PreparedStatement ps;
+                        try {
+                            ps = spliceClassWatcher.prepareStatement(
+                                    String.format("insert into %s (i) values (?)", spliceTableWatcher3));
+                            for (int i = 0; i < nrows; i++) {
+                                ps.setInt(1, i);
+                                ps.execute();
+                            }
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+            });
 
     @Test
     public void testInsertAndCreateIndex() throws Exception {
@@ -94,14 +111,14 @@ public class XPlainTrace3IT {
     @Test
     public void testUpdate() throws Exception {
         xPlainTrace.turnOnTrace();
-        String sql = "update " + CLASS_NAME + "." + TABLE2 + " set i=i+1";
+        String sql = "update " + CLASS_NAME + "." + TABLE3 + " set i=i+1";
         boolean success = xPlainTrace.execute(sql);
         xPlainTrace.turnOffTrace();
 
         XPlainTreeNode operation = xPlainTrace.getOperationTree();
         Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.UPDATE)==0);
-        Assert.assertEquals(2, operation.getWriteRows());
-        Assert.assertEquals(2, operation.getInputRows());
+        Assert.assertEquals(nrows, operation.getWriteRows());
+        Assert.assertEquals(nrows, operation.getInputRows());
     }
 
     @Test
