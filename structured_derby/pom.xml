@@ -19,15 +19,6 @@
             <version>${utilities.version}</version>
         </dependency>
         <dependency>
-                        <groupId>com.splicemachine</groupId>
-                        <artifactId>ldap-test-utils</artifactId>
-                        <version>FUJI.0-SNAPSHOT</version>
-                        <classifier>${envClassifier}</classifier>
-                        <type>jar</type>
-                        <scope>compile</scope>
-                </dependency>
-
-        <dependency>
             <groupId>org.hbase</groupId>
             <artifactId>asynchbase</artifactId>
             <version>${asynchbase.version}</version>
