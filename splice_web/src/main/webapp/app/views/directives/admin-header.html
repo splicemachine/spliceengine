@@ -4,7 +4,7 @@
     <li class="{{contactTab}}"><a ng-href="#/contact">Contact</a></li>
   </ul>
   <div class="pull-right" ng-controller="clusterStatusController">
-    <a popover-title="Error Message" popover="Could not connect to primary region server." popover-trigger="mouseenter" popover-placement="bottom"><span ng-hide="primaryServerStatusCheckSuccess" class="btn-sm btn-danger glyphicon glyphicon-thumbs-down"> Cluster unreachable.</span></a>
+    <a popover-title="Error Message" popover="Could not connect to primary region server." popover-trigger="mouseenter" popover-placement="bottom"><span ng-hide="primaryServerStatusCheckSuccess" class="btn-sm btn-danger glyphicon glyphicon-thumbs-down"> Splice unreachable.</span></a>
     <a popover-title="Up Servers" popover="{{upServersMessage}}" popover-trigger="mouseenter" popover-placement="bottom"><span ng-show="serversStatusCheckResponse.serverUpCount > 0" class="btn-sm btn-success glyphicon glyphicon-thumbs-up"> {{serversStatusCheckResponse.serverUpCount}}</span></a>
     <a popover-title="Down Servers" popover="{{downServersMessage}}" popover-trigger="mouseenter" popover-placement="bottom"><span ng-show="serversStatusCheckResponse.serverDownCount > 0" class="btn-sm btn-danger glyphicon glyphicon-thumbs-down"> {{serversStatusCheckResponse.serverDownCount}}</span></a>
     &nbsp;
