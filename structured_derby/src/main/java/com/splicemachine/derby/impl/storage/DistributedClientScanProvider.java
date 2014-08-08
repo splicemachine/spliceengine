@@ -58,7 +58,7 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
 				try {
 						return scanner.next();
 				} catch (IOException e) {
-						SpliceLogUtils.logAndThrow(LOG,"Unable to getResult",Exceptions.parseException(e));
+						SpliceLogUtils.logAndThrow(LOG, "Unable to getResult", Exceptions.parseException(e));
 						return null;//won't happen
 				}
 		}
@@ -97,7 +97,7 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
 				stats.addMetric(OperationMetric.OUTPUT_ROWS,timer.getNumEvents());
 				stats.addMetric(OperationMetric.INPUT_ROWS,scanner.getRemoteRowsRead());
 
-				SpliceDriver.driver().getTaskReporter().report(xplainSchema,stats);
+				SpliceDriver.driver().getTaskReporter().report(stats);
 		}
 
 		@Override
@@ -135,5 +135,4 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
 		public SpliceRuntimeContext getSpliceRuntimeContext() {
 				return spliceRuntimeContext;
 		}
-
 }

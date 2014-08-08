@@ -36,6 +36,7 @@ public abstract class XplainReporter<T> {
 		private final ExecutorService writers;
 		private final LinkedBlockingQueue<Pair<String,T>> taskQueue;
 		private final LoadingCache<String,CallBuffer<KVPair>> bufferCache;
+        public static final String SCHEMA = "SYS";
 
 		public XplainReporter(final String tableName,int numWorkers) {
 				this.LOG = Logger.getLogger(this.getClass());
@@ -91,8 +92,8 @@ public abstract class XplainReporter<T> {
 				}
 		}
 
-		public void report(String xplainSchema,T info){
-				taskQueue.add(Pair.newPair(xplainSchema,info));
+		public void report(T info){
+				taskQueue.add(Pair.newPair(SCHEMA,info));
 		}
 
 		protected abstract DataHash<T> getDataHash();

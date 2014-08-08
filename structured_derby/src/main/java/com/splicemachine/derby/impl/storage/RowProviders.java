@@ -25,7 +25,6 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.job.*;
 import com.splicemachine.metrics.IOStats;
-import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.MultiStatsView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -36,6 +35,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+import com.splicemachine.metrics.Metrics;
 
 import java.io.IOException;
 import java.util.*;
@@ -285,7 +285,6 @@ public class RowProviders {
 				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema, String regionName) {
 					provider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 				}
-
 				@Override public IOStats getIOStats() { return provider.getIOStats(); }
 		}
 
@@ -407,7 +406,7 @@ public class RowProviders {
 						String hostName = SpliceUtils.getHostName();
 						for(OperationRuntimeStats opStat:opStats){
 								opStat.setHostName(hostName);
-								taskReporter.report(xplainSchema,opStat);
+								taskReporter.report(opStat);
 						}
 				}
 

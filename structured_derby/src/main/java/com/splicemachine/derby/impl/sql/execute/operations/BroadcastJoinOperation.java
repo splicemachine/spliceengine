@@ -9,6 +9,10 @@ import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.SameThreadExecutorService;
 import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
@@ -125,13 +129,17 @@ public class BroadcastJoinOperation extends JoinOperation {
             leftCounter = ctx.newCounter();
             timer.startTiming();
             joiner = initJoiner(ctx);
+            joiner.open();
         }
 
         ExecRow next = joiner.nextRow(ctx);
         setCurrentRow(next);
         if (next == null) {
-            timer.tick(leftCounter.getTotal());
+            timer.tick(0);
             stopExecutionTime = System.currentTimeMillis();
+        }
+        else{
+            timer.tick(1);
         }
         return next;
     }
@@ -226,6 +234,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         if (timer == null) return;
         long left = leftCounter.getTotal();
         stats.addMetric(OperationMetric.INPUT_ROWS, left);
+        stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
         TimeView time = timer.getTime();
         stats.addMetric(OperationMetric.TOTAL_WALL_TIME, time.getWallClockTime());
         stats.addMetric(OperationMetric.TOTAL_CPU_TIME, time.getCpuTime());
@@ -296,11 +305,27 @@ public class BroadcastJoinOperation extends JoinOperation {
             ByteBuffer hashKey;
             List<ExecRow> rows;
             Map<ByteBuffer, List<ExecRow>> cache = new HashMap<ByteBuffer, List<ExecRow>>();
+
+            if(runtimeContext.shouldRecordTraceMetrics()) {
+                activation.getLanguageConnectionContext().setStatisticsTiming(true);
+                if (operationChainInfo == null) {
+                    operationChainInfo = new XplainOperationChainInfo(
+                            runtimeContext.getStatementId(),
+                            Bytes.toLong(rightResultSet.getUniqueSequenceID()));
+                }
+                List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
+                if (operationChain == null) {
+                    operationChain = Lists.newLinkedList();
+                    SpliceBaseOperation.operationChain.set(operationChain);
+                }
+                operationChain.add(operationChainInfo);
+            }
+
             rightRowCounter = runtimeContext.newCounter();
             SpliceRuntimeContext ctxNoSink = runtimeContext.copy();
             ctxNoSink.unMarkAsSink();
             OperationResultSet ors = new OperationResultSet(activation,rightResultSet);
-            ors.sinkOpen(false,false);
+            ors.sinkOpen(false,true);
             ors.executeScan(false,ctxNoSink);
             SpliceNoPutResultSet resultSet = ors.getDelegate();
             DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(rightTemplate);
@@ -328,7 +353,13 @@ public class BroadcastJoinOperation extends JoinOperation {
                 logSize(rightResultSet, cache);
             }
             BroadcastJoinOperation.this.rightHandTimer = resultSet.getStats();
-            resultSet.close();
+            ors.close();
+            if(shouldRecordStats()) {
+                List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
+                if (operationChain != null && operationChain.size() > 0) {
+                    operationChain.remove(operationChain.size() - 1);
+                }
+            }
             return Collections.unmodifiableMap(cache);
         }
     }

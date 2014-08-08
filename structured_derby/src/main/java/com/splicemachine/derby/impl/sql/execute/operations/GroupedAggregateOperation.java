@@ -354,14 +354,14 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                                                                      groupingKeys, groupingKeyOrder, nonGroupedUniqueColumns, serializers);
             aggregator.open();
             timer = spliceRuntimeContext.newTimer();
-            timer.startTiming();
         }
+        timer.startTiming();
         GroupedRow row = aggregator.next(spliceRuntimeContext);
         if (row == null) {
             currentKey = null;
             clearCurrentRow();
             aggregator.close();
-            timer.tick(aggregator.getRowsRead());
+            timer.tick(0);
             stopExecutionTime = System.currentTimeMillis();
             return null;
         }
@@ -369,6 +369,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         isCurrentDistinct = row.isDistinct();
         ExecRow execRow = row.getRow();
         setCurrentRow(execRow);
+        timer.tick(1);
         return execRow;
     }
 
@@ -399,8 +400,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						aggregator = new ScanGroupedAggregateIterator(buffer,sourceIterator,encoder,groupingKeys,false);
 						aggregator.open();
 						timer = spliceRuntimeContext.newTimer();
-						timer.startTiming();
 				}
+                timer.startTiming();
 				boolean shouldClose = true;
 				try{
 						GroupedRow row = aggregator.next(spliceRuntimeContext);
@@ -416,7 +417,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						isCurrentDistinct = row.isDistinct();
 						ExecRow execRow = row.getRow();
 						setCurrentRow(execRow);
-
+                        timer.tick(1);
 						return execRow;
 				}finally{
 						if(shouldClose) {
@@ -562,5 +563,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     public String prettyPrint(int indentLevel) {
         return "Grouped" + super.prettyPrint(indentLevel);
     }
+
 
 }

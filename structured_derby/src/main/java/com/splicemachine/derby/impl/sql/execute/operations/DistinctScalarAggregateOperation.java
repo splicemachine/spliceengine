@@ -424,12 +424,12 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 						stats.setBufferFillRatio(buffer.getMaxFillRatio());
 				}else if(step3Aggregator!=null){
 						stats.addMetric(OperationMetric.FILTERED_ROWS,step3Aggregator.getRowsRead());
-						stats.addMetric(OperationMetric.INPUT_ROWS, step3Aggregator.getRowsRead());
+						//stats.addMetric(OperationMetric.INPUT_ROWS, step3Aggregator.getRowsRead());
 				}
 				if(step1Aggregator!=null){
 						stats.addMetric(OperationMetric.INPUT_ROWS,step1Aggregator.getRowsRead());
 				}else if(step2Aggregator!=null){
-						stats.addMetric(OperationMetric.INPUT_ROWS, step2Aggregator.getRowsRead());
+						//stats.addMetric(OperationMetric.INPUT_ROWS, step2Aggregator.getRowsRead());
 				}
 
 				if(scanner!=null){

@@ -112,30 +112,37 @@ public class OperationRuntimeStats {
 		}
 
 		public static List<OperationRuntimeStats> getOperationStats(SpliceOperation topOperation,
-																																long taskId,
-																																long statementId,
-																																WriteStats writeStats,
-																																TimeView writeTimer,
-																																SpliceRuntimeContext runtimeContext){
+                                                                    long taskId,
+                                                                    long statementId,
+                                                                    WriteStats writeStats,
+                                                                    TimeView writeTimer,
+                                                                    SpliceRuntimeContext runtimeContext){
 				List<OperationRuntimeStats> stats = Lists.newArrayList();
-				OperationRuntimeStats metrics = getTopMetrics(topOperation, taskId, statementId, writeStats, writeTimer);
+                OperationRuntimeStats metrics = getTopMetrics(topOperation, taskId, statementId, writeStats, writeTimer);
 				if(metrics!=null){
 						stats.add(metrics);
 				}
-				SpliceOperation child = runtimeContext.isLeft(topOperation.resultSetNumber())?
-								topOperation.getLeftOperation(): topOperation.getRightOperation();
-				if(child!=null)
-						populateStats(runtimeContext,child,statementId,taskId,stats);
+
+                SpliceRuntimeContext.Side side = runtimeContext.getPathSide(topOperation.resultSetNumber());
+                if (side == SpliceRuntimeContext.Side.LEFT || side == SpliceRuntimeContext.Side.MERGED) {
+                    SpliceOperation child = topOperation.getLeftOperation();
+                    if(child!=null)
+                        populateStats(runtimeContext,child,statementId,taskId,stats);
+                }
+
+                if (side == SpliceRuntimeContext.Side.RIGHT || side == SpliceRuntimeContext.Side.MERGED) {
+                    SpliceOperation child = topOperation.getRightOperation();
+                    if(child!=null)
+                        populateStats(runtimeContext,child,statementId,taskId,stats);
+                }
 				return stats;
 		}
 
 		private static OperationRuntimeStats getTopMetrics(SpliceOperation topOperation, long taskId, long statementId,
-																												 WriteStats writeStats, TimeView writeTimer) {
-				OperationRuntimeStats metrics = topOperation.getMetrics(statementId,taskId);
+														   WriteStats writeStats, TimeView writeTimer) {
+				OperationRuntimeStats metrics = topOperation.getMetrics(statementId,taskId, true);
 
 				if(metrics!=null && writeStats.getRowsWritten()>=0){
-						metrics.addMetric(OperationMetric.WRITE_ROWS, writeStats.getRowsWritten());
-						metrics.addMetric(OperationMetric.WRITE_BYTES, writeStats.getBytesWritten());
 						metrics.addMetric(OperationMetric.PROCESSING_CPU_TIME,writeTimer.getCpuTime());
 						metrics.addMetric(OperationMetric.PROCESSING_USER_TIME,writeTimer.getUserTime());
 						metrics.addMetric(OperationMetric.PROCESSING_WALL_TIME,writeTimer.getWallClockTime());
@@ -164,22 +171,31 @@ public class OperationRuntimeStats {
 				metrics.addMetric(OperationMetric.WRITE_SLEEP_CPU_TIME,sleepTime.getCpuTime());
 				metrics.addMetric(OperationMetric.WRITE_SLEEP_USER_TIME,sleepTime.getUserTime());
 				TimeView threadedTime = writeStats.getTotalTime();
-				metrics.addMetric(OperationMetric.WRITE_THREADED_WALL_TIME,threadedTime.getWallClockTime());
-				metrics.addMetric(OperationMetric.WRITE_THREADED_CPU_TIME,threadedTime.getCpuTime());
-				metrics.addMetric(OperationMetric.WRITE_THREADED_USER_TIME,threadedTime.getUserTime());
+				metrics.addMetric(OperationMetric.WRITE_TOTAL_WALL_TIME,threadedTime.getWallClockTime());
+				metrics.addMetric(OperationMetric.WRITE_TOTAL_CPU_TIME,threadedTime.getCpuTime());
+				metrics.addMetric(OperationMetric.WRITE_TOTAL_USER_TIME,threadedTime.getUserTime());
 		}
 
 		private static void populateStats(SpliceRuntimeContext context, SpliceOperation operation,
 																			long statementId, long taskIdLong, List<OperationRuntimeStats> stats) {
 				if(operation==null) return;
-				OperationRuntimeStats metrics = operation.getMetrics(statementId, taskIdLong);
+				OperationRuntimeStats metrics = operation.getMetrics(statementId, taskIdLong, false);
 				if(metrics!=null)
 						stats.add(metrics);
 				if(operation instanceof SinkingOperation)
 						return; //found the first sink, so return
 
-				SpliceOperation child = context.isLeft(operation.resultSetNumber())? operation.getLeftOperation(): operation.getRightOperation();
-				if(child!=null)
-						populateStats(context,child,statementId,taskIdLong,stats);
+                SpliceRuntimeContext.Side side = context.getPathSide(operation.resultSetNumber());
+                if (side == SpliceRuntimeContext.Side.LEFT || side == SpliceRuntimeContext.Side.MERGED) {
+                    SpliceOperation child = operation.getLeftOperation();
+                    if(child!=null)
+                        populateStats(context,child,statementId,taskIdLong,stats);
+                }
+
+                if (side == SpliceRuntimeContext.Side.RIGHT || side == SpliceRuntimeContext.Side.MERGED) {
+                    SpliceOperation child = operation.getRightOperation();
+                    if(child!=null)
+                        populateStats(context,child,statementId,taskIdLong,stats);
+                }
 		}
 }

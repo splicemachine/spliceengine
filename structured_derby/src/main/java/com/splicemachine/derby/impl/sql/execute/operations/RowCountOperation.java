@@ -18,6 +18,7 @@ import com.splicemachine.derby.impl.storage.AbstractScanProvider;
 import com.splicemachine.derby.impl.storage.MultiScanRowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -27,7 +28,6 @@ import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.metrics.IOStats;
-import com.splicemachine.metrics.Metrics;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -49,7 +49,7 @@ import java.io.ObjectOutput;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-
+import com.splicemachine.metrics.Metrics;
 /**
  * @author Scott Fines
  *         Created on: 5/15/13
@@ -166,6 +166,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 				//determine our offset
 				this.regionScan = context.getScan();
 				this.spliceScanner = context.getSpliceRegionScanner();
+                startExecutionTime = System.currentTimeMillis();
 		}
 
 		@Override
@@ -175,10 +176,14 @@ public class RowCountOperation extends SpliceBaseOperation{
 						firstTime=false;
 						getTotalOffset();
 						getFetchLimit();
+                        timer = spliceRuntimeContext.newTimer();
 				}
 
+                timer.startTiming();
 				if(fetchFirstMethod!=null && rowsFetched >=fetchFirst){
 						setCurrentRow(null);
+                        timer.stopTiming();
+                        stopExecutionTime = System.currentTimeMillis();
 						return null;
 				}else{
 						do{
@@ -197,7 +202,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 																subqueryTrackingArray = operationInformation.getSubqueryTrackingArray();
 												}
 										}
-
+                                        timer.tick(1);
 										setCurrentRow(row);
 										return row;
 								}else if (rowsSkipped > 0) {
@@ -206,9 +211,15 @@ public class RowCountOperation extends SpliceBaseOperation{
 						}while(row!=null);
 
 						setCurrentRow(null);
+                        timer.stopTiming();
+                        stopExecutionTime = System.currentTimeMillis();
 						return null;
 				}
 		}
+        @Override
+        protected void updateStats(OperationRuntimeStats stats) {
+                stats.addMetric(OperationMetric.INPUT_ROWS, timer.getNumEvents());
+        }
 
 		private long getTotalOffset() throws StandardException {
 				if(offsetMethod!=null){
@@ -535,9 +546,9 @@ public class RowCountOperation extends SpliceBaseOperation{
 
 				@Override
 				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
-						OperationRuntimeStats metrics = RowCountOperation.this.getMetrics(statementId, operationId);
+						OperationRuntimeStats metrics = RowCountOperation.this.getMetrics(statementId, operationId, true);
 						metrics.setHostName(SpliceUtils.getHostName());
-						SpliceDriver.driver().getTaskReporter().report(xplainSchema,metrics);
+						SpliceDriver.driver().getTaskReporter().report(metrics);
 				}
 
 				@Override

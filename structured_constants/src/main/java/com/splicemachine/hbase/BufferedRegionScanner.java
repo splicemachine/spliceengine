@@ -66,6 +66,7 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 		//statistics information
 		private final Timer readTimer;
 		private final Counter bytesReadCounter;
+        private HasPredicateFilter hpf;
 
 		public BufferedRegionScanner(HRegion region,
 																 RegionScanner delegate,
@@ -107,6 +108,7 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 				this.buffer = (List<KeyValue>[])new List[initialBufferSize];
 				this.readTimer = metricFactory.newTimer();
 				this.bytesReadCounter = metricFactory.newCounter();
+                hpf = getSIFilter();
 		}
 
 		@Override public HRegionInfo getRegionInfo() { return delegate.getRegionInfo(); }
@@ -206,7 +208,7 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 										 * case it avoids doing a loop through the kvs if we do
 										 * the check.
 										 */
-										if(bytesReadCounter.isActive()){
+										if(bytesReadCounter.isActive() && hpf== null){
 												for (KeyValue kv : kvs) { //TODO -sf- does this create an extra object?
 														bytesReadCounter.add(kv.getLength());
 												}

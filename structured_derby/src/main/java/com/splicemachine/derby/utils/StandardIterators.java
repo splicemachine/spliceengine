@@ -35,10 +35,6 @@ public class StandardIterators {
         return new SpliceOpStandardIterator(op);
     }
 
-    public static StandardIterator<ExecRow> wrap(NoPutResultSet NPRS) {
-        return new ResultSetStandardIterator(NPRS);
-    }
-
     public static <T> StandardIterator<T> wrap(Callable<T> callable) {
         return new CallableStandardIterator<T>(callable);
     }
@@ -68,8 +64,8 @@ public class StandardIterators {
 
         @Override
         public T next(SpliceRuntimeContext spliceRuntimeContext) throws
-                                                                 StandardException,
-                                                                 IOException {
+                StandardException,
+                IOException {
             if (!delegate.hasNext())
                 return null;
             return delegate.next();
@@ -95,7 +91,7 @@ public class StandardIterators {
 
         @Override
         public ExecRow next(SpliceRuntimeContext ctx) throws StandardException,
-                                                             IOException {
+                IOException {
             return op.nextRow(ctx);
         }
 
@@ -120,8 +116,8 @@ public class StandardIterators {
 
         @Override
         public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws
-                                                                       StandardException,
-                                                                       IOException {
+                StandardException,
+                IOException {
             return noPut.getNextRowCore();
         }
 
@@ -151,8 +147,8 @@ public class StandardIterators {
 
         @Override
         public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws
-                                                                       StandardException,
-                                                                       IOException {
+                StandardException,
+                IOException {
             return noPut.getNextRowCore();
         }
 
@@ -189,8 +185,8 @@ public class StandardIterators {
 
         @Override
         public T next(SpliceRuntimeContext spliceRuntimeContext) throws
-                                                                 StandardException,
-                                                                 IOException {
+                StandardException,
+                IOException {
             try {
                 return callable.call();
             } catch (StandardException se) {

@@ -153,7 +153,6 @@ public class SinkTask extends ZkTask {
 						SpliceOperation op = instructions.getTopOperation();
 						if(op.shouldRecordStats()){
 								spliceRuntimeContext.recordTraceMetrics();
-								spliceRuntimeContext.setXplainSchema(op.getXplainSchema());
 						}
 
 						opContext = new SpliceOperationContext(region,

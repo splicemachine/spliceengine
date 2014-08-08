@@ -116,7 +116,7 @@ public class MultiProbeClientScanProvider extends AbstractMultiScanProvider {
 				stats.addMetric(OperationMetric.STOP_TIMESTAMP,stopTimestamp);
 				stats.setHostName(SpliceUtils.getHostName());
 
-				SpliceDriver.driver().getTaskReporter().report(xplainSchema,stats);
+				SpliceDriver.driver().getTaskReporter().report(stats);
 		}
 
 		@Override

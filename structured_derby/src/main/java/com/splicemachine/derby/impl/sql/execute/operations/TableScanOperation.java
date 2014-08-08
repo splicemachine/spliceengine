@@ -146,6 +146,21 @@ public class TableScanOperation extends ScanOperation {
 				//start reading rows
 				if(regionScanner!=null)
 						regionScanner.start();
+
+                String tableNameInfo = null;
+                if(this.indexName!=null) {
+                    tableNameInfo = "index:" + indexName + ")";
+                }
+                else if(this.tableName!=null){
+                    tableNameInfo = "table:"+tableName;
+                }
+
+                if (info == null) {
+                    info = tableNameInfo;
+                }
+                else if (!info.contains(tableNameInfo)){
+                    info += ", " + tableNameInfo;
+                }
 		}
 
 
@@ -214,14 +229,14 @@ public class TableScanOperation extends ScanOperation {
 
 		@Override protected int getNumMetrics() { return 5; }
 
-		@Override
+		/*@Override
 		public String getName() {
 				if(this.tableName!=null){
 						return "TableScan(table="+tableName+")";
 				}else if(this.indexName!=null)
 						return "TableScan(index="+indexName+")";
 				return "TableScan";
-		}
+		}*/
 
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {

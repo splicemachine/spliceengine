@@ -17,7 +17,7 @@ import java.util.Comparator;
  */
 public class XplainTaskReporter extends XplainReporter<OperationRuntimeStats>{
 		public XplainTaskReporter(int numWorkers) {
-				super("SYSXPLAIN_TASKHISTORY", numWorkers);
+				super("SYSTASKHISTORY", numWorkers);
 		}
 
 		@Override

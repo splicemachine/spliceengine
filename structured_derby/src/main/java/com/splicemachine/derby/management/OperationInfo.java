@@ -21,11 +21,13 @@ public class OperationInfo {
 		private AtomicInteger numTasks = new AtomicInteger(0);
 		private long statementId;
 		private volatile int numFailedTasks = -1;
+        private String info;
 		private Set<JobInfo> jobs = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
 
 		public OperationInfo(long operationUuid,
 												 long statementId,
 												 String operationTypeName,
+                                                 String info,
 												 boolean isRight,
 												 long parentOperationUuid) {
 				this.operationUuid = operationUuid;
@@ -33,6 +35,7 @@ public class OperationInfo {
 				this.operationTypeName = operationTypeName;
 				this.parentOperationUuid = parentOperationUuid;
 				this.statementId = statementId;
+                this.info = info;
 		}
 
 		@ConstructorProperties({"right",
@@ -68,7 +71,7 @@ public class OperationInfo {
 		public long getParentOperationUuid() { return parentOperationUuid; }
 		public int getNumJobs() { return numJobs.get(); }
 		public int getNumTasks() { return numTasks.get(); }
-
+        public String getInfo() {return info;}
 		public boolean isRight() { return isRight; }
 
 		public void addJob(JobInfo jobInfo){

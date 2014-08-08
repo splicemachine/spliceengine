@@ -27,6 +27,7 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.catalog.DefaultInfo;
 import org.apache.derby.catalog.Dependable;
 import org.apache.derby.catalog.DependableFinder;
@@ -1881,11 +1882,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         JobInfo info = null;
         TentativeDropColumnDesc desc = (TentativeDropColumnDesc)ddlChange.getTentativeDDLDesc();
         ColumnInfo[] columnInfos = desc.getColumnInfos();
-        StatementInfo statementInfo = new StatementInfo(String.format("alter table %s drop column %s",tableName,
+        /*StatementInfo statementInfo = new StatementInfo(String.format("alter table %s drop column %s",tableName,
                 columnInfos[droppedColumnPosition-1].name),userId,
                 activation.getTransactionController().getActiveStateTxIdString(),1, SpliceDriver.driver().getUUIDGenerator());
         statementInfo.setOperationInfo(Arrays.asList(new OperationInfo(statementInfo.getStatementUuid(),
-                SpliceDriver.driver().getUUIDGenerator().nextUUID(), "DropColumn", false, -1l)));
+                SpliceDriver.driver().getUUIDGenerator().nextUUID(), "DropColumn", null, false, -1l)));*/
         try{
             long start = System.currentTimeMillis();
             DropColumnJob job = new DropColumnJob(table, oldConglomId, newConglomId, ddlChange);
@@ -1900,7 +1901,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                 info.failJob();
                 throw t;
             }
-            statementInfo.completeJob(info);
+            //statementInfo.completeJob(info);
         }catch (Throwable e) {
             if(info!=null) info.failJob();
             LOG.error("Couldn't drop column on existing regions", e);
@@ -1911,10 +1912,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             }
             throw Exceptions.parseException(e);
         }finally {
-            String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-            boolean explain = xplainSchema !=null &&
-                    activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
-            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema:null);
+            //SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
             cleanupFuture(future);
         }
 
@@ -1935,11 +1933,16 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
     private void copyToConglomerate(long toConglomId, String DropColumnTxnId, int[] columnOrdering) throws StandardException {
 
         String user = lcc.getSessionUserId();
+        Snowflake snowflake = SpliceDriver.driver().getUUIDGenerator();
+        long sId = snowflake.nextUUID();
+        if (activation.isTraced()) {
+            activation.getLanguageConnectionContext().setXplainStatementId(sId);
+        }
         StatementInfo statementInfo =
                 new StatementInfo(String.format("alter table %s.%s drop %s", td.getSchemaName(), td.getName(), columnInfo[0].name),
-                        user,DropColumnTxnId, 1, SpliceDriver.driver().getUUIDGenerator());
+                        user,DropColumnTxnId, 1, sId);
         OperationInfo opInfo = new OperationInfo(
-                SpliceDriver.driver().getUUIDGenerator().nextUUID(), statementInfo.getStatementUuid(),"Alter Table Drop Column", false, -1l);
+                SpliceDriver.driver().getUUIDGenerator().nextUUID(), statementInfo.getStatementUuid(),"Alter Table Drop Column", null, false, -1l);
         statementInfo.setOperationInfo(Arrays.asList(opInfo));
         SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
 
@@ -1951,7 +1954,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
             ColumnInfo[] allColumnInfo = DataDictionaryUtils.getColumnInfo(td);
             LoadConglomerateJob job = new LoadConglomerateJob(table, tableId, fromConglomId, toConglomId, allColumnInfo, droppedColumnPosition, DropColumnTxnId,
-                    statementInfo.getStatementUuid(), opInfo.getOperationUuid(), activation.getLanguageConnectionContext().getXplainSchema());
+                    statementInfo.getStatementUuid(), opInfo.getOperationUuid(), activation.isTraced());
             long start = System.currentTimeMillis();
             future = SpliceDriver.driver().getJobScheduler().submit(job);
             info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
@@ -1972,10 +1975,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         } catch (InterruptedException e) {
             throw Exceptions.parseException(e);
         }finally {
-            String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-            boolean explain = xplainSchema !=null &&
-                    activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
-            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema: null);
+            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
 
         }
 

@@ -54,8 +54,9 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		protected EntryPredicateFilter predicateFilter;
 		private boolean cachedPredicateFilter = false;
 		protected int[] keyDecodingMap;
-    protected Scan scan;
-    protected boolean scanSet = false;
+        protected Scan scan;
+        protected boolean scanSet = false;
+        protected String scanQualifiersField;
 
     public ScanOperation () {
 				super();
@@ -74,6 +75,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
 				this.lockMode = lockMode;
 				this.isolationLevel = isolationLevel;
+                this.scanQualifiersField = scanQualifiersField;
 
 				this.scanInformation = new DerbyScanInformation(resultRowAllocator.getMethodName(),
 								startKeyGetter!=null? startKeyGetter.getMethodName(): null,
@@ -146,11 +148,43 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 						currentTemplate = currentRow.getClone();
 						if (currentRowLocation == null)
 								currentRowLocation = new HBaseRowLocation();
+                        if(shouldRecordStats()) {
+                            if(scanQualifiersField != null ) {
+                                getScanQualifiersInStringFormat();
+                            }
+                        }
 				} catch (Exception e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);
 				}
 		}
 
+        private void getScanQualifiersInStringFormat() throws StandardException{
+            Qualifier[][] scanQualifiers = null;
+
+            try {
+                scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
+            } catch (Exception e) {
+                throw StandardException.unexpectedUserException(e);
+            }
+
+            if (scanQualifiers != null) {
+                String qualifiersString = "Scan filter:";
+                for (Qualifier[] qualifiers : scanQualifiers) {
+                    for (Qualifier q : qualifiers) {
+                        String text = q.getText();
+                        if (text != null) {
+                            qualifiersString += text;
+                        }
+                    }
+                }
+                if (info == null) {
+                    info = qualifiersString;
+                }
+                else if (!info.contains(qualifiersString)) {
+                    info +=", " + qualifiersString;
+                }
+            }
+        }
 		@Override
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 				SpliceLogUtils.trace(LOG, "executeScan");
@@ -288,7 +322,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				}
 		}
 
-		@Override
+		/*@Override
 		public String getName() {
 				/*
 				 * TODO -sf- tableName and indexName are actually conglomerate ids, not
@@ -299,14 +333,14 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				 * to look for them later; at some point the Query Optimizer will
 				 * need to be invoked to ensure that the human readable name gets
 				 * passed through.
-				 */
+				 *
 				String baseName =  super.getName();
 				if(this.tableName!=null){
 						baseName+="(table="+tableName+")";
 				}else if(this.indexName!=null)
 						baseName+="(index="+indexName+")";
 				return baseName;
-		}
+		}*/
 
 		public String getTableName(){
 				return this.tableName;

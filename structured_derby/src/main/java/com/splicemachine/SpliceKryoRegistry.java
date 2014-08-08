@@ -753,9 +753,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 				},161);
 
             instance.register(WindowOperation.class,EXTERNALIZABLE_SERIALIZER,179);
-        instance.register(HashNestedLoopJoinOperation.class,EXTERNALIZABLE_SERIALIZER,180);
-        instance.register(HashNestedLoopLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,181);
-        instance.register(MergeLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER,182);
-        instance.register(SizedInterval.class,EXTERNALIZABLE_SERIALIZER,183);
+            instance.register(HashNestedLoopJoinOperation.class,EXTERNALIZABLE_SERIALIZER,180);
+            instance.register(HashNestedLoopLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,181);
+            instance.register(MergeLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER,182);
+            instance.register(SizedInterval.class,EXTERNALIZABLE_SERIALIZER,183);
+            instance.register(ActivationSerializer.BooleanFieldStorage.class,EXTERNALIZABLE_SERIALIZER,184);
 		}
 }

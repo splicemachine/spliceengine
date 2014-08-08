@@ -155,8 +155,7 @@ public class Joiner {
         return joinRowsSource.getRightRowsSeen();
     }
 
-		public long getRowsFiltered(){
+	public long getRowsFiltered(){
 				return filteredRows.getTotal();
 		}
-
 }

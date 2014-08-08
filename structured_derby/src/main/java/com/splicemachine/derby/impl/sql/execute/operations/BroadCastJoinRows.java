@@ -73,5 +73,4 @@ public class BroadCastJoinRows implements IJoinRowsIterator<ExecRow> {
         leftRows.close();
         pair = null;
     }
-
 }

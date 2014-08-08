@@ -42,9 +42,9 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		 * When set to true, the operation should record relevant information for its operation.
 		 */
 		private boolean recordTraceMetrics;
-		private String xplainSchema;
 		private transient KryoPool kryoPool;
 		private TempTable tempTable;
+        private long statementId;
 
 		public SpliceRuntimeContext() {
 				this(SpliceDriver.driver().getTempTable(),SpliceDriver.driver().getKryoPool());
@@ -97,7 +97,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 				copy.isSink = isSink;
 				copy.currentTaskId = currentTaskId;
 				copy.statementInfo = statementInfo;
-				copy.xplainSchema = xplainSchema;
+                copy.statementId = statementId;
 				copy.recordTraceMetrics = recordTraceMetrics;
 				return copy;
 		}
@@ -105,6 +105,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 
 		public void setStatementInfo(StatementInfo statementInfo){
 				this.statementInfo = statementInfo;
+                this.statementId = statementInfo.getStatementUuid();
 		}
 
     public void addPath(int resultSetNumber, int state) {
@@ -136,7 +137,11 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
         }
         out.writeByte(hashBucket);
         out.writeBoolean(firstStepInMultistep);
-				out.writeBoolean(recordTraceMetrics);
+        out.writeBoolean(recordTraceMetrics);
+        out.writeBoolean(statementInfo != null);
+        if (statementInfo != null) {
+            out.writeLong(statementInfo.getStatementUuid());
+        }
     }
 
     @Override
@@ -148,7 +153,10 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
         }
         hashBucket = in.readByte();
         firstStepInMultistep = in.readBoolean();
-				this.recordTraceMetrics = in.readBoolean();
+        this.recordTraceMetrics = in.readBoolean();
+        if(in.readBoolean()) {
+            this.statementId = in.readLong();
+        }
     }
 
 
@@ -253,11 +261,8 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		public StatementInfo getStatementInfo() {
 				return statementInfo;
 		}
+        public long getStatementId() { return statementId;};
 		public boolean shouldRecordTraceMetrics() { return recordTraceMetrics; }
-		public String getXplainSchema() { return xplainSchema; }
-		public void setXplainSchema(String xplainSchema) {
-				this.xplainSchema = xplainSchema;
-		}
 
 		public KryoPool getKryoPool() {
 				return kryoPool;

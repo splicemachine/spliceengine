@@ -8,8 +8,12 @@ import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.*;
-import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.TimeView;
+import com.splicemachine.metrics.IOStats;
+import com.splicemachine.derby.utils.StandardIterators;
+import com.splicemachine.derby.utils.StandardPushBackIterator;
+import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.metrics.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -21,8 +25,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.List;
-
-
 /**
  * @author P Trolard
  *         Date: 18/11/2013
@@ -161,7 +163,7 @@ public class MergeJoinOperation extends JoinOperation {
     private Joiner initJoiner(final SpliceRuntimeContext<ExecRow> spliceRuntimeContext)
             throws StandardException, IOException {
         StandardPushBackIterator<ExecRow> leftPushBack =
-            new StandardPushBackIterator<ExecRow>(StandardIterators.wrap(leftResultSet));
+                new StandardPushBackIterator<ExecRow>(StandardIterators.wrap(leftResultSet));
         ExecRow firstLeft = leftPushBack.next(spliceRuntimeContext);
         SpliceRuntimeContext<ExecRow> ctxWithOverride = spliceRuntimeContext.copy();
         ctxWithOverride.unMarkAsSink();
@@ -192,18 +194,19 @@ public class MergeJoinOperation extends JoinOperation {
         long leftRowsSeen = joiner.getLeftRowsSeen();
         stats.addMetric(OperationMetric.INPUT_ROWS, leftRowsSeen);
         TimeView time = timer.getTime();
-        stats.addMetric(OperationMetric.TOTAL_WALL_TIME, time.getWallClockTime());
-        stats.addMetric(OperationMetric.TOTAL_CPU_TIME, time.getCpuTime());
+        stats.addMetric(OperationMetric.TOTAL_WALL_TIME,time.getWallClockTime());
+        stats.addMetric(OperationMetric.TOTAL_CPU_TIME,time.getCpuTime());
         stats.addMetric(OperationMetric.TOTAL_USER_TIME, time.getUserTime());
         stats.addMetric(OperationMetric.FILTERED_ROWS, joiner.getRowsFiltered());
 
         IOStats rightSideStats = rightRows.getStats();
         TimeView remoteView = rightSideStats.getTime();
-        stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME, remoteView.getWallClockTime());
-        stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME, remoteView.getCpuTime());
-        stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME, remoteView.getUserTime());
-        stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS, rightSideStats.getRows());
-        stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES, rightSideStats.getBytes());
+        stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,remoteView.getWallClockTime());
+        stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,remoteView.getCpuTime());
+        stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,remoteView.getUserTime());
+        stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,rightSideStats.getRows());
+        stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,rightSideStats.getBytes());
+
         super.updateStats(stats);
     }
 

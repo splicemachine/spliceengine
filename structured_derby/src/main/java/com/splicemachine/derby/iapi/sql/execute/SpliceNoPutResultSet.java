@@ -426,6 +426,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 		public void setTaskId(long taskId){
 				this.taskId = taskId;
 		}
+
 		public void setRegionName(String regionName){
 				this.regionName = regionName;
 		}

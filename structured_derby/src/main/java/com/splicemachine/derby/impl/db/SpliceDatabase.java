@@ -54,6 +54,7 @@ import com.splicemachine.hbase.backup.CreateBackupJob;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
+import com.splicemachine.derby.impl.ast.XPlainTraceVisitor;
 
 public class SpliceDatabase extends BasicDatabase {
 	private static Logger LOG = Logger.getLogger(SpliceDatabase.class);
@@ -150,6 +151,7 @@ public class SpliceDatabase extends BasicDatabase {
         afterOptVisitors.add(FindHashJoinColumns.class);
         afterOptVisitors.add(FixSubqueryColRefs.class);
         afterOptVisitors.add(PlanPrinter.class);
+        afterOptVisitors.add(XPlainTraceVisitor.class);
 
         List<Class<? extends ISpliceVisitor>> afterBindVisitors = new ArrayList<Class<? extends ISpliceVisitor>>(1);
         afterBindVisitors.add(RepeatedPredicateVisitor.class);

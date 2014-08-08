@@ -10,6 +10,8 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
@@ -121,7 +123,12 @@ public class OnceOperation extends SpliceBaseOperation {
 
 		@Override
 		public ExecRow nextRow(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				if(rowSource==null){
+
+                if (timer == null) {
+                    timer = spliceRuntimeContext.newTimer();
+                }
+                timer.startTiming();
+                if(rowSource==null){
 						rowSource = new RowSource(){
 
 								@Override
@@ -135,8 +142,21 @@ public class OnceOperation extends SpliceBaseOperation {
 
 				//do null-filling on the other side of the serialization barrier
 				setCurrentRow(next);
+                if (next == null) {
+                    timer.tick(0);
+                }
+                else {
+                    timer.tick(1);
+                }
+                timer.stopTiming();
 				return next;
 		}
+
+        @Override
+        protected void updateStats(OperationRuntimeStats stats) {
+            stats.addMetric(OperationMetric.INPUT_ROWS, timer.getNumEvents());
+            stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
+        }
 
 		@Override
 		public void close() throws StandardException, IOException {

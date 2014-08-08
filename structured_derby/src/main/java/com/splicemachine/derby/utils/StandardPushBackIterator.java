@@ -9,10 +9,12 @@ import java.io.IOException;
  * @author P Trolard
  *         Date: 25/03/2014
  */
+
 public class StandardPushBackIterator<T> implements StandardIterator<T> {
-    private final StandardIterator<T> iterator;
     private final T EMPTY = (T) new Object();
     private T pushedBack = EMPTY;
+    private final StandardIterator<T> iterator;
+
 
     public StandardPushBackIterator(StandardIterator<T> iterator){
         this.iterator = iterator;

@@ -243,7 +243,7 @@ public class CallStatementOperation extends NoRowsOperation {
 						}
 
 						stats.setHostName(SpliceUtils.getHostName());
-						SpliceDriver.driver().getTaskReporter().report(xplainSchema,stats);
+						SpliceDriver.driver().getTaskReporter().report(stats);
 				}
 
 				@Override
