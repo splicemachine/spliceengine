@@ -10,6 +10,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -25,13 +26,18 @@ public class UpdateOperationIT extends SpliceUnitTest {
     protected static SpliceTableWatcher nullTableWatcher = new SpliceTableWatcher("NULL_TABLE",spliceSchemaWatcher.schemaName,"(addr varchar(50), zip char(5))");
     protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("c",spliceSchemaWatcher.schemaName,"(k int, l int)");
 
-	@ClassRule 
+    protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("customer",spliceSchemaWatcher.schemaName,"(cust_id int, status boolean)");
+    protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("shipment",spliceSchemaWatcher.schemaName,"(cust_id int)");
+
+    @ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
 		.around(spliceTableWatcher)
         .around(spliceTableWatcher2)
-            .around(spliceTableWatcher3)
+        .around(spliceTableWatcher3)
         .around(nullTableWatcher)
+        .around(spliceTableWatcher4)
+        .around(spliceTableWatcher5)
 		.around(new SpliceDataWatcher() {
             @Override
             protected void starting(Description description) {
@@ -57,6 +63,30 @@ public class UpdateOperationIT extends SpliceUnitTest {
                     insertPs.setInt(1, 300);
                     insertPs.setString(2, "300");
                     insertPs.setString(3, "34166");
+                    insertPs.executeUpdate();
+
+                    // Insert into customer and shipment tables
+                    insertPs = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher4 + " values(?,?)");
+                    insertPs.setInt(1, 1);
+                    insertPs.setBoolean(2, true);
+                    insertPs.executeUpdate();
+                    insertPs.setInt(1, 2);
+                    insertPs.setBoolean(2, true);
+                    insertPs.executeUpdate();
+                    insertPs.setInt(1, 3);
+                    insertPs.setBoolean(2, true);
+                    insertPs.executeUpdate();
+                    insertPs.setInt(1, 4);
+                    insertPs.setBoolean(2, true);
+                    insertPs.executeUpdate();
+                    insertPs.setInt(1, 5);
+                    insertPs.setBoolean(2, true);
+                    insertPs.executeUpdate();
+                    
+                    insertPs = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher5 + " values(?)");
+                    insertPs.setInt(1, 2);
+                    insertPs.executeUpdate();
+                    insertPs.setInt(1, 4);
                     insertPs.executeUpdate();
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -263,7 +293,8 @@ public class UpdateOperationIT extends SpliceUnitTest {
     @Ignore
     public void testUpdateOverJoinIsUnsupported() throws Exception {
     	// Now that updates over sink operations are supported (DB-1603),
-    	// this test is no longer valid. Delete permanently later.
+    	// this test is no longer valid. Replacements are
+    	// testUpdateOverBroadcastJoin and testUpdateOverMergeSortJoin below.
         try {
             methodWatcher
                 .executeUpdate("UPDATE updateoperationit.location a " +
@@ -276,5 +307,31 @@ public class UpdateOperationIT extends SpliceUnitTest {
             Assert.assertTrue("Updates over joins are not supported",
                                  e.getCause().getMessage().contains("An Update over join"));
         }
+    }
+    
+    @Test
+    public void testUpdateOverBroadcastJoin() throws Exception {
+    	// Note: update over broadcast join is the style that worked
+    	// even before we added full support for updates and deletes
+    	// over sink operations.
+    	doTestUpdateOverJoin("BROADCAST");
+    }
+
+    @Test
+    public void testUpdateOverMergeSortJoin() throws Exception {
+    	doTestUpdateOverJoin("SORTMERGE");
+    }
+
+    private void doTestUpdateOverJoin(String hint) throws Exception {
+    	StringBuffer sb = new StringBuffer(200);
+    	sb.append("update %s %s set %s.status = 'false' \n");
+    	sb.append("where not exists ( \n");
+		sb.append("  select 1 \n");
+		sb.append("  from %s %s --SPLICE-PROPERTIES joinStrategy=%s \n");                                                                           
+		sb.append("  where %s.cust_id = %s.cust_id \n");
+		sb.append(") \n");
+		String query = String.format(sb.toString(), spliceTableWatcher4, "customer", "customer", spliceTableWatcher5, "shipment", hint, "customer", "shipment");
+    	int rows = methodWatcher.executeUpdate(query);
+        Assert.assertEquals("incorrect num rows updated!", 3, rows);
     }
 }
