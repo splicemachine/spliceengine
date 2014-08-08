@@ -59,6 +59,7 @@ public class SpliceNetConnection {
      * system stored statements  Do this once per IT JVM.  See bug DB-1342 for details.  This method/call can be removed
      * when we fix 1342.
      */
+    //Changes applied by branch master#auth_experiment, commit 186dec8630a3519f2b487ea399cf14ab98c0baac
     public static synchronized void compileAllInvalidStoredStatements(Connection connection) throws SQLException {
         if (!storedStatementsCompiled) {
             connection.prepareCall("call SYSCS_UTIL.SYSCS_RECOMPILE_INVALID_STORED_STATEMENTS()").execute();
