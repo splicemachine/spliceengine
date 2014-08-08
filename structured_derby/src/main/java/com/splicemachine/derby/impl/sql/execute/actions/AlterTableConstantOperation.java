@@ -17,6 +17,9 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseController;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
@@ -2045,7 +2048,18 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                                 TransactionController.MODE_TABLE,
                                 TransactionController.ISOLATION_SERIALIZABLE);
 
-		rl = compressHeapCC.newRowLocationTemplate();
+        // Get column ordering for new conglomerate
+        SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) activation.getTransactionController()).findConglomerate(td.getHeapConglomerateId());
+        int[] columnOrder = conglomerate.getColumnOrdering();
+        ColumnOrdering[] columnOrdering = null;
+        if (columnOrder != null) {
+            columnOrdering = new ColumnOrdering[columnOrder.length];
+            for (int i = 0; i < columnOrder.length; i++) {
+                columnOrdering[i] = new IndexColumnOrder(columnOrder[0]);
+            }
+        }
+
+        rl = compressHeapCC.newRowLocationTemplate();
 		// Get the properties on the old heap
 		compressHeapCC.getInternalTablePropertySet(properties);
 		compressHeapCC.close();
@@ -2056,7 +2070,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             tc.createConglomerate(
                 "heap",
                 emptyHeapRow.getRowArray(),
-                null, //column sort order - not required for heap
+                columnOrdering, //column sort order - not required for heap
                 td.getColumnCollationIds(),
                 properties,
                 TransactionController.IS_DEFAULT);
