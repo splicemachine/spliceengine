@@ -56,15 +56,14 @@ public class SIObserver extends BaseRegionObserver {
         tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
         Tracer.traceRegion(tableName, region);
         tableEnvMatch = doesTableNeedSI(region);
-        rollForwardQueue = new SIRollForwardQueue(
-                new NoOpRollForwardQueue(),
-//HTransactorFactory.getRollForwardFactory().delayedRollForward(new HbRegion(region)),
-                new NoOpRollForwardQueue()
-//new PushForwardQueue(HTransactorFactory.getRollForwardFactory().pushForward(new HbRegion(region)))
-        );
+		rollForwardQueue = new SIRollForwardQueue(
+				new NoOpRollForwardQueue(),
+				//				HTransactorFactory.getRollForwardFactory().delayedRollForward(new HbRegion(region)),
+				new PushForwardQueue(HTransactorFactory.getRollForwardFactory().pushForward(new HbRegion(region)))
+				);
 
-//        rollForwardQueue = new NoOpRollForwardQueue();
-        rollForwardQueueMap.registerRollForwardQueue(region.getRegionNameAsString(), rollForwardQueue);
+//        rollForwardQueue = new NoOpRollForwardQueue();
+		rollForwardQueueMap.registerRollForwardQueue(region.getRegionNameAsString(), rollForwardQueue);
         super.start(e);
     }
 
