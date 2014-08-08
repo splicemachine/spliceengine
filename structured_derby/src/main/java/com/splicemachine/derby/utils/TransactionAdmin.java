@@ -193,7 +193,15 @@ public class TransactionAdmin {
 			new GenericColumnDescriptor("childTxnId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
 		};
 		
-		public static void SYSCS_START_CHILD_TRANSACTION(long parentTransactionId, ResultSet[] resultSet) throws Exception {
+		public static void SYSCS_START_CHILD_TRANSACTION(long parentTransactionId, ResultSet[] resultSet) throws IOException, SQLException {
+			
+			// Verify the parentTransactionId passed in
+			TransactionStore store = HTransactorFactory.getTransactionStore();
+			Transaction existingParentTransaction = store.getTransaction(parentTransactionId);
+			if (existingParentTransaction == null) {
+				throw new IllegalArgumentException(String.format("Specified parent transaction id %s not found. Unable to create child transaction.", parentTransactionId));
+			}
+			
 			TransactionId parentTxnId = new TransactionId(Long.toString(parentTransactionId)); // constructor that takes long is not public
 			TransactionId childTransaction;
 			TransactionManager tm = HTransactorFactory.getTransactionManager();
