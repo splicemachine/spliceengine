@@ -1,6 +1,6 @@
 package com.splicemachine.si.data.api;
 
-import com.splicemachine.utils.CloseableIterator;
+import com.splicemachine.collections.CloseableIterator;
 import org.apache.hadoop.hbase.client.Result;
 
 import java.io.IOException;

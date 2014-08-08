@@ -1,10 +1,10 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.derby.error.SpliceDoNotRetryIOException;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.tools.EmbedConnectionMaker;
-import com.splicemachine.tools.SpliceExecutors;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
@@ -31,7 +31,7 @@ class SpliceMasterObserverInitAction {
     private ExecutorService executor;
 
     SpliceMasterObserverInitAction() {
-        executor = SpliceExecutors.newSingleThreadExecutor("splice-master-manager");
+        executor = MoreExecutors.namedSingleThreadExecutor("splice-master-manager");
         state.set(State.NOT_STARTED);
     }
 

@@ -1,10 +1,10 @@
 package com.splicemachine.hbase;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.stats.Counter;
-import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.stats.TimeView;
-import com.splicemachine.stats.Timer;
+import com.splicemachine.metrics.Counter;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.TimeView;
+import com.splicemachine.metrics.Timer;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.HasPredicateFilter;
 import org.apache.hadoop.hbase.HRegionInfo;

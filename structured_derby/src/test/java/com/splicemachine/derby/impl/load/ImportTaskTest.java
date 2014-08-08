@@ -8,23 +8,20 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.hbase.writer.Writer;
-import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
-
+import com.splicemachine.uuid.Snowflake;
+import com.splicemachine.uuid.UUIDGenerator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.sql.execute.ValueRow;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nullable;
-
 import java.sql.Date;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
@@ -520,7 +517,7 @@ public class ImportTaskTest {
 				KryoPool kryoPool = KryoPool.defaultPool();
 				Importer importer = new SequentialImporter(ctx,template,"TEXT_TXN",fakeBufferFactory, kryoPool,FailAlwaysReporter.INSTANCE){
 						@Override
-						protected Snowflake.Generator getRandomGenerator() {
+						protected UUIDGenerator getRandomGenerator() {
 								return snowflake.newGenerator(lines.size());
 						}
 				};

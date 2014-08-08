@@ -1,6 +1,7 @@
 package com.splicemachine.si;
 
 import com.google.common.base.Function;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.*;
@@ -13,7 +14,6 @@ import com.splicemachine.si.impl.rollforward.PushForwardAction;
 import com.splicemachine.si.impl.rollforward.SIRollForwardQueue;
 import com.splicemachine.si.impl.translate.Transcoder;
 import com.splicemachine.si.impl.translate.Translator;
-import com.splicemachine.utils.Providers;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
@@ -21,6 +21,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.*;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
@@ -84,10 +85,12 @@ public class SITransactorTest extends SIConstants {
 				final STableReader reader = storeSetup.getReader();
 				Object testSTable = reader.open(storeSetup.getPersonTableName());
 				
-				transactorSetup.rollForwardQueue = new SIRollForwardQueue(new DelayedRollForwardAction(testSTable,Providers.basicProvider(transactorSetup.transactionStore),
-						Providers.basicProvider(transactorSetup.dataStore)),
-						new PushForwardAction(testSTable,Providers.basicProvider(transactorSetup.transactionStore),
-								Providers.basicProvider(transactorSetup.dataStore)));
+				transactorSetup.rollForwardQueue = new SIRollForwardQueue(new DelayedRollForwardAction(testSTable,
+                Suppliers.ofInstance(transactorSetup.transactionStore),
+						Suppliers.ofInstance(transactorSetup.dataStore)),
+						new PushForwardAction(testSTable,
+                    Suppliers.ofInstance(transactorSetup.transactionStore),
+								Suppliers.ofInstance(transactorSetup.dataStore)));
 				testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup,transactor,control);
     }
 

@@ -10,7 +10,7 @@ import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.hbase.async.AsyncScanner;
 import com.splicemachine.hbase.async.SimpleAsyncScanner;
 import com.splicemachine.hbase.async.SortedGatheringScanner;
-import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.metrics.MetricFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;

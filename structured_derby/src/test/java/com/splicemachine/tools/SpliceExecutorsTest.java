@@ -1,5 +1,6 @@
 package com.splicemachine.tools;
 
+import com.splicemachine.concurrent.MoreExecutors;
 import org.junit.Test;
 
 import java.util.concurrent.Callable;
@@ -13,7 +14,7 @@ public class SpliceExecutorsTest {
     @Test
     public void newSingleThreadExecutor_usesThreadWithExpectedName() throws Exception {
 
-        ExecutorService executorService = SpliceExecutors.newSingleThreadExecutor("testName-%d");
+        ExecutorService executorService = MoreExecutors.namedSingleThreadExecutor("testName-%d");
 
         Future<String> threadName = executorService.submit(new Callable<String>() {
             @Override

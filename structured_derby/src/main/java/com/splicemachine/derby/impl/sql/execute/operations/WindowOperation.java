@@ -5,6 +5,8 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Properties;
 
+import com.splicemachine.hash.Hash32;
+import com.splicemachine.hash.HashFunctions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -69,11 +71,9 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.job.JobResults;
-import com.splicemachine.stats.TimeView;
+import com.splicemachine.metrics.TimeView;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.hash.ByteHash32;
-import com.splicemachine.utils.hash.HashFunctions;
 
 /**
  * WindowResultSet
@@ -286,7 +286,7 @@ public class WindowOperation extends GenericAggregateOperation {
         private final int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
         private final DataValueDescriptor[] fields = sortTemplateRow.getRowArray();
 
-        public AggregateBucketingPrefix(HashPrefix delegate, ByteHash32 hashFunction, SpreadBucket spreadBucket) {
+        public AggregateBucketingPrefix(HashPrefix delegate, Hash32 hashFunction, SpreadBucket spreadBucket) {
             super(delegate, hashFunction, spreadBucket);
         }
 

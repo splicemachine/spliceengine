@@ -1,11 +1,10 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.si.data.api.STableReader;
-import com.splicemachine.utils.CloseableIterator;
 import org.apache.hadoop.hbase.client.Result;
 
 import java.io.IOException;
-import java.util.Iterator;
 
 /**
  * A class that delegates all the interface methods. This is intended to be sub-classed to provide a "decorator" for the

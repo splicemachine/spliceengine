@@ -97,7 +97,6 @@ import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
 import com.splicemachine.hbase.KVPair;
@@ -548,7 +547,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(IndexColumnOrder.class,EXTERNALIZABLE_SERIALIZER,113);
         instance.register(HBaseRowLocation.class,EXTERNALIZABLE_SERIALIZER,114);
         instance.register(TaskStats.class,EXTERNALIZABLE_SERIALIZER,115);
-        instance.register(TimingStats.class,EXTERNALIZABLE_SERIALIZER,116);
         instance.register(AggregatorInfoList.class,EXTERNALIZABLE_SERIALIZER,117);
         instance.register(AggregatorInfo.class,EXTERNALIZABLE_SERIALIZER,118);
         instance.register(UserType.class,EXTERNALIZABLE_SERIALIZER,119);

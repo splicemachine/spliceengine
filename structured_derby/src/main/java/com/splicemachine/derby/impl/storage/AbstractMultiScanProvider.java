@@ -2,10 +2,8 @@ package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.job.JobStatsUtils;
-import com.splicemachine.stats.Timer;
+import com.splicemachine.metrics.Timer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;

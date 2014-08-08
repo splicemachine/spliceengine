@@ -1,11 +1,11 @@
 package com.splicemachine.perf.runner;
 
-import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.Stats;
-import com.splicemachine.derby.stats.TimeUtils;
-import com.splicemachine.derby.stats.TimingStats;
+import com.splicemachine.metrics.DisplayTime;
 import com.splicemachine.perf.runner.qualifiers.Qualifier;
 import com.splicemachine.perf.runner.qualifiers.Result;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.metrics.Timer;
 import com.splicemachine.tools.ConnectionPool;
 import org.apache.log4j.Logger;
 
@@ -13,7 +13,6 @@ import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -99,22 +98,22 @@ public class Query {
                     accumulator.recordStats.getTotalRecords());
             stream.printf("\t%-25s\t%15d records%n","Total records retrieved",
                     accumulator.timeStats.getTotalRecords());
-            stream.printf("\t%-25s\t%20.4f ms%n","Total time spent",
-                    TimeUtils.toMillis(accumulator.timeStats.getTotalTime()));
+            stream.printf("\t%-25s\t%20.4f ms%n", "Total time spent",
+                    DisplayTime.MILLISECONDS.convert(accumulator.timeStats.getTotalTime(), TimeUnit.NANOSECONDS));
 
             stream.printf("--------------------TIME DISTRIBUTION--------------------%n");
             Stats timeStats = accumulator.timeStats;
-            stream.printf("%-20s\t%20.4f ms%n","min",TimeUtils.toMillis(timeStats.getMinTime()));
-            stream.printf("%-20s\t%20.4f ms%n","median(p50)",TimeUtils.toMillis(timeStats.getMedian()));
-            stream.printf("%-20s\t%20.4f ms%n","p75",TimeUtils.toMillis(timeStats.get75P()));
-            stream.printf("%-20s\t%20.4f ms%n","p95",TimeUtils.toMillis(timeStats.get95P()));
-            stream.printf("%-20s\t%20.4f ms%n","p98",TimeUtils.toMillis(timeStats.get98P()));
-            stream.printf("%-20s\t%20.4f ms%n","p99",TimeUtils.toMillis(timeStats.get99P()));
-            stream.printf("%-20s\t%20.4f ms%n","p999",TimeUtils.toMillis(timeStats.get999P()));
-            stream.printf("%-20s\t%20.4f ms%n","max",TimeUtils.toMillis(timeStats.getMaxTime()));
+            stream.printf("%-20s\t%20.4f ms%n", "min", DisplayTime.NANOSECONDS.toMillis(timeStats.getMinTime()));
+            stream.printf("%-20s\t%20.4f ms%n","median(p50)",DisplayTime.NANOSECONDS.toMillis(timeStats.getMedian()));
+            stream.printf("%-20s\t%20.4f ms%n","p75",DisplayTime.NANOSECONDS.toMillis(timeStats.get75P()));
+            stream.printf("%-20s\t%20.4f ms%n","p95",DisplayTime.NANOSECONDS.toMillis(timeStats.get95P()));
+            stream.printf("%-20s\t%20.4f ms%n","p98",DisplayTime.NANOSECONDS.toMillis(timeStats.get98P()));
+            stream.printf("%-20s\t%20.4f ms%n","p99",DisplayTime.NANOSECONDS.toMillis(timeStats.get99P()));
+            stream.printf("%-20s\t%20.4f ms%n","p999",DisplayTime.NANOSECONDS.toMillis(timeStats.get999P()));
+            stream.printf("%-20s\t%20.4f ms%n","max",DisplayTime.NANOSECONDS.toMillis(timeStats.getMaxTime()));
             stream.printf("%n");
-            stream.printf("%-20s\t%20.4f ms%n","avg",TimeUtils.toMillis(timeStats.getAvgTime()));
-            stream.printf("%-20s\t%20.4f ms%n","std. dev",TimeUtils.toMillis(timeStats.getTimeStandardDeviation()));
+            stream.printf("%-20s\t%20.4f ms%n","avg",DisplayTime.NANOSECONDS.toMillis(timeStats.getAvgTime()));
+            stream.printf("%-20s\t%20.4f ms%n","std. dev",DisplayTime.NANOSECONDS.toMillis(timeStats.getTimeStandardDeviation()));
             stream.println();
             stream.printf("--------------------RECORD DISTRIBUTION--------------------%n");
             Stats recordStats = accumulator.recordStats;
@@ -189,24 +188,23 @@ public class Query {
     }
 
     private static class QueryAccumulator{
-        private Accumulator timings = TimingStats.uniformSafeAccumulator();
-        private Accumulator records = TimingStats.uniformSafeAccumulator();
+        private Timer timer = Metrics.newTimer();
+//        private Accumulator timings = TimingStats.uniformSafeAccumulator();
+//        private Accumulator records = TimingStats.uniformSafeAccumulator();
 
         private Stats timeStats;
         private Stats recordStats;
 
         public void tick(long numRecords, long time){
-            timings.tick(numRecords,time);
-            records.tick(numRecords);
+            timer.tick(numRecords);
         }
 
         public void start() {
-            timings.start();
+            timer.startTiming();;
         }
 
         public void finish() {
-            timeStats = timings.finish();
-            recordStats = records.finish();
+            timer.stopTiming();
         }
     }
 

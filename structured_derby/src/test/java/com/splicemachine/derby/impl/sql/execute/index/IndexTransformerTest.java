@@ -8,8 +8,8 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
+import com.splicemachine.uuid.Snowflake;
 import org.junit.Assert;
 import org.junit.Test;
 

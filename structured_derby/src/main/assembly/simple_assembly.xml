@@ -1,11 +1,27 @@
+<!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+Assembly descriptor for our demo/stand-alone package.
+
+Creates a single TAR file with everything necessary to run splice.  Currently
+makes a 1 master + 1 region-server cluster available.
+
+TAR structure:
+
+   splicemachine/
+       lib/
+       bin/
+       demodata/
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  -->
 <assembly xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		  xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2"
 		  xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd">
+
 	<id>${envClassifier}${obfuscate.si}_simple</id>
 	<formats>
 		<format>tar.gz</format>
 	</formats>
 	<includeBaseDirectory>false</includeBaseDirectory>
+
+	<!-- DEPENDENCIES: includes these artifacts from the pom. -->
 	<dependencySets>
 		<dependencySet>
 			<outputDirectory>splicemachine/lib</outputDirectory>
@@ -13,7 +29,11 @@
 			<useProjectArtifact>false</useProjectArtifact>
 		</dependencySet>
 	</dependencySets>
+
+	<!-- MISC FILES -->
 	<fileSets>
+
+		<!-- Our module's jar -->
 		<fileSet>
 			<directory>target</directory>
 			<outputDirectory>splicemachine/lib</outputDirectory>
@@ -24,6 +44,8 @@
 				<exclude>*complete.jar</exclude>
 			</excludes>
 		</fileSet>
+
+		<!-- SCRIPTS -->
 		<fileSet>
 			<directory>src/main/bin</directory>
 			<outputDirectory>splicemachine/bin</outputDirectory>
@@ -33,6 +55,8 @@
 				<include>*sh</include>
 			</includes>
 		</fileSet>
+
+		<!-- DOCS -->
 		<fileSet>
 			<directory>src/main/bin</directory>
 			<outputDirectory>splicemachine</outputDirectory>
@@ -42,6 +66,8 @@
 				<include>README</include>
 			</includes>
 		</fileSet>
+
+		<!-- DEMO DATA -->
 		<fileSet>
 			<directory>src/test/test-data/demo/demodata</directory>
 			<outputDirectory>splicemachine/demodata</outputDirectory>
@@ -51,8 +77,9 @@
 				<exclude>**/*.gz</exclude>
 			</excludes>
 		</fileSet>
+
+		<!-- DEMO DATA *.GZ: Copy binary files in separate fileSet -->
 		<fileSet>
-			<!-- Copy binary files in separate fileSet -->
 			<directory>src/test/test-data/demo/demodata/data</directory>
 			<outputDirectory>splicemachine/demodata/data</outputDirectory>
 			<lineEnding>keep</lineEnding>
@@ -61,6 +88,8 @@
 				<include>**/*.gz</include>
 			</includes>
 		</fileSet>
+
+		<!-- CONFIG: for some reason we currently put it in lib/ -->
 		<fileSet>
 			<directory>target/classes</directory>
 			<outputDirectory>splicemachine/lib</outputDirectory>
@@ -70,5 +99,6 @@
 				<include>splice-site.xml</include>
 			</includes>
 		</fileSet>
+
 	</fileSets>
 </assembly>
