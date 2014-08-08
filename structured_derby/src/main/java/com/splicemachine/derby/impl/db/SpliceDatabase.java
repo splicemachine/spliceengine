@@ -76,8 +76,8 @@ public class SpliceDatabase extends BasicDatabase {
 					SpliceLogUtils.info(LOG, "using custom authentication for Splice Machine using class %s",SpliceConstants.authenticationCustomProvider);					
 		        System.setProperty("derby.authentication.provider", SpliceConstants.DEFAULT_AUTHENTICATION_CUSTOM_PROVIDER);
 			} else if (SpliceConstants.AuthenticationType.LDAP.toString().equals(SpliceConstants.authentication)) {
-				//SpliceLogUtils.info(LOG, "using LDAP to authorize Splice Machine with {ldap={searchAuthDN=%s,searchAuthPW=%s,searchBase=%s, searchFilter=%s"
-				//		+ "}}",SpliceConstants.authentication);			
+				SpliceLogUtils.info(LOG, "using LDAP to authorize Splice Machine with {ldap={searchAuthDN=%s,searchAuthPW=%s,searchBase=%s, searchFilter=%s"
+						+ "}}",SpliceConstants.authenticationLDAPSearchAuthDN, SpliceConstants.authenticationLDAPSearchAuthPW, SpliceConstants.authenticationLDAPSearchBase, SpliceConstants.authenticationLDAPSearchFilter);			
 		        System.setProperty("derby.authentication.provider", "LDAP");
 				System.setProperty("derby.authentication.ldap.searchAuthDN", SpliceConstants.authenticationLDAPSearchAuthDN);
 		        System.setProperty("derby.authentication.ldap.searchAuthPW", SpliceConstants.authenticationLDAPSearchAuthPW);

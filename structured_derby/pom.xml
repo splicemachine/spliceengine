@@ -13,6 +13,15 @@
 	</parent>
 	<dependencies>
         <dependency>
+                        <groupId>com.splicemachine</groupId>
+                        <artifactId>ldap-test-utils</artifactId>
+                        <version>FUJI.0-SNAPSHOT</version>
+                        <classifier>${envClassifier}</classifier>
+                        <type>jar</type>
+                        <scope>compile</scope>
+                </dependency>
+
+        <dependency>
             <groupId>org.hbase</groupId>
             <artifactId>asynchbase</artifactId>
             <version>${asynchbase.version}</version>
@@ -184,6 +193,7 @@
          <artifactId>jsr166y</artifactId>
          <version>1.7.0</version>
       </dependency>
+      
    </dependencies>
 	<build>
 		<resources>
@@ -271,6 +281,15 @@
 				<splice.stop.script>stop-splice-dev.sh</splice.stop.script>
 			</properties>
 			<build>
+                                <pluginManagement>
+      					<plugins>
+        					<plugin>
+          						<groupId>com.btmatthews.maven.plugins</groupId>
+          						<artifactId>ldap-maven-plugin</artifactId>
+          						<version>1.2.0</version>
+        					</plugin>
+      					</plugins>
+    				</pluginManagement>
 				<plugins>
 					<plugin>
 						<artifactId>maven-antrun-plugin</artifactId>
@@ -351,13 +370,8 @@
         					<configuration>
           						<monitorPort>11389</monitorPort>
           						<monitorKey>ldap</monitorKey>
-          						<daemon>true</daemon>
-          						<rootDn>dc=splicemachine,dc=com</rootDn>
-          						<authDn>uid=splice,ou=People</authDn>
-          						<passwd>admin</passwd>
-          						<ldapPort>10389</ldapPort>
-          						<ldifFile>sec.ldif</ldifFile>
-        					</configuration>
+                                                        <daemon>true</daemon>
+                                                </configuration>
         					<executions>
               						<execution>
             							<id>start-server</id>
@@ -365,6 +379,13 @@
             							<goals>
               								<goal>run</goal>
             							</goals>
+                                                                <configuration><rootDn>dc=splicemachine,dc=com</rootDn>
+                                                                    <authDn>uid=splice</authDn>
+                                                                    <passwd>admin</passwd>
+                                                                    <ldapPort>10389</ldapPort>
+                                                                        <ldifFile>sec.ldif</ldifFile>
+                                                </configuration>
+
           						</execution>
           						<execution>
             							<id>stop-server</id>
