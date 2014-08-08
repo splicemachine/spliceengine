@@ -175,4 +175,8 @@ public class SpliceGenericAggregator {
     public int getResultColumnId() {
         return resultColumnId;
     }
+
+    public int getAggregatorColumnId() {
+        return aggregatorColumnId;
+    }
 }
