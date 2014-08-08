@@ -59,7 +59,7 @@ authentication mechanism in Splice Machine.
 	database.
 \end{enumerate}
 
-\subsubsection{None}
+\subsubsection{None (Default)}
 An open database that will allow each user to authenticate against the database
 can be configured by setting the following configuration.
 
@@ -95,13 +95,10 @@ Therefore the administrative login is as follows:
 
 
 \subsubsection{LDAP}
-This approach to authentication uses an external LDAP server. To enable this mode, change the property value of splice.authentication to LDAP in splice configuration file under structured_derby/src/main/resources/splice-site.xml 
-
-An embedded LDAP server will run in maven after LDAP mode is enabled, for unit test purposes.
 
 \begin{enumerate}
 	\item splice.authentication=LDAP
-	\item splice.authentication.ldap.server=localhost:10389 (Default)
+	\item splice.authentication.ldap.server=localhost:9090 (Default)
 	\item splice.authentication.ldap.searchAuthDN
 	\item splice.authentication.ldap.searchAuthPW
 	\item splice.authentication.ldap.searchBase
