@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.utils.RingBuffer;
 
+import com.splicemachine.collections.RingBuffer;
 
 /**
  * A Hashtable which has two mechanisms for hashing: an entry hash and a lookup hash.

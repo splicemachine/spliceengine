@@ -1,7 +1,7 @@
 package com.splicemachine.hbase.writer;
 
-import com.splicemachine.stats.*;
-import com.splicemachine.stats.util.Folders;
+import com.splicemachine.metrics.*;
+import com.splicemachine.metrics.util.Folders;
 
 /**
  * @author Scott Fines

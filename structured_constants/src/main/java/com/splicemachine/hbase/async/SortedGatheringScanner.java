@@ -2,14 +2,13 @@ package com.splicemachine.hbase.async;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.splicemachine.collections.NullStopIterator;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
-import com.splicemachine.stats.*;
-import com.splicemachine.stats.Timer;
-import com.splicemachine.utils.NullStopIterator;
-import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.metrics.*;
+import com.splicemachine.metrics.Timer;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 import org.apache.hadoop.hbase.client.Result;

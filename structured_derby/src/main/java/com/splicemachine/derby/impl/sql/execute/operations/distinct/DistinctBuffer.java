@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.distinct;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractAggregateBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.BufferedAggregator;
 import com.splicemachine.derby.utils.StandardSupplier;
-import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.metrics.MetricFactory;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
 /**

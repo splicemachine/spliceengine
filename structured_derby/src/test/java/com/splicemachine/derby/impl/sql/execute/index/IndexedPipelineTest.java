@@ -17,6 +17,7 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -44,12 +45,11 @@ import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.hbase.writer.Writer;
-import com.splicemachine.stats.Metrics;
+import com.splicemachine.metrics.Metrics;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
-import com.splicemachine.tools.ResettableCountDownLatch;
-import com.splicemachine.utils.Snowflake;
+import com.splicemachine.concurrent.ResettableCountDownLatch;
 
 /**
  * @author Scott Fines

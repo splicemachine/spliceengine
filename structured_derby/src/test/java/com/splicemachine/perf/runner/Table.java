@@ -1,16 +1,13 @@
 package com.splicemachine.perf.runner;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
-import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.Stats;
-import com.splicemachine.derby.stats.TimeUtils;
-import com.splicemachine.derby.stats.TimingStats;
+import com.splicemachine.metrics.DisplayTime;
 import com.splicemachine.perf.runner.qualifiers.Result;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.metrics.Timer;
 import com.splicemachine.tools.ConnectionPool;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.PrintStream;
@@ -91,12 +88,12 @@ public class Table {
         ExecutorService dataInserter = Executors.newFixedThreadPool(insertThreads);
         try{
             List<Future<Void>> futures = Lists.newArrayListWithCapacity(insertThreads + 1);
-            final Accumulator insertAccumulator = TimingStats.uniformSafeAccumulator();
-            insertAccumulator.start();
+
             for(int i=0;i<insertThreads;i++){
                 futures.add(dataInserter.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
+                        final Timer insertTimer = Metrics.newTimer();
                         int rowsToInsert = numRows/insertThreads;
                         int tenPercentSize = rowsToInsert>10?rowsToInsert/10 : 1;
                         int written = 0;
@@ -109,9 +106,9 @@ public class Table {
                                 ps.addBatch();
                                 written++;
                                 if(numRowsInserted>0&&numRowsInserted%insertBatch==0){
-                                    long start = System.nanoTime();
+                                    insertTimer.startTiming();
                                     int numInserted = ps.executeBatch().length;
-                                    insertAccumulator.tick(numInserted,System.nanoTime()-start);
+                                    insertTimer.tick(numInserted);
 
                                     if((written-1)%tenPercentSize==0){
                                         conn.commit();
@@ -119,12 +116,13 @@ public class Table {
                                     }
                                 }
                             }
-                            long start = System.nanoTime();
+                            insertTimer.startTiming();
                             int numInserted = ps.executeBatch().length;
                             if(numInserted>0){
-                                insertAccumulator.tick(numInserted, System.nanoTime() - start);
+                                insertTimer.tick(numInserted);
                                 SpliceLogUtils.info(LOG,"writing complete");
-                            }
+                            }else
+                                insertTimer.stopTiming();
                             conn.commit();
                             return null;
                         }catch(SQLException se){
@@ -140,7 +138,7 @@ public class Table {
             for(Future<Void> future:futures){
                 future.get();
             }
-            return new InsertResult(insertAccumulator.finish());
+            return new InsertResult(null);
         }finally{
             dataInserter.shutdown();
         }
@@ -236,34 +234,34 @@ public class Table {
             stream.printf("\t%-25s\t%15d records%n","Insert batch size",insertBatch);
             stream.printf("\t%-25s\t%15d samples%n","Number of samples",numRows/insertBatch);
             stream.printf("\t%-25s\t%15d records%n","Total records inserted", stats.getTotalRecords());
-            stream.printf("\t%-25s\t%20.4f ms%n","Total time spent", TimeUtils.toMillis(stats.getTotalTime()));
-            stream.printf("\t%-25s\t%20.4f records/sec%n","Overall throughput",stats.getTotalRecords()/TimeUtils.toSeconds(stats.getTotalTime()));
+            stream.printf("\t%-25s\t%20.4f ms%n","Total time spent", DisplayTime.NANOSECONDS.toMillis(stats.getTotalTime()));
+            stream.printf("\t%-25s\t%20.4f records/sec%n","Overall throughput",stats.getTotalRecords()/DisplayTime.NANOSECONDS.toSeconds(stats.getTotalTime()));
             stream.printf("--------------------TIME DISTRIBUTION--------------------%n");
             stream.printf("Per %d records:%n",insertBatch);
-            stream.printf("\t%-20s\t%20.4f ms%n","min",TimeUtils.toMillis(stats.getMinTime()));
-            stream.printf("\t%-20s\t%20.4f ms%n","median(p50)",TimeUtils.toMillis(stats.getMedian()));
-            stream.printf("\t%-20s\t%20.4f ms%n","p75",TimeUtils.toMillis(stats.get75P()));
-            stream.printf("\t%-20s\t%20.4f ms%n","p95",TimeUtils.toMillis(stats.get95P()));
-            stream.printf("\t%-20s\t%20.4f ms%n","p98",TimeUtils.toMillis(stats.get98P()));
-            stream.printf("\t%-20s\t%20.4f ms%n","p99",TimeUtils.toMillis(stats.get99P()));
-            stream.printf("\t%-20s\t%20.4f ms%n","p999",TimeUtils.toMillis(stats.get999P()));
-            stream.printf("\t%-20s\t%20.4f ms%n","max",TimeUtils.toMillis(stats.getMaxTime()));
+            stream.printf("\t%-20s\t%20.4f ms%n","min",DisplayTime.NANOSECONDS.toMillis(stats.getMinTime()));
+            stream.printf("\t%-20s\t%20.4f ms%n","median(p50)",DisplayTime.NANOSECONDS.toMillis(stats.getMedian()));
+            stream.printf("\t%-20s\t%20.4f ms%n","p75",DisplayTime.NANOSECONDS.toMillis(stats.get75P()));
+            stream.printf("\t%-20s\t%20.4f ms%n","p95",DisplayTime.NANOSECONDS.toMillis(stats.get95P()));
+            stream.printf("\t%-20s\t%20.4f ms%n","p98",DisplayTime.NANOSECONDS.toMillis(stats.get98P()));
+            stream.printf("\t%-20s\t%20.4f ms%n","p99",DisplayTime.NANOSECONDS.toMillis(stats.get99P()));
+            stream.printf("\t%-20s\t%20.4f ms%n","p999",DisplayTime.NANOSECONDS.toMillis(stats.get999P()));
+            stream.printf("\t%-20s\t%20.4f ms%n","max",DisplayTime.NANOSECONDS.toMillis(stats.getMaxTime()));
             stream.println();
-            stream.printf("\t%-20s\t%20.4f ms%n", "avg", TimeUtils.toMillis(stats.getAvgTime()));
-            stream.printf("\t%-20s\t%20.4f ms%n","std. dev",TimeUtils.toMillis(stats.getTimeStandardDeviation()));
+            stream.printf("\t%-20s\t%20.4f ms%n", "avg", DisplayTime.NANOSECONDS.toMillis(stats.getAvgTime()));
+            stream.printf("\t%-20s\t%20.4f ms%n","std. dev",DisplayTime.NANOSECONDS.toMillis(stats.getTimeStandardDeviation()));
             stream.println();
             stream.printf("Per record:%n ");
-            stream.printf("\t%-20s\t%20.4f ms%n","min",TimeUtils.toMillis(stats.getMinTime()/insertBatch));
-            stream.printf("\t%-20s\t%20.4f ms%n","median(p50)",TimeUtils.toMillis(stats.getMedian()/insertBatch));
-            stream.printf("\t%-20s\t%20.4f ms%n","p75",TimeUtils.toMillis(stats.get75P()/insertBatch));
-            stream.printf("\t%-20s\t%20.4f ms%n","p95",TimeUtils.toMillis(stats.get95P()/insertBatch));
-            stream.printf("\t%-20s\t%20.4f ms%n","p98",TimeUtils.toMillis(stats.get98P()/insertBatch));
-            stream.printf("\t%-20s\t%20.4f ms%n","p99",TimeUtils.toMillis(stats.get99P()/insertBatch));
-            stream.printf("\t%-20s\t%20.4f ms%n","p999",TimeUtils.toMillis(stats.get999P()/insertBatch));
-            stream.printf("\t%-20s\t%20.4f ms%n","max",TimeUtils.toMillis(stats.getMaxTime()/insertBatch));
+            stream.printf("\t%-20s\t%20.4f ms%n","min",DisplayTime.NANOSECONDS.toMillis(stats.getMinTime()/insertBatch));
+            stream.printf("\t%-20s\t%20.4f ms%n","median(p50)",DisplayTime.NANOSECONDS.toMillis(stats.getMedian()/insertBatch));
+            stream.printf("\t%-20s\t%20.4f ms%n","p75",DisplayTime.NANOSECONDS.toMillis(stats.get75P()/insertBatch));
+            stream.printf("\t%-20s\t%20.4f ms%n","p95",DisplayTime.NANOSECONDS.toMillis(stats.get95P()/insertBatch));
+            stream.printf("\t%-20s\t%20.4f ms%n","p98",DisplayTime.NANOSECONDS.toMillis(stats.get98P()/insertBatch));
+            stream.printf("\t%-20s\t%20.4f ms%n","p99",DisplayTime.NANOSECONDS.toMillis(stats.get99P()/insertBatch));
+            stream.printf("\t%-20s\t%20.4f ms%n","p999",DisplayTime.NANOSECONDS.toMillis(stats.get999P()/insertBatch));
+            stream.printf("\t%-20s\t%20.4f ms%n","max",DisplayTime.NANOSECONDS.toMillis(stats.getMaxTime()/insertBatch));
             stream.println();
-            stream.printf("\t%-20s\t%20.4f ms%n","avg",TimeUtils.toMillis(stats.getAvgTime()/insertBatch));
-            stream.printf("\t%-20s\t%20.4f ms%n","std. dev",TimeUtils.toMillis(stats.getTimeStandardDeviation()/insertBatch));
+            stream.printf("\t%-20s\t%20.4f ms%n","avg",DisplayTime.NANOSECONDS.toMillis(stats.getAvgTime()/insertBatch));
+            stream.printf("\t%-20s\t%20.4f ms%n","std. dev",DisplayTime.NANOSECONDS.toMillis(stats.getTimeStandardDeviation()/insertBatch));
             stream.println();
         }
     }
@@ -285,10 +283,10 @@ public class Table {
             stream.printf("Import stats:%n");
             stream.printf("%-25s%n",name);
             stream.printf("%-25s\t%15d files%n","Number Files",filePaths.size());
-            stream.printf("%-25s\t%20.4f seconds%n","Total time spent",TimeUtils.toSeconds(totalTime));
+            stream.printf("%-25s\t%20.4f seconds%n", "Total time spent", DisplayTime.NANOSECONDS.toSeconds(totalTime));
             stream.printf("---------------FILE STATISTICS---------------%n");
             for(String file:filePaths.keySet()){
-                stream.printf("%-100s\t%20.4f%n",file,TimeUtils.toSeconds(filePaths.get(file)));
+                stream.printf("%-100s\t%20.4f%n", file, DisplayTime.NANOSECONDS.toSeconds(filePaths.get(file)));
             }
         }
     }

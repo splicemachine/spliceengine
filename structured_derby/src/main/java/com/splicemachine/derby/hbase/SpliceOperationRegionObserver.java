@@ -95,9 +95,6 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
 
     @Override
     public void postScannerClose(ObserverContext<RegionCoprocessorEnvironment> e, InternalScanner s) throws IOException {
-        if(s instanceof SpliceOperationRegionScanner){
-            ((SpliceOperationRegionScanner)s).reportMetrics();
-        }
         super.postScannerClose(e, s);
     }
 

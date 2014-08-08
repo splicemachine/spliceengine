@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.hbase.RowKeyDistributor;
-import com.splicemachine.stats.*;
-import com.splicemachine.stats.util.Folders;
+import com.splicemachine.metrics.*;
+import com.splicemachine.metrics.util.Folders;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;

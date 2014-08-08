@@ -2,10 +2,10 @@ package com.splicemachine.storage;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.google.common.base.Supplier;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.Provider;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
@@ -37,7 +37,7 @@ public class EntryPredicateFilter {
     }
 
 		public boolean match(Indexed index,
-												 Provider<MultiFieldDecoder> decoderProvider,
+												 Supplier<MultiFieldDecoder> decoderProvider,
 												 EntryAccumulator accumulator) throws IOException{
 				BitSet remainingFields = accumulator.getRemainingFields();
 

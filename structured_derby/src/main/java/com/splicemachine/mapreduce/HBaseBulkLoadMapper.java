@@ -3,7 +3,6 @@ package com.splicemachine.mapreduce;
 import au.com.bytecode.opencsv.CSVParser;
 import com.google.common.io.Closeables;
 import com.google.gson.Gson;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.load.FailAlwaysReporter;
 import com.splicemachine.derby.impl.load.ImportContext;
 import com.splicemachine.derby.impl.load.ImportTask;
@@ -13,8 +12,7 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.utils.IntArrays;
-import com.splicemachine.utils.Type1UUID;
-import com.splicemachine.utils.UUIDGenerator;
+import com.splicemachine.uuid.UUIDGenerator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
@@ -97,6 +95,6 @@ public class HBaseBulkLoadMapper extends Mapper<LongWritable, Text,
 				 * You only use MapReduce if you are planning in importing a large number of rows. Thus,
 				 * we'll want to buffer up a large number of UUIDs for usage to reduce contention.
 				 */
-				return Type1UUID.newGenerator(2048);
+        return com.splicemachine.uuid.Type1UUID.newGenerator(2048);
 		}
 }

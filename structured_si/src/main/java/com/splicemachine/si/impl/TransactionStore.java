@@ -1,31 +1,24 @@
 package com.splicemachine.si.impl;
 
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
-import com.google.common.primitives.Longs;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.hbase.async.GatheringScanner;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
-import com.splicemachine.si.impl.iterator.ContiguousIterator;
-import com.splicemachine.si.impl.iterator.ContiguousIteratorFunctions;
 import com.splicemachine.si.impl.iterator.DataIDDecoder;
-import com.splicemachine.si.impl.iterator.OrderedMuxer;
-import com.splicemachine.utils.CloseableIterator;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Library of functions used by the SI module when accessing the transaction table. Encapsulates low-level data access

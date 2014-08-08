@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.google.common.collect.Sets;
+import com.splicemachine.collections.SingletonSortedSet;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.utils.SingletonSortedSet;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
@@ -110,7 +110,7 @@ public class StoreFileTaskSplitter implements TaskSplitter{
 						 * don't want to avoid scanning. In that case, we just return the original bound (since we
 						 * weren't going to split anyway).
 						 */
-								return new SingletonSortedSet<SizedInterval>(new SizedInterval(taskStart,taskStop,0));
+								return SingletonSortedSet.wrap(new SizedInterval(taskStart, taskStop, 0));
 						}
 				/*
 				 * We now have a list of possible splits, but that amount may exceed the maximum number of

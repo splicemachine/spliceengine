@@ -1,6 +1,7 @@
 package com.splicemachine.derby.utils.marshall;
 
-import com.splicemachine.utils.UUIDGenerator;
+
+import com.splicemachine.uuid.UUIDGenerator;
 
 import java.io.IOException;
 

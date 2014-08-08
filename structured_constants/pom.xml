@@ -10,6 +10,12 @@
 		<version>FUJI.0-SNAPSHOT</version>
 	</parent>
 	<dependencies>
+
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>utilities</artifactId>
+            <version>${utilities.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.hbase</groupId>
             <artifactId>asynchbase</artifactId>

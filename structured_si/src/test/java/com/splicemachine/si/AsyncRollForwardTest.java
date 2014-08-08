@@ -1,15 +1,17 @@
 package com.splicemachine.si;
 
 import com.google.common.base.Function;
+import com.google.common.base.Suppliers;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
-import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.Tracer;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.si.impl.rollforward.DelayedRollForwardAction;
 import com.splicemachine.si.impl.rollforward.PushForwardAction;
 import com.splicemachine.si.impl.rollforward.SIRollForwardQueue;
-import com.splicemachine.utils.Providers;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
@@ -17,13 +19,15 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import static com.splicemachine.constants.SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
+
 import static com.splicemachine.constants.SIConstants.DEFAULT_FAMILY_BYTES;
+import static com.splicemachine.constants.SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
 /**
  * Tests surrounding Asynchronous roll-foward queue testing
  * @author Scott Fines
@@ -45,10 +49,10 @@ public class AsyncRollForwardTest {
 				final STableReader reader = storeSetup.getReader();
 				Object testSTable = reader.open(storeSetup.getPersonTableName());
 				
-				transactorSetup.rollForwardQueue = new SIRollForwardQueue(new DelayedRollForwardAction(testSTable,Providers.basicProvider(transactorSetup.transactionStore),
-						Providers.basicProvider(transactorSetup.dataStore)),
-						new PushForwardAction(testSTable,Providers.basicProvider(transactorSetup.transactionStore),
-								Providers.basicProvider(transactorSetup.dataStore)));
+				transactorSetup.rollForwardQueue = new SIRollForwardQueue(new DelayedRollForwardAction(testSTable, Suppliers.ofInstance(transactorSetup.transactionStore),
+						Suppliers.ofInstance(transactorSetup.dataStore)),
+						new PushForwardAction(testSTable, Suppliers.ofInstance(transactorSetup.transactionStore),
+                    Suppliers.ofInstance(transactorSetup.dataStore)));
 				testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup,transactor,control);
 		}
 
