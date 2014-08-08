@@ -537,11 +537,11 @@ public class SpliceConstants {
 		 * Defaults to none
 		 */
 		@Parameter public static final String AUTHENTICATION = "splice.authentication";
-		@DefaultValue(AUTHENTICATION) public static final String DEFAULT_AUTHENTICATION = "NATIVE";
+		@DefaultValue(AUTHENTICATION) public static final String DEFAULT_AUTHENTICATION = "NONE";
 		public static String authentication;
 		
 		@Parameter public static final String AUTHENTICATION_LDAP_SERVER = "splice.authentication.ldap.server";
-		@DefaultValue(AUTHENTICATION_LDAP_SERVER) public static final String DEFAULT_AUTHENTICATION_LDAP_SERVER = "localhost:10389";
+		@DefaultValue(AUTHENTICATION_LDAP_SERVER) public static final String DEFAULT_AUTHENTICATION_LDAP_SERVER = "localhost:9090";
 		public static String authenticationLDAPServer;
 		
 		@Parameter public static final String AUTHENTICATION_LDAP_SEARCHAUTHDN = "splice.authentication.ldap.searchAuthDN";
@@ -553,7 +553,7 @@ public class SpliceConstants {
 		public static String authenticationLDAPSearchAuthPW;
 
 		@Parameter public static final String AUTHENTICATION_LDAP_SEARCHBASE = "splice.authentication.ldap.searchBase";
-		@DefaultValue(AUTHENTICATION_LDAP_SEARCHBASE) public static final String DEFAULT_AUTHENTICATION_LDAP_SEARCHBASE = "ou=People,dc=splicemachine,dc=com";
+		@DefaultValue(AUTHENTICATION_LDAP_SEARCHBASE) public static final String DEFAULT_AUTHENTICATION_LDAP_SEARCHBASE = "";
 		public static String authenticationLDAPSearchBase;
 
 		@Parameter public static final String AUTHENTICATION_LDAP_SEARCHFILTER = "splice.authentication.ldap.searchFilter";
