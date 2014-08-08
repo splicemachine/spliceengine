@@ -18,17 +18,10 @@ uid: jim
 userPassword: bo
 objectclass: inetOrgPerson
 
-dn: cn=Suzy X)X)X,ou=People,dc=splicemachine,dc=com
-cn: Suzy X)X)X
-sn: X)X)X
+dn: cn=Suzy X)X)X),ou=People,dc=splicemachine,dc=com
+cn: Suzy X)X)X)
+sn: X)X)X)
 givenName: Suzy
 uid: suzy
-userPassword: X)X)X
-objectclass: inetOrgPerson
-
-dn: cn=splice,ou=People,dc=splicemachine,dc=com
-cn: splice
-sn: admin
-uid: splice
-userPassword: admin
+userPassword: X)X)X)
 objectclass: inetOrgPerson
