@@ -350,37 +350,6 @@
 							</dependency>
 						</dependencies>
 					</plugin>
-                                        <plugin>
-        					<groupId>com.btmatthews.maven.plugins</groupId>
-        					<artifactId>ldap-maven-plugin</artifactId>
-        					<version>1.2.0</version>
-        					<configuration>
-          						<monitorPort>11389</monitorPort>
-          						<monitorKey>ldap</monitorKey>
-          						<daemon>true</daemon>
-          						<rootDn>dc=splicemachine,dc=com</rootDn>
-          						<authDn>uid=splice,ou=People</authDn>
-          						<passwd>admin</passwd>
-          						<ldapPort>10389</ldapPort>
-          						<ldifFile>sec.ldif</ldifFile>
-        					</configuration>
-        					<executions>
-              						<execution>
-            							<id>start-server</id>
-            							<phase>pre-integration-test</phase>
-            							<goals>
-              								<goal>run</goal>
-            							</goals>
-          						</execution>
-          						<execution>
-            							<id>stop-server</id>
-            							<phase>post-integration-test</phase>
-            							<goals>
-              								<goal>stop</goal>
-           					        	</goals>
-          						</execution>
-						</executions>
-      </plugin>
 				</plugins>
 			</build>
 		</profile>
