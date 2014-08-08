@@ -33,8 +33,8 @@ public class StatementManager implements StatementManagement{
 				this.completedStatements = new AtomicReferenceArray<StatementInfo>(SpliceConstants.pastStatementBufferSize);
 				this.statementReporter = new XplainStatementReporter(1);
 				this.statementReporter.start(1);
-				this.operationReporter = new XplainOperationReporter(2);
-				this.operationReporter.start(2);
+				this.operationReporter = new XplainOperationReporter(1);
+				this.operationReporter.start(1);
 		}
 
 		public void addStatementInfo(StatementInfo statementInfo){
@@ -48,23 +48,28 @@ public class StatementManager implements StatementManagement{
             }
 		}
 
-		public void completedStatement(StatementInfo statementInfo,String xplainSchema){
-				statementInfo.markCompleted(); //make sure the stop time is set
-				int position = statementInfoPointer.getAndIncrement()%completedStatements.length();
-				completedStatements.set(position, statementInfo);
-				executingStatements.remove(statementInfo);
+		public void completedStatement(StatementInfo statementInfo, boolean shouldTrace){
+            statementInfo.markCompleted(); //make sure the stop time is set
+            int position = statementInfoPointer.getAndIncrement()%completedStatements.length();
+            completedStatements.set(position, statementInfo);
+            executingStatements.remove(statementInfo);
+
             if (LOG.isTraceEnabled()) {
                 LOG.trace(String.format("Completing stmt from executings, size=%s, stmtUuid=%s",
                                                executingStatements.size(),
                                                statementInfo.getStatementUuid()));
             }
-				if(xplainSchema!=null){
-						statementReporter.report(xplainSchema, statementInfo);
-						Set<OperationInfo> operationInfo = statementInfo.getOperationInfo();
-						for(OperationInfo info:operationInfo){
-								operationReporter.report(xplainSchema,info);
-						}
-				}
+
+            if (shouldTrace) {
+                if (statementInfo.getSql().compareTo("null") != 0) {
+                    statementReporter.report(statementInfo);
+                }
+                Set<OperationInfo> operationInfo = statementInfo.getOperationInfo();
+                for (OperationInfo info : operationInfo) {
+                    operationReporter.report(info);
+                }
+            }
+
 		}
 
 		@Override

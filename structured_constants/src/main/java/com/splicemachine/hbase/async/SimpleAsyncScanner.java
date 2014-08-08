@@ -70,11 +70,15 @@ public class SimpleAsyncScanner implements AsyncScanner,Callback<ArrayList<Array
         List<KeyValue> row = resultQueue.poll();
         if(row!=null) return row;
 
+        timer.startTiming();
         Deferred<ArrayList<ArrayList<KeyValue>>> deferred = finishedRequest;
         if(deferred==null)
             deferred = outstandingRequest;
 
-        if(deferred==null) return null; //scanner is exhausted
+        if(deferred==null){
+            timer.stopTiming();
+            return null; //scanner is exhausted
+        }
 
         ArrayList<ArrayList<KeyValue>> kvs = deferred.join();
         finishedRequest=null;
@@ -86,7 +90,10 @@ public class SimpleAsyncScanner implements AsyncScanner,Callback<ArrayList<Array
         }
 
         List<KeyValue> first = kvs.get(0);
+        timer.tick(first.size());
         for(int i=1;i<kvs.size();i++){
+            List<KeyValue> kvList = kvs.get(i);
+            timer.tick(kvList.size());
             resultQueue.offer(kvs.get(i));
         }
         return first;

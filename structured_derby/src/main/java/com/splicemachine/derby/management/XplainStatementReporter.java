@@ -16,7 +16,7 @@ import java.net.UnknownHostException;
 public class XplainStatementReporter extends XplainReporter<StatementInfo> {
 
 		public XplainStatementReporter(int numWorkers) {
-				super("SYSXPLAIN_STATEMENTHISTORY",numWorkers);
+				super("SYSSTATEMENTHISTORY",numWorkers);
 		}
 
 		@Override

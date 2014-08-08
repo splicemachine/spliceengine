@@ -294,7 +294,7 @@ public class HdfsImport {
 								user,transactionId,
 								1,SpliceDriver.driver().getUUIDGenerator());
 				OperationInfo opInfo = new OperationInfo(
-								SpliceDriver.driver().getUUIDGenerator().nextUUID(), statementInfo.getStatementUuid(),"Import", false, -1l);
+								SpliceDriver.driver().getUUIDGenerator().nextUUID(), statementInfo.getStatementUuid(),"Import", null, false, -1l);
 				statementInfo.setOperationInfo(Arrays.asList(opInfo));
 
 				SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
@@ -316,9 +316,8 @@ public class HdfsImport {
 				}finally{
 						//put this stuff first to avoid a memory leak
 						String xplainSchema = lcc.getXplainSchema();
-						boolean explain = xplainSchema !=null &&
-										lcc.getRunTimeStatisticsMode();
-						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema: null);
+						boolean explain = lcc.getRunTimeStatisticsMode();
+						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, explain);
 						if(rollback){
 								try {
 										TransactionUtils.rollback(HTransactorFactory.getTransactionManager(),childTransaction,0,5);

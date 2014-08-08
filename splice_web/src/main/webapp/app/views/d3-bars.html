@@ -1,0 +1,27 @@
+<div class="header">
+  <ul class="nav nav-pills pull-right">
+    <li><a ng-href="#">Home</a></li>
+    <li><a ng-href="#/contact">Contact</a></li>
+  </ul>
+  <h3 class="text-muted"><img class="header-logo" src="images/splice-logo.jpg" alt="We are Splice Machine"> Explain Trace Tool</h3>
+</div>
+
+<!-- Example of d3Bars bar chart. -->
+<div class="row marketing" ng-controller="d3BarsController">
+  <span>{{title}}</span>
+  <d3-bars data="d3Data" label="name" on-click="d3OnClick(item)"></d3-bars>
+  <br>
+  <br>
+  <span>First Item</span>
+  <input type="text" ng-model="d3Data[0].score"></input>
+  <br>
+  <span>Second Item</span>
+  <input type="text" ng-model="d3Data[1].score"></input>
+  <br>
+  <span>Third Item</span>
+  <input type="text" ng-model="d3Data[2].score"></input>
+</div>
+
+<div class="footer">
+  <p>&copy; 2014 Splice Machine, Inc. All rights reserved.</p>
+</div>

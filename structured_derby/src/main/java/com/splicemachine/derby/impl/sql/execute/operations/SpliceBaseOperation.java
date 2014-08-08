@@ -1,10 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.metrics.OperationMetric;
@@ -50,7 +47,9 @@ import java.util.List;
 public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable {
 		private static final long serialVersionUID = 4l;
 		private static Logger LOG = Logger.getLogger(SpliceBaseOperation.class);
-		protected String xplainSchema;
+        public static ThreadLocal<List<XplainOperationChainInfo>> operationChain =
+                new ThreadLocal<List<XplainOperationChainInfo>>();
+        protected XplainOperationChainInfo operationChainInfo;
 		/* Run time statistics variables */
 		public int numOpens;
 		public int inputRows;
@@ -72,6 +71,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		protected long stopExecutionTime;
 		protected double optimizerEstimatedRowCount;
 		protected double optimizerEstimatedCost;
+        protected String info;
 
 		/**
 		 * Used to communicate a child transaction ID down to the sink operation in a sub-class.
@@ -126,9 +126,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 															 int resultSetNumber,
 															 double optimizerEstimatedRowCount,
 															 double optimizerEstimatedCost) throws StandardException {
-				if (statisticsTimingOn = activation.getLanguageConnectionContext().getStatisticsTiming()){
+
+                statisticsTimingOn = activation.isTraced();
+                List<XplainOperationChainInfo> opChain = operationChain.get();
+                if (opChain != null) {
+                    statisticsTimingOn = statisticsTimingOn || opChain.size() > 0;
+                }
+				if (statisticsTimingOn){
 						beginTime = startExecutionTime = getCurrentTimeMillis();
-						xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
 				}
 				this.operationInformation = new DerbyOperationInformation(activation,optimizerEstimatedRowCount,optimizerEstimatedCost,resultSetNumber);
 				this.activation = activation;
@@ -158,8 +163,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
                in.readFully(uniqueSequenceID);
             }
 				statisticsTimingOn = in.readBoolean();
-				if(statisticsTimingOn)
-						xplainSchema = in.readUTF();
 				statementId = in.readLong();
 		}
 		
@@ -177,8 +180,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
                  out.write(uniqueSequenceID);
             }
 				out.writeBoolean(statisticsTimingOn);
-				if(statisticsTimingOn)
-						out.writeUTF(xplainSchema);
 				out.writeLong(statementId);
 		}
 
@@ -190,9 +191,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				sub = getRightOperation();
 				if(sub!=null) sub.setStatementId(statementId);
 		}
-
-
-		@Override public String getXplainSchema() { return xplainSchema; }
 
 		@Override
 		public JobResults getJobResults() {
@@ -594,7 +592,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		}
 
 		@Override
-		public final OperationRuntimeStats getMetrics(long statementId,long taskId) {
+		public final OperationRuntimeStats getMetrics(long statementId,long taskId,boolean isTopOperation) {
 				if(reportedTaskId==taskId) return null;
 				else reportedTaskId = taskId;
 
@@ -609,7 +607,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 						stats.addMetric(OperationMetric.TOTAL_WALL_TIME,view.getWallClockTime());
 						stats.addMetric(OperationMetric.TOTAL_CPU_TIME,view.getCpuTime());
 						stats.addMetric(OperationMetric.TOTAL_USER_TIME,view.getUserTime());
-						stats.addMetric(OperationMetric.OUTPUT_ROWS,timer.getNumEvents());
 				}
 
 				return stats;
@@ -657,4 +654,33 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             return null;
         }
 
+        public String getInfo() {return info;}
+
+        public class XplainOperationChainInfo {
+
+            private long statementId;
+            private long operationId;
+            private String methodName;
+
+            public XplainOperationChainInfo(long statementId, long operationId) {
+                this.statementId = statementId;
+                this.operationId = operationId;
+            }
+
+            public long getStatementId() {
+                return statementId;
+            }
+
+            public long getOperationId() {
+                return operationId;
+            }
+
+            public void setMethodName(String name) {
+                this.methodName = name;
+            }
+
+            public String getMethodName() {
+                return methodName;
+            }
+        }
 }

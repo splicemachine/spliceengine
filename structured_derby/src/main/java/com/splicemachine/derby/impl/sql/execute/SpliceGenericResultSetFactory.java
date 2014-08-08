@@ -1302,4 +1302,11 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 
         return new OperationResultSet(source.getActivation(),op);
     }
+    @Override
+    public NoPutResultSet getExplainResultSet(NoPutResultSet source, Activation activation, int resultSetNumber) throws StandardException {
+        ConvertedResultSet opSet = (ConvertedResultSet)source;
+        SpliceBaseOperation op = new ExplainOperation(opSet.getOperation(), activation, resultSetNumber);
+
+        return new OperationResultSet(activation, op);
+    };
 }

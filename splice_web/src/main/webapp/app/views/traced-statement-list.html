@@ -1,0 +1,12 @@
+<splice-admin-header></splice-admin-header>
+
+<div class="row marketing">
+  <h4>Explain Traces</h4>
+  <ul>
+    <li ng-repeat="statement in tracedStatements">
+      <a href="#/traced-statements/{{statement.STATEMENTID}}">{{statement.STATEMENTSQL}}</a>
+    </li>
+  </ul>
+</div>
+
+<splice-admin-footer></splice-admin-footer>

@@ -1,5 +1,22 @@
 package com.splicemachine.derby.utils;
 
+import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
+import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
+import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
+import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
+import com.splicemachine.derby.management.StatementInfo;
+import com.splicemachine.derby.management.StatementManagement;
+import com.splicemachine.derby.management.XPlainTrace;
+import com.splicemachine.hbase.ThreadPoolStatus;
+import com.splicemachine.hbase.jmx.JMXUtils;
+import com.splicemachine.job.JobSchedulerManagement;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.utils.logging.Logging;
+import java.io.IOException;
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
@@ -1397,5 +1414,107 @@ public class SpliceAdmin {
         public V getThird() {
             return third;
         }
+    }
+
+    /*
+     * Implementation for SYSCS_UTIL.XPLAIN_TRACE system procedure
+     *
+     * @param    statementId : unique identifier for the sql statement
+     * @param    mode        : 0 - operation tree only
+     *                         1 - execution plan with metrics
+     * @param    format      : 'TREE' - Text-based tree representation
+     *                         'JSON' - JSON document of nested operations
+     * @return   an execution plan in a result set
+     *
+     */
+    public static void SYSCS_GET_XPLAIN_TRACE(long statementId, int mode, String format, final ResultSet[] resultSet) throws Exception{
+        XPlainTrace xPlainTrace = new XPlainTrace(statementId, mode, format);
+        resultSet[0] = xPlainTrace.getXPlainTraceOutput();
+    }
+
+    public static void SYSCS_GET_XPLAIN_STATEMENTID(final ResultSet[] resultSet) throws Exception{
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        long statementId = lcc.getXplainStatementId();
+        List<ExecRow> rows = Lists.newArrayListWithExpectedSize(1);
+
+        ExecRow row = new ValueRow(1);
+        row.setRowArray(new DataValueDescriptor[]{
+                new SQLLongint()});
+        DataValueDescriptor[] dvds = row.getRowArray();
+        dvds[0].setValue(statementId);
+        rows.add(row);
+
+        ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[1];
+        columnInfo[0] = new GenericColumnDescriptor("STATEMENTID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+
+        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
+        try {
+            resultsToWrap.openCore();
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+        EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+
+        resultSet[0] = ers;
+    }
+
+    public static void SYSCS_GET_RUNTIME_STATISTICS(final ResultSet[] resultSet) throws Exception{
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        boolean runTimeStatisticsMode = lcc.getRunTimeStatisticsMode();
+
+        List<ExecRow> rows = Lists.newArrayListWithExpectedSize(1);
+
+        ExecRow row = new ValueRow(1);
+        row.setRowArray(new DataValueDescriptor[]{
+                new SQLBoolean()});
+        DataValueDescriptor[] dvds = row.getRowArray();
+        dvds[0].setValue(runTimeStatisticsMode);
+        rows.add(row);
+
+        ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[1];
+        columnInfo[0] = new GenericColumnDescriptor("RUNTIMESTATISTICS", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
+
+        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
+        try {
+            resultsToWrap.openCore();
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+        EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+
+        resultSet[0] = ers;
+    }
+
+    public static void SYSCS_GET_STATISTICS_TIMING(final ResultSet[] resultSet) throws Exception{
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        boolean statisticsTiming = lcc.getStatisticsTiming();
+
+        List<ExecRow> rows = Lists.newArrayListWithExpectedSize(1);
+
+        ExecRow row = new ValueRow(1);
+        row.setRowArray(new DataValueDescriptor[]{
+                new SQLBoolean()});
+        DataValueDescriptor[] dvds = row.getRowArray();
+        dvds[0].setValue(statisticsTiming);
+        rows.add(row);
+
+        ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[1];
+        columnInfo[0] = new GenericColumnDescriptor("STATISTICSTIMING", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
+
+        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
+        try {
+            resultsToWrap.openCore();
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+        EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+
+        resultSet[0] = ers;
     }
 }

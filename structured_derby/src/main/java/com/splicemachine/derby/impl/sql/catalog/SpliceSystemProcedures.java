@@ -100,13 +100,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .build();
                         procedures.add(getAutoIncLocs);
                     }else if(XPLAIN_SCHEMA_NAME.equalsIgnoreCase(sysProc.getName())){
-                        Procedure newXplain = Procedure.newBuilder().name("SYSCS_SET_XPLAIN_SCHEMA")
+                        /*Procedure newXplain = Procedure.newBuilder().name("SYSCS_SET_XPLAIN_SCHEMA")
                                 .numOutputParams(0).numResultSets(0)
                                 .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
                                 .ownerClass(SpliceXplainUtils.class.getCanonicalName())
                                 .catalog("schemaName")
                                 .build();
-                        procedures.set(i,newXplain);
+                        procedures.set(i,newXplain);*/
                     }
                 }
 
@@ -422,12 +422,56 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getAllSystemProperties);
 
-                    Procedure vacuum = Procedure.newBuilder().name("VACUUM")
+        			Procedure vacuum = Procedure.newBuilder().name("VACUUM")
+        					.numOutputParams(0)
+        					.numResultSets(0)
+        					.ownerClass(SpliceAdmin.class.getCanonicalName())
+        					.build();
+        			procedures.add(vacuum);
+
+                    /*
+                     * Procedure to print out a query execution plan for the specified statement
+                     */
+                    Procedure xplainTrace = Procedure.newBuilder().name("SYSCS_GET_XPLAIN_TRACE")
+                            .bigint("statementID")       // statement to print out a query plan for
+                            .integer("mode")             // 0: only operation tree. 1: execution plan with metrics
+                            .varchar("format", 4)        // 0: Tree, 1: Json
                             .numOutputParams(0)
-                            .numResultSets(0)
+                            .numResultSets(1)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
-                    procedures.add(vacuum);
+
+                    procedures.add(xplainTrace);
+
+                    /*
+                     * Procedure to return the traced statement id
+                     */
+                    Procedure xplainStatementId = Procedure.newBuilder().name("SYSCS_GET_XPLAIN_STATEMENTID")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(xplainStatementId);
+
+                    /*
+                     * Procedure to return if runtime statistics is on or off
+                     */
+                    Procedure runTimeStatistics = Procedure.newBuilder().name("SYSCS_GET_RUNTIME_STATISTICS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(runTimeStatistics);
+
+                    /*
+                     * Procedure to return if runtime statistics is on or off
+                     */
+                    Procedure statisticsTiming = Procedure.newBuilder().name("SYSCS_GET_STATISTICS_TIMING")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(statisticsTiming);
                 }
 
             }

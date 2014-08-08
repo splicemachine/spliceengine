@@ -67,6 +67,5 @@ public abstract class SingleScanRowProvider implements RowProvider {
     public void close() throws StandardException {
 
     }
-
 }
 

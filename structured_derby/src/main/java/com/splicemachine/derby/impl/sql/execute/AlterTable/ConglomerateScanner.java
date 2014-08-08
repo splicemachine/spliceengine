@@ -38,7 +38,7 @@ public class ConglomerateScanner {
     private static Logger LOG = Logger.getLogger(ConglomerateScanner.class);
     private ColumnInfo[] columnInfo;
     private String txnId;
-    private String xplainSchema;
+    private boolean isTraced;
 
     private ExecRow row;
     private HRegion region;
@@ -50,11 +50,11 @@ public class ConglomerateScanner {
     public ConglomerateScanner(ColumnInfo[] columnInfo,
                                HRegion region,
                                String txnId,
-                               String xplainSchema,
+                               boolean isTraced,
                                byte[] scanStart,
                                byte[] scanFinish) throws StandardException{
         this.columnInfo = columnInfo;
-        this.xplainSchema = xplainSchema;
+        this.isTraced = isTraced;
         this.txnId = txnId;
         this.region = region;
         this.scanStart = scanStart;
@@ -81,7 +81,7 @@ public class ConglomerateScanner {
         regionScan.setStopRow(scanFinish);
         regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES);
 
-        MetricFactory metricFactory = xplainSchema!=null? Metrics.basicMetricFactory(): Metrics.noOpMetricFactory();
+        MetricFactory metricFactory = isTraced? Metrics.basicMetricFactory(): Metrics.noOpMetricFactory();
         try{
             //Scan previously committed data
             RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);

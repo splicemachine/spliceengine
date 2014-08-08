@@ -213,10 +213,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {
 				if(sinkAggregator!=null){
-						stats.addMetric(OperationMetric.FILTERED_ROWS,sinkAggregator.getRowsRead());
+						stats.addMetric(OperationMetric.INPUT_ROWS,sinkAggregator.getRowsRead());
 				} else if(scanAggregator!=null){
-						stats.addMetric(OperationMetric.FILTERED_ROWS,scanAggregator.getRowsRead());
-
+						//stats.addMetric(OperationMetric.FILTERED_ROWS,scanAggregator.getRowsRead());
 						TimeView readTime = regionScanner.getReadTime();
 						long readBytes = regionScanner.getBytesOutput();
 						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS, regionScanner.getRowsOutput());
@@ -224,6 +223,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTime.getUserTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,readTime.getWallClockTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,readBytes);
+                        stats.addMetric(OperationMetric.OUTPUT_ROWS,1);
 				}
 		}
 

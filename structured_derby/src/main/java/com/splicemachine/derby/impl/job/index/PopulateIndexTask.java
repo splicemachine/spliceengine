@@ -73,6 +73,7 @@ public class PopulateIndexTask extends ZkTask {
 		private String xplainSchema; //could be null, if no stats are to be collected
 		private byte[] scanStart;
 		private byte[] scanStop;
+        boolean isTraced; //could be null, if no stats are to be collected
 
 		@SuppressWarnings("UnusedDeclaration")
 		public PopulateIndexTask() { }
@@ -86,7 +87,7 @@ public class PopulateIndexTask extends ZkTask {
                              boolean uniqueWithDuplicateNulls,
                              String jobId,
                              BitSet descColumns,
-                             String xplainSchema,
+                             boolean isTraced,
                              long statementId,
                              long operationId,
                              int[] columnOrdering,
@@ -100,7 +101,7 @@ public class PopulateIndexTask extends ZkTask {
         this.descColumns = descColumns;
         this.isUnique = unique;
         this.isUniqueWithDuplicateNulls = uniqueWithDuplicateNulls;
-        this.xplainSchema = xplainSchema;
+        this.isTraced = isTraced;
         this.statementId = statementId;
         this.operationId = operationId;
         this.columnOrdering = columnOrdering;
@@ -110,7 +111,7 @@ public class PopulateIndexTask extends ZkTask {
 		@Override
 		public RegionTask getClone() {
 				return new PopulateIndexTask(transactionId,indexConglomId,baseConglomId,mainColToIndexPosMap,indexedColumns,isUnique,
-								isUniqueWithDuplicateNulls,jobId,descColumns,xplainSchema,statementId,operationId,columnOrdering,format_ids);
+								isUniqueWithDuplicateNulls,jobId,descColumns,isTraced,statementId,operationId,columnOrdering,format_ids);
 		}
 
 		@Override
@@ -144,9 +145,8 @@ public class PopulateIndexTask extends ZkTask {
         out.writeBoolean(isUniqueWithDuplicateNulls);
         out.writeInt(descColumns.wlen);
         ArrayUtil.writeLongArray(out, descColumns.bits);
-        out.writeBoolean(xplainSchema!=null);
-        if(xplainSchema!=null){
-            out.writeUTF(xplainSchema);
+        out.writeBoolean(isTraced);
+        if(isTraced){
             out.writeLong(statementId);
             out.writeLong(operationId);
         }
@@ -167,8 +167,7 @@ public class PopulateIndexTask extends ZkTask {
         isUniqueWithDuplicateNulls = in.readBoolean();
         numWords = in.readInt();
         descColumns = new BitSet(ArrayUtil.readLongArray(in),numWords);
-        if(in.readBoolean()){
-            xplainSchema = in.readUTF();
+        if(isTraced = in.readBoolean()){
             statementId = in.readLong();
             operationId = in.readLong();
         }
@@ -195,7 +194,7 @@ public class PopulateIndexTask extends ZkTask {
         regionScan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
 				//TODO -sf- disable when stats tracking is disabled
-				MetricFactory metricFactory = xplainSchema!=null? Metrics.samplingMetricFactory(SpliceConstants.sampleTimingSize): Metrics.noOpMetricFactory();
+				MetricFactory metricFactory = isTraced? Metrics.samplingMetricFactory(SpliceConstants.sampleTimingSize): Metrics.noOpMetricFactory();
 				long numRecordsRead = 0l;
 				long startTime = System.currentTimeMillis();
 
@@ -265,7 +264,7 @@ public class PopulateIndexTask extends ZkTask {
     }
 
 		protected void reportStats(long startTime, MeasuredRegionScanner brs, RecordingCallBuffer<KVPair> writeBuffer,TimeView manipulationTime) {
-				if(xplainSchema!=null){
+				if(isTraced){
 						//record some stats
 						OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId, Bytes.toLong(taskId),region.getRegionNameAsString(),12);
 						stats.addMetric(OperationMetric.STOP_TIMESTAMP,System.currentTimeMillis());
@@ -291,7 +290,7 @@ public class PopulateIndexTask extends ZkTask {
 
 						OperationRuntimeStats.addWriteStats(writeStats,stats);
 
-						SpliceDriver.driver().getTaskReporter().report(xplainSchema,stats);
+						SpliceDriver.driver().getTaskReporter().report(stats);
 				}
 		}
 

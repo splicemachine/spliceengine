@@ -1,0 +1,9 @@
+<splice-admin-header></splice-admin-header>
+
+<div class="jumbotron" ng-controller="clusterStatusController">
+  <span ng-hide="primaryServerStatusCheckSuccess" class="btn-sm btn-danger glyphicon glyphicon-thumbs-down"> Cluster unreachable.</span>
+  <span ng-show="serversStatusCheckResponse.serverUpCount > 0" class="btn-sm btn-success glyphicon glyphicon-thumbs-up"> {{serversStatusCheckResponse.serverUpCount}}</span>
+  <span ng-show="serversStatusCheckResponse.serverDownCount > 0" class="btn-sm btn-danger glyphicon glyphicon-thumbs-down"> {{serversStatusCheckResponse.serverDownCount}}</span>
+</div>
+
+<splice-admin-footer></splice-admin-footer>

@@ -59,12 +59,21 @@ public class CachedOperation extends SpliceBaseOperation {
 
     @Override
     public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        if(timer==null){
+            timer = spliceRuntimeContext.newTimer();
+        }
+        timer.startTiming();
+
         ExecRow row;
+
         if (position < size){
             row = rows.get(position);
             position++;
+            timer.tick(1);
         } else {
             row = null;
+            timer.stopTiming();
+            stopExecutionTime = System.currentTimeMillis();
         }
         setCurrentRow(row);
         return row;

@@ -30,20 +30,15 @@ public interface SpliceOperation extends StandardCloseable {
 
     void setCurrentRowLocation(RowLocation rowLocation);
 
-		/**
-		 * @return a descriptive name for this operation. Used for reporting information.
-		 */
-		String getName();
+    /**
+     * @return a descriptive name for this operation. Used for reporting information.
+     */
+    String getName();
 
-		/**
-		 * @return true if statistics recording is enabled.
-		 */
-		boolean shouldRecordStats();
-
-		/**
-		 * @return the xplain schema to use, or {@code null} if no schema is known(or {@link #shouldRecordStats()} returns {@code false}.
-		 */
-		String getXplainSchema();
+    /**
+     * @return true if statistics recording is enabled.
+     */
+    boolean shouldRecordStats();
 
 	 JobResults getJobResults();
 
@@ -216,7 +211,7 @@ public interface SpliceOperation extends StandardCloseable {
      * @return the metrics recorded by this operation. Return {@code null} if no
      * metrics have been collected.
      */
-    OperationRuntimeStats getMetrics(long statementId,long taskId);
+    OperationRuntimeStats getMetrics(long statementId,long taskId, boolean isTopOperation);
 
     /**
      * @return -1l if no statementId has been set on this operation, or the statement
@@ -228,5 +223,11 @@ public interface SpliceOperation extends StandardCloseable {
 
     int[] getAccessedNonPkColumns() throws StandardException;
 		
-		void setActivation(Activation activation) throws StandardException;
+	void setActivation(Activation activation) throws StandardException;
+
+    String getInfo();
+
+    double getEstimatedCost();
+
+    double getEstimatedRowCount();
 }

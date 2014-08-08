@@ -1,0 +1,13 @@
+<div class="header">
+  <ul class="nav nav-pills pull-right">
+    <li class="{{homeTab}}"><a ng-href="#">Home</a></li>
+    <li class="{{contactTab}}"><a ng-href="#/contact">Contact</a></li>
+  </ul>
+  <div class="pull-right" ng-controller="clusterStatusController">
+    <a popover-title="Error Message" popover="Could not connect to primary region server." popover-trigger="mouseenter" popover-placement="bottom"><span ng-hide="primaryServerStatusCheckSuccess" class="btn-sm btn-danger glyphicon glyphicon-thumbs-down"> Cluster unreachable.</span></a>
+    <a popover-title="Up Servers" popover="{{upServersMessage}}" popover-trigger="mouseenter" popover-placement="bottom"><span ng-show="serversStatusCheckResponse.serverUpCount > 0" class="btn-sm btn-success glyphicon glyphicon-thumbs-up"> {{serversStatusCheckResponse.serverUpCount}}</span></a>
+    <a popover-title="Down Servers" popover="{{downServersMessage}}" popover-trigger="mouseenter" popover-placement="bottom"><span ng-show="serversStatusCheckResponse.serverDownCount > 0" class="btn-sm btn-danger glyphicon glyphicon-thumbs-down"> {{serversStatusCheckResponse.serverDownCount}}</span></a>
+    &nbsp;
+  </div>
+  <h3 class="text-muted"><img class="header-logo" src="images/splice-logo.jpg" alt="We are Splice Machine"> Explain Trace Tool</h3>
+</div>

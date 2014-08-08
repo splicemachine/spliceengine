@@ -153,8 +153,14 @@ public class IndexRowReaderBuilder {
 				assert sourceOperation!=null: "No source specified";
 				assert indexCols!=null: "No index columns specified!";
 
-				if(metricFactory==null)
-						metricFactory = Metrics.noOpMetricFactory();
+				if(metricFactory==null) {
+                    if (runtimeContext.shouldRecordTraceMetrics()) {
+                        metricFactory = Metrics.atomicTimer();
+                    }
+                    else {
+                        metricFactory = Metrics.noOpMetricFactory();
+                    }
+                }
 				ExecutorService lookupService;
 				if(numConcurrentLookups<0)
 						lookupService = SameThreadExecutorService.instance();

@@ -53,6 +53,8 @@ public class OperationTree {
                                                    final SpliceRuntimeContext ctx,
                                                    boolean useProbe)
             throws StandardException, IOException {
+        if (root instanceof  ExplainOperation)
+            return root.executeScan(ctx);
         sink(root, ctx);
         return useProbe ? root.executeProbeScan() : root.executeScan(ctx);
     }

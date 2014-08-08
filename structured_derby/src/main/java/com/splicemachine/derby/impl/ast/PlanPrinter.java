@@ -26,6 +26,8 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     public static Logger PLAN_LOG = Logger.getLogger(PlanPrinter.class.getName() + ".JSONLog");
 
     public static final String spaces = "  ";
+    private boolean explain = false;
+    public static ThreadLocal<HashMap<String, String[]>> planMap = new ThreadLocal<HashMap<String, String[]>>();
 
     // Only visit root node
 
@@ -41,13 +43,26 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     @Override
     public Visitable defaultVisit(Visitable node) throws StandardException {
+
+        if(node instanceof ExplainNode) {
+            explain = true;
+            defaultVisit(((ExplainNode) node).getExplainPlanRoot());
+        }
         ResultSetNode rsn;
-        if ((LOG.isInfoEnabled() || PLAN_LOG.isTraceEnabled()) &&
+        if ((explain || LOG.isInfoEnabled() || PLAN_LOG.isTraceEnabled()) &&
                 node instanceof DMLStatementNode &&
                 (rsn = ((DMLStatementNode) node).getResultSetNode()) != null) {
+
+            String plan = treeToString(rsn);
+            HashMap<String, String[]> m = planMap.get();
+            if (m == null) {
+                m = new HashMap<String, String[]>();
+                planMap.set(m);
+            }
+            m.put(query, plan.split("\n"));
             if (LOG.isInfoEnabled()){
                 LOG.info(String.format("Plan nodes for query <<\n\t%s\n>>\n%s",
-                        query, treeToString(rsn)));
+                        query, plan));
             }
             if (PLAN_LOG.isTraceEnabled()){
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -55,6 +70,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                                               ImmutableMap.of("query", query, "plan", nodeInfo(rsn, 0))));
             }
         }
+        explain = false;
         return node;
     }
 

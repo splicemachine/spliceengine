@@ -1,0 +1,97 @@
+<!doctype html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <title>Splice Machine - Explain Trace Tool</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width">
+    <!-- Place favicon.ico and apple-touch-icon.png in the root images directory -->
+    <link rel="shortcut icon" href="images/favicon.png">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <!-- build:css styles/vendor.css -->
+    <!-- bower:css -->
+    <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="bower_components/nvd3/nv.d3.css"/>
+    <link rel="stylesheet" href="bower_components/angular.treeview/css/angular.treeview.css">
+    <link rel="stylesheet" href="bower_components/angular-tree-control/css/tree-control-attribute.css">
+    <link rel="stylesheet" href="bower_components/angular-ui-tree/dist/angular-ui-tree.min.css">
+    <!-- endbower -->
+    <!-- endbuild -->
+    <!-- build:css({.tmp,app}) styles/main.css -->
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/traced-statement-detail.css">
+    <!-- endbuild -->
+  </head>
+  <body ng-app="spliceAdminApp">
+    <!--[if lt IE 7]>
+      <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+    <![endif]-->
+
+    <!-- Add your site or application content here -->
+    <div class="container" ng-view=""></div>
+
+    <!-- Google Analytics: change UA-XXXXX-X to be your site's ID -->
+     <script>
+       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+       (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+       m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+       })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+       ga('create', 'UA-XXXXX-X');
+       ga('send', 'pageview');
+    </script>
+
+    <!--[if lt IE 9]>
+    <script src="bower_components/es5-shim/es5-shim.js"></script>
+    <script src="bower_components/json3/lib/json3.min.js"></script>
+    <![endif]-->
+
+    <!-- build:js scripts/vendor.js -->
+    <!-- bower:js -->
+    <script src="bower_components/jquery/dist/jquery.js"></script>
+    <script src="bower_components/angular/angular.js"></script>
+    <script src="bower_components/bootstrap/dist/js/bootstrap.js"></script>
+    <script src="bower_components/angular-resource/angular-resource.js"></script>
+    <script src="bower_components/angular-cookies/angular-cookies.js"></script>
+    <script src="bower_components/angular-sanitize/angular-sanitize.js"></script>
+    <script src="bower_components/angular-route/angular-route.js"></script>
+    <script src="bower_components/d3/d3.js"></script>
+    <script src="bower_components/nvd3/nv.d3.js"></script>
+    <script src="bower_components/angularjs-nvd3-directives/dist/angularjs-nvd3-directives.js"></script>
+    <script src="bower_components/angular.treeview/angular.treeview.js"></script>
+    <script src="bower_components/angular-tree-control/angular-tree-control.js"></script>
+    <script src="bower_components/angular-ui-tree/dist/angular-ui-tree.js"></script>
+    <script src="bower_components/angular-ui-bootstrap-bower/ui-bootstrap.js"></script>
+    <script src="bower_components/angular-ui-bootstrap-bower/ui-bootstrap-tpls.js"></script>
+    <!-- endbower -->
+    <!-- endbuild -->
+
+    <!-- build:js({.tmp,app}) scripts/scripts.js -->
+    <script src="scripts/app.js"></script>
+    <!-- Begin injected services -->
+    <!-- TODO: I have not been able to get the injected services to work and they are very confusing and only buy you the reduction of global vars in the name space. -->
+    <!-- script src="scripts/services/d3-service.js"></script -->
+    <!-- End injected services -->
+    <script src="scripts/controllers/d3-bars-controller.js"></script>
+    <script src="scripts/controllers/cluster-status-controller.js"></script>
+    <script src="scripts/controllers/contact-controller.js"></script>
+    <script src="scripts/controllers/main-controller.js"></script>
+    <script src="scripts/controllers/operations-tree-controller.js"></script>
+    <script src="scripts/controllers/traced-statement-list-controller.js"></script>
+    <script src="scripts/controllers/traced-statement-detail-controller.js"></script>
+    <script src="scripts/controllers/charts-region-server-stats-controller.js"></script>
+    <script src="scripts/controllers/charts-region-server-stats-d3-bars-controller.js"></script>
+    <script src="scripts/controllers/charts-region-server-stats-nvd3-controller.js"></script>
+    <script src="scripts/controllers/charts-region-server-stats-select-box-controller.js"></script>
+    <script src="scripts/directives/d3-bars-directive.js"></script>
+    <script src="scripts/directives/admin-header-directive.js"></script>
+    <script src="scripts/directives/admin-footer-directive.js"></script>
+    <script src="scripts/directives/operations-tree-directive.js"></script>
+    <script src="scripts/services/resource-services.js"></script>
+    <script src="scripts/services/utility-services.js"></script>
+    <!-- endbuild -->
+</body>
+</html>
