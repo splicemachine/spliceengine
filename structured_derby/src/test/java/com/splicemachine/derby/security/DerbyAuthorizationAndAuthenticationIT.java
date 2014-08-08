@@ -17,10 +17,12 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceUserWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-
+import com.github.trevershick.test.ldap.*;
+import com.github.trevershick.test.ldap.annotations.*;
 
 //@Ignore()
 public class DerbyAuthorizationAndAuthenticationIT extends SpliceUnitTest { 
+	private LdapServerResource server;
     private static final String SCHEMA_NAME = DerbyAuthorizationAndAuthenticationIT.class.getSimpleName().toUpperCase();
     protected static final String USER1 = "john";
     protected static final String PASSWORD1 = "jleach";
