@@ -22,6 +22,11 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     public static final String TABLE_NAME_3 = "C";
     public static final String TABLE_NAME_4 = "D";
     public static final String TABLE_NAME_5 = "E";
+    public static final String TABLE_NAME_6 = "F";
+    public static final String TABLE_NAME_7 = "G";
+    public static final String TABLE_NAME_8 = "H";
+    public static final String TABLE_NAME_9 = "I";
+    public static final String TABLE_NAME_10 = "J";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static String tableDef = "(TaskId INT NOT NULL, empId Varchar(3) NOT NULL, StartedAt INT NOT NULL, FinishedAt INT NOT NULL)";
@@ -30,6 +35,11 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME, "(i int)");
     protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE_NAME_4,CLASS_NAME, tableDef);
     protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME, "(i int)");
+    protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,CLASS_NAME, "(i int)");
+    protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,CLASS_NAME, "(i int, primary key (i))");
+    protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8,CLASS_NAME, "(i int)");
+    protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_NAME_9,CLASS_NAME, "(i int)");
+    protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_NAME_10,CLASS_NAME, "(i int)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -38,7 +48,12 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
             .around(spliceTableWatcher2)
             .around(spliceTableWatcher3)
             .around(spliceTableWatcher4)
-            .around(spliceTableWatcher5);
+            .around(spliceTableWatcher5)
+            .around(spliceTableWatcher6)
+            .around(spliceTableWatcher7)
+            .around(spliceTableWatcher8)
+            .around(spliceTableWatcher9)
+            .around(spliceTableWatcher10);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -161,5 +176,146 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
             count ++;
         }
         Assert.assertEquals("Wrong number of results", 3, count);
+    }
+
+    @Test
+    public void testTruncate() throws Exception {
+        Connection connection1 = methodWatcher.createConnection();
+        connection1.createStatement().execute(String.format("insert into %s values 1,2,3", this.getTableReference(TABLE_NAME_6)));
+
+        PreparedStatement ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_6)));
+        ResultSet resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 3 rows.", 3, resultSetSize(resultSet));
+
+        connection1.createStatement().execute(String.format("truncate table %s", this.getTableReference(TABLE_NAME_6)));
+
+        ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_6)));
+        resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 0 rows.", 0, resultSetSize(resultSet));
+
+        connection1.createStatement().execute(String.format("insert into %s values 1,2,3", this.getTableReference(TABLE_NAME_6)));
+
+        ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_6)));
+        resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 3 rows.", 3, resultSetSize(resultSet));
+    }
+
+    @Test
+    public void testTruncatePK() throws Exception {
+        Connection connection1 = methodWatcher.createConnection();
+        connection1.createStatement().execute(String.format("insert into %s values 1,2,3", this.getTableReference(TABLE_NAME_7)));
+
+        PreparedStatement ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_7)));
+        ResultSet resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 3 rows.", 3, resultSetSize(resultSet));
+
+        connection1.createStatement().execute(String.format("truncate table %s", this.getTableReference(TABLE_NAME_7)));
+
+        ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_7)));
+        resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 0 rows.", 0, resultSetSize(resultSet));
+
+        connection1.createStatement().execute(String.format("insert into %s values 1,2,3", this.getTableReference(TABLE_NAME_7)));
+
+        ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_7)));
+        resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 3 rows.", 3, resultSetSize(resultSet));
+    }
+
+
+    @Test
+    public void testTruncateWithIndex() throws Exception {
+        Connection connection1 = methodWatcher.createConnection();
+        connection1.createStatement().execute(String.format("create index trunc_idx on %s (i)", this.getTableReference(TABLE_NAME_8)));
+        try {
+            connection1.createStatement().execute(String.format("insert into %s values 1,2,3", this.getTableReference(TABLE_NAME_8)));
+
+            PreparedStatement ps = connection1.prepareStatement(String.format("select i from %s --splice-properties index=trunc_idx", this.getTableReference(TABLE_NAME_8)));
+            ResultSet resultSet = ps.executeQuery();
+            Assert.assertEquals("Should have 3 rows.", 3, resultSetSize(resultSet));
+
+            connection1.createStatement().execute(String.format("truncate table %s", this.getTableReference(TABLE_NAME_8)));
+
+            ps = connection1.prepareStatement(String.format("select i from %s --splice-properties index=trunc_idx", this.getTableReference(TABLE_NAME_8)));
+            resultSet = ps.executeQuery();
+
+            Assert.assertEquals("Should have 0 rows.", 0, resultSetSize(resultSet));
+
+            connection1.createStatement().execute(String.format("insert into %s values 1,2,3", this.getTableReference(TABLE_NAME_8)));
+
+            ps = connection1.prepareStatement(String.format("select i from %s --splice-properties index=trunc_idx", this.getTableReference(TABLE_NAME_8)));
+            resultSet = ps.executeQuery();
+            Assert.assertEquals("Should have 3 rows.", 3, resultSetSize(resultSet));
+        } finally {
+            connection1.createStatement().execute(String.format("drop index %s", this.getTableReference("trunc_idx")));
+        }
+    }
+
+
+    @Test
+    public void testTruncateIsolation() throws Exception {
+        Connection connection1 = methodWatcher.createConnection();
+        connection1.createStatement().execute(String.format("insert into %s values 1,2,3", this.getTableReference(TABLE_NAME_9)));
+
+        PreparedStatement ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_9)));
+        ResultSet resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 3 rows.", 3, resultSetSize(resultSet));
+
+        Connection connection2 = methodWatcher.createConnection();
+        connection1.setAutoCommit(false);
+        connection1.createStatement().execute(String.format("truncate table %s", this.getTableReference(TABLE_NAME_9)));
+
+        ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_9)));
+        resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 0 rows.", 0, resultSetSize(resultSet));
+
+        PreparedStatement ps2 = connection2.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_9)));
+        ResultSet resultSet2 = ps2.executeQuery();
+        Assert.assertEquals("Should have 3 rows.", 3, resultSetSize(resultSet2));
+
+        connection2.createStatement().execute(String.format("insert into %s values 1,2,3", this.getTableReference(TABLE_NAME_9)));
+        ps2 = connection2.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_9)));
+        resultSet2 = ps2.executeQuery();
+        Assert.assertEquals("Should have 3 rows.", 6, resultSetSize(resultSet2));
+
+        connection1.commit();
+        connection2.rollback();
+
+        ps2 = connection2.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_9)));
+        resultSet2 = ps2.executeQuery();
+        Assert.assertEquals("Should have 0 rows.", 0, resultSetSize(resultSet2));
+
+        connection1.createStatement().execute(String.format("insert into %s values 1,2,3", this.getTableReference(TABLE_NAME_9)));
+
+        ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_9)));
+        resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 3 rows.", 3, resultSetSize(resultSet));
+        connection1.commit();
+    }
+
+
+
+    @Test
+    public void testTruncateRollback() throws Exception {
+        Connection connection1 = methodWatcher.createConnection();
+        connection1.createStatement().execute(String.format("insert into %s values 1,2,3", this.getTableReference(TABLE_NAME_10)));
+
+        PreparedStatement ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_10)));
+        ResultSet resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 3 rows.", 3, resultSetSize(resultSet));
+
+        connection1.setAutoCommit(false);
+        connection1.createStatement().execute(String.format("truncate table %s", this.getTableReference(TABLE_NAME_10)));
+
+        ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_10)));
+        resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 0 rows.", 0, resultSetSize(resultSet));
+
+        connection1.rollback();
+
+        ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_10)));
+        resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 3 rows.", 3, resultSetSize(resultSet));
+        connection1.commit();
     }
 }
