@@ -110,7 +110,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 		private String childTxsID = "";
 		
 		
-		public void setTaskID(String taskID)
+		private void setTaskID(String taskID)
 		{
 			this.taskID = taskID;
 		}
@@ -157,7 +157,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 		}
 		
 		
-		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		private KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 			HashPrefix prefix;
 			DataHash dataHash;
 			KeyPostfix postfix = NoOpPostfix.INSTANCE;
@@ -193,14 +193,14 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	        return columns;
 	    }
 		
-		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		private DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 			//get all columns that are being set
-			int[] columns = getEncodingColumns(2);
+			int[] columns = getEncodingColumns(colTypes.size());
 			DescriptorSerializer[] serializers = VersionedSerializers.forVersion("2.0",true).getSerializers(rowDesc);
 			return new EntryDataHash(columns,null,serializers);
 	}
 		
-		public DataValueDescriptor[] createDVD()
+		private DataValueDescriptor[] createDVD()
 		{
 			DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
 			for(int pos = 0; pos < colTypes.size(); pos++)

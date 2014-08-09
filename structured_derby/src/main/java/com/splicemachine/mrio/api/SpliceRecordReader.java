@@ -233,7 +233,7 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 		for (int i = 0 ; i < pkColIds.size(); i++)
 		{
 			keyColumnOrder[i] = pkColIds.get(i)-1;
-			keyDecodingMap[i] = colNames.indexOf(pkColNames.get(i));
+			keyDecodingMap[i] = pkColIds.get(i);
 		}
 
 		FormatableBitSet accessedKeyCols = new FormatableBitSet(colTypes.size());
@@ -268,7 +268,7 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 			if(rowDecodingMap==null)
 				rowDecodingMap = rowEncodingMap;
 		}
-
+	
     	builder = new SpliceTableScannerBuilder()
 		.scan(scan)
 		.scanner(scanner)	
@@ -318,22 +318,25 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 			sqlUtil = SQLUtil.getInstance();
 		tableStructure = sqlUtil.getTableStructure(tableName);
 		pks = sqlUtil.getPrimaryKey(tableName);
+		
     	Iterator iter = tableStructure.entrySet().iterator();
-	    while(iter.hasNext())
-	    {
-	    	Map.Entry kv = (Map.Entry)iter.next();
-	    	colNames = (ArrayList<String>)kv.getKey();
-	    	colTypes = (ArrayList<Integer>)kv.getValue();
-	    	break;
-	    }
+    	if(iter.hasNext())
+    	{
+    		Map.Entry kv = (Map.Entry)iter.next();
+    		colNames = (ArrayList<String>)kv.getKey();
+    		colTypes = (ArrayList<Integer>)kv.getValue();
+    	}
+	    	
 	    Iterator iterpk = pks.entrySet().iterator();
-	    while(iterpk.hasNext())
+	    
+	    if(iterpk.hasNext())
 	    {
-	    	Map.Entry kv = (Map.Entry)iterpk.next();
-	    	pkColNames = (ArrayList<String>)kv.getKey();
-	    	pkColIds = (ArrayList<Integer>)kv.getValue();
-	    	break;
+	    	Map.Entry kv2 = (Map.Entry)iterpk.next();
+	    	pkColNames = (ArrayList<String>)kv2.getKey();
+	    	pkColIds = (ArrayList<Integer>)kv2.getValue();
 	    }
+	    
+	    
 	    
 	}
 }

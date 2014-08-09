@@ -220,7 +220,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			template.setRowArray(data);
 	}
 
-	public DataValueDescriptor[] createDVD()
+	private DataValueDescriptor[] createDVD()
 	{
 		DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
 		for(int pos = 0; pos < colTypes.size(); pos++)
