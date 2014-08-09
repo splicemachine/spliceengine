@@ -340,7 +340,14 @@ public class ActivationSerializer {
 
         @Override
         public boolean isType(Object instance, Class type) {
-            return instance instanceof ResultSet;
+        	// Originally we had this:
+        	//     return type.equals(ResultSet.class) 
+        	// which was changed to this:
+        	//     return instance instanceof ResultSet;
+        	// But that allowed some things to slip through (like ConversionResultSet)
+        	// which could not be case to OperationResultSet in create method above.
+
+        	return instance instanceof OperationResultSet;
         }
     }  
 
