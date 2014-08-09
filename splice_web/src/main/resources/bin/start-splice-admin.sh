@@ -9,7 +9,7 @@ source ${ROOT_DIR}/bin/functions-admin.sh
 LOGFILE="${ROOT_DIR}"/splice-admin.log
 DEBUG=false
 CONFIG_FILE="${ROOT_DIR}"/etc/jetty-splice-admin.xml
-PORT="8080"  # Default Jetty HTTP port
+PORT="7070"  # Default Jetty HTTP port
 JDBC_ARGS="'org.apache.derby.jdbc.ClientDriver' 'databaseName=testdb;createDatabase=create' 'jdbc/mydatasource'"  # Default JDBC connect string
 
 usage() {
@@ -21,7 +21,7 @@ usage() {
     echo "Where: "
     echo "  -d => Start the server with debug logging enabled"
     echo "  -c <jetty-splice-admin.xml> is the optional Splice Admin XML configuration file.  The default is etc/jetty-splice-admin.xml."
-    echo "  -p <port_#> is the optional Splice Admin HTTP port to listen to.  The default HTTP port is 8080."
+    echo "  -p <port_#> is the optional Splice Admin HTTP port to listen to.  The default HTTP port is 7070."
     echo "  -j \"<jdbc_driver_class_name> <db_properties> <jndi_name>\" is the optional JDBC connect string."
     echo "     The default is: \"'org.apache.derby.jdbc.ClientDriver' 'databaseName=testdb;createDatabase=create' 'jdbc/mydatasource'\""
     echo "  -h => print this message"
