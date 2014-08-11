@@ -289,31 +289,11 @@ public class UpdateOperationIT extends SpliceUnitTest {
         Assert.assertEquals("Row was not removed from original set",originalCount-1,finalCount);
     }
 
-    @Test
-    @Ignore
-    public void testUpdateOverJoinIsUnsupported() throws Exception {
-    	// Now that updates over sink operations are supported (DB-1603),
-    	// this test is no longer valid. Replacements are
-    	// testUpdateOverBroadcastJoin and testUpdateOverMergeSortJoin below.
-        try {
-            methodWatcher
-                .executeUpdate("UPDATE updateoperationit.location a " +
-                                   "SET    num = num * 2 " +
-                                   "WHERE  num = ANY(SELECT num " +
-                                   "                   FROM   updateoperationit.location b " +
-                                   "                   WHERE  b.num = a.num) "
-                );
-        } catch (SQLException e) {
-            Assert.assertTrue("Updates over joins are not supported",
-                                 e.getCause().getMessage().contains("An Update over join"));
-        }
-    }
-    
+	// If you change one of the following 'update over join' tests,
+    // you probably need to make a similar change to DeleteOperationIT.
+
     @Test
     public void testUpdateOverBroadcastJoin() throws Exception {
-    	// Note: update over broadcast join is the style that worked
-    	// even before we added full support for updates and deletes
-    	// over sink operations.
     	doTestUpdateOverJoin("BROADCAST");
     }
 

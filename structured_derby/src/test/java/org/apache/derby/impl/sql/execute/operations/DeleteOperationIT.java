@@ -43,11 +43,18 @@ public class DeleteOperationIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("a_test",spliceSchemaWatcher.schemaName,"(c1 smallint)");
 	private static final Map<Integer,Integer> initialResults = Maps.newHashMap();
 
-	@ClassRule 
+    protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("customer1",spliceSchemaWatcher.schemaName,"(cust_id int, status boolean)");
+    protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("shipment",spliceSchemaWatcher.schemaName,"(cust_id int)");
+    protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("customer2",spliceSchemaWatcher.schemaName,"(cust_id int, status boolean)");
+
+    @ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
 		.around(spliceTableWatcher)
         .around(spliceTableWatcher2)
+        .around(spliceTableWatcher4)
+        .around(spliceTableWatcher5)
+        .around(spliceTableWatcher6)
 		.around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
@@ -64,6 +71,47 @@ public class DeleteOperationIT extends SpliceUnitTest {
 
                     ps = spliceClassWatcher.prepareStatement(format("insert into %s values (?)",spliceTableWatcher2.toString()));
                     ps.setInt(1,32767);
+                    ps.executeUpdate();
+
+                    // Insert into customer and shipment tables
+                    ps = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher4 + " values(?,?)");
+                    ps.setInt(1, 1);
+                    ps.setBoolean(2, true);
+                    ps.executeUpdate();
+                    ps.setInt(1, 2);
+                    ps.setBoolean(2, true);
+                    ps.executeUpdate();
+                    ps.setInt(1, 3);
+                    ps.setBoolean(2, true);
+                    ps.executeUpdate();
+                    ps.setInt(1, 4);
+                    ps.setBoolean(2, true);
+                    ps.executeUpdate();
+                    ps.setInt(1, 5);
+                    ps.setBoolean(2, true);
+                    ps.executeUpdate();
+                    
+                    ps = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher6 + " values(?,?)");
+                    ps.setInt(1, 1);
+                    ps.setBoolean(2, true);
+                    ps.executeUpdate();
+                    ps.setInt(1, 2);
+                    ps.setBoolean(2, true);
+                    ps.executeUpdate();
+                    ps.setInt(1, 3);
+                    ps.setBoolean(2, true);
+                    ps.executeUpdate();
+                    ps.setInt(1, 4);
+                    ps.setBoolean(2, true);
+                    ps.executeUpdate();
+                    ps.setInt(1, 5);
+                    ps.setBoolean(2, true);
+                    ps.executeUpdate();
+                    
+                    ps = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher5 + " values(?)");
+                    ps.setInt(1, 2);
+                    ps.executeUpdate();
+                    ps.setInt(1, 4);
                     ps.executeUpdate();
 				} catch (Exception e) {
 					throw new RuntimeException(e);
@@ -120,31 +168,40 @@ public class DeleteOperationIT extends SpliceUnitTest {
         }
     }
 
+	// If you change one of the following 'delete over join' tests,
+    // you probably need to make a similar change to UpdateOperationIT.
+
     @Test
-    @Ignore
-    public void testDeleteOverJoinUnsupported() throws Exception {
-    	// Now that deletes over sink operations are supported (DB-1603),
-    	// this test is no longer valid. Delete permanently later.
-        try {
-            methodWatcher
-                .executeUpdate("DELETE FROM deleteoperationit.a_test a " +
-                                   "WHERE c1 = ANY(SELECT c1" +
-                                   "                FROM deleteoperationit.a_test b" +
-                                   "                WHERE a.c1 = b.c1)");
-        } catch (SQLException e){
-            Assert.assertTrue("Deletes over joins are not supported",
-                                 e.getCause().getMessage().contains("A Delete over join"));
-        }
+    public void testDeleteOverBroadcastJoin() throws Exception {
+    	doTestDeleteOverJoin("BROADCAST", spliceTableWatcher4);
     }
 
-		@Test(expected = SQLException.class)
+    @Test
+    public void testDeleteOverMergeSortJoin() throws Exception {
+    	doTestDeleteOverJoin("SORTMERGE", spliceTableWatcher6);
+    }
+
+    private void doTestDeleteOverJoin(String hint, SpliceTableWatcher customerTable) throws Exception {
+    	StringBuffer sb = new StringBuffer(200);
+    	sb.append("delete from %s %s \n");
+    	sb.append("where not exists ( \n");
+		sb.append("  select 1 \n");
+		sb.append("  from %s %s --SPLICE-PROPERTIES joinStrategy=%s \n");                                                                           
+		sb.append("  where %s.cust_id = %s.cust_id \n");
+		sb.append(") \n");
+		String query = String.format(sb.toString(), customerTable, "customer", spliceTableWatcher5, "shipment", hint, "customer", "shipment");
+    	int rows = methodWatcher.executeUpdate(query);
+        Assert.assertEquals("Incorrect number of rows deleted.", 3, rows);
+    }
+
+    @Test(expected = SQLException.class)
 		public void testDeleteThrowsDivideByZero() throws Exception {
 				try{
 						methodWatcher.executeUpdate(String.format("delete from %s where c1/0 = 1",spliceTableWatcher2));
 				}catch(SQLException se){
 						String sqlState = se.getSQLState();
 						Assert.assertEquals("incorrect SQL state!","22012",sqlState);
-						Assert.assertEquals("Incorret message!","Attempt to divide by zero.",se.getMessage());
+						Assert.assertEquals("Incorrect message!","Attempt to divide by zero.",se.getMessage());
 						throw se;
 				}
 		}
