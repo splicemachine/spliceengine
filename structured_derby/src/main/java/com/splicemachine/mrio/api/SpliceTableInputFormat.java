@@ -84,6 +84,7 @@ implements Configurable {
 	    return scan;
 	  }
  
+  @Override
   public void setConf(Configuration configuration) {
     this.conf = configuration;
     String tableName = conf.get(INPUT_TABLE);
