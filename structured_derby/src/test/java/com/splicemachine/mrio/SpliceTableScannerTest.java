@@ -39,7 +39,7 @@ import org.mockito.stubbing.Answer;
 
 import com.splicemachine.mrio.api.SpliceTableScanner;
 import com.splicemachine.mrio.api.SpliceTableScannerBuilder;
-
+import com.splicemachine.mrio.sample.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;

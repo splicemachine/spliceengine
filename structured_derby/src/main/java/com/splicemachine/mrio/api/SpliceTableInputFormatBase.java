@@ -96,11 +96,13 @@ extends InputFormat<ImmutableBytesWritable, ExecRow> {
   public RecordReader<ImmutableBytesWritable, ExecRow> createRecordReader(
       InputSplit split, TaskAttemptContext context)
   throws IOException {
+	  System.out.println("creating recordreader...");
     if (table == null) {
       throw new IOException("Cannot create a record reader because of a" +
           " previous error. Please look at the previous logs lines from" +
           " the task's full log for more details.");
     }
+    
     TableSplit tSplit = (TableSplit) split;
     SpliceTableRecordReaderBase trr = this.tableRecordReader;
     // if no table record reader was provided use default
@@ -117,6 +119,7 @@ extends InputFormat<ImmutableBytesWritable, ExecRow> {
     } catch (InterruptedException e) {
       throw new InterruptedIOException(e.getMessage());
     }
+    System.out.println("creating recordreader end...");
     return trr;
   }
 
@@ -132,6 +135,7 @@ extends InputFormat<ImmutableBytesWritable, ExecRow> {
    */
   @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException {
+	  System.out.println("begin getting splits");
 	if (table == null) {
 	    throw new IOException("Table not exist in Splice.");
 	}
@@ -152,6 +156,7 @@ extends InputFormat<ImmutableBytesWritable, ExecRow> {
           HConstants.EMPTY_BYTE_ARRAY, HConstants.EMPTY_BYTE_ARRAY, regLoc
               .getHostnamePort().split(Addressing.HOSTNAME_PORT_SEPARATOR)[0]);
       splits.add(split);
+      System.out.println("end getting splits");
       return splits;
     }
     List<InputSplit> splits = new ArrayList<InputSplit>(keys.getFirst().length);
@@ -194,6 +199,7 @@ extends InputFormat<ImmutableBytesWritable, ExecRow> {
         }
       }
     }
+    System.out.println("end getting splits");
     return splits;
   }
   

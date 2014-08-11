@@ -176,7 +176,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 				this.scanFilters = null;
 			
 			if(filterFactory==null){
-				
+					System.out.println("creating filterFactory");
 					this.filterFactory = new SIFilterFactory() {
 							
 							@SuppressWarnings("unchecked")
@@ -207,6 +207,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 									};
 							}
 					};
+					System.out.println("creating filterFactory end");
 			}
 			else
 					this.filterFactory = filterFactory;
@@ -215,12 +216,11 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			this.colTypes = colTypes;
 			this.pkColNames = pkColNames;
 			this.pkColIds = pkColIds;
-			data = template.getRowArray();
-			/*if(template.getRowArray().length == 0)			
-			{
+			//data = template.getRowArray();
+			
 				data = createDVD();
 				template.setRowArray(data);
-			}*/
+			
 					
 	}
 
@@ -273,22 +273,22 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 	}
 	
 	public void open() throws StandardException, IOException {
-
+		System.out.println("open SpliceTableScanner...");
 	}
 	
 	public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException {
-			
+			System.out.println("next begin");
 			SIFilter filter = getSIFilter();
 			
 			if(keyValues==null)
-					keyValues = Lists.newArrayListWithExpectedSize(colTypes.size());
+					keyValues = Lists.newArrayListWithExpectedSize(2);
 			boolean hasRow;
 			keyValues.clear();
 			
-			//template.resetRowArray();
+			template.resetRowArray();
 			
 			Result tmp = resultScanner.next();
-			
+			System.out.println("SpliceTableScanner, next --- 0.1----");
 			Result r = null;
 			if(tmp != null)
 			{
@@ -298,7 +298,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 				{
 					keyValues.add(kv);
 				}
-				
+				System.out.println("SpliceTableScanner, next --- 0.2----");
 			}	
 			else
 			{
@@ -307,32 +307,39 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			
 			if(hasRow)
 				{					
+				System.out.println("SpliceTableScanner, next --- 0.3----");
 					if(keyValues.size()<=0){
 							currentRowLocation = null;	
+							
 							return null;
 					}else{
 							if(template.nColumns()>0){
+								System.out.println("SpliceTableScanner, next --- 1----");
 									KeyValue kv = keyValues.get(0);
 									if(!filterRowKey(kv)||!filterRow(filter)){
 											//filter the row first, then filter the row key
+										System.out.println("SpliceTableScanner, next --- 1.1----");
 											filterCounter.increment();
+											System.out.println("SpliceTableScanner, next --- 1.2----");
 											setRowLocation(kv);
+											System.out.println("SpliceTableScanner, next --- 2----");
 											return template;
 									}
 							}else if(!filterRow(filter)){
 									//still need to filter rows to deal with transactional issues
 									filterCounter.increment();
 									KeyValue kv = keyValues.get(0);
-									setRowLocation(kv);								
+									setRowLocation(kv);	
+									System.out.println("SpliceTableScanner, next --- 2----");
 									return template;
 							}
 							setRowLocation(keyValues.get(0));
-							
+							System.out.println("SpliceTableScanner, next --- 2----");
 							return template;
 					}
 					
 			}
-
+			
 			currentRowLocation = null;
 			return null;
 	}
