@@ -70,7 +70,6 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 	
 	@Override
 	public RecordReader<ImmutableBytesWritable, ExecRow> createRecordReader(InputSplit split, TaskAttemptContext context) {
-		System.out.println("start building recordreader");
 		if (trr == null) {
 			trr = new SpliceRecordReader(this.conf);
 		}
@@ -88,7 +87,7 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 			trr.setScan(scan);
 			trr.setHTable(table);
 			trr.restart(scan.getStartRow());
-			System.out.println("end building recordreader");
+			
 			
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -115,12 +114,11 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 		return sqlUtil.getConglomID(tableName);		
 	}
 	
-	@Override
 	public void setConf(Configuration configuration) {
 		if (this.conf != null)
 			return;
 		this.conf = configuration;
-		System.out.println("set conf...");
+		
 		/**
 		 * 
 		 * Here to convert tableName to tableID. 
@@ -136,7 +134,6 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 		try {
 		        setHTable(new HTable(new Configuration(conf), tableID));
 		      } catch (Exception e) {
-		    	  e.printStackTrace();
 		       LOG.error(StringUtils.stringifyException(e));
 		     }
 		 
@@ -146,7 +143,6 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 		      try {
 		         scan = convertStringToScan(conf.get(SCAN));
 		       } catch (IOException e) {
-		    	   e.printStackTrace();
 		         LOG.error("An error occurred.", e);
 		      }
 		     } else {
@@ -194,16 +190,13 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 		      // false by default, full table scans generate too much BC churn
 		         scan.setCacheBlocks((conf.getBoolean(SCAN_CACHEBLOCKS, false)));
 		      } catch (Exception e) {
-		    	  e.printStackTrace();
 		          LOG.error(StringUtils.stringifyException(e));
 		     }
 		    }
 		    setScan(scan);
-		    System.out.println("set conf end...");
 	}
 	
-	public static void addColumn(Scan scan, byte[] familyAndQualifier) {
-			System.out.println("addColumn...");
+	private static void addColumn(Scan scan, byte[] familyAndQualifier) {
 		     byte [][] fq = KeyValue.parseColumn(familyAndQualifier);
 		    if (fq.length > 1 && fq[1] != null && fq[1].length > 0) {
 		       scan.addColumn(fq[0], fq[1]);
@@ -213,14 +206,12 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 		  }
 	
 	public static void addColumns(Scan scan, byte [][] columns) {
-		System.out.println("addColumns...");
 		     for (byte[] column : columns) {
 		       addColumn(scan, column);
 		     }
 		   }
 	
-	public static void addColumns(Scan scan, String columns) {
-		System.out.println("addColumns2...");
+	private static void addColumns(Scan scan, String columns) {
 		     String[] cols = columns.split(" ");
 		     for (String col : cols) {
 		       addColumn(scan, Bytes.toBytes(col));
@@ -230,10 +221,8 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 	
 	@Override
 	public List<InputSplit> getSplits(JobContext arg0) throws IOException {
-		System.out.println("get splits...");
-		List<InputSplit> splits =  super.getSplits(arg0);
-		System.out.println("end get splits...");
-		return splits;
+		return super.getSplits(arg0);
+		
 	}
 
 }

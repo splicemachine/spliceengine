@@ -110,7 +110,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 		private String childTxsID = "";
 		
 		
-		public void setTaskID(String taskID)
+		private void setTaskID(String taskID)
 		{
 			this.taskID = taskID;
 		}
@@ -124,11 +124,9 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				this.rowDesc = createDVD();
 				this.taskID = taskID;
 				this.keyEncoder =  getKeyEncoder(null);
-				this.rowHash = getRowHash(null);
-				
 				this.pkCols = pkCols;
-				
-				
+				this.rowHash = getRowHash(null);
+	
 			} catch (StandardException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -157,7 +155,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 		}
 		
 		
-		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		private KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 			HashPrefix prefix;
 			DataHash dataHash;
 			KeyPostfix postfix = NoOpPostfix.INSTANCE;
@@ -186,21 +184,27 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 
 	        // Skip primary key columns to save space
 	        if (pkCols != null) {
+	        	System.out.println("pkCols not null");
 	            for(int pkCol:pkCols) {
+	            	System.out.println("pkCol:"+String.valueOf(pkCol));
 	                columns[pkCol-1] = -1;
 	            }
+	            return columns;
 	        }
-	        return columns;
+	        else
+	        	return null;
+	        
 	    }
 		
-		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		private DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 			//get all columns that are being set
-			int[] columns = getEncodingColumns(2);
+			int[] columns = getEncodingColumns(colTypes.size());
+			
 			DescriptorSerializer[] serializers = VersionedSerializers.forVersion("2.0",true).getSerializers(rowDesc);
 			return new EntryDataHash(columns,null,serializers);
 	}
 		
-		public DataValueDescriptor[] createDVD()
+		private DataValueDescriptor[] createDVD()
 		{
 			DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
 			for(int pos = 0; pos < colTypes.size(); pos++)
@@ -270,6 +274,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				}		
 				byte[] key = this.keyEncoder.getKey(value);
 				rowHash.setRow(value);
+				
 				byte[] bdata = rowHash.encode();
 				KVPair kv = new KVPair();
 				kv.setKey(key);

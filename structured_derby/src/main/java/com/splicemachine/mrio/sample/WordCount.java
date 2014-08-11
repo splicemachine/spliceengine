@@ -49,8 +49,7 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
 
 public class WordCount {
-	public class MyMapper 
-			extends Mapper<ImmutableBytesWritable, ExecRow, Text, IntWritable>
+	static class MyMapper extends Mapper<ImmutableBytesWritable, ExecRow, Text, IntWritable>
 	{
 		
 		private String word = "";
@@ -95,7 +94,6 @@ public class WordCount {
 					if(dvd[0] != null)
 						{
 						word = dvd[0].getString();
-						System.out.println(word);
 						}
 					
 				} catch (StandardException e) {
@@ -114,8 +112,7 @@ public class WordCount {
 		}
 	}
 	
-	public class MyReducer
-	extends Reducer<Text, IntWritable, ImmutableBytesWritable, ExecRow> {
+	public static class MyReducer extends Reducer<Text, IntWritable, ImmutableBytesWritable, ExecRow> {
 		
 		  
 		 @Override
@@ -155,7 +152,8 @@ public class WordCount {
 		Configuration config = HBaseConfiguration.create();
 		
 		SpliceJob job = new SpliceJob(config, NAME);
-		
+		//Job job = new Job(config, NAME);
+		//System.out.println("***"+config.get(spliceio.SpliceConstants.SPLICE_TRANSACTION_ID));
 		job.setJarByClass(WordCount.class);     // class that contains mapper
 
 		Scan scan = new Scan();
@@ -164,6 +162,8 @@ public class WordCount {
 	    
 		String inputTableName = "WIKIDATA";
 		String outputTableName = "USERTEST1";
+		
+		//String outputPath = "output_test11";
 		
 		try {
 			SpliceTableMapReduceUtil.initTableMapperJob(
@@ -180,7 +180,7 @@ public class WordCount {
 			// TODO Auto-generated catch block
 			    e.printStackTrace();
 			}
-		/*SpliceTableMapReduceUtil.initTableReducerJob(
+		SpliceTableMapReduceUtil.initTableReducerJob(
 				outputTableName, 
 				MyReducer.class, 
 				job,
@@ -189,18 +189,15 @@ public class WordCount {
 				null,
 				null,
 				false,
-				SpliceOutputFormat.class);*/
+				SpliceOutputFormat.class);
 
-		job.setOutputFormatClass(NullOutputFormat.class);   // because we aren't emitting anything from mapper
+		//job.setOutputFormatClass(NullOutputFormat.class);   // because we aren't emitting anything from mapper
 		
 		boolean b;
 		try {
 			b = job.waitForCompletion(true);
 			if (!b)
-			{
-				
 				throw new IOException("error with job!");
-			}
 			} catch (IOException e) {
 			// TODO Auto-generated catch block
 				e.printStackTrace();
