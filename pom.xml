@@ -762,6 +762,21 @@
 			<build>
 				<plugins>
 					<plugin>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<!-- Skip unit tests we don't expect to work with MapR -->
+							<excludes>
+								<exclude>**/HBaseSuite.java</exclude>
+								<exclude>**/HbasePackedAsyncRollForwardTest.java</exclude>
+								<exclude>**/HBasePackedCompactionTest.java</exclude>
+								<exclude>**/SIFilterHBaseTest.java</exclude>
+								<exclude>**/SITransactorHBasePackedTest.java</exclude>
+								<exclude>**/JtaXAResourceHBaseTest.java</exclude>
+								<exclude>**/TransactionManagerHBaseTest.java</exclude>
+							</excludes>
+						</configuration>
+					</plugin>
+					<plugin>
 						<artifactId>maven-failsafe-plugin</artifactId>
 						<configuration>
 							<excludes>
