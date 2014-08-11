@@ -49,7 +49,7 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
 
 public class WordCount {
-	static class MyMapper extends Mapper<ImmutableBytesWritable, ExecRow, Text, IntWritable>
+	public static class MyMapper extends Mapper<ImmutableBytesWritable, ExecRow, Text, IntWritable>
 	{
 		
 		private String word = "";
