@@ -224,7 +224,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 					
 	}
 
-	private DataValueDescriptor[] createDVD()
+	public DataValueDescriptor[] createDVD()
 	{
 		DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
 		for(int pos = 0; pos < colTypes.size(); pos++)
