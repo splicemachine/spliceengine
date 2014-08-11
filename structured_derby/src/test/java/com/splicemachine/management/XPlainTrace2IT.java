@@ -207,11 +207,20 @@ public class XPlainTrace2IT {
         Assert.assertEquals(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.PROJECTRESTRICT), 0);
 
         XPlainTreeNode child = operation.getChildren().getLast();
-        Assert.assertEquals(child.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.ONCE), 0);
-        Assert.assertTrue(child.getInfo().contains("Subquery"));
-        Assert.assertEquals(child.getIterations(), nrows);
-        Assert.assertEquals(child.getInputRows(), nrows);
-        Assert.assertEquals(child.getOutputRows(), nrows);
+        if (child.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.ONCE) == 0) {
+            Assert.assertTrue(child.getInfo().contains("Subquery"));
+            Assert.assertEquals(child.getIterations(), nrows);
+            Assert.assertEquals(child.getInputRows(), nrows);
+            Assert.assertEquals(child.getOutputRows(), nrows);
+        }
+        else {
+            child = operation.getChildren().getFirst();
+            Assert.assertEquals(child.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.ONCE), 0);
+            Assert.assertTrue(child.getInfo().contains("Subquery"));
+            Assert.assertEquals(child.getIterations(), nrows);
+            Assert.assertEquals(child.getInputRows(), nrows);
+            Assert.assertEquals(child.getOutputRows(), nrows);
+        }
     }
 
     @Test
