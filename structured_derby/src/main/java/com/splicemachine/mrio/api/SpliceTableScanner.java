@@ -215,9 +215,13 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			this.colTypes = colTypes;
 			this.pkColNames = pkColNames;
 			this.pkColIds = pkColIds;
-			data = createDVD();
-			
-			template.setRowArray(data);
+			data = template.getRowArray();
+			/*if(template.getRowArray().length == 0)			
+			{
+				data = createDVD();
+				template.setRowArray(data);
+			}*/
+					
 	}
 
 	private DataValueDescriptor[] createDVD()
@@ -277,11 +281,11 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			SIFilter filter = getSIFilter();
 			
 			if(keyValues==null)
-					keyValues = Lists.newArrayListWithExpectedSize(2);
+					keyValues = Lists.newArrayListWithExpectedSize(colTypes.size());
 			boolean hasRow;
 			keyValues.clear();
 			
-			template.resetRowArray();
+			//template.resetRowArray();
 			
 			Result tmp = resultScanner.next();
 			
@@ -419,9 +423,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			if(siFilter==null){
 					boolean isCountStar = scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null;
 					predicateFilter= decodePredicateFilter();
-					
-					ExecRowAccumulator accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowDecodingMap, tableVersion);
-					
+					ExecRowAccumulator accumulator = ExecRowAccumulator.newAccumulator(predicateFilter, false, template, rowDecodingMap, tableVersion);					
 					siFilter = filterFactory.newFilter(predicateFilter,getRowEntryDecoder(),accumulator,isCountStar);
 			}
 			return siFilter;

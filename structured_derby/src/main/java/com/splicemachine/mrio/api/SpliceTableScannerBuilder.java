@@ -218,6 +218,7 @@ public class SpliceTableScannerBuilder {
 			return this;
 		}
 		public SpliceTableScanner build(){
+			
 				return new SpliceTableScanner(scanner,
 								template,
 								metricFactory,
