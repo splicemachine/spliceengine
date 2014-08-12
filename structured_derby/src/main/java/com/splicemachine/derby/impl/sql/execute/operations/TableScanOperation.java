@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.catalog.SpliceXplainUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.storage.AsyncClientScanProvider;
@@ -36,6 +37,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -148,17 +150,26 @@ public class TableScanOperation extends ScanOperation {
 						regionScanner.start();
 
                 String tableNameInfo = null;
-                if(this.indexName!=null) {
+                if (this.indexName != null) {
                     tableNameInfo = "index:" + indexName + ")";
-                }
-                else if(this.tableName!=null){
-                    tableNameInfo = "table:"+tableName;
+                } else if (this.tableName != null) {
+                    if (activation.isTraced()) {
+                        String tname = tableName;
+                        try {
+                            tname = SpliceXplainUtils.conglomerateToTableName(tableName);
+                        } catch(SQLException e) {
+                            // Ignore this error and use conglomerate id instead
+                        }
+                        tableNameInfo = "table:" + (tname==null?tableName:tname);
+                    }
+                    else {
+                        tableNameInfo = "table:" + tableName;
+                    }
                 }
 
                 if (info == null) {
                     info = tableNameInfo;
-                }
-                else if (!info.contains(tableNameInfo)){
+                } else if (!info.contains(tableNameInfo)) {
                     info += ", " + tableNameInfo;
                 }
 		}

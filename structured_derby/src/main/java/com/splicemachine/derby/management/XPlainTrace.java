@@ -285,10 +285,12 @@ public class XPlainTrace {
                 topOperation = node;
             } else {
                 XPlainTreeNode parent = xPlainTreeNodeMap.get(parentOperationId);
-                if (node.isRightChildOp()) {
-                    parent.addLastChild(node);
-                } else {
-                    parent.addFirstChild(node);
+                if (parent != null) {
+                    if (node.isRightChildOp()) {
+                        parent.addLastChild(node);
+                    } else {
+                        parent.addFirstChild(node);
+                    }
                 }
             }
         }

@@ -146,10 +146,12 @@ public class XPlainTrace2IT {
         xPlainTrace.turnOffTrace();
 
         XPlainTreeNode operation = xPlainTrace.getOperationTree();
-        operation = operation.getChildren().getFirst();
-        Assert.assertEquals(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.SORT), 0);
-        Assert.assertEquals(operation.getInputRows(), numLoops*nrows);
-        Assert.assertEquals(operation.getWriteRows(), numLoops*nrows);
+        if (operation != null) {
+            operation = operation.getChildren().getFirst();
+            Assert.assertEquals(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.SORT), 0);
+            Assert.assertEquals(operation.getInputRows(), numLoops * nrows);
+            Assert.assertEquals(operation.getWriteRows(), numLoops * nrows);
+        }
     }
 
     @Test
