@@ -11,11 +11,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 
 public class TransactionKeepAlive {
     private static final Logger LOG = Logger.getLogger(TransactionKeepAlive.class);
@@ -47,13 +43,11 @@ public class TransactionKeepAlive {
     private static void performKeepAlive() {
     	SpliceLogUtils.trace(LOG,"running keepAlive task");
         final ContextService contextService = ContextService.getFactory();
-        @SuppressWarnings("rawtypes")
-		final Set contextManagers = getContextManagers(contextService);
+		final Set<ContextManager> contextManagers = getContextManagers(contextService);
         if (contextManagers != null) {
             SpliceLogUtils.trace(LOG,"contextManager count %d",contextManagers.size());
             final Set<String> keptAlive = new HashSet<String>();
-            for (Object o : contextManagers) {
-                final ContextManager contextManager = (ContextManager) o;
+            for (ContextManager contextManager : contextManagers) {
                 final String transactionId = SpliceObserverInstructions.getTransactionId(contextManager);
                 if (transactionId != null && !keptAlive.contains(transactionId)) {
                     final TransactionManager transactor = HTransactorFactory.getTransactionManager();
@@ -72,15 +66,13 @@ public class TransactionKeepAlive {
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-	private static Set getContextManagers(ContextService contextService) {
+	private static Set<ContextManager> getContextManagers(ContextService contextService) {
         try {
             final Field allContextsField = contextService.getClass().getDeclaredField("allContexts");
             allContextsField.setAccessible(true);
             synchronized (contextService) {
-                final Set result = new HashSet();
-                final Set allContexts = (Set) allContextsField.get(contextService);
-                result.addAll(allContexts);
+                final Set<ContextManager> result = new HashSet<ContextManager>();
+                result.addAll((Collection) allContextsField.get(contextService));
                 return Collections.unmodifiableSet(result);
             }
         } catch (IllegalAccessException e) {
