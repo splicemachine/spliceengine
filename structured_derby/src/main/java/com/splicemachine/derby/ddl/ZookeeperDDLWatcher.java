@@ -1,7 +1,6 @@
 package com.splicemachine.derby.ddl;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -11,6 +10,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.*;
 
+import com.splicemachine.concurrent.MoreExecutors;
 import org.apache.derby.iapi.services.context.Context;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -31,7 +31,6 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.ZooDefs;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.HTransactorFactory;
@@ -45,18 +44,14 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
     private static final long REFRESH_TIMEOUT = TimeUnit.SECONDS.toMillis(30);
     private static final long MAXIMUM_DDL_WAIT = TimeUnit.SECONDS.toMillis(90);
 
-    private Map<String, DDLChange> currentDDLChanges = new HashMap<String, DDLChange>();
-
     private Set<String> seenDDLChanges = new HashSet<String>();
     private Map<String, Long> changesTimeouts = new HashMap<String, Long>();
+    private Map<String, DDLChange> currentDDLChanges = new HashMap<String, DDLChange>();
+    private Map<String, DDLChange> tentativeDDLs = new ConcurrentHashMap<String, DDLChange>();
 
     private String id;
-
-    private ScheduledExecutorService executor = Executors.newScheduledThreadPool(1,
-            new ThreadFactoryBuilder().setNameFormat("ZookeeperDDLWatcherRefresh").build());
-
+    private ScheduledExecutorService executor = MoreExecutors.namedSingleThreadScheduledExecutor("ZookeeperDDLWatcherRefresh");
     private SpliceAccessManager accessManager;
-    private Map<String, DDLChange> tentativeDDLs = new ConcurrentHashMap<String, DDLChange>();
 
     @Override
     public synchronized void registerLanguageConnectionContext(LanguageConnectionContext lcc) {
