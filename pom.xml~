@@ -39,7 +39,6 @@
 		<maven.compiler.source>1.6</maven.compiler.source>
 		<maven.compiler.target>1.6</maven.compiler.target>
 		<maven.jar.plugin.version>2.3.1</maven.jar.plugin.version>
-        <utilities.version>1.0-SNAPSHOT</utilities.version> <!-- Splice Internal Library -->
 		<log4j.version>1.2.15</log4j.version>
 		<derby.version>10.9.1.0-splice</derby.version>
 		<gson.version>2.2.2</gson.version>
@@ -57,8 +56,8 @@
 		<envClassifier/>
 		<excluded.categories>com.splicemachine.test.SlowTest</excluded.categories>
 	</properties>
-		<dependencies>
-			<dependency>
+	<dependencies>
+		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>${junit.version}</version>
@@ -245,7 +244,7 @@
                             <excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>
                             <skipTests>${skip.integration.tests}</skipTests>
                             <parallel>classes</parallel>
-                            <threadCount>1</threadCount>
+                            <threadCount>4</threadCount>
                             <perCoreThreadCount>false</perCoreThreadCount>
                             <argLine>-Xmx3g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
@@ -321,6 +320,16 @@
 			<url>http://google-gson.googlecode.com/svn/mavenrepo</url>
 			<snapshots>
 				<enabled>true</enabled>
+			</snapshots>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+		</repository>
+		<repository>
+			<id>sonatype-nexus-staging</id>
+			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+			<snapshots>
+				<enabled>false</enabled>
 			</snapshots>
 			<releases>
 				<enabled>true</enabled>
@@ -692,20 +701,20 @@
 		</profile>
 		<profile>
 			<!-- =========================================================== -->
-			<!--                        MapR 0.94.17                          -->
+			<!--                        MapR 0.94.9                          -->
 			<!-- =========================================================== -->
-			<id>mapr-0.94.17</id>
+			<id>mapr-0.94.9</id>
 			<activation>
 				<property>
 					<name>hbase.profile</name>
-					<value>mapr-0.94.17</value>
+					<value>mapr-0.94.9</value>
 				</property>
 			</activation>
 			<properties>
-				<zookeeper.version>3.4.5-mapr-1406</zookeeper.version>
-				<hbase.version>0.94.17-mapr-splice-2</hbase.version>
-				<hadoop.version>1.0.3-mapr-3.1.1</hadoop.version>
-				<envClassifier>mapr-0.94.17</envClassifier>
+				<zookeeper.version>3.4.5</zookeeper.version>
+				<hbase.version>0.94.9-mapr</hbase.version>
+				<hadoop.version>1.0.3-mapr-2.1.2.1</hadoop.version>
+				<envClassifier>mapr-0.94.9</envClassifier>
 			</properties>
 			<dependencies>
 				<dependency>
@@ -740,12 +749,7 @@
 					<artifactId>maprfs</artifactId>
 					<version>${hadoop.version}</version>
 				</dependency>
-				<dependency>
-					<groupId>com.mapr.hadoop</groupId>
-					<artifactId>maprfs-core</artifactId>
-					<version>${hadoop.version}</version>
-				</dependency>
-            </dependencies>
+			</dependencies>
 			<repositories>
 				<repository>
 					<id>mapr-releases</id>
@@ -762,21 +766,6 @@
 			<build>
 				<plugins>
 					<plugin>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<configuration>
-							<!-- Skip unit tests we don't expect to work with MapR -->
-							<excludes>
-								<exclude>**/HBaseSuite.java</exclude>
-								<exclude>**/HbasePackedAsyncRollForwardTest.java</exclude>
-								<exclude>**/HBasePackedCompactionTest.java</exclude>
-								<exclude>**/SIFilterHBaseTest.java</exclude>
-								<exclude>**/SITransactorHBasePackedTest.java</exclude>
-								<exclude>**/JtaXAResourceHBaseTest.java</exclude>
-								<exclude>**/TransactionManagerHBaseTest.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-					<plugin>
 						<artifactId>maven-failsafe-plugin</artifactId>
 						<configuration>
 							<excludes>
@@ -786,7 +775,6 @@
 								<exclude>**/WorkdayTinyIT.java</exclude>
 								<exclude>**/HdfsImportIT.java</exclude>
 								<exclude>**/ImportErrorIT.java</exclude>
-								<exclude>**/ImportDefaultValueIT.java</exclude>
 								<exclude>**/IndexIT.java</exclude>
 								<exclude>**/MicrostrategiesCustomerIT.java</exclude>
 								<exclude>**/MicrostrategiesDemoIT.java</exclude>
@@ -797,8 +785,6 @@
 								<exclude>**/InnerJoinIT.java</exclude>
 								<exclude>**/MergeJoinIT.java</exclude>
 								<exclude>**/OuterJoinIT.java</exclude>
-								<exclude>**/ThreeTableEquiJoinIT.java</exclude>
-								<exclude>**/DropColumnIT.java</exclude>
 							</excludes>
 						</configuration>
 					</plugin>

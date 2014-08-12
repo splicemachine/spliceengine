@@ -5,9 +5,13 @@ import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.api.HTransactorFactory;
+
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.impl.TransactionStore;
+
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -185,4 +189,48 @@ public class TransactionAdmin {
 				org.apache.derby.iapi.store.raw.Transaction td = ((SpliceTransactionManager)tc).getRawTransaction();
 				return SpliceUtils.getTransID(td);
 		}
+		
+		private static final ResultColumnDescriptor[] CHILD_TXN_ID_COLUMNS = new GenericColumnDescriptor[]{
+			new GenericColumnDescriptor("childTxnId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
+		};
+		
+		public static void SYSCS_START_CHILD_TRANSACTION(long parentTransactionId, ResultSet[] resultSet) throws IOException, SQLException {
+			
+			// Verify the parentTransactionId passed in
+			TransactionStore store = HTransactorFactory.getTransactionStore();
+			Transaction existingParentTransaction = store.getTransaction(parentTransactionId);
+			if (existingParentTransaction == null) {
+				throw new IllegalArgumentException(String.format("Specified parent transaction id %s not found. Unable to create child transaction.", parentTransactionId));
+			}
+			
+			TransactionId parentTxnId = new TransactionId(Long.toString(parentTransactionId)); // constructor that takes long is not public
+			TransactionId childTransaction;
+			TransactionManager tm = HTransactorFactory.getTransactionManager();
+			
+			/*
+			List<TransactionId> txns = tm.getAllActiveTransactionIds();
+			for (TransactionId id : txns) {
+				System.out.println("txn: " + id.getTransactionIdString());
+			}
+			*/
+			
+			try {
+				childTransaction = tm.beginChildTransaction(parentTxnId, true);
+			} catch (IOException e) {
+				throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+			}
+
+			ExecRow row = new ValueRow(1);
+			row.setColumn(1, new SQLLongint(childTransaction.getId()));
+			EmbedConnection defaultConn = (EmbedConnection)SpliceAdmin.getDefaultConn();
+			Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+			IteratorNoPutResultSet rs = new IteratorNoPutResultSet(Arrays.asList(row), CHILD_TXN_ID_COLUMNS, lastActivation);
+			try {
+				rs.openCore();
+			} catch (StandardException e) {
+				throw PublicAPI.wrapStandardException(e);
+			}
+			resultSet[0] = new EmbedResultSet40(defaultConn, rs, false, null, true);
+		}
+
 }
