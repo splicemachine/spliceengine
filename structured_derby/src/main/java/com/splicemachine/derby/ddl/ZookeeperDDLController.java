@@ -27,7 +27,7 @@ public class ZookeeperDDLController implements DDLController, Watcher {
     private final Object LOCK = new Object();
 
     // timeout to refresh the info, in case some server is dead or a new server came up
-    private static final long REFRESH_TIMEOUT = TimeUnit.SECONDS.toMicros(2);
+    private static final long REFRESH_TIMEOUT = TimeUnit.SECONDS.toMillis(2);
     // maximum wait for everybody to respond, after this we fail the DDL change
     private static final long MAXIMUM_WAIT = TimeUnit.SECONDS.toMillis(60);
 

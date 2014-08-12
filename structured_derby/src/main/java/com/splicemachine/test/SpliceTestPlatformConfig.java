@@ -19,6 +19,9 @@ import static java.util.concurrent.TimeUnit.*;
 
 import static com.google.common.collect.Lists.transform;
 
+/**
+ * HBase configuration common to both SpliceTestPlatform and SpliceTestClusterParticipant.
+ */
 class SpliceTestPlatformConfig {
 
     private static final List<Class<?>> REGION_COPROCESSORS = Arrays.<Class<?>>asList(
