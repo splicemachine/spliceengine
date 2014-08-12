@@ -377,10 +377,10 @@
 								<argument>-Djava.awt.headless=true</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties</argument>
-                <argument>-Xmx2g</argument>
-                <argument>-Xms1g</argument>
-                <argument>-XX:MaxPermSize=256M</argument>
-                <argument>-XX:+CMSClassUnloadingEnabled</argument>
+								<argument>-Xmx2g</argument>
+								<argument>-Xms1g</argument>
+								<argument>-XX:MaxPermSize=256M</argument>
+								<argument>-XX:+CMSClassUnloadingEnabled</argument>
 								<argument>-enableassertions</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
 								<argument>-Dderby.debug.true=DumpClassFile,DumpParseTree,DumpBindTree,DumpOptimizedTree,ByteCodeGenInstr</argument>
@@ -457,8 +457,8 @@
 								<argument>-Dzookeeper.sasl.client=false</argument>
 								<argument>-Xmx2g</argument>
 								<argument>-Xms1g</argument>
-                <argument>-XX:MaxPermSize=256M</argument>
-                <argument>-XX:+CMSClassUnloadingEnabled</argument>
+								<argument>-XX:MaxPermSize=256M</argument>
+								<argument>-XX:+CMSClassUnloadingEnabled</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4002</argument>
 								<argument>org.apache.zookeeper.server.ZooKeeperServerMain</argument>
 								<argument>2181</argument>
@@ -507,8 +507,8 @@
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Xmx3g</argument>
 								<argument>-Xms1g</argument>
-                <argument>-XX:MaxPermSize=256M</argument>
-                <argument>-XX:+CMSClassUnloadingEnabled</argument>
+								<argument>-XX:MaxPermSize=256M</argument>
+								<argument>-XX:+CMSClassUnloadingEnabled</argument>
 								<argument>-enableassertions</argument>
 								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
 								<argument>${project.build.directory}/zookeeper</argument>
@@ -531,6 +531,9 @@
 					<name>spliceClusterMember</name>
 				</property>
 			</activation>
+			<properties>
+				<memberNumber>1</memberNumber>
+			</properties>
 			<build>
 				<plugins>
 					<plugin>
@@ -550,20 +553,15 @@
 							<arguments>
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
-                                <argument>-Xdebug</argument>
 								<argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Xmx2g</argument>
-								<argument>-Xms1g</argument>
 								<argument>-XX:MaxPermSize=256M</argument>
 								<argument>-XX:+CMSClassUnloadingEnabled</argument>
-								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
 								<argument>com.splicemachine.test.SpliceTestClusterParticipant</argument>
 								<argument>${project.build.directory}/hbase</argument>
-								<argument>60021</argument>
-								<argument>60031</argument>
-                                <argument>1528</argument>
+                                <argument>${memberNumber}</argument>
 							</arguments>
 						</configuration>
 					</plugin>
