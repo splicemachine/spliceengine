@@ -50,6 +50,7 @@ public class SpliceXPlainTrace extends XPlainTrace{
             if (rs.next()) {
                 count = rs.getInt(1);
             }
+            Thread.sleep(400);
         }
 
         // Wait until taskHistory table is populated
@@ -58,7 +59,7 @@ public class SpliceXPlainTrace extends XPlainTrace{
         stmt = "select count(*) from " + TASK_TABLE + " where statementid = " + statementId;
         while (count_before != count || count == -1) {
             count_before = count;
-            Thread.sleep(100);
+            Thread.sleep(400);
             ResultSet rs = methodWatcher.executeQuery(stmt);
             if (rs.next()) {
                 count = rs.getInt(1);
