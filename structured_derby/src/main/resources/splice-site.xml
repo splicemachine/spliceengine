@@ -3,7 +3,17 @@
 <configuration>
   <property>
     <name>splice.authentication</name>
-    <value>NONE</value>
+    <value>NATIVE</value>
     <description>Native authentication</description>
+  </property>
+  <property>
+    <name>splice.authentication.ldap.server</name>
+    <value>ldap://54.164.38.153:389/</value>
+    <description>AWS host for testing LDAP</description>
+  </property>
+  <property>
+    <name>splice.authentication.ldap.searchBase</name>
+    <value>ou=People,dc=splicemachine,dc=com</value>
+    <description>LDAP search base</description>
   </property>
 </configuration>
