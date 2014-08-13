@@ -292,7 +292,11 @@ public class IndexIT extends SpliceUnitTest {
         try {
             SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
 
-            PreparedStatement ps = methodWatcher.prepareStatement(CUSTOMER_BY_NAME);
+            String idxQuery = String.format("SELECT c_first, c_middle, c_id, c_street_1, c_street_2, c_city, "
+            + "c_state, c_zip, c_phone, c_credit, c_credit_lim, c_discount, "
+            + "c_balance, c_ytd_payment, c_payment_cnt, c_since FROM %s.%s --SPLICE-PROPERTIES index=%s \n"
+            + " WHERE c_w_id = ? AND c_d_id = ? AND c_last = ? ORDER BY c_first", SCHEMA_NAME, CustomerTable.TABLE_NAME,CustomerTable.INDEX_NAME);
+            PreparedStatement ps = methodWatcher.prepareStatement(idxQuery);
             // this column combo is the PK
             ps.setInt(1, 1); // c_w_id
             ps.setInt(2, 7); // c_d_id
