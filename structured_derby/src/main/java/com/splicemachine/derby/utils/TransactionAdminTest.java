@@ -37,6 +37,9 @@ public class TransactionAdminTest {
 			long parentTransactionId = rs.getLong(1);
 			System.out.println("Parent transaction id: " + parentTransactionId);
 
+			long conglomId = SpliceAdmin.getConglomids(conn1, "SPLICE", "customer")[0];
+			System.out.println("Conglomerate id: " + conglomId);
+			
 			/* Tried to use an output parameter (instead of result set) but it didn't work.
 			 * Might try again later. In fact, try this, the 'escaped' JDBC syntax
 			 * for callable statement with output parameter:
@@ -53,8 +56,9 @@ public class TransactionAdminTest {
 			System.out.println("Starting child transaction...");
 			conn2 = DriverManager.getConnection(DB_CONNECTION, null, null);
 			conn2.setAutoCommit(false);
-			ps = conn2.prepareStatement("call SYSCS_UTIL.SYSCS_START_CHILD_TRANSACTION(?)");
+			ps = conn2.prepareStatement("call SYSCS_UTIL.SYSCS_START_CHILD_TRANSACTION(?, ?)");
 			ps.setLong(1, parentTransactionId);
+			ps.setLong(2, conglomId);
 		    rs = ps.executeQuery();
 			rs.next();
 			long childTransactionId = rs.getLong(1);
