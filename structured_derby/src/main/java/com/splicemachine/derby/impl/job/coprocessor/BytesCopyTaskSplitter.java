@@ -27,7 +27,7 @@ public class BytesCopyTaskSplitter implements TaskSplitter {
 					return Collections.singletonList(new SizedInterval(taskStart,taskStop,0));
 				intervals.add(new SizedInterval(taskStart,splits.get(0),0));
 				for (int i=1; i < length; i++) {
-					assert Bytes.compareTo(splits.get(i), splits.get(i-1)) > 0;
+					//assert Bytes.compareTo(splits.get(i), splits.get(i-1)) > 0;
 					intervals.add(new SizedInterval(splits.get(i-1),splits.get(i),0));
 				}
 				intervals.add(new SizedInterval(splits.get(length-1),taskStop,0));

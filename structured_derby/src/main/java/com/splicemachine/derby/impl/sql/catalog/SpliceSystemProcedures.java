@@ -483,6 +483,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(statisticsTiming);
+
+                    /*
+                     * Procedure to purge explain tables
+                     */
+                    Procedure purgeXplainTrace = Procedure.newBuilder().name("SYSCS_PURGE_XPLAIN_TRACE")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(purgeXplainTrace);
                 }
 
             }
