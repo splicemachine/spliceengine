@@ -1,12 +1,5 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
-import com.splicemachine.test.SlowTest;
-import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.homeless.TestUtils;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -22,6 +15,13 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
+
+import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SlowTest;
 
 /**
  * Test for index stuff, more or less encompassing:
@@ -287,15 +287,15 @@ public class IndexIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore
     public void testQueryCustomerByNameWithIndex() throws Exception {
+        // Test for DB-1620
         try {
             SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
 
             String idxQuery = String.format("SELECT c_first, c_middle, c_id, c_street_1, c_street_2, c_city, "
-            + "c_state, c_zip, c_phone, c_credit, c_credit_lim, c_discount, "
-            + "c_balance, c_ytd_payment, c_payment_cnt, c_since FROM %s.%s --SPLICE-PROPERTIES index=%s \n"
-            + " WHERE c_w_id = ? AND c_d_id = ? AND c_last = ? ORDER BY c_first", SCHEMA_NAME, CustomerTable.TABLE_NAME,CustomerTable.INDEX_NAME);
+                                                + "c_state, c_zip, c_phone, c_credit, c_credit_lim, c_discount, "
+                                                + "c_balance, c_ytd_payment, c_payment_cnt, c_since FROM %s.%s --SPLICE-PROPERTIES index=%s \n"
+                                                + " WHERE c_w_id = ? AND c_d_id = ? AND c_last = ? ORDER BY c_first", SCHEMA_NAME, CustomerTable.TABLE_NAME,CustomerTable.INDEX_NAME);
             PreparedStatement ps = methodWatcher.prepareStatement(idxQuery);
             // this column combo is the PK
             ps.setInt(1, 1); // c_w_id
@@ -308,6 +308,27 @@ public class IndexIT extends SpliceUnitTest {
             int cnt = resultSetSize(rs);
             System.out.println("Rows returned: "+cnt+" in "+duration);
             Assert.assertEquals(8,cnt);
+        } finally {
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME, CustomerTable.INDEX_NAME);
+        }
+    }
+
+    @Test
+    public void testQueryCustomerSinceWithIndex() throws Exception {
+        // Test for DB-1620
+        try {
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
+
+            String idxQuery = String.format(
+                "SELECT c_since FROM %s.%s --SPLICE-PROPERTIES index=%s",
+                SCHEMA_NAME, CustomerTable.TABLE_NAME,CustomerTable.INDEX_NAME);
+            long start = System.currentTimeMillis();
+            ResultSet rs = methodWatcher.executeQuery(idxQuery);
+
+            String duration = TestUtils.getDuration(start, System.currentTimeMillis());
+            int cnt = resultSetSize(rs);
+            System.out.println("Rows returned: "+cnt+" in "+duration);
+            Assert.assertEquals(30000,cnt);
         } finally {
             SpliceIndexWatcher.executeDrop(SCHEMA_NAME, CustomerTable.INDEX_NAME);
         }
