@@ -2031,7 +2031,7 @@ public class SelectNode extends ResultSetNode
 				"modifying access paths.");
 		}
 
-		((OptimizerImpl)optimizer).addScopedPredicatesToList(predList);
+		optimizer.addScopedPredicatesToList(predList);
 		return modifyAccessPaths();
 	}
 
@@ -2553,7 +2553,7 @@ public class SelectNode extends ResultSetNode
 	 *
 	 * @exception StandardException on error
 	 */
-	void acceptChildren(Visitor v)
+	public void acceptChildren(Visitor v)
 		throws StandardException
 	{
 		super.acceptChildren(v);

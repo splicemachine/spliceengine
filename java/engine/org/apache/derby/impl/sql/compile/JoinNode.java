@@ -1892,13 +1892,11 @@ public class JoinNode extends TableOperatorNode {
 
 		CostEstimate leftCE = leftResultSet.getFinalCostEstimate();
 		CostEstimate rightCE = rightResultSet.getFinalCostEstimate();
-
 		finalCostEstimate = getNewCostEstimate();
 		finalCostEstimate.setCost(
 			leftCE.getEstimatedCost() + rightCE.getEstimatedCost(),
 			rightCE.rowCount(),
 			rightCE.rowCount());
-
 		return finalCostEstimate;
 	}
 
@@ -2136,7 +2134,7 @@ public class JoinNode extends TableOperatorNode {
 	 *
 	 * @exception StandardException on error
 	 */
-	void acceptChildren(Visitor v) throws StandardException {
+	public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
 		if (resultColumns != null) {
 			resultColumns = (ResultColumnList)resultColumns.accept(v);

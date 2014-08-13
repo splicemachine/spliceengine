@@ -298,4 +298,11 @@ public interface JoinStrategy {
 	 * @return Whether or not materialization is built in to the join strategy
 	 */
 	public boolean doesMaterialization();
+		
+	public void oneRowRightResultSetCostEstimate(OptimizablePredicateList predicateList, CostEstimate outerCost, CostEstimate innerFullKeyCost);
+	
+	public void rightResultSetCostEstimate(OptimizablePredicateList predicateList, CostEstimate outerCost, CostEstimate innerFullKeyCost);
+
+	public boolean singleRowOnly();
+		
 }

@@ -285,10 +285,10 @@ public class UserType extends DataType
 
 	*/
 	public void writeExternal(ObjectOutput out) throws IOException {
-
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(!isNull(), "writeExternal() is not supposed to be called for null values.");
-
+		out.writeBoolean(isNull());
+		if (!isNull())
+//		if (SanityManager.DEBUG)
+//			SanityManager.ASSERT(!isNull(), "writeExternal() is not supposed to be called for null values. " + this.getClass());
 			out.writeObject(value);
 	}
 
@@ -302,8 +302,11 @@ public class UserType extends DataType
 	public void readExternal(ObjectInput in) 
         throws IOException, ClassNotFoundException
 	{
-		/* RESOLVE: Sanity check for right class */
-		value = in.readObject();
+		boolean isNull = in.readBoolean();
+		if (!isNull) {
+			/* RESOLVE: Sanity check for right class */
+			value = in.readObject();
+		}
 	}
 	public void readExternalFromArray(ArrayInputStream in) 
         throws IOException, ClassNotFoundException

@@ -77,8 +77,7 @@ import java.util.Hashtable;
  * added, to have 0 parameters, ...
  *
  */
-class ActivationClassBuilder	extends	ExpressionClassBuilder
-{
+public class ActivationClassBuilder	extends	ExpressionClassBuilder {
 	///////////////////////////////////////////////////////////////////////
 	//
 	// CONSTANTS

@@ -24,9 +24,7 @@ package org.apache.derby.iapi.sql.compile;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.util.JBitSet;
 
 /**
@@ -357,4 +355,10 @@ public interface Optimizer {
      * @return the maximum number of bytes to be used per table.
      */
     public int getMaxMemoryPerTable();
+    
+    public OptimizableList getOptimizableList();
+    
+	public void updateBestPlanMaps(short action,Object planKey) throws StandardException;
+   
+	public void addScopedPredicatesToList(OptimizablePredicateList predList) throws StandardException;
 }

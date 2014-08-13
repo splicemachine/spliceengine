@@ -44,6 +44,7 @@ import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.util.StringUtil;
+import org.apache.derby.impl.sql.compile.ResultColumn;
 
 /**
  * A ResultColumn represents a result column in a SELECT, INSERT, or UPDATE
@@ -1675,7 +1676,7 @@ public class ResultColumn extends ValueNode
 	 *
 	 * @exception StandardException on error
 	 */
-	void acceptChildren(Visitor v)
+	public void acceptChildren(Visitor v)
 		throws StandardException
 	{
 		super.acceptChildren(v);
@@ -1925,6 +1926,6 @@ public class ResultColumn extends ValueNode
 	public List getChildren() {
 		return Collections.singletonList(expression);
 	}
-    
+	
 }
 

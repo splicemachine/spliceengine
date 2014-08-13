@@ -824,7 +824,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 	 *
 	 * @exception StandardException on error
 	 */
-	void acceptChildren(Visitor v)
+	public void acceptChildren(Visitor v)
 		throws StandardException
 	{
 		super.acceptChildren(v);
@@ -1336,7 +1336,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 	 * Return whether or not this predicate is an IN-list probe
 	 * predicate.
 	 */
-	protected boolean isInListProbePredicate()
+	public boolean isInListProbePredicate()
 	{
 		/* The isInListProbeNode() method on the ValueNode interface
 		 * tells us what we need to know, so all we have to do is call

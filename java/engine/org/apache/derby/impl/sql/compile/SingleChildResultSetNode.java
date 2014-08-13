@@ -47,12 +47,11 @@ import java.util.Vector;
  *
  */
 
-abstract class SingleChildResultSetNode extends FromTable
-{
+public abstract class SingleChildResultSetNode extends FromTable {
 	/**
 	 * ResultSetNode under the SingleChildResultSetNode
 	 */
-	ResultSetNode	childResult;
+	protected ResultSetNode	childResult;
 
 	// Does this node have the truly... for the underlying tree
 	protected boolean hasTrulyTheBestAccessPath;
@@ -552,7 +551,7 @@ abstract class SingleChildResultSetNode extends FromTable
 	/**
 	 * @see ResultSetNode#adjustForSortElimination
 	 */
-	void adjustForSortElimination()
+	public void adjustForSortElimination()
 	{
 		childResult.adjustForSortElimination();
 	}
@@ -560,7 +559,7 @@ abstract class SingleChildResultSetNode extends FromTable
 	/**
 	 * @see ResultSetNode#adjustForSortElimination
 	 */
-	void adjustForSortElimination(RequiredRowOrdering rowOrdering)
+	public void adjustForSortElimination(RequiredRowOrdering rowOrdering)
 		throws StandardException
 	{
 		childResult.adjustForSortElimination(rowOrdering);
@@ -596,7 +595,7 @@ abstract class SingleChildResultSetNode extends FromTable
 	 *
 	 * @exception StandardException on error
 	 */
-	void acceptChildren(Visitor v)
+	public void acceptChildren(Visitor v)
 		throws StandardException
 	{
 		super.acceptChildren(v);

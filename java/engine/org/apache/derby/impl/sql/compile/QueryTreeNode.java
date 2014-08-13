@@ -747,7 +747,7 @@ public abstract class QueryTreeNode implements Node, Visitable
 	 * @param v the visitor
 	 * @throws StandardException on errors raised by the visitor
 	 */
-	void acceptChildren(Visitor v) throws StandardException {
+	public void acceptChildren(Visitor v) throws StandardException {
 		// no children
 	}
 

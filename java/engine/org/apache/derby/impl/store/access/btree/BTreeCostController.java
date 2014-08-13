@@ -23,27 +23,20 @@ package org.apache.derby.impl.store.access.btree;
 
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.reference.SQLState;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.error.StandardException; 
-
 import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.derby.iapi.store.access.conglomerate.LogicalUndo;
 import org.apache.derby.iapi.store.access.conglomerate.TransactionManager;
-
 import org.apache.derby.iapi.store.access.DynamicCompiledOpenConglomInfo;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.store.access.StoreCostController;
 import org.apache.derby.iapi.store.access.StoreCostResult;
-
 import org.apache.derby.iapi.store.raw.ContainerHandle;
 import org.apache.derby.iapi.store.raw.Transaction;
-
 import org.apache.derby.iapi.types.DataValueDescriptor;
-
+import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.types.RowLocation;
-
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import java.util.Properties;
 
@@ -286,9 +279,9 @@ public class BTreeCostController extends OpenBTree
      *
 	 * @see org.apache.derby.iapi.store.access.RowUtil
      **/
-    public double getFetchFromRowLocationCost(
+    public void getFetchFromRowLocationCost(
     FormatableBitSet      validColumns,
-    int         access_type)
+    int         access_type, CostEstimate costEstimate)
 		throws StandardException
     {
         throw StandardException.newException(
@@ -342,25 +335,12 @@ public class BTreeCostController extends OpenBTree
      *
 	 * @see org.apache.derby.iapi.store.access.RowUtil
      **/
-    public double getFetchFromFullKeyCost(
+    public void getFetchFromFullKeyCost(
     FormatableBitSet      validColumns,
-    int         access_type)
+    int         access_type, CostEstimate costEstimate)
 		throws StandardException
     {
-        double ret_cost;
-
-        if ((access_type & StoreCostController.STORECOST_CLUSTERED) == 0)
-        {
-            // uncached fetch
-            ret_cost = BTREE_UNCACHED_FETCH_BY_KEY_PER_LEVEL;
-        }
-        else
-        {
-            ret_cost = BTREE_SORTMERGE_FETCH_BY_KEY_PER_LEVEL;
-        }
-        ret_cost *= tree_height;
-
-        return(ret_cost);
+    	throw new RuntimeException("not implemented");
     }
 
 
@@ -594,8 +574,8 @@ public class BTreeCostController extends OpenBTree
             float estimated_row_count = input_row_count * ret_fraction;
 
             // first the base cost of positioning on the first row in the scan.
-            double cost = 
-                getFetchFromFullKeyCost(scanColumnList, access_type);
+            double cost = 0.0; 
+//                getFetchFromFullKeyCost(scanColumnList, access_type,null); // added JL to compile
 
             // add the base cost of bringing each page for the first time into
             // the cache.  This is basically the cost of bringing each leaf
@@ -672,4 +652,10 @@ public class BTreeCostController extends OpenBTree
         throw StandardException.newException(
                 SQLState.BTREE_UNIMPLEMENTED_FEATURE);
 	}
+	
+	public void extraQualifierSelectivity(CostEstimate costEstimate) throws StandardException {
+		// Not Implemented...
+        throw StandardException.newException(
+                SQLState.BTREE_UNIMPLEMENTED_FEATURE);
+	};
 }

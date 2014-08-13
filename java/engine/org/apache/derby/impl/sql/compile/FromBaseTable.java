@@ -22,28 +22,24 @@
 package	org.apache.derby.impl.sql.compile;
 
 import java.util.*;
+
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.util.StringUtil;
-
 import org.apache.derby.iapi.reference.ClassName;
 import org.apache.derby.iapi.reference.SQLState;
-
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.iapi.util.ReuseFactory;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
-
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.property.PropertyUtil;
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
 import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicateList;
@@ -56,22 +52,18 @@ import org.apache.derby.iapi.sql.compile.JoinStrategy;
 import org.apache.derby.iapi.sql.compile.RequiredRowOrdering;
 import org.apache.derby.iapi.sql.compile.RowOrdering;
 import org.apache.derby.iapi.sql.compile.Visitor;
-
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ExecutionContext;
-
 import org.apache.derby.iapi.sql.LanguageProperties;
-
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.store.access.StoreCostController;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.store.access.TransactionController;
-
 import org.apache.derby.iapi.types.DataValueDescriptor;
-
 // Temporary until user override for disposable stats has been removed.
 import org.apache.derby.impl.services.daemon.IndexStatisticsDaemonImpl;
 import org.apache.derby.impl.sql.catalog.SYSUSERSRowFactory;
+import org.apache.log4j.Logger;
 
 /**
  * A FromBaseTable represents a table in the FROM list of a DML statement,
@@ -101,8 +93,8 @@ import org.apache.derby.impl.sql.catalog.SYSUSERSRowFactory;
  *
  */
 
-public class FromBaseTable extends FromTable
-{
+public class FromBaseTable extends FromTable {
+    private static final Logger LOG = Logger.getLogger(FromBaseTable.class);
 	static final int UNSET = -1;
 
     /**
@@ -430,10 +422,23 @@ public class FromBaseTable extends FromTable
 		/*
 		** Tell the rowOrdering that what the ordering of this conglomerate is
 		*/
-		if (currentConglomerateDescriptor != null)
-		{
-			if ( ! currentConglomerateDescriptor.isIndex())
-			{
+		IndexRowGenerator irg = null;
+		if (currentConglomerateDescriptor != null) {
+			   if (currentConglomerateDescriptor.isIndex()) { // Index
+					irg = currentConglomerateDescriptor.getIndexDescriptor();
+			   } else { // Primary Key
+				   for(int l=0;l< conglomDescs.length;l++){
+			            ConglomerateDescriptor primaryKeyCheck = conglomDescs[l];
+			            IndexDescriptor indexDec = primaryKeyCheck.getIndexDescriptor();
+			            if(indexDec!=null){
+			                String indexType = indexDec.indexType();
+			                if(indexType!=null && indexType.contains("PRIMARY")) {
+			                	irg = currentConglomerateDescriptor.getIndexDescriptor();
+			                }
+			            }
+			        }
+			   }			
+			if (irg == null) { // We are scanning a table without a primary key
 				/* If we are scanning the heap, but there
 				 * is a full match on a unique key, then
 				 * we can say that the table IS NOT unordered.
@@ -454,11 +459,7 @@ public class FromBaseTable extends FromTable
 									 0, 0, 0.0, null);
 				}
 			}
-			else
-			{
-				IndexRowGenerator irg =
-							currentConglomerateDescriptor.getIndexDescriptor();
-
+			else {
 				int[] baseColumnPositions = irg.baseColumnPositions();
 				boolean[] isAscending = irg.isAscending();
 
@@ -902,9 +903,9 @@ public class FromBaseTable extends FromTable
 									ConglomerateDescriptor cd,
 									CostEstimate outerCost,
 									Optimizer optimizer,
-									RowOrdering rowOrdering)
-			throws StandardException
-	{
+									RowOrdering rowOrdering) throws StandardException {
+		if (LOG.isTraceEnabled())
+			LOG.trace(String.format("estimateCost: predlist=%s, cd=%s, outerCost=%s, optimizer=%s, rowOrdering=%s",predList,cd,outerCost,optimizer,rowOrdering));
 		double cost;
 		boolean statisticsForTable = false;
 		boolean statisticsForConglomerate = false;
@@ -938,137 +939,48 @@ public class FromBaseTable extends FromTable
         }
 
 		AccessPath currentAccessPath = getCurrentAccessPath();
-		JoinStrategy currentJoinStrategy = 
-			currentAccessPath.getJoinStrategy();
-
-		optimizer.trace(Optimizer.ESTIMATING_COST_OF_CONGLOMERATE,
-						tableNumber, 0, 0.0, cd);
-
+		JoinStrategy currentJoinStrategy = currentAccessPath.getJoinStrategy();
+		optimizer.trace(Optimizer.ESTIMATING_COST_OF_CONGLOMERATE,tableNumber, 0, 0.0, cd);
 		/* Get the uniqueness factory for later use (see below) */
-		double tableUniquenessFactor =
-				optimizer.uniqueJoinWithOuterTable(predList);
-
+		double tableUniquenessFactor = optimizer.uniqueJoinWithOuterTable(predList);
 		boolean oneRowResultSetForSomeConglom = isOneRowResultSet(predList);
-
 		/* Get the predicates that can be used for scanning the base table */
 		baseTableRestrictionList.removeAllElements();
 
-		currentJoinStrategy.getBasePredicates(predList,	
-									   baseTableRestrictionList,
-									   this);
-									
+		currentJoinStrategy.getBasePredicates(predList,	baseTableRestrictionList,this);
 		/* RESOLVE: Need to figure out how to cache the StoreCostController */
 		StoreCostController scc = getStoreCostController(cd);
-
 		CostEstimate costEstimate = getScratchCostEstimate(optimizer);
-
 		/* First, get the cost for one scan */
-
+		costEstimate.setRowOrdering(rowOrdering);
 		/* Does the conglomerate match at most one row? */
-		if (isOneRowResultSet(cd, baseTableRestrictionList))
-		{
+		if (isOneRowResultSet(cd, baseTableRestrictionList) || currentJoinStrategy.singleRowOnly()) { // Retrieving only one row...
+			if (LOG.isTraceEnabled())
+				LOG.trace(String.format("estimateCost: isOneRowResultSet"));
 			/*
 			** Tell the RowOrdering that this optimizable is always ordered.
 			** It will figure out whether it is really always ordered in the
 			** context of the outer tables and their orderings.
 			*/
 			rowOrdering.optimizableAlwaysOrdered(this);
-
 			singleScanRowCount = 1.0;
 
 			/* Yes, the cost is to fetch exactly one row */
 			// RESOLVE: NEED TO FIGURE OUT HOW TO GET REFERENCED COLUMN LIST,
 			// FIELD STATES, AND ACCESS TYPE
-			cost = scc.getFetchFromFullKeyCost(
-										(FormatableBitSet) null,
-										0);
-
-			optimizer.trace(Optimizer.MATCH_SINGLE_ROW_COST,
-							tableNumber, 0, cost, null);
-
-			costEstimate.setCost(cost, 1.0d, 1.0d);
-
-			/*
-			** Let the join strategy decide whether the cost of the base
-			** scan is a single scan, or a scan per outer row.
-			** NOTE: The multiplication should only be done against the
-			** total row count, not the singleScanRowCount.
-			*/
-			double newCost = costEstimate.getEstimatedCost();
-
-			if (currentJoinStrategy.multiplyBaseCostByOuterRows())
-			{
-				newCost *= outerCost.rowCount();
-			}
-
-			costEstimate.setCost(
-				newCost,
-				costEstimate.rowCount() * outerCost.rowCount(),
-				costEstimate.singleScanRowCount());
-
-			/*
-			** Choose the lock mode.  If the start/stop conditions are
-			** constant, choose row locking, because we will always match
-			** the same row.  If they are not constant (i.e. they include
-			** a join), we decide whether to do row locking based on
-			** the total number of rows for the life of the query.
-			*/
-			boolean constantStartStop = true;
-			for (int i = 0; i < predList.size(); i++)
-			{
-				OptimizablePredicate pred = predList.getOptPredicate(i);
-
-				/*
-				** The predicates are in index order, so the start and
-				** stop keys should be first.
-				*/
-				if ( ! (pred.isStartKey() || pred.isStopKey()))
-				{
-					break;
-				}
-
-				/* Stop when we've found a join */
-				if ( ! pred.getReferencedMap().hasSingleBitSet())
-				{
-					constantStartStop = false;
-					break;
-				}
-			}
-
-			if (constantStartStop)
-			{
-				currentAccessPath.setLockMode(
-											TransactionController.MODE_RECORD);
-
-				optimizer.trace(Optimizer.ROW_LOCK_ALL_CONSTANT_START_STOP,
-								0, 0, 0.0, null);
-			}
-			else
-			{
-				setLockingBasedOnThreshold(optimizer, costEstimate.rowCount());
-			}
-
-			optimizer.trace(Optimizer.COST_OF_N_SCANS, 
-							tableNumber, 0, outerCost.rowCount(), costEstimate);
-
+			scc.getFetchFromFullKeyCost((FormatableBitSet) null,0,costEstimate);
+			optimizer.trace(Optimizer.MATCH_SINGLE_ROW_COST,tableNumber, 0, costEstimate.getEstimatedCost(), null);
+			currentJoinStrategy.oneRowRightResultSetCostEstimate(baseTableRestrictionList,outerCost, costEstimate);						
+			optimizer.trace(Optimizer.COST_OF_N_SCANS, tableNumber, 0, outerCost.rowCount(), costEstimate);
 			/* Add in cost of fetching base row for non-covering index */
-			if (cd.isIndex() && ( ! isCoveringIndex(cd) ) )
-			{
-				double singleFetchCost =
-						getBaseCostController().getFetchFromRowLocationCost(
-																(FormatableBitSet) null,
-																0);
-				cost = singleFetchCost * costEstimate.rowCount();
-
-				costEstimate.setEstimatedCost(
-								costEstimate.getEstimatedCost() + cost);
-
-				optimizer.trace(Optimizer.NON_COVERING_INDEX_COST,
-								tableNumber, 0, cost, null);
+			if (cd.isIndex() && ( ! isCoveringIndex(cd) ) ) {
+				getBaseCostController().getFetchFromRowLocationCost((FormatableBitSet) null,0,costEstimate);
+				optimizer.trace(Optimizer.NON_COVERING_INDEX_COST,tableNumber, 0, costEstimate.getEstimatedCost(), null);
 			}
 		}
-		else
-		{
+		else {
+			if (LOG.isTraceEnabled())
+				LOG.trace(String.format("estimateCost: fetching more than one row"));
 			/* Conglomerate might match more than one row */
 
 			/*
@@ -1093,12 +1005,7 @@ public class FromBaseTable extends FromTable
 			** number of rows, but not the number of pages, and so need to
 			** be factored into the row count but not into the cost.
 			** These selectivities are factored into extraQualifierSelectivity.
-			**
-			** statStartStopSelectivity (using statistics) represents the 
-			** selectivity of start/stop predicates that can be used to scan 
-			** the index. If no statistics exist for the conglomerate then 
-			** the value of this variable remains at 1.0
-			** 
+ 			**
 			** statCompositeSelectivity (using statistics) represents the 
 			** selectivity of all the predicates (including NonBaseTable 
 			** predicates). This represents the most educated guess [among 
@@ -1112,7 +1019,6 @@ public class FromBaseTable extends FromTable
 			double extraStartStopSelectivity = 1.0d;
 			double extraQualifierSelectivity = 1.0d;
 			double extraNonQualifierSelectivity = 1.0d;
-			double statStartStopSelectivity = 1.0d;
 			double statCompositeSelectivity = 1.0d;
 
 			int	   numExtraFirstColumnPreds = 0;
@@ -1295,13 +1201,6 @@ public class FromBaseTable extends FromTable
 					statCompositeSelectivity = 1.0d;
 			}
 
-			if (seenFirstColumn && statisticsForConglomerate &&
-				(startStopPredCount > 0))
-			{
-				statStartStopSelectivity = 
-					tableDescriptor.selectivityForConglomerate(cd, startStopPredCount);
-			}
-
 			/*
 			** Factor the non-base-table predicates into the extra
 			** non-qualifier selectivity, since these will restrict the
@@ -1425,8 +1324,7 @@ public class FromBaseTable extends FromTable
 			** Get a row template for this conglomerate.  For now, just tell
 			** it we are using all the columns in the row.
 			*/
-			DataValueDescriptor[] rowTemplate = 
-                getRowTemplate(cd, getBaseCostController());
+			DataValueDescriptor[] rowTemplate = getRowTemplate(cd, getBaseCostController());
 
 			/* we prefer index than table scan for concurrency reason, by a small
 			 * adjustment on estimated row count.  This affects optimizer's decision
@@ -1452,6 +1350,8 @@ public class FromBaseTable extends FromTable
 					false,
 					0,
 					costEstimate);
+			
+			currentJoinStrategy.rightResultSetCostEstimate(baseTableRestrictionList,outerCost,costEstimate);
 
 			/* initialPositionCost is the first part of the index scan cost we get above.
 			 * It's the cost of initial positioning/fetch of key.  So it's unrelated to
@@ -1461,23 +1361,6 @@ public class FromBaseTable extends FromTable
 			 * compared to the plan of "one row result set" (unique index). beetle 4787.
 			 */
 			double initialPositionCost = 0.0;
-			if (cd.isIndex())
-			{
-				initialPositionCost = scc.getFetchFromFullKeyCost((FormatableBitSet) null, 0);
-				/* oneRowResultSetForSomeConglom means there's a unique index, but certainly
-				 * not this one since we are here.  If store knows this non-unique index
-				 * won't return any row or just returns one row (eg., the predicate is a
-				 * comparison with constant or almost empty table), we do minor adjustment
-				 * on cost (affecting decision for covering index) and rc (decision for
-				 * non-covering). The purpose is favoring unique index. beetle 5006.
-				 */
-				if (oneRowResultSetForSomeConglom && costEstimate.rowCount() <= 1)
-				{
-					costEstimate.setCost(costEstimate.getEstimatedCost() * 2,
-										 costEstimate.rowCount() + 2,
-										 costEstimate.singleScanRowCount() + 2);
-				}
-			}
 
 			optimizer.trace(Optimizer.COST_OF_CONGLOMERATE_SCAN1,
 							tableNumber, 0, 0.0, cd);
@@ -1489,9 +1372,6 @@ public class FromBaseTable extends FromTable
 			optimizer.trace(Optimizer.COST_OF_CONGLOMERATE_SCAN4,
 							numExtraStartStopPreds, 0, 
 							extraStartStopSelectivity, null);
-			optimizer.trace(Optimizer.COST_OF_CONGLOMERATE_SCAN7,
-							startStopPredCount, 0,
-							statStartStopSelectivity, null);
 			optimizer.trace(Optimizer.COST_OF_CONGLOMERATE_SCAN5,
 							numExtraQualifiers, 0, 
 							extraQualifierSelectivity, null);
@@ -1505,46 +1385,21 @@ public class FromBaseTable extends FromTable
 			*/
 			double initialRowCount = costEstimate.rowCount();
 
-			if (statStartStopSelectivity != 1.0d)
-			{
-				/*
-				** If statistics exist use the selectivity computed 
-				** from the statistics to calculate the cost. 
-				** NOTE: we apply this selectivity to the cost as well
-				** as both the row counts. In the absence of statistics
-				** we only applied the FirstColumnSelectivity to the 
-				** cost.
-				*/
-				costEstimate.setCost(
-							 scanCostAfterSelectivity(costEstimate.getEstimatedCost(),
-													  initialPositionCost,
-													  statStartStopSelectivity,
-													  oneRowResultSetForSomeConglom),
-							 costEstimate.rowCount() * statStartStopSelectivity,
-							 costEstimate.singleScanRowCount() *
-							 statStartStopSelectivity);
-				optimizer.trace(Optimizer.COST_INCLUDING_STATS_FOR_INDEX,
-								tableNumber, 0, 0.0, costEstimate);
-
-			}
-			else
-			{
 				/*
 				** Factor in the extra selectivity on the first column
 				** of the conglomerate (see comment above).
 				** NOTE: In this case we want to apply the selectivity to both
 				** the total row count and singleScanRowCount.
 				*/
-				if (extraFirstColumnSelectivity != 1.0d)
-				{
-					costEstimate.setCost(
+				if (extraFirstColumnSelectivity != 1.0d) {
+/*					costEstimate.setCost(
 						 scanCostAfterSelectivity(costEstimate.getEstimatedCost(),
 												  initialPositionCost,
 												  extraFirstColumnSelectivity,
 												  oneRowResultSetForSomeConglom),
 						 costEstimate.rowCount() * extraFirstColumnSelectivity,
 						 costEstimate.singleScanRowCount() * extraFirstColumnSelectivity);
-					
+*/					
 					optimizer.trace(Optimizer.COST_INCLUDING_EXTRA_1ST_COL_SELECTIVITY,
 									tableNumber, 0, 0.0, costEstimate);
 				}
@@ -1553,17 +1408,16 @@ public class FromBaseTable extends FromTable
 				 * NOTE: In this case we want to apply the selectivity to both
 				 * the row count and singleScanRowCount.
 				 */
-				if (extraStartStopSelectivity != 1.0d)
-				{
-					costEstimate.setCost(
+				if (extraStartStopSelectivity != 1.0d) {
+/*					costEstimate.setCost(
 						costEstimate.getEstimatedCost(),
 						costEstimate.rowCount() * extraStartStopSelectivity,
 						costEstimate.singleScanRowCount() * extraStartStopSelectivity);
+*/
 
 					optimizer.trace(Optimizer.COST_INCLUDING_EXTRA_START_STOP,
 									tableNumber, 0, 0.0, costEstimate);
 				}
-			}
 
 			/* If the start and stop key came from an IN-list "probe predicate"
 			 * then we need to adjust the cost estimate.  The probe predicate
@@ -1590,89 +1444,11 @@ public class FromBaseTable extends FromTable
 				/* If multiplication by listSize returns more rows than are
 				 * in the scan then just use the number of rows in the scan.
 				 */
-				costEstimate.setCost(
+/*				costEstimate.setCost(
 					costEstimate.getEstimatedCost() * listSize,
 					rc > initialRowCount ? initialRowCount : rc,
 					ssrc > initialRowCount ? initialRowCount : ssrc);
-			}
-
-			/*
-			** Figure out whether to do row locking or table locking.
-			**
-			** If there are no start/stop predicates, we're doing full
-			** conglomerate scans, so do table locking.
-			*/
-			if (! startStopFound)
-			{
-				currentAccessPath.setLockMode(
-											TransactionController.MODE_TABLE);
-
-				optimizer.trace(Optimizer.TABLE_LOCK_NO_START_STOP,
-							    0, 0, 0.0, null);
-			}
-			else
-			{
-				/*
-				** Figure out the number of rows touched.  If all the
-				** start/stop predicates are constant, the number of
-				** rows touched is the number of rows per scan.
-				** This is also true for join strategies that scan the
-				** inner table only once (like hash join) - we can
-				** tell if we have one of those, because
-				** multiplyBaseCostByOuterRows() will return false.
-				*/
-				double rowsTouched = costEstimate.rowCount();
-
-				if ( (! constantStartStop) &&
-					 currentJoinStrategy.multiplyBaseCostByOuterRows())
-				{
-					/*
-					** This is a join where the inner table is scanned
-					** more than once, so we have to take the number
-					** of outer rows into account.  The formula for this
-					** works out as follows:
-					**
-					**	total rows in table = r
-					**  number of rows touched per scan = s
-					**  number of outer rows = o
-					**  proportion of rows touched per scan = s / r
-					**  proportion of rows not touched per scan =
-					**										1 - (s / r)
-					**  proportion of rows not touched for all scans =
-					**									(1 - (s / r)) ** o
-					**  proportion of rows touched for all scans =
-					**									1 - ((1 - (s / r)) ** o)
-					**  total rows touched for all scans =
-					**							r * (1 - ((1 - (s / r)) ** o))
-					**
-					** In doing these calculations, we must be careful not
-					** to divide by zero.  This could happen if there are
-					** no rows in the table.  In this case, let's do table
-					** locking.
-					*/
-					double r = baseRowCount();
-					if (r > 0.0)
-					{
-						double s = costEstimate.rowCount();
-						double o = outerCost.rowCount();
-						double pRowsNotTouchedPerScan = 1.0 - (s / r);
-						double pRowsNotTouchedAllScans =
-										Math.pow(pRowsNotTouchedPerScan, o);
-						double pRowsTouchedAllScans =
-										1.0 - pRowsNotTouchedAllScans;
-						double rowsTouchedAllScans =
-										r * pRowsTouchedAllScans;
-
-						rowsTouched = rowsTouchedAllScans;
-					}
-					else
-					{
-						/* See comments in setLockingBasedOnThreshold */
-						rowsTouched = optimizer.tableLockThreshold() + 1;
-					}
-				}
-
-				setLockingBasedOnThreshold(optimizer, rowsTouched);
+*/
 			}
 
 			/*
@@ -1684,30 +1460,12 @@ public class FromBaseTable extends FromTable
 			** though later on some of them may be filtered out by other predicates.
 			** beetle 4787.
 			*/
-			if (cd.isIndex() && ( ! isCoveringIndex(cd) ) )
-			{
-				double singleFetchCost =
-						getBaseCostController().getFetchFromRowLocationCost(
+			if (cd.isIndex() && ( ! isCoveringIndex(cd) ) ) {
+				getBaseCostController().getFetchFromRowLocationCost(
 																(FormatableBitSet) null,
-																0);
-
-				cost = singleFetchCost * costEstimate.rowCount();
-
-				costEstimate.setEstimatedCost(
-								costEstimate.getEstimatedCost() + cost);
-
-				optimizer.trace(Optimizer.COST_OF_NONCOVERING_INDEX,
-								tableNumber, 0, 0.0, costEstimate);
+																0, costEstimate);
+				optimizer.trace(Optimizer.COST_OF_NONCOVERING_INDEX,tableNumber, 0, 0.0, costEstimate);
 			}
-
-         /*
-          * Splice: for covering indices, adjust cost down
-          * to prefer them wrt table scans
-          */
-         if (cd.isIndex() && isCoveringIndex(cd)){
-            costEstimate.setEstimatedCost(
-                  costEstimate.getEstimatedCost() * .9);
-         }
 
 			/* Factor in the extra qualifier selectivity (see comment above).
 			 * NOTE: In this case we want to apply the selectivity to both
@@ -1715,11 +1473,15 @@ public class FromBaseTable extends FromTable
 			 */
 			if (extraQualifierSelectivity != 1.0d)
 			{
+				
+				scc.extraQualifierSelectivity(costEstimate); // Apply Extra Qualifier Estimates Splice
+				
+				/*
 				costEstimate.setCost(
 						costEstimate.getEstimatedCost(),
 						costEstimate.rowCount() * extraQualifierSelectivity,
 						costEstimate.singleScanRowCount() * extraQualifierSelectivity);
-
+				*/
 				optimizer.trace(Optimizer.COST_INCLUDING_EXTRA_QUALIFIER_SELECTIVITY,
 								tableNumber, 0, 0.0, costEstimate);
 			}
@@ -1754,14 +1516,14 @@ public class FromBaseTable extends FromTable
 			** unique index, anyway. But it would be better if the
 			** optimizer set the row count properly in this case.
 			*/
-			if (currentJoinStrategy.multiplyBaseCostByOuterRows())
+/*			if (currentJoinStrategy.multiplyBaseCostByOuterRows())
 			{
 				newCost *= outerCost.rowCount();
 			}
 
 			rowCount *= outerCost.rowCount();
 			initialRowCount *= outerCost.rowCount();
-
+*/			
 
 			/*
 			** If this table can generate at most one row per scan,
@@ -1839,12 +1601,12 @@ public class FromBaseTable extends FromTable
 					rowCount = maxRows;
 				}
 			}
-
+/*
 			costEstimate.setCost(
 				newCost,
 				rowCount,
 				costEstimate.singleScanRowCount());
-
+*/
 
 			optimizer.trace(Optimizer.COST_OF_N_SCANS, 
 							tableNumber, 0, outerCost.rowCount(), costEstimate);
@@ -1867,7 +1629,7 @@ public class FromBaseTable extends FromTable
 			}
 			if (rc != -1) // changed
 			{
-				costEstimate.setCost(costEstimate.getEstimatedCost(), rc, src);
+				// costEstimate.setCost(costEstimate.getEstimatedCost(), rc, src);
 				optimizer.trace(Optimizer.COST_INCLUDING_EXTRA_NONQUALIFIER_SELECTIVITY,
 								tableNumber, 0, 0.0, costEstimate);
 			}
@@ -1909,12 +1671,12 @@ public class FromBaseTable extends FromTable
 				   Thus RC = initialRowCount * the selectivity from stats.
 				   SingleRC = RC / outerCost.rowCount().
 				*/
-				costEstimate.setCost(costEstimate.getEstimatedCost(),
+/*				costEstimate.setCost(costEstimate.getEstimatedCost(),
 									 compositeStatRC,
 									 (existsBaseTable) ? 
 									 1 : 
 									 compositeStatRC / outerCost.rowCount());
-				
+*/				
 				optimizer.trace(Optimizer.COST_INCLUDING_COMPOSITE_SEL_FROM_STATS,
 								tableNumber, 0, 0.0, costEstimate);
 			}
@@ -4542,9 +4304,13 @@ public class FromBaseTable extends FromTable
 
 		PredicateList restrictionList = (PredicateList) predList;
 
-		if (! cd.isIndex())
-		{
-			return false;
+		if (! cd.isIndex()) {
+			    IndexDescriptor indexDec = cd.getIndexDescriptor();
+	            if(indexDec!=null && indexDec.indexType()!=null && indexDec.indexType().contains("PRIMARY")) { // Further Evaluate Primary Keys...
+	            
+	            } else {
+	            	return false;
+	            }
 		}
 
 		IndexRowGenerator irg =
@@ -4735,7 +4501,7 @@ public class FromBaseTable extends FromTable
 	 *
 	 * @exception StandardException on error
 	 */
-	void acceptChildren(Visitor v)
+	public void acceptChildren(Visitor v)
 	
 		throws StandardException
 	{

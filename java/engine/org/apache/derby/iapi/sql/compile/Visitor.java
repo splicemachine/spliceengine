@@ -61,7 +61,7 @@ public interface Visitor
 	 *	thing to do is just throw an error when we find the
 	 *	questionable node).
 	 */
-	Visitable visit(Visitable node)
+	public Visitable visit(Visitable node)
 		throws StandardException;
 
 	/**
@@ -75,7 +75,7 @@ public interface Visitor
 	 * @return {@code true} if {@code node}'s children should be visited
 	 * before {@code node}, {@code false} otherwise
 	 */
-	boolean visitChildrenFirst(Visitable node);
+	public boolean visitChildrenFirst(Visitable node);
 
 	/**
 	 * Method that is called to see
@@ -86,7 +86,7 @@ public interface Visitor
 	 *
 	 * @return true/false
 	 */
-	boolean stopTraversal();
+	public boolean stopTraversal();
 
 	/**
 	 * Method that is called to indicate whether
@@ -103,5 +103,5 @@ public interface Visitor
 	 * 
 	 * @return true/false
 	 */
-	boolean skipChildren(Visitable node) throws StandardException;
+	public boolean skipChildren(Visitable node) throws StandardException;
 }	

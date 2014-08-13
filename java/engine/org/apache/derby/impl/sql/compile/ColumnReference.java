@@ -1266,4 +1266,21 @@ public class ColumnReference extends ValueNode
 	public List getChildren() {
 		return Collections.EMPTY_LIST;
 	}
+	
+	public ResultColumn getOrigSourceResultColumn()
+	{
+        /* RESOLVE - If expression is a ColumnReference, then we are hitting
+         * the top of a query block (derived table or view.)
+         * In order to be able to push the expression down into the next
+         * query block, it looks like we should reset the contents of the
+         * current ColumnReference to be the same as expression.  (This probably
+         * only means names and tableNumber.)  We would then "rebind" the top
+         * level predicate somewhere up the call stack and see if we could push
+         * the predicate through.
+         */
+        
+        return origSource.getExpression().getSourceResultColumn();
+	}
+    
+	
 }

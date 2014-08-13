@@ -22,11 +22,10 @@
 package org.apache.derby.iapi.store.access;
 
 import org.apache.derby.iapi.types.DataValueDescriptor;
-
 import org.apache.derby.iapi.types.RowLocation;
-
 import org.apache.derby.iapi.error.StandardException; 
 import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.sql.compile.CostEstimate;
 
 /**
 
@@ -173,9 +172,9 @@ public interface StoreCostController extends RowCountable
      *
 	 * @see RowUtil
      **/
-    public double getFetchFromRowLocationCost(
+    public void getFetchFromRowLocationCost(
     FormatableBitSet     validColumns,
-    int         access_type)
+    int         access_type, CostEstimate cost)
 		throws StandardException;
 
     /**
@@ -225,9 +224,9 @@ public interface StoreCostController extends RowCountable
      *
 	 * @see RowUtil
      **/
-    public double getFetchFromFullKeyCost(
+    public void getFetchFromFullKeyCost(
     FormatableBitSet     validColumns,
-    int         access_type)
+    int         access_type, CostEstimate cost)
 		throws StandardException;
 
     /**
@@ -370,7 +369,7 @@ public interface StoreCostController extends RowCountable
         long                    row_count,
         int                     group_size,
 		boolean                 forUpdate,
-		FormatableBitSet                 scanColumnList,
+		FormatableBitSet        scanColumnList,
 		DataValueDescriptor[]   template,
 		DataValueDescriptor[]   startKeyValue,
 		int                     startSearchOperator,
@@ -389,6 +388,7 @@ public interface StoreCostController extends RowCountable
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-	RowLocation newRowLocationTemplate()
-		throws StandardException;
+	RowLocation newRowLocationTemplate() throws StandardException;
+	
+	public void extraQualifierSelectivity(CostEstimate costEstimate) throws StandardException;
 }

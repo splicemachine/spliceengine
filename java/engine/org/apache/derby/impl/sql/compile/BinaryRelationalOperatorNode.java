@@ -876,6 +876,99 @@ public class BinaryRelationalOperatorNode
 		return !valNodeReferencesOptTable(otherSide, ft, forPush, true);
 	}
 
+	/** @see RelationalOperator#isQualifier 
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	public boolean isOrderedQualifier(int leftTableNumber, int leftColumnNumber, int rightTableNumber, int rightColumnNumber) throws StandardException {
+		if (isInListProbeNode() || !(leftOperand instanceof ColumnReference) || !(rightOperand instanceof ColumnReference))
+			return false;
+		ColumnReference left = (ColumnReference) leftOperand;
+		ColumnReference right = (ColumnReference) rightOperand;
+		if ((left.getTableNumber() == leftTableNumber && left.getColumnNumber() == leftColumnNumber && 
+		    right.getTableNumber() == rightTableNumber && right.getColumnNumber() == rightColumnNumber) || 
+		    (left.getTableNumber() == rightTableNumber && left.getColumnNumber() == rightColumnNumber && 
+			    right.getTableNumber() == leftTableNumber && right.getColumnNumber() == leftColumnNumber)) {
+			return true;
+		}
+			return false;
+	}
+
+	
+	/** @see RelationalOperator#isQualifier 
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	public boolean isQualifier(Optimizable optTable, boolean forPush, int leftColumn, int rightColumn) throws StandardException
+	{
+		/* If this rel op is for an IN-list probe predicate then we never
+		 * treat it as a qualifer.  The reason is that if we treat it as
+		 * a qualifier then we could end up generating it as a qualifier,
+		 * which would lead to the generation of an equality qualifier
+		 * of the form "col = <val>" (where <val> is the first value in
+		 * the IN-list).  That would lead to wrong results (missing rows)
+		 * because that restriction is incorrect.
+		 */
+		if (isInListProbeNode())
+			return false;
+
+		FromTable	ft;
+		ValueNode	otherSide = null;
+		JBitSet		tablesReferenced;
+		ColumnReference	cr = null;
+		boolean	found = false;
+		boolean walkSubtree = true;
+
+		ft = (FromTable) optTable;
+
+		if (leftOperand instanceof ColumnReference)
+		{
+			/*
+			** The left operand is a column reference.
+			** Is it the correct column?
+			*/
+			cr = (ColumnReference) leftOperand;
+			if (valNodeReferencesOptTable(cr, ft, forPush, walkSubtree))
+			{
+				otherSide = rightOperand;
+				found = true;
+			}
+			walkSubtree = false;
+		}
+
+		if ( ( ! found) && (rightOperand instanceof ColumnReference) )
+		{
+			/*
+			** The right operand is a column reference.
+			** Is it the correct column?
+			*/
+			cr = (ColumnReference) rightOperand;
+			if (valNodeReferencesOptTable(cr, ft, forPush, walkSubtree))
+			{
+				otherSide = leftOperand;
+				found = true;
+			}
+		}
+
+		/* Have we found a ColumnReference on either side? */
+		if ( ! found)
+		{
+			/*
+			** Neither side is a ColumnReference to the table we're looking
+			** for, so it can't be a Qualifier
+			*/
+			return false;
+		}
+
+		/*
+		** One side is a ColumnReference to the correct table.  It is a
+		** Qualifier if the other side does not refer to the table we are
+		** optimizing.
+		*/
+		return !valNodeReferencesOptTable(otherSide, ft, forPush, true);
+	}
+	
+	
 	/** 
 	 * @see RelationalOperator#getOrderableVariantType 
 	 *

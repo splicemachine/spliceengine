@@ -22,9 +22,8 @@
 package org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.sql.compile.CostEstimate;
-
+import org.apache.derby.iapi.sql.compile.RowOrdering;
 import org.apache.derby.iapi.store.access.StoreCostResult;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
 
 public class CostEstimateImpl implements CostEstimate {
@@ -324,5 +323,13 @@ public class CostEstimateImpl implements CostEstimate {
 		retval.rowCount = theRowCount;
 
 		return retval;
+	}
+	
+	public void setRowOrdering(RowOrdering rowOrdering) {
+		throw new RuntimeException("Not Supported");
+	}
+	
+	public RowOrdering getRowOrdering() {
+		throw new RuntimeException("Not Supported");		
 	}
 }

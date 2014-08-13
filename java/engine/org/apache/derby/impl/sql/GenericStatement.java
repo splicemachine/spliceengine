@@ -430,9 +430,7 @@ public class GenericStatement implements Statement {
 						if (foundInCache)
 							((GenericLanguageConnectionContext)lcc).removeStatement(this);
 					}
-					
 					qt.optimizeStatement();
-
 					optimizeTime = getCurrentTimeMillis(lcc);
 
                     // Call user-written tree-printer if it exists

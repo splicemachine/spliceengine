@@ -22,9 +22,7 @@
 package org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.sql.compile.JoinStrategy;
 import org.apache.derby.iapi.sql.compile.Optimizable;
 import org.apache.derby.iapi.sql.compile.OptimizableList;
@@ -35,19 +33,15 @@ import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.sql.compile.RequiredRowOrdering;
 import org.apache.derby.iapi.sql.compile.RowOrdering;
 import org.apache.derby.iapi.sql.compile.AccessPath;
-
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.iapi.reference.SQLState;
-
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.iapi.util.StringUtil;
-
+import org.apache.log4j.Logger;
 import java.util.Properties;
 import java.util.HashMap;
 
@@ -69,27 +63,27 @@ import java.util.HashMap;
  * clauses between permutations yet.)
  */
 
-public class OptimizerImpl implements Optimizer 
-{
+public class OptimizerImpl implements Optimizer {
+    private static final Logger LOG = Logger.getLogger(OptimizerImpl.class);
 
-	DataDictionary			 dDictionary;
+	protected DataDictionary			 dDictionary;
 	/* The number of tables in the query as a whole.  (Size of bit maps.) */
-	int						 numTablesInQuery;
+	protected int						 numTablesInQuery;
 	/* The number of optimizables in the list to optimize */
-	int						 numOptimizables;
+	protected int						 numOptimizables;
 
 	/* Bit map of tables that have already been assigned to slots.
 	 * Useful for pushing join clauses as slots are assigned.
 	 */
 	protected JBitSet		 assignedTableMap;
 	protected OptimizableList optimizableList;
-	OptimizablePredicateList predicateList;
-	JBitSet					 nonCorrelatedTableMap;
+	protected OptimizablePredicateList predicateList;
+	protected JBitSet					 nonCorrelatedTableMap;
 
 	protected int[]			 proposedJoinOrder;
 	protected int[]					 bestJoinOrder;
 	protected int			 joinPosition;
-	boolean					 desiredJoinOrderFound;
+	protected boolean					 desiredJoinOrderFound;
 
 	/* This implements a state machine to jump start to a appearingly good join
 	 * order, when the number of tables is high, and the optimization could take
@@ -98,17 +92,17 @@ public class OptimizerImpl implements Optimizer
 	 * we jump, we walk the high part, then fall when we reach the peak, finally we
 	 * walk the low part til where we jumped to.
 	 */
-	private static final int NO_JUMP = 0;
-	private static final int READY_TO_JUMP = 1;
-	private static final int JUMPING = 2;
-	private static final int WALK_HIGH = 3;
-	private static final int WALK_LOW = 4;
-	private int				 permuteState;
-	private int[]			 firstLookOrder;
+	protected static final int NO_JUMP = 0;
+	protected static final int READY_TO_JUMP = 1;
+	protected static final int JUMPING = 2;
+	protected static final int WALK_HIGH = 3;
+	protected static final int WALK_LOW = 4;
+	protected int				 permuteState;
+	protected int[]			 firstLookOrder;
 
-	private boolean			 ruleBasedOptimization;
+	protected boolean			 ruleBasedOptimization;
 
-	private CostEstimateImpl outermostCostEstimate;
+	protected CostEstimateImpl outermostCostEstimate;
 	protected CostEstimateImpl currentCost;
 	protected CostEstimateImpl currentSortAvoidanceCost;
 	protected CostEstimateImpl bestCost;
@@ -116,22 +110,22 @@ public class OptimizerImpl implements Optimizer
 	protected long			 timeOptimizationStarted;
 	protected long			 currentTime;
 	protected boolean		 timeExceeded;
-	private boolean			 noTimeout;
-	private boolean 		 useStatistics;
-	private int				 tableLockThreshold;
+	protected boolean			 noTimeout;
+	protected boolean 		 useStatistics;
+	protected int				 tableLockThreshold;
 
-	private JoinStrategy[]	joinStrategies;
+	protected JoinStrategy[]	joinStrategies;
 
 	protected RequiredRowOrdering	requiredRowOrdering;
 
-	private boolean			 foundABestPlan;
+	protected boolean			 foundABestPlan;
 
 	protected CostEstimate sortCost;
 
-	private RowOrdering currentRowOrdering = new RowOrderingImpl();
-	private RowOrdering bestRowOrdering = new RowOrderingImpl();
+	protected RowOrdering currentRowOrdering = new RowOrderingImpl();
+	protected RowOrdering bestRowOrdering = new RowOrderingImpl();
 
-	private boolean	conglomerate_OneRowResultSet;
+	protected boolean	conglomerate_OneRowResultSet;
 
 	// optimizer trace
 	protected boolean optimizerTrace;
@@ -146,7 +140,7 @@ public class OptimizerImpl implements Optimizer
 	// best plan loaded so we don't need to do the extra work.  But if
 	// the most recent join order was _not_ the best, then this flag tells
 	// us that we need to reload the best plan when pulling.
-	private boolean reloadBestPlan;
+	protected boolean reloadBestPlan;
 
 	// Set of optimizer->bestJoinOrder mappings used to keep track of which
 	// of this OptimizerImpl's "bestJoinOrder"s was the best with respect to a
@@ -154,7 +148,7 @@ public class OptimizerImpl implements Optimizer
 	// of Optimizer.  Each outer query could potentially have a different
 	// idea of what this OptimizerImpl's "best join order" is, so we have
 	// to keep track of them all.
-	private HashMap savedJoinOrders;
+	protected HashMap savedJoinOrders;
 
 	// Value used to figure out when/if we've timed out for this
 	// Optimizable.
@@ -162,7 +156,7 @@ public class OptimizerImpl implements Optimizer
 
 	// Cost estimate for the final "best join order" that we chose--i.e.
 	// the one that's actually going to be generated.
-	CostEstimate finalCostEstimate;
+	protected CostEstimate finalCostEstimate;
 
 	/* Status variables used for "jumping" to previous best join
 	 * order when possible.  In particular, this helps when this
@@ -179,8 +173,8 @@ public class OptimizerImpl implements Optimizer
 	 * for which the best join order is likely to be same for
 	 * consecutive rounds.
 	 */
-	private boolean usingPredsPushedFromAbove;
-	private boolean bestJoinOrderUsedPredsFromAbove;
+	protected boolean usingPredsPushedFromAbove;
+	protected boolean bestJoinOrderUsedPredsFromAbove;
 
 	protected  OptimizerImpl(OptimizableList optimizableList, 
 				  OptimizablePredicateList predicateList,
@@ -1008,7 +1002,7 @@ public class OptimizerImpl implements Optimizer
 		return false;
 	}
 
-	private void rewindJoinOrder()
+	protected void rewindJoinOrder()
 		throws StandardException
 	{
 		for (; ; joinPosition--)
@@ -2680,7 +2674,7 @@ public class OptimizerImpl implements Optimizer
 	 *  OptimizerImpl that could potentially reject plans chosen by this
 	 *  OptimizerImpl.
 	 */
-	protected void updateBestPlanMaps(short action,
+	public void updateBestPlanMaps(short action,
 		Object planKey) throws StandardException
 	{
 		// First we process this OptimizerImpl's best join order.  If there's
@@ -2767,7 +2761,7 @@ public class OptimizerImpl implements Optimizer
 	 * @param pList List of predicates to add to this OptimizerImpl's
 	 *  own list for pushing.
 	 */
-	protected void addScopedPredicatesToList(PredicateList pList)
+	public void addScopedPredicatesToList(OptimizablePredicateList pList)
 		throws StandardException
 	{
 		if ((pList == null) || (pList == predicateList))
@@ -2810,5 +2804,9 @@ public class OptimizerImpl implements Optimizer
 
 		return;
 	}
+	
+    public OptimizableList getOptimizableList() {
+    	return optimizableList;
+    };
 
 }

@@ -22,11 +22,9 @@
 package org.apache.derby.impl.store.access.conglomerate;
 
 import org.apache.derby.iapi.error.StandardException; 
-
 import org.apache.derby.iapi.reference.SQLState;
-
+import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.store.access.StoreCostController;
-
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 
 /**
@@ -118,15 +116,21 @@ public abstract class GenericCostController
      *
 	 * @see org.apache.derby.iapi.store.access.RowUtil
      **/
-    public double getFetchFromFullKeyCost(
+    public void getFetchFromFullKeyCost(
     FormatableBitSet validColumns,
-    int     access_type)
+    int     access_type, CostEstimate cost)
 		throws StandardException
     {
         // Not implemented in default conglomerate, needs to be overridden.
         throw StandardException.newException(
                 SQLState.HEAP_UNIMPLEMENTED_FEATURE);
     }
+    
+	public void extraQualifierSelectivity(CostEstimate costEstimate) throws StandardException {
+		// Not Implemented...
+        throw StandardException.newException(
+                SQLState.HEAP_UNIMPLEMENTED_FEATURE);
+	};
 
 
 }

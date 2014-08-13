@@ -111,7 +111,7 @@ public class OrderByNode extends SingleChildResultSetNode
 	}
 
 
-	ResultColumnDescriptor[] makeResultDescriptors()
+	public ResultColumnDescriptor[] makeResultDescriptors()
 	{
 	    return childResult.makeResultDescriptors();
 	}
@@ -127,8 +127,7 @@ public class OrderByNode extends SingleChildResultSetNode
 							throws StandardException
 	{
 		// Get the cost estimate for the child
-		if (costEstimate == null)
-		{
+		if (costEstimate == null) {			
 			costEstimate = childResult.getFinalCostEstimate();
 		}
 

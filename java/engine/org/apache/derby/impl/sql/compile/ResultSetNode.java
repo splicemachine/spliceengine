@@ -33,9 +33,7 @@ import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.compile.Visitor;
 import org.apache.derby.iapi.sql.compile.RequiredRowOrdering;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
-
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-
 import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.DefaultDescriptor;
@@ -68,24 +66,23 @@ import java.util.Set;
  *
  */
 
-public abstract class ResultSetNode extends QueryTreeNode
-{
-	int					resultSetNumber = -1;
+public abstract class ResultSetNode extends QueryTreeNode {
+	protected int					resultSetNumber = -1;
 	/* Bit map of referenced tables under this ResultSetNode */
-	JBitSet				referencedTableMap;
-	ResultColumnList	resultColumns;
-	boolean				statementResultSet;
-	boolean				cursorTargetTable;
-	boolean				insertSource;
+	protected JBitSet				referencedTableMap;
+	protected ResultColumnList	resultColumns;
+	protected boolean				statementResultSet;
+	protected boolean				cursorTargetTable;
+	protected boolean				insertSource;
 
-	CostEstimate 		costEstimate;
-	CostEstimate		scratchCostEstimate;
-	Optimizer			optimizer;
+	protected CostEstimate 		costEstimate;
+	protected CostEstimate		scratchCostEstimate;
+	protected Optimizer			optimizer;
 
 	// Final cost estimate for this result set node, which is the estimate
 	// for this node with respect to the best join order for the top-level
 	// query. Subclasses will set this value where appropriate.
-	CostEstimate		finalCostEstimate;
+	protected CostEstimate		finalCostEstimate;
 
     /**
      * @return true if this node is represented by a Sinking operation on
@@ -772,8 +769,7 @@ public abstract class ResultSetNode extends QueryTreeNode
 		return modifyAccessPaths();
 	}
 
-	ResultColumnDescriptor[] makeResultDescriptors()
-	{
+	public ResultColumnDescriptor[] makeResultDescriptors() {
 	    return resultColumns.makeResultDescriptors();
 	}
 
@@ -1557,7 +1553,7 @@ public abstract class ResultSetNode extends QueryTreeNode
 	 *  getOptimizer() method above, then return it; otherwise,
 	 *  return null.
 	 */
-	protected OptimizerImpl getOptimizerImpl()
+	protected Optimizer getOptimizerImpl()
 	{
 		// Note that the optimizer might be null because it's possible that
 		// we'll get here before any calls to getOptimizer() were made, which
@@ -1565,7 +1561,7 @@ public abstract class ResultSetNode extends QueryTreeNode
 		// actually found one yet.  In that case we just return the "null"
 		// value; the caller must check for it and behave appropriately.
 		// Ex. see TableOperatorNode.addOrLoadBestPlanMapping().
-		return (OptimizerImpl)optimizer;
+		return optimizer;
 	}
 
 	/**
@@ -1587,7 +1583,7 @@ public abstract class ResultSetNode extends QueryTreeNode
 	 *
 	 * @exception StandardException on error
 	 */
-	void acceptChildren(Visitor v)
+	public void acceptChildren(Visitor v)
 		throws StandardException
 	{
 		super.acceptChildren(v);

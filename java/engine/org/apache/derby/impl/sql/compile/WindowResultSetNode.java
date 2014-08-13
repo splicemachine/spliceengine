@@ -914,7 +914,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         return this;
     }
 
-    ResultColumnDescriptor[] makeResultDescriptors() {
+    public ResultColumnDescriptor[] makeResultDescriptors() {
         return childResult.makeResultDescriptors();
     }
 

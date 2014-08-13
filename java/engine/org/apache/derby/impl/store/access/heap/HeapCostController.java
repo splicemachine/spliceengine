@@ -22,21 +22,15 @@
 package org.apache.derby.impl.store.access.heap;
 
 import org.apache.derby.iapi.reference.Property;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.error.StandardException; 
-
+import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.store.access.StoreCostController;
 import org.apache.derby.iapi.store.access.StoreCostResult;
-
 import org.apache.derby.iapi.store.raw.ContainerHandle;
-
 import org.apache.derby.impl.store.access.conglomerate.GenericCostController;
 import org.apache.derby.impl.store.access.conglomerate.OpenConglomerate;
-
 import org.apache.derby.iapi.types.DataValueDescriptor;
-
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import java.util.Properties;
 
@@ -170,29 +164,11 @@ public class HeapCostController
      *
 	 * @see org.apache.derby.iapi.store.access.RowUtil
      **/
-    public double getFetchFromRowLocationCost(
+    public void getFetchFromRowLocationCost(
     FormatableBitSet      validColumns,
-    int         access_type)
-		throws StandardException
-    {
-        double ret_cost;
-
-        // get "per-byte" cost of fetching a row from the page.
-        ret_cost = row_size * BASE_ROW_PER_BYTECOST;
-
-        long num_pages_per_row = (row_size / page_size) + 1;
-
-        if ((access_type & StoreCostController.STORECOST_CLUSTERED) == 0)
-        {
-            // this is the "base" unit case.
-            ret_cost += (BASE_UNCACHED_ROW_FETCH_COST * num_pages_per_row);
-        }
-        else
-        {
-            ret_cost += (BASE_CACHED_ROW_FETCH_COST * num_pages_per_row);
-        }
-
-        return(ret_cost);
+    int         access_type, CostEstimate costEstimate)
+		throws StandardException {
+    	throw new RuntimeException();
     }
 
     /**

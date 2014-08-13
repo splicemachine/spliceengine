@@ -135,9 +135,7 @@ public abstract class TableOperatorNode extends FromTable
 				 * certain queries.  DERBY-1852.
 				 */
 				leftOptimizer.modifyAccessPaths();
-				leftResultSet = (ResultSetNode)
-					((OptimizerImpl)leftOptimizer)
-						.optimizableList.getOptimizable(0);
+				leftResultSet = (ResultSetNode) leftOptimizer.getOptimizableList().getOptimizable(0);
 			}
 			else
 			{
@@ -162,9 +160,7 @@ public abstract class TableOperatorNode extends FromTable
 				 * list.
 				 */
 				rightOptimizer.modifyAccessPaths();
-				rightResultSet = (ResultSetNode)
-					((OptimizerImpl)rightOptimizer)
-						.optimizableList.getOptimizable(0);
+				rightResultSet = (ResultSetNode) rightOptimizer.getOptimizableList().getOptimizable(0);
 			}
 			else
 			{
@@ -758,9 +754,7 @@ public abstract class TableOperatorNode extends FromTable
 				 * certain queries.  DERBY-1852.
 				 */
 				leftOptimizer.modifyAccessPaths();
-				leftResultSet = (ResultSetNode)
-					((OptimizerImpl)leftOptimizer)
-						.optimizableList.getOptimizable(0);
+				leftResultSet = (ResultSetNode) leftOptimizer.getOptimizableList().getOptimizable(0);
 			}
 			else
 			{
@@ -789,9 +783,7 @@ public abstract class TableOperatorNode extends FromTable
 				 * list.
 				 */
 				rightOptimizer.modifyAccessPaths();
-				rightResultSet = (ResultSetNode)
-					((OptimizerImpl)rightOptimizer)
-						.optimizableList.getOptimizable(0);
+				rightResultSet = (ResultSetNode) rightOptimizer.getOptimizableList().getOptimizable(0);
 			}
 			else
 			{
@@ -957,7 +949,7 @@ public abstract class TableOperatorNode extends FromTable
 	 *
 	 * @exception StandardException on error
 	 */
-	void acceptChildren(Visitor v)
+	public void acceptChildren(Visitor v)
 		throws StandardException
 	{
 		super.acceptChildren(v);

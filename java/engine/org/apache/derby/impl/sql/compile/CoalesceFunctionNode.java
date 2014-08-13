@@ -371,7 +371,7 @@ public class CoalesceFunctionNode extends ValueNode
 	 * @param v the visitor
 	 * @throws StandardException on error in the visitor
 	 */
-	void acceptChildren(Visitor v) throws StandardException
+	public void acceptChildren(Visitor v) throws StandardException
 	{
 		super.acceptChildren(v);
 

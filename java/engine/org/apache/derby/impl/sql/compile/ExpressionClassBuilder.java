@@ -52,7 +52,7 @@ import java.io.Serializable;
  * FilterClassBuilder. See the documentation on ActivationClassBuilder.
  *
  */
-abstract	class ExpressionClassBuilder implements ExpressionClassBuilderInterface
+public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderInterface
 {
 	///////////////////////////////////////////////////////////////////////
 	//

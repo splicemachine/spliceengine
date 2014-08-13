@@ -67,7 +67,7 @@ public class ExplainNode extends DMLStatementNode {
                 colDescs, statementType );
     }
 
-    void acceptChildren(Visitor v)
+    public void acceptChildren(Visitor v)
             throws StandardException
     {
         super.acceptChildren(v);

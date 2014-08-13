@@ -46,6 +46,7 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import org.apache.derby.iapi.types.DataValueFactoryImpl.Format;
+import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 
 /**
@@ -64,6 +65,7 @@ import org.joda.time.DateTime;
 public final class SQLDate extends DataType
 						implements DateTimeDataValue
 {
+    private static final Logger LOG = Logger.getLogger(SQLDate.class);
 
 	private int	encodedDate;	//year << 16 + month << 8 + day
 
@@ -799,8 +801,10 @@ public final class SQLDate extends DataType
         }
         if( y < 1 || y > 9999
             || m < 1 || m > 12
-            || d < 1 || d > maxDay)
+            || d < 1 || d > maxDay) {
+        	LOG.error(String.format("Date out of range: d=%s, m=%d, y=%d",d,m,y));
             throw StandardException.newException( SQLState.LANG_DATE_RANGE_EXCEPTION);
+        }
         return (y << 16) + (m << 8) + d;
     }
 

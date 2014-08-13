@@ -28,7 +28,7 @@ import org.apache.derby.iapi.services.sanity.SanityManager;
 
 import java.util.Vector;
 
-class ColumnOrdering {
+public class ColumnOrdering {
 
 	/* See RowOrdering for possible values */
 	int	myDirection;
@@ -99,7 +99,7 @@ class ColumnOrdering {
 	/**
 	 * Get the direction of this ColumnOrdering
 	 */
-	int direction()
+	public int direction()
 	{
 		return myDirection;
 	}
@@ -200,5 +200,16 @@ class ColumnOrdering {
 		}
 
 		return retval;
+	}
+	
+	public int size() {
+		return columns.size();
+	}
+	
+	public int[] get(int i) {
+		int[] tabCol = new int[2];
+		tabCol[0] = (Integer) tables.get(i); // autobox: fix
+		tabCol[1] = (Integer) columns.get(i); // autobox
+		return tabCol;
 	}
 }

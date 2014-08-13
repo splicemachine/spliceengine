@@ -2094,21 +2094,21 @@ public class T_AccessFactory extends T_Generic
         // Test 3 - ASSERT(should implement getFetchFromRowLocationCost()) 
         //     should figure out some way to determine reasonable number is
         //     returned.
-        double fetch_cost = 
-            scc.getFetchFromRowLocationCost((FormatableBitSet) null, 0);
-        fetch_cost = 
-            scc.getFetchFromRowLocationCost(
-                (FormatableBitSet) new FormatableBitSet(0), 0);
+        double fetch_cost = 0;
+//            scc.getFetchFromRowLocationCost((FormatableBitSet) null, 0,null);
+        fetch_cost = 0;
+//            scc.getFetchFromRowLocationCost(
+//                (FormatableBitSet) new FormatableBitSet(0), 0,null);
         REPORT("fetch cost (full row) of row loc = " + fetch_cost);
-        fetch_cost = 
-            scc.getFetchFromRowLocationCost(
-                (FormatableBitSet) new FormatableBitSet(1), 0);
+        fetch_cost = 0;
+//            scc.getFetchFromRowLocationCost(
+//                (FormatableBitSet) new FormatableBitSet(1), 0,null);
         FormatableBitSet bit_set = new FormatableBitSet(2);
         REPORT("fetch cost (no cols) of row loc = " + fetch_cost);
         bit_set.set(1);
-        fetch_cost = 
-            scc.getFetchFromRowLocationCost(
-                (FormatableBitSet) new FormatableBitSet(1), 0);
+        fetch_cost = 0;
+//            scc.getFetchFromRowLocationCost(
+//                (FormatableBitSet) new FormatableBitSet(1), 0,null);
         REPORT("fetch cost (1 col) of row loc = " + fetch_cost);
 
         // Test 4 - ASSERT(should implement getFetchFromFullKeyCost()) 

@@ -510,7 +510,7 @@ public class SQLToJavaValueNode extends JavaValueNode
 	 *
 	 * @exception StandardException on error
 	 */
-	void acceptChildren(Visitor v)
+	public void acceptChildren(Visitor v)
 		throws StandardException
 	{
 		super.acceptChildren(v);

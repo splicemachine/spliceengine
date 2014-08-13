@@ -109,4 +109,8 @@ public interface CostEstimate extends StoreCostResult
 	 * @return Whether or not this CostEstimate is uninitialized.
 	 */
 	public boolean isUninitialized();
+	
+	public RowOrdering getRowOrdering();
+	
+	public void setRowOrdering(RowOrdering rowOrdering);
 }

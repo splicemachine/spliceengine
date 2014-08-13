@@ -407,14 +407,83 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 
 			andNode = (AndNode) predicate.getAndNode();
 
-			ValueNode opNode = andNode.getLeftOperand();
+			ValueNode leftNode = andNode.getLeftOperand();
+			
+			ValueNode rightNode = andNode.getRightOperand();			
+			
+			if ( ! leftNode.optimizableEqualityNode(optTable,
+												  columnNumber,
+												  false))
+			{
+				continue;
+			}
 
+			/*
+			** Skip comparisons that are not qualifiers for the table
+			** in question.
+			*/
+			if ( ! ((RelationalOperator) leftNode).isQualifier(optTable, false))
+			{
+				continue;
+			}
+
+			/*
+			** Skip non-join comparisons.
+			*/
+			if (predicate.getReferencedMap().hasSingleBitSet())
+			{
+				continue;
+			}
+
+			// We found a match
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * @see OptimizablePredicateList#hasOptimizableEquijoin
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	public boolean hasOrderedEquijoin(Optimizable optTable, RowOrdering leftColumnOrdering, RowOrdering rightColumnOrdering)
+					throws StandardException
+	{
+		System.out.println(String.format("hasOrderedEquiJoin optTable=%s, leftColumnOrdering=%s, rightColumnOrdering=%s",
+				optTable, leftColumnOrdering, rightColumnOrdering));
+		int size = size();
+		for (int index = 0; index < size; index++)
+		{
+			AndNode			andNode;
+			Predicate		predicate;
+			predicate = (Predicate) elementAt(index);
+
+			// This method is used by HashJoinStrategy to determine if
+			// there are any equality predicates that can be used to
+			// perform a hash join (see the findHashKeyColumns()
+			// method in HashJoinStrategy.java).  That said, if the
+			// predicate was scoped and pushed down from an outer query,
+			// then it's no longer possible to perform the hash join
+			// because one of the operands is in an outer query and
+			// the other (scoped) operand is down in a subquery. Thus
+			// we skip this predicate if it has been scoped.
+			if (predicate.isScopedForPush())
+			{
+				continue;
+			}
+
+			andNode = (AndNode) predicate.getAndNode();
+
+			ValueNode opNode = andNode.getLeftOperand();
+			/*
 			if ( ! opNode.optimizableEqualityNode(optTable,
 												  columnNumber,
 												  false))
 			{
 				continue;
 			}
+			*/
 
 			/*
 			** Skip comparisons that are not qualifiers for the table
@@ -440,6 +509,8 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		return false;
 	}
 
+	
+	
 	/**
 	 * @see OptimizablePredicateList#putOptimizableEqualityPredicateFirst
 	 *
@@ -2943,7 +3014,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 	 * @param acb The ActivationClassBuilder for the class we're building
 	 * @param mb The MethodBuilder for the method we're building
 	 */
-	protected void generateInListValues(ExpressionClassBuilder acb,
+	public void generateInListValues(ExpressionClassBuilder acb,
 		MethodBuilder mb) throws StandardException
 	{
 		for (int index = size() - 1; index >= 0; index--)

@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Vector;
 import java.util.List;
+import java.util.Arrays;
 import java.util.LinkedList;
 
 import	org.apache.derby.catalog.Dependable;
@@ -80,6 +81,7 @@ import org.apache.derby.iapi.types.NumberDataValue;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.derby.iapi.util.ReuseFactory;
+import org.apache.log4j.Logger;
 
 /**
  * BaseActivation
@@ -87,9 +89,8 @@ import org.apache.derby.iapi.util.ReuseFactory;
  * Doesn't actually implement any of the activation interface,
  * expects the subclasses to do that.
  */
-public abstract class BaseActivation implements CursorActivation, GeneratedByteCode
-
-{
+public abstract class BaseActivation implements CursorActivation, GeneratedByteCode {
+    private static final Logger LOG = Logger.getLogger(BaseActivation.class);
 	private	LanguageConnectionContext	lcc;
 	protected ContextManager			cm;
 
@@ -773,8 +774,9 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	public static void setColumnPosition(
 							int[] columnPositions,
 							int positionToSet,
-							int column)
-	{
+							int column) {
+		if (LOG.isTraceEnabled())
+			LOG.trace(String.format("setColumnPosition: columnPositions=%s, positionToSet=%d, column=%d",Arrays.toString(columnPositions),positionToSet, column));
 		columnPositions[positionToSet] = column;
 	}
 
@@ -1381,6 +1383,8 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	 * Remember the row for the specified ResultSet.
 	 */
 	public void setCurrentRow(ExecRow currentRow, int resultSetNumber) {
+		if (LOG.isTraceEnabled())
+			LOG.trace(String.format("setCurrentRow: currentRow=%s, resultSetNumber=%d",currentRow,resultSetNumber));
 		if (row != null) {
 			row[resultSetNumber] = currentRow;
 		}
@@ -1389,8 +1393,9 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	/**
 	 * Clear the current row for the specified ResultSet.
 	 */
-	public void clearCurrentRow(int resultSetNumber)
-	{
+	public void clearCurrentRow(int resultSetNumber) {
+		if (LOG.isTraceEnabled())
+			LOG.trace(String.format("clearCurrentRow: resultSetNumber=%d",resultSetNumber));
 		if (SanityManager.DEBUG)
 		{
 			if (row != null)
@@ -1411,8 +1416,9 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	/**
 	 * Get the current row at the given index.
 	 */
-	public Row getCurrentRow(int resultSetNumber)
-	{
+	public Row getCurrentRow(int resultSetNumber) {
+		if (LOG.isTraceEnabled())
+			LOG.trace(String.format("getCurrentRow: resultSetNumber=%d",resultSetNumber));
         return row[resultSetNumber];
 	}
 
@@ -1486,6 +1492,8 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
 	protected final DataValueDescriptor getColumnFromRow(int rsNumber, int colId)
 		throws StandardException {
+		if (LOG.isTraceEnabled())
+			LOG.trace(String.format("getColumnFromRow: resultSetNumber=%d, colId=%d",rsNumber, colId));
 
         if (row[rsNumber] == null) {
             /* This actually happens. NoPutResultSetImpl.clearOrderableCache
@@ -1500,6 +1508,8 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
              * OuterJoinTest#testDerby_4798_NPE will provoke an NPE if this
              * code is removed.
              */
+    		if (LOG.isTraceEnabled())
+    			LOG.trace("getColumnFromRow (deeply nested join issue");
             return null;
         }
 

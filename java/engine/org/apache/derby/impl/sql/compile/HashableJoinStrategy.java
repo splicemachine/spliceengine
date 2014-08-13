@@ -454,7 +454,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
      *
      * @exception StandardException		Thrown on error
      */
-    private int[] findHashKeyColumns(Optimizable innerTable, ConglomerateDescriptor cd, OptimizablePredicateList predList) throws StandardException {
+    public int[] findHashKeyColumns(Optimizable innerTable, ConglomerateDescriptor cd, OptimizablePredicateList predList) throws StandardException {
         if (predList == null)
             return (int[]) null;
 
