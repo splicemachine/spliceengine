@@ -510,7 +510,6 @@ public class HdfsImportIT extends SpliceUnitTest {
 
     @Test
     @Category(SlowTest.class)
-    @Ignore("DB-1614")
     public void testGZImportWithWarning() throws Exception {
         long ORIGINAL_VALUE = SpliceConstants.sequentialImportFileSizeThreshold;
         try {
@@ -526,7 +525,6 @@ public class HdfsImportIT extends SpliceUnitTest {
     }
 
 	@Test
-    @Ignore("DB-1614")
 	public void testGZImportWithoutWarning() throws Exception {
 	    String location = getResourceDirectory()+"t1K.tbl.gz";
 	    String twarning="";
