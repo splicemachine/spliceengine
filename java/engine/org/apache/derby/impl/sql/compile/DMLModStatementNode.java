@@ -60,6 +60,7 @@ import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TriggerDescriptor;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.impl.sql.conn.GenericLanguageConnectionContext;
 import org.apache.derby.impl.sql.execute.FKInfo;
 import org.apache.derby.impl.sql.execute.TriggerInfo;
 
@@ -229,6 +230,16 @@ abstract class DMLModStatementNode extends DMLStatementNode
 			case TableDescriptor.VTI_TYPE:
 				// fall through - currently all vti tables are system tables.
 			case TableDescriptor.SYSTEM_TABLE_TYPE:
+                String schemaName = targetTableName.getSchemaName();
+                String tableName = targetTableName.getTableName();
+                LanguageConnectionContext lcc = getLanguageConnectionContext();
+                String userName = lcc.getSessionUserId();
+                if(userName.compareToIgnoreCase("SPLICE") == 0 &&
+                   schemaName.compareToIgnoreCase("SYS") == 0 &&
+                   (tableName.compareToIgnoreCase("SYSSTATEMENTHISTORY") == 0 ||
+                    tableName.compareToIgnoreCase("SYSOPERATIONHISTORY") == 0 ||
+                    tableName.compareToIgnoreCase("SYSTASKHISTORY") == 0))
+                    break;
 				// System tables are not updatable
 				throw StandardException.newException(SQLState.LANG_UPDATE_SYSTEM_TABLE_ATTEMPTED, 
 						targetTableName);
