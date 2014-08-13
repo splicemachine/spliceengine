@@ -166,13 +166,13 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 						assert spliceConglomerate!=null;
 						boolean[] sortOrder = spliceConglomerate==null?null:
 										((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).getAscDescInfo();
-						boolean sameStartStop = isSameStartStop(startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator);
+						boolean sameStartStop = isSameStartStop(startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator);						
 						scan = Scans.setupScan(startKeyValue, startSearchOperator, stopKeyValue, stopSearchOperator, qualifier,
 										sortOrder, scanColumnList, transID,sameStartStop,
 										((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).format_ids,
 										((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).columnOrdering,
 										((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).columnOrdering,
-										null, "1.0");
+										this.getOpenConglom().getTransaction().getDataValueFactory(), "1.0");
 				} catch (Exception e) {
 						LOG.error("Exception creating start key");
 						throw new RuntimeException(e);

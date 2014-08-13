@@ -1,17 +1,33 @@
 package com.splicemachine.derby.impl.store.access.base;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.sql.compile.CostEstimate;
+import org.apache.derby.iapi.store.access.StoreCostResult;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.store.access.conglomerate.GenericCostController;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.sql.compile.SortState;
+import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.HBaseRegionCache;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -21,6 +37,7 @@ public abstract class SpliceGenericCostController extends GenericCostController 
 
     protected static long computeRowCount(SortedSet<HRegionInfo> regions, Map<String,RegionLoad> regionLoads, long constantRowSize, long hfileMaxSize, Scan scan) {
 		long rowCount = 0;
+		int numberOfRegionsInvolved = 0;
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "computeRowCount {regions={%s}, regionLoad={%s}, constantRowSize=%d, hfileMaxSize=%d, scan={%s}",
 					regions==null?"null":Arrays.toString(regions.toArray()), regionLoads==null?"null":Arrays.toString(regionLoads.keySet().toArray()), constantRowSize, hfileMaxSize, scan);		
@@ -28,14 +45,20 @@ public abstract class SpliceGenericCostController extends GenericCostController 
 			if (isRegionInScan(scan,info)) {
 				if (LOG.isTraceEnabled())
 					SpliceLogUtils.trace(LOG, "regionInfo with encodedname {%s} and region name as string %s", info.getEncodedName(), info.getRegionNameAsString());				
+				numberOfRegionsInvolved++;
 				rowCount+=getRowSize(constantRowSize,regionLoads==null?null:regionLoads.get(info.getRegionNameAsString()),hfileMaxSize);	
 			}
+		}
+		if (numberOfRegionsInvolved == 1 && scan.getStartRow() != null && !Bytes.equals(scan.getStartRow(),HConstants.EMPTY_START_ROW) && scan.getStopRow() != null && !Bytes.equals(scan.getStopRow(),HConstants.EMPTY_END_ROW) ) {
+			rowCount=(long) ( ( (double)rowCount)*SpliceConstants.extraStartStopQualifierMultiplier);
 		}
 		return rowCount;
 	}
 
 	protected static boolean isRegionInScan(Scan scan, HRegionInfo regionInfo) {
-		return true;		
+		assert (scan != null);
+		assert (regionInfo != null);
+		return HRegionUtil.containsRange(regionInfo, scan.getStartRow(), scan.getStopRow());
 	}
 	
 	protected static long getRowSize(long constantRowSize, RegionLoad regionLoad, long hfileMaxSize) {
@@ -43,11 +66,11 @@ public abstract class SpliceGenericCostController extends GenericCostController 
 			SpliceLogUtils.trace(LOG, "getRowSize with constantRowSize %d and regionLoad %s and hfileMaxSize %d",constantRowSize, regionLoad, hfileMaxSize);
 		if (regionLoad==null)
 			return constantRowSize; // No Metrics
-		long rowSize = constantRowSize*(HBaseRegionLoads.memstoreAndStorefileSize(regionLoad)/hfileMaxSize);
-		return rowSize < 20?20l:rowSize;
+		float rowSize = (float) constantRowSize*((float) HBaseRegionLoads.memstoreAndStorefileSize(regionLoad)/(float) hfileMaxSize);
+		return rowSize < 20?20l:(long) rowSize;
 	}
 	
-    protected static SortedSet<HRegionInfo> getRegions(long conglomId) {
+    public static SortedSet<HRegionInfo> getRegions(long conglomId) {
         String table = Long.toString(conglomId);
         try {
             return HBaseRegionCache.getInstance().getRegions(Bytes.toBytes(table));
@@ -56,5 +79,20 @@ public abstract class SpliceGenericCostController extends GenericCostController 
         	return null;
         }
     }
+    /**
+     * Scratch Estimate...
+     */
+	@Override
+	public long getEstimatedRowCount() throws StandardException {
+		return 0;
+	}
+	@Override
+	public void extraQualifierSelectivity(CostEstimate costEstimate) throws StandardException {
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "extraQualifierSelectivity costEstimate=%s",costEstimate);
+		costEstimate.setCost(costEstimate.getEstimatedCost()*SpliceConstants.extraQualifierMultiplier, 
+				(double) costEstimate.getEstimatedRowCount()*SpliceConstants.extraQualifierMultiplier, 
+				costEstimate.singleScanRowCount()*SpliceConstants.extraQualifierMultiplier);
+	};
 	
 }

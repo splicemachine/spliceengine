@@ -1,19 +1,46 @@
 package com.splicemachine.derby.impl.ast;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.google.common.base.*;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.splicemachine.derby.impl.sql.compile.MergeSortJoinStrategy;
+import com.splicemachine.derby.impl.sql.compile.NestedLoopJoinStrategy;
+import com.splicemachine.derby.impl.sql.compile.OrderByNode;
+
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.*;
-import org.apache.derby.impl.sql.compile.*;
+import org.apache.derby.iapi.sql.compile.AccessPath;
+import org.apache.derby.iapi.sql.compile.JoinStrategy;
+import org.apache.derby.iapi.sql.compile.Optimizable;
+import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
+import org.apache.derby.iapi.sql.compile.Visitable;
+import org.apache.derby.impl.sql.compile.AggregateNode;
+import org.apache.derby.impl.sql.compile.ColumnReference;
+import org.apache.derby.impl.sql.compile.DistinctNode;
+import org.apache.derby.impl.sql.compile.FromBaseTable;
+import org.apache.derby.impl.sql.compile.HalfOuterJoinNode;
+import org.apache.derby.impl.sql.compile.HashableJoinStrategy;
+import org.apache.derby.impl.sql.compile.IndexToBaseRowNode;
+import org.apache.derby.impl.sql.compile.IntersectOrExceptNode;
+import org.apache.derby.impl.sql.compile.JoinNode;
+import org.apache.derby.impl.sql.compile.PredicateList;
+import org.apache.derby.impl.sql.compile.ProjectRestrictNode;
+import org.apache.derby.impl.sql.compile.ResultColumn;
+import org.apache.derby.impl.sql.compile.ResultSetNode;
+import org.apache.derby.impl.sql.compile.RowResultSetNode;
+import org.apache.derby.impl.sql.compile.UnionNode;
+import org.apache.derby.impl.sql.compile.ValueNode;
+import org.apache.derby.impl.sql.compile.VirtualColumnNode;
 
 import javax.annotation.Nullable;
 
-import java.util.*;
 
 /**
  * Utilities for Derby's ResultSetNodes

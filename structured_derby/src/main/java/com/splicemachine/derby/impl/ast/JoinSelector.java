@@ -5,13 +5,15 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.impl.sql.compile.BroadcastJoinStrategy;
+import com.splicemachine.derby.impl.sql.compile.MergeSortJoinStrategy;
 import com.splicemachine.hbase.HBaseRegionLoads;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.*;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.impl.sql.compile.*;
-import org.apache.derby.impl.sql.compile.Predicate;
 import org.apache.hadoop.hbase.HServerLoad;
 import org.apache.log4j.Logger;
 

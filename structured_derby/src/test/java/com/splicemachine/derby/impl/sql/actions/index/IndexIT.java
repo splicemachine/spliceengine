@@ -287,6 +287,7 @@ public class IndexIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore
     public void testQueryCustomerByNameWithIndex() throws Exception {
         try {
             SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);

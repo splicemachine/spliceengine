@@ -4,7 +4,7 @@ Query planning and optimization are key components.
 \subsection{Optimizer Implementation and Logging}
 
 The Derby Optimizer Implementation has been moved into Splice Machine.  The goal
-will be to start transitioning the optimizer as we get more sophisticated in our
+will be to start refining the optimizer as we get more sophisticated in our
 planning routines.  The current optimizer is located at 
 \emph{com.splicemachine.derby.impl.sql.compile.SpliceLevel2OptimizerImpl}.
 
@@ -13,7 +13,7 @@ Logging for the optimizer can be enabled by the following settings.
 \emph{log4j.logger.com.splicemachine.derby.impl.sql.compile=TRACE, Console1}
 \emph{log4j.additivity.com.splicemachine.derby.impl.sql.compile=false}
 
-\subsection{Table vs. Index Cost Selection Constants}
+\subsection{Key Cost Selection Constants}
 
 Here are the key constants that drive the planning optimization and selection:
 
@@ -34,7 +34,24 @@ Here are the key constants that drive the planning optimization and selection:
 	index are unique and defined in the query.
 \end{enumerate}
 
-\subsection{Table Row Count and Costing Functions}
+\subsection{Table Access}
+
+\subsection{Index Access}
+
+\subsection{Sort Avoidance}
+
+\subsection{Join Selection}
+
+\subsubsection{Nested Loop Join Operation}
+
+\subsubsection{Sort Merge Join Operation}
+
+\subsubsection{Merge Join Operation}
+
+\subsubsection{Broadcast Join Operation}
+
+\subsubsection{Hash Nested Loop Join Operation}
+
 
 \subsubsection{Row Count Computation}
 

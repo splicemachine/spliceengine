@@ -175,7 +175,12 @@ public class HBaseRegionLoads {
         }
         return loads.get(tableName);
     }
-
+    /**
+     * Region Size in MB
+     * 
+     * @param load
+     * @return
+     */
     public static int memstoreAndStorefileSize(HServerLoad.RegionLoad load){
         return load.getStorefileSizeMB() + load.getMemStoreSizeMB();
     }

@@ -2,9 +2,11 @@ package org.apache.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.impl.sql.actions.index.CustomerTable;
 import com.splicemachine.derby.test.framework.*;
+
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.Before;
@@ -15,7 +17,6 @@ import org.junit.runner.Description;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSetMetaData;
 import java.sql.Connection;
-
 import java.sql.ResultSet;
 
 /**
@@ -124,6 +125,7 @@ public class DropColumnIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore
     public void testDropIndexColumn() throws Exception{
         // Create indexes on customer table
         SpliceIndexWatcher.createIndex(methodWatcher.createConnection(),

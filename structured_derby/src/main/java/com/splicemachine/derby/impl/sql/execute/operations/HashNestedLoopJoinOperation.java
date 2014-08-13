@@ -257,7 +257,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
 
     private void nextBatch(SpliceRuntimeContext context) throws IOException, StandardException {
         if(leftRowBuffer==null)
-            leftRowBuffer = new RingBuffer<ExecRow>(128); //TODO -sf- make this configurable
+            leftRowBuffer = new RingBuffer<ExecRow>(SpliceConstants.hashNLJLeftRowBufferSize); 
         if(rightHashTable==null){
             DualHashHashTable.EntryHasher<ExecRow> rightEntryHasher = new DualHashHashTable.EntryHasher<ExecRow>() {
                 @Override
@@ -305,9 +305,8 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
                     return true;
                 }
             };
-
-            //TODO -sf- move this batch size to a configurable parameter
-            rightHashTable = new DualHashHashTable<ExecRow>(128, rightEntryHasher, leftEntryHasher);
+            
+            rightHashTable = new DualHashHashTable<ExecRow>(SpliceConstants.hashNLJRightHashTableSize, rightEntryHasher, leftEntryHasher);
         }
         //fill the left side buffer
         for(int i=0;i<leftRowBuffer.bufferSize();i++){

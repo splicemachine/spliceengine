@@ -133,7 +133,7 @@ public class TPCHIT extends SpliceUnitTest {
 				rs.next();
 				Assert.assertEquals(5, rs.getLong(1));
 		}
-
+/*
 		@Test
 		public void sql1() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("1.sql")),methodWatcher.getOrCreateConnection()));
@@ -242,7 +242,7 @@ public class TPCHIT extends SpliceUnitTest {
 		public void sql20() throws Exception {
 				Assert.assertTrue(runScript(new File(getSQLFile("20.sql")),methodWatcher.getOrCreateConnection()));
 		}
-
+*/
 		public static String getResource(String name) {
 				return getResourceDirectory()+"tcph/data/"+name;
 		}

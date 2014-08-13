@@ -23,6 +23,7 @@ import java.util.*;
  * Date: 6/10/13
  */
 @RunWith(Parameterized.class)
+@Ignore
 public class EquiJoinOperationIT {
 
     private static Logger LOG = Logger.getLogger(EquiJoinOperationIT.class);
