@@ -15,7 +15,7 @@ export CLASSPATH
 
 GEN_SYS_ARGS="-Djava.awt.headless=true"
 
-IJ_SYS_ARGS="-Djdbc.drivers=org.apache.derby.jdbc.ClientDriver -Dij.connection.splice=jdbc:splice://localhost:1527/splicedb"
+IJ_SYS_ARGS="-Djdbc.drivers=org.apache.derby.jdbc.ClientDriver -Dij.connection.splice=jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"
 
 if hash rlwrap 2>/dev/null; then
     echo " ========= rlwrap detected and enabled.  Use up and down arrow keys to scroll through command line history. ======== "

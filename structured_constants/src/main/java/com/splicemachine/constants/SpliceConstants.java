@@ -569,11 +569,11 @@ public class SpliceConstants {
 		 * Defaults to none
 		 */
 		@Parameter public static final String AUTHENTICATION = "splice.authentication";
-		@DefaultValue(AUTHENTICATION) public static final String DEFAULT_AUTHENTICATION = "NONE";
+		@DefaultValue(AUTHENTICATION) public static final String DEFAULT_AUTHENTICATION = "NATIVE";
 		public static String authentication;
 		
 		@Parameter public static final String AUTHENTICATION_LDAP_SERVER = "splice.authentication.ldap.server";
-		@DefaultValue(AUTHENTICATION_LDAP_SERVER) public static final String DEFAULT_AUTHENTICATION_LDAP_SERVER = "localhost:9090";
+		@DefaultValue(AUTHENTICATION_LDAP_SERVER) public static final String DEFAULT_AUTHENTICATION_LDAP_SERVER = "localhost:389";
 		public static String authenticationLDAPServer;
 		
 		@Parameter public static final String AUTHENTICATION_LDAP_SEARCHAUTHDN = "splice.authentication.ldap.searchAuthDN";

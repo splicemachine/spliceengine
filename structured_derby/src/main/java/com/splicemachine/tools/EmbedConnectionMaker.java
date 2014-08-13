@@ -48,7 +48,8 @@ public final class EmbedConnectionMaker implements ConnectionPool.Supplier {
     
     public Connection createFirstNew() throws SQLException {
     	Properties first = (Properties) SpliceDriver.driver().getProperties().clone();
-    	first.remove(EmbedConnection.INTERNAL_CONNECTION);
+    	if(!SpliceConstants.authentication.toUpperCase().equals("LDAP"))
+    		first.remove(EmbedConnection.INTERNAL_CONNECTION);
     	
         return driver.connect(protocol+SpliceConstants.SPLICE_DB+";create=true;user=splice;password=admin",
                 first);    	
