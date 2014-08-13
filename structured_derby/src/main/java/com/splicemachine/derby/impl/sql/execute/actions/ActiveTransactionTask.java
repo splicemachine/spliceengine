@@ -17,14 +17,17 @@ import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.si.api.*;
-import com.splicemachine.si.impl.ActiveWriteTxn;
-import com.splicemachine.si.impl.Transaction;
-import com.splicemachine.si.impl.TransactionStore;
+import com.splicemachine.si.coprocessors.TxnLifecycleEndpoint;
+import com.splicemachine.si.impl.*;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.utils.Source;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.uuid.Snowflake;
+import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -48,6 +51,8 @@ public class ActiveTransactionTask extends ZkTask {
     //the number of active txns to fetch before giving up--allows us to be efficient with our search
     private int numActiveTxns;
 
+    private RegionTxnStore regionTxnStore;
+
     //serialization constructor
     public ActiveTransactionTask() { }
 
@@ -65,30 +70,14 @@ public class ActiveTransactionTask extends ZkTask {
     }
 
     @Override
-    protected void doExecute() throws ExecutionException, InterruptedException {
-        TxnSupplier txnStore = TransactionStorage.getTxnSupplier();
-        /*
-         * Get the bucket id for the region.
-         *
-         * The way the transaction table is built, a region may have an empty start
-         * OR an empty end, but will never have both
-         */
-        byte[] regionKey = region.getStartKey();
-        byte bucket;
-        if(regionKey.length<=0)
-            bucket = 0;
-        else
-            bucket = regionKey[0];
-        byte[] startKey = BytesUtil.concat(Arrays.asList(new byte[]{bucket}, Bytes.toBytes(minTxnId)));
-        if(BytesUtil.startComparator.compare(region.getStartKey(),startKey)>0)
-            startKey = region.getStartKey();
-        byte[] stopKey = BytesUtil.concat(Arrays.asList(new byte[]{bucket}, Bytes.toBytes(maxTxnId)));
-        if(BytesUtil.endComparator.compare(region.getEndKey(),stopKey)<0)
-            stopKey = region.getEndKey();
+    public void prepareTask(byte[] start, byte[] stop, RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+        super.prepareTask(start, stop, rce, zooKeeper);
+        TxnLifecycleEndpoint tle = (TxnLifecycleEndpoint)rce.getRegion().getCoprocessorHost().findCoprocessor(TxnLifecycleEndpoint.class.getName());
+        regionTxnStore = tle.getRegionTxnStore();
+    }
 
-        Scan scan = new Scan(startKey,stopKey);
-        scan.setFilter(new ActiveTxnFilter(writeTable));
-        scan.setMaxVersions(1); //only consider the latest data points
+    @Override
+    protected void doExecute() throws ExecutionException, InterruptedException {
 
         TempTable tempTable = SpliceDriver.driver().getTempTable();
         SpreadBucket currentSpread = tempTable.getCurrentSpread();
@@ -102,6 +91,17 @@ public class ActiveTransactionTask extends ZkTask {
         System.arraycopy(operationUUID,0,hashBytes,1,operationUUID.length);
         boolean[] usedTempBuckets = new boolean[currentSpread.getNumBuckets()];
 
+        int rows = 0;
+        try{
+            Source<DenseTxn> activeTxns = regionTxnStore.getActiveTxns(minTxnId, maxTxnId, writeTable);
+
+            while(activeTxns.hasNext()){
+
+            }
+
+        } catch (IOException e) {
+            throw new ExecutionException(e);
+        }
         int rows = 0;
         RegionScanner scanner = null;
         try {

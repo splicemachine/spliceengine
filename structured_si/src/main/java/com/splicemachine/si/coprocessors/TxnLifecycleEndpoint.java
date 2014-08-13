@@ -44,7 +44,7 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 		private HRegion region;
 		private TimestampSource timestampSource;
 
-		@Override
+    @Override
 		public void start(CoprocessorEnvironment env) {
 				region = ((RegionCoprocessorEnvironment)env).getRegion();
         SpliceConstants.TableEnv table = EnvUtils.getTableEnv((RegionCoprocessorEnvironment)env);
@@ -299,4 +299,7 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
         region.closeRegionOperation();
     }
 
+    public RegionTxnStore getRegionTxnStore() {
+        return regionStore;
+    }
 }
