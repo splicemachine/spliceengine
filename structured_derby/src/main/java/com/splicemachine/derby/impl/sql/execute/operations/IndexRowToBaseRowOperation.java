@@ -91,7 +91,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		private static final MetricName scanName = new MetricName("com.splicemachine.operations","indexLookup","totalTime");
 		private final Timer totalTimer = SpliceDriver.driver().getRegistry().newTimer(scanName,TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
 		private IndexRowReader reader;
-		private String mainTableVersion = "1.0"; //TODO -sf- make this configured
+		private String mainTableVersion;
 
 
 		public IndexRowToBaseRowOperation () {
