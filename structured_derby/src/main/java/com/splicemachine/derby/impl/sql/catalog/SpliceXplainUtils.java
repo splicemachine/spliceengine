@@ -48,10 +48,11 @@ public class SpliceXplainUtils {
 
         PreparedStatement s = connection.prepareStatement(sql);
         ResultSet resultSet = s.executeQuery();
+        String result = null;
         if (resultSet.next()) {
-            return resultSet.getString(1) + "." + resultSet.getString(2);
+            result = resultSet.getString(1) + "." + resultSet.getString(2);
         }
-
-        return null;
+        resultSet.close();
+        return result;
     }
 }

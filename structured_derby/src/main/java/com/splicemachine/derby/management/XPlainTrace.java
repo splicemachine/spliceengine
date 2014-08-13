@@ -68,6 +68,8 @@ public class XPlainTrace {
 
             aggregateSubqueries();
 
+            aggregateTableScan();
+
             populateSequenceId(topOperation);
            if (format.toUpperCase().compareTo("TREE") == 0) {
                 printer = new XPlainTraceTreePrinter(mode, connection, topOperation);
@@ -172,48 +174,28 @@ public class XPlainTrace {
 
             if (node.isTableScanOperation() || node.isIndexScanOperation()) {
                 Deque<XPlainTreeNode> children = node.getChildren();
-                if (children.size() == 0 ||
-                    children.getFirst().getOperationType().compareToIgnoreCase("ScrollInsensitive") != 0) {
-                    // We are only interested in table scan that has more than two ScrollInsensitive operations
+                if (children.size() == 0) {
                     continue;
                 }
                 HashMap<String, XPlainTreeNode> regionScanMap = new HashMap<String, XPlainTreeNode>();
 
-                XPlainTreeNode first = children.removeFirst();
-                for (XPlainTreeNode regionScan:first.getChildren().getFirst().getChildren()) {
-                    regionScanMap.put(regionScan.getRegion(), regionScan);
-                }
                 while (children.size() > 0) {
-                    XPlainTreeNode next = children.removeFirst();
-                    // Aggregate "InsensitiveScroll"
-                    first.aggregate(next);
-
-                    // Aggregate at table scan level
-                    first.getChildren().getFirst().aggregate(next.getChildren().getFirst());
-
-                    // Aggregate region scan level
-                    for (XPlainTreeNode regionScan:next.getChildren().getFirst().getChildren()) {
-                        String region = regionScan.getRegion();
-                        XPlainTreeNode n = regionScanMap.get(region);
-                        if (n != null ) {
-                            n.aggregate(regionScan);
-                        }
-                        else {
-                            n = regionScan;
-                        }
-                        regionScanMap.put(region, n);
+                    XPlainTreeNode first = children.removeFirst();
+                    String region = first.getRegion();
+                    XPlainTreeNode n = regionScanMap.get(region);
+                    if (n != null ) {
+                        n.aggregate(first);
                     }
+                    else {
+                        n = first;
+                    }
+                    regionScanMap.put(region, n);
+
                 }
-                String info = node.getInfo();
-                first.getChildren().getFirst().setInfo(info);
-                XPlainTreeNode parent = xPlainTreeNodeMap.get(node.getParentOperationId());
-                parent.getChildren().removeLast();
-                parent.getChildren().addLast(first.getChildren().getFirst());
 
                 Set<String> regions = regionScanMap.keySet();
-                first.getChildren().getFirst().getChildren().clear();
                 for(String region:regions) {
-                    first.getChildren().getFirst().addLastChild(regionScanMap.get(region));
+                    node.addLastChild(regionScanMap.get(region));
                 }
             }
         }
@@ -237,6 +219,7 @@ public class XPlainTrace {
 
     private void populateMetrics() throws SQLException, IllegalAccessException{
         ResultSet rs = getTaskHistory();
+        HashMap<String, XPlainTreeNode> regionMap = new HashMap<String, XPlainTreeNode>();
         while (rs.next()) {
             int index = rs.findColumn("OPERATIONID");
             Long operationId = rs.getLong(index);
