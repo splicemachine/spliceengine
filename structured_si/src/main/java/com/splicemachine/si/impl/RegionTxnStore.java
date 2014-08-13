@@ -1,17 +1,20 @@
 package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongArrayList;
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KeyValueUtils;
-import com.splicemachine.si.api.ReadOnlyModificationException;
-import com.splicemachine.si.api.TransactionTimeoutException;
-import com.splicemachine.si.api.Txn;
+import com.splicemachine.hbase.RegionScanIterator;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.si.api.*;
 import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.Source;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
@@ -22,9 +25,12 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import javax.annotation.Nullable;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -336,48 +342,60 @@ public class RegionTxnStore {
 				return txnIds.toArray();
 		}
 
-    public List<DenseTxn> getActiveTxns(long afterTs,long beforeTs, byte[] destinationTable) throws IOException{
-        Scan scan = new Scan(region.getStartKey(),region.getEndKey());
+    public Source<DenseTxn> getActiveTxns(long afterTs,long beforeTs, byte[] destinationTable) throws IOException{
+         /*
+         * Get the bucket id for the region.
+         *
+         * The way the transaction table is built, a region may have an empty start
+         * OR an empty end, but will never have both
+         */
+        byte[] regionKey = region.getStartKey();
+        byte bucket;
+        if(regionKey.length<=0)
+            bucket = 0;
+        else
+            bucket = regionKey[0];
+        byte[] startKey = BytesUtil.concat(Arrays.asList(new byte[]{bucket}, Bytes.toBytes(afterTs)));
+        if(BytesUtil.startComparator.compare(region.getStartKey(),startKey)>0)
+            startKey = region.getStartKey();
+        byte[] stopKey = BytesUtil.concat(Arrays.asList(new byte[]{bucket}, Bytes.toBytes(beforeTs)));
+        if(BytesUtil.endComparator.compare(region.getEndKey(),stopKey)<0)
+            stopKey = region.getEndKey();
+        Scan scan = new Scan(startKey,stopKey);
         scan.setMaxVersions(1);
+        scan.setFilter(new ActiveTxnFilter(beforeTs,afterTs,destinationTable));
 
-        RegionScanner scanner = region.getScanner(scan);
-        List<DenseTxn> txns = Lists.newArrayList();
-        List<KeyValue> keyValues = Lists.newArrayListWithExpectedSize(4);
-        MultiFieldDecoder bytesDecoder = null;
-        boolean shouldContinue;
-        do{
-            keyValues.clear();
-            shouldContinue = scanner.nextRaw(keyValues,null);
-            if(keyValues.size()<=0) break;
+        final TxnSupplier store = TransactionStorage.getTxnSupplier();
+        RegionScanner baseScanner = region.getScanner(scan);
 
+        final RegionScanner scanner = new BufferedRegionScanner(region,baseScanner,scan,1024, Metrics.noOpMetricFactory());
+        return new RegionScanIterator<DenseTxn>(scanner,new RegionScanIterator.IOFunction< DenseTxn>() {
+            @Override
+            public DenseTxn apply(@Nullable List<KeyValue> keyValues) throws IOException{
+                DenseTxn txn = newTransactionDecoder.decode(keyValues);
+                if(txn==null)
+                    txn = oldTransactionDecoder.decode(keyValues);
 
-            DenseTxn txn = newTransactionDecoder.decode(keyValues);
-            if(txn==null)
-                txn = oldTransactionDecoder.decode(keyValues);
-            long txnTs = txn.getBeginTimestamp();
-            if(txnTs<=beforeTs && txnTs>=afterTs){
-                if(destinationTable!=null){
-                    ByteSlice slice = txn.getDestinationTableBuffer();
-                    if(slice==null || slice.length()<=0)
-                        continue; //ignore transactions which don't match the table
-                    if(bytesDecoder==null)
-                        bytesDecoder = MultiFieldDecoder.wrap(txn.getDestinationTableBuffer());
-                    else
-                        bytesDecoder.set(slice.array(),slice.offset(),slice.length());
-                    while(bytesDecoder.available()){
-                        int offset = bytesDecoder.offset();
-                        bytesDecoder.skip();
-                        int length = bytesDecoder.offset()-offset-1;
-                        if(Bytes.equals(destinationTable,0,destinationTable.length,bytesDecoder.array(),offset,length)){
-                            //we match!
-                            txns.add(txn);
+                //this transaction should be returned because it's active
+                if(txn.isDependent()){
+                    long parentTxnId =txn.getParentTxnId();
+                    if(parentTxnId>0){
+                    /*
+                     * We need to make sure that this transaction is actually active,
+                     * in case the parent has committed/rolledback already
+                     */
+                        Txn parentTxn = store.getTransaction(parentTxnId);
+                        if(parentTxn.getEffectiveState()!= Txn.State.ACTIVE){
+                            // we are not actually active
+                            return null;
                         }
                     }
-                }else
-                    txns.add(txn);
+                }
+
+                return txn;
             }
-        }while(shouldContinue);
-        return txns;
+        });
+
     }
 
 		/******************************************************************************************************************/
