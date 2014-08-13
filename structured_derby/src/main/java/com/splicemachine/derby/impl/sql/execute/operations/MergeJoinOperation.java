@@ -86,8 +86,13 @@ public class MergeJoinOperation extends JoinOperation {
         super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
-        if (rightResultSet instanceof TableScanOperation) {
-            TableScanOperation scan = (TableScanOperation) rightResultSet;
+        if (rightResultSet instanceof TableScanOperation || ( (rightResultSet instanceof ProjectRestrictOperation) && ((ProjectRestrictOperation) rightResultSet).getSource() instanceof TableScanOperation) ) {
+        	TableScanOperation scan;
+        	if (rightResultSet instanceof TableScanOperation)
+        		scan = (TableScanOperation) rightResultSet;
+        	else {
+        		scan = (TableScanOperation) ((ProjectRestrictOperation)rightResultSet).getSource();
+        	}
             SpliceConglomerate conglomerate = scan.scanInformation.getConglomerate();
             int[] columnOrdering = conglomerate.getColumnOrdering();
             List<Integer> keySortIndexes = Lists.newLinkedList();

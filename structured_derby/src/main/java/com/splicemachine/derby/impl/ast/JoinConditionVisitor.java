@@ -6,6 +6,8 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.Optimizable;
@@ -41,6 +43,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
     @Override
     public JoinNode visit(JoinNode j) throws StandardException {
+    	SpliceLogUtils.debug(LOG, "visit joinNode=%s",j);
         AccessPath ap = ((Optimizable) j.getRightResultSet()).getTrulyTheBestAccessPath();
         if (RSUtils.isHashableJoin(ap)){
             if(ap.getJoinStrategy() instanceof HashNestedLoopJoinStrategy)
@@ -175,17 +178,24 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     // Machinery for rewriting predicate column references (for NLJs)
 
     public JoinNode rewriteNLJColumnRefs(JoinNode j) throws StandardException {
+    	if (LOG.isDebugEnabled())
+    		SpliceLogUtils.debug(LOG, "rewriteNLJColumnRefs joinNode=%s" + j);
         List<Predicate> joinPreds = new LinkedList<Predicate>();
 
         // Collect PRs, FBTs until a binary node (Union, Join) found, or end
         Iterable<ResultSetNode> rightsUntilBinary = Iterables.filter(
                 RSUtils.nodesUntilBinaryNode(j.getRightResultSet()),
                 RSUtils.rsnHasPreds);
-
+        
         com.google.common.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
 
+    	if (LOG.isDebugEnabled())
+    		SpliceLogUtils.debug(LOG, "joinScoped joinScoped=%s",joinScoped);
+        
         for (ResultSetNode rsn: rightsUntilBinary) {
-            // Encode whether to pull up predicate to join:
+        	if (LOG.isDebugEnabled())
+        		SpliceLogUtils.debug(LOG, "rewriteNLJColumnRefs rightsUntilBinary=%s",rsn);
+        	// Encode whether to pull up predicate to join:
             //  when can't evaluate on node but can evaluate at join
             com.google.common.base.Predicate<Predicate> predOfInterest =
                     Predicates.and(Predicates.not(evalableAtNode(rsn)), joinScoped);
@@ -195,7 +205,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         }
 
         for (Predicate p: joinPreds) {
-            updatePredColRefsToNode(p, j.getLeftResultSet());
+        	updatePredColRefsToNode(p, j.getLeftResultSet());
         }
         return j;
     }
@@ -239,6 +249,10 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     public Predicate updatePredColRefsToNode(Predicate p, ResultSetNode n)
             throws StandardException
     {
+    	
+    	if (LOG.isDebugEnabled())
+    		SpliceLogUtils.debug(LOG, "updatePredColRefsToNode predicate=%s, resultSetNode=%s",p,n);
+    	
         ResultColumnList rcl = n.getResultColumns();
         Map<Pair<Integer,Integer>, ResultColumn> chain = ColumnUtils.rsnChainMap(rcl);
         List<ColumnReference> predCRs = RSUtils.collectNodes(p, ColumnReference.class);

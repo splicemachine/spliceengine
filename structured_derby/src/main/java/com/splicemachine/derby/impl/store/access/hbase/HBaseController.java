@@ -37,7 +37,6 @@ public class HBaseController  extends SpliceController {
         HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
 		try {
             Put put = SpliceUtils.createPut(SpliceUtils.getUniqueKey(),transID);
-
             encodeRow(row,put,null,null);
             htable.put(put);
 			return 0;
@@ -83,7 +82,6 @@ public class HBaseController  extends SpliceController {
         HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
 		try {
             Put put = SpliceUtils.createPut(loc.getBytes(),transID);
-
             encodeRow(row, put, SpliceUtils.bitSetToMap(validColumns), validColumns);
             htable.put(put);
 			return true;

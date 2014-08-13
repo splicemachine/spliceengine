@@ -138,8 +138,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				out.writeBoolean(serializeRightResultSet);
 				if(serializeRightResultSet)
 						out.writeObject(rightResultSet);
-				if(!serializeRightResultSet||!serializeLeftResultSet){
-						out.writeObject(mergedRow);
+				if(!serializeRightResultSet||!serializeLeftResultSet){					
+					out.writeObject(mergedRow);
 						out.writeObject(leftRow);
 						out.writeObject(rightRow);
                         out.writeObject(mergedRowTemplate);
