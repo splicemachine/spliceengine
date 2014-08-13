@@ -291,6 +291,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numOutputParams(0)
                             .numResultSets(1)
                             .bigint("parentTransactionId") // input
+                            .bigint("conglomId") // input
                             .ownerClass(TransactionAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(childTxnProc);
