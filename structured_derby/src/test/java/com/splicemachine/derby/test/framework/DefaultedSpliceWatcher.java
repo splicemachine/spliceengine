@@ -1,24 +1,10 @@
 package com.splicemachine.derby.test.framework;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
+public class DefaultedSpliceWatcher extends SpliceWatcher {
 
-public class DefaultedSpliceWatcher extends SpliceWatcher{
-
-    private String defaultSchema;
-
-    public DefaultedSpliceWatcher(String schema){
-        defaultSchema = schema.toUpperCase();
+    // TODO: we can get rid of this class now, use the same constructor in SpliceWatcher directly.
+    public DefaultedSpliceWatcher(String schema) {
+        super(schema);
     }
 
-    @Override
-    public TestConnection createConnection() throws Exception {
-        TestConnection conn = super.createConnection();
-
-        PreparedStatement stmt = conn.prepareStatement("SET SCHEMA ?");
-        stmt.setString(1, defaultSchema);
-        stmt.executeUpdate();
-
-        return conn;
-    }
 }

@@ -76,7 +76,6 @@ public class RocketfuelIT {
 						assertCorrectAdsPresent(correctAdIds, watcher);
 				}finally{
 						watcher.closeAll();
-						watcher.closeConnections();
 				}
 		}
 
