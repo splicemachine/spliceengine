@@ -1,6 +1,6 @@
 'use strict';
 
-// Describe the test suite.
+// Suite of unit tests for mainController.
 describe('Controller: mainController', function () {
 
 	// Load the controller's module.
