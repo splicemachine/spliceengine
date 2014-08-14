@@ -290,13 +290,12 @@ public class XPlainTrace1IT extends XPlainTrace {
     }
 
     @Test
-    @Ignore
     public void testNestedLoopJoin() throws Exception {
 
         xPlainTrace.turnOnTrace();
 
-        String sql = "select * from " +
-                      CLASS_NAME + "." + TABLE1 + " t1, " + CLASS_NAME + "." + TABLE2 + " t2 " +
+        String sql = "select t1.i from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                      CLASS_NAME + "." + TABLE1 + " t1, " + CLASS_NAME + "." + TABLE2 + " t2 --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
                       "where t1.i = t2.i*2";
         ResultSet rs = xPlainTrace.executeQuery(sql);
         int count = 0;
@@ -315,7 +314,7 @@ public class XPlainTrace1IT extends XPlainTrace {
         Assert.assertEquals(operation.getChildren().size(), 1);
         operation = operation.getChildren().getFirst();
         operationType = operation.getOperationType();
-        Assert.assertEquals(operationType.compareTo(SpliceXPlainTrace.BROADCASTJOIN), 0);
+        Assert.assertEquals(operationType.compareTo(SpliceXPlainTrace.NESTEDLOOPJOIN), 0);
         Assert.assertEquals(operation.getInputRows(), nrows);
         Assert.assertEquals(operation.getRemoteScanRows(), count);
         Assert.assertEquals(operation.getOutputRows(), count);
@@ -329,14 +328,19 @@ public class XPlainTrace1IT extends XPlainTrace {
         Assert.assertEquals(child.getLocalScanRows(), nrows);
         Assert.assertEquals(child.getOutputRows(), nrows);
 
-        // right child should be a bulk table scan operation
+        // right child should be a project restrict operation
         child = operation.getChildren().getLast();
         operationType = child.getOperationType();
-        Assert.assertEquals(operationType.compareTo(SpliceXPlainTrace.BULKTABLESCAN), 0);
+        Assert.assertTrue(operationType.compareToIgnoreCase(SpliceXPlainTrace.PROJECTRESTRICT)==0);
+
+        child = child.getChildren().getLast();
+        operationType = child.getOperationType();
+        Assert.assertTrue(operationType.contains(SpliceXPlainTrace.TABLESCAN));
         Assert.assertEquals(child.getLocalScanRows(), nrows*nrows);
-        Assert.assertEquals(child.getOutputRows(), count);
-        Assert.assertEquals(child.getFilteredRows(), nrows*nrows - count);
+        Assert.assertEquals(child.getOutputRows(), nrows*nrows);
+        //Assert.assertEquals(child.getFilteredRows(), nrows*nrows - count);
         Assert.assertEquals(child.getIterations(), nrows);
-        Assert.assertTrue(child.getInfo().contains("Scan filter:(T1.I[2:1] = (T2.I[1:1] * 2)), table:"));
+        Assert.assertTrue(child.getInfo().compareToIgnoreCase("table:XPLAINTRACE1IT.TAB2")==0);
+        //Assert.assertTrue(child.getInfo().contains("Scan filter:(T1.I[2:1] = (T2.I[1:1] * 2)), table:"));
     }
 }
