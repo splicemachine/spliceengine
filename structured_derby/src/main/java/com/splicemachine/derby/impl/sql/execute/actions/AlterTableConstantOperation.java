@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutionException;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -19,7 +20,6 @@ import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseController;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
@@ -1756,7 +1756,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                         droppedColumnPosition);
 
         DDLChange ddlChange = new DDLChange(tentativeTransaction.getTransactionIdString(),
-                DDLChange.TentativeType.DROP_COLUMN);
+                DDLChangeType.DROP_COLUMN);
         ddlChange.setTentativeDDLDesc(tentativeDropColumnDesc);
         ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
 
@@ -2364,7 +2364,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                     uniqueWithDuplicateNulls,
                     SpliceUtils.bitSetFromBooleanArray(descColumns));
             DDLChange ddlChange = new DDLChange(tentativeTransaction.getTransactionIdString(),
-                    DDLChange.TentativeType.CREATE_INDEX);
+                    DDLChangeType.CREATE_INDEX);
             ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
             ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
 

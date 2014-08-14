@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.carrotsearch.hppc.BitSet;
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.ddl.*;
 import com.splicemachine.hbase.batch.*;
 import com.splicemachine.si.api.*;
 import org.apache.derby.catalog.IndexDescriptor;
@@ -24,10 +25,6 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.ddl.DDLChange;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.derby.ddl.TentativeIndexDesc;
-import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintHandler;
@@ -43,7 +40,6 @@ import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.concurrent.ResettableCountDownLatch;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.derby.ddl.TentativeDDLDesc;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import com.splicemachine.derby.impl.sql.execute.AlterTable.DropColumnHandler;
 /**
@@ -184,11 +180,11 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     @Override
     public void addDDLChange(DDLChange ddlChange) {
 
-        DDLChange.TentativeType type = ddlChange.getType();
+        DDLChangeType ddlChangeType = ddlChange.getChangeType();
         synchronized (tableWriteLatch){
             tableWriteLatch.reset();
             try{
-                switch (type) {
+                switch (ddlChangeType) {
                     case DROP_COLUMN:
                         dropColumnFactories.add(DropColumnFactory.create(ddlChange));
                         break;
@@ -406,13 +402,13 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 error = true;
             }
             if (error || status.isFinished()) {
-                DDLCoordinationFactory.getController().finishMetadataChange(ddlChange.getIdentifier());
+                DDLCoordinationFactory.getController().finishMetadataChange(ddlChange.getChangeId());
             } else if (ddlDesc.getBaseConglomerateNumber() == congomId) {
 
-                if(ddlChange.getType() == DDLChange.TentativeType.CREATE_INDEX) {
+                if(ddlChange.getChangeType() == DDLChangeType.CREATE_INDEX) {
                     indexFactories.add(IndexFactory.create(ddlChange,columnOrdering,formatIds));
                 }
-                else if (ddlChange.getType() == DDLChange.TentativeType.DROP_COLUMN) {
+                else if (ddlChange.getChangeType() == DDLChangeType.DROP_COLUMN) {
                     dropColumnFactories.add(DropColumnFactory.create(ddlChange));
                 }
             }
@@ -654,7 +650,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         }
 
         public static DropColumnFactory create(DDLChange ddlChange) {
-            if (ddlChange.getType() != DDLChange.TentativeType.DROP_COLUMN)
+            if (ddlChange.getChangeType() != DDLChangeType.DROP_COLUMN)
                 return null;
 
             TentativeDropColumnDesc desc = (TentativeDropColumnDesc)ddlChange.getTentativeDDLDesc();

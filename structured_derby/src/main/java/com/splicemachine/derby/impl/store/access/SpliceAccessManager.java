@@ -478,7 +478,7 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 
     public void startDDLChange(DDLChange ddlChange) {
         cacheDisabled = true;
-        ongoingDDLChanges.put(ddlChange.getIdentifier(), ddlChange);
+        ongoingDDLChanges.put(ddlChange.getChangeId(), ddlChange);
         conglomCacheInvalidate();
     }
 

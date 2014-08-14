@@ -1,48 +1,42 @@
 package com.splicemachine.derby.ddl;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.*;
-
+import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.MoreExecutors;
-import org.apache.derby.iapi.services.context.Context;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.impl.TransactionId;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.iapi.services.context.Context;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.store.access.AccessFactory;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
-import org.apache.zookeeper.ZooDefs;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.utils.ZkUtils;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
+import static com.splicemachine.derby.ddl.ZookeeperDDLWatcherClient.*;
+
+/**
+ * An instance of this class in each region server listens for DDL notifications.
+ */
 public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
 
     private static final Logger LOG = Logger.getLogger(ZookeeperDDLWatcher.class);
 
-    private static final long REFRESH_TIMEOUT = TimeUnit.SECONDS.toMillis(30);
-    private static final long MAXIMUM_DDL_WAIT = TimeUnit.SECONDS.toMillis(90);
+    private static final long REFRESH_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(30);
+    private static final long MAXIMUM_DDL_WAIT_MS = TimeUnit.SECONDS.toMillis(90);
 
     private Set<String> seenDDLChanges = new HashSet<String>();
     private Map<String, Long> changesTimeouts = new HashMap<String, Long>();
@@ -50,8 +44,9 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
     private Map<String, DDLChange> tentativeDDLs = new ConcurrentHashMap<String, DDLChange>();
 
     private String id;
-    private ScheduledExecutorService executor = MoreExecutors.namedSingleThreadScheduledExecutor("ZookeeperDDLWatcherRefresh");
     private SpliceAccessManager accessManager;
+    private ScheduledExecutorService executor = MoreExecutors
+            .namedSingleThreadScheduledExecutor("ZookeeperDDLWatcherRefresh");
 
     @Override
     public synchronized void registerLanguageConnectionContext(LanguageConnectionContext lcc) {
@@ -59,6 +54,160 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
             lcc.startGlobalDDLChange();
         }
     }
+
+    @Override
+    public void start() throws StandardException {
+        createRequiredZooNodes();
+
+        this.id = registerThisServer();
+
+        // run refresh() synchronously the first time
+        refresh();
+
+        executor.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    refresh();
+                } catch (StandardException e) {
+                    LOG.error("Failed to execute refresh", e);
+                }
+            }
+        }, REFRESH_TIMEOUT_MS, REFRESH_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public void process(WatchedEvent event) {
+        if (event.getType().equals(EventType.NodeChildrenChanged)) {
+            try {
+                refresh();
+            } catch (StandardException e) {
+                LOG.error("Couldn't process the ZooKeeper event " + event, e);
+            }
+        }
+    }
+
+    @Override
+    public Set<DDLChange> getTentativeDDLs() {
+        return new HashSet<DDLChange>(tentativeDDLs.values());
+    }
+
+    private synchronized void refresh() throws StandardException {
+        initializeAccessManager();
+
+        // Get all ongoing DDL changes
+        List<String> ongoingDDLChangeIDs = getOngoingDDLChangeIDs(this);
+        boolean currentWasEmpty = currentDDLChanges.isEmpty();
+        Set<DDLChange> newChanges = new HashSet<DDLChange>();
+
+        //
+        // Remove form all records changeIds that are not currently ongoing.
+        //
+        for (Iterator<String> iterator = seenDDLChanges.iterator(); iterator.hasNext(); ) {
+            String seenChangeId = iterator.next();
+            if (!ongoingDDLChangeIDs.contains(seenChangeId)) {
+                LOG.debug("Removing change with id " + seenChangeId);
+                changesTimeouts.remove(seenChangeId);
+                currentDDLChanges.remove(seenChangeId);
+                tentativeDDLs.remove(seenChangeId);
+                iterator.remove();
+                // notify access manager
+                if (accessManager != null) {
+                    accessManager.finishDDLChange(seenChangeId);
+                }
+            }
+        }
+
+        //
+        // Process NEW changeIds that we have not seen.
+        //
+        for (String changeId : ongoingDDLChangeIDs) {
+            if (!seenDDLChanges.contains(changeId)) {
+                DDLChange ddlChange = getOngoingDDLChange(changeId);
+                newChanges.add(ddlChange);
+                LOG.debug("New change with id " + changeId + " :" + ddlChange);
+                seenDDLChanges.add(changeId);
+                if (ddlChange.isTentative()) {
+                    // isTentative means we never add to currentDDLChanges or timeouts.  In fact all we do
+                    // is add the DDLChange to tentativeDDLs and make that collection available to others
+                    // on this JVM.
+                    processTentativeDDLChange(changeId, ddlChange);
+                } else {
+                    currentDDLChanges.put(changeId, ddlChange);
+                    changesTimeouts.put(changeId, System.currentTimeMillis());
+                    // notify access manager
+                    if (accessManager != null) {
+                        accessManager.startDDLChange(ddlChange);
+                    }
+                }
+            }
+        }
+
+        //
+        // CASE 1: currentDDLChanges was empty and we added changes.
+        //  OR
+        // CASE 2: currentDDLChanges was NOT empty and we removed everything.
+        //
+        if (currentWasEmpty != currentDDLChanges.isEmpty()) {
+
+            for (LanguageConnectionContext langContext : getLanguageConnectionContexts()) {
+
+                // CASE 2: We are no longer aware of any ongoing DDL changes.
+                if (currentDDLChanges.isEmpty()) {
+                    LOG.debug("Finishing global ddl changes ");
+                    // we can use caches again
+                    langContext.finishGlobalDDLChange();
+                }
+                // CASE 1: DDL changes have started.
+                else {
+                    LOG.debug("Starting global ddl changes, invalidate and disable caches");
+                    // we have to invalidate and disable caches
+                    langContext.startGlobalDDLChange();
+                }
+            }
+
+        }
+
+        //
+        // NEW changes: notify ddl controller we processed the change
+        //
+        for (DDLChange ddlChange : newChanges) {
+            acknowledgeChange(ddlChange.getChangeId(), id);
+        }
+
+        //
+        // Kill DDL transactions that have been ongoing for more than our timeout value.
+        //
+        for (Entry<String, Long> entry : changesTimeouts.entrySet()) {
+            if (System.currentTimeMillis() > entry.getValue() + MAXIMUM_DDL_WAIT_MS) {
+                killDDLTransaction(entry.getKey());
+            }
+        }
+    }
+
+    private void processTentativeDDLChange(String changeId, DDLChange ddlChange) throws StandardException {
+        switch (ddlChange.getChangeType()) {
+            case CREATE_INDEX:
+            case DROP_COLUMN:
+                tentativeDDLs.put(changeId, ddlChange);
+                break;
+            default:
+                throw StandardException.newException(SQLState.UNSUPPORTED_TYPE);
+        }
+    }
+
+    private void killDDLTransaction(String changeId) {
+        try {
+            String transactionId = currentDDLChanges.get(changeId).getTransactionId();
+            LOG.warn("We are killing transaction " + transactionId + " since it exceeds the maximum wait period for"
+                    + " the DDL change " + changeId + " publication");
+            HTransactorFactory.getTransactionManager().fail(new TransactionId(transactionId));
+        } catch (Exception e) {
+            LOG.warn("Couldn't kill transaction, already killed?", e);
+        }
+        deleteChangeNode(changeId);
+    }
+
 
     private void initializeAccessManager() throws StandardException {
         if (accessManager != null) {
@@ -80,191 +229,12 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         }
     }
 
-    @Override
-    public void start() throws StandardException {
-        createZKTree();
-
-        try {
-            String node = ZkUtils.create(SpliceConstants.zkSpliceDDLActiveServersPath + "/", new byte[0],
-                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
-            id = node.substring(node.lastIndexOf('/') + 1);
-        } catch (KeeperException e) {
-            throw Exceptions.parseException(e);
-        } catch (InterruptedException e) {
-            throw Exceptions.parseException(e);
+    private Collection<LanguageConnectionContext> getLanguageConnectionContexts() {
+        Collection<LanguageConnectionContext> result = Lists.newArrayList();
+        List<Context> allContexts = ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+        for (Context c : allContexts) {
+            result.add((LanguageConnectionContext) c);
         }
-
-        // run refresh() synchronously the first time
-        refresh();
-
-        executor.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    refresh();
-                } catch (StandardException e) {
-                    LOG.error("Failed to execute refresh", e);
-                }
-            }
-        }, REFRESH_TIMEOUT, REFRESH_TIMEOUT, TimeUnit.MILLISECONDS);
-    }
-
-    private void createZKTree() throws StandardException {
-        for (String path : new String[] { SpliceConstants.zkSpliceDDLPath,
-                SpliceConstants.zkSpliceDDLOngoingTransactionsPath, SpliceConstants.zkSpliceDDLActiveServersPath }) {
-            try {
-                ZkUtils.create(path, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-            } catch (KeeperException e) {
-                if (!e.code().equals(Code.NODEEXISTS)) {
-                    throw Exceptions.parseException(e);
-                }
-            } catch (InterruptedException e) {
-                throw Exceptions.parseException(e);
-            }
-        }
-    }
-
-    @Override
-    public void process(WatchedEvent event) {
-        if (event.getType().equals(EventType.NodeChildrenChanged)) {
-            try {
-                refresh();
-            } catch (StandardException e) {
-                LOG.error("Couldn't process the ZooKeeper event " + event, e);
-            }
-        }
-    }
-
-    private synchronized void refresh() throws StandardException {
-        initializeAccessManager();
-
-        // Get all ongoing DDL changes
-        List<String> children;
-        try {
-            children = ZkUtils.getChildren(SpliceConstants.zkSpliceDDLOngoingTransactionsPath, this);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-        boolean currentWasEmpty = currentDDLChanges.isEmpty();
-        Set<String> newChanges = new HashSet<String>();
-
-        // remove finished ddl changes
-        for (Iterator<String> iterator = seenDDLChanges.iterator(); iterator.hasNext();) {
-            String entry = iterator.next();
-            if (!children.contains(entry)) {
-                LOG.debug("Removing change with id " + entry);
-                changesTimeouts.remove(entry);
-                currentDDLChanges.remove(entry);
-                tentativeDDLs.remove(entry);
-                iterator.remove();
-                // notify access manager
-                if (accessManager != null) {
-                    accessManager.finishDDLChange(entry);
-                }
-            }
-        }
-        for (String changeId : children) {
-            if (!seenDDLChanges.contains(changeId)) {
-                byte[] data;
-                try {
-                    data = ZkUtils.getData(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + changeId);
-                } catch (IOException e) {
-                    throw Exceptions.parseException(e);
-                }
-                String jsonChange = Bytes.toString(data);
-                LOG.debug("New change with id " + changeId + " :" + jsonChange);
-                DDLChange ddlChange = DDLCoordinationFactory.GSON.fromJson(jsonChange, DDLChange.class);
-                ddlChange.setIdentifier(changeId);
-                newChanges.add(changeId);
-                seenDDLChanges.add(changeId);
-                if (ddlChange.isTentative()) {
-                    processTentativeDDLChange(changeId, ddlChange);
-                } else {
-                    currentDDLChanges.put(changeId, ddlChange);
-                    changesTimeouts.put(changeId, System.currentTimeMillis());
-                    // notify access manager
-                    if (accessManager != null) {
-                        accessManager.startDDLChange(ddlChange);
-                    }
-                }
-            }
-        }
-
-        if (currentWasEmpty != currentDDLChanges.isEmpty()) {
-
-            List<Context> contexts = ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
-            LOG.debug("Context count = " + contexts.size());
-            for (Context context : contexts) {
-                LanguageConnectionContext langContext = (LanguageConnectionContext) context;
-                if (currentDDLChanges.isEmpty()) {
-                    LOG.debug("Finishing global ddl changes ");
-                    // we can use caches again
-                    langContext.finishGlobalDDLChange();
-                } else {
-                    LOG.debug("Starting global ddl changes, invalidate and disable caches");
-                    // we have to invalidate and disable caches
-                    langContext.startGlobalDDLChange();
-                }
-            }
-
-        }
-
-        // notify ddl operation we processed the change
-        for (String change : newChanges) {
-            try {
-                ZkUtils.create(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + change + "/" + id,
-                        new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
-            } catch (KeeperException e) {
-                switch(e.code()) {
-                    case NODEEXISTS: //we may have already set the value, so ignore node exists issues
-                    case NONODE: // someone already removed the notification, it's obsolete
-                        // ignore
-                        break;
-                    default:
-                        throw Exceptions.parseException(e);
-                }
-            } catch (InterruptedException e) {
-                throw Exceptions.parseException(e);
-            }
-        }
-
-        for (Entry<String, Long> entry : changesTimeouts.entrySet()) {
-            if (System.currentTimeMillis() > entry.getValue() + MAXIMUM_DDL_WAIT) {
-                killDDLTransaction(entry.getKey());
-            }
-        }
-    }
-
-    private void processTentativeDDLChange(String changeId, DDLChange ddlChange) throws StandardException {
-        switch (ddlChange.getType()) {
-            case CREATE_INDEX:
-            case DROP_COLUMN:
-                tentativeDDLs.put(changeId, ddlChange);
-                break;
-            default:
-                throw StandardException.newException(SQLState.UNSUPPORTED_TYPE);
-        }
-    }
-
-    private void killDDLTransaction(String changeId) {
-        try {
-            String transactionId = currentDDLChanges.get(changeId).getTransactionId();
-            LOG.warn("We are killing transaction " + transactionId + " since it exceeds the maximum wait period for"
-                    + " the DDL change " + changeId + " publication");
-            HTransactorFactory.getTransactionManager().fail(new TransactionId(transactionId));
-        } catch (Exception e) {
-            LOG.warn("Couldn't kill transaction, already killed?", e);
-        }
-        final String changePath = SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + changeId;
-        try {
-            ZkUtils.recursiveDelete(changePath);
-        } catch (Exception e) {
-            LOG.error("Couldn't kill transaction for DDL change " + changeId, e);
-        }
-    }
-
-    @Override
-    public Set<DDLChange> getTentativeDDLs() {
-        return new HashSet<DDLChange>(tentativeDDLs.values());
+        return result;
     }
 }
