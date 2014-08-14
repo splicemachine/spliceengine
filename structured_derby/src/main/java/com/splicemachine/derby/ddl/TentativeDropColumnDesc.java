@@ -9,11 +9,7 @@ import java.io.ObjectOutput;
 import org.apache.derby.catalog.UUID;
 
 /**
- * Created with IntelliJ IDEA.
- * User: jyuan
- * Date: 2/10/14
- * Time: 10:43 PM
- * To change this template use File | Settings | File Templates.
+ * Drop column.
  */
 public class TentativeDropColumnDesc implements TentativeDDLDesc, Externalizable{
     private UUID tableId;

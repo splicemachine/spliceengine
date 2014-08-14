@@ -60,4 +60,16 @@ public class DDLChange implements Serializable {
     public void setIdentifier(String identifier) {
         this.identifier = identifier;
     }
+
+    @Override
+    public String toString() {
+        return "DDLChange{" +
+                "transactionId='" + transactionId + '\'' +
+                ", parentTransactionId='" + parentTransactionId + '\'' +
+                ", type=" + type +
+                ", tentative=" + tentative +
+                ", tentativeDDLDesc=" + tentativeDDLDesc +
+                ", identifier='" + identifier + '\'' +
+                '}';
+    }
 }
