@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.test.SlowTest;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -9,6 +10,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -56,13 +58,7 @@ public class StddevSplitIT extends SpliceUnitTest {
                 String.format("select * from %s", this.getTableReference(TABLE_NAME)));
         Assert.assertEquals(1000, resultSetSize(resultSet));
         resultSet.close();
-        
-        /*conn.createStatement().execute(
-                String.format("create derby aggregate StddevSplitIT.stddevpop for double external name \'com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevPop\'"));
 
-        conn.createStatement().execute(
-                String.format("create derby aggregate StddevSplitIT.stddevsamp for double external name \'com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevSamp\'"));*/
-        
         spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, 250);
         spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, 500);
         spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, 750);
@@ -72,6 +68,9 @@ public class StddevSplitIT extends SpliceUnitTest {
     @Test
     public void test() throws Exception {
     	Connection conn = methodWatcher.createConnection();
+
+        conn.createStatement().execute("call SYSCS_UTIL.SYSCS_PURGE_XPLAIN_TRACE()");
+
     	ResultSet rs = conn.createStatement().executeQuery(
                 String.format("select stddev_pop(i) from %s", this.getTableReference(TABLE_NAME)));
 
@@ -86,32 +85,32 @@ public class StddevSplitIT extends SpliceUnitTest {
         while(rs.next()){
             Assert.assertEquals((int)rs.getDouble(1), 2);
         }
+        rs.close();
+
+        Thread.sleep(5000);
+
+        int numRegions = getNumOfRegions(CLASS_NAME, TABLE_NAME);
 
         rs = conn.createStatement().executeQuery(
                 String.format("select count(*) from sys.sysstatementhistory"));
 
-        while(rs.next()){
-            Assert.assertTrue(rs.getInt(1)>0);
+        int count = 0;
+        if(rs.next()){
+            count = rs.getInt(1);
+        }
+        rs.close();
+
+        if (numRegions >=3) {
+            Assert.assertTrue(count > 0);
         }
     }
 
-    void wait(byte[] name) throws IOException, InterruptedException {
-
+    private int getNumOfRegions(String schemaName, String tableName) throws Exception {
+        long conglomId = spliceClassWatcher.getConglomId(tableName, schemaName);
         HBaseAdmin admin = SpliceUtils.getAdmin();
-        boolean isSplitting=true;
-        while(isSplitting){
-            isSplitting=false;
-            List<HRegionInfo> regions = admin.getTableRegions(name);
-            if (regions != null) {
-                for(HRegionInfo region:regions){
-                    if(region.isSplit()){
-                        isSplitting=true;
-                        break;
-                    }
-                }
-            } else {
-                isSplitting = true;
-            }
-            Thread.sleep(500);
-        }
-}    }
+        List<HRegionInfo> regions = admin.getTableRegions(Bytes.toBytes(Long.toString(conglomId)));
+
+        return regions.size();
+    }
+
+}
