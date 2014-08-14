@@ -6,6 +6,7 @@ import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.si.impl.InheritingTxnView;
 import com.splicemachine.si.impl.LazyTxn;
@@ -26,7 +27,7 @@ public class BulkWrite implements Externalizable {
     private static SnappyCodec snappy;
     private ObjectArrayList<KVPair> mutations;
 //    private String txnId;
-		private Txn txn;
+		private TxnView txn;
     private byte[] regionKey;
     private long bufferSize = -1;
 
@@ -36,13 +37,13 @@ public class BulkWrite implements Externalizable {
     
     public BulkWrite() { }
 
-    public BulkWrite(ObjectArrayList<KVPair> mutations, Txn txn,byte[] regionKey) {
+    public BulkWrite(ObjectArrayList<KVPair> mutations, TxnView txn,byte[] regionKey) {
         this.mutations = mutations;
         this.regionKey = regionKey;
 				this.txn = txn;
     }
 
-    public BulkWrite(Txn txn, byte[] regionKey){
+    public BulkWrite(TxnView txn, byte[] regionKey){
         this.regionKey = regionKey;
         this.mutations = ObjectArrayList.newInstance();
 				this.txn = txn;
@@ -56,7 +57,7 @@ public class BulkWrite implements Externalizable {
 //        return txnId;
 //    }
 
-		public Txn getTxn(){ return txn; }
+		public TxnView getTxn(){ return txn; }
 
     public byte[] getRegionKey() {
         return regionKey;
@@ -126,7 +127,7 @@ public class BulkWrite implements Externalizable {
 				Output output = new Output(1024,-1);
 				output.writeLong(txn.getTxnId());
 				output.writeLong(txn.getBeginTimestamp());
-				output.writeLong(txn.getParentTransaction().getTxnId());
+				output.writeLong(txn.getParentTxnId());
 				output.writeBoolean(txn.isAdditive());
 				Object[] buffer = mutations.buffer;
 				int size = mutations.size();
@@ -146,11 +147,11 @@ public class BulkWrite implements Externalizable {
 				long parentTxnId = input.readLong();
 				boolean additive = input.readBoolean();
 
-        Txn parentTxn;
+        TxnView parentTxn;
         if(parentTxnId>=0) parentTxn = new ActiveWriteTxn(parentTxnId,parentTxnId);
         else parentTxn = Txn.ROOT_TRANSACTION;
 
-        Txn writeTxn = new ActiveWriteTxn(txnId,beginTs,parentTxn,additive);
+        TxnView writeTxn = new ActiveWriteTxn(txnId,beginTs,parentTxn,additive);
 				ObjectArrayList<KVPair> mutations = new ObjectArrayList<KVPair>();
 				while(input.available()>0){
 						mutations.add(KVPair.fromBytes(input));

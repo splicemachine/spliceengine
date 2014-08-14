@@ -14,6 +14,7 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.job.Task;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -67,7 +68,7 @@ public class DropColumnJob implements CoprocessorJob {
     }
 
     @Override
-    public Txn getTxn() {
+    public TxnView getTxn() {
         return ddlChange.getTxn();
     }
 }

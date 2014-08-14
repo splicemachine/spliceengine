@@ -12,6 +12,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
@@ -351,7 +352,7 @@ final class BulkWriteAction implements Callable<WriteStats> {
 				return Collections.emptyList();
     }
 
-    private List<BulkWrite> retryFailedWrites(int tries, Txn txn, ObjectArrayList<KVPair> failedWrites) throws Exception {
+    private List<BulkWrite> retryFailedWrites(int tries, TxnView txn, ObjectArrayList<KVPair> failedWrites) throws Exception {
         if(tries<0)
             throw new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
 				List<BulkWrite> newBuckets = getBulkWrites(txn);
@@ -372,7 +373,7 @@ final class BulkWriteAction implements Callable<WriteStats> {
         }
     }
 
-		private List<BulkWrite> getBulkWrites(Txn txn) throws Exception {
+		private List<BulkWrite> getBulkWrites(TxnView txn) throws Exception {
 				Set<HRegionInfo> regionInfo = getRegionsFromCache(writeConfiguration.getMaximumRetries());
 				return getWriteBuckets(txn, regionInfo);
 		}
@@ -381,7 +382,7 @@ final class BulkWriteAction implements Callable<WriteStats> {
         return retryFailedWrites(tries, bulkWrite.getTxn(), bulkWrite.getMutations());
     }
 
-    private List<BulkWrite> getWriteBuckets(Txn txn,Set<HRegionInfo> regionInfos){
+    private List<BulkWrite> getWriteBuckets(TxnView txn,Set<HRegionInfo> regionInfos){
         List<BulkWrite> writes = Lists.newArrayListWithCapacity(regionInfos.size());
         for(HRegionInfo info:regionInfos){
             writes.add(new BulkWrite(txn, info.getStartKey()));

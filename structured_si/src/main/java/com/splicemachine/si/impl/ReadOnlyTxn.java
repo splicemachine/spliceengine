@@ -3,6 +3,7 @@ package com.splicemachine.si.impl;
 import com.splicemachine.si.api.CannotCommitException;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnView;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -12,7 +13,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * Date: 6/18/14
  */
 public class ReadOnlyTxn extends AbstractTxn {
-		private final Txn parentTxn;
+		private final TxnView parentTxn;
 		private AtomicReference<State> state = new AtomicReference<State>(State.ACTIVE);
 
 		private final TxnLifecycleManager tc;
@@ -25,7 +26,7 @@ public class ReadOnlyTxn extends AbstractTxn {
 		}
 
 		public static Txn createReadOnlyTransaction(long txnId,
-																								Txn parentTxn,
+																								TxnView parentTxn,
 																								long beginTs,
 																								IsolationLevel level,
 																								boolean isDependent,
@@ -35,7 +36,7 @@ public class ReadOnlyTxn extends AbstractTxn {
 		}
 
 		public static ReadOnlyTxn createReadOnlyChildTransaction(
-						Txn parentTxn,
+						TxnView parentTxn,
 						TxnLifecycleManager tc,
 						boolean dependent,
 						boolean additive){
@@ -54,7 +55,7 @@ public class ReadOnlyTxn extends AbstractTxn {
 		protected ReadOnlyTxn(long txnId,
 											 long beginTimestamp,
 											 IsolationLevel isolationLevel,
-											 Txn parentTxn,
+											 TxnView parentTxn,
 											 TxnLifecycleManager tc,
 											 boolean dependent,
 											 boolean additive) {
@@ -90,9 +91,9 @@ public class ReadOnlyTxn extends AbstractTxn {
 				return -1l; //read-only transactions do not need to commit, so they don't need a TxnId
 		}
 
-		@Override public Txn getParentTransaction() { return parentTxn; }
+    @Override public TxnView getParentTxnView() { return parentTxn; }
 
-		@Override public State getState() { return state.get(); }
+    @Override public State getState() { return state.get(); }
 
 		@Override
 		public void commit() throws IOException {

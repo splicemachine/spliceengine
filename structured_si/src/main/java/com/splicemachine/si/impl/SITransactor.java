@@ -235,7 +235,7 @@ public class SITransactor<Table,
 																						Collection<KVPair> toProcess,
 																						long txnId,
 																						ConstraintChecker constraintChecker) throws IOException {
-				Txn txn = transactionStore.getTransaction(txnId);
+				TxnView txn = transactionStore.getTransaction(txnId);
 				ensureTransactionAllowsWrites(txnId,txn);
 				return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker);
 		}
@@ -243,7 +243,7 @@ public class SITransactor<Table,
 		@Override
 		public OperationStatus[] processKvBatch(Table table,
 																						RollForward rollForwardQueue,
-																						Txn txn,
+																						TxnView txn,
 																						byte[] family, byte[] qualifier,
 																						Collection<KVPair> mutations,
 																						ConstraintChecker constraintChecker) throws IOException {
@@ -267,7 +267,7 @@ public class SITransactor<Table,
 
 		protected OperationStatus[] processInternal(Table table,
                                                 RollForward rollForwardQueue,
-                                                Txn txn,
+                                                TxnView txn,
                                                 byte[] family, byte[] qualifier,
                                                 Collection<KVPair> mutations,
                                                 ConstraintChecker constraintChecker) throws IOException {
@@ -352,7 +352,7 @@ public class SITransactor<Table,
                                                                                    RollForward rollForwardQueue,
                                                                                    Pair<KVPair, Integer>[] dataAndLocks,
                                                                                    Set<Long>[] conflictingChildren,
-                                                                                   Txn transaction,
+                                                                                   TxnView transaction,
                                                                                    byte[] family, byte[] qualifier,
                                                                                    ConstraintChecker constraintChecker,
                                                                                    TxnFilter constraintStateFilter,
@@ -459,7 +459,7 @@ public class SITransactor<Table,
 
 		private Mutation getMutationToRun(Table table,RollForward rollForwardQueue, KVPair kvPair,
 																			byte[] family, byte[] column,
-																			Txn transaction, ConflictResults conflictResults) throws IOException{
+																			TxnView transaction, ConflictResults conflictResults) throws IOException{
 				long txnIdLong = transaction.getTxnId();
 				Put newPut;
 				if(kvPair.getType() == KVPair.Type.EMPTY_COLUMN){
@@ -509,7 +509,7 @@ public class SITransactor<Table,
      * While we hold the lock on the row, check to make sure that no transactions have updated the row since the
      * updating transaction started.
      */
-    private ConflictResults ensureNoWriteConflict(Txn updateTransaction, Result result) throws IOException {
+    private ConflictResults ensureNoWriteConflict(TxnView updateTransaction, Result result) throws IOException {
     	// XXX TODO jleach: Create a filter to determine this conflict, no reason to materialize a lot of data across the wire.
     	final ConflictResults timestampConflicts = checkTimestampsHandleNull(updateTransaction,result.getColumnLatest(
     			SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES),
@@ -526,7 +526,10 @@ public class SITransactor<Table,
 		}
 
 
-		private ConflictResults checkTimestampsHandleNull(Txn updateTransaction, KeyValue dataCommitKeyValue, KeyValue tombstoneKeyValue, KeyValue dataKeyValue) throws IOException {
+		private ConflictResults checkTimestampsHandleNull(TxnView updateTransaction,
+                                                      KeyValue dataCommitKeyValue,
+                                                      KeyValue tombstoneKeyValue,
+                                                      KeyValue dataKeyValue) throws IOException {
         if (dataCommitKeyValue == null && dataKeyValue == null && tombstoneKeyValue == null) {
             return new ConflictResults(Collections.<Long>emptySet(),Collections.<Long>emptySet(), null);
         } else {
@@ -537,7 +540,7 @@ public class SITransactor<Table,
     /**
 		 * Look at all of the values in the "commitTimestamp" column to see if there are write collisions.
 		 */
-		private ConflictResults checkCommitTimestampsForConflicts(Txn updateTransaction, KeyValue dataCommitKeyValue, KeyValue tombstoneKeyValue, KeyValue dataKeyValue)
+		private ConflictResults checkCommitTimestampsForConflicts(TxnView updateTransaction, KeyValue dataCommitKeyValue, KeyValue tombstoneKeyValue, KeyValue dataKeyValue)
 						throws IOException {
 				@SuppressWarnings("unchecked") Set<Long>[] conflicts = new Set[2]; // auto boxing XXX TODO Jleach
 				if (dataCommitKeyValue != null) {
@@ -554,14 +557,14 @@ public class SITransactor<Table,
 		}
 
 		@SuppressWarnings("StatementWithEmptyBody")
-		private void checkCommitTimestampForConflict(Txn updateTransaction,Set<Long>[] conflicts, KeyValue dataCommitKeyValue)
+		private void checkCommitTimestampForConflict(TxnView updateTransaction,Set<Long>[] conflicts, KeyValue dataCommitKeyValue)
 						throws IOException {
 				final long dataTransactionId = dataCommitKeyValue.getTimestamp();
 				if (updateTransaction.getTxnId() !=(dataTransactionId)) {
 						final byte[] commitTimestampValue = dataCommitKeyValue.getValue();
 						if (dataStore.isSINull(dataCommitKeyValue)) {
 								// Unknown transaction status
-								final Txn dataTransaction = transactionStore.getTransaction(dataTransactionId);
+								final TxnView dataTransaction = transactionStore.getTransaction(dataTransactionId);
 								if (dataTransaction.getState().isFinal()) {
 										// Transaction is now in a final state so asynchronously update the data row with the status
 										if(conflicts[0]==null)
@@ -595,11 +598,11 @@ public class SITransactor<Table,
 				}
 		}
 
-	private void checkDataForConflict(Txn updateTransaction,Set<Long>[] conflicts, KeyValue dataCommitKeyValue)
+	private void checkDataForConflict(TxnView updateTransaction,Set<Long>[] conflicts, KeyValue dataCommitKeyValue)
             throws IOException {
         final long dataTransactionId = dataCommitKeyValue.getTimestamp();
         if (updateTransaction.getTxnId() !=(dataTransactionId)) {
-                final Txn dataTransaction = transactionStore.getTransaction(dataTransactionId);
+                final TxnView dataTransaction = transactionStore.getTransaction(dataTransactionId);
                 if (dataTransaction.getState().isFinal()) {
                     // Transaction is now in a final state so asynchronously update the data row with the status
 										if(conflicts[0]==null)
@@ -631,7 +634,7 @@ public class SITransactor<Table,
      * @return true if there is a conflict
      * @throws IOException if something goes wrong fetching transaction information
      */
-    private boolean doubleCheckConflict(Txn updateTransaction, Txn dataTransaction) throws IOException {
+    private boolean doubleCheckConflict(TxnView updateTransaction, TxnView dataTransaction) throws IOException {
 				//in the new system, timeouts are rolled back on the coprocessor side
 //        // If the transaction has timed out then it might be possible to make it fail and proceed without conflict.
 //        if (checkTransactionTimeout(dataTransaction)) {
@@ -662,7 +665,7 @@ public class SITransactor<Table,
     /**
      * Determine if the dataTransaction conflicts with the updateTransaction.
      */
-    private ConflictType checkTransactionConflict(Txn updateTransaction, Txn dataTransaction)
+    private ConflictType checkTransactionConflict(TxnView updateTransaction, TxnView dataTransaction)
             throws IOException {
         if (updateTransaction.equals(dataTransaction) || updateTransaction.isAdditive() || dataTransaction.isAdditive()) {
             return ConflictType.NONE;
@@ -688,7 +691,7 @@ public class SITransactor<Table,
         return dataStore.getSINeededAttribute(operation) != null;
     }
 
-		private void ensureTransactionAllowsWrites(long txnId,Txn transaction) throws IOException {
+		private void ensureTransactionAllowsWrites(long txnId,TxnView transaction) throws IOException {
 				if (transaction==null || !transaction.allowsWrites()) {
 						throw new ReadOnlyModificationException("transaction is read only: " + txnId);
 				}

@@ -6,6 +6,9 @@ import com.splicemachine.collections.NullStopIterator;
 import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.metrics.*;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.stream.BaseCloseableStream;
+import com.splicemachine.stream.CloseableStream;
+import com.splicemachine.stream.StreamException;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 import org.apache.hadoop.hbase.client.Result;
@@ -124,6 +127,22 @@ public class GatheringScanner implements AsyncScanner {
                 submitNewScans();
             return kvs;
         }
+    }
+
+    @Override
+    public CloseableStream<List<KeyValue>> stream() {
+        return new BaseCloseableStream<List<KeyValue>>() {
+            @Override public void close() throws IOException { GatheringScanner.this.close(); }
+
+            @Override
+            public List<KeyValue> next() throws StreamException {
+                try {
+                    return nextKeyValues();
+                } catch (IOException e) {
+                    throw new StreamException(e);
+                }
+            }
+        };
     }
 
     protected boolean submitNewScans() {

@@ -15,6 +15,7 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.log4j.Logger;
 import org.apache.derby.catalog.UUID;
@@ -29,7 +30,7 @@ public class DropColumnHandler implements WriteHandler {
     private RecordingCallBuffer<KVPair> writeBuffer;
     private UUID tableId;
     private long toConglomId;
-		private Txn txn;
+		private TxnView txn;
     private ColumnInfo[] columnInfos;
     private int droppedColumnPosition;
     private RowTransformer rowTransformer;
@@ -38,7 +39,7 @@ public class DropColumnHandler implements WriteHandler {
 
     public DropColumnHandler(UUID tableId,
                              long toConglomId,
-														 Txn txn,
+														 TxnView txn,
                              ColumnInfo[] columnInfos,
                              int droppedColumnPosition) {
         this.tableId = tableId;

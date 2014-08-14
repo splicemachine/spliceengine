@@ -59,12 +59,12 @@ public class TxnRegion implements TransactionalRegion {
 		}
 
 		@Override
-		public TxnFilter unpackedFilter(Txn txn) throws IOException {
+		public TxnFilter unpackedFilter(TxnView txn) throws IOException {
 				return new SimpleTxnFilter(txnSupplier,txn,readResolver,dataStore);
 		}
 
 		@Override
-		public TxnFilter packedFilter(Txn txn, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
+		public TxnFilter packedFilter(TxnView txn, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
 				return new PackedTxnFilter(unpackedFilter(txn),new HRowAccumulator(predicateFilter,new EntryDecoder(),countStar));
 		}
 
@@ -110,7 +110,7 @@ public class TxnRegion implements TransactionalRegion {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public OperationStatus[] bulkWrite(Txn txn,
+		public OperationStatus[] bulkWrite(TxnView txn,
 																			 byte[] family, byte[] qualifier,
 																			 ConstraintChecker constraintChecker, //TODO -sf- can we encapsulate this as well?
 																			 Collection<KVPair> data) throws IOException {
@@ -129,7 +129,7 @@ public class TxnRegion implements TransactionalRegion {
 
 		@Override public String getRegionName() { return region.getRegionNameAsString(); }
 
-		private Mutation getMutation(KVPair kvPair, Txn txn) throws IOException {
+		private Mutation getMutation(KVPair kvPair, TxnView txn) throws IOException {
 				assert kvPair.getType()== KVPair.Type.INSERT: "Performing an update/delete on a non-transactional table";
 				Put put = new Put(kvPair.getRow());
 				put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES,txn.getTxnId(),kvPair.getValue());

@@ -1,10 +1,11 @@
 package com.splicemachine.si.impl;
 
+import com.google.common.collect.Iterators;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.ByteSlice;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.Iterator;
 
 /**
  * Transaction which is partially constructed, but which looks up values in order
@@ -16,27 +17,27 @@ import java.util.Collections;
  * @author Scott Fines
  * Date: 6/19/14
  */
-public class InheritingTxnView extends AbstractTxn {
+public class InheritingTxnView extends AbstractTxnView {
 		private final boolean hasDependent;
 		private final boolean isDependent;
 		private final boolean hasAdditive;
 		private final boolean isAdditive;
 
-		private final Txn parentTxn;
+		private final TxnView parentTxn;
 		private final long commitTimestamp;
-		private final State state;
+		private final Txn.State state;
 		private final boolean allowWrites;
 		private final boolean hasAllowWrites;
 		private long globalCommitTimestamp;
 
-		private final Collection<byte[]> destinationTables;
+		private final Iterator<ByteSlice> destinationTables;
 
     private final long lastKaTime;
 
 		public InheritingTxnView(Txn parentTxn,
 														 long txnId,long beginTimestamp,
-														 IsolationLevel isolationLevel,
-														 State state){
+														 Txn.IsolationLevel isolationLevel,
+														 Txn.State state){
 				this(parentTxn,
 								txnId,
 								beginTimestamp,
@@ -44,31 +45,31 @@ public class InheritingTxnView extends AbstractTxn {
 								false,false,false,false,false,false,-1l,-1l,state);
 		}
 
-		public InheritingTxnView(Txn parentTxn,
+		public InheritingTxnView(TxnView parentTxn,
 														 long txnId, long beginTimestamp,
-														 IsolationLevel isolationLevel,
+														 Txn.IsolationLevel isolationLevel,
 														 boolean hasDependent, boolean isDependent,
 														 boolean hasAdditive, boolean isAdditive,
 														 boolean hasAllowWrites,boolean allowWrites,
 														 long commitTimestamp,long globalCommitTimestamp,
-														 State state) {
+														 Txn.State state) {
 			this(parentTxn, txnId, beginTimestamp, isolationLevel,
 							hasDependent, isDependent,
 							hasAdditive, isAdditive,
 							hasAllowWrites, allowWrites,
 							commitTimestamp, globalCommitTimestamp,
-							state, Collections.<byte[]>emptyList());
+							state, Iterators.<ByteSlice>emptyIterator());
 		}
 
-    public InheritingTxnView(Txn parentTxn,
+    public InheritingTxnView(TxnView parentTxn,
                              long txnId, long beginTimestamp,
-                             IsolationLevel isolationLevel,
+                             Txn.IsolationLevel isolationLevel,
                              boolean hasDependent, boolean isDependent,
                              boolean hasAdditive, boolean isAdditive,
                              boolean hasAllowWrites,boolean allowWrites,
                              long commitTimestamp,long globalCommitTimestamp,
-                             State state,
-                             Collection<byte[]> destinationTables) {
+                             Txn.State state,
+                             Iterator<ByteSlice> destinationTables) {
         this(parentTxn, txnId, beginTimestamp, isolationLevel,
                 hasDependent, isDependent,
                 hasAdditive, isAdditive,
@@ -77,15 +78,15 @@ public class InheritingTxnView extends AbstractTxn {
                 state,destinationTables,-1l);
     }
 
-		public InheritingTxnView(Txn parentTxn,
+		public InheritingTxnView(TxnView parentTxn,
 														 long txnId, long beginTimestamp,
-														 IsolationLevel isolationLevel,
+														 Txn.IsolationLevel isolationLevel,
 														 boolean hasDependent, boolean isDependent,
 														 boolean hasAdditive, boolean isAdditive,
 														 boolean hasAllowWrites,boolean allowWrites,
 														 long commitTimestamp,long globalCommitTimestamp,
-														 State state,
-														 Collection<byte[]> destinationTables,
+														 Txn.State state,
+														 Iterator<ByteSlice> destinationTables,
                              long lastKaTime) {
 				super(txnId, beginTimestamp, isolationLevel);
 				this.hasDependent = hasDependent;
@@ -105,7 +106,7 @@ public class InheritingTxnView extends AbstractTxn {
     @Override public long getLastKeepAliveTimestamp() { return lastKaTime; }
 
     @Override
-		public Collection<byte[]> getDestinationTables() {
+		public Iterator<ByteSlice> getDestinationTables() {
 				return destinationTables;
 		}
 
@@ -128,14 +129,19 @@ public class InheritingTxnView extends AbstractTxn {
 		}
 
 		@Override
-		public IsolationLevel getIsolationLevel() {
+		public Txn.IsolationLevel getIsolationLevel() {
 				if(isolationLevel!=null) return isolationLevel;
 				return parentTxn.getIsolationLevel();
 		}
 
 		@Override public long getCommitTimestamp() { return commitTimestamp; }
-		@Override public Txn getParentTransaction() { return parentTxn; }
-		@Override public State getState() { return state; }
+
+    @Override
+    public TxnView getParentTxnView() {
+        return parentTxn;
+    }
+
+    @Override public Txn.State getState() { return state; }
 
 		@Override
 		public long getEffectiveCommitTimestamp() {
@@ -151,20 +157,5 @@ public class InheritingTxnView extends AbstractTxn {
 		public boolean allowsWrites() {
 				if(hasAllowWrites) return allowWrites;
 				return parentTxn.allowsWrites();
-		}
-
-		@Override
-		public void commit() throws IOException {
-			throw new UnsupportedOperationException("Cannot commit a transaction view");
-		}
-
-		@Override
-		public void rollback() throws IOException {
-			throw new UnsupportedOperationException("Cannot rollback a transaction view");
-		}
-
-		@Override
-		public Txn elevateToWritable(byte[] writeTable) throws IOException {
-				throw new UnsupportedOperationException("Cannot elevate a transaction view");
 		}
 }

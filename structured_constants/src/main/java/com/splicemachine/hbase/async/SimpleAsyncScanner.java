@@ -7,6 +7,8 @@ import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.stream.*;
+import com.splicemachine.utils.Source;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 import org.apache.hadoop.hbase.HConstants;
@@ -55,6 +57,25 @@ public class SimpleAsyncScanner implements AsyncScanner,Callback<ArrayList<Array
     public void open() throws IOException {
        //initiate the first scan
         outstandingRequest = scanner.nextRows().addCallback(this);
+    }
+
+    @Override
+    public CloseableStream<List<KeyValue>> stream() {
+        return new BaseCloseableStream<List<KeyValue>>() {
+            @Override
+            public void close() throws IOException {
+                SimpleAsyncScanner.this.close();
+            }
+
+            @Override
+            public List<KeyValue> next() throws StreamException {
+                try {
+                    return nextKeyValues();
+                } catch (Exception e) {
+                    throw new StreamException(e);
+                }
+            }
+        };
     }
 
     @Override public TimeView getRemoteReadTime() { return timer.getTime(); }

@@ -1,10 +1,7 @@
 package com.splicemachine.si.impl.store;
 
 import com.splicemachine.si.SimpleTimestampSource;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnLifecycleManager;
-import com.splicemachine.si.api.TxnStore;
-import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.InMemoryTxnStore;
 import com.splicemachine.si.impl.WritableTxn;
 import org.junit.Assert;
@@ -50,12 +47,12 @@ public class ActiveTxnCacheTest {
 				//fetch the transaction from the underlying store
 				Assert.assertFalse("Cache thinks it already has the item!",store.transactionCached(txn.getTxnId()));
 
-				Txn fromStore = store.getTransaction(txn.getTxnId());
+				TxnView fromStore = store.getTransaction(txn.getTxnId());
 				assertTxnsMatch("Transaction from store is not correct!",txn,fromStore);
 
 				Assert.assertTrue("Cache does not think it is present!",store.transactionCached(txn.getTxnId()));
 
-				Txn fromCache = store.getTransaction(txn.getTxnId());
+				TxnView fromCache = store.getTransaction(txn.getTxnId());
 				assertTxnsMatch("Transaction from store is not correct!",txn,fromCache);
 		}
 
@@ -80,12 +77,12 @@ public class ActiveTxnCacheTest {
         //fetch the transaction from the underlying store
         Assert.assertFalse("Cache thinks it already has the item!",store.transactionCached(txn.getTxnId()));
 
-        Txn fromStore = store.getTransaction(txn.getTxnId());
+        TxnView fromStore = store.getTransaction(txn.getTxnId());
         assertTxnsMatch("Transaction from store is not correct!",txn,fromStore);
 
         Assert.assertFalse("Cache thinks it is present!",store.transactionCached(txn.getTxnId()));
 
-        Txn fromCache = store.getTransaction(txn.getTxnId());
+        TxnView fromCache = store.getTransaction(txn.getTxnId());
         assertTxnsMatch("Transaction from store is not correct!",txn,fromCache);
 
         //make sure that the access count is 2

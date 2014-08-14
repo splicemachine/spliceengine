@@ -2,6 +2,7 @@ package com.splicemachine.si.impl.store;
 
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.LazyTxn;
 
 import java.io.IOException;
@@ -21,7 +22,7 @@ public class LazyTxnSupplier implements TxnSupplier {
 		}
 
 		@Override
-		public Txn getTransaction(long txnId) throws IOException {
+		public TxnView getTransaction(long txnId) throws IOException {
 				if(txnId<0) return Txn.ROOT_TRANSACTION;
 				/*
 				 * When the delegate contains the transaction in it's local cache,
@@ -33,14 +34,14 @@ public class LazyTxnSupplier implements TxnSupplier {
 				 * in case it's not needed (e.g. in case all values are present in the
 				 * child or whatever, so defaults are never needed).
 				 */
-        Txn cached = delegate.getTransactionFromCache(txnId);
+        TxnView cached = delegate.getTransactionFromCache(txnId);
         if(cached!=null) return cached;
 
 				return new LazyTxn(txnId,delegate);
 		}
 
 		@Override
-		public Txn getTransaction(long txnId, boolean getDestinationTables) throws IOException {
+		public TxnView getTransaction(long txnId, boolean getDestinationTables) throws IOException {
 				return getTransaction(txnId);
 		}
 
@@ -50,12 +51,12 @@ public class LazyTxnSupplier implements TxnSupplier {
 		}
 
 		@Override
-		public void cache(Txn toCache) {
+		public void cache(TxnView toCache) {
 				delegate.cache(toCache);
 		}
 
     @Override
-    public Txn getTransactionFromCache(long txnId) {
+    public TxnView getTransactionFromCache(long txnId) {
         return delegate.getTransactionFromCache(txnId);
     }
 }

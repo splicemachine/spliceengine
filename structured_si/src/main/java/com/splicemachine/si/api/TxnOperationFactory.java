@@ -13,17 +13,17 @@ import java.io.IOException;
 public interface TxnOperationFactory {
 
 
-		Put newPut(Txn txn,byte[] rowKey) throws IOException;
+		Put newPut(TxnView txn,byte[] rowKey) throws IOException;
 
-		Scan newScan(Txn txn);
+		Scan newScan(TxnView txn);
 
-		Scan newScan(Txn txn, boolean isCountStar);
+		Scan newScan(TxnView txn, boolean isCountStar);
 
-		Get newGet(Txn txn,byte[] rowKey);
+		Get newGet(TxnView txn,byte[] rowKey);
 
-		Mutation newDelete(Txn txn,byte[] rowKey) throws IOException;
+		Mutation newDelete(TxnView txn,byte[] rowKey) throws IOException;
 
-		Txn fromReads(OperationWithAttributes op) throws IOException;
+		TxnView fromReads(OperationWithAttributes op) throws IOException;
 
-		Txn fromWrites(OperationWithAttributes op) throws IOException;
+		TxnView fromWrites(OperationWithAttributes op) throws IOException;
 }

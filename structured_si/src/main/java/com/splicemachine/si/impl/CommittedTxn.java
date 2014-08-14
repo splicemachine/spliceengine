@@ -14,6 +14,6 @@ import com.splicemachine.si.api.Txn;
  */
 public class CommittedTxn extends InheritingTxnView {
 		public CommittedTxn(long beginTimestamp, long endTimestamp){
-			super(Txn.ROOT_TRANSACTION,beginTimestamp,beginTimestamp,Txn.ROOT_TRANSACTION.getIsolationLevel(),false,false,false,false,false,false,endTimestamp,endTimestamp,State.COMMITTED);
+			super(Txn.ROOT_TRANSACTION,beginTimestamp,beginTimestamp,Txn.ROOT_TRANSACTION.getIsolationLevel(),false,false,false,false,false,false,endTimestamp,endTimestamp, Txn.State.COMMITTED);
 		}
 }

@@ -7,6 +7,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.log4j.Logger;
 
@@ -33,6 +34,8 @@ public class TaskStatus implements Externalizable{
 //    private volatile String errorCode;
 //    private volatile String errorMessage;
     private volatile ErrorTransport errorTransport;
+
+    private TxnView txn;
 
     public static TaskStatus failed(String s) {
         return new TaskStatus(Status.FAILED,new IOException(s));
@@ -62,6 +65,9 @@ public class TaskStatus implements Externalizable{
         }
     }
 
+    public void setTxn(TxnView txn) {
+        this.txn = txn;
+    }
 
     public boolean shouldRetry(){
         return errorTransport.shouldRetry();
@@ -122,18 +128,6 @@ public class TaskStatus implements Externalizable{
     public void setError(Throwable error) {
         error = Exceptions.getRootCause(error);
         this.errorTransport = ErrorTransport.newTransport(error);
-//        this.errorMessage = error.getMessage();
-//        this.errorCode = Exceptions.getErrorCode(error);
-//        if (error instanceof DoNotRetryIOException) {
-//            final String message = error.getMessage();
-//            if (message != null && message.contains("transaction") && message.contains("is not ACTIVE. State is ERROR")) {
-//                this.shouldRetry = true;
-//            } else {
-//                this.shouldRetry = Exceptions.shouldRetry(error);
-//            }
-//        } else {
-//            this.shouldRetry = Exceptions.shouldRetry(error);
-//        }
     }
 
     public void setStats(TaskStats stats){
@@ -150,6 +144,8 @@ public class TaskStatus implements Externalizable{
         out.writeBoolean(stats!=null);
         if(stats!=null)
             out.writeObject(stats);
+        out.writeBoolean(txn!=null);
+
     }
 
     @Override

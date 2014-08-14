@@ -4,6 +4,7 @@ import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.api.TxnView;
 
 import java.io.IOException;
 import java.lang.ref.SoftReference;
@@ -20,7 +21,7 @@ import java.lang.ref.SoftReference;
  * Date: 6/18/14
  */
 public class ActiveTxnCacheSupplier implements TxnSupplier {
-		private final SoftReference<Txn>[] data;
+		private final SoftReference<TxnView>[] data;
 		private int size;
 		private final int maxSize;
 		private final TxnSupplier delegate;
@@ -44,14 +45,14 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
     }
 
 		@Override
-		public Txn getTransaction(long txnId) throws IOException {
+		public TxnView getTransaction(long txnId) throws IOException {
 				return getTransaction(txnId,false);
 		}
 
 		@Override
-		public Txn getTransaction(long txnId, boolean getDestinationTables) throws IOException {
+		public TxnView getTransaction(long txnId, boolean getDestinationTables) throws IOException {
 				int hash = hashFunction.hash(txnId);
-				Txn txn = getFromCache(hash,txnId);
+				TxnView txn = getFromCache(hash,txnId);
 				if(txn!=null) return txn;
 				//bummer, not cached. try delegate
 				txn = delegate.getTransaction(txnId,getDestinationTables);
@@ -65,12 +66,12 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 		@Override
 		public boolean transactionCached(long txnId) {
 				int hash = hashFunction.hash(txnId);
-				Txn txn = getFromCache(hash,txnId);
+				TxnView txn = getFromCache(hash,txnId);
 				return txn!=null;
 		}
 
 		@Override
-		public void cache(Txn toCache) {
+		public void cache(TxnView toCache) {
 //				if(cacheGlobally){
 						delegate.cache(toCache);
 //				}else{
@@ -79,12 +80,12 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 		}
 
     @Override
-    public Txn getTransactionFromCache(long txnId) {
+    public TxnView getTransactionFromCache(long txnId) {
         int hash = hashFunction.hash(txnId);
         return getFromCache(hash,txnId);
     }
 
-    protected void addToCache(int hash, Txn txn) {
+    protected void addToCache(int hash, TxnView txn) {
 				int pos = hash &(data.length-1) ;
 				//cache it for future use
 				if(size==maxSize){
@@ -94,7 +95,7 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 										pos = (pos+1) & (data.length-1);
 										continue;
 								}
-								Txn toEvict = data[i].get();
+								TxnView toEvict = data[i].get();
 								if(toEvict==null){
 										size--; //memory purged an entry for us
 								}
@@ -108,15 +109,15 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 								}
 						}
 				}
-				data[pos] = new SoftReference<Txn>(txn);
+				data[pos] = new SoftReference<TxnView>(txn);
 				size++;
 		}
 
-		private Txn getFromCache(int hash,long txnId){
+		private TxnView getFromCache(int hash,long txnId){
 				int pos = hash & (data.length-1);
 				for(int i=0;i<size;i++){
 						if(data[pos]==null) break; //didn't find it
-						Txn txn = data[pos].get();
+						TxnView txn = data[pos].get();
 						if(txn ==null) {
 								size--; //element was purged for memory reasons
 								continue;

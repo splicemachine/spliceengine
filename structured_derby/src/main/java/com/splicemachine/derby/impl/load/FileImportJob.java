@@ -9,6 +9,7 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.HBaseRegionCache;
 import com.splicemachine.job.Task;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -41,7 +42,7 @@ public class FileImportJob extends ImportJob{
 														long statementId,
 														List<Path> files,
 														long operationId,
-                            Txn txn) {
+                            TxnView txn) {
 				super(table, context, statementId, operationId,txn);
 				this.files = files;
 		}

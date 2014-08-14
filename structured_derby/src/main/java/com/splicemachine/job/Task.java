@@ -1,6 +1,7 @@
 package com.splicemachine.job;
 
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;

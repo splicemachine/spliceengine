@@ -78,7 +78,7 @@ public interface TxnLifecycleManager {
 		 * @return a new transaction with inherited properties
 		 * @throws IOException if something goes wrong in creating the transaction
 		 */
-		public Txn beginChildTransaction(Txn parentTxn, byte[] destinationTable) throws IOException;
+		public Txn beginChildTransaction(TxnView parentTxn, byte[] destinationTable) throws IOException;
 
 		/**
 		 * Create a Child transaction of the parent, inheriting dependent and additive properties.
@@ -95,7 +95,7 @@ public interface TxnLifecycleManager {
 		 * @return a new transaction with inherited properties
 		 * @throws IOException if something goes wrong in creating the transaction
 		 */
-		public Txn beginChildTransaction(Txn parentTxn, Txn.IsolationLevel isolationLevel, byte[] destinationTable) throws IOException;
+		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, byte[] destinationTable) throws IOException;
 
 		/**
 		 * Create a Child transaction of the parent, inheriting the additive property from its parent.
@@ -112,7 +112,7 @@ public interface TxnLifecycleManager {
 		 * @return a new transaction with inherited properties
 		 * @throws IOException if something goes wrong in creating the transaction
 		 */
-		public Txn beginChildTransaction(Txn parentTxn, Txn.IsolationLevel isolationLevel,boolean dependent, byte[] destinationTable) throws IOException;
+		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel,boolean dependent, byte[] destinationTable) throws IOException;
 
 		/**
 		 * Begin a child transaction of the parent.
@@ -128,7 +128,7 @@ public interface TxnLifecycleManager {
 		 * @return a new child transaction
 		 * @throws java.io.IOException if something goes wrong in creating the transaction
 		 */
-		public Txn beginChildTransaction(Txn parentTxn,
+		public Txn beginChildTransaction(TxnView parentTxn,
 																		 Txn.IsolationLevel isolationLevel,
 																		 boolean isDependent,
 																		 boolean additive,

@@ -24,13 +24,14 @@ public interface TransactionalRegion {
 		 * This filter is "Unpacked", in the sense that it will not attempt to deal with packed
 		 * data.
 		 *
-		 * @param txn the transaction to create a filter for
-		 * @return a new transactional filter for the region
+		 *
+     * @param txn the transaction to create a filter for
+     * @return a new transactional filter for the region
 		 * @throws IOException if something goes wrong.
 		 */
-		TxnFilter unpackedFilter(Txn txn) throws IOException;
+		TxnFilter unpackedFilter(TxnView txn) throws IOException;
 
-		TxnFilter packedFilter(Txn txn,EntryPredicateFilter predicateFilter,boolean countStar) throws IOException;
+		TxnFilter packedFilter(TxnView txn,EntryPredicateFilter predicateFilter,boolean countStar) throws IOException;
 
 		DDLFilter ddlFilter(Txn ddlTxn) throws IOException;
 
@@ -51,7 +52,7 @@ public interface TransactionalRegion {
 
 		void updateReadRequests(long readRequests);
 
-		OperationStatus[] bulkWrite(Txn txn,
+		OperationStatus[] bulkWrite(TxnView txn,
 																byte[] family, byte[] qualifier,
 																ConstraintChecker constraintChecker,Collection<KVPair> data) throws IOException;
 

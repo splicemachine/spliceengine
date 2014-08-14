@@ -6,6 +6,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.utils.ByteSlice;
@@ -26,7 +27,7 @@ import java.io.IOException;
  */
 public class SimpleTxnFilter implements TxnFilter {
 		private final TxnSupplier transactionStore;
-		private final Txn myTxn;
+		private final TxnView myTxn;
 		private final DataStore<Mutation,Put,Delete,Get,Scan,IHTable> dataStore;
 		private final ReadResolver readResolver;
 
@@ -38,7 +39,7 @@ public class SimpleTxnFilter implements TxnFilter {
 
 		@SuppressWarnings("unchecked")
 		public SimpleTxnFilter(TxnSupplier transactionStore,
-													 Txn myTxn,
+													 TxnView myTxn,
 													 ReadResolver readResolver,
 													 DataStore dataStore) {
 				this.transactionStore = new ActiveTxnCacheSupplier(transactionStore, SIConstants.activeTransactionCacheSize); //cache active transactions, but only on this thread
@@ -120,7 +121,7 @@ public class SimpleTxnFilter implements TxnFilter {
 					return;
 				}
 
-				Txn t = transactionStore.getTransaction(ts);
+				TxnView t = transactionStore.getTransaction(ts);
 				assert t!=null :"Could not find a transaction for id "+ ts;
 
         //submit it to the resolver to resolve asynchronously
@@ -164,13 +165,13 @@ public class SimpleTxnFilter implements TxnFilter {
 		}
 
 		private boolean isVisible(long txnId) throws IOException {
-				Txn otherTxn = transactionStore.getTransaction(txnId);
+				TxnView otherTxn = transactionStore.getTransaction(txnId);
 				return myTxn.canSee(otherTxn);
 		}
 
 		private void addToAntiTombstoneCache(KeyValue kv) throws IOException {
 				long txnId = kv.getTimestamp();
-				Txn otherTxn = transactionStore.getTransaction(txnId);
+				TxnView otherTxn = transactionStore.getTransaction(txnId);
 				if(myTxn.canSee(otherTxn)){
 						/*
 						 * We can see this anti-tombstone, hooray!
@@ -186,7 +187,7 @@ public class SimpleTxnFilter implements TxnFilter {
 				 * Only add a tombstone to our list if it's actually visible,
 				 * otherwise there's no point, since we can't see it anyway.
 				 */
-				Txn transaction = transactionStore.getTransaction(txnId);
+				TxnView transaction = transactionStore.getTransaction(txnId);
 				if(myTxn.canSee(transaction)){
 						if(!antiTombstonedTxnRows.contains(txnId))
 								tombstonedTxnRows.add(txnId);

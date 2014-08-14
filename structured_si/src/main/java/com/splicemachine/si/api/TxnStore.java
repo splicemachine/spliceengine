@@ -45,6 +45,6 @@ public interface TxnStore extends TxnSupplier {
 
 		long[] getActiveTransactionIds(long minTxnId, long maxTxnId, byte[] table) throws IOException;
 
-    List<Txn> getActiveTransactions(long minTxnid, long maxTxnId,byte[] table) throws IOException;
+    List<TxnView> getActiveTransactions(long minTxnid, long maxTxnId,byte[] table) throws IOException;
 
 }

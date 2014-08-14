@@ -15,6 +15,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnOperationFactory;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.SimpleOperationFactory;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
@@ -104,7 +105,7 @@ public class SpliceUtils extends SpliceUtilities {
         return operationFactory.newScan(txn,countStar);
     }
 
-    public static Get createGet(Txn txn, byte[] row) throws IOException {
+    public static Get createGet(TxnView txn, byte[] row) throws IOException {
         return operationFactory.newGet(txn, row);
     }
 
@@ -155,14 +156,6 @@ public class SpliceUtils extends SpliceUtilities {
 
     public static boolean isDelete(Mutation mutation) {
         return mutation instanceof Delete || mutation.getAttribute(SIConstants.SI_DELETE_PUT)!=null;
-    }
-
-    public static Txn txnForReads(OperationWithAttributes owa) throws IOException {
-        return operationFactory.fromReads(owa);
-    }
-
-    public static Txn txnForWrites(OperationWithAttributes owa) throws IOException {
-        return operationFactory.fromWrites(owa);
     }
 
     public static SpliceObserverInstructions getSpliceObserverInstructions(Scan scan) {

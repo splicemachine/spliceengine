@@ -15,11 +15,12 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.metrics.Timer;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.ActiveWriteTxn;
-import com.splicemachine.stats.Metrics;
-import com.splicemachine.stats.Timer;
-import com.splicemachine.utils.Snowflake;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -111,7 +112,7 @@ public class OperationSink {
 				    encoder = new PairEncoder(keyEncoder,rowHash,dataType);
         }
         try{
-            Txn txn = getTxn(spliceRuntimeContext, destinationTable);
+            TxnView txn = getTxn(spliceRuntimeContext, destinationTable);
 						writeBuffer = operation.transformWriteBuffer(tableWriter.writeBuffer(destinationTable, txn,spliceRuntimeContext));
 
             ExecRow row;
@@ -180,7 +181,7 @@ public class OperationSink {
         return Bytes.equals(destinationTable,context.getTempTable().getTempTableName());
     }
 
-		private Txn getTxn(SpliceRuntimeContext spliceRuntimeContext, byte[] destinationTable) {
+		private TxnView getTxn(SpliceRuntimeContext spliceRuntimeContext, byte[] destinationTable) {
 				byte[] tempTableBytes = spliceRuntimeContext.getTempTable().getTempTableName();
 				if(Bytes.equals(destinationTable, tempTableBytes)){
 						/*

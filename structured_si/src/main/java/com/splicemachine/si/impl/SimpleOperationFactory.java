@@ -3,10 +3,7 @@ package com.splicemachine.si.impl;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.si.api.ReadOnlyModificationException;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnOperationFactory;
-import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.api.*;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -26,7 +23,7 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 		}
 
 		@Override
-		public Put newPut(Txn txn,byte[] rowKey) throws ReadOnlyModificationException {
+		public Put newPut(TxnView txn,byte[] rowKey) throws ReadOnlyModificationException {
 				Put put = new Put(rowKey);
 //				if(txn==null) {
 //						makeNonTransactional(put);
@@ -40,12 +37,12 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 
 
 		@Override
-		public Scan newScan(Txn txn) {
+		public Scan newScan(TxnView txn) {
 				return newScan(txn,false);
 		}
 
 		@Override
-		public Scan newScan(Txn txn, boolean isCountStar) {
+		public Scan newScan(TxnView txn, boolean isCountStar) {
 				Scan scan = new Scan();
 				if(txn==null) {
 						makeNonTransactional(scan);
@@ -56,7 +53,7 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 		}
 
 		@Override
-		public Get newGet(Txn txn,byte[] rowKey) {
+		public Get newGet(TxnView txn,byte[] rowKey) {
 				Get get = new Get(rowKey);
 				if(txn==null){
 						makeNonTransactional(get);
@@ -67,7 +64,7 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 		}
 
 		@Override
-		public Mutation newDelete(Txn txn,byte[] rowKey) throws ReadOnlyModificationException {
+		public Mutation newDelete(TxnView txn,byte[] rowKey) throws ReadOnlyModificationException {
         if(txn==null){
             Delete delete = new Delete(rowKey);
             makeNonTransactional(delete);
@@ -91,7 +88,7 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 				long beginTs = Bytes.toLong(txnData,0,8);
         long parentTxnId = Bytes.toLong(txnData,8,8);
 				Txn.IsolationLevel isoLevel = Txn.IsolationLevel.fromByte(txnData[16]);
-        Txn parentTxn;
+        TxnView parentTxn;
         if(parentTxnId<0 || parentTxnId==beginTs){
             //we are effectively a read-only child of the parent
             parentTxn = Txn.ROOT_TRANSACTION;
@@ -101,34 +98,34 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 		}
 
 		@Override
-		public Txn fromWrites(OperationWithAttributes op) throws IOException {
+		public TxnView fromWrites(OperationWithAttributes op) throws IOException {
 				byte[] txnData = op.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
 				if(txnData==null) return null; //non-transactional
 				long txnId = Bytes.toLong(txnData,0,8);
 				long parentTxnId = Bytes.toLong(txnData,8,8);
 				boolean isAdditive = BytesUtil.toBoolean(txnData,16); //TODO -sf- add this in somehow
-        Txn parentTxn = parentTxnId<0? Txn.ROOT_TRANSACTION : txnSupplier.getTransaction(parentTxnId);
+        TxnView parentTxn = parentTxnId<0? Txn.ROOT_TRANSACTION : txnSupplier.getTransaction(parentTxnId);
 				return new ActiveWriteTxn(txnId,txnId,parentTxn,isAdditive);
 		}
 
 		/******************************************************************************************************************/
 		/*private helper functions*/
-		private void encodeForWrites(OperationWithAttributes op, Txn txn) {
+		private void encodeForWrites(OperationWithAttributes op, TxnView txn) {
 				byte[] data = new byte[17];
 				BytesUtil.longToBytes(txn.getTxnId(),data,0);
-				BytesUtil.longToBytes(txn.getParentTransaction().getTxnId(),data,8);
+				BytesUtil.longToBytes(txn.getParentTxnId(),data,8);
 				data[16] = (byte)(txn.isAdditive()? -1: 0);
 				op.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,data);
         op.setAttribute(SIConstants.SI_NEEDED,SIConstants.SI_NEEDED_VALUE_BYTES);
 		}
 
-		private void encodeForReads(OperationWithAttributes op, Txn txn,boolean isCountStar) {
+		private void encodeForReads(OperationWithAttributes op, TxnView txn,boolean isCountStar) {
 				if(isCountStar)
 						op.setAttribute(SIConstants.SI_COUNT_STAR,SIConstants.TRUE_BYTES);
 
 				byte[] data = new byte[17];
 				BytesUtil.longToBytes(txn.getBeginTimestamp(),data,0);
-        BytesUtil.longToBytes(txn.getParentTransaction().getTxnId(),data,8);
+        BytesUtil.longToBytes(txn.getParentTxnId(),data,8);
 				data[16] = txn.getIsolationLevel().encode();
 
 				op.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,data);

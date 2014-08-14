@@ -6,6 +6,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.ByteBufferArrayUtils;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
@@ -56,10 +57,10 @@ public class TxnTestUtils {
 				}
 		}
 
-		public static void assertTxnsMatch(String baseErrorMessage, Txn correct, Txn actual) {
+		public static void assertTxnsMatch(String baseErrorMessage, TxnView correct, TxnView actual) {
 				if(correct==actual) return; //they are the same object
 				Assert.assertEquals(baseErrorMessage + " TxnIds differ", correct.getTxnId(), actual.getTxnId());
-				assertTxnsMatch(baseErrorMessage + " Parent txns differ: ", correct.getParentTransaction(), actual.getParentTransaction());
+				assertTxnsMatch(baseErrorMessage + " Parent txns differ: ", correct.getParentTxnView(), actual.getParentTxnView());
 				Assert.assertEquals(baseErrorMessage + " Begin timestamps differ", correct.getBeginTimestamp(), actual.getBeginTimestamp());
 				Assert.assertEquals(baseErrorMessage + " Dependent property differs", correct.isDependent(), actual.isDependent());
 				Assert.assertEquals(baseErrorMessage + " Additive property differs", correct.isAdditive(), actual.isAdditive());
@@ -67,17 +68,30 @@ public class TxnTestUtils {
 				Assert.assertEquals(baseErrorMessage + " State differs", correct.getState(), actual.getState());
 				Assert.assertEquals(baseErrorMessage + " Commit timestamp differs", correct.getCommitTimestamp(), actual.getCommitTimestamp());
 				Assert.assertEquals(baseErrorMessage + " Global Commit timestamp differs", correct.getGlobalCommitTimestamp(), actual.getGlobalCommitTimestamp());
-				List<byte[]> correctTables = Lists.newArrayList(correct.getDestinationTables());
-				List<byte[]> actualTables = Lists.newArrayList(actual.getDestinationTables());
+				List<ByteSlice> correctTables = Lists.newArrayList(correct.getDestinationTables());
+				List<ByteSlice> actualTables = Lists.newArrayList(actual.getDestinationTables());
 
-				Collections.sort(correctTables, Bytes.BYTES_COMPARATOR);
-				Collections.sort(actualTables,Bytes.BYTES_COMPARATOR);
+        Comparator<ByteSlice> sliceComparator = new Comparator<ByteSlice>(){
+            @Override
+            public int compare(ByteSlice o1, ByteSlice o2) {
+                if(o1==null){
+                    if(o2==null) return 0;
+                    return -1;
+                }else if(o2==null)
+                    return 1;
+                else{
+                    return Bytes.compareTo(o1.array(),o1.offset(),o1.length(),o2.array(),o2.offset(),o2.length());
+                }
+            }
+        };
+				Collections.sort(correctTables, sliceComparator);
+				Collections.sort(actualTables,sliceComparator);
 
 				Assert.assertEquals(baseErrorMessage+ " Incorrect destination table size!",correctTables.size(),actualTables.size());
 				for(int i=0;i<correctTables.size();i++){
-						byte[] correctBytes = correctTables.get(i);
-						byte[] actualBytes = actualTables.get(i);
-						Assert.assertArrayEquals(baseErrorMessage+" Incorrect destination table at position "+ i,correctBytes,actualBytes);
+						ByteSlice correctBytes = correctTables.get(i);
+						ByteSlice actualBytes = actualTables.get(i);
+						Assert.assertEquals(baseErrorMessage+" Incorrect destination table at position "+ i,correctBytes,actualBytes);
 				}
 		}
 

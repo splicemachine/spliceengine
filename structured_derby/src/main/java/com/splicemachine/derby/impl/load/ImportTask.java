@@ -251,7 +251,7 @@ public class ImportTask extends ZkTask{
 
 				if(LOG.isInfoEnabled())
 						SpliceLogUtils.info(LOG,"Importing %s using transaction %s, which is a child of transaction %s",
-										reader.toString(),txn,txn.getParentTransaction());
+										reader.toString(),txn,txn.getParentTxnView());
 				if(shouldParallelize) {
 						return new ParallelImporter(importContext,row, txn,errorReporter);
 				} else

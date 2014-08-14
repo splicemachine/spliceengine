@@ -3,6 +3,7 @@ package com.splicemachine.derby.ddl;
 import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.InheritingTxnView;
 import com.splicemachine.si.impl.Transaction;
 
@@ -18,9 +19,9 @@ public class DDLChange implements Externalizable {
     private String changeId;
     private DDLChangeType changeType;
     private TentativeDDLDesc tentativeDDLDesc;
-    private Txn txn;
+    private TxnView txn;
 
-    private Txn parentTxn;
+    private TxnView parentTxn;
     /*Serialization constructor*/
     public DDLChange(){}
 
@@ -38,11 +39,11 @@ public class DDLChange implements Externalizable {
         this.txn = txn;
     }
 
-    public Txn getTxn() {
+    public TxnView getTxn() {
         return txn;
     }
 
-    public Txn getParentTxn() { return parentTxn; }
+    public TxnView getParentTxn() { return parentTxn; }
 
     public void setParentTxn(Txn parentTxn) { this.parentTxn = parentTxn; }
 
@@ -78,14 +79,14 @@ public class DDLChange implements Externalizable {
 
         out.writeLong(txn.getTxnId());
         out.writeLong(txn.getBeginTimestamp());
-        out.writeLong(txn.getParentTransaction().getTxnId());
+        out.writeLong(txn.getParentTxnId());
         out.writeBoolean(txn.isDependent());
         out.writeBoolean(txn.isAdditive());
 
         out.writeBoolean(parentTxn!=null);
         if(parentTxn!=null){
             out.writeLong(parentTxn.getTxnId());
-            out.writeLong(parentTxn.getParentTransaction().getTxnId());
+            out.writeLong(parentTxn.getParentTxnId());
             out.writeBoolean(parentTxn.isDependent());
             out.writeBoolean(parentTxn.isAdditive());
         }

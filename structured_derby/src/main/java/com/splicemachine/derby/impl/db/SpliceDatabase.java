@@ -13,6 +13,7 @@ import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.si.api.Txn;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceMasterObserverRestoreAction;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -206,7 +207,7 @@ public class SpliceDatabase extends BasicDatabase {
 		 * @return
 		 * @throws StandardException
 		 */
-		public LanguageConnectionContext generateLanguageConnectionContext(Txn txn, ContextManager cm, String user, String drdaID, String dbname) throws StandardException {
+		public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn, ContextManager cm, String user, String drdaID, String dbname) throws StandardException {
 			TransactionController tc = ((SpliceAccessManager) af).marshallTransaction(cm, txn);
 			cm.setLocaleFinder(this);
 			pushDbContext(cm);

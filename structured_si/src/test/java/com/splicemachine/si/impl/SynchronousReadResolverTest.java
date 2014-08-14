@@ -4,10 +4,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.SimpleTimestampSource;
-import com.splicemachine.si.api.ReadResolver;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnLifecycleManager;
-import com.splicemachine.si.api.TxnStore;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
@@ -18,8 +15,11 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
-import static org.mockito.Mockito.mock;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.*;
 
 /**
  * Tests around the possibilities for the SynchronousReadResolver
@@ -32,11 +32,21 @@ public class SynchronousReadResolverTest {
 		public void testResolveRolledBackWorks() throws Exception {
 				HRegion region = TxnTestUtils.getMockRegion();
 
-        TxnStore store = new InMemoryTxnStore(new SimpleTimestampSource(),Long.MAX_VALUE);
+        final TxnStore store = new InMemoryTxnStore(new SimpleTimestampSource(),Long.MAX_VALUE);
 				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store);
 
-				Txn rolledBackTxn = new RolledBackTxn(0l);
+        TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
+        doAnswer(new Answer<Void>() {
+            @Override
+            public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
+                store.rollback((Long)invocationOnMock.getArguments()[0]);
+                return null;
+            }
+        }).when(tc).rollback(1l);
+
+				Txn rolledBackTxn = new WritableTxn(1l,1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc,false,false);
 				store.recordNewTransaction(rolledBackTxn);
+        rolledBackTxn.rollback(); //ensure that it's rolled back
 
 				byte[] rowKey = Encoding.encode("hello");
 				Put testPut = new Put(rowKey);
@@ -67,11 +77,20 @@ public class SynchronousReadResolverTest {
 		public void testResolvingCommittedWorks() throws Exception {
 				HRegion region = TxnTestUtils.getMockRegion();
 
-        TxnStore store = new InMemoryTxnStore(new SimpleTimestampSource(),Long.MAX_VALUE);
+        final TxnStore store = new InMemoryTxnStore(new SimpleTimestampSource(),Long.MAX_VALUE);
 				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store);
 
-				Txn committedTxn = new CommittedTxn(0l,1l);
+        TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
+        doAnswer(new Answer<Void>() {
+            @Override
+            public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
+                store.commit((Long)invocationOnMock.getArguments()[0]);
+                return null;
+            }
+        }).when(tc).commit(anyLong());
+				Txn committedTxn = new WritableTxn(1l,1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc,false,false);
 				store.recordNewTransaction(committedTxn);
+        committedTxn.commit();
 
 				byte[] rowKey = Encoding.encode("hello");
 				Put testPut = new Put(rowKey);

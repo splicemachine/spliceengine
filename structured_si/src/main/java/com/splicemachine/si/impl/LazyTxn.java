@@ -2,16 +2,18 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.ByteSlice;
 
 import java.io.IOException;
-import java.util.Collection;
+import java.util.Iterator;
 
 /**
  * @author Scott Fines
  * Date: 6/19/14
  */
-public class LazyTxn implements Txn {
-		private volatile Txn delegate;
+public class LazyTxn implements TxnView {
+		private volatile TxnView delegate;
 		private volatile boolean lookedUp = false;
 
 		private final TxnSupplier store;
@@ -23,7 +25,7 @@ public class LazyTxn implements Txn {
 		private final boolean hasAdditive;
 		private final boolean additive;
 
-		private final IsolationLevel isolationLevel;
+		private final Txn.IsolationLevel isolationLevel;
 
 		private volatile boolean inFinalState = false; //set to true if/when the lookup reveals the transaction is in the final state
 
@@ -39,7 +41,7 @@ public class LazyTxn implements Txn {
 		}
 
 		public LazyTxn(TxnSupplier store,  long txnId,
-									 IsolationLevel isolationLevel) {
+									 Txn.IsolationLevel isolationLevel) {
 				this.store = store;
 				this.txnId = txnId;
 				this.hasDependent = false;
@@ -51,7 +53,7 @@ public class LazyTxn implements Txn {
 
 		public LazyTxn(TxnSupplier store,  long txnId,
 									 boolean hasDependent, boolean dependent,
-									 IsolationLevel isolationLevel) {
+									 Txn.IsolationLevel isolationLevel) {
 				this.store = store;
 				this.txnId = txnId;
 				this.hasDependent = hasDependent;
@@ -64,7 +66,7 @@ public class LazyTxn implements Txn {
 		public LazyTxn(long txnId,TxnSupplier store,
 									 boolean hasDependent, boolean dependent,
 									 boolean hasAdditive, boolean additive,
-									 IsolationLevel isolationLevel) {
+									 Txn.IsolationLevel isolationLevel) {
 				this.store = store;
 				this.txnId = txnId;
 				this.hasDependent = hasDependent;
@@ -85,7 +87,7 @@ public class LazyTxn implements Txn {
 		}
 
 		@Override
-		public ConflictType conflicts(Txn otherTxn) {
+		public ConflictType conflicts(TxnView otherTxn) {
 				try {
 						lookup(!inFinalState);
 				} catch (IOException e) {
@@ -117,7 +119,7 @@ public class LazyTxn implements Txn {
 		}
 
 		@Override
-		public Collection<byte[]> getDestinationTables() {
+		public Iterator<ByteSlice> getDestinationTables() {
 				try {
 						lookup(!inFinalState);
 				} catch (IOException e) {
@@ -127,7 +129,7 @@ public class LazyTxn implements Txn {
 		}
 
 		@Override
-		public boolean descendsFrom(Txn potentialParent) {
+		public boolean descendsFrom(TxnView potentialParent) {
 				try {
 						lookup(false);
 				} catch (IOException e) {
@@ -137,7 +139,7 @@ public class LazyTxn implements Txn {
 		}
 
 		@Override
-		public State getEffectiveState() {
+		public Txn.State getEffectiveState() {
 				try {
 						lookup(!inFinalState);
 				} catch (IOException e) {
@@ -147,7 +149,7 @@ public class LazyTxn implements Txn {
 		}
 
 		@Override
-		public IsolationLevel getIsolationLevel() {
+		public Txn.IsolationLevel getIsolationLevel() {
 				if(isolationLevel!=null) return isolationLevel;
 				try {
 						lookup(false); //isolation levl never changes
@@ -208,35 +210,28 @@ public class LazyTxn implements Txn {
     }
 
     @Override
-		public Txn getParentTransaction() {
-				try {
-						lookup(false); //parent txn never changes
-				} catch (IOException e) {
-						throw new RuntimeException(e);
-				}
-				return delegate.getParentTransaction();
-		}
+    public TxnView getParentTxnView() {
+        try{
+            lookup(false);
+        }catch(IOException ioe){
+            throw new RuntimeException(ioe);
+        }
+        return delegate.getParentTxnView();
+    }
+
+    @Override
+    public long getParentTxnId() {
+        return getParentTxnView().getParentTxnId();
+    }
 
 		@Override
-		public State getState() {
+		public Txn.State getState() {
 				try {
 						lookup(!inFinalState);
 				} catch (IOException e) {
 						throw new RuntimeException(e);
 				}
 				return delegate.getState();
-		}
-
-		@Override
-		public void commit() throws IOException {
-				lookup(!inFinalState);
-				delegate.commit();
-		}
-
-		@Override
-		public void rollback() throws IOException {
-				lookup(!inFinalState);
-				delegate.rollback();
 		}
 
 		@Override
@@ -250,13 +245,7 @@ public class LazyTxn implements Txn {
 		}
 
 		@Override
-		public Txn elevateToWritable(byte[] writeTable) throws IOException {
-				lookup(true);
-				return delegate.elevateToWritable(writeTable);
-		}
-
-		@Override
-		public boolean canSee(Txn otherTxn) {
+		public boolean canSee(TxnView otherTxn) {
 				return false;
 		}
 

@@ -541,7 +541,7 @@ public class ImportTaskTest {
 
 						@Override public boolean isSplittable() { return false; }
 				};
-        importTask.setTxn(new ActiveWriteTxn(1l,1l));
+        importTask.setParentTxnInformation(new ActiveWriteTxn(1l, 1l));
         importTask.doExecute();
 
         /*

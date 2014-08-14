@@ -8,12 +8,10 @@ import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.*;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.Timer;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.stats.Metrics;
-import com.splicemachine.stats.TimeView;
-import com.splicemachine.stats.Timer;
-import com.splicemachine.utils.Snowflake;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.uuid.UUIDGenerator;
@@ -58,7 +56,7 @@ public class SequentialImporter implements Importer{
 
 		public SequentialImporter(ImportContext importContext,
 															ExecRow templateRow,
-															Txn txn,
+															TxnView txn,
 															CallBufferFactory<KVPair> callBufferFactory,
 															KryoPool kryoPool,
 															final ImportErrorReporter errorReporter){

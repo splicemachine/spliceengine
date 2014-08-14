@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.store.access;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -296,7 +297,7 @@ public class SpliceTransaction implements Transaction {
 				return (tempxc == null) ? null : tempxc.getIdName();
 		}
 
-		public final void setActiveState(boolean readOnly, boolean nested, boolean dependent, Txn parentTxn) {
+		public final void setActiveState(boolean readOnly, boolean nested, boolean dependent, TxnView parentTxn) {
 				if (state == IDLE) {
             try {
                 synchronized(this) {
@@ -347,7 +348,7 @@ public class SpliceTransaction implements Transaction {
 		public void setTxn(Txn txn) { this.txn = txn; }
 
     public Txn elevate(byte[] writeTable) throws IOException {
-        setActiveState(false,false,false,txn.getParentTransaction());
+        setActiveState(false,false,false,txn.getParentTxnView());
         if(!txn.allowsWrites())
             txn = txn.elevateToWritable(writeTable);
         return txn;

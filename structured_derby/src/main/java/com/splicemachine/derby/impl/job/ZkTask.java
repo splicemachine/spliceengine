@@ -7,9 +7,7 @@ import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskStatus;
-import com.splicemachine.si.api.TransactionLifecycle;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.si.impl.InheritingTxnView;
 import com.splicemachine.si.impl.ReadOnlyTxn;
@@ -55,7 +53,8 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 		protected long waitTimeNs;
 		protected HRegion region;
 
-		private Txn txn;
+    private TxnView parentTxn;
+		private transient Txn txn; //the child transaction that we operate against
 
 		protected ZkTask() {
         this.LOG = Logger.getLogger(this.getClass());
@@ -84,7 +83,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
         jobId = in.readUTF();
         priority = in.readInt();
         if(in.readBoolean())
-						txn = decodeTxn(in);
+						parentTxn = decodeTxn(in);
         int taskIdSize = in.readInt();
         if(taskIdSize>0){
             taskId = new byte[taskIdSize];
@@ -101,9 +100,9 @@ public abstract class ZkTask implements RegionTask,Externalizable {
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeUTF(jobId);
         out.writeInt(priority);
-        out.writeBoolean(txn!=null);
-        if(txn!=null)
-						encodeTxn(out);
+        out.writeBoolean(parentTxn!=null);
+        if(parentTxn!=null)
+						encodeParentTxn(out);
         if(taskId!=null){
             out.writeInt(taskId.length);
             out.write(taskId);
@@ -119,24 +118,22 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 
 		@Override
     public void execute() throws ExecutionException, InterruptedException {
-//        /*
-//         * Create the Child transaction.
-//         *
-//         * We do this here rather than elsewhere (like inside the JobScheduler) so
-//         * that we avoid timing out the transaction when we have to sit around and
-//         * wait for a long time.
-//         */
-//        if(parentTxn!=null){
-//						TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
-////            TransactionManager transactor = HTransactorFactory.getTransactionManager();
-////            TransactionId parent = transactor.transactionIdFromString(parentTxnId);
-//            try {
-//                Txn childTxnId  = beginChildTransaction(tc,parentTxn);
-//                status.setTxnId(childTxnId.getTransactionIdString());
-//            } catch (IOException e) {
-//                throw new ExecutionException("Unable to acquire child transaction",e);
-//            }
-//        }
+        /*
+         * Create the Child transaction.
+         *
+         * We do this here rather than elsewhere (like inside the JobScheduler) so
+         * that we avoid timing out the transaction when we have to sit around and
+         * wait for a long time.
+         */
+        if(parentTxn!=null){
+						TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
+            try {
+                txn  = beginChildTransaction(parentTxn, tc);
+                status.setTxn(txn);
+            } catch (IOException e) {
+                throw new ExecutionException("Unable to acquire child transaction",e);
+            }
+        }
 
 				waitTimeNs = System.nanoTime()-prepareTimestamp;
 				try{
@@ -146,7 +143,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 				}
     }
 
-		protected Txn beginChildTransaction(Txn parentTxn,TxnLifecycleManager tc) throws IOException {
+		protected Txn beginChildTransaction(TxnView parentTxn,TxnLifecycleManager tc) throws IOException {
 				return tc.beginChildTransaction(parentTxn,null);
 //				return transactor.beginChildTransaction(parent, !readOnly, !readOnly);
 		}
@@ -195,8 +192,8 @@ public abstract class ZkTask implements RegionTask,Externalizable {
     }
 
 		@Override
-		public void setTxn(Txn txn) {
-				this.txn = txn;
+		public void setParentTxnInformation(TxnView parentTxn) {
+        this.parentTxn = parentTxn;
 		}
 
 		protected abstract String getTaskType();
@@ -411,65 +408,37 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 				}
 		}
 
-		private void encodeTxn(ObjectOutput out) throws IOException {
-				out.writeLong(txn.getTxnId());
-				out.writeLong(txn.getParentTransaction().getTxnId());
-				out.writeByte(txn.getIsolationLevel().encode());
-				out.writeBoolean(txn.allowsWrites());
-				out.writeBoolean(txn.isDependent());
-				out.writeBoolean(txn.isAdditive());
+		private void encodeParentTxn(ObjectOutput out) throws IOException {
+				out.writeLong(parentTxn.getTxnId());
+				out.writeLong(parentTxn.getParentTxnId());
+				out.writeByte(parentTxn.getIsolationLevel().encode());
+				out.writeBoolean(parentTxn.allowsWrites());
+				out.writeBoolean(parentTxn.isDependent());
+				out.writeBoolean(parentTxn.isAdditive());
 		}
 
-		private Txn decodeTxn(ObjectInput in) throws IOException {
-				long txnId = in.readLong();
+		private TxnView decodeTxn(ObjectInput in) throws IOException {
 				long parentTxnId = in.readLong();
+				long pParentTxnId = in.readLong();
 				Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(in.readByte());
 				boolean allowWrites = in.readBoolean();
 				boolean dependent = in.readBoolean();
 				boolean additive = in.readBoolean();
 
-				//should be lazy, so won't cost anything
-				if(!allowWrites){
-						/*
-						 * The parent transaction didn't allow writes, so it probably doesn't have an
-						 * entry in the Txn table anyway, so we don't need to go through the storage,
-						 * and deal with any of that damage. Instead, we just create an arbitrary
-						 * read-only txn object to represent the parent and the child.
-						 *
-						 * This is helped by the fact that we cannot create a writable child of a read-only
-						 * transaction. Thus, anything that we do with this transaction must be read-only,
-						 * so it really doesn't matter if the parent of the parent's transaction is read-only
-						 * in effect, or reality (recall that we are going to use the transaction here decoded
-						 *  to create a child transaction).
-						 */
-						Txn parentTxn;
-						TxnLifecycleManager lifecycleManager = TransactionLifecycle.noOpLifecycleManager();
-						if(parentTxnId<0)
-								parentTxn = Txn.ROOT_TRANSACTION;
-						else{
-								parentTxn = ReadOnlyTxn.createReadOnlyTransaction(parentTxnId,
-												Txn.ROOT_TRANSACTION,parentTxnId,level,dependent,dependent, lifecycleManager);
-						}
-						return ReadOnlyTxn.createReadOnlyTransaction(txnId, parentTxn, txnId, level, dependent, additive, lifecycleManager);
-				}else{
-						/*
-						 * The parent transaction allows writes. Typically, this means that we would need to get
-						 * a transaction from storage. However, we want to avoid any excessive network calls, so
-						 * we will use an "ActiveWriteTxn" to represent the parent and the transaction itself
-						 */
-						Txn parentTxn;
-						if(parentTxnId<0)
-								parentTxn = Txn.ROOT_TRANSACTION;
-						else{
-                //TODO -sf- is this correct?
-								parentTxn = new ActiveWriteTxn(parentTxnId,parentTxnId,Txn.ROOT_TRANSACTION);
-						}
-						return new InheritingTxnView(parentTxn,txnId,txnId,level,
-										true,dependent,
-										true,additive,
-										true,true,
-										-1l,-1l,
-										Txn.State.ACTIVE);
-				}
+        TxnView ppParent;
+        if(pParentTxnId<0)
+            ppParent = Txn.ROOT_TRANSACTION;
+        else{
+            /*
+             *TransactionStorage.getTxnSupplier() will most likely return a lazy parent transaction,
+             * which is good since the grandparent is unlikely to be accessed very often.
+             */
+            ppParent = TransactionStorage.getTxnSupplier().getTransaction(pParentTxnId);
+        }
+
+        return new InheritingTxnView(ppParent,parentTxnId,parentTxnId,level,
+                true,dependent,
+                true,additive,true,allowWrites,
+                -1l,-1l, Txn.State.ACTIVE);
 		}
 }

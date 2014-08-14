@@ -126,7 +126,7 @@ public class SIObserver extends BaseRegionObserver {
 
     private void addSIFilterToGet(Get get) throws IOException {
 //				Txn txn = HTransactorFactory.getClientTransactor().txnFromOp(get,true);
-				Txn txn = txnOperationFactory.fromReads(get);
+				TxnView txn = txnOperationFactory.fromReads(get);
         final Filter newFilter = makeSIFilter(txn, get.getFilter(),
 								getPredicateFilter(get),false);
         get.setFilter(newFilter);
@@ -134,7 +134,7 @@ public class SIObserver extends BaseRegionObserver {
 
     private void addSIFilterToScan(Scan scan) throws IOException {
 //				Txn txn = HTransactorFactory.getClientTransactor().txnFromOp(scan,true);
-				Txn txn = txnOperationFactory.fromReads(scan);
+				TxnView txn = txnOperationFactory.fromReads(scan);
         final Filter newFilter = makeSIFilter(txn, scan.getFilter(),
 								getPredicateFilter(scan),scan.getAttribute(SIConstants.SI_COUNT_STAR) != null);
         scan.setFilter(newFilter);
@@ -145,7 +145,7 @@ public class SIObserver extends BaseRegionObserver {
         return EntryPredicateFilter.fromBytes(serializedPredicateFilter);
     }
 
-    private Filter makeSIFilter(Txn txn, Filter currentFilter, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
+    private Filter makeSIFilter(TxnView txn, Filter currentFilter, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException {
 				TxnFilter txnFilter = region.packedFilter(txn, predicateFilter, countStar);
 				SIFilterPacked siFilter = new SIFilterPacked(txnFilter);
 
@@ -185,7 +185,7 @@ public class SIObserver extends BaseRegionObserver {
 						super.prePut(e,put,edit,writeToWAL);
 						return;
 				}
-				Txn txn = txnOperationFactory.fromWrites(put);
+				TxnView txn = txnOperationFactory.fromWrites(put);
 				boolean isDelete = put.getAttribute(SIConstants.SI_DELETE_PUT)!=null;
 				byte[] row = put.getRow();
 				boolean isSIDataOnly = true;

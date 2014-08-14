@@ -1,36 +1,16 @@
 package com.splicemachine.si.impl;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.*;
-import com.splicemachine.hbase.ByteBufferArrayUtils;
-import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.utils.ByteSlice;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.*;
 
 import static com.splicemachine.si.impl.TxnTestUtils.assertTxnsMatch;
 import static com.splicemachine.si.impl.TxnTestUtils.getMockRegion;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * @author Scott Fines
