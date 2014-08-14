@@ -8,7 +8,6 @@ import java.sql.SQLException;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -18,6 +17,7 @@ import org.junit.runner.Description;
 
 import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
@@ -105,12 +105,15 @@ public class IndexIT extends SpliceUnitTest {
             super.starting(description);
             try {
                 spliceClassWatcher.executeUpdate(String.format("INSERT INTO %s.%s VALUES" +
-                        "(8888)", SCHEMA_NAME, EmailableTable.TABLE_NAME));
+                                                                   "(8888)", SCHEMA_NAME, EmailableTable.TABLE_NAME));
             } catch (Exception e) {
                 LOG.error("Error inserting into EMAILABLE table", e);
             }
         }
     };
+
+    protected static final String A_TABLE_NAME = "A";
+    protected static final SpliceTableWatcher A_TABLE = new SpliceTableWatcher("A",SCHEMA_NAME, "(i int)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -120,6 +123,7 @@ public class IndexIT extends SpliceUnitTest {
             .around(orderTableWatcher)
             .around(orderLineTableWatcher)
             .around(headerTableWatcher)
+            .around(A_TABLE)
             .around(emailableTableWatcher);
 
     @Rule
@@ -451,7 +455,7 @@ public class IndexIT extends SpliceUnitTest {
         }
     }
 
-    @Ignore("DB-1269") // @Test(timeout=1000*60*5)  // Time out after 3 min
+    @Test(timeout=1000*60*5)  // Time out after 3 min
     public void testJoinCustomerOrdersOrderLineWithIndexNotInColumnOrder() throws Exception {
         try {
             SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
@@ -478,6 +482,37 @@ public class IndexIT extends SpliceUnitTest {
             SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
             SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
         }
+    }
+
+    @Test
+    public void testSysPropIndexEqualNull() throws Exception {
+        // todo Test for DB-1636 and DB-857
+        String indexName = "IA";
+        try {
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(),SCHEMA_NAME,A_TABLE_NAME,indexName,"(i)",false);
+            methodWatcher.executeUpdate(String.format("insert into %s.%s values 1,2,3,4,5", SCHEMA_NAME,A_TABLE_NAME));
+            ResultSet rs = methodWatcher.executeQuery(String.format("select count(*) from %s.%s --SPLICE-PROPERTIES index=%s",SCHEMA_NAME,A_TABLE_NAME,indexName));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(5, rs.getInt(1));
+
+            // Test for DB-1636 - used to get NPE here
+            rs = methodWatcher.executeQuery(String.format("select count(*) from %s.%s --SPLICE-PROPERTIES index=NULL",SCHEMA_NAME,A_TABLE_NAME));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(5, rs.getInt(1));
+
+            // Test for DB-857 - trunc'ing table did not update index
+            methodWatcher.executeUpdate(String.format("truncate table %s.%s", SCHEMA_NAME,A_TABLE_NAME));
+            methodWatcher.executeUpdate(String.format("insert into %s.%s values 1,2,3,4,5", SCHEMA_NAME,A_TABLE_NAME));
+            rs = methodWatcher.executeQuery(String.format("select count(*) from %s.%s --SPLICE-PROPERTIES index=%s",SCHEMA_NAME,A_TABLE_NAME,indexName));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(5, rs.getInt(1));
+            rs = methodWatcher.executeQuery(String.format("select count(*) from %s.%s --SPLICE-PROPERTIES index=NULL",SCHEMA_NAME,A_TABLE_NAME));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(5, rs.getInt(1));
+        } finally {
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,"ia");
+        }
+
     }
 
     // ===============================================================================

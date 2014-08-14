@@ -47,8 +47,8 @@ public class SQLResource {
 	public static String DEFAULT_DRIVER   = "org.apache.derby.jdbc.ClientDriver";
 	public static String DEFAULT_HOST     = "localhost";
 	public static String DEFAULT_PORT     = "1527";
-	public static String DEFAULT_USER     = "app";
-	public static String DEFAULT_PASSWORD = "app";
+	public static String DEFAULT_USER     = "splice";
+	public static String DEFAULT_PASSWORD = "admin";
 
 	/**
 	 * Primary Splice JDBC connection.
