@@ -8,7 +8,6 @@ import java.sql.SQLException;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -451,7 +450,7 @@ public class IndexIT extends SpliceUnitTest {
         }
     }
 
-    @Ignore("DB-1269") // @Test(timeout=1000*60*5)  // Time out after 3 min
+    @Test(timeout=1000*60*5)  // Time out after 3 min
     public void testJoinCustomerOrdersOrderLineWithIndexNotInColumnOrder() throws Exception {
         try {
             SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
