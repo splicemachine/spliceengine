@@ -427,6 +427,8 @@ public class FromBaseTable extends FromTable {
 			   if (currentConglomerateDescriptor.isIndex()) { // Index
 					irg = currentConglomerateDescriptor.getIndexDescriptor();
 			   } else { // Primary Key
+				   if (conglomDescs == null)
+					   getConglomDescs();
 				   for(int l=0;l< conglomDescs.length;l++){
 			            ConglomerateDescriptor primaryKeyCheck = conglomDescs[l];
 			            IndexDescriptor indexDec = primaryKeyCheck.getIndexDescriptor();
