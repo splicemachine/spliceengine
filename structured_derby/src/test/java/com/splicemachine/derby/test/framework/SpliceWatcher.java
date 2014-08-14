@@ -24,17 +24,21 @@ import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.junit.runners.model.MultipleFailureException;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
  * A TestWatcher that provides Connections, Statements, and ResultSets and then closes them when finished() is called.
+ *
+ * Not thread-safe, synchronize externally if using in a multi-threaded test case.
  */
 public class SpliceWatcher extends TestWatcher {
 
     private static final Logger LOG = Logger.getLogger(SpliceWatcher.class);
 
     private TestConnection currentConnection;
+    private final String defaultSchema;
 
     /* Collections below can be accessed concurrently when a @Test(timeout=) annotated test fails. */
 
@@ -43,24 +47,46 @@ public class SpliceWatcher extends TestWatcher {
     private final List<ResultSet> resultSets = Collections.synchronizedList(new ArrayList<ResultSet>());
 
     public SpliceWatcher() {
+        this(null);
     }
 
+    public SpliceWatcher(String defaultSchema) {
+        this.defaultSchema = defaultSchema == null ? null : defaultSchema.toUpperCase();
+    }
+
+    /**
+     * Returns the same Connection object until finished() is called (that is, until a given test method ends).
+     *
+     * This method used to create and return a new Connection if it determined that the current one was invalid but
+     * this meant that tests using the convenience methods herein that delegate to this method could not assume all
+     * operations happened with the same connection or consequently in the same transaction.
+     *
+     * If a test intentionally leaves a connection in an invalid state (mid test) it must call closeAll().  If a class
+     * un-intentionally leaves a connection in an invalid state (mid test) it should fail.
+     */
     public TestConnection getOrCreateConnection() throws Exception {
-        if (currentConnection == null || !currentConnection.isValid(10)) {
+        if (currentConnection == null) {
             createConnection();
         }
         return currentConnection;
     }
 
+    /**
+     * Always creates a new connection, replacing this class's reference to the current connection, if any.
+     */
     public TestConnection createConnection() throws Exception {
-        currentConnection = new TestConnection(SpliceNetConnection.getConnection());
-        connections.add(currentConnection);
-        return currentConnection;
+        return createConnection(SpliceNetConnection.DEFAULT_USER, SpliceNetConnection.DEFAULT_USER_PASSWORD);
     }
 
-    public Connection createConnection(String userName, String password) throws Exception {
+    /**
+     * Always creates a new connection, replacing this class's reference to the current connection, if any.
+     */
+    public TestConnection createConnection(String userName, String password) throws Exception {
         currentConnection = new TestConnection(SpliceNetConnection.getConnectionAs(userName, password));
         connections.add(currentConnection);
+        if(!isNullOrEmpty(defaultSchema)) {
+            setSchema(defaultSchema);
+        }
         return currentConnection;
     }
 
@@ -70,7 +96,7 @@ public class SpliceWatcher extends TestWatcher {
         return ps;
     }
 
-    public void closeConnections() {
+    private void closeConnections() {
         synchronized (connections) {
             try {
                 for (Connection connection : connections) {
@@ -121,11 +147,6 @@ public class SpliceWatcher extends TestWatcher {
         } catch (Throwable throwable) {
             throw new RuntimeException(throwable);
         }
-    }
-
-    @Override
-    protected void starting(Description description) {
-        super.starting(description);
     }
 
     @Override
@@ -229,6 +250,12 @@ public class SpliceWatcher extends TestWatcher {
 
     public void commit() throws Exception {
         getOrCreateConnection().commit();
+    }
+
+    public void setSchema(String schema) throws Exception {
+        PreparedStatement stmt = prepareStatement("SET SCHEMA ?");
+        stmt.setString(1, schema);
+        stmt.executeUpdate();
     }
 
     public void splitTable(String tableName, String schemaName) throws Exception {
