@@ -59,7 +59,8 @@ public class QualifierUtils {
 		 * @throws StandardException if something goes wrong
 		 */
     public static DataValueDescriptor adjustDataValueDescriptor(DataValueDescriptor dvd, int columnDataType,DataValueFactory dataValueFactory) throws StandardException {
-        if(isFloatType(columnDataType)){
+        assert dataValueFactory != null;
+    	if(isFloatType(columnDataType)){
             return convertFloatingPoint(dvd,columnDataType,dataValueFactory);
         }else if(isScalarType(columnDataType)){
             return convertScalar(dvd,columnDataType,dataValueFactory);
@@ -137,6 +138,7 @@ public class QualifierUtils {
          * 2. Convert into correct Scalar types to adjust for potential overflow issues (ints bigger
          * than Short.MAX_VALUE, etc).
          */
+    	assert dataValueFactory != null;
         DataValueDescriptor correctType = dataValueFactory.getNull(columnFormat, -1);
         double value;
         int currentTypeFormatId = dvd.getTypeFormatId();
@@ -185,6 +187,7 @@ public class QualifierUtils {
     }
     
     private static Qualifier convertScalar(Qualifier qualifier, int columnFormat,DataValueFactory dataValueFactory) throws StandardException {
+    	assert dataValueFactory != null;
         DataValueDescriptor correctType = convertScalar(qualifier.getOrderable(), columnFormat,dataValueFactory);
         if(qualifier instanceof ScanQualifier){
             ((ScanQualifier)qualifier).setQualifier(qualifier.getColumnId(),

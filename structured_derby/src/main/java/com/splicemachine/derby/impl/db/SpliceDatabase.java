@@ -146,7 +146,6 @@ public class SpliceDatabase extends BasicDatabase {
         afterOptVisitors.add(UnsupportedFormsDetector.class);
         afterOptVisitors.add(AssignRSNVisitor.class);
         afterOptVisitors.add(RowLocationColumnVisitor.class);
-        afterOptVisitors.add(JoinSelector.class);
         afterOptVisitors.add(JoinConditionVisitor.class);
         afterOptVisitors.add(FindHashJoinColumns.class);
         afterOptVisitors.add(FixSubqueryColRefs.class);

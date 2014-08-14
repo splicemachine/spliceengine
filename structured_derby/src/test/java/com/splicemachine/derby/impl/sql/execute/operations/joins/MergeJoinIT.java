@@ -5,10 +5,12 @@ import com.google.common.collect.Sets;
 import com.splicemachine.derby.test.TPCHIT;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -139,6 +141,7 @@ public class MergeJoinIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore
     public void test3WayJoinOverAllStrategyPairs() throws Exception {
         methodWatcher.executeUpdate("create index proj_pnum on proj (pnum)");
 

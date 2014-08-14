@@ -35,6 +35,8 @@ public class OuterJoinIT extends SpliceUnitTest {
     public static final String TABLE_NAME_8 = "t1";
     public static final String TABLE_NAME_9 = "t2";
     public static final String TABLE_NAME_10 = "dupes";
+    public static final String TABLE_NAME_11 = "t3";
+    public static final String TABLE_NAME_12 = "t4";
 
 
     protected static DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
@@ -49,6 +51,8 @@ public class OuterJoinIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8, CLASS_NAME, "(i int, s smallint, d double precision, r real, c10 char(10), c30 char(30), vc10 varchar(10), vc30 varchar(30))");
     protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_NAME_9, CLASS_NAME, "(i int, s smallint, d double precision, r real, c10 char(10), c30 char(30), vc10 varchar(10), vc30 varchar(30))");
     protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_NAME_10, CLASS_NAME, "(i int, s smallint, d double precision, r real, c10 char(10), c30 char(30), vc10 varchar(10), vc30 varchar(30))");
+    protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher(TABLE_NAME_11, CLASS_NAME, "(id int, parentId int)");
+    protected static SpliceTableWatcher spliceTableWatcher12 = new SpliceTableWatcher(TABLE_NAME_12, CLASS_NAME, "(id int, parentId int)");
 
     /*
 
@@ -68,6 +72,8 @@ public class OuterJoinIT extends SpliceUnitTest {
             .around(spliceTableWatcher8)
             .around(spliceTableWatcher9)
             .around(spliceTableWatcher10)
+            .around(spliceTableWatcher11)
+            .around(spliceTableWatcher12)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -395,5 +401,16 @@ public class OuterJoinIT extends SpliceUnitTest {
             Assert.assertEquals("Outer join query produced incorrect number of results", (int) q.getValue(), results.size());
         }
     }
+    
+    @Test
+    public void testLeftOuterCreateTableAs() throws Exception {
+    	try {
+    		methodWatcher.executeUpdate("create table "+CLASS_NAME+".foo as select t3.*"
+    				+ " from "+CLASS_NAME+".t3 left join "+CLASS_NAME+".t4 on t3.parentId = t4.id with data");    		
+    	} finally {
+    		methodWatcher.executeUpdate("drop table "+CLASS_NAME+".foo");
+    	}
+    }
+    
 }
 

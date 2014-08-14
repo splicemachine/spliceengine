@@ -1,6 +1,8 @@
 package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.si.data.api.STableWriter;
+
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -8,6 +10,7 @@ import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete> {

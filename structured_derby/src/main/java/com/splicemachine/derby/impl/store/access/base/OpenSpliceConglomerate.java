@@ -65,6 +65,14 @@ public class OpenSpliceConglomerate  {
         return conglomerate.getCollation_ids();
     }
 
+    public boolean[] getAscDescInfo() {
+    	return conglomerate.getAscDescInfo();
+    }
+    
+    public long getContainerID() {
+    	return conglomerate.getContainerid();
+    }
+    
     
     /**
      * Return an "empty" row location object of the correct type.

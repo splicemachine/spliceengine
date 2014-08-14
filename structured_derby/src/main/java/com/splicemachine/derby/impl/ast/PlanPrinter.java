@@ -6,6 +6,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.splicemachine.derby.impl.sql.compile.SortState;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -114,6 +116,11 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         info.put("class", JoinInfo.className.apply(rsn));
         info.put("n", rsn.getResultSetNumber());
         info.put("level", level);
+        info.put("estimatedCost", rsn.getFinalCostEstimate().getEstimatedCost());
+        info.put("estimatedRowCount", rsn.getFinalCostEstimate().getEstimatedRowCount());
+        info.put("estimatedSingleScanRowCount", rsn.getFinalCostEstimate().singleScanRowCount());
+        info.put("rowOrdering", rsn.getFinalCostEstimate().getRowOrdering());
+        info.put("numberOfRegions", ((SortState) rsn.getFinalCostEstimate()).getNumberOfRegions());
         List<ResultSetNode> children = RSUtils.getChildren(rsn);
         info.put("children", Lists.transform(children, new Function<ResultSetNode, Map<String,Object>>() {
             @Override

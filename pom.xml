@@ -577,21 +577,22 @@
 		</profile>
 		<profile>
 			<!-- =========================================================== -->
-			<!--                           hdp1.3.2                          -->
+			<!--                           hdp1.3                            -->
 			<!-- =========================================================== -->
-			<id>hdp1.3.2</id>
+			<id>hdp1.3</id>
 			<activation>
 				<property>
-					<!-- To run, specify -Dhbase.profile=hdp1.3.2 -->
+					<!-- To run, specify -Dhbase.profile=hdp1.3 -->
 					<name>hbase.profile</name>
-					<value>hdp1.3.2</value>
+					<value>hdp1.3</value>
 				</property>
 			</activation>
 			<properties>
-				<zookeeper.version>3.4.5.1.3.2.0-111</zookeeper.version>
-				<hbase.version>0.94.6.1.3.2.0-111</hbase.version>
-				<hadoop.version>1.2.0.1.3.2.0-111</hadoop.version>
-				<envClassifier>hdp1.3.2</envClassifier>
+				<zookeeper.version>3.4.5.1.3.7.0-2</zookeeper.version>
+				<!-- hbase.version>0.94.6.1.3.7.0-2</hbase.version -->
+				<hbase.version>0.94.6-hdp1.3.7-splice</hbase.version>
+				<hadoop.version>1.2.0.1.3.7.0-2</hadoop.version>
+				<envClassifier>hdp1.3</envClassifier>
 			</properties>
 			<dependencies>
 				<dependency>

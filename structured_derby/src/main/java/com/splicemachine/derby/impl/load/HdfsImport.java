@@ -86,17 +86,16 @@ import java.util.concurrent.ExecutionException;
  */
 public class HdfsImport {
 		private static final Logger LOG = Logger.getLogger(HdfsImport.class);
+
 		private final ImportContext context;
 		private final long statementId;
 		private final long operationId;
 		private HBaseAdmin admin;
-		private static long filesize;
 
 		public HdfsImport(ImportContext context,long statementId, long operationId){
 				this.context = context;
 				this.statementId = statementId;
 				this.operationId = operationId;
-				this.filesize=0;
 		}
 
 		@SuppressWarnings("UnusedDeclaration")
@@ -198,14 +197,8 @@ public class HdfsImport {
 												insertColumnList, fileName, columnDelimiter,
 												characterDelimiter, timestampFormat, dateFormat, timeFormat, lcc, maxBadRecords, badRecordDirectory);
 								IteratorNoPutResultSet rs = new IteratorNoPutResultSet(Arrays.asList(resultRow),IMPORT_RESULT_COLUMNS,activation);
-								if((SpliceConstants.sequentialImportFileSizeThreshold<filesize&&fileName.contains(".gz"))){
-										//TODO -sf- This isn't internationalizable, need to put this into messages.xml
-										String temp = "To load a large single file of data faster, " +
-														"it is best to break up the file into multiple files, " +
-														"put those files in a single directory, then import that directory.  " +
-														"See http://doc.splicemachine.com for more information.";
-										SQLWarning	sqlw = new SQLWarning(temp, "01010", ExceptionSeverity.WARNING_SEVERITY);
-										activation.addWarning( sqlw );
+								if(fileName.endsWith(".gz")) {
+										considerFileSizeWarning(fileName, activation);
 								}
 								rs.open();
 								results[0] = new EmbedResultSet40(embedConnection,rs,false,null,true);
@@ -229,6 +222,28 @@ public class HdfsImport {
 						} catch (SQLException e) {
 								SpliceLogUtils.error(LOG, "Unable to close index connection", e);
 						}
+				}
+		}
+
+		private static void considerFileSizeWarning(String fileName, Activation activation) throws SQLException {
+				long fileSizeBytes = getFileSizeBytes(fileName);
+				if(SpliceConstants.sequentialImportFileSizeThreshold < fileSizeBytes){
+						//TODO -sf- This isn't internationalized, need to put this into messages.xml
+						String temp = "To load a large single file of data faster, " +
+										"it is best to break up the file into multiple files, " +
+										"put those files in a single directory, then import that directory.  " +
+										"See http://doc.splicemachine.com for more information.";
+						activation.addWarning(new SQLWarning(temp, "01010", ExceptionSeverity.WARNING_SEVERITY));
+				}
+		}
+
+		private static long getFileSizeBytes(String filePath) throws SQLException {
+				try {
+						FileSystem fileSystem = FileSystem.get(SpliceUtils.config);
+						Path path = new Path(filePath);
+						return fileSystem.getContentSummary(path).getLength();
+				} catch (IOException io) {
+						throw new SQLException(io);
 				}
 		}
 
@@ -361,8 +376,6 @@ public class HdfsImport {
 				try{
 						ImportFile file = new ImportFile(context.getFilePath().toString());
 						FileSystem fileSystem = file.getFileSystem();
-						FileStatus fileStatus = fileSystem.getFileStatus(context.getFilePath());
-						filesize = fileStatus.getLen();
 						//make sure that we can read and write as needed
 						ImportUtils.validateReadable(context.getFilePath(),fileSystem,false);
 						ImportUtils.validateReadable(file);

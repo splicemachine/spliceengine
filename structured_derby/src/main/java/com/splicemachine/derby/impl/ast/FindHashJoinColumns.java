@@ -58,7 +58,7 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
     public static Integer translateToIndexOnList(ColumnReference cr, ResultColumnList rcl)
             throws StandardException {
         Map<Pair<Integer, Integer>, ResultColumn> chainMap = ColumnUtils.rsnChainMap(rcl);
-        Pair<Integer, Integer> colCoord = ColumnUtils.RSCoordinate(cr.getSourceResultColumn());
+        Pair<Integer, Integer> colCoord = ColumnUtils.RSCoordinate(cr.getSourceResultColumn()!=null?cr.getSourceResultColumn():cr.getOrigSourceResultColumn());
         if (chainMap.containsKey(colCoord)) {
             return chainMap.get(colCoord).getVirtualColumnId() - 1; // translate from 1-based to 0-based index
         } else {
@@ -76,7 +76,7 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
 
         for (Predicate p : equiJoinPreds) {
             for (ColumnReference cr : RSUtils.collectNodes(p, ColumnReference.class)) {
-                if (isLeftRef.apply(cr.getSourceResultColumn())) {
+                if (isLeftRef.apply(cr.getSourceResultColumn()!=null?cr.getSourceResultColumn():cr.getOrigSourceResultColumn())) {
                     leftIndices.add(translateToIndexOnList(cr, leftRCL));
                 } else {
                     rightIndices.add(translateToIndexOnList(cr, rightRCL));

@@ -390,7 +390,7 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
      * @throws IOException
      */
     private Transaction loadTransactionDirect(long transactionId) throws IOException {
-        if (transactionId == Transaction.ROOT_ID) {
+    	if (transactionId == Transaction.ROOT_ID) {
             return Transaction.rootTransaction;
         }
         Table transactionTable = reader.open(transactionSchema.tableName);
@@ -399,7 +399,7 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
             if (rawResult != null) {
                 Transaction result = decodeResults(transactionId, rawResult);
                 if (result != null) {
-                    return result;
+                	return result;
                 }
             }
         } finally {

@@ -229,11 +229,12 @@ public class SQLUtil {
 		  return trxId;
 	  }
 	  
-	  public String getChildTransactionID(Connection conn, String parentTxsID) throws SQLException
+	  public String getChildTransactionID(Connection conn, String parentTxsID, long conglomId) throws SQLException
 	  {
-		  PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_START_CHILD_TRANSACTION(?)");
+		  PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_START_CHILD_TRANSACTION(?, ?)");
 		  long ptxsID = Long.parseLong(parentTxsID);
 		  ps.setLong(1, ptxsID);
+		  ps.setLong(2, conglomId);
 		  ResultSet rs3 = ps.executeQuery();
 		  rs3.next();
 		  long childTxsID = rs3.getLong(1);

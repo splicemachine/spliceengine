@@ -13,7 +13,6 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
 import java.sql.ResultSet;
 import java.util.*;
 
@@ -29,8 +28,8 @@ public class ThreeTableEquiJoinIT {
         List<String> joinStrategies = Arrays.asList(
                 "nestedloop",
                 "broadcast",
-                "sortmerge",
-                "hash"
+                "sortmerge"//,
+//                "hash"
         );
         Collection<Object[]> data = Lists.newArrayList();
         for(String first: joinStrategies){

@@ -187,6 +187,26 @@ public class HRegionUtil {
         return true;
     }
     
+    public static long getBlocksToRead(Store store, byte[] start, byte[] end) throws IOException {
+    	assert Bytes.compareTo(start, end) <= 0 || start.length == 0 || end.length ==0;
+	     List<StoreFile> storeFiles;
+	      storeFiles = store.getStorefiles();
+	      HFileBlockIndex.BlockIndexReader fileReader;
+	      long sizeOfBlocks = 0;
+	      for (StoreFile file: storeFiles) {
+	    	  if (file != null) {
+	    		  fileReader = file.createReader().getHFileReader().getDataBlockIndexReader();
+	    		  int size = fileReader.getRootBlockCount();
+	    		  for (int i =0; i<size;i++) {
+	    			  byte[] possibleCutpoint = KeyValue.createKeyValueFromKey(fileReader.getRootBlockKey(i)).getRow();
+	    			  if ((start.length == 0 || Bytes.compareTo(start, possibleCutpoint) < 0) && (end.length ==0 || Bytes.compareTo(end, possibleCutpoint) > 0)) // Do not include cutpoints out of bounds
+	    				  sizeOfBlocks+=fileReader.getRootBlockDataSize(i);
+	    		  }
+	    	  }  
+	      }
+	      return sizeOfBlocks;
+    }
+    
     public static List<byte[]> getCutpoints(Store store, byte[] start, byte[] end) throws IOException {
     	assert Bytes.compareTo(start, end) <= 0 || start.length == 0 || end.length ==0;
 	    List<StoreFile> storeFiles;

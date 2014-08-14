@@ -24,12 +24,11 @@ package com.splicemachine.derby.impl.store.access.btree;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.SortedSet;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.error.StandardException; 
+import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.store.access.StoreCostController;
 import org.apache.derby.iapi.store.access.StoreCostResult;
-import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -37,8 +36,10 @@ import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.sql.compile.SortState;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceGenericCostController;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
 import com.splicemachine.hbase.HBaseRegionLoads;
@@ -74,13 +75,13 @@ The StoreCostController gives 2 kinds of cost information
 public class IndexCostController extends SpliceGenericCostController implements StoreCostController {
     private static final Logger LOG = Logger.getLogger(IndexCostController.class);
 	private OpenSpliceConglomerate open_conglom;
-	private Conglomerate baseConglomerate;
+	private SpliceConglomerate baseConglomerate;
 	
     public IndexCostController(OpenSpliceConglomerate open_conglom) throws StandardException {
     	if (LOG.isTraceEnabled())
     		SpliceLogUtils.trace(LOG, "init with open_conglom=%s",open_conglom);
     	this.open_conglom = open_conglom;
-    	this.baseConglomerate = ((SpliceTransactionManager) open_conglom.getTransactionManager()).findConglomerate(open_conglom.getIndexConglomerate());
+    	this.baseConglomerate = (SpliceConglomerate) ((SpliceTransactionManager) open_conglom.getTransactionManager()).findConglomerate(open_conglom.getIndexConglomerate());
     }
 
     /**
@@ -127,13 +128,14 @@ public class IndexCostController extends SpliceGenericCostController implements 
 	 * @see org.apache.derby.iapi.store.access.RowUtil
      **/
     @Override
-    public double getFetchFromRowLocationCost(
-    FormatableBitSet validColumns,int access_type)
+    public void getFetchFromRowLocationCost(
+    FormatableBitSet validColumns,int access_type, CostEstimate costEstimate)
 		throws StandardException {
     	if (LOG.isTraceEnabled())
     		SpliceLogUtils.trace(LOG, "getFetchFromRowLocation {conglomerate=%s, validColumns=%s, accessType=%d",
     				open_conglom, validColumns==null?"null":validColumns.toString(),access_type);
-    	return SpliceConstants.fetchFromRowLocationCost;
+    	double cost = SpliceConstants.fetchFromRowLocationCost*costEstimate.rowCount();
+    	costEstimate.setEstimatedCost(costEstimate.getEstimatedCost() + cost);
     }
 
     /**
@@ -273,9 +275,9 @@ public class IndexCostController extends SpliceGenericCostController implements 
      **/
     @Override
 	public void getScanCost(
-    int                     scan_type,
-    long                    row_count,
-    int                     group_size,
+    int                     scanType,
+    long                    rowCount,
+    int                     groupSize,
     boolean                 forUpdate,
     FormatableBitSet        scanColumnList,
     DataValueDescriptor[]   template,
@@ -283,44 +285,39 @@ public class IndexCostController extends SpliceGenericCostController implements 
     int                     startSearchOperator,
     DataValueDescriptor[]   stopKeyValue,
     int                     stopSearchOperator,
-    boolean                 reopen_scan,
-    int                     access_type,
-    StoreCostResult         cost_result) throws StandardException {
+    boolean                 reopenScan,
+    int                     accessType,
+    StoreCostResult         costResult) throws StandardException {
     	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "getScanCost {scan_type=%d, row_count=%d, group_size=%d, "
+    		SpliceLogUtils.trace(LOG, "getScanCost input {scan_type=%d, row_count=%d, group_size=%d, "
     				+ "forUpdate=%s, scanColumnList=%s, template=%s, startKeyValue=%s, startSearchOperator=%d"
     				+ "stopKeyValue=%s, stopSearchOperator=%d, reopen_scan=%s, access_type=%d",
-    				scan_type, row_count, group_size, forUpdate, scanColumnList, template==null?"null":Arrays.toString(template), startKeyValue, startSearchOperator,
-    				stopKeyValue, stopSearchOperator, reopen_scan, access_type);
-    	assert open_conglom !=null;
-//    	SpliceScan spliceScan = new SpliceScan(open_conglom,scanColumnList,startKeyValue,startSearchOperator,null,stopKeyValue,stopSearchOperator,open_conglom.getTransaction(),false);
-//		spliceScan.setupScan();
-  //  	if (LOG.isTraceEnabled())
-//    		SpliceLogUtils.trace(LOG, "getScanCost generated Scan %s",spliceScan.getScan());		
-		if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(
-                scan_type == StoreCostController.STORECOST_SCAN_NORMAL ||
-                scan_type == StoreCostController.STORECOST_SCAN_SET);
-        }
-
+    				scanType, rowCount, groupSize, forUpdate, scanColumnList, template==null?"null":Arrays.toString(template), startKeyValue, startSearchOperator,
+    				stopKeyValue, stopSearchOperator, reopenScan, accessType);
+    	SpliceScan spliceScan = new SpliceScan(open_conglom,scanColumnList,startKeyValue,startSearchOperator,null,stopKeyValue,stopSearchOperator,open_conglom.getTransaction(),false);
+		spliceScan.setupScan();
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "getScanCost generated Scan %s",spliceScan.getScan());				
         SortedSet<HRegionInfo> baseRegions = getRegions(baseConglomerate.getContainerid());
         Map<String,RegionLoad> baseRegionLoads = HBaseRegionLoads.getCachedRegionLoadsMapForTable(baseConglomerate.getContainerid()+"");
-        long estimatedRowCount = computeRowCount(baseRegions,baseRegionLoads,SpliceConstants.hbaseRegionRowEstimate,SpliceConstants.regionMaxFileSize,null);    
-        double cost = estimatedRowCount*SpliceConstants.indexPerRowCost*(1+.001*open_conglom.getFormatIds().length); // Attempt to make bigger indexes / tables cost more.
+    	((SortState) costResult).setNumberOfRegions(baseRegions==null?0:baseRegions.size());
+        long estimatedRowCount = computeRowCount(baseRegions,baseRegionLoads,SpliceConstants.hbaseRegionRowEstimate,SpliceConstants.regionMaxFileSize,spliceScan.getScan()); 
+        double cost = (double) estimatedRowCount*SpliceConstants.indexPerRowCost*((double)open_conglom.getFormatIds().length/ (double)baseConglomerate.getFormat_ids().length); // Attempt to make bigger indexes / tables cost more.
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(cost >= 0);
             SanityManager.ASSERT(estimatedRowCount >= 0);
         }
-        cost_result.setEstimatedCost(cost);
-        cost_result.setEstimatedRowCount(estimatedRowCount);
+        costResult.setEstimatedCost(cost);
+        costResult.setEstimatedRowCount(estimatedRowCount);
+        SpliceLogUtils.trace(LOG, "getScanCost output costResult=%s",costResult);
         return;
     }
 	
 	@Override
-	public double getFetchFromFullKeyCost(FormatableBitSet validColumns, int access_type) throws StandardException {
+	public void getFetchFromFullKeyCost(FormatableBitSet validColumns, int access_type, CostEstimate costEstimate) throws StandardException {
     	if (LOG.isTraceEnabled())
     		SpliceLogUtils.trace(LOG, "getFetchFromFullKeyCost {conglomerate=%s, validColumns=%s, accessType=%d",
     				open_conglom, validColumns==null?"null":validColumns.toString(),access_type);
-		return SpliceConstants.getIndexFetchFromFullKeyCost;
-	}
+    	costEstimate.setCost(SpliceConstants.getIndexFetchFromFullKeyCost, 1.0d, 1.0d);
+	}	
 }
