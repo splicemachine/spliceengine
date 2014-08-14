@@ -34,13 +34,13 @@
 	<New class="org.eclipse.jetty.plus.jndi.EnvEntry">
 			<Arg></Arg>
 			<Arg>user</Arg>
-			<Arg type="java.lang.String">app</Arg>
+			<Arg type="java.lang.String">splice</Arg>
 			<Arg type="boolean">true</Arg>
 	</New>
 	<New class="org.eclipse.jetty.plus.jndi.EnvEntry">
 			<Arg></Arg>
 			<Arg>password</Arg>
-			<Arg type="java.lang.String">app</Arg>
+			<Arg type="java.lang.String">admin</Arg>
 			<Arg type="boolean">true</Arg>
 	</New>
 
