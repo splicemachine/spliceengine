@@ -9,6 +9,6 @@ import com.splicemachine.si.api.Txn;
 public class RolledBackTxn extends InheritingTxnView {
 
 		public RolledBackTxn(long txnId){
-			super(Txn.ROOT_TRANSACTION,txnId,txnId,null,false,false,false,false,false,false,-1l,-1l,State.ROLLEDBACK);
+			super(Txn.ROOT_TRANSACTION,txnId,txnId,null,false,false,false,false,false,false,-1l,-1l, Txn.State.ROLLEDBACK);
 		}
 }

@@ -11,6 +11,7 @@ import com.splicemachine.hbase.table.BoundCall;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -296,7 +297,7 @@ public class JobControlTest {
         private final CountDownLatch latch;
         private volatile TaskStatus taskStatus;
         private final int pos;
-        private Txn txn;
+        private TxnView txn;
 
         public CountDownRegionTask(CountDownLatch latch,int pos) {
             this.latch = latch;
@@ -320,13 +321,13 @@ public class JobControlTest {
         }
 
         @Override
-        public void setTxn(Txn txn) {
+        public void setParentTxnInformation(TxnView txn) {
             this.txn = txn;
         }
 
         @Override
         public Txn getTxn() {
-            return txn;
+            return null;
         }
 
         @Override

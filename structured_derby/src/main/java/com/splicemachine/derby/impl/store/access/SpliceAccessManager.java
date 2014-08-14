@@ -14,6 +14,7 @@ import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionReadController;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -547,7 +548,7 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 				return tc;
 		}
 
-		public TransactionController marshallTransaction( ContextManager cm , Txn txn) throws StandardException {
+		public TransactionController marshallTransaction( ContextManager cm , TxnView txn) throws StandardException {
 				SpliceLogUtils.debug(LOG, "marshallTransaction called for transaction {%s} for context manager {%s}",txn, cm);
 				Preconditions.checkNotNull(cm, "ContextManager is null");
 				Transaction transaction = rawstore.marshallTransaction(cm, AccessFactoryGlobals.USER_TRANS_NAME, txn);

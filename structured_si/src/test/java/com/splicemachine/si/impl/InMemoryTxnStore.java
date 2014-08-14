@@ -5,9 +5,8 @@ import com.google.common.collect.Lists;
 import com.google.common.primitives.Longs;
 import com.splicemachine.concurrent.LongStripedSynchronizer;
 import com.splicemachine.si.api.*;
-import com.splicemachine.utils.Source;
+import com.splicemachine.utils.ByteSlice;
 
-import javax.management.relation.RoleUnresolved;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,7 +62,7 @@ public class InMemoryTxnStore implements TxnStore {
 
 
 		@Override public boolean transactionCached(long txnId) { return false; }
-		@Override public void cache(Txn toCache) {  }
+		@Override public void cache(TxnView toCache) {  }
 
     @Override public Txn getTransactionFromCache(long txnId) {
         try {
@@ -106,12 +105,25 @@ public class InMemoryTxnStore implements TxnStore {
 				}
 		}
 
-		protected Txn getRolledbackTxn(long txnId, Txn txn) {
-				return new InheritingTxnView(txn.getParentTransaction(),txnId,txn.getBeginTimestamp(),
-												txn.getIsolationLevel(),true,txn.isDependent(),
-												true,txn.isAdditive(),
-												true,txn.allowsWrites(),
-												-1l,-1l, Txn.State.ROLLEDBACK);
+		protected Txn getRolledbackTxn(long txnId, final Txn txn) {
+        return new AbstractTxn(txnId,txn.getBeginTimestamp(),txn.getIsolationLevel()) {
+
+            @Override
+            public void commit() throws IOException {
+                throw new UnsupportedOperationException("Txn is rolled back");
+            }
+
+            @Override public void rollback() throws IOException { }
+
+            @Override
+            public Txn elevateToWritable(byte[] writeTable) throws IOException {
+                throw new UnsupportedOperationException("Txn is rolled back");
+            }
+            @Override public long getCommitTimestamp() { return -1l; }
+            @Override public long getEffectiveCommitTimestamp() { return -1l; }
+            @Override public State getEffectiveState() { return State.ROLLEDBACK; }
+            @Override public State getState() { return State.ROLLEDBACK; }
+        };
 		}
 
 		@Override
@@ -123,16 +135,16 @@ public class InMemoryTxnStore implements TxnStore {
 						TxnHolder txnHolder = txnMap.get(txnId);
 						if(txnHolder==null) throw new CannotCommitException(txnId,null);
 
-						Txn txn = txnHolder.txn;
+						final Txn txn = txnHolder.txn;
 						if(txn.getEffectiveState()== Txn.State.ROLLEDBACK)
 								throw new CannotCommitException(txnId, Txn.State.ROLLEDBACK);
 						if(isTimedOut(txnHolder))
 								throw new CannotCommitException(txnId, Txn.State.ROLLEDBACK);
 
-						long commitTs = commitTsGenerator.nextTimestamp();
+						final long commitTs = commitTsGenerator.nextTimestamp();
 
-						Txn parentTransaction = txn.getParentTransaction();
-						long globalCommitTs;
+						TxnView parentTransaction = txn.getParentTxnView();
+						final long globalCommitTs;
 						if(parentTransaction==null||parentTransaction.equals(Txn.ROOT_TRANSACTION))
 								globalCommitTs = commitTs;
 						else{
@@ -142,11 +154,39 @@ public class InMemoryTxnStore implements TxnStore {
 								}else
 										globalCommitTs = -1l;
 						}
-						txnHolder.txn = new InheritingTxnView(txn.getParentTransaction(),txnId,txn.getBeginTimestamp(),
-										txn.getIsolationLevel(),true,txn.isDependent(),
-										true,txn.isAdditive(),
-										true,txn.allowsWrites(),
-										commitTs,globalCommitTs, Txn.State.COMMITTED);
+            txnHolder.txn = new AbstractTxn(txn.getTxnId(),txn.getBeginTimestamp(),txn.getIsolationLevel()) {
+
+                @Override public void commit() throws IOException {  } //do nothing
+
+                @Override
+                public void rollback() throws IOException {
+                    throw new UnsupportedOperationException("Cannot rollback a committed transaction");
+                }
+
+                @Override
+                public Txn elevateToWritable(byte[] writeTable) throws IOException {
+                    throw new UnsupportedOperationException("Txn is committed");
+                }
+
+                @Override
+                public long getCommitTimestamp() {
+                    return commitTs;
+                }
+
+                @Override
+                public long getEffectiveCommitTimestamp() {
+                    if(txn.isDependent()){
+                        return getParentTxnView().getEffectiveCommitTimestamp();
+                    }else return commitTs;
+                }
+
+                @Override
+                public long getGlobalCommitTimestamp() {
+                    return globalCommitTs;
+                }
+
+                @Override public State getState() { return State.ROLLEDBACK; }
+            };
 						return commitTs;
 				}finally{
 						wl.unlock();
@@ -214,8 +254,8 @@ public class InMemoryTxnStore implements TxnStore {
 		}
 
     @Override
-    public List<Txn> getActiveTransactions(long minTxnid, long maxTxnId, byte[] table) throws IOException {
-        List<Txn> txns = Lists.newArrayListWithExpectedSize(txnMap.size());
+    public List<TxnView> getActiveTransactions(long minTxnid, long maxTxnId, byte[] table) throws IOException {
+        List<TxnView> txns = Lists.newArrayListWithExpectedSize(txnMap.size());
         for(Map.Entry<Long,TxnHolder> txnEntry:txnMap.entrySet()){
             if(isTimedOut(txnEntry.getValue())) continue;
             Txn value = txnEntry.getValue().txn;
@@ -224,9 +264,9 @@ public class InMemoryTxnStore implements TxnStore {
                     && value.getTxnId()>=minTxnid)
                 txns.add(value);
         }
-        Collections.sort(txns,new Comparator<Txn>() {
+        Collections.sort(txns,new Comparator<TxnView>() {
             @Override
-            public int compare(Txn o1, Txn o2) {
+            public int compare(TxnView o1, TxnView o2) {
                 if(o1==null){
                     if(o2==null) return 0;
                     return -1;
@@ -273,16 +313,18 @@ public class InMemoryTxnStore implements TxnStore {
 				return activeTxns.toArray();
 		}
 
-		private long[] findActiveTransactions(long minTimestamp, long maxId, byte[] table) {
-				LongArrayList activeTxns = new LongArrayList(txnMap.size());
-				for(Map.Entry<Long,TxnHolder> txnEntry:txnMap.entrySet()){
-						if(isTimedOut(txnEntry.getValue())) continue;
-						Txn value = txnEntry.getValue().txn;
-						if(value.getEffectiveState()== Txn.State.ACTIVE && value.getTxnId()<=maxId && value.getTxnId()>=minTimestamp){
-								Collection<byte[]> destinationTables = value.getDestinationTables();
-								if(destinationTables.contains(table)){
-										activeTxns.add(txnEntry.getKey());
-								}
+    private long[] findActiveTransactions(long minTimestamp, long maxId, byte[] table) {
+        LongArrayList activeTxns = new LongArrayList(txnMap.size());
+        for(Map.Entry<Long,TxnHolder> txnEntry:txnMap.entrySet()){
+            if(isTimedOut(txnEntry.getValue())) continue;
+            Txn value = txnEntry.getValue().txn;
+            if(value.getEffectiveState()== Txn.State.ACTIVE && value.getTxnId()<=maxId && value.getTxnId()>=minTimestamp){
+                Iterator<ByteSlice> destinationTables = value.getDestinationTables();
+                while(destinationTables.hasNext()){
+                    ByteSlice data = destinationTables.next();
+                    if(data.equals(table,0,table.length))
+                        activeTxns.add(txnEntry.getKey());
+                }
 						}
 				}
 				return activeTxns.toArray();

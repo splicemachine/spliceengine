@@ -17,6 +17,7 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.UUIDGenerator;
 import org.apache.derby.catalog.UUID;
@@ -33,7 +34,7 @@ import java.sql.SQLException;
 public class RowTransformer implements Closeable {
 
     private UUID tableId;
-    private Txn txn;
+    private TxnView txn;
     private boolean initialized = false;
     private ExecRow oldRow;
     private ExecRow newRow;
@@ -49,7 +50,7 @@ public class RowTransformer implements Closeable {
     DataValueDescriptor[] kdvds;
 
     public RowTransformer(UUID tableId,
-                          Txn txn,
+                          TxnView txn,
                           ColumnInfo[] columnInfos,
                           int droppedColumnPosition) {
         this.tableId = tableId;

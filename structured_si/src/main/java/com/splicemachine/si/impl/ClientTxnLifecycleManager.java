@@ -58,29 +58,30 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 		}
 
 		@Override
-		public Txn beginChildTransaction(Txn parentTxn, byte[] destinationTable) throws IOException {
+		public Txn beginChildTransaction(TxnView parentTxn, byte[] destinationTable) throws IOException {
 				if(parentTxn==null)
 						parentTxn = Txn.ROOT_TRANSACTION;
 				return beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),parentTxn.isDependent(),parentTxn.isAdditive(),destinationTable);
 		}
 
 		@Override
-		public Txn beginChildTransaction(Txn parentTxn, Txn.IsolationLevel isolationLevel, byte[] destinationTable) throws IOException {
+		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, byte[] destinationTable) throws IOException {
 				if(parentTxn==null)
 						parentTxn = Txn.ROOT_TRANSACTION;
 				return beginChildTransaction(parentTxn, isolationLevel, parentTxn.isDependent(), parentTxn.isAdditive(), destinationTable);
 		}
 
 		@Override
-		public Txn beginChildTransaction(Txn parentTxn, Txn.IsolationLevel isolationLevel, boolean dependent, byte[] destinationTable) throws IOException {
+		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean dependent, byte[] destinationTable) throws IOException {
 				if(parentTxn==null)
 						parentTxn = Txn.ROOT_TRANSACTION;
 				return beginChildTransaction(parentTxn, isolationLevel, dependent, parentTxn.isAdditive(), destinationTable);
 		}
 
     private static final Logger LOG = Logger.getLogger(ClientTxnLifecycleManager.class);
+
 		@Override
-		public Txn beginChildTransaction(Txn parentTxn,
+		public Txn beginChildTransaction(TxnView parentTxn,
 																		 Txn.IsolationLevel isolationLevel,
 																		 boolean isDependent,
 																		 boolean additive,
@@ -171,7 +172,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 																					Txn.IsolationLevel isolationLevel,
 																					boolean isDependent,
 																					boolean additive,
-																					Txn parentTxn,
+																					TxnView parentTxn,
 																					byte[] destinationTable) throws IOException {
 				/*
 				 * Create a writable transaction directly.
@@ -194,7 +195,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 		private Txn createReadableTransaction(Txn.IsolationLevel isolationLevel,
 																					boolean isDependent,
 																					boolean additive,
-																					Txn parentTxn) {
+																					TxnView parentTxn) {
 				/*
 				 * Creates an elevatable, read-only transaction.
 				 *

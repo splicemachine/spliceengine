@@ -5,6 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.annotations.ThreadSafe;
 import org.apache.hadoop.hbase.client.Delete;
@@ -47,13 +48,13 @@ public class SynchronousReadResolver {
 
     void resolve(HRegion region, ByteSlice rowKey, long txnId, TxnSupplier supplier) {
         try {
-            Txn transaction = supplier.getTransaction(txnId);
+            TxnView transaction = supplier.getTransaction(txnId);
             if(transaction.getEffectiveState()== Txn.State.ROLLEDBACK){
                 SynchronousReadResolver.INSTANCE.resolveRolledback(region, rowKey, txnId);
             }else{
-                Txn t = transaction;
+                TxnView t = transaction;
                 while(t.getState()== Txn.State.COMMITTED){
-                    t = t.getParentTransaction();
+                    t = t.getParentTxnView();
                 }
                 if(t==Txn.ROOT_TRANSACTION)
                     SynchronousReadResolver.INSTANCE.resolveCommitted(region,rowKey,txnId,transaction.getEffectiveCommitTimestamp());

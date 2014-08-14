@@ -11,4 +11,8 @@ public class CannotCommitException extends DoNotRetryIOException {
 		public CannotCommitException(long txnId,Txn.State actualState){
 				super("Transaction "+txnId+" cannot be committed--it is in the "+ actualState+" state");
 		}
+
+    public CannotCommitException(String message){
+        super(message);
+    }
 }

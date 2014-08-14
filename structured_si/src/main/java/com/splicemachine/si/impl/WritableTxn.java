@@ -1,12 +1,15 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.encoding.MultiFieldEncoder;
+import com.google.common.collect.ForwardingIterator;
 import com.splicemachine.si.api.CannotCommitException;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.SliceIterator;
 
 import java.io.IOException;
-import java.util.Collection;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -18,7 +21,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 public class WritableTxn extends AbstractTxn {
 
-		private final Txn parent;
+		private final TxnView parent;
 		private volatile long commitTimestamp = -1l;
 		private volatile long globalCommitTimestamp = -1l;
 
@@ -35,7 +38,7 @@ public class WritableTxn extends AbstractTxn {
 		public WritableTxn(long txnId,
 											 long beginTimestamp,
 											 IsolationLevel isolationLevel,
-											 Txn parent,
+											 TxnView parent,
 											 TxnLifecycleManager tc,
 											 boolean isDependent,
 											 boolean isAdditive) {
@@ -44,7 +47,7 @@ public class WritableTxn extends AbstractTxn {
 		public WritableTxn(long txnId,
 											 long beginTimestamp,
 											 IsolationLevel isolationLevel,
-											 Txn parent,
+											 TxnView parent,
 											 TxnLifecycleManager tc,
 											 boolean isDependent,
 											 boolean isAdditive,
@@ -63,7 +66,7 @@ public class WritableTxn extends AbstractTxn {
 
 		public WritableTxn(Txn txn,TxnLifecycleManager tc, byte[] destinationTable) {
 				super(txn.getTxnId(),txn.getBeginTimestamp(),txn.getIsolationLevel());
-				this.parent = txn.getParentTransaction();
+				this.parent = txn.getParentTxnView();
 				this.tc = tc;
 				this.isDependent = txn.isDependent();
 				this.isAdditive = txn.isAdditive();
@@ -97,12 +100,9 @@ public class WritableTxn extends AbstractTxn {
 				else return commitTimestamp;
 		}
 
-		@Override
-		public Txn getParentTransaction() {
-				return parent;
-		}
+    @Override public TxnView getParentTxnView() { return parent; }
 
-		@Override
+    @Override
 		public State getState() {
 				return state;
 		}
@@ -160,8 +160,8 @@ public class WritableTxn extends AbstractTxn {
 		}
 
 		@Override
-		public Collection<byte[]> getDestinationTables() {
-				return tableWrites;
+		public Iterator<ByteSlice> getDestinationTables() {
+        return new SliceIterator(tableWrites.iterator());
 		}
 
     @Override

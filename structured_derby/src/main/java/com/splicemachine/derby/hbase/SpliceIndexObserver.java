@@ -7,10 +7,7 @@ import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.si.api.TransactionStorage;
-import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnOperationFactory;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.SimpleOperationFactory;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.WriteConflict;
@@ -103,7 +100,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         if(conglomId>0){
             if(delete.getAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)==null){
                 KVPair deletePair = KVPair.delete(delete.getRow());
-                Txn txn = operationFactory.fromWrites(delete);
+                TxnView txn = operationFactory.fromWrites(delete);
                 mutate(e.getEnvironment(), deletePair,txn);
             }
         }
@@ -190,7 +187,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 		}
 
 
-    private void mutate(RegionCoprocessorEnvironment rce, KVPair mutation,Txn txn) throws IOException {
+    private void mutate(RegionCoprocessorEnvironment rce, KVPair mutation,TxnView txn) throws IOException {
     	if (LOG.isTraceEnabled())
     		SpliceLogUtils.trace(LOG, "mutate %s",mutation);
         //we've already done our write path, so just pass it through

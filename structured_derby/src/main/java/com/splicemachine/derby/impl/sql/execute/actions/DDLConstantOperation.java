@@ -15,7 +15,11 @@ import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.DenseTxn;
 import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.stream.CloseableStream;
+import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.DependableFinder;
@@ -903,12 +907,14 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
         long totalWait = 0;
         long activeTxnId = -1l;
         do{
-            CloseableIterator<Long> activeTxns = transactionReader.getActiveTransactionIds(1);
+            CloseableStream<Txn> activeTxns = transactionReader.getActiveTransactions();
             try{
-                if(activeTxns.hasNext()){
-                    activeTxnId = activeTxns.next();
-                }
-            }finally{
+                Txn txn = activeTxns.next();
+                if(txn!=null)
+                    activeTxnId = txn.getTxnId();
+            } catch (StreamException e) {
+                throw new IOException(e.getCause());
+            } finally{
                 activeTxns.close();
             }
             if(activeTxnId<0) return activeTxnId;

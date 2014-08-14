@@ -5,10 +5,11 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Lists;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
@@ -40,7 +41,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     private final Writer writer;
     private final Writer synchronousWriter;
     private final byte[] tableName;
-    private final Txn txn;
+    private final TxnView txn;
     private final RegionCache regionCache;
 
     private long totalElementsAdded = 0l;
@@ -65,7 +66,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
 
 
     public PipingWriteBuffer(byte[] tableName,
-														 Txn txn,
+														 TxnView txn,
                       Writer writer,
                       Writer synchronousWriter,
                       RegionCache regionCache,

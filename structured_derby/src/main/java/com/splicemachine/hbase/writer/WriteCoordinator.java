@@ -9,9 +9,9 @@ import com.splicemachine.hbase.HBaseRegionCache;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.MonitoredThreadPool;
 import com.splicemachine.hbase.RegionCache;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.si.api.TxnView;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
@@ -102,7 +102,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
 		}
 
 		@Override
-    public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, Txn txn){
+    public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn){
         monitor.outstandingBuffers.incrementAndGet();
 
         return new PipingWriteBuffer(tableName,txn, asynchronousWriter,synchronousWriter,regionCache,noOpFlushHook,defaultWriteConfiguration,monitor){
@@ -115,7 +115,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
     }
 
 		@Override
-		public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, Txn txn, final MetricFactory metricFactory) {
+		public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn, final MetricFactory metricFactory) {
 				Writer.WriteConfiguration config = defaultWriteConfiguration;
 				//if it isn't active, don't bother creating the extra object
 				if(metricFactory.isActive()){
@@ -127,13 +127,13 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
 		}
 
 		@Override
-		public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, Txn txn,
+		public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn,
 																									 Writer.WriteConfiguration writeConfiguration){
 				return writeBuffer(tableName,txn,noOpFlushHook,writeConfiguration);
 		}
 
     @Override
-    public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, Txn txn,
+    public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn,
                                                    PreFlushHook flushHook, Writer.WriteConfiguration writeConfiguration){
         monitor.outstandingBuffers.incrementAndGet();
         return new PipingWriteBuffer(tableName,txn, asynchronousWriter,synchronousWriter,regionCache, flushHook, writeConfiguration,monitor) {
@@ -146,7 +146,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
     }
 
 		@Override
-		public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, Txn txn, final int maxEntries) {
+		public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn, final int maxEntries) {
 				BufferConfiguration config = new BufferConfiguration() {
 						@Override public long getMaxHeapSize() { return Long.MAX_VALUE; }
 						@Override public int getMaxEntries() { return maxEntries; }
@@ -165,7 +165,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
 
 		@Override
     public RecordingCallBuffer<KVPair> synchronousWriteBuffer(byte[] tableName,
-                                                              Txn txn, PreFlushHook flushHook,
+                                                              TxnView txn, PreFlushHook flushHook,
                                                               Writer.WriteConfiguration writeConfiguration){
         monitor.outstandingBuffers.incrementAndGet();
         return new PipingWriteBuffer(tableName,txn,synchronousWriter,synchronousWriter,regionCache, flushHook, writeConfiguration,monitor) {
@@ -179,7 +179,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
 
     @Override
     public RecordingCallBuffer<KVPair> synchronousWriteBuffer(byte[] tableName,
-                                                              Txn txn,
+                                                              TxnView txn,
                                                               PreFlushHook flushHook,
                                                               Writer.WriteConfiguration writeConfiguration,
                                                               final int maxEntries){

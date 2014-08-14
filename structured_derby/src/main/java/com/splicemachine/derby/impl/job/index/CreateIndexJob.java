@@ -5,6 +5,7 @@ import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.job.Task;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
@@ -46,7 +47,7 @@ public class CreateIndexJob implements CoprocessorJob{
 
     @Override
     public String getJobId() {
-        Txn txn = ddlChange.getTxn();
+        TxnView txn = ddlChange.getTxn();
         return "indexJob-"+txn.getTxnId();
     }
 
@@ -61,7 +62,7 @@ public class CreateIndexJob implements CoprocessorJob{
     }
 
     @Override
-    public Txn getTxn() {
+    public TxnView getTxn() {
         return ddlChange.getTxn();
     }
 }

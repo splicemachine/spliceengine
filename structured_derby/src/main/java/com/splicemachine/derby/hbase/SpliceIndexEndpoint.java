@@ -13,6 +13,7 @@ import com.splicemachine.hbase.writer.BulkWriteResult;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -211,7 +212,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 		}
 
 
-		private WriteContext getWriteContext(Txn txn, int writeSize, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
+		private WriteContext getWriteContext(TxnView txn, int writeSize, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
         Pair<LocalWriteContextFactory, AtomicInteger> ctxFactoryPair = getContextPair(conglomId);
         return ctxFactoryPair.getFirst().create(txn,region, writeSize, env);
     }

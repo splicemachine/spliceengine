@@ -19,6 +19,7 @@ import com.splicemachine.job.Status;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -213,7 +214,7 @@ public class SinkTask extends ZkTask {
     }
 
 		@Override
-		protected Txn beginChildTransaction(Txn parentTxn, TxnLifecycleManager tc) throws IOException {
+		protected Txn beginChildTransaction(TxnView parentTxn, TxnLifecycleManager tc) throws IOException {
 				byte[] table = null;
 				if(instructions.getTopOperation() instanceof DMLWriteOperation){
 						table = ((DMLWriteOperation)instructions.getTopOperation()).getDestinationTable();

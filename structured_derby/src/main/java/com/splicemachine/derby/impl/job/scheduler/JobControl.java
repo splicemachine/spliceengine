@@ -15,6 +15,7 @@ import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.HConstants;
@@ -364,11 +365,12 @@ class JobControl implements JobFuture {
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "executing submit on resubmitted job %s", job.getJobId());
 
-						Txn parentTxn = job.getTxn();
+						TxnView parentTxn = job.getTxn();
 						byte[] destTable = job.getDestinationTable();
 						if(parentTxn!=null){
 								//set a new transaction on the entry
-								newTaskData.getFirst().setTxn(TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn,destTable));
+                newTaskData.getFirst().setParentTxnInformation(parentTxn);
+//								newTaskData.getFirst().setParentTxnInformation(TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, destTable));
 						}
             //submit the task again
             submit(newTaskData.getFirst(), newTaskData.getSecond(), job.getTable(), tryCount + 1);

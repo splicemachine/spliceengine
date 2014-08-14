@@ -6,10 +6,11 @@ import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -27,7 +28,7 @@ public class ConglomerateLoader {
 
     private static Logger LOG = Logger.getLogger(ConglomerateLoader.class);
     private long toConglomId;
-    private Txn txn;
+    private TxnView txn;
 
     private BufferedRegionScanner brs;
     private RecordingCallBuffer<KVPair> writeBuffer;
@@ -35,15 +36,17 @@ public class ConglomerateLoader {
     private boolean isTraced;
 
     public ConglomerateLoader(long toConglomId,
-                              Txn txn) {
+                              TxnView txn,boolean isTraced) {
 
         this.toConglomId = toConglomId;
         this.txn = txn;
+        this.isTraced = isTraced;
     }
 
     private void initialize() {
         byte[] table = Bytes.toBytes(Long.toString(toConglomId));
-        writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(table, txn);
+        MetricFactory metricFactory = isTraced? Metrics.basicMetricFactory(): Metrics.noOpMetricFactory();
+        writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(table, txn, metricFactory);
         initialized = true;
     }
 

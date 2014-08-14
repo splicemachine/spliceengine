@@ -16,7 +16,7 @@ public interface TxnSupplier {
 		 *
 		 * @param txnId the transaction id to fetch.
 		 */
-		Txn getTransaction(long txnId) throws IOException;
+		TxnView getTransaction(long txnId) throws IOException;
 
 		/**
 		 * Get the transaction associated with {@code txnId}.
@@ -25,7 +25,7 @@ public interface TxnSupplier {
 		 * @param getDestinationTables whether or not to fetch destination table
 		 *                              information
 		 */
-		Txn getTransaction(long txnId,boolean getDestinationTables) throws IOException;
+		TxnView getTransaction(long txnId,boolean getDestinationTables) throws IOException;
 
 		/**
 		 * Determines whether this Store has the transaction in its local cache
@@ -67,7 +67,7 @@ public interface TxnSupplier {
 		 *
 		 * @param toCache the transaction to cache.
 		 */
-		void cache(Txn toCache);
+		void cache(TxnView toCache);
 
-    Txn getTransactionFromCache(long txnId);
+    TxnView getTransactionFromCache(long txnId);
 }

@@ -32,7 +32,7 @@ public interface Transactor<Table, Mutation extends OperationWithAttributes,Put 
 																		 long transactionId,
 																		 ConstraintChecker constraintChecker ) throws IOException;
 
-		OperationStatus[] processKvBatch(Table table, RollForward rollForwardQueue, Txn txnId,
+		OperationStatus[] processKvBatch(Table table, RollForward rollForwardQueue, TxnView txnId,
 																		 byte[] family, byte[] qualifier,
 																		 Collection<KVPair> mutations,ConstraintChecker constraintChecker) throws IOException;
 

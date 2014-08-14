@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.Task;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -18,7 +19,7 @@ public interface RegionTask extends Task {
     void prepareTask(byte[] start,byte[] end,RegionCoprocessorEnvironment rce,
                      SpliceZooKeeperManager zooKeeper ) throws ExecutionException;
 
-		void setTxn(Txn txn);
+		void setParentTxnInformation(TxnView txn);
 
     /**
      * @return true if task should be invalidated when a region closes.

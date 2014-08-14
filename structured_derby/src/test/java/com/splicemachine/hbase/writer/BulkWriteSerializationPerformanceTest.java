@@ -5,6 +5,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.utils.ByteDataOutput;
 import com.yammer.metrics.Metrics;
@@ -118,7 +119,7 @@ public class BulkWriteSerializationPerformanceTest {
 						kvPairs.add(new KVPair(nextKey,nextRow,type));
 				}
 //				String txnId = Integer.toString(random.nextInt(2000000000));
-        Txn txn = new ActiveWriteTxn(20000000,20000000);
+        TxnView txn = new ActiveWriteTxn(20000000,20000000);
 				return new BulkWrite(kvPairs,txn,new byte[]{});
 		}
 }

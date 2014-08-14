@@ -12,6 +12,7 @@ import com.splicemachine.si.data.light.*;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.translate.Transcoder;
 import com.splicemachine.si.impl.translate.Translator;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
@@ -24,6 +25,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -204,9 +206,9 @@ public class SITransactorTest extends SIConstants {
 		@Test
 		public void testCanRecordWriteTable() throws Exception {
 				Txn parent = control.beginTransaction(DESTINATION_TABLE);
-				Txn transaction = txnStore.getTransaction(parent.getTxnId(),true);
-				Collection<byte[]> destinationTables = transaction.getDestinationTables();
-				Assert.assertArrayEquals("Incorrect write table!", DESTINATION_TABLE, Lists.newArrayList(destinationTables).get(0));
+				TxnView transaction = txnStore.getTransaction(parent.getTxnId(),true);
+				Iterator<ByteSlice> destinationTables = transaction.getDestinationTables();
+				Assert.assertArrayEquals("Incorrect write table!", DESTINATION_TABLE, destinationTables.next().getByteCopy());
 		}
 
 		@Test
@@ -1331,7 +1333,7 @@ public class SITransactorTest extends SIConstants {
         t2.commit();
 
 //        final Transaction transactionStatusA = transactorSetup.transactionStore.getTransaction(t2.commit();
-				Txn t2Check = txnStore.getTransaction(t2.getTxnId());
+				TxnView t2Check = txnStore.getTransaction(t2.getTxnId());
         Assert.assertNotEquals("committing a dependent child sets a local commit timestamp", -1l, t2Check.getCommitTimestamp());
 				Assert.assertEquals("incorrect effective commit timestamp!", -1l, t2Check.getEffectiveCommitTimestamp());
 				long earlyCommit = t2Check.getCommitTimestamp();
@@ -2252,8 +2254,8 @@ public class SITransactorTest extends SIConstants {
                 public void run() {
                     try {
                         Assert.assertTrue(latch.await(10, TimeUnit.SECONDS));
-												Txn txn = txnStore.getTransaction(t1.getTxnId());
-												txn.commit();
+												TxnView txn = txnStore.getTransaction(t1.getTxnId());
+//												txn.commit();
 												success[1] = txn.getEffectiveState()== Txn.State.COMMITTED;
 //                        ImmutableTransaction it1 = transactorSetup.transactionStore.getImmutableTransaction(t1.commit();
 //                        Transaction txn1 = transactorSetup.transactionStore.getTransaction(t1);
@@ -2532,9 +2534,9 @@ public class SITransactorTest extends SIConstants {
         testUtility.insertAge(t2, "moe49", 21);
         t2.commit();
 //        final Transaction transactionStatusA = transactorSetup.transactionStore.getTransaction(t2.commit();
-				Txn toCheckA = txnStore.getTransaction(t2.getTxnId());
+				TxnView toCheckA = txnStore.getTransaction(t2.getTxnId());
         t1.commit();
-				Txn toCheckB = txnStore.getTransaction(t2.getTxnId());
+				TxnView toCheckB = txnStore.getTransaction(t2.getTxnId());
 //        final Transaction transactionStatusB = transactorSetup.transactionStore.getTransaction(t2.commit();
         Assert.assertEquals("committing parent of independent transaction should not change the commit time of the child",
 								toCheckA.getCommitTimestamp(), toCheckB.getCommitTimestamp());
@@ -2873,7 +2875,7 @@ public class SITransactorTest extends SIConstants {
         }
 				Assert.assertNotNull(committedTransactionID);
 				Long commitTimestamp = (committedTransactionID.getTxnId() + 1);
-				Txn voidedTransactionID = txnStore.getTransaction(commitTimestamp);
+				TxnView voidedTransactionID = txnStore.getTransaction(commitTimestamp);
 				Assert.assertNull("Transaction id mistakenly found!",voidedTransactionID);
 
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);

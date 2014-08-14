@@ -1,15 +1,14 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.Txn;
-
-import java.io.IOException;
+import com.splicemachine.si.api.TxnView;
 
 /**
  * @author Scott Fines
  *         Date: 7/3/14
  */
-public class ActiveWriteTxn extends AbstractTxn{
-		private final Txn parentTxn;
+public class ActiveWriteTxn extends AbstractTxnView{
+		private final TxnView parentTxn;
     private final boolean additive;
 
     public ActiveWriteTxn(long txnId,
@@ -25,9 +24,9 @@ public class ActiveWriteTxn extends AbstractTxn{
 
 		public ActiveWriteTxn(long txnId,
 														 long beginTimestamp,
-														 Txn parentTxn,
+														 TxnView parentTxn,
                              boolean additive) {
-				super(txnId, beginTimestamp,IsolationLevel.SNAPSHOT_ISOLATION);
+				super(txnId, beginTimestamp, Txn.IsolationLevel.SNAPSHOT_ISOLATION);
 				this.parentTxn = parentTxn;
         this.additive = additive;
 		}
@@ -35,25 +34,11 @@ public class ActiveWriteTxn extends AbstractTxn{
 
 		@Override public long getCommitTimestamp() { return -1l; }
 		@Override public long getEffectiveCommitTimestamp() { return -1l; }
-		@Override public Txn getParentTransaction() { return parentTxn; }
-		@Override public State getState() { return State.ACTIVE; }
+    @Override public TxnView getParentTxnView() { return parentTxn; }
 
-		@Override
-		public void commit() throws IOException {
-			throw new UnsupportedOperationException("Cannot commit an ActiveWriteTxn");
-		}
-
-		@Override
-		public void rollback() throws IOException {
-			throw new UnsupportedOperationException("Cannot rollback an ActiveWriteTxn");
-		}
+    @Override public Txn.State getState() { return Txn.State.ACTIVE; }
 
 		@Override public boolean allowsWrites() { return true; }
-
-		@Override
-		public Txn elevateToWritable(byte[] writeTable) throws IOException {
-				throw new UnsupportedOperationException("Cannot elevate an ActiveWriteTxn");
-		}
 
 		@Override public boolean isDependent() { return false; }
 		@Override public boolean isAdditive() { return additive; }

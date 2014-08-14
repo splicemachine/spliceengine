@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
@@ -10,32 +9,26 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.SpreadBucket;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
-import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.coprocessors.TxnLifecycleEndpoint;
 import com.splicemachine.si.impl.*;
-import com.splicemachine.metrics.Metrics;
+import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.uuid.Snowflake;
-import org.apache.hadoop.hbase.Coprocessor;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.FilterBase;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.*;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -82,7 +75,7 @@ public class ActiveTransactionTask extends ZkTask {
         TempTable tempTable = SpliceDriver.driver().getTempTable();
         SpreadBucket currentSpread = tempTable.getCurrentSpread();
         long l = Snowflake.timestampFromUUID(Bytes.toLong(operationUUID));
-        Txn writeTxn =  new ActiveWriteTxn(l,l,Txn.ROOT_TRANSACTION);
+        TxnView writeTxn =  new ActiveWriteTxn(l,l,Txn.ROOT_TRANSACTION);
         CallBuffer<KVPair> callBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(tempTable.getTempTableName(), writeTxn);
         MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(2);
 
@@ -92,58 +85,33 @@ public class ActiveTransactionTask extends ZkTask {
         boolean[] usedTempBuckets = new boolean[currentSpread.getNumBuckets()];
 
         int rows = 0;
+        Source<DenseTxn> activeTxns = null;
         try{
-            Source<DenseTxn> activeTxns = regionTxnStore.getActiveTxns(minTxnId, maxTxnId, writeTable);
+            activeTxns = regionTxnStore.getActiveTxns(minTxnId, maxTxnId, writeTable);
 
+            MultiFieldEncoder rowEncoder = MultiFieldEncoder.create(10);
             while(activeTxns.hasNext()){
+                DenseTxn txn = activeTxns.next();
+                byte[] key = Encoding.encode(txn.getTxnId());
+                hashBytes[0] = currentSpread.bucket(hashFunction.hash(key,0,key.length));
+                usedTempBuckets[currentSpread.bucketIndex(hashBytes[0])] = true;
+                key = keyEncoder.setRawBytes(hashBytes).setRawBytes(key).build();
 
-            }
-
-        } catch (IOException e) {
-            throw new ExecutionException(e);
-        }
-        int rows = 0;
-        RegionScanner scanner = null;
-        try {
-            scanner = region.getScanner(scan);
-
-            BufferedRegionScanner bufferedRegionScanner = new BufferedRegionScanner(region,scanner,scan,1024, Metrics.noOpMetricFactory());
-
-            List<KeyValue> kvs = Lists.newArrayList();
-            boolean shouldContinue;
-            do{
-                kvs.clear();
-                shouldContinue = bufferedRegionScanner.next(kvs);
-                if(kvs.size()<=0) break;
-                keyEncoder.reset();
-                rows++;
-
-                if(!isActiveChildTxn(txnStore,kvs)) continue;
-                KeyValue first = kvs.get(0);
-                byte[] key = first.getRow();
-                //we skip the first byte in the key because it's a Transaction table bucket
-                hashBytes[0] = currentSpread.bucket(hashFunction.hash(key, 1, key.length-1));
-                usedTempBuckets[currentSpread.bucketIndex(hashBytes[0])] = true; //mark temp bucket as used
-                keyEncoder.setRawBytes(hashBytes);
-                keyEncoder.setRawBytes(key,1,key.length-1);
-
-                byte[] newKey = keyEncoder.build();
-                KVPair kvPair = new KVPair(newKey, HConstants.EMPTY_BYTE_ARRAY); //data will be sorted into
+                rowEncoder.reset();
+                txn.encodeForNetwork(rowEncoder, true, true);
+                KVPair kvPair = new KVPair(key,rowEncoder.build());
                 callBuffer.add(kvPair);
 
                 if(rows>=numActiveTxns)
-                    shouldContinue = false;
-            }while(shouldContinue);
-
+                    break;
+            }
             callBuffer.flushBuffer();
             callBuffer.close();
             status.setStats(new TaskStats(0l, 0l, 0l, usedTempBuckets)); //TODO -sf- add Stats
-        } catch (IOException e) {
-            throw new ExecutionException(e);
         } catch (Exception e) {
             throw new ExecutionException(e);
         } finally{
-            Closeables.closeQuietly(scanner);
+            Closeables.closeQuietly(activeTxns);
         }
     }
 
@@ -153,24 +121,6 @@ public class ActiveTransactionTask extends ZkTask {
     }
 
     @Override public boolean isSplittable() { return false; }
-
-    private boolean isActiveChildTxn(TxnSupplier txnStore,List<KeyValue> kvs) throws IOException {
-        /*
-         * Returns true if this transaction is actually a child of an active transaction,
-         * even if its committed.
-         *
-         * This is probably really slow (since it will have to do a network lookup for every committed
-         * child transaction of a parent). As a result, we will probably need to rewire this at some point.
-         */
-        for(KeyValue kv:kvs){
-            if(matchesQualifier(PARENT_ID,kv.getBuffer(),kv.getQualifierOffset(),kv.getQualifierLength())){
-                Txn transaction = txnStore.getTransaction(Bytes.toLong(kv.getBuffer(), kv.getValueOffset(), kv.getValueLength()));
-                return transaction.getEffectiveState() == Txn.State.ACTIVE;
-            }
-        }
-        //if we get this far, then we are a parent transaction
-        return true;
-    }
 
     @Override protected String getTaskType() { return "ActiveTransaction"; }
     @Override public boolean invalidateOnClose() { return true; }

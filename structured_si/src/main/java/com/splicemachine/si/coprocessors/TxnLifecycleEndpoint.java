@@ -4,17 +4,17 @@ import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.LongStripedSynchronizer;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.constants.environment.EnvUtils;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.ThrowIfDisconnected;
-import com.splicemachine.si.api.*;
+import com.splicemachine.si.api.CannotCommitException;
+import com.splicemachine.si.api.TimestampSource;
+import com.splicemachine.si.api.TransactionTimestamps;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.DenseTxn;
-import com.splicemachine.si.impl.RegionTxnStore;
+import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.si.impl.SparseTxn;
-import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.Source;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
@@ -61,7 +61,7 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 
 		@Override
 		public void recordTransaction(long txnId, byte[] packedTxn) throws IOException {
-				SparseTxn txn = decodeFromNetwork(packedTxn);
+				SparseTxn txn = SparseTxn.decodeFromNetwork(packedTxn);
 				assert txn.getTxnId()==txnId: "Transaction Ids do not match"; //probably won't happen, but it catches programmer errors
 
 
@@ -174,98 +174,28 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 
     @Override
     public List<byte[]> getActiveTransactions(long afterTs, long beforeTs, byte[] destinationTable) throws IOException {
-        List<DenseTxn> activeTxns = regionStore.getActiveTxns(afterTs,beforeTs,destinationTable);
-        List<byte[]> encodedData = Lists.newArrayListWithCapacity(activeTxns.size());
+        Source<DenseTxn> activeTxns = regionStore.getActiveTxns(afterTs,beforeTs,destinationTable);
+        List<byte[]> encodedData = Lists.newArrayList();
         MultiFieldEncoder txnEncoder = MultiFieldEncoder.create(11);
-        for(DenseTxn txn:activeTxns){
+        while(activeTxns.hasNext()){
+            DenseTxn txn = activeTxns.next();
             txnEncoder.reset();
-            encodeForNetwork(txnEncoder,txn,true,true);
+            txn.encodeForNetwork(txnEncoder, true, true);
             encodedData.add(txnEncoder.build());
         }
         return encodedData;
     }
 
-    private void encodeForNetwork(MultiFieldEncoder encoder,
-                                  SparseTxn transaction,
-                                  boolean addKaTime,
-                                  boolean addDestinationTables){
-        encoder.encodeNext(transaction.getTxnId())
-                .encodeNext(transaction.getParentTxnId())
-                .encodeNext(transaction.getBeginTimestamp());
-        Txn.IsolationLevel level = transaction.getIsolationLevel();
-        if(level==null)encoder.encodeEmpty();
-        else encoder.encodeNext(level.encode());
+    private byte[] encodeForNetwork(SparseTxn transaction,boolean addDestinationTables) {
+        if(transaction==null) return HConstants.EMPTY_BYTE_ARRAY;
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(addDestinationTables? 10:9);
+        transaction.encodeForNetwork(encoder, false, addDestinationTables);
 
-        if(transaction.hasDependentField())
-            encoder.encodeNext(transaction.isDependent());
-        else
-            encoder.encodeEmpty();
-        if(transaction.hasAdditiveField())
-            encoder.encodeNext(transaction.isAdditive());
-        else
-            encoder.encodeEmpty();
-
-        long commitTs = transaction.getCommitTimestamp();
-        if(commitTs>=0)
-            encoder.encodeNext(commitTs);
-        else encoder.encodeEmpty();
-        long globalCommitTs = transaction.getGlobalCommitTimestamp();
-        if(globalCommitTs>=0)
-            encoder.encodeNext(globalCommitTs);
-        else encoder.encodeEmpty();
-        encoder.encodeNext(transaction.getState().getId());
-
-        if(addKaTime){
-            if(transaction instanceof DenseTxn){
-                 encoder.encodeNext(((DenseTxn) transaction).getLastKATime());
-            }
-        }
-
-        if(addDestinationTables)
-            encoder.setRawBytes(transaction.getDestinationTableBuffer());
-
+        return encoder.build();
     }
 
-    private byte[] encodeForNetwork(SparseTxn transaction,boolean addDestinationTables) {
-				if(transaction==null) return HConstants.EMPTY_BYTE_ARRAY;
-				MultiFieldEncoder encoder = MultiFieldEncoder.create(addDestinationTables? 10:9);
-        encodeForNetwork(encoder,transaction,false,addDestinationTables);
 
-				return encoder.build();
-		}
-
-		private SparseTxn decodeFromNetwork(byte[] packedTxn) {
-				MultiFieldDecoder decoder = MultiFieldDecoder.wrap(packedTxn);
-				long txnId = decoder.decodeNextLong();
-				long parentTxnId = -1l;
-				if(decoder.nextIsNull()) decoder.skip();
-				else  parentTxnId = decoder.decodeNextLong();
-
-				long beginTs = decoder.decodeNextLong();
-				Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
-				boolean dependent = decoder.decodeNextBoolean();
-				boolean additive = decoder.decodeNextBoolean();
-				long commitTs = -1l;
-				if(decoder.nextIsNull()) decoder.skip();
-				else commitTs = decoder.decodeNextLong();
-
-				long globalCommitTs = -1l;
-				if(decoder.nextIsNull()) decoder.skip();
-				else globalCommitTs = decoder.decodeNextLong();
-
-				Txn.State state = Txn.State.fromByte(decoder.decodeNextByte());
-				int destTableOffset = decoder.offset();
-				int length=0;
-				while(decoder.available()){
-						length+=decoder.skip()-1;
-				}
-				ByteSlice destTable = new ByteSlice();
-				destTable.set(decoder.array(),destTableOffset,length);
-				return new SparseTxn(txnId,beginTs,
-								parentTxnId,commitTs,globalCommitTs,true,dependent,true,additive,level,state,destTable);
-		}
-
-		private void acquireLock(Lock lock) throws IOException {
+    private void acquireLock(Lock lock) throws IOException {
 				//make sure that the region doesn't close while we are working on it
 				region.startRegionOperation();
 				boolean shouldContinue=true;

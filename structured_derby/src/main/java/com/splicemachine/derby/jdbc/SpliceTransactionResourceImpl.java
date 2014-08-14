@@ -4,6 +4,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.db.Database;
 import org.apache.derby.iapi.error.PublicAPI;
@@ -74,7 +75,7 @@ public final class SpliceTransactionResourceImpl {
 								cm, username, drdaID, dbname, instructions.getSessionUserName(), instructions.getDefaultSchemaDescriptor());
 		}
 
-		public void marshallTransaction(Txn txn) throws StandardException, SQLException {
+		public void marshallTransaction(TxnView txn) throws StandardException, SQLException {
 				if (LOG.isDebugEnabled())
 						SpliceLogUtils.debug(LOG, "marshallTransaction with transactionID %s",txn);
 				lcc = database.generateLanguageConnectionContext(txn,cm, username, drdaID, dbname);

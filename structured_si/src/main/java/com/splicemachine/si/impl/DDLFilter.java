@@ -4,6 +4,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.api.TxnView;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;
@@ -11,19 +12,19 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class DDLFilter implements Comparable<DDLFilter> {
-    private final Txn myTransaction;
-    private final Txn myParenTxn;
+    private final TxnView myTransaction;
+    private final TxnView myParenTxn;
 		private final TxnSupplier transactionStore;
 		private Cache<Long,Boolean> visibilityMap;
 
-		public DDLFilter( Txn myTransaction,Txn myParenTxn, TxnSupplier transactionStore) {
+		public DDLFilter(TxnView myTransaction,TxnView myParenTxn, TxnSupplier transactionStore) {
 				this.myTransaction = myTransaction;
         this.myParenTxn = myParenTxn;
         this.transactionStore = transactionStore;
 				visibilityMap = CacheBuilder.newBuilder().expireAfterWrite(60, TimeUnit.SECONDS).maximumSize(10000).build();
 		}
 
-		public boolean isVisibleBy(final Txn txn) throws IOException {
+		public boolean isVisibleBy(final TxnView txn) throws IOException {
         Boolean visible = visibilityMap.getIfPresent(txn.getTxnId());
         if(visible!=null) return visible;
 
@@ -45,7 +46,7 @@ public class DDLFilter implements Comparable<DDLFilter> {
 
 		}
 
-    private Boolean isVisible(Txn txn) {
+    private Boolean isVisible(TxnView txn) {
 				/*
 				 * For the purposes of DDL, we intercept any writes which occur AFTER us, regardless of
 				 * my status.
@@ -67,14 +68,14 @@ public class DDLFilter implements Comparable<DDLFilter> {
         //if I haven't succeeded yet, don't do anything
         if(myTransaction.getEffectiveState()!= Txn.State.COMMITTED) return false;
 
-        Txn parentTxn = myTransaction.getParentTransaction();
+        TxnView parentTxn = myTransaction.getParentTxnView();
         //if I have a parent, and he was rolled back, don't do anything
         if(parentTxn.getEffectiveState()== Txn.State.ROLLEDBACK) return false;
         try{
             return visibilityMap.get(txnId,new Callable<Boolean>() {
                 @Override
                 public Boolean call() throws Exception {
-                    Txn txn = transactionStore.getTransaction(txnId);
+                    TxnView txn = transactionStore.getTransaction(txnId);
                     return isVisible(txn);
                 }
             });
@@ -84,7 +85,7 @@ public class DDLFilter implements Comparable<DDLFilter> {
 
     }
 
-		public Txn getTransaction() {
+		public TxnView getTransaction() {
 				return myTransaction;
 		}
 

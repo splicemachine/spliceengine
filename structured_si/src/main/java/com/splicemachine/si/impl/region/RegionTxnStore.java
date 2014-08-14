@@ -1,7 +1,6 @@
-package com.splicemachine.si.impl;
+package com.splicemachine.si.impl.region;
 
 import com.carrotsearch.hppc.LongArrayList;
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
@@ -13,6 +12,9 @@ import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.hbase.RegionScanIterator;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.*;
+import com.splicemachine.si.impl.DenseTxn;
+import com.splicemachine.si.impl.SparseTxn;
+import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Source;
 import org.apache.hadoop.hbase.KeyValue;
@@ -30,7 +32,6 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -384,7 +385,7 @@ public class RegionTxnStore {
                      * We need to make sure that this transaction is actually active,
                      * in case the parent has committed/rolledback already
                      */
-                        Txn parentTxn = store.getTransaction(parentTxnId);
+                        TxnView parentTxn = store.getTransaction(parentTxnId);
                         if(parentTxn.getEffectiveState()!= Txn.State.ACTIVE){
                             // we are not actually active
                             return null;
@@ -854,20 +855,7 @@ public class RegionTxnStore {
 										KeyValueUtils.singleMatchingQualifier(kv,OLD_STATUS_COLUMN)){
 								return filterState(kv);
 						}else if(KeyValueUtils.singleMatchingQualifier(kv,KEEP_ALIVE_QUALIFIER_BYTES)){
-								if(keepAliveSeen) return ReturnCode.SKIP; //just to be safe
-								keepAliveSeen = true;
-								Txn.State adjustedState = adjustStateForTimeout(Txn.State.ACTIVE,kv,false);
-								if(adjustedState!= Txn.State.ACTIVE){
-										//if we've already determined that we're active, then we are actually timed out, so skip this entry
-										if(isActive)
-												return ReturnCode.NEXT_ROW;
-										else{
-												//we either don't know if we're active, or we are committed/rolledback anyway.
-												isAlive=false;
-										}
-								}else
-									isAlive=true;
-								return ReturnCode.SKIP; //remove the keep alive column
+                return filterKeepAlive(kv,false);
 						}else if(KeyValueUtils.singleMatchingQualifier(kv,DESTINATION_TABLE_QUALIFIER_BYTES)){
 								if(destTablesSeen) return ReturnCode.SKIP; //just to be safe
 								destTablesSeen = true;
@@ -882,43 +870,50 @@ public class RegionTxnStore {
 								else
 										bytesDecoder.set(kv.getBuffer(),kv.getOffset(),kv.getLength());
 
-								while(bytesDecoder.available()){
-										int offset = bytesDecoder.offset();
-										bytesDecoder.skip();
-										int length = bytesDecoder.offset()-offset-1;
-										if(Bytes.equals(destinationTable,0,destinationTable.length,bytesDecoder.array(),offset,length)){
-												//we match!
-												return ReturnCode.SKIP;
-										}
-								}
-								return ReturnCode.NEXT_ROW; //doesn't match the destination table
-						} else if (KeyValueUtils.singleMatchingQualifier(kv,OLD_KEEP_ALIVE_COLUMN)){
-								if(keepAliveSeen) return ReturnCode.SKIP; //shouldn't happen, but just in case
-								keepAliveSeen = true;
-								Txn.State adjustedState = adjustStateForTimeout(Txn.State.ACTIVE,kv,true);
-								if(adjustedState!= Txn.State.ACTIVE){
-										//if we've already determined that we're active, then we are actually timed out, so skip this entry
-										if(isActive) return ReturnCode.NEXT_ROW;
-										else{
-												//we either don't know if we're active, or we are committed/rolledback anyway.
-												isAlive=false;
-										}
-								}else
-									isAlive =true;
-								return ReturnCode.SKIP;
-						} else if(KeyValueUtils.singleMatchingQualifier(kv,OLD_WRITE_TABLE_COLUMN)){
-								if(destTablesSeen) return ReturnCode.SKIP;
-								destTablesSeen = true;
-								if(!Bytes.equals(destinationTable,0,destinationTable.length,kv.getBuffer(),kv.getValueOffset(),kv.getValueLength()))
-										return ReturnCode.NEXT_ROW;
-								return ReturnCode.SKIP;
-						} else{
-								//weird case, so we're using a random ReturnCode to indicate that something goofy is happening
-								return ReturnCode.INCLUDE_AND_NEXT_COL;
-						}
+                while(bytesDecoder.available()){
+                    int offset = bytesDecoder.offset();
+                    bytesDecoder.skip();
+                    int length = bytesDecoder.offset()-offset-1;
+                    if(Bytes.equals(destinationTable,0,destinationTable.length,bytesDecoder.array(),offset,length)){
+                        //we match!
+                        return ReturnCode.INCLUDE;
+                    }
+                }
+                return ReturnCode.NEXT_ROW; //doesn't match the destination table
+            }else{
+                if(destinationTable!=null){
+                    if (KeyValueUtils.singleMatchingQualifier(kv,OLD_KEEP_ALIVE_COLUMN)){
+                        return filterKeepAlive(kv,true);
+                    } else if(KeyValueUtils.singleMatchingQualifier(kv,OLD_WRITE_TABLE_COLUMN)){
+                        if(destTablesSeen) return ReturnCode.SKIP;
+                        destTablesSeen = true;
+                        if(!Bytes.equals(destinationTable,0,destinationTable.length,kv.getBuffer(),kv.getValueOffset(),kv.getValueLength()))
+                            return ReturnCode.NEXT_ROW;
+                        return ReturnCode.INCLUDE;
+                    }
+                }
+                return ReturnCode.INCLUDE;
+            }
 				}
 
-				protected ReturnCode filterState(KeyValue kv) {
+        protected ReturnCode filterKeepAlive(KeyValue kv,boolean oldForm) {
+            if(keepAliveSeen) return ReturnCode.SKIP; //just to be safe
+            keepAliveSeen = true;
+            Txn.State adjustedState = adjustStateForTimeout(Txn.State.ACTIVE,kv,oldForm);
+            if(adjustedState!= Txn.State.ACTIVE){
+                //if we've already determined that we're active, then we are actually timed out, so skip this entry
+                if(isActive)
+                    return ReturnCode.NEXT_ROW;
+                else{
+                    //we either don't know if we're active, or we are committed/rolledback anyway.
+                    isAlive=false;
+                }
+            }else
+            isAlive=true;
+            return ReturnCode.INCLUDE;
+        }
+
+        protected ReturnCode filterState(KeyValue kv) {
 						if(stateSeen) return ReturnCode.SKIP; //shouldn't happen, but just in case
 						stateSeen = true;
 						byte[] activeState = Txn.State.ACTIVE.encode();

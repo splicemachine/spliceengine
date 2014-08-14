@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.ByteSlice;
 
@@ -30,5 +31,10 @@ public class DenseTxn extends SparseTxn {
 
     public long getLastKATime() {
         return lastKATime;
+    }
+
+    @Override
+    protected void addKaTime(MultiFieldEncoder encoder) {
+        encoder.encodeNext(lastKATime);
     }
 }

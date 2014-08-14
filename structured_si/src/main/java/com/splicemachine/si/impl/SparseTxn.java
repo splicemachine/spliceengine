@@ -1,5 +1,7 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.ByteSlice;
 
@@ -88,4 +90,102 @@ public class SparseTxn {
 		 * @return the current state of this transaction.
 		 */
 		public Txn.State getState() { return state; }
+
+    public void encodeForNetwork(MultiFieldEncoder encoder,
+                                  boolean addKaTime,
+                                  boolean addDestinationTables){
+        encoder.encodeNext(getTxnId())
+                .encodeNext(getParentTxnId())
+                .encodeNext(getBeginTimestamp());
+        Txn.IsolationLevel level = getIsolationLevel();
+        if(level==null)encoder.encodeEmpty();
+        else encoder.encodeNext(level.encode());
+
+        if(hasDependentField())
+            encoder.encodeNext(isDependent());
+        else
+            encoder.encodeEmpty();
+        if(hasAdditiveField())
+            encoder.encodeNext(isAdditive());
+        else
+            encoder.encodeEmpty();
+
+        long commitTs = getCommitTimestamp();
+        if(commitTs>=0)
+            encoder.encodeNext(commitTs);
+        else encoder.encodeEmpty();
+        long globalCommitTs = getGlobalCommitTimestamp();
+        if(globalCommitTs>=0)
+            encoder.encodeNext(globalCommitTs);
+        else encoder.encodeEmpty();
+        encoder.encodeNext(getState().getId());
+
+        if(addKaTime)
+            addKaTime(encoder);
+//        if(addKaTime){
+//            if(transaction instanceof DenseTxn){
+//                encoder.encodeNext(((DenseTxn) transaction).getLastKATime());
+//            }
+//        }
+
+        if(addDestinationTables)
+            encoder.setRawBytes(getDestinationTableBuffer());
+
+    }
+
+    protected void addKaTime(MultiFieldEncoder encoder) {
+        //no-op for sparse
+    }
+
+    public static SparseTxn decodeFromNetwork(byte[] packedTxn) {
+        return decodeFromNetwork(packedTxn,false);
+    }
+    public static SparseTxn decodeFromNetwork(byte[] packedTxn,boolean addKaTime) {
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(packedTxn);
+        long txnId = decoder.decodeNextLong();
+        long parentTxnId = -1l;
+        if(decoder.nextIsNull()) decoder.skip();
+        else  parentTxnId = decoder.decodeNextLong();
+
+        long beginTs = decoder.decodeNextLong();
+        Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
+        boolean dependent = decoder.decodeNextBoolean();
+        boolean additive = decoder.decodeNextBoolean();
+        long commitTs = -1l;
+        if(decoder.nextIsNull()) decoder.skip();
+        else commitTs = decoder.decodeNextLong();
+
+        long globalCommitTs = -1l;
+        if(decoder.nextIsNull()) decoder.skip();
+        else globalCommitTs = decoder.decodeNextLong();
+
+        Txn.State state = Txn.State.fromByte(decoder.decodeNextByte());
+        long lastKaTime;
+        if(addKaTime)
+            lastKaTime = decoder.decodeNextLong();
+        else
+            lastKaTime = System.currentTimeMillis();
+
+        int destTableOffset = decoder.offset();
+        int length=0;
+        while(decoder.available()){
+            length+=decoder.skip()-1;
+        }
+        ByteSlice destTable = new ByteSlice();
+        destTable.set(decoder.array(),destTableOffset,length);
+        if(addKaTime)
+            return new DenseTxn(txnId,beginTs,
+                    parentTxnId,
+                    commitTs,globalCommitTs,
+                    true,dependent,
+                    true,additive,
+                    level,state, destTable, lastKaTime);
+        else
+            return new SparseTxn(txnId,beginTs,
+                    parentTxnId,
+                    commitTs,globalCommitTs,
+                    true,dependent,
+                    true,additive,
+                    level,state, destTable);
+    }
 }

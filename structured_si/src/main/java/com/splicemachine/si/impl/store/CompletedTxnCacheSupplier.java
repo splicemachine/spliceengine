@@ -6,6 +6,7 @@ import com.splicemachine.si.api.TransactionCacheManagement;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import org.cliffc.high_scale_lib.Counter;
+import com.splicemachine.si.api.TxnView;
 
 import java.io.IOException;
 import java.lang.ref.SoftReference;
@@ -73,23 +74,23 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 		@Override public long getTotalEvictedEntries() { return evicted.get(); }
 
 		@Override
-		public Txn getTransaction(long txnId) throws IOException {
+		public TxnView getTransaction(long txnId) throws IOException {
 				return getTransaction(txnId,false);
 		}
 
 		@Override
-		public Txn getTransaction(long txnId, boolean getDestinationTables) throws IOException {
+		public TxnView getTransaction(long txnId, boolean getDestinationTables) throws IOException {
 				requests.incrementAndGet();
 				int hash = hashFunction.hash(txnId);
 
         int pos = hash & (segments.length-1); //find the lock for this hash
-        Txn txn = segments[pos].get(txnId);
+        TxnView txn = segments[pos].get(txnId);
         if(txn!=null){
             hits.incrementAndGet();
             return txn;
         }
         //bummer, we aren't in the cache, need to check the delegate
-        Txn transaction = delegate.getTransaction(txnId);
+        TxnView transaction = delegate.getTransaction(txnId,getDestinationTables);
         if(transaction==null) //noinspection ConstantConditions
             return transaction; //don't cache read-only transactions;
 
@@ -107,12 +108,12 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 				int hash = hashFunction.hash(txnId);
 
 				int pos = hash & (segments.length-1); //find the lock for this hash
-				Txn txn = segments[pos].get(txnId);
+				TxnView txn = segments[pos].get(txnId);
 				return txn !=null;
 		}
 
 		@Override
-		public void cache(Txn toCache) {
+		public void cache(TxnView toCache) {
 				if(toCache.getState()== Txn.State.ACTIVE) return; //cannot cache incomplete transactions
 				long txnId = toCache.getTxnId();
 				int hash = hashFunction.hash(txnId);
@@ -122,12 +123,12 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 		}
 
     @Override
-    public Txn getTransactionFromCache(long txnId) {
+    public TxnView getTransactionFromCache(long txnId) {
         requests.incrementAndGet();
         int hash =hashFunction.hash(txnId);
 
         int pos = hash & (segments.length-1); //find the lock for this hash
-        Txn txn = segments[pos].get(txnId);
+        TxnView txn = segments[pos].get(txnId);
         if(txn!=null)
             hits.incrementAndGet();
         return txn;
@@ -138,7 +139,7 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 				private volatile int size = 0;
 				private int nextEvictPosition = 0;
 
-				private SoftReference<Txn>[] data;
+				private SoftReference<TxnView>[] data;
 
 				@SuppressWarnings("unchecked")
 				private Segment(int maxSize) {
@@ -151,14 +152,14 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 						this.data = new SoftReference[s];
 				}
 
-				Txn get(long txnId){
+				TxnView get(long txnId){
 						ReentrantReadWriteLock.ReadLock readLock = lock.readLock();
 						readLock.lock();
 						try{
 								for(int i=0;i<size;i++){
-										SoftReference<Txn> datum = data[i];
+										SoftReference<TxnView> datum = data[i];
 										if(datum==null) continue;
-										Txn v = datum.get();
+										TxnView v = datum.get();
 										if(v==null) continue;
 										if(v.getTxnId()==txnId) return v;
 								}
@@ -168,19 +169,19 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 						}
 				}
 
-				boolean put(Txn txn){
+				boolean put(TxnView txn){
 					ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
 						writeLock.lock();
 						try{
 								int position = -1;
 								for(int i=0;i<size;i++){
-										SoftReference<Txn> datum = data[i];
+										SoftReference<TxnView> datum = data[i];
 										if(datum==null){
 												if(position<0)
 														position = i;
 												continue;
 										}
-										Txn v = datum.get();
+										TxnView v = datum.get();
 										if(v==null){
 												if(position<0)
 														position = i;
@@ -199,7 +200,7 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 										position = size;
 										size++;
 								}
-								data[position] = new SoftReference<Txn>(txn);
+								data[position] = new SoftReference<TxnView>(txn);
 								return true;
 						}finally{
 								writeLock.unlock();

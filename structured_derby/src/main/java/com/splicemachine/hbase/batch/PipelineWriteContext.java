@@ -11,6 +11,7 @@ import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.hbase.writer.Writer;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.ipc.HBaseServer;
@@ -107,7 +108,7 @@ public class PipelineWriteContext implements WriteContext{
 				}
 
 				@Override
-				public Txn getTxn() {
+				public TxnView getTxn() {
 						return PipelineWriteContext.this.getTxn();
 				}
 
@@ -122,13 +123,13 @@ public class PipelineWriteContext implements WriteContext{
     private WriteNode tail;
     private final boolean keepState;
     private final boolean useAsyncWriteBuffers;
-    private final Txn txn;
+    private final TxnView txn;
 
-    public PipelineWriteContext(Txn txn, TransactionalRegion rce, RegionCoprocessorEnvironment env) {
+    public PipelineWriteContext(TxnView txn, TransactionalRegion rce, RegionCoprocessorEnvironment env) {
         this(txn,rce,env,true,false);
     }
 
-    public PipelineWriteContext(Txn txn,TransactionalRegion rce,RegionCoprocessorEnvironment env,boolean keepState,boolean useAsyncWriteBuffers) {
+    public PipelineWriteContext(TxnView txn,TransactionalRegion rce,RegionCoprocessorEnvironment env,boolean keepState,boolean useAsyncWriteBuffers) {
         this.rce = rce;
         this.resultsMap = Maps.newIdentityHashMap();
         this.keepState = keepState;
@@ -251,7 +252,7 @@ public class PipelineWriteContext implements WriteContext{
 		}
 
 		@Override
-		public Txn getTxn() {
+		public TxnView getTxn() {
 				return txn;
 		}
 

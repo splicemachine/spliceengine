@@ -3,6 +3,7 @@ package com.splicemachine.si.impl.iterator;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 
 import java.util.Set;
 
@@ -15,7 +16,7 @@ public class TxnEncoder {
 		public static byte[] toBytes(Txn txn){
 				MultiFieldEncoder encoder = MultiFieldEncoder.create(9);
 				encoder.encodeNext(txn.getBeginTimestamp());
-				Txn parentTxn = txn.getParentTransaction();
+				TxnView parentTxn = txn.getParentTxnView();
 				if(parentTxn!=null)
 						encoder.encodeNext(parentTxn.getTxnId());
 				else

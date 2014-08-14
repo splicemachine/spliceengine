@@ -17,12 +17,9 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.si.impl.TxnRegion;
-import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
@@ -82,7 +79,7 @@ public class IndexedPipelineTest {
         final PipelineWriteContext testCtx = spy(new PipelineWriteContext(new ActiveWriteTxn(1l,1l),txnRegion, env));
 
         //get a fake PipingWriteBuffer
-        final Txn txn = new ActiveWriteTxn(1l,1l);
+        final TxnView txn = new ActiveWriteTxn(1l,1l);
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
         final Writer fakeWriter = mockSuccessWriter(indexedRows);
 
@@ -258,7 +255,7 @@ public class IndexedPipelineTest {
 				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
 								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
         final String txnId = "1";
-        final Txn txn = new ActiveWriteTxn(1l,1l);
+        final TxnView txn = new ActiveWriteTxn(1l,1l);
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
         final PipelineWriteContext testCtx = spy(new PipelineWriteContext(txn,txnRegion, env));
@@ -355,7 +352,7 @@ public class IndexedPipelineTest {
 				//TODO -sf- make this simpler
 				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
 								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
-        final Txn txn = new ActiveWriteTxn(1l,1l);
+        final TxnView txn = new ActiveWriteTxn(1l,1l);
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
         final PipelineWriteContext testCtx = spy(new PipelineWriteContext(txn,txnRegion, env));
@@ -437,7 +434,7 @@ public class IndexedPipelineTest {
 				//TODO -sf- make this simpler
 				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
 								supplier,mock(DataStore.class),mock(SDataLib.class),mock(Transactor.class));
-        final Txn txn = new ActiveWriteTxn(1l,1l);
+        final TxnView txn = new ActiveWriteTxn(1l,1l);
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
         PipelineWriteContext testCtx = spy(new PipelineWriteContext(txn,txnRegion, env));

@@ -13,6 +13,7 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.ShutdownException;
@@ -273,7 +274,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
 
     private void killDDLTransaction(String changeId) {
         try {
-            Txn txn = currentDDLChanges.get(changeId).getTxn();
+            TxnView txn = currentDDLChanges.get(changeId).getTxn();
             LOG.warn("We are killing transaction " + txn + " since it exceeds the maximum wait period for"
                     + " the DDL change " + changeId + " publication");
             TransactionLifecycle.getLifecycleManager().rollback(txn.getTxnId());

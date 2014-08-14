@@ -1,9 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
-import com.splicemachine.collections.CloseableIterator;
-import com.splicemachine.collections.ForwardingCloseableIterator;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
@@ -25,16 +22,20 @@ import com.splicemachine.hbase.async.SortedGatheringScanner;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.Task;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.DenseTxn;
+import com.splicemachine.si.impl.SparseTxn;
+import com.splicemachine.stream.CloseableStream;
+import com.splicemachine.stream.StreamException;
+import com.splicemachine.stream.Transformer;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.hbase.async.HBaseClient;
+import org.hbase.async.KeyValue;
 import org.hbase.async.Scanner;
 
 import javax.annotation.Nullable;
@@ -60,11 +61,11 @@ public class ActiveTransactionReader {
         this.writeTable = writeTable;
     }
 
-    public CloseableIterator<Long> getActiveTransactionIds() throws IOException{
-        return getActiveTransactionIds(SpliceConstants.DEFAULT_CACHE_SIZE);
+    public CloseableStream<Txn> getActiveTransactions() throws IOException{
+        return getActiveTransactions(SpliceConstants.DEFAULT_CACHE_SIZE);
     }
 
-    public CloseableIterator<Long> getActiveTransactionIds(int queueSize) throws IOException{
+    public CloseableStream<Txn> getActiveTransactions(int queueSize) throws IOException{
         byte[] operationId = SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
         try {
             final JobFuture submit = SpliceDriver.driver().getJobScheduler().submit(new ActiveTxnJob(operationId,queueSize));
@@ -72,66 +73,53 @@ public class ActiveTransactionReader {
             JobStats jobStats = submit.getJobStats();
 
             boolean[] usedTempBuckets = getUsedTempBuckets(jobStats);
-            final TempTable tempTable = SpliceDriver.driver().getTempTable();
-            RowKeyDistributor keyDistributor = new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(tempTable.getCurrentSpread()));
-            keyDistributor = new FilteredRowKeyDistributor(keyDistributor,usedTempBuckets);
-
-            Scan scan = new Scan();
-            scan.setStartRow(operationId);
-            scan.setStopRow(BytesUtil.unsignedCopyAndIncrement(operationId));
-            final HBaseClient hBaseClient = SimpleAsyncScanner.HBASE_CLIENT;
-            final AsyncScanner scanner = SortedGatheringScanner.newScanner(scan,queueSize, Metrics.noOpMetricFactory(), new Function<Scan, Scanner>() {
-                @Nullable
+            final AsyncScanner scanner = configureResultScan(queueSize, operationId, usedTempBuckets);
+            return scanner.stream().transform(new Transformer<List<KeyValue>, Txn>() {
                 @Override
-                public Scanner apply(@Nullable Scan input) {
-                    return DerbyAsyncScannerUtils.convertScanner(input, tempTable.getTempTableName(),hBaseClient);
+                public Txn transform(List<KeyValue> element) throws StreamException {
+                    throw new UnsupportedOperationException("IMPLEMENT");
+//                    return (DenseTxn)SparseTxn.decodeFromNetwork(element.get(0).value(),true);
                 }
-            },keyDistributor,
-                    new Comparator<byte[]>() {
-                        @Override
-                        public int compare(byte[] o1, byte[] o2) {
-                            /*
-                             * We want to ignore the operationUid and bucket id when sorting data. In this
-                             * case, our data starts at location 10 (bucket + opUUid+0x00).length = 10
-                             */
-                            int prefixLength = 11;
-                            return Bytes.compareTo(o1,prefixLength,o1.length-prefixLength,o2,prefixLength,o2.length-prefixLength);
-                        }
-                    });
-
-            scanner.open();
-            return new ForwardingCloseableIterator<Long>(Iterators.transform(scanner.iterator(),new Function<Result, Long>() {
-                @Nullable
-                @Override
-                public Long apply(@Nullable Result input) {
-                    byte[] row = input.getRow();
-                    /*
-                     * format = <bucket> <op uuid> 0x00 <txnId>
-                     *
-                     *     so txnid is at location 10
-                     */
-                    return Bytes.toLong(row,10);
-                }
-            })) {
-                @Override
-                public void close() throws IOException {
-                    try{
-                        scanner.close();
-                    }finally{
-                        try {
-                            submit.cleanup();
-                        } catch (ExecutionException e) {
-                            throw new IOException(e.getCause());
-                        }
-                    }
-                }
-            };
-
+            });
         } catch (ExecutionException e) {
             throw Exceptions.getIOException(e);
         } catch (InterruptedException e) {
             throw Exceptions.getIOException(e);
         }
+    }
+
+    /*private helper methods*/
+    private AsyncScanner configureResultScan(int queueSize, byte[] operationId, boolean[] usedTempBuckets) throws IOException {
+        final TempTable tempTable = SpliceDriver.driver().getTempTable();
+        RowKeyDistributor keyDistributor = new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(tempTable.getCurrentSpread()));
+        keyDistributor = new FilteredRowKeyDistributor(keyDistributor,usedTempBuckets);
+
+        Scan scan = new Scan();
+        scan.setStartRow(operationId);
+        scan.setStopRow(BytesUtil.unsignedCopyAndIncrement(operationId));
+        final HBaseClient hBaseClient = SimpleAsyncScanner.HBASE_CLIENT;
+        final AsyncScanner scanner = SortedGatheringScanner.newScanner(scan, queueSize, Metrics.noOpMetricFactory(), new Function<Scan, Scanner>() {
+                    @Nullable
+                    @Override
+                    public Scanner apply(@Nullable Scan input) {
+                        return DerbyAsyncScannerUtils.convertScanner(input, tempTable.getTempTableName(), hBaseClient);
+                    }
+                }, keyDistributor,
+                new Comparator<byte[]>() {
+                    @Override
+                    public int compare(byte[] o1, byte[] o2) {
+                        /*
+                         * We want to ignore the operationUid and bucket id when sorting data. In this
+                         * case, our data starts at location 10 (bucket + opUUid+0x00).length = 10
+                         */
+                        int prefixLength = 11;
+                        return Bytes.compareTo(o1, prefixLength, o1.length - prefixLength, o2, prefixLength, o2.length - prefixLength);
+                    }
+                }
+        );
+
+        scanner.open();
+        return scanner;
     }
 
     private boolean[] getUsedTempBuckets(JobStats jobStats) {

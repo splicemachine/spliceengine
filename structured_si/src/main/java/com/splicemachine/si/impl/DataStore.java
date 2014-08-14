@@ -7,6 +7,7 @@ import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
@@ -233,7 +234,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 		private byte[] encodeForOp(Txn txn){
 				MultiFieldEncoder encoder = MultiFieldEncoder.create(5);
 				encoder.encodeNext(txn.getTxnId());
-				Txn parentTxn = txn.getParentTransaction();
+				TxnView parentTxn = txn.getParentTxnView();
 				if(parentTxn!=null && !Txn.ROOT_TRANSACTION.equals(parentTxn))
 						encoder.encodeNext(parentTxn.getTxnId());
 				else encoder.encodeEmpty();

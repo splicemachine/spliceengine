@@ -9,6 +9,7 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.job.Task;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -33,11 +34,11 @@ public class BlockImportJob extends FileImportJob{
     private final FileSystem fs;
 
 		public BlockImportJob(HTableInterface table, ImportContext context,
-													long statementId, long operationId, FileSystem fs,Txn txn) {
+													long statementId, long operationId, FileSystem fs,TxnView txn) {
 			this(table,context,Collections.singletonList(context.getFilePath()),statementId,operationId,fs,txn);
 		}
 		public BlockImportJob(HTableInterface table, ImportContext context,List<Path> files,
-													long statementId, long operationId, FileSystem fs,Txn txn) {
+													long statementId, long operationId, FileSystem fs,TxnView txn) {
 				super(table, context, statementId,files, operationId,txn);
 				this.fs = fs;
 		}

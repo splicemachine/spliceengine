@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
-import com.google.common.base.Throwables;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
@@ -10,20 +9,19 @@ import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -123,37 +121,25 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
 
 				jobMetrics.numRunningJobs.incrementAndGet();
 				HTableInterface table = job.getTable();
-				Txn jobTxn = job.getTxn();
+				TxnView jobTxn = job.getTxn();
 				byte[] destTable = job.getDestinationTable();
 				//tasks which write to TEMP are not writeable transactions--they are read-only
-				if(jobTxn!=null)
+//				if(jobTxn!=null)
 						submitTransactionalTasks(jobTxn,control,tasks,table,destTable);
-				else
-						submitNonTransactionalTasks(control,tasks,table);
+//				else
+//						submitNonTransactionalTasks(control,tasks,table);
 				return control;
     }
 
 
-		private void submitTransactionalTasks(Txn parentTxn,
+		private void submitTransactionalTasks(TxnView parentTxn,
 																					JobControl control,
 																					Map<? extends RegionTask, Pair<byte[], byte[]>> tasks,
 																					HTableInterface table,
 																					byte[] destTable) throws ExecutionException {
-				TxnLifecycleManager txnLifecycle = TransactionLifecycle.getLifecycleManager();
 				for(Map.Entry<? extends RegionTask,Pair<byte[],byte[]>> taskEntry:tasks.entrySet()){
 						RegionTask task = taskEntry.getKey();
-						try {
-                //create a dependent child transaction
-								Txn childTxn = txnLifecycle.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),true,destTable);
-								task.setTxn(childTxn);
-						} catch (IOException e) {
-								/*
-								 * We cannot create a child transaction for some reason. We don't know what that
-								 * reason is, so bail on the whole job
-								 */
-								control.cancel();
-								throw new ExecutionException(e);
-						}
+            task.setParentTxnInformation(parentTxn);
 						control.submit(task,taskEntry.getValue(),table,0);
 				}
 		}

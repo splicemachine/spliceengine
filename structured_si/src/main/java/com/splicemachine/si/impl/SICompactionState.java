@@ -4,6 +4,7 @@ import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import org.apache.hadoop.hbase.KeyValue;
@@ -105,7 +106,7 @@ public class SICompactionState<Mutation,
      * Replace unknown commit timestamps with actual commit times.
      */
     private boolean mutateCommitTimestamp(long timestamp,KeyValue keyValue) throws IOException {
-        Txn transaction = transactionStore.getTransaction(timestamp);
+        TxnView transaction = transactionStore.getTransaction(timestamp);
         if(transaction.getEffectiveState()== Txn.State.ROLLEDBACK){
             /*
              * This transaction has been rolled back, so just remove the data
@@ -113,9 +114,9 @@ public class SICompactionState<Mutation,
              */
             return false;
         }
-        Txn t = transaction;
+        TxnView t = transaction;
         while(t.getState()== Txn.State.COMMITTED){
-            t = t.getParentTransaction();
+            t = t.getParentTxnView();
         }
         if(t==Txn.ROOT_TRANSACTION){
             /*
