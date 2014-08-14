@@ -307,6 +307,8 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
             };
             
             rightHashTable = new DualHashHashTable<ExecRow>(SpliceConstants.hashNLJRightHashTableSize, rightEntryHasher, leftEntryHasher);
+        } else {
+            rightHashTable.clear();
         }
         //fill the left side buffer
         for(int i=0;i<leftRowBuffer.bufferSize();i++){
