@@ -193,7 +193,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 									return new FilterStatePacked((FilterState)iFilterState, hRowAccumulator){
 											@Override
 											public Filter.ReturnCode doAccumulate(KeyValue dataKeyValue) throws IOException {
-												//System.out.println("accumulating ---------");
+												
 													if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
 														
 																if (!accumulator.accumulate(dataKeyValue)) {
@@ -214,13 +214,12 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			this.colTypes = colTypes;
 			this.pkColNames = pkColNames;
 			this.pkColIds = pkColIds;
-			System.out.println(this.template.getRowArray().length);
+			
 			boolean allNullFlag = true;
 			if(this.template == null)
 			{
 				data = createDVD();
 				template.setRowArray(data);
-				System.out.println(this.template.getRowArray().length);
 			}
 			else
 			{
@@ -301,7 +300,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			SIFilter filter = getSIFilter();
 			
 			if(keyValues==null)
-					keyValues = Lists.newArrayListWithExpectedSize(2);
+					keyValues = Lists.newArrayListWithExpectedSize(colTypes.size());
 			boolean hasRow;
 			keyValues.clear();
 			
@@ -512,8 +511,7 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			byte[] dataBuffer = keyValue.getBuffer();
 			int dataOffset = keyValue.getRowOffset();
 			int dataLength = keyValue.getRowLength();
-			if(keyDecoder == null)
-				System.out.println("keyDecoder null-------");
+			
 			keyDecoder.set(dataBuffer, dataOffset, dataLength);
 			if(keyAccumulator==null)
 					keyAccumulator = ExecRowAccumulator.newAccumulator(predicateFilter,false,template,

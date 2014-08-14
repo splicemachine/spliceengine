@@ -60,6 +60,7 @@ import org.apache.hadoop.net.DNS;
  *  }
  * </pre>
  */
+
 public abstract class SpliceTableInputFormatBase
 extends InputFormat<ImmutableBytesWritable, ExecRow> {
 

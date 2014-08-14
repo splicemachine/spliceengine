@@ -33,36 +33,52 @@ public class SpliceJob extends Job{
 		 if (conn == null)
 				try {
 					conn = sqlUtil.createConn(); // Parent transaction starts here
-					System.out.println("created conn");
+					
 					sqlUtil.disableAutoCommit(conn);
 					// TODO:this transaction ID could be wrong (larger than the one we want)
 					String parentTxsID = sqlUtil.getTransactionID(conn);
 					super.getConfiguration().set(SpliceConstants.SPLICE_TRANSACTION_ID, parentTxsID);
-					System.out.println("SpliceJob, created parent TXSID:"+parentTxsID);
+					
 				} catch (SQLException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
+		 System.out.println("Submitting job...");
 		 super.submit();
+		 System.out.println("Submitted job...");
 	 }
 	  
 	  @Override
 	  public boolean waitForCompletion(boolean verbose
               ) throws IOException, InterruptedException,
                        ClassNotFoundException {
-		  boolean isSucceed = super.waitForCompletion(verbose);
+		  boolean isFinished = super.waitForCompletion(verbose);
 		  try {
-			  if(isSucceed)
-				  sqlUtil.commit(conn);
+			  if(isFinished)
+				  {
+				  	if(super.isSuccessful())
+				  	{
+				  		System.out.println("Job succeed");
+				  		sqlUtil.commit(conn);
+				  	}
+				  	else
+				  	{
+				  		System.out.println("Job compeleted, but failed");
+				  	}
+				  
+				  }
 			  else
+			  {
+				  System.out.println("Job failed");
 				  sqlUtil.rollback(conn);
+			  }
 			} catch (SQLException e) {
 						// TODO Auto-generated catch block
 					e.printStackTrace();
 			}
 				
 			
-		  return isSucceed;
+		  return isFinished;
 	  }
 		  
 

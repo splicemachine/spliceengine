@@ -3,6 +3,7 @@ package com.splicemachine.mrio.api;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -40,14 +41,15 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 
 	private Configuration conf = null;
 	private final Log LOG = LogFactory.getLog(TableInputFormat.class);
-	private static HashMap<List, List> tableStructure = new HashMap<List, List>();
-    private static SQLUtil sqlUtil = null;
-    private static ArrayList<String> colNames = new ArrayList<String>();
-    private static ArrayList<Integer>colTypes = new ArrayList<Integer>();
-    private static SpliceInputFormat inputFormat = null;
-    private static String tableID = null;
-    private static String tableName = null;
-    private static SpliceTableRecordReaderBase trr = null;
+    private  static SpliceInputFormat inputFormat = null;
+	private  HashMap<List, List> tableStructure = new HashMap<List, List>();
+    private  SQLUtil sqlUtil = null;
+    private  ArrayList<String> colNames = new ArrayList<String>();
+    private  ArrayList<Integer>colTypes = new ArrayList<Integer>();
+
+    private  String tableID = null;
+    private  String tableName = null;
+    private  SpliceTableRecordReaderBase trr = null;
 	public static void main(String[] args) {
 
 	}
@@ -69,25 +71,23 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 	}
 	
 	@Override
-	public RecordReader<ImmutableBytesWritable, ExecRow> createRecordReader(InputSplit split, TaskAttemptContext context) {
+	public RecordReader<ImmutableBytesWritable, ExecRow> 
+											createRecordReader(InputSplit split, 
+											TaskAttemptContext context) 
+											throws IOException{
 		if (trr == null) {
 			trr = new SpliceRecordReader(this.conf);
 		}
-		if((conf!= null) && (tableID != null))
+		//this.setupScan();
+		//if((conf!= null) && (tableID != null))
 		{
 		HTable table;
 		try {
+			
 			table = new HTable(HBaseConfiguration.create(conf), tableID);
 			TableSplit tSplit = (TableSplit)split;
-
-			Scan scan = new Scan();		
-			scan.setStartRow(tSplit.getStartRow());
-			scan.setStopRow(tSplit.getEndRow());
-
-			trr.setScan(scan);
 			trr.setHTable(table);
-			trr.restart(scan.getStartRow());
-			
+			trr.restart(tSplit.getStartRow());
 			
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -109,9 +109,70 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 		return this.conf;
 	}
 	
-	public String convertToTableID(String tableName)
+	public String convertToTableID(String tableName) throws SQLException
 	{
 		return sqlUtil.getConglomID(tableName);		
+	}
+	
+	private void setupScan()
+	{
+		Scan scan = null;
+		
+	     if (conf.get(SCAN) != null) {
+	      try {
+	         scan = convertStringToScan(conf.get(SCAN));
+	       } catch (IOException e) {
+	         LOG.error("An error occurred.", e);
+	      }
+	     } else {
+	      try {
+	         scan = new Scan();
+	 
+	        if (conf.get(SCAN_ROW_START) != null) {
+	          scan.setStartRow(Bytes.toBytes(conf.get(SCAN_ROW_START)));
+	        }
+	 
+	         if (conf.get(SCAN_ROW_STOP) != null) {
+	           scan.setStopRow(Bytes.toBytes(conf.get(SCAN_ROW_STOP)));
+	         }
+	 
+	         if (conf.get(SCAN_COLUMNS) != null) {
+	           addColumns(scan, conf.get(SCAN_COLUMNS));
+	        }
+	 
+	         if (conf.get(SCAN_COLUMN_FAMILY) != null) {
+	          scan.addFamily(Bytes.toBytes(conf.get(SCAN_COLUMN_FAMILY)));
+	         }
+	
+	         if (conf.get(SCAN_TIMESTAMP) != null) {
+	           scan.setTimeStamp(Long.parseLong(conf.get(SCAN_TIMESTAMP)));
+	         }
+	 
+	        if (conf.get(SCAN_TIMERANGE_START) != null && conf.get(SCAN_TIMERANGE_END) != null) {
+	          scan.setTimeRange(
+	             Long.parseLong(conf.get(SCAN_TIMERANGE_START)),
+	            Long.parseLong(conf.get(SCAN_TIMERANGE_END)));
+	       }
+	
+	         if (conf.get(SCAN_MAXVERSIONS) != null) {
+	           scan.setMaxVersions(Integer.parseInt(conf.get(SCAN_MAXVERSIONS)));
+	         }
+	
+	        if (conf.get(SCAN_CACHEDROWS) != null) {
+	          scan.setCaching(Integer.parseInt(conf.get(SCAN_CACHEDROWS)));
+	        }
+	 
+	        if (conf.get(SCAN_BATCHSIZE) != null) {
+	          scan.setBatch(Integer.parseInt(conf.get(SCAN_BATCHSIZE)));
+	        }
+	
+	      // false by default, full table scans generate too much BC churn
+	         scan.setCacheBlocks((conf.getBoolean(SCAN_CACHEBLOCKS, false)));
+	      } catch (Exception e) {
+	          LOG.error(StringUtils.stringifyException(e));
+	     }
+	    }
+	    setScan(scan);
 	}
 	
 	public void setConf(Configuration configuration) {
@@ -119,81 +180,22 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 			return;
 		this.conf = configuration;
 		
-		/**
-		 * 
-		 * Here to convert tableName to tableID. 
-		 */
-		tableName = conf.get(INPUT_TABLE);
+		tableName = conf.get(INPUT_TABLE);		
+		try {
+			tableID = convertToTableID(tableName);
+		} catch (SQLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		
-		tableID = convertToTableID(tableName);
-		
-		System.out.println("Converted tableID: "+tableID);
 		String transactionID = conf.get(SpliceConstants.SPLICE_TRANSACTION_ID);
-		if(tableID == null)
-			return;
+		
 		try {
 		        setHTable(new HTable(new Configuration(conf), tableID));
 		      } catch (Exception e) {
 		       LOG.error(StringUtils.stringifyException(e));
 		     }
-		 
-		     Scan scan = null;
-		
-		     if (conf.get(SCAN) != null) {
-		      try {
-		         scan = convertStringToScan(conf.get(SCAN));
-		       } catch (IOException e) {
-		         LOG.error("An error occurred.", e);
-		      }
-		     } else {
-		      try {
-		         scan = new Scan();
-		 
-		        if (conf.get(SCAN_ROW_START) != null) {
-		          scan.setStartRow(Bytes.toBytes(conf.get(SCAN_ROW_START)));
-		        }
-		 
-		         if (conf.get(SCAN_ROW_STOP) != null) {
-		           scan.setStopRow(Bytes.toBytes(conf.get(SCAN_ROW_STOP)));
-		         }
-		 
-		         if (conf.get(SCAN_COLUMNS) != null) {
-		           addColumns(scan, conf.get(SCAN_COLUMNS));
-		        }
-		 
-		         if (conf.get(SCAN_COLUMN_FAMILY) != null) {
-		          scan.addFamily(Bytes.toBytes(conf.get(SCAN_COLUMN_FAMILY)));
-		         }
-		
-		         if (conf.get(SCAN_TIMESTAMP) != null) {
-		           scan.setTimeStamp(Long.parseLong(conf.get(SCAN_TIMESTAMP)));
-		         }
-		 
-		        if (conf.get(SCAN_TIMERANGE_START) != null && conf.get(SCAN_TIMERANGE_END) != null) {
-		          scan.setTimeRange(
-		             Long.parseLong(conf.get(SCAN_TIMERANGE_START)),
-		            Long.parseLong(conf.get(SCAN_TIMERANGE_END)));
-		       }
-		
-		         if (conf.get(SCAN_MAXVERSIONS) != null) {
-		           scan.setMaxVersions(Integer.parseInt(conf.get(SCAN_MAXVERSIONS)));
-		         }
-		
-		        if (conf.get(SCAN_CACHEDROWS) != null) {
-		          scan.setCaching(Integer.parseInt(conf.get(SCAN_CACHEDROWS)));
-		        }
-		 
-		        if (conf.get(SCAN_BATCHSIZE) != null) {
-		          scan.setBatch(Integer.parseInt(conf.get(SCAN_BATCHSIZE)));
-		        }
-		
-		      // false by default, full table scans generate too much BC churn
-		         scan.setCacheBlocks((conf.getBoolean(SCAN_CACHEBLOCKS, false)));
-		      } catch (Exception e) {
-		          LOG.error(StringUtils.stringifyException(e));
-		     }
-		    }
-		    setScan(scan);
+		 this.setupScan();
 	}
 	
 	private static void addColumn(Scan scan, byte[] familyAndQualifier) {
@@ -216,13 +218,6 @@ public class SpliceInputFormat extends SpliceTableInputFormat implements Configu
 		     for (String col : cols) {
 		       addColumn(scan, Bytes.toBytes(col));
 		     }
-		   }
-
-	
-	@Override
-	public List<InputSplit> getSplits(JobContext arg0) throws IOException {
-		return super.getSplits(arg0);
-		
 	}
 
 }

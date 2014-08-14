@@ -18,6 +18,7 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableRecordReader;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -44,7 +45,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.impl.sql.execute.ValueRow;
-
 
 
 public class SpliceRecordReader extends SpliceTableRecordReaderBase{
@@ -74,7 +74,7 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 	@Override
 	public void initialize(final InputSplit inputSplit, final TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
        
-		System.out.println("Initializing....");
+		System.out.println("Initializing SpliceRecordReader....");
 		sqlUtil = SQLUtil.getInstance();
     }
 	
@@ -138,7 +138,7 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 	 * 
 	 */
     @Override
-    public ExecRow getCurrentValue(){
+    public ExecRow getCurrentValue() throws IOException, InterruptedException{
     	DataValueDescriptor dvds[] = value.getRowArray();
     	boolean invalid = true;
     	for(DataValueDescriptor d : dvds)
@@ -151,14 +151,7 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
     	}
     	if(invalid)
     	{
-    		try {
-    			this.nextKeyValue();
-			
-    		} catch (IOException e) {
-    			e.printStackTrace();
-    		} catch (InterruptedException e) {
-    			e.printStackTrace();
-    		}
+    		this.nextKeyValue();
     	}
     	if(invalid)
     		value = null;
@@ -291,13 +284,10 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
 		if (value == null)
 			value = new ValueRow(0);
 			try {
-				value = tableScanner.next(null);
-			
+				value = tableScanner.next(null);		
 			} catch (StandardException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+				throw new IOException(e.getMessage());
+			} 
 		if (value != null && value.getRowArray().length > 0) {
 			/*rowkey.set(value.getRow());
 			lastRow = rowkey.get();*/
@@ -310,7 +300,8 @@ public class SpliceRecordReader extends SpliceTableRecordReaderBase{
     public void setHTable(HTable htable) {
 		this.htable = htable;
 		Configuration conf = htable.getConfiguration();
-		String tableName = conf.get(org.apache.hadoop.hbase.mapreduce.TableInputFormat.INPUT_TABLE);
+		String tableName = conf.get(TableInputFormat.INPUT_TABLE);
+		System.out.println("tableName in setHTable, SpliceRecordReader:"+tableName);
 		if (sqlUtil == null)
 			sqlUtil = SQLUtil.getInstance();
 		tableStructure = sqlUtil.getTableStructure(tableName);
