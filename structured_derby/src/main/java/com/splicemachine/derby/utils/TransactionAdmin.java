@@ -60,6 +60,10 @@ public class TransactionAdmin {
 						new GenericColumnDescriptor("txnId",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
 		};
 
+		private static void throwNullArgError(Object value) {
+		    throw new IllegalArgumentException(String.format("Required argument %s is null.", value));	
+		}
+		
 		public static void SYSCS_GET_CURRENT_TRANSACTION(ResultSet[] resultSet) throws SQLException{
 				EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
 				TransactionId txnId= new TransactionId(getTransactionId(defaultConn.getLanguageConnection().getTransactionExecute()));
@@ -109,7 +113,7 @@ public class TransactionAdmin {
         return row;
     }
 
-    public static void SYSCS_DUMP_TRANSACTIONS(ResultSet[] resultSet) throws SQLException {
+	public static void SYSCS_DUMP_TRANSACTIONS(ResultSet[] resultSet) throws SQLException {
 				try {
 						TransactionStore store = HTransactorFactory.getTransactionStore();
 						//noinspection unchecked
@@ -186,36 +190,36 @@ public class TransactionAdmin {
 		}
 
 		private static String getTransactionId(TransactionController tc) {
-				org.apache.derby.iapi.store.raw.Transaction td = ((SpliceTransactionManager)tc).getRawTransaction();
-				return SpliceUtils.getTransID(td);
+			if (tc == null) throwNullArgError("tc");
+			org.apache.derby.iapi.store.raw.Transaction td = ((SpliceTransactionManager)tc).getRawTransaction();
+			return SpliceUtils.getTransID(td);
 		}
 		
 		private static final ResultColumnDescriptor[] CHILD_TXN_ID_COLUMNS = new GenericColumnDescriptor[]{
 			new GenericColumnDescriptor("childTxnId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
 		};
 		
-		public static void SYSCS_START_CHILD_TRANSACTION(long parentTransactionId, ResultSet[] resultSet) throws IOException, SQLException {
+		public static void SYSCS_START_CHILD_TRANSACTION(long parentTransactionId, long conglomId, ResultSet[] resultSet) throws IOException, SQLException {
 			
-			// Verify the parentTransactionId passed in
+			// Verify the specified parent transaction exists
 			TransactionStore store = HTransactorFactory.getTransactionStore();
 			Transaction existingParentTransaction = store.getTransaction(parentTransactionId);
 			if (existingParentTransaction == null) {
 				throw new IllegalArgumentException(String.format("Specified parent transaction id %s not found. Unable to create child transaction.", parentTransactionId));
+			}
+
+			// Verify parent transaction is an active transaction
+			if (!(TransactionStatus.ACTIVE.equals(existingParentTransaction.getStatus()))) {
+				throw new IllegalArgumentException(String.format("Specified parent transaction with id %s is %s, not active. Unable to create child transaction.",
+					parentTransactionId, existingParentTransaction.getStatus()));
 			}
 			
 			TransactionId parentTxnId = new TransactionId(Long.toString(parentTransactionId)); // constructor that takes long is not public
 			TransactionId childTransaction;
 			TransactionManager tm = HTransactorFactory.getTransactionManager();
 			
-			/*
-			List<TransactionId> txns = tm.getAllActiveTransactionIds();
-			for (TransactionId id : txns) {
-				System.out.println("txn: " + id.getTransactionIdString());
-			}
-			*/
-			
 			try {
-				childTransaction = tm.beginChildTransaction(parentTxnId, true);
+				childTransaction = tm.beginChildTransaction(parentTxnId, Bytes.toBytes(conglomId));
 			} catch (IOException e) {
 				throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
 			}

@@ -6,12 +6,14 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
+
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -22,6 +24,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -268,7 +271,12 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                                             operationChain.add(operationChainInfo);
                                         }
 										setCurrentRow(candidateRow);
-										restrictBoolean = restriction.invoke();
+										try {
+											restrictBoolean = restriction.invoke();
+										} catch (Exception e) {
+											System.out.println(candidateRow);
+											throw new IOException(e);
+										}
 										// if the result is null, we make it false --
 										// so the row won't be returned.
 										restrict = ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean());

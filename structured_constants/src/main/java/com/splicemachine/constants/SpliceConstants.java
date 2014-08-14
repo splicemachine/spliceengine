@@ -432,14 +432,46 @@ public class SpliceConstants {
 		
 		
         public static long regionMaxFileSize;
+
+		@Parameter private static final String OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER = "splice.optimizer.extraQualifierMultiplier";
+		@DefaultValue(OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER) public static final double DEFAULT_OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER = 0.9d;
+        public static double extraQualifierMultiplier;
+
+		@Parameter private static final String OPTIMIZER_EXTRA_START_STOP_QUALIFIER_MULTIPLIER = "splice.optimizer.extraStartStopQualifierMultiplier";
+		@DefaultValue(OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER) public static final double DEFAULT_OPTIMIZER_EXTRA_START_STOP_QUALIFIER_MULTIPLIER = 0.5d;
+        public static double extraStartStopQualifierMultiplier;
+
+		@Parameter private static final String OPTIMIZER_HASH_COST = "splice.optimizer.hashCost";
+		@DefaultValue(OPTIMIZER_HASH_COST) public static final double DEFAULT_OPTIMIZER_HASH_COST = 0.01;
+        public static double optimizerHashCost;
+
+		@Parameter private static final String OPTIMIZER_NETWORK_COST = "splice.optimizer.networkCost";
+		@DefaultValue(OPTIMIZER_NETWORK_COST) public static final double DEFAULT_OPTIMIZER_NETWORK_COST = 2.00;
+        public static double optimizerNetworkCost;        
+
+		@Parameter private static final String OPTIMIZER_WRITE_COST = "splice.optimizer.writeCost";
+		@DefaultValue(OPTIMIZER_NETWORK_COST) public static final double DEFAULT_OPTIMIZER_WRITE_COST = 3.00;
+        public static double optimizerWriteCost;        
+
+		@Parameter private static final String HASHNLJ_LEFTROWBUFFER_SIZE = "splice.hashnlj.leftrowbuffersize";
+		@DefaultValue(HASHNLJ_LEFTROWBUFFER_SIZE) public static final int DEFAULT_HASHNLJ_LEFTROWBUFFER_SIZE = 1024;
+        public static int hashNLJLeftRowBufferSize;
+
+		@Parameter private static final String HASHNLJ_RIGHTHASHTABLE_SIZE = "splice.hashnlj.rightHashTableSize";
+		@DefaultValue(HASHNLJ_RIGHTHASHTABLE_SIZE) public static final int DEFAULT_HASHNLJ_RIGHTHASHTABLE_SIZE = 1024;
+        public static int hashNLJRightHashTableSize;
+
         
-        
+		@Parameter private static final String BROADCAST_REGION_MB_THRESHOLD = "splice.optimizer.broadcastRegionMBThreshold";
+		@DefaultValue(BROADCAST_REGION_MB_THRESHOLD) public static final int DEFAULT_BROADCAST_REGION_MB_THRESHOLD = (int) (Runtime.getRuntime().maxMemory() / (1024l * 1024l * 100l));
+        public static int broadcastRegionMBThreshold;
+
 		@Parameter private static final String HBASE_REGION_ROWS_ESTIMATE = "splice.optimizer.hbaseRegionRowsEstimate";
-		@DefaultValue(HBASE_REGION_ROWS_ESTIMATE) public static final long DEFAULT_HBASE_REGION_ROWS_ESTIMATE = 1500000;
+		@DefaultValue(HBASE_REGION_ROWS_ESTIMATE) public static final long DEFAULT_HBASE_REGION_ROWS_ESTIMATE = 5000000;
         public static long hbaseRegionRowEstimate;
 
 		@Parameter private static final String INDEX_PER_ROW_COST = "splice.optimizer.indexPerRowCost";
-		@DefaultValue(INDEX_PER_ROW_COST) public static final double DEFAULT_INDEX_PER_ROW_COST = 0.20d;
+		@DefaultValue(INDEX_PER_ROW_COST) public static final double DEFAULT_INDEX_PER_ROW_COST = 1.00d;
 		public static double indexPerRowCost;
 		
 		@Parameter private static final String BASE_TABLE_PER_ROW_COST = "splice.optimizer.baseTablePerRowCost";
@@ -455,7 +487,7 @@ public class SpliceConstants {
 		public static double getBaseTableFetchFromFullKeyCost;
 
 		@Parameter private static final String GET_INDEX_FETCH_FROM_FULL_KEY_COST = "splice.optimizer.getIndexFetchFromFullKeyCost";
-		@DefaultValue(GET_INDEX_FETCH_FROM_FULL_KEY_COST) public static final double DEFAULT_GET_INDEX_FETCH_FROM_FULL_KEY_COST = 0.0d;						
+		@DefaultValue(GET_INDEX_FETCH_FROM_FULL_KEY_COST) public static final double DEFAULT_GET_INDEX_FETCH_FROM_FULL_KEY_COST = 0.1d;						
 		public static double getIndexFetchFromFullKeyCost;
         
         
@@ -689,7 +721,7 @@ public class SpliceConstants {
 		 * 
 		 */
 		@Parameter private static final String DEBUG_LOG_STATEMENT_CONTEXT = "splice.debug.logStatementContext";
-		@DefaultValue(DEBUG_DUMP_CLASS_FILE) public static final boolean DEFAULT_LOG_STATEMENT_CONTEXT=false;
+		@DefaultValue(DEBUG_DUMP_CLASS_FILE) public static final boolean DEFAULT_LOG_STATEMENT_CONTEXT=true;
 		public static boolean logStatementContext;
 
 
@@ -956,9 +988,17 @@ public class SpliceConstants {
 
 				// Optimizer Settings
 				
-				regionMaxFileSize = SpliceConstants.config.getLong(HConstants.HREGION_MAX_FILESIZE,1024 * 1024 * 1024L);
+		        hashNLJLeftRowBufferSize = SpliceConstants.config.getInt(HASHNLJ_LEFTROWBUFFER_SIZE, DEFAULT_HASHNLJ_LEFTROWBUFFER_SIZE);
+		        hashNLJRightHashTableSize = SpliceConstants.config.getInt(HASHNLJ_RIGHTHASHTABLE_SIZE, DEFAULT_HASHNLJ_RIGHTHASHTABLE_SIZE);
+				regionMaxFileSize = (long) (( (float) SpliceConstants.config.getLong(HConstants.HREGION_MAX_FILESIZE,1024 * 1024 * 1024L))/( (float)1024*1024));
 				hbaseRegionRowEstimate = SpliceConstants.config.getLong(HBASE_REGION_ROWS_ESTIMATE, DEFAULT_HBASE_REGION_ROWS_ESTIMATE);
+				broadcastRegionMBThreshold = SpliceConstants.config.getInt(BROADCAST_REGION_MB_THRESHOLD,DEFAULT_BROADCAST_REGION_MB_THRESHOLD);
 				indexPerRowCost = SpliceConstants.config.getFloat(INDEX_PER_ROW_COST, (float)DEFAULT_INDEX_PER_ROW_COST);
+				optimizerHashCost = SpliceConstants.config.getFloat(OPTIMIZER_HASH_COST, (float)DEFAULT_OPTIMIZER_HASH_COST);
+				extraQualifierMultiplier = SpliceConstants.config.getFloat(OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER, (float) DEFAULT_OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER);
+				extraStartStopQualifierMultiplier = SpliceConstants.config.getFloat(OPTIMIZER_EXTRA_START_STOP_QUALIFIER_MULTIPLIER, (float) DEFAULT_OPTIMIZER_EXTRA_START_STOP_QUALIFIER_MULTIPLIER);
+				optimizerNetworkCost = SpliceConstants.config.getFloat(OPTIMIZER_NETWORK_COST, (float)DEFAULT_OPTIMIZER_NETWORK_COST);
+				optimizerWriteCost = SpliceConstants.config.getFloat(OPTIMIZER_WRITE_COST, (float)DEFAULT_OPTIMIZER_WRITE_COST);				
 				baseTablePerRowCost = SpliceConstants.config.getFloat(BASE_TABLE_PER_ROW_COST, (float) DEFAULT_BASE_TABLE_PER_ROW_COST);
 				fetchFromRowLocationCost = SpliceConstants.config.getFloat(FETCH_FROM_ROW_LOCATION_COST, (float) DEFAULT_FETCH_FROM_ROW_LOCATION_COST);
 				getBaseTableFetchFromFullKeyCost = SpliceConstants.config.getFloat(GET_BASE_TABLE_FETCH_FROM_FULL_KEY_COST, (float) DEFAULT_GET_BASE_TABLE_FETCH_FROM_FULL_KEY_COST);
@@ -1002,9 +1042,6 @@ public class SpliceConstants {
 				compression = config.get(COMPRESSION, DEFAULT_COMPRESSION);
 				authentication = config.get(AUTHENTICATION, DEFAULT_AUTHENTICATION);
 				authenticationNativeAlgorithm = config.get(AUTHENTICATION_NATIVE_ALGORITHM, DEFAULT_AUTHENTICATION_NATIVE_ALGORITHM);
-				
-				
-				
 				
 				authenticationCustomProvider = config.get(AUTHENTICATION_CUSTOM_PROVIDER,DEFAULT_AUTHENTICATION_CUSTOM_PROVIDER);
 				

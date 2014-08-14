@@ -1,9 +1,13 @@
 package com.splicemachine.job;
 
+import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopLeftOuterJoinOperation;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.ipc.RemoteException;
+import org.apache.log4j.Logger;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -21,6 +25,7 @@ import java.lang.reflect.InvocationTargetException;
  * Created on: 9/19/13
  */
 public class ErrorTransport implements Externalizable{
+	private static Logger LOG = Logger.getLogger(ErrorTransport.class);
 
     private String messageId;
     private boolean shouldRetry;
@@ -41,14 +46,16 @@ public class ErrorTransport implements Externalizable{
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-		System.out.println("writing external error message ?" + messageId);
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "writing external error message %s",messageId);
         out.writeUTF(messageId);
         out.writeBoolean(isStandard);
         out.writeBoolean(shouldRetry);
         out.writeInt(args!=null?args.length:0);
 				if(args!=null){
 						for(Object o:args){
-							System.out.println("writing external error message ?" + o.getClass());
+					    	if (LOG.isTraceEnabled())
+					    		SpliceLogUtils.trace(LOG, "writing external error message %s",o.getClass().toString());
 								out.writeBoolean(o!=null);
 								if(o!=null)
 										out.writeObject(o);
@@ -72,7 +79,8 @@ public class ErrorTransport implements Externalizable{
     }
 
     public static ErrorTransport newTransport(StandardException se){
-    	System.out.println("New StandardException " + se);
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "New StandardException  %s",se);
         String mId = se.getMessageId();
         Object[] args = se.getArguments();
         boolean shouldRetry = false;
@@ -80,7 +88,8 @@ public class ErrorTransport implements Externalizable{
     }
 
     public static ErrorTransport newTransport(Throwable t){
-       	System.out.println("New Throwable " + t.getClass());
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "New Throwable  %s",t.getClass());
     	t = Exceptions.getRootCause(t);
         if(t instanceof StandardException)
             return newTransport((StandardException)t);

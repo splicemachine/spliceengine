@@ -23,7 +23,7 @@ import java.util.List;
  * @author Scott Fines
  * Created: 2/2/13 9:38 AM
  */
-public class ZkUtils extends SpliceConstants {
+public class ZkUtils {
 	private static final Logger LOG = Logger.getLogger(ZkUtils.class);
 	private static final SpliceZooKeeperManager zkManager = new SpliceZooKeeperManager();
 
@@ -337,7 +337,7 @@ public class ZkUtils extends SpliceConstants {
 
     public static boolean validZookeeper() throws InterruptedException, KeeperException {
     	RecoverableZooKeeper rzk = getRecoverableZooKeeper();
-    	for (String path: zookeeperPaths) {
+    	for (String path: SpliceConstants.zookeeperPaths) {
     		if (rzk.exists(path, false) == null)
     			return false;
     	}
@@ -351,7 +351,7 @@ public class ZkUtils extends SpliceConstants {
 
     public static void spliceFinishedLoading() throws InterruptedException, KeeperException {
     	RecoverableZooKeeper rzk = getRecoverableZooKeeper();
-    	rzk.create(zkSpliceStartupPath, Bytes.toBytes(0l), ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
+    	rzk.create(SpliceConstants.zkSpliceStartupPath, Bytes.toBytes(0l), ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
     }
     
     public static SpliceZooKeeperManager getZkManager() {

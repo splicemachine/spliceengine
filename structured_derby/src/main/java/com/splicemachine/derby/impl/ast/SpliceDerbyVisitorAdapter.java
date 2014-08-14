@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.ast;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.MessageId;
 import org.apache.derby.iapi.sql.compile.ASTVisitor;
@@ -55,6 +57,8 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
                                                     String.format("Problem invoking ISpliceVisitor visit method for %s",
                                                                      nClass));
         } catch (InvocationTargetException e) {
+        	SpliceLogUtils.error(LOG, "errror visiting class %s",nClass);
+        	e.printStackTrace();
             throw Exceptions.parseException(e);
         }
     }

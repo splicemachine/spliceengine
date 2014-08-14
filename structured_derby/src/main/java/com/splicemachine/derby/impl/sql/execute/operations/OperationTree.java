@@ -53,13 +53,13 @@ public class OperationTree {
                                                    final SpliceRuntimeContext ctx,
                                                    boolean useProbe)
             throws StandardException, IOException {
-        if (root instanceof  ExplainOperation)
-            return root.executeScan(ctx);
         sink(root, ctx);
         return useProbe ? root.executeProbeScan() : root.executeScan(ctx);
     }
 
     public static void sink(SpliceOperation root, SpliceRuntimeContext ctx) throws StandardException, IOException {
+        if (root instanceof  ExplainOperation)
+            return;
         List<SinkingOperation> deps = immediateSinkDependencies(root);
         if (deps.size() > 0){
             List<ForkJoinTask> futures = Lists.newArrayListWithExpectedSize(deps.size());

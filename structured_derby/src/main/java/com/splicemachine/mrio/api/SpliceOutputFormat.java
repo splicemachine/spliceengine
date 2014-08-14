@@ -268,8 +268,11 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 					sqlUtil.disableAutoCommit(conn);
 					
 					childTxsID = sqlUtil.getChildTransactionID(conn, 
-									conf.get(SpliceConstants.SPLICE_TRANSACTION_ID));
-					
+
+									conf.get(SpliceConstants.SPLICE_TRANSACTION_ID), Long.parseLong(tableID));
+					System.out.println("SpliceOutputFormat, Parent TXSID: "+conf.get(SpliceConstants.SPLICE_TRANSACTION_ID));
+					System.out.println("SpliceOutputFormat, Child TXSID: "+childTxsID);
+
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
 									childTxsID, 1);	
 				}		

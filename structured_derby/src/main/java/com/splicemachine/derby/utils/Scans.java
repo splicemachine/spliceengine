@@ -125,6 +125,7 @@ public class Scans extends SpliceUtils {
 																 int[] keyTablePositionMap,
 																 DataValueFactory dataValueFactory,
 																 String tableVersion) throws StandardException {
+				assert dataValueFactory != null;
 				Scan scan = SpliceUtils.createScan(transactionId, scanColumnList!=null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
 				scan.setCaching(DEFAULT_CACHE_SIZE);
 				try{

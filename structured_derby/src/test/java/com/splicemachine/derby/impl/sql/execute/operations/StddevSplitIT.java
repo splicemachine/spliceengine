@@ -86,6 +86,13 @@ public class StddevSplitIT extends SpliceUnitTest {
         while(rs.next()){
             Assert.assertEquals((int)rs.getDouble(1), 2);
         }
+
+        rs = conn.createStatement().executeQuery(
+                String.format("select count(*) from sys.sysstatementhistory"));
+
+        while(rs.next()){
+            Assert.assertTrue(rs.getInt(1)>0);
+        }
     }
 
     void wait(byte[] name) throws IOException, InterruptedException {

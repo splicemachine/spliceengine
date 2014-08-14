@@ -58,7 +58,7 @@ public class MicrostrategiesDemoIT extends SpliceUnitTest {
 		ResultSet rs = methodWatcher.executeQuery(format(
             "select cst_zipcode, sum(orl_qty_sold*orl_unit_price) " +
                     "from %s \n" +
-				"left outer join %s --SPLICE-PROPERTIES joinStrategy=HASH \n" +
+				"left outer join %s " +
                     "on orl_customer_id=cst_id group by cst_zipcode",spliceTableWatcher1,spliceTableWatcher2));
 		while (rs.next()) {
 			count++;

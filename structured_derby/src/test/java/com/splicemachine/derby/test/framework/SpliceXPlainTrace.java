@@ -15,7 +15,6 @@ public class SpliceXPlainTrace extends XPlainTrace{
     private static final String STATEMENT_TABLE = "SYS.SYSSTATEMENTHISTORY";
     private static final String TASK_TABLE = "SYS.SYSTASKHISTORY";
 
-    public static final String SCROLLINSENSITIVE = "ScrollInsensitive";
     public static final String TABLESCAN = "TableScan";
     public static final String BULKTABLESCAN = "BulkTableScan";
     public static final String PROJECTRESTRICT = "ProjectRestrict";

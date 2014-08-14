@@ -33,7 +33,7 @@ public interface ISpliceVisitor {
     public Visitable visit(JoinNode node) throws StandardException;
     public Visitable visit(MaterializeResultSetNode node) throws StandardException;
     public Visitable visit(NormalizeResultSetNode node) throws StandardException;
-    public Visitable visit(OrderByNode node) throws StandardException;
+    public Visitable visit(com.splicemachine.derby.impl.sql.compile.OrderByNode node) throws StandardException;
     public Visitable visit(ProjectRestrictNode node) throws StandardException;
     public Visitable visit(RowCountNode node) throws StandardException;
     public Visitable visit(RowResultSetNode node) throws StandardException;

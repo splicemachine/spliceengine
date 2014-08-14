@@ -2,6 +2,7 @@ package com.splicemachine.derby.utils;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
@@ -1516,5 +1517,17 @@ public class SpliceAdmin {
         EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
 
         resultSet[0] = ers;
+    }
+
+    public static void SYSCS_PURGE_XPLAIN_TRACE() throws SQLException{
+        Connection connection = SpliceDriver.driver().getInternalConnection();
+        PreparedStatement s = connection.prepareStatement("delete from sys.sysstatementhistory");
+        s.execute();
+
+        s = connection.prepareStatement("delete from sys.sysoperationhistory");
+        s.execute();
+
+        s = connection.prepareStatement("delete from sys.systaskhistory");
+        s.execute();
     }
 }
