@@ -175,6 +175,8 @@ public class XPlainTreeNode {
         return operationType.toUpperCase().contains("INDEXROWTOBASEROW");
     }
 
+    public boolean isProjectRestrictOperation() {return operationType.toUpperCase().contains("PROJECTRESTRICT");};
+
     public void setStatementId(long statementId) {
         this.statementId = statementId;
     }
