@@ -7,21 +7,23 @@ import java.io.ObjectOutput;
 
 import com.carrotsearch.hppc.BitSet;
 
+/**
+ * Index
+ */
 public class TentativeIndexDesc implements TentativeDDLDesc, Externalizable {
-    long conglomerateNumber;
-    long baseConglomerateNumber;
-    int[] indexColsToMainColMap;
-    boolean unique;
-    boolean uniqueWithDuplicateNulls;
-    BitSet descColumns;
+
+    private long conglomerateNumber;
+    private long baseConglomerateNumber;
+    private int[] indexColsToMainColMap;
+    private boolean unique;
+    private boolean uniqueWithDuplicateNulls;
+    private BitSet descColumns;
 
     /** For serialization, don't use */
     public TentativeIndexDesc() {
-        super();
     }
 
     public TentativeIndexDesc(long conglomerateNumber, long baseConglomerateNumber, int[] indexColsToMainColMap, boolean unique, boolean uniqueWithDuplicateNulls, BitSet descColumns) {
-        super();
         this.conglomerateNumber = conglomerateNumber;
         this.baseConglomerateNumber = baseConglomerateNumber;
         this.indexColsToMainColMap = indexColsToMainColMap;
