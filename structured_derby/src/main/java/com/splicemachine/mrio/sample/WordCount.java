@@ -161,7 +161,7 @@ public class WordCount {
 		scan.setCacheBlocks(false);  // don't set to true for MR jobs
 	    
 		String inputTableName = "WIKIDATA";
-		String outputTableName = "USERTEST1";
+		String outputTableName = "USERTEST3";
 		
 		//String outputPath = "output_test11";
 		
@@ -190,7 +190,7 @@ public class WordCount {
 				null,
 				false,
 				SpliceOutputFormat.class);
-
+		
 		//job.setOutputFormatClass(NullOutputFormat.class);   // because we aren't emitting anything from mapper
 		
 		boolean b;
@@ -200,7 +200,7 @@ public class WordCount {
 				throw new IOException("error with job!");
 			} catch (IOException e) {
 			// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.out.println(e.getMessage());
 			} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 				e.printStackTrace();

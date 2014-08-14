@@ -115,21 +115,22 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 			this.taskID = taskID;
 		}
 		
-		public SpliceRecordWriter(int[]pkCols, ArrayList colTypes, String taskID)
+		public SpliceRecordWriter(int[]pkCols, ArrayList colTypes, String taskID) throws IOException
 		{
 			
-			
+			System.out.println("Initializing SpliceRecordWriter....");
 			try {
 				this.colTypes = colTypes;
 				this.rowDesc = createDVD();
 				this.taskID = taskID;
-				this.keyEncoder =  getKeyEncoder(null);
 				this.pkCols = pkCols;
-				this.rowHash = getRowHash(null);
-	
+				this.keyEncoder =  getKeyEncoder(null);
+				this.rowHash = getRowHash(null);	
+				tableID = sqlUtil.getConglomID(conf.get(TableOutputFormat.OUTPUT_TABLE));	
+				
 			} catch (StandardException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				throw new IOException(e.getCause());
 			} 
 		}
 		
@@ -142,14 +143,17 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				this.callBuffer.flushBuffer();
 				this.callBuffer.close();
 				sqlUtil.commit(conn);
+				System.out.println("Task "+arg0.getTaskAttemptID()+" succeed");
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 				try {
 					sqlUtil.rollback(conn);
+					System.out.println("Task "+arg0.getTaskAttemptID()+" failed");
+					throw new IOException("Exception in RecordWriter.close, "+e.getMessage());
 				} catch (SQLException e1) {
 					// TODO Auto-generated catch block
-					e1.printStackTrace();
+					throw new IOException("Exception in RecordWriter.close, "+e1.getMessage());
 				}
 			}
 		}
@@ -167,8 +171,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 					int[] keyColumns = new int[pkCols.length];
 					for(int i=0;i<keyColumns.length;i++){
 							keyColumns[i] = pkCols[i] -1;
-						
-							System.out.println("keyColumn:"+String.valueOf(keyColumns[i]));
+							
 					}
 					prefix = NoOpPrefix.INSTANCE;
 					
@@ -184,9 +187,8 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 
 	        // Skip primary key columns to save space
 	        if (pkCols != null) {
-	        	System.out.println("pkCols not null");
+	        	
 	            for(int pkCol:pkCols) {
-	            	System.out.println("pkCol:"+String.valueOf(pkCol));
 	                columns[pkCol-1] = -1;
 	            }
 	            return columns;
@@ -267,8 +269,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 					
 					childTxsID = sqlUtil.getChildTransactionID(conn, 
 									conf.get(SpliceConstants.SPLICE_TRANSACTION_ID));
-					System.out.println("SpliceOutputFormat, Parent TXSID: "+conf.get(SpliceConstants.SPLICE_TRANSACTION_ID));
-					System.out.println("SpliceOutputFormat, Child TXSID: "+childTxsID);
+					
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
 									childTxsID, 1);	
 				}		
@@ -283,11 +284,14 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 					
 			} catch (StandardException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				throw new IOException("Exception in RecordWriter.write, "+
+										e.getMessage());
+				
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+				throw new IOException("Exception in RecordWriter.write, "+
+										e.getMessage());
+			} 
 		}
 
 	}
@@ -317,6 +321,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	public RecordWriter getRecordWriter(TaskAttemptContext arg0)
 			throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
+		tableName = conf.get(TableOutputFormat.OUTPUT_TABLE);
 		tableStructure = sqlUtil.getTableStructure(tableName);
 		pks = sqlUtil.getPrimaryKey(tableName);
 		ArrayList<String> pkColNames = null;
@@ -324,37 +329,41 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 		ArrayList<Integer> allColTypes = new ArrayList<Integer>();
 		Iterator tableiter = tableStructure.entrySet().iterator();
 		Iterator pkiter = pks.entrySet().iterator();
-	    while(tableiter.hasNext())
+	    if(tableiter.hasNext())
 	    {
 	    	Map.Entry kv = (Map.Entry)tableiter.next();
 	    	allColNames = (ArrayList<String>)kv.getKey(); 
 	    	allColTypes = (ArrayList<Integer>)kv.getValue();
 	    	
-	    	break;
 	    }
-	    while(pkiter.hasNext())
+	    if(pkiter.hasNext())
 	    {
 	    	Map.Entry kv = (Map.Entry)pkiter.next();
-	    	pkColNames = (ArrayList<String>)kv.getKey();  
-	    	System.out.println("primary key:");
-	    	System.out.println(pkColNames);
-	    	break;
+	    	pkColNames = (ArrayList<String>)kv.getKey();
+	    	
 	    }
-	    int[]pkCols = null;
-	    if(pkColNames != null && pkColNames.size() > 0)
+	    int[]pkCols = new int[pkColNames.size()];
+	    String taskID = arg0.getTaskAttemptID().getTaskID().toString();
+	    if(pkColNames == null || pkColNames.size() == 0)
 	    {
-	    	pkCols = new int[pkColNames.size()];
+	    	SpliceRecordWriter spw = new SpliceRecordWriter(null, allColTypes, taskID);
+			return spw;
+	    }
+	    //if(pkColNames != null && pkColNames.size() > 0)
+	    else
+	    {
 	    	for (int i = 0; i < pkColNames.size(); i++)
 	    	{
 	    		pkCols[i] = allColNames.indexOf(pkColNames.get(i))+1;
-	    		System.out.println("primary key pos:"+String.valueOf(pkCols[i]));
+	    		
 	    	}
 	    }
 	    
-		String taskID = arg0.getTaskAttemptID().getTaskID().toString();
-		
-		SpliceRecordWriter spw = new SpliceRecordWriter(pkCols, allColTypes, taskID);
+	    SpliceRecordWriter spw = new SpliceRecordWriter(pkCols, allColTypes, taskID);
 		return spw;
+		
+		
+		
 	}
 	public Configuration getConf() {
 		// TODO Auto-generated method stub
@@ -362,8 +371,6 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	}
 	public void setConf(Configuration conf) {
 		// TODO Auto-generated method stub
-		tableName = conf.get(TableOutputFormat.OUTPUT_TABLE);
-		tableID = sqlUtil.getConglomID(tableName);	
 		
 		this.conf = conf;
 	}

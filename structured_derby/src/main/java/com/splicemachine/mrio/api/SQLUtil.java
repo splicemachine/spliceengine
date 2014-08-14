@@ -79,7 +79,7 @@ public class SQLUtil {
 		  ArrayList names = new ArrayList();
 		  ArrayList types = new ArrayList();
 		  try{
-			  long start = System.currentTimeMillis();
+			  
 			  String   catalog           = null;
 		      String   schemaPattern     = null;
 		      String   tableNamePattern  = tableName;
@@ -92,13 +92,12 @@ public class SQLUtil {
 		    	  
 		          String columnName = result.getString(4);
 		          int    columnId = result.getInt(5);
-		          System.out.println("ColumnName:"+columnName+" Id:"+String.valueOf(columnId));
+		          
 		          names.add(columnName);
 		          types.add(columnId);
 		          
 		      }
-		      long elapsedTimeMillis = System.currentTimeMillis()-start;
-		      System.out.println("Elapsed time:"+String.valueOf(elapsedTimeMillis));
+		     
 		      pks.put(names, types);
 		    } catch (Exception e) {
 		      System.out.println(e);
@@ -119,7 +118,7 @@ public class SQLUtil {
 		  ArrayList names = new ArrayList();
 		  ArrayList types = new ArrayList();
 		  try{
-			  long start = System.currentTimeMillis();
+			 
 			  String   catalog           = null;
 		      String   schemaPattern     = null;
 		      String   tableNamePattern  = tableName;
@@ -130,22 +129,30 @@ public class SQLUtil {
 		      ResultSet result = databaseMetaData.getColumns(
 		          catalog, schemaPattern,  tableNamePattern, columnNamePattern);
 		      
+		      String prevColumnName = "";
 		      while(result.next()){
 		          String columnName = result.getString(4);
+		          if(prevColumnName.equals(columnName))
+		        	  continue;
 		          int    columnType = result.getInt(5);
-		          
-		          System.out.println("ColumnName:"+columnName+" Type:"+String.valueOf(columnType));
+		          prevColumnName = columnName;
 		          names.add(columnName);
+		          
+		          System.out.println("getTableStructure, columnName:"+columnName);
 		          types.add(columnType);
 		          
 		      }
-		      long elapsedTimeMillis = System.currentTimeMillis()-start;
-		      System.out.println("Elapsed time:"+String.valueOf(elapsedTimeMillis));
+		      
 		      colType.put(names, types);
 		    } catch (Exception e) {
 		      System.out.println(e);
 		    } 
 		  return colType;
+	  }
+	  
+	  public void getSchema()
+	  {
+		 
 	  }
 	  
 	  public Connection getStaticConnection()
@@ -283,8 +290,6 @@ public class SQLUtil {
 	    	Map.Entry kv = (Map.Entry)iter.next();
 	    	ArrayList<String> names = (ArrayList<String>)kv.getKey();
 	    	ArrayList<Integer> types = (ArrayList<Integer>)kv.getValue();
-	    	
-	    	System.out.println("names: "+names+","+" types: "+types);
 	    }
 	    dao.getTransactionID();
 	  }

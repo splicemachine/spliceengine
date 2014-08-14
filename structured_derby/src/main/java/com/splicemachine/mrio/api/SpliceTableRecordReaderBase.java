@@ -21,6 +21,7 @@ extends RecordReader<ImmutableBytesWritable, ExecRow> {
 
   private TableRecordReaderImpl recordReaderImpl = new TableRecordReaderImpl();
 
+  
   /**
    * Restart from survivable exceptions by creating a new scanner.
    *
