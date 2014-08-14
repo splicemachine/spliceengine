@@ -2978,12 +2978,9 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
         /* variantType for qualifier's orderable */
         consMB.push(or_node.getOrderableVariantType(optTable));
 
-        int numArgs = 8;
-        if (XPlainUtils.shouldTrace(getLanguageConnectionContext())) {
-            /* Qualifier's string representation */
-            consMB.push(pred.getText());
-            numArgs = 9;
-        }
+        int numArgs = 9;
+        /* Qualifier's string representation */
+        consMB.push(pred.getText());
 
         consMB.callMethod(
             VMOpcode.INVOKEINTERFACE, 
