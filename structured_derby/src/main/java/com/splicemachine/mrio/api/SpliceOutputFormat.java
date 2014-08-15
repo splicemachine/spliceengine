@@ -1,3 +1,8 @@
+/**
+ * SpliceOutputFormat which performs writing to Splice
+ * @author Yanan Jian
+ * Created on: 08/14/14
+ */
 package com.splicemachine.mrio.api;
 
 import java.io.IOException;
@@ -129,6 +134,9 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 				tableID = sqlUtil.getConglomID(conf.get(TableOutputFormat.OUTPUT_TABLE));	
 				
 			} catch (StandardException e) {
+				// TODO Auto-generated catch block
+				throw new IOException(e.getCause());
+			} catch (SQLException e) {
 				// TODO Auto-generated catch block
 				throw new IOException(e.getCause());
 			} 
@@ -268,13 +276,11 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 					sqlUtil.disableAutoCommit(conn);
 					
 					childTxsID = sqlUtil.getChildTransactionID(conn, 
-
-									conf.get(SpliceConstants.SPLICE_TRANSACTION_ID), Long.parseLong(tableID));
-					System.out.println("SpliceOutputFormat, Parent TXSID: "+conf.get(SpliceConstants.SPLICE_TRANSACTION_ID));
-					System.out.println("SpliceOutputFormat, Child TXSID: "+childTxsID);
+									conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID), 
+									Long.parseLong(tableID));
 
 					callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableID), 
-									childTxsID, 1);	
+									childTxsID, SpliceMRConstants.SPLICE_WRITE_BUFFER_SIZE);	
 				}		
 				byte[] key = this.keyEncoder.getKey(value);
 				rowHash.setRow(value);
@@ -287,13 +293,11 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 					
 			} catch (StandardException e) {
 				// TODO Auto-generated catch block
-				throw new IOException("Exception in RecordWriter.write, "+
-										e.getMessage());
+				throw new IOException(e.getCause());
 				
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
-				throw new IOException("Exception in RecordWriter.write, "+
-										e.getMessage());
+				throw new IOException(e.getCause());
 			} 
 		}
 
@@ -352,7 +356,7 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 	    	SpliceRecordWriter spw = new SpliceRecordWriter(null, allColTypes, taskID);
 			return spw;
 	    }
-	    //if(pkColNames != null && pkColNames.size() > 0)
+	   
 	    else
 	    {
 	    	for (int i = 0; i < pkColNames.size(); i++)
@@ -369,12 +373,9 @@ public class SpliceOutputFormat extends OutputFormat implements Configurable{
 		
 	}
 	public Configuration getConf() {
-		// TODO Auto-generated method stub
 		return this.conf;
 	}
 	public void setConf(Configuration conf) {
-		// TODO Auto-generated method stub
-		
 		this.conf = conf;
 	}
 	

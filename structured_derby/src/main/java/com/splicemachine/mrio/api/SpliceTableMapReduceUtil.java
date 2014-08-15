@@ -1,3 +1,8 @@
+/**
+ * SpliceTableMapReduceUtil which wraps up params for Map Reduce Job.
+ * @author Yanan Jian
+ * Created on: 08/14/14
+ */
 package com.splicemachine.mrio.api;
 
 import java.io.ByteArrayInputStream;
@@ -122,7 +127,7 @@ public class SpliceTableMapReduceUtil {
     job.setMapperClass(mapper);
     Configuration conf = job.getConfiguration();
     HBaseConfiguration.merge(conf, HBaseConfiguration.create(conf));
-    conf.set(TableInputFormat.INPUT_TABLE, table);
+    conf.set(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME, table);
     conf.set(TableInputFormat.SCAN, convertScanToString(scan));
     if (addDependencyJars) {
       addDependencyJars(job);

@@ -1,6 +1,7 @@
 package com.splicemachine.mrio.sample;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -39,11 +40,10 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
-import com.splicemachine.mrio.api.SpliceInputFormat;
 import com.splicemachine.mrio.api.SpliceOutputFormat;
 import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
 import com.splicemachine.mrio.api.SpliceJob;
-
+import com.splicemachine.mrio.api.SpliceInputFormat;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
@@ -152,8 +152,7 @@ public class WordCount {
 		Configuration config = HBaseConfiguration.create();
 		
 		SpliceJob job = new SpliceJob(config, NAME);
-		//Job job = new Job(config, NAME);
-		//System.out.println("***"+config.get(spliceio.SpliceConstants.SPLICE_TRANSACTION_ID));
+		
 		job.setJarByClass(WordCount.class);     // class that contains mapper
 
 		Scan scan = new Scan();
@@ -162,8 +161,6 @@ public class WordCount {
 	    
 		String inputTableName = "WIKIDATA";
 		String outputTableName = "USERTEST3";
-		
-		//String outputPath = "output_test11";
 		
 		try {
 			SpliceTableMapReduceUtil.initTableMapperJob(
@@ -193,21 +190,25 @@ public class WordCount {
 		
 		//job.setOutputFormatClass(NullOutputFormat.class);   // because we aren't emitting anything from mapper
 		
-		boolean b;
-		try {
-			b = job.waitForCompletion(true);
-			if (!b)
-				throw new IOException("error with job!");
-			} catch (IOException e) {
-			// TODO Auto-generated catch block
-				System.out.println(e.getMessage());
+		boolean b = false;
+		
+			try {
+				b = job.waitForCompletion(true);
+				if (!b)
+					job.rollback();
+				else
+					job.commit();
 			} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}catch (SQLException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			
 		}
 		
 		  

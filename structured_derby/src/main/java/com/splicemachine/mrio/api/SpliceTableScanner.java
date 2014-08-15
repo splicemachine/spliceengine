@@ -1,3 +1,8 @@
+/**
+ * SpliceTableScanner which internally used by SpliceTableScannerBuilder
+ * @author Yanan Jian
+ * Created on: 08/14/14
+ */
 package com.splicemachine.mrio.api;
 
 import com.google.common.collect.Lists;
