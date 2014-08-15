@@ -289,6 +289,7 @@ public class XPlainTrace1IT extends XPlainTrace {
         Assert.assertEquals(child.getWriteRows(), 1);
     }
 
+    @Ignore
     @Test
     public void testNestedLoopJoin() throws Exception {
 

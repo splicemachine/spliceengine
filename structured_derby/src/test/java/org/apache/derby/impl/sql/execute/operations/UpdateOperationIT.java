@@ -5,6 +5,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.impl.sql.execute.operations.ExplainOperation;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -28,7 +29,7 @@ public class UpdateOperationIT extends SpliceUnitTest {
 
     protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("customer",spliceSchemaWatcher.schemaName,"(cust_id int, status boolean)");
     protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("shipment",spliceSchemaWatcher.schemaName,"(cust_id int)");
-
+    protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("t",spliceSchemaWatcher.schemaName,"(i int, j int)");
     @ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
@@ -38,12 +39,13 @@ public class UpdateOperationIT extends SpliceUnitTest {
         .around(nullTableWatcher)
         .around(spliceTableWatcher4)
         .around(spliceTableWatcher5)
+        .around(spliceTableWatcher6)
 		.around(new SpliceDataWatcher() {
             @Override
             protected void starting(Description description) {
                 try {
                     PreparedStatement insertPs = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher + " values(?,?,?)");
-                    PreparedStatement insertPs2 = spliceClassWatcher.prepareStatement("insert into "+ spliceTableWatcher2+" values(?,?,?)");
+                    PreparedStatement insertPs2 = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher2 + " values(?,?,?)");
 
                     insertPs.setInt(1, 100);
                     insertPs.setString(2, "100");
@@ -82,12 +84,21 @@ public class UpdateOperationIT extends SpliceUnitTest {
                     insertPs.setInt(1, 5);
                     insertPs.setBoolean(2, true);
                     insertPs.executeUpdate();
-                    
+
                     insertPs = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher5 + " values(?)");
                     insertPs.setInt(1, 2);
                     insertPs.executeUpdate();
                     insertPs.setInt(1, 4);
                     insertPs.executeUpdate();
+
+                    insertPs = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher6 + " values(?, ?)");
+                    insertPs.setInt(1, 1);
+                    insertPs.setInt(2, 2);
+                    insertPs.executeUpdate();
+
+                    PreparedStatement createIndex = spliceClassWatcher.prepareStatement("create index ti on " + spliceTableWatcher6 + "(i,j)");
+                    createIndex.execute();
+
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 } finally {
@@ -313,5 +324,18 @@ public class UpdateOperationIT extends SpliceUnitTest {
 		String query = String.format(sb.toString(), spliceTableWatcher4, "customer", "customer", spliceTableWatcher5, "shipment", hint, "customer", "shipment");
     	int rows = methodWatcher.executeUpdate(query);
         Assert.assertEquals("incorrect num rows updated!", 3, rows);
+    }
+
+    // Tests case for DB-1484
+    @Test
+    public void testUpdateOnAllColumnIndex() throws Exception {
+        String query = "update " + spliceTableWatcher6 + " set i=10 where j=2";
+        int rows = methodWatcher.executeUpdate(query);
+        Assert.assertEquals("incorrect num rows updated!", 1, rows);
+
+        ResultSet rs = methodWatcher.executeQuery("select * from "+ spliceTableWatcher6);
+        if (rs.next()) {
+            Assert.assertEquals(10, rs.getInt(1));
+        }
     }
 }
