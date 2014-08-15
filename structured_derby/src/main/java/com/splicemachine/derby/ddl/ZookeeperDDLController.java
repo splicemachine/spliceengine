@@ -1,7 +1,6 @@
 package com.splicemachine.derby.ddl;
 
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.utils.ZkUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
@@ -12,7 +11,7 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
-import static com.splicemachine.derby.ddl.ZookeeperDDLWatcherClient.*;
+import static com.splicemachine.derby.ddl.DDLZookeeperClient.*;
 
 /**
  * Used on the node where DDL changes are initiated to communicate changes to other nodes.

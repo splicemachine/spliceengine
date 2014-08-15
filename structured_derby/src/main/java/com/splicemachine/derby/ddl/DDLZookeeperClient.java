@@ -34,9 +34,9 @@ import java.util.List;
  *
  * </pre>
  */
-class ZookeeperDDLWatcherClient {
+class DDLZookeeperClient {
 
-    private static final Logger LOG = Logger.getLogger(ZookeeperDDLWatcherClient.class);
+    private static final Logger LOG = Logger.getLogger(DDLZookeeperClient.class);
 
     private static final String SERVERS_PATH = SpliceConstants.zkSpliceDDLActiveServersPath;
     private static final String CHANGES_PATH = SpliceConstants.zkSpliceDDLOngoingTransactionsPath;
