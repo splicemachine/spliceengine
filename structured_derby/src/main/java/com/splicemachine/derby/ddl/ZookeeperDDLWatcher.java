@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import static com.splicemachine.derby.ddl.ZookeeperDDLWatcherClient.*;
+import static com.splicemachine.derby.ddl.DDLZookeeperClient.*;
 
 /**
  * An instance of this class in each region server listens for DDL notifications.
@@ -172,6 +172,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         // NEW changes: notify ddl controller we processed the change
         //
         for (DDLChange ddlChange : newChanges) {
+            new ZookeeperDDLWatcherDependencies().handleDependencies(ddlChange, getLanguageConnectionContexts());
             acknowledgeChange(ddlChange.getChangeId(), id);
         }
 
@@ -179,8 +180,10 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         // Kill DDL transactions that have been ongoing for more than our timeout value.
         //
         for (Entry<String, Long> entry : changesTimeouts.entrySet()) {
-            if (System.currentTimeMillis() > entry.getValue() + MAXIMUM_DDL_WAIT_MS) {
-                killDDLTransaction(entry.getKey());
+            long startTime = entry.getValue();
+            String changeId = entry.getKey();
+            if (System.currentTimeMillis() > startTime + MAXIMUM_DDL_WAIT_MS) {
+                killDDLTransaction(changeId);
             }
         }
     }

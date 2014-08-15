@@ -6,14 +6,12 @@ import java.lang.reflect.Type;
 
 /**
  * Custom gson serializer for interface
- * @author jyuan
- * Created on: 3/12/14
  *
- * */
-
-
+ * @author jyuan
+ */
 public class InterfaceSerializer<T> implements JsonSerializer<T>, JsonDeserializer<T> {
 
+    @Override
     public JsonElement serialize(T object, Type interfaceType, JsonSerializationContext context) {
         final JsonObject wrapper = new JsonObject();
         wrapper.addProperty("type", object.getClass().getName());
@@ -21,6 +19,7 @@ public class InterfaceSerializer<T> implements JsonSerializer<T>, JsonDeserializ
         return wrapper;
     }
 
+    @Override
     public T deserialize(JsonElement elem, Type interfaceType, JsonDeserializationContext context) throws JsonParseException {
         final JsonObject wrapper = (JsonObject) elem;
         final JsonElement typeName = get(wrapper, "type");
@@ -39,7 +38,8 @@ public class InterfaceSerializer<T> implements JsonSerializer<T>, JsonDeserializ
 
     private JsonElement get(final JsonObject wrapper, String memberName) {
         final JsonElement elem = wrapper.get(memberName);
-        if (elem == null) throw new JsonParseException("no '" + memberName + "' member found in what was expected to be an interface wrapper");
+        if (elem == null)
+            throw new JsonParseException("no '" + memberName + "' member found in what was expected to be an interface wrapper");
         return elem;
     }
 }

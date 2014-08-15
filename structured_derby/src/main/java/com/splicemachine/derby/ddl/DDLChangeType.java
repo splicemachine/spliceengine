@@ -1,5 +1,9 @@
 package com.splicemachine.derby.ddl;
 
+/**
+ * Indicate the type of DDL change.  These are currently largely unused.  Maybe eventually consolidate with
+ * action constants at top of derby's DependencyManager interface.
+ */
 public enum DDLChangeType {
 
     CHANGE_PK(true),

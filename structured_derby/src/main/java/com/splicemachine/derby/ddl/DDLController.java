@@ -12,7 +12,6 @@ public interface DDLController {
     /**
      * Notify remote nodes that the DDL change has been committed.
      */
-    public void finishMetadataChange(String identifier) throws StandardException;
-
+    public void finishMetadataChange(String changeId) throws StandardException;
 
 }

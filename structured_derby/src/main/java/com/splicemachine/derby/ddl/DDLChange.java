@@ -7,7 +7,7 @@ import java.io.Serializable;
  */
 public class DDLChange implements Serializable {
 
-    /* Currently is the sequence ID from zookeeper for this change.   16862@keith-work.local0000000005 */
+    /* Currently is the sequence ID from zookeeper for this change.  Example: 16862@host0000000005 */
     private String changeId;
     private String transactionId;
     private String parentTransactionId;

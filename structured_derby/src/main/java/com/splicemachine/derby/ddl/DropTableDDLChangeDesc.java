@@ -4,7 +4,6 @@ import org.apache.derby.catalog.UUID;
 
 public class DropTableDDLChangeDesc implements TentativeDDLDesc {
 
-    private long baseConglomerateNumber;
     private long conglomerateNumber;
     private UUID tableId;
 
@@ -18,7 +17,7 @@ public class DropTableDDLChangeDesc implements TentativeDDLDesc {
 
     @Override
     public long getBaseConglomerateNumber() {
-        return baseConglomerateNumber;
+        return 0L;
     }
 
     @Override
@@ -33,7 +32,6 @@ public class DropTableDDLChangeDesc implements TentativeDDLDesc {
     @Override
     public String toString() {
         return "DropTableDDLChangeDesc{" +
-                "baseConglomerateNumber=" + baseConglomerateNumber +
                 ", conglomerateNumber=" + conglomerateNumber +
                 ", tableId=" + tableId +
                 '}';
