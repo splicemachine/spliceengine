@@ -1,3 +1,8 @@
+/**
+ * SQLUtil which is a wrapper of Splice(Derby layer)
+ * @author Yanan Jian
+ * Created on: 08/14/14
+ */
 package com.splicemachine.mrio.api;
 
 import java.lang.reflect.Array;
@@ -166,9 +171,10 @@ public class SQLUtil {
 	   * Param is Splice tableName
 	   * Return ConglomID
 	   * ConglomID means HBase table Name which maps to the Splice table Name
+	 * @throws SQLException 
 	   * 
 	   * */
-	  public String getConglomID(String tableName)
+	  public String getConglomID(String tableName) throws SQLException
 	  {
 		  String conglom_id = null;
 		  String query = "select s.schemaname,t.tablename,c.conglomeratenumber "+
@@ -178,17 +184,14 @@ public class SQLUtil {
 				         "s.schemaname = 'SPLICE' and "+
 		                 "t.tablename = '"+tableName+"'";
 		  PreparedStatement statement;
-		try {
+		
 			statement = connect.prepareStatement(query);
 			resultSet = statement.executeQuery();
 		    while (resultSet.next()) {
 		        conglom_id = resultSet.getString("CONGLOMERATENUMBER");   
 		        break;
 		      }
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}	  
+		  
 	      return conglom_id;
 	  }
 	  
