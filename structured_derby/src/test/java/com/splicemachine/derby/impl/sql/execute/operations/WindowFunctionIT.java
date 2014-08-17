@@ -267,6 +267,20 @@ public class WindowFunctionIT extends SpliceUnitTest {
             }
             rs.close();
         }
+
+        {
+            int[] result = {7, 7, 7, 7, 7, 7, 7, 4, 4, 4, 4, 4, 4, 4, 4};
+            String sqlText =
+                    "SELECT empnum, dept, salary, count(salary) over (Partition by dept) as c from %s";
+            ResultSet rs = methodWatcher.executeQuery(
+                    String.format(sqlText, this.getTableReference(TABLE_NAME)));
+
+            int i = 0;
+            while (rs.next()) {
+                Assert.assertEquals(result[i++],rs.getInt(4));
+            }
+            rs.close();
+        }
     }
 
     @Test
@@ -459,7 +473,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testDenseRankWithinPartiion() throws Exception {
+    public void testDenseRankWithinPartion() throws Exception {
         int[] result = {1, 2, 3, 4, 5, 5, 6, 1, 2, 2, 3, 1, 2, 3, 4};
         int[] colVal = {78000, 76000, 75000, 53000, 52000, 52000, 50000, 53000, 52000, 52000, 51000, 84000, 79000, 75000, 55000};
         String sqlText =
@@ -477,11 +491,5 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
-    void printRSCols(ResultSet rs, int cols) throws Exception {
-        List<Object> aCol = new ArrayList<Object>();
-        while (rs.next()) {
-            aCol.add(rs.getObject(cols));
-        }
-        System.out.println(aCol);
-    }
+
 }
