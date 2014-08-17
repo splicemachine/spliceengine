@@ -208,6 +208,8 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
         if (innerTable.isBaseTable()) {
 			/* Must have an equijoin on a column in the conglomerate */
             cd = innerTable.getCurrentAccessPath().getConglomerateDescriptor();
+            if (cd.getConglomerateNumber() < 1184)
+            	return false; // temporary: system tables cannot support merge, argh. JL
         }
         if (cd == null) {
         	return false;
