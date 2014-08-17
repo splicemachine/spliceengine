@@ -110,10 +110,15 @@ public class WindowFrameDefinition extends QueryTreeNode implements Serializable
     /**
      * Default ctor: RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
      */
-    public WindowFrameDefinition() {
+    public WindowFrameDefinition(boolean sorted) {
         this.frameMode = FrameMode.RANGE;
         this.frameStart = new FrameType(Frame.UNBOUNDED_PRECEDING);
-        this.frameEnd = new FrameType(Frame.CURRENT_ROW);
+        if (sorted) {
+            this.frameEnd = new FrameType(Frame.CURRENT_ROW);
+        }
+        else {
+            this.frameEnd = new FrameType(Frame.UNBOUNDED_FOLLOWING);
+        }
     }
 
     /**
@@ -174,6 +179,10 @@ public class WindowFrameDefinition extends QueryTreeNode implements Serializable
         return ("frame mode: " + frameMode + "\n" +
             "frame start: " + frameStart + "\n" +
             "frame end: " + frameEnd);
+    }
+
+    public FrameMode getFrameMode() {
+        return frameMode;
     }
 }
 

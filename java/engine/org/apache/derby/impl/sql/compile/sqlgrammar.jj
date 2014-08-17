@@ -10068,7 +10068,7 @@ overClause() throws StandardException :
 	Partition partitionCols = null;
 	OrderByList orderCols = null;
 	// Default. RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-	WindowFrameDefinition frameDefn = new WindowFrameDefinition();
+	WindowFrameDefinition frameDefn = new WindowFrameDefinition(true);
 }
 {
   LOOKAHEAD({ getToken(2).kind == LEFT_PAREN ||
@@ -10077,6 +10077,9 @@ overClause() throws StandardException :
   ( // Define window - can be none, any or all of "partition by", "order by", "frame"
     <LEFT_PAREN> [ partitionCols = partitionByClause() ] [ orderCols = orderByClause() ] [ frameDefn = frameDefinitionClause() ] <RIGHT_PAREN>
 	{
+	    if(orderCols == null && frameDefn.getFrameMode() == WindowFrameDefinition.FrameMode.RANGE) {
+            frameDefn = new WindowFrameDefinition(false);
+	    }
 		return (QueryTreeNode) nodeFactory.getNode(
 			C_NodeTypes.WINDOW_DEFINITION_NODE,
 			null,
