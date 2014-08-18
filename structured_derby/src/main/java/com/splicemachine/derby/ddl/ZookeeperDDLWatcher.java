@@ -7,10 +7,10 @@ import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionId;
+import org.apache.derby.iapi.error.ShutdownException;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.Property;
 import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.context.Context;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
@@ -172,7 +172,6 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         // NEW changes: notify ddl controller we processed the change
         //
         for (DDLChange ddlChange : newChanges) {
-            new ZookeeperDDLWatcherDependencies().handleDependencies(ddlChange, getLanguageConnectionContexts());
             acknowledgeChange(ddlChange.getChangeId(), id);
         }
 
@@ -193,6 +192,15 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
             case CREATE_INDEX:
             case DROP_COLUMN:
                 tentativeDDLs.put(changeId, ddlChange);
+                break;
+            case DROP_TABLE:
+                /* Clear DD caches on remote nodes for each DDL statement.  Before we did this remote nodes would
+                 * correctly generate new activations classes and instances of constant action classes for statements on
+                 * tables dropped and re-added with the same name, but would include in them stale information from the
+                 * DD caches (conglomerate ID, for example) */
+                for (LanguageConnectionContext lcc : getLanguageConnectionContexts()) {
+                    lcc.getDataDictionary().clearCaches();
+                }
                 break;
             default:
                 throw StandardException.newException(SQLState.UNSUPPORTED_TYPE);
@@ -233,11 +241,12 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
     }
 
     private Collection<LanguageConnectionContext> getLanguageConnectionContexts() {
-        Collection<LanguageConnectionContext> result = Lists.newArrayList();
-        List<Context> allContexts = ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
-        for (Context c : allContexts) {
-            result.add((LanguageConnectionContext) c);
+        try {
+            return ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+        } catch (ShutdownException e) {
+            LOG.warn("could not get contexts", e);
+            /* Context service shutdown--return an empty list of contexts. */
+            return Lists.newArrayList();
         }
-        return result;
     }
 }

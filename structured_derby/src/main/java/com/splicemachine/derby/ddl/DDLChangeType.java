@@ -13,8 +13,7 @@ public enum DDLChangeType {
     ADD_NOT_NULL(true),
     ADD_COLUMN(true),
     DROP_COLUMN(true),
-
-    DROP_TABLE(false);
+    DROP_TABLE(true);
 
     private boolean tentative;
 
