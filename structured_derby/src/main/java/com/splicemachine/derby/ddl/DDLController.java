@@ -5,7 +5,7 @@ import org.apache.derby.iapi.error.StandardException;
 public interface DDLController {
 
     /**
-     * Notify remote nodes that a DDL change is in progress (by not yet committed).
+     * Notify remote nodes that a DDL change is in progress (but not yet committed).
      */
     public String notifyMetadataChange(DDLChange change) throws StandardException;
 
