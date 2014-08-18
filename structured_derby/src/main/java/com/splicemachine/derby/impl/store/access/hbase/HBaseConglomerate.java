@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -114,7 +115,7 @@ public class HBaseConglomerate extends SpliceConglomerate {
 						System.arraycopy(old_collation_ids, 0, collation_ids, 0, old_collation_ids.length);
 						// add the new column's collation id.
 						collation_ids[old_collation_ids.length] =  collation_id;
-						ConglomerateUtils.updateConglomerate(this, ((SpliceTransactionManager)xact_manager).getActiveStateTxn());
+						ConglomerateUtils.updateConglomerate(this, (Txn)((SpliceTransactionManager)xact_manager).getActiveStateTxn());
 				} catch (StandardException e) {
 						SpliceLogUtils.logAndThrow(LOG,"exception in HBaseConglomerate#addColumn",e);
 				} finally {

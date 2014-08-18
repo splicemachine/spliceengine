@@ -1,23 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
-import java.util.Vector;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-
-import com.carrotsearch.hppc.LongArrayList;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.job.AlterTable.DropColumnJob;
+import com.splicemachine.derby.impl.job.AlterTable.LoadConglomerateJob;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.management.OperationInfo;
@@ -28,11 +20,10 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.uuid.Snowflake;
-import org.apache.derby.catalog.DefaultInfo;
-import org.apache.derby.catalog.Dependable;
-import org.apache.derby.catalog.DependableFinder;
-import org.apache.derby.catalog.IndexDescriptor;
+import org.apache.derby.catalog.*;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.catalog.types.StatisticsImpl;
@@ -49,38 +40,11 @@ import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.sql.compile.Parser;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.depend.DependencyManager;
-import org.apache.derby.iapi.sql.dictionary.CheckConstraintDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.DataDescriptorGenerator;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.DefaultDescriptor;
-import org.apache.derby.iapi.sql.dictionary.DependencyDescriptor;
-import org.apache.derby.iapi.sql.dictionary.GenericDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.IndexLister;
-import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
-import org.apache.derby.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.dictionary.StatisticsDescriptor;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.iapi.sql.dictionary.TriggerDescriptor;
-import org.apache.derby.iapi.sql.dictionary.SPSDescriptor;
+import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.store.access.ColumnOrdering;
-import org.apache.derby.iapi.store.access.ConglomerateController;
-import org.apache.derby.iapi.store.access.GroupFetchScanController;
-import org.apache.derby.iapi.store.access.RowLocationRetRowSource;
-import org.apache.derby.iapi.store.access.RowSource;
-import org.apache.derby.iapi.store.access.RowUtil;
-import org.apache.derby.iapi.store.access.ScanController;
-import org.apache.derby.iapi.store.access.SortController;
-import org.apache.derby.iapi.store.access.SortObserver;
-import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.store.access.*;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
@@ -97,10 +61,11 @@ import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
-import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.derby.impl.job.AlterTable.LoadConglomerateJob;
-import com.splicemachine.derby.impl.job.AlterTable.DropColumnJob;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 
 /**
  *	This class  describes actions that are ALWAYS performed for an
@@ -706,7 +671,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
 		// Add the column to the conglomerate.(Column ids in store are 0-based)
         try {
-            ((SpliceTransactionManager)tc).getRawTransaction().elevate(Bytes.toBytes(Long.toString(td.getHeapConglomerateId())));
+            ((SpliceTransaction)((SpliceTransactionManager)tc).getRawTransaction()).elevate(Bytes.toBytes(Long.toString(td.getHeapConglomerateId())));
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -1715,8 +1680,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 		}
 
         // calculate column order for new table
-        Txn parentTxn = ((SpliceTransactionManager)lcc.getTransactionExecute()).getActiveStateTxn();
-        Txn txn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+        TxnView parentTxn = ((SpliceTransactionManager)lcc.getTransactionExecute()).getActiveStateTxn();
+        TxnView txn = ((SpliceTransactionManager)tc).getActiveStateTxn();
 //        String txnId = TransactionUtils.getTransactionId(tc);
         int[] co = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
         int[] newco = DataDictionaryUtils.getColumnOrderingAfterDropColumn(co, droppedColumnPosition);
@@ -1841,8 +1806,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         cleanUp();
 	}
 
-    private Txn getDropColumnTransaction(Txn parentTransaction,
-                                                   Txn wrapperTransaction,
+    private Txn getDropColumnTransaction(TxnView parentTransaction,
+                                                   TxnView wrapperTransaction,
                                                    Txn tentativeTransaction,
 //                                                   TransactionManager transactor,
                                                    long tableConglomId) throws StandardException {
@@ -1860,17 +1825,17 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         }
 
         // Wait for past transactions to die
-        List<Txn> toIgnore = Arrays.asList(parentTransaction, wrapperTransaction, dropColumnTransaction);
-        LongArrayList active;
+        List<TxnView> toIgnore = Arrays.asList(parentTransaction, wrapperTransaction, dropColumnTransaction);
+        long activeTxnId;
         try {
-            active= waitForConcurrentTransactions(dropColumnTransaction, toIgnore,tableConglomId);
+            activeTxnId = waitForConcurrentTransactions(dropColumnTransaction, toIgnore,tableConglomId);
         } catch (IOException e) {
             LOG.error("Unexpected error while waiting for past transactions to complete", e);
             throw Exceptions.parseException(e);
         }
-        if (!active.isEmpty()) {
+        if (activeTxnId>=0) {
             throw StandardException.newException(SQLState.LANG_SERIALIZABLE,
-                    new RuntimeException(String.format("Transactions %s is still active", active)));
+                    new RuntimeException(String.format("Transaction %d is still active", activeTxnId)));
         }
         return dropColumnTransaction;
     }
@@ -1932,7 +1897,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         }
     }
 
-    private void copyToConglomerate(long toConglomId, Txn dropColumnTxn, int[] columnOrdering) throws StandardException {
+    private void copyToConglomerate(long toConglomId, TxnView dropColumnTxn, int[] columnOrdering) throws StandardException {
 
         String user = lcc.getSessionUserId();
         Snowflake snowflake = SpliceDriver.driver().getUUIDGenerator();
@@ -1955,7 +1920,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             HTableInterface table = SpliceAccessManager.getHTable(Long.toString(fromConglomId).getBytes());
 
             ColumnInfo[] allColumnInfo = DataDictionaryUtils.getColumnInfo(td);
-            LoadConglomerateJob job = new LoadConglomerateJob(table, tableId, fromConglomId, toConglomId, allColumnInfo, droppedColumnPosition, dropColumnTxn,
+            LoadConglomerateJob job = new LoadConglomerateJob(table,
+                    tableId, fromConglomId, toConglomId, allColumnInfo, droppedColumnPosition, dropColumnTxn,
                     statementInfo.getStatementUuid(), opInfo.getOperationUuid(), activation.isTraced());
             long start = System.currentTimeMillis();
             future = SpliceDriver.driver().getJobScheduler().submit(job);

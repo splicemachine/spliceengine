@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -14,6 +13,8 @@ import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.metrics.*;
 import com.splicemachine.hbase.HBaseStatUtils;
+import com.splicemachine.metrics.*;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -57,7 +58,7 @@ class IndexRowReader {
 		private final KeyDecoder keyDecoder;
 		private final int[] indexCols;
 		private final KeyHashDecoder rowDecoder;
-    private final Txn txn;
+    private final TxnView txn;
 
     private List<Pair<RowAndLocation,Result>> currentResults;
     private RowAndLocation toReturn = new RowAndLocation();
@@ -71,7 +72,7 @@ class IndexRowReader {
 		IndexRowReader(ExecutorService lookupService,
 									 SpliceOperation sourceOperation,
 									 ExecRow outputTemplate,
-									 Txn txn,
+									 TxnView txn,
 									 int lookupBatchSize,
 									 int numConcurrentLookups,
 									 long mainTableConglomId,

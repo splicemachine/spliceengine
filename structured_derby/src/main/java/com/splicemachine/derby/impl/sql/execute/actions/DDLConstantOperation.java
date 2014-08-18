@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
@@ -16,8 +15,7 @@ import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.impl.DenseTxn;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stream.CloseableStream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -889,17 +887,17 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
      * @return list of transactions still running after timeout
      * @throws IOException
      */
-    public long waitForConcurrentTransactions(Txn maximum, List<Txn> toIgnore,long tableConglomId) throws IOException {
+    public long waitForConcurrentTransactions(Txn maximum, List<TxnView> toIgnore,long tableConglomId) throws IOException {
         if (!waitsForConcurrentTransactions()) {
             return -1l;
         }
         byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
 
         ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getTxnId(),conglomBytes);
-        List<Long> ignoreIds = Lists.transform(toIgnore,new Function<Txn, Long>() {
+        List<Long> ignoreIds = Lists.transform(toIgnore,new Function<TxnView, Long>() {
             @Nullable
             @Override
-            public Long apply(@Nullable Txn input) {
+            public Long apply(@Nullable TxnView input) {
                 return input.getTxnId();
             }
         });
@@ -907,11 +905,13 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
         long totalWait = 0;
         long activeTxnId = -1l;
         do{
-            CloseableStream<Txn> activeTxns = transactionReader.getActiveTransactions();
+            CloseableStream<TxnView> activeTxns = transactionReader.getActiveTransactions();
             try{
-                Txn txn = activeTxns.next();
-                if(txn!=null)
-                    activeTxnId = txn.getTxnId();
+                TxnView txn = activeTxns.next();
+                if(txn!=null){
+                    if(!ignoreIds.contains(txn.getTxnId()))
+                        activeTxnId = txn.getTxnId();
+                }
             } catch (StreamException e) {
                 throw new IOException(e.getCause());
             } finally{

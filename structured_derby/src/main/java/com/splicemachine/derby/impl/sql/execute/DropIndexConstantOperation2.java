@@ -11,6 +11,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -91,11 +92,11 @@ public class DropIndexConstantOperation2 extends IndexConstantOperation{
 				Txn metaTxn = drop(cd, td, sd, dd, lcc);
 
 				//create a second nested transaction
-				Txn parent = ((SpliceTransactionManager)tc).getActiveStateTxn();
+				TxnView parent = ((SpliceTransactionManager)tc).getActiveStateTxn();
 				try {
             Txn pipelineTxn = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parent, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,false,null);
 //						TransactionId pipelineTxn = HTransactorFactory.getTransactionManager().beginChildTransaction(parent, true,false);
-						List<Txn> toIgnore = Arrays.asList(parent, pipelineTxn);
+						List<TxnView> toIgnore = Arrays.asList(parent, pipelineTxn);
 						//wait to ensure that all previous transactions terminate
 						waitForConcurrentTransactions(pipelineTxn,toIgnore,tableConglomerateId);
 						//drop the index from the write pipeline

@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
@@ -66,7 +67,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 	}
 
 	@Override
-    public List<Scan> getScans(Txn txn, ExecRow startKeyOverride, Activation activation, SpliceOperation top, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, SpliceOperation top, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         /*
          * We must build the proper scan here in pieces
          */

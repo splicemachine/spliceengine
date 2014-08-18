@@ -1,7 +1,5 @@
 package com.splicemachine.derby.hbase;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
 import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
@@ -12,7 +10,6 @@ import com.splicemachine.hbase.writer.BulkWrite;
 import com.splicemachine.hbase.writer.BulkWriteResult;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
@@ -20,7 +17,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
-
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -32,7 +28,6 @@ import org.apache.log4j.Logger;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
 
 import javax.management.*;
-
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
@@ -73,54 +68,61 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     private Meter failedMeter =SpliceDriver.driver().getRegistry().newMeter(failedMeterName,"failedRows",TimeUnit.SECONDS);
     private Meter rejectedMeter =SpliceDriver.driver().getRegistry().newMeter(rejectedMeterName,"rejectedRows",TimeUnit.SECONDS);
 
-		private RegionServerMetrics metrics;
+    private RegionServerMetrics metrics;
 
-		@Override
-		public void start(CoprocessorEnvironment env) {
-				final RegionCoprocessorEnvironment rce = ((RegionCoprocessorEnvironment)env);
-				HRegionServer rs = (HRegionServer) rce.getRegionServerServices();
-				metrics = rs.getMetrics();
-				String tableName = rce.getRegion().getTableDesc().getNameAsString();
-				try{
-						conglomId = Long.parseLong(tableName);
-				}catch(NumberFormatException nfe){
-						SpliceLogUtils.debug(LOG, "Unable to parse conglomerate id for table %s, " +
-										"index management for batch operations will be diabled",tableName);
-						conglomId=-1;
-						super.start(env);
-						return;
-				}
-				maxWorkers = env.getConfiguration().getInt("splice.task.maxWorkers",SimpleThreadedTaskScheduler.DEFAULT_MAX_WORKERS);
-        final Pair<LocalWriteContextFactory,AtomicInteger> factoryPair = Pair.newPair(new LocalWriteContextFactory(conglomId),new AtomicInteger(1));
-        Pair<LocalWriteContextFactory, AtomicInteger> originalPair = factoryMap.putIfAbsent(conglomId, factoryPair);
-        if(originalPair!=null){
-            //someone else already created the factory
-            originalPair.getSecond().incrementAndGet();
-        }else{
-            SpliceDriver.Service service = new SpliceDriver.Service(){
-                @Override
-                public boolean start() {
-                    factoryPair.getFirst().prepare();
+    @Override
+    public void start(CoprocessorEnvironment env) {
+        final RegionCoprocessorEnvironment rce = ((RegionCoprocessorEnvironment)env);
+        HRegionServer rs = (HRegionServer) rce.getRegionServerServices();
+        metrics = rs.getMetrics();
+        String tableName = rce.getRegion().getTableDesc().getNameAsString();
+        try{
+            conglomId = Long.parseLong(tableName);
+            maxWorkers = env.getConfiguration().getInt("splice.task.maxWorkers",SimpleThreadedTaskScheduler.DEFAULT_MAX_WORKERS);
+            final Pair<LocalWriteContextFactory,AtomicInteger> factoryPair = Pair.newPair(new LocalWriteContextFactory(conglomId), new AtomicInteger(1));
+            Pair<LocalWriteContextFactory, AtomicInteger> originalPair = factoryMap.putIfAbsent(conglomId, factoryPair);
+            if(originalPair!=null){
+                //someone else already created the factory
+                originalPair.getSecond().incrementAndGet();
+            }else{
+                SpliceDriver.Service service = new SpliceDriver.Service() {
+                    @Override public boolean shutdown() { return true; }
+                    @Override
+                    public boolean start() {
+                        factoryPair.getFirst().prepare();
+                        SpliceDriver.driver().deregisterService(this);
+                        return true;
+                    }
+
+                };
+                SpliceDriver.driver().registerService(service);
+            }
+        }catch(NumberFormatException nfe){
+            SpliceLogUtils.debug(LOG, "Unable to parse conglomerate id for table %s, " +
+                    "index management for batch operations will be diabled",tableName);
+            conglomId=-1;
+        }
+
+        SpliceDriver.Service service = new SpliceDriver.Service() {
+            @Override public boolean shutdown() { return true; }
+            @Override
+            public boolean start() {
+                if(conglomId>=0){
                     region = TransactionalRegions.get(rce.getRegion(), new SegmentedRollForward.Action() {
                         @Override
                         public void submitAction(HRegion region, byte[] startKey, byte[] stopKey, SegmentedRollForward.Context context) {
                             throw new UnsupportedOperationException("IMPLEMENT");
                         }
                     });
-                    SpliceDriver.driver().deregisterService(this);
-                    return true;
+                }else{
+                    region = TransactionalRegions.nonTransactionalRegion(rce.getRegion());
                 }
-
-                @Override
-                public boolean shutdown() {
-                    return true;
-                }
-            };
-            SpliceDriver.driver().registerService(service);
-        }
-
+                SpliceDriver.driver().deregisterService(this);
+                return true;
+            }
+        };
+        SpliceDriver.driver().registerService(service);
         super.start(env);
-
     }
 
     @Override

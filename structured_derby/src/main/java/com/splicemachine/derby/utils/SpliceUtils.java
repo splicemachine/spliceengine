@@ -101,7 +101,7 @@ public class SpliceUtils extends SpliceUtilities {
         return createScan(txn,false);
     }
 
-    public static Scan createScan(Txn txn,boolean countStar) {
+    public static Scan createScan(TxnView txn,boolean countStar) {
         return operationFactory.newScan(txn,countStar);
     }
 
@@ -111,7 +111,7 @@ public class SpliceUtils extends SpliceUtilities {
 
     public static Get createGet(RowLocation loc,
                                 DataValueDescriptor[] destRow,
-                                FormatableBitSet validColumns, Txn txn) throws StandardException {
+                                FormatableBitSet validColumns, TxnView txn) throws StandardException {
         try {
             Get get = createGet(txn, loc.getBytes());
             BitSet fieldsToReturn;
@@ -141,7 +141,7 @@ public class SpliceUtils extends SpliceUtilities {
      * @param row the row to delete.
      * @throws IOException if something goes wrong during deletion.
      */
-    public static void doDelete(HTableInterface table, Txn txn, byte[] row) throws IOException {
+    public static void doDelete(HTableInterface table, TxnView txn, byte[] row) throws IOException {
         Mutation mutation = operationFactory.newDelete(txn, row);
         if(mutation instanceof Put)
             table.put((Put)mutation);
@@ -150,7 +150,7 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
 
-    public static Put createPut(byte[] newRowKey, Txn txn) throws IOException {
+    public static Put createPut(byte[] newRowKey, TxnView txn) throws IOException {
         return operationFactory.newPut(txn,newRowKey);
     }
 

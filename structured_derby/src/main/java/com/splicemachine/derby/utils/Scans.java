@@ -6,6 +6,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
 import com.splicemachine.storage.AndPredicate;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -122,7 +123,7 @@ public class Scans extends SpliceUtils {
 																 Qualifier[][] qualifiers,
 																 boolean[] sortOrder,
 																 FormatableBitSet scanColumnList,
-                                 Txn txn,
+                                 TxnView txn,
 																 boolean sameStartStopPosition,
 																 int[] formatIds,
 																 int[] keyDecodingMap,

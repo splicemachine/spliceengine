@@ -521,7 +521,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
     Txn getChildTransaction() {
         byte[] destTable = Bytes.toBytes(Long.toString(heapConglom));
-        Txn parentTxn = operationInformation.getTransaction();
+        TxnView parentTxn = operationInformation.getTransaction();
         try{
             return TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,false,destTable);
         }catch(IOException ioe){

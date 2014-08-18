@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.store.access.base;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -44,7 +45,7 @@ public abstract class SpliceController implements ConglomerateController {
 		protected OpenSpliceConglomerate openSpliceConglomerate;
 
 //    protected Txn txn;
-		protected SpliceTransaction trans;
+		protected BaseSpliceTransaction trans;
 //		protected String transID;
 
 //		protected EntryEncoder entryEncoder;
@@ -55,9 +56,9 @@ public abstract class SpliceController implements ConglomerateController {
 
     public SpliceController(OpenSpliceConglomerate openSpliceConglomerate, Transaction trans) {
         this.openSpliceConglomerate = openSpliceConglomerate;
-        this.trans = (SpliceTransaction)trans;
+        this.trans = (BaseSpliceTransaction)trans;
         try {
-            ((SpliceTransaction)trans).setActiveState(false, false, false, null);
+            this.trans.setActiveState(false, false, null);
 //            this.txn = ((SpliceTransaction)trans).getTxn();
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -103,7 +104,7 @@ public abstract class SpliceController implements ConglomerateController {
 				HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
 				try {
             elevateTransaction();
-						SpliceUtils.doDelete(htable, trans.getTxn(), loc.getBytes());
+						SpliceUtils.doDelete(htable, ((SpliceTransaction)trans).getTxn(), loc.getBytes());
 						return true;
 				} catch (Exception e) {
 						throw StandardException.newException("delete Failed", e);
@@ -171,7 +172,7 @@ public abstract class SpliceController implements ConglomerateController {
 		public boolean fetch(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, boolean waitForLock) throws StandardException {
 				HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
 				try {
-						Get get = SpliceUtils.createGet(loc, destRow, validColumns, trans.getTxn());
+						Get get = SpliceUtils.createGet(loc, destRow, validColumns, trans.getTxnInformation());
 						Result result = htable.get(get);
 						if(result==null||result.isEmpty()) return false;
 						int[] cols = FormatableBitSetUtils.toIntArray(validColumns);
@@ -250,6 +251,6 @@ public abstract class SpliceController implements ConglomerateController {
 		}
 
     protected void elevateTransaction() throws IOException {
-        trans.elevate(Bytes.toBytes(Long.toString(openSpliceConglomerate.getConglomerate().getContainerid())));
+        ((SpliceTransaction)trans).elevate(Bytes.toBytes(Long.toString(openSpliceConglomerate.getConglomerate().getContainerid())));
     }
 }

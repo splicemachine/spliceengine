@@ -4,10 +4,11 @@ import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.InheritingTxnView;
-import com.splicemachine.si.impl.Transaction;
 
-import java.io.*;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 public class DDLChange implements Externalizable {
 
@@ -25,12 +26,11 @@ public class DDLChange implements Externalizable {
     /*Serialization constructor*/
     public DDLChange(){}
 
-    public DDLChange(Txn txn) {
-        // what is the meaning of a null change type?
+    public DDLChange(TxnView txn) {
         this(txn, null);
     }
 
-    public DDLChange(Txn txn, DDLChangeType type) {
+    public DDLChange(TxnView txn, DDLChangeType type) {
         this.txn = txn;
         this.changeType = type;
     }
@@ -45,7 +45,7 @@ public class DDLChange implements Externalizable {
 
     public TxnView getParentTxn() { return parentTxn; }
 
-    public void setParentTxn(Txn parentTxn) { this.parentTxn = parentTxn; }
+    public void setParentTxn(TxnView parentTxn) { this.parentTxn = parentTxn; }
 
     public DDLChangeType getChangeType() {
         return changeType;

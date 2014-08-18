@@ -233,10 +233,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
 					getDescriptorViaIndex(
 						SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID,
 						keyRow,
-						(ScanQualifier [][]) null,
+                  null,
 						ti,
-						(TupleDescriptor) null,
-						(List) null,
+                  null,
+                  null,
 						false,
                         TransactionController.ISOLATION_REPEATABLE_READ,
 						tc);

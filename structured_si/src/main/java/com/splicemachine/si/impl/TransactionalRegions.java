@@ -42,6 +42,16 @@ public class TransactionalRegions {
 								HTransactorFactory.getTransactor());
 		}
 
+    public static TransactionalRegion nonTransactionalRegion(HRegion region){
+        return new TxnRegion(region,
+                NoopRollForward.INSTANCE,
+                NoOpReadResolver.INSTANCE,
+                TransactionStorage.getTxnSupplier(),
+                TxnDataStore.getDataStore(),
+                TxnDataStore.getDataLib(),
+                HTransactorFactory.getTransactor());
+    }
+
 		private static ReadResolver getReadResolver(HRegion region) {
 //        return NoOpReadResolver.INSTANCE;
 				AsyncReadResolver arr = readResolver;

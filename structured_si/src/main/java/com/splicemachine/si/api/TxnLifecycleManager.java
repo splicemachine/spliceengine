@@ -191,7 +191,7 @@ public interface TxnLifecycleManager {
 		 * @param txnToCommit the transaction to commit.
 		 * @return a new transaction whose begin timestamp is the same as the commit timestamp of {@code txnToCommit}
 		 */
-		Txn chainTransaction(Txn parentTxn,
+		Txn chainTransaction(TxnView parentTxn,
 													Txn.IsolationLevel isolationLevel,
 													boolean dependent,
 													boolean additive,

@@ -73,7 +73,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 		hasCollatedTypes = hasCollatedColumns(collation_ids);		   
 		
 		try {
-			((SpliceTransaction)rawtran).setActiveState(false, false, false, null);
+			((SpliceTransaction)rawtran).setActiveState(false, false, null);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

@@ -14,6 +14,7 @@ import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SerializationUtils;
 
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -255,12 +256,12 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     }
 
     @Override
-    public Scan getScan(Txn txn) throws StandardException {
+    public Scan getScan(TxnView txn) throws StandardException {
         return getScan(txn, null,null);
     }
 
     @Override
-    public Scan getScan(Txn txn, ExecRow startKeyOverride,int[] keyDecodingMap) throws StandardException {
+    public Scan getScan(TxnView txn, ExecRow startKeyOverride,int[] keyDecodingMap) throws StandardException {
         boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
         ExecIndexRow startPosition = getStartPosition();
         ExecIndexRow stopPosition = sameStartStop ? startPosition : getStopPosition();
@@ -478,7 +479,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     }
 
 	@Override
-	public List<Scan> getScans(Txn txn, ExecRow startKeyOverride, Activation activation, SpliceOperation top,SpliceRuntimeContext spliceRuntimeContext) throws StandardException  {
+	public List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, SpliceOperation top,SpliceRuntimeContext spliceRuntimeContext) throws StandardException  {
 		throw new RuntimeException("getScans is not supported");
 	}
 

@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.uuid.UUIDGenerator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -21,7 +22,7 @@ public interface OperationInformation {
 		/**
 		 * @return the transaction that this operation should operate under.
 		 */
-		Txn getTransaction();
+		TxnView getTransaction();
 
 		public double getEstimatedRowCount();
 

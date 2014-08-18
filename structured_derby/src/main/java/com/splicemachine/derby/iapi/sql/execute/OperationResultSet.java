@@ -3,6 +3,8 @@ package com.splicemachine.derby.iapi.sql.execute;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
@@ -12,8 +14,11 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.metrics.IOStats;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -24,7 +29,6 @@ import org.apache.derby.iapi.sql.execute.*;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.store.access.conglomerate.TransactionManager;
 import org.apache.derby.iapi.store.raw.Transaction;
-import org.apache.derby.iapi.tools.run;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -34,7 +38,6 @@ import java.io.IOException;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Delegating ResultSet to ensure that operation stacks are re-run when Derby
@@ -518,10 +521,10 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 				}
 		}
 
-		private Txn getTransaction() throws StandardException {
+		private TxnView getTransaction() throws StandardException {
 				TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
 				Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
-				return ((SpliceTransaction) rawStoreXact).getActiveStateTxn();
+				return ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
 		}
 
 }

@@ -152,7 +152,9 @@ public interface Txn extends TxnView{
 						public boolean canSee(long beginTimestamp, TxnView otherTxn,boolean isParent) {
 								return otherTxn.getEffectiveState()!=State.ROLLEDBACK;
 						}
-				},
+
+            @Override public String toHumanFriendlyString() { return "READ UNCOMMITTED"; }
+        },
 				READ_COMMITTED(2){
 						@Override
 						public boolean canSee(long beginTimestamp, TxnView otherTxn,boolean isParent) {
@@ -162,7 +164,9 @@ public interface Txn extends TxnView{
 								//if we are a parent situation, then the effective state is active, but we can still see it.
 								return isParent || effectiveState == State.COMMITTED;
 						}
-				},
+
+            @Override public String toHumanFriendlyString() { return "READ COMMITTED"; }
+        },
 				SNAPSHOT_ISOLATION(3){
 						@Override
 						public boolean canSee(long beginTimestamp, TxnView otherTxn,boolean isParent) {
@@ -170,7 +174,8 @@ public interface Txn extends TxnView{
 												&& otherTxn.getEffectiveCommitTimestamp() < beginTimestamp;
 						}
 
-				};
+            @Override public String toHumanFriendlyString() { return "SNAPSHOT ISOLATION"; }
+        };
 				protected final int level;
 
 				IsolationLevel(int level) {
@@ -197,7 +202,11 @@ public interface Txn extends TxnView{
 				public byte encode() {
 						return (byte)level;
 				}
-		}
+
+        public String toHumanFriendlyString() {
+            throw new AbstractMethodError();
+        }
+    }
 
 		/**
 		 * Commit the transaction.

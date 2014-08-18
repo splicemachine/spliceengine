@@ -7,6 +7,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -185,7 +186,7 @@ public class HdfsImport {
 						final String user = lcc.getSessionUserId();
 						Activation activation = lcc.getLastActivation();
 //						final String transactionId = activation.getTransactionController().getActiveStateTxIdString();
-            SpliceTransaction txn = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction();
+            BaseSpliceTransaction txn = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction();
 //						final String transactionId = SpliceObserverInstructions.getTransactionId(lcc);
 						try {
 								if(schemaName==null)
@@ -252,7 +253,7 @@ public class HdfsImport {
 				}
 		}
 
-		public static ExecRow importData(SpliceTransaction txn,
+		public static ExecRow importData(BaseSpliceTransaction txn,
                                      String user,
 																			 Connection connection,
 																			 String schemaName,
@@ -302,7 +303,7 @@ public class HdfsImport {
 				byte[] conglomBytes = Bytes.toBytes(Long.toString(builder.getDestinationConglomerate()));
         Txn parentTxn;
         try {
-            parentTxn = txn.elevate(conglomBytes);
+            parentTxn = ((SpliceTransaction)txn).elevate(conglomBytes);
         } catch (IOException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }

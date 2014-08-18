@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.UUIDGenerator;
 import org.apache.derby.iapi.error.StandardException;
@@ -55,7 +56,7 @@ public class DerbyOperationInformation implements OperationInformation,Externali
 		 * transaction information is serialized over in the SpliceObserverInstructions object, which will construct
 		 * the proper transaction for our use here.
 		 */
-		private transient Txn txn;
+		private transient TxnView txn;
 
     @Deprecated
     public DerbyOperationInformation() { }
@@ -77,13 +78,13 @@ public class DerbyOperationInformation implements OperationInformation,Externali
     }
 
 		@Override
-		public Txn getTransaction() {
+		public TxnView getTransaction() {
 				if(txn==null) {
 						assert activation!=null: "No transaction available!";
 
 						TransactionController transactionController = activation.getTransactionController();
 						if(transactionController==null) return null;
-						txn = ((SpliceTransaction) ((SpliceTransactionManager) transactionController).getRawTransaction()).getTxn();
+						txn = ((SpliceTransactionManager) transactionController).getActiveStateTxn();
 				}
 				return txn;
 		}

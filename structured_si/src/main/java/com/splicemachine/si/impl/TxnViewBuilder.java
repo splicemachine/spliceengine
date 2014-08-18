@@ -2,6 +2,8 @@ package com.splicemachine.si.impl;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.splicemachine.encoding.DecodingIterator;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
@@ -11,6 +13,7 @@ import com.splicemachine.utils.SliceIterator;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Builder object for constructing a TransactionView.
@@ -34,7 +37,7 @@ public class TxnViewBuilder {
     private boolean hasAllowWrites;
     private boolean allowWrites;
 
-    private Collection<byte[]> destinationTables = null;
+    private List<byte[]> destinationTables = null;
 
     private long lastKeepAliveTime = -1l;
 
@@ -96,6 +99,23 @@ public class TxnViewBuilder {
 
     public TxnViewBuilder keepAliveTimestamp(long keepAliveTimestamp){
         this.lastKeepAliveTime = keepAliveTimestamp;
+        return this;
+    }
+
+    public TxnViewBuilder destinationTable(ByteSlice destinationTableBuffer){
+        if(destinationTables==null)
+            destinationTables = Lists.newArrayList();
+
+        Iterator<ByteSlice> tier= new DecodingIterator(MultiFieldDecoder.wrap(destinationTableBuffer)) {
+            @Override
+            protected void advance(MultiFieldDecoder decoder) {
+                decoder.skip();
+            }
+        };
+        while(tier.hasNext()){
+            destinationTables.add(tier.next().getByteCopy());
+        }
+
         return this;
     }
 

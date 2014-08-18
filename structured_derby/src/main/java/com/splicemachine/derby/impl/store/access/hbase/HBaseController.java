@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.utils.Exceptions;
@@ -34,11 +35,12 @@ public class HBaseController  extends SpliceController {
 
     @Override
     public int insert(DataValueDescriptor[] row) throws StandardException {
-        SpliceLogUtils.trace(LOG,"insert into conglom %d row %s with txnId %s",openSpliceConglomerate.getConglomerate().getContainerid(),row,trans.getTxn());
+        SpliceLogUtils.trace(LOG,"insert into conglom %d row %s with txnId %s",
+                openSpliceConglomerate.getConglomerate().getContainerid(),row,trans.getTxnInformation());
         HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
         try {
             elevateTransaction();
-            Put put = SpliceUtils.createPut(SpliceUtils.getUniqueKey(), trans.getTxn());
+            Put put = SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
 
             encodeRow(row,put,null,null);
             htable.put(put);
@@ -59,12 +61,13 @@ public class HBaseController  extends SpliceController {
     public void insertAndFetchLocation(DataValueDescriptor[] row,
                                        RowLocation destRowLocation) throws StandardException {
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"insertAndFetchLocation into conglom %d row %s",openSpliceConglomerate.getConglomerate().getContainerid(),row==null?row:Arrays.toString(row));
+            SpliceLogUtils.trace(LOG,"insertAndFetchLocation into conglom %d row %s",
+                    openSpliceConglomerate.getConglomerate().getContainerid(),row==null?row:Arrays.toString(row));
 
         HTableInterface htable = SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
         try {
             elevateTransaction();
-            Put put = SpliceUtils.createPut(SpliceUtils.getUniqueKey(), trans.getTxn());
+            Put put = SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
             encodeRow(row, put, null, null);
             destRowLocation.setValue(put.getRow());
             htable.put(put);
@@ -88,7 +91,7 @@ public class HBaseController  extends SpliceController {
         try {
 
             elevateTransaction();
-            Put put = SpliceUtils.createPut(loc.getBytes(),trans.getTxn());
+            Put put = SpliceUtils.createPut(loc.getBytes(),((SpliceTransaction)trans).getTxn());
 
             encodeRow(row, put, SpliceUtils.bitSetToMap(validColumns), validColumns);
             htable.put(put);

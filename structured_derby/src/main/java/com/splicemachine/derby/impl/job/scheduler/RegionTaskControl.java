@@ -301,8 +301,9 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
     private Txn getTxn() {
         if(txn==null){
             TxnView txnInformation = taskStatus.getTxnInformation();
+            if(txnInformation==null) return null; //no transaction to commit
             TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
-            if(txnInformation.allowsWrites())
+            if(!txnInformation.allowsWrites())
                 txn = ReadOnlyTxn.createReadOnlyChildTransaction(txnInformation.getParentTxnView(), lifecycleManager,true,false);
             else
                 txn =new WritableTxn(txnInformation.getTxnId(),
