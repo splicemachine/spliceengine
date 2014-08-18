@@ -34,7 +34,21 @@ public class InheritingTxnView extends AbstractTxnView {
 
     private final long lastKaTime;
 
-		public InheritingTxnView(Txn parentTxn,
+    public InheritingTxnView(TxnView parentTxn,
+                             long txnId,long beginTimestamp,
+                             boolean allowWrites,
+                             Txn.IsolationLevel isolationLevel,
+                             Txn.State state){
+        this(parentTxn,
+                txnId,
+                beginTimestamp,
+                isolationLevel,
+                false,false,
+                false,false,
+                true,allowWrites,-1l,-1l,state);
+    }
+
+		public InheritingTxnView(TxnView parentTxn,
 														 long txnId,long beginTimestamp,
 														 Txn.IsolationLevel isolationLevel,
 														 Txn.State state){

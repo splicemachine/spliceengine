@@ -181,9 +181,9 @@ public abstract class AbstractTxnView implements TxnView {
     @Override
 		public boolean equals(Object o) {
 				if (this == o) return true;
-				if (!(o instanceof Txn)) return false;
+				if (!(o instanceof TxnView)) return false;
 
-				Txn that = (Txn) o;
+				TxnView that = (TxnView) o;
 
 				return txnId == that.getTxnId();
 		}

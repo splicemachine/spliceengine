@@ -6,8 +6,10 @@ import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.InheritingTxnView;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.log4j.Logger;
 
@@ -43,6 +45,10 @@ public class TaskStatus implements Externalizable{
 
 		public Throwable getError() {
         return errorTransport.getError();
+    }
+
+    public TxnView getTxnInformation() {
+        return txn;
     }
 
 
@@ -145,7 +151,15 @@ public class TaskStatus implements Externalizable{
         if(stats!=null)
             out.writeObject(stats);
         out.writeBoolean(txn!=null);
+        if(txn!=null){
+            encodeTxn(out);
+        }
+    }
 
+    private void encodeTxn(ObjectOutput out) throws IOException {
+        out.writeLong(txn.getTxnId());
+        out.writeLong(txn.getParentTxnId());
+        out.writeBoolean(txn.allowsWrites());
     }
 
     @Override
@@ -156,6 +170,13 @@ public class TaskStatus implements Externalizable{
         }
         if(in.readBoolean()){
             stats = (TaskStats)in.readObject();
+        }
+        if(in.readBoolean()){
+            long txnId = in.readLong();
+            long parentTxn = in.readLong();
+            boolean allowsWrites = in.readBoolean();
+            TxnView pView = parentTxn<0? Txn.ROOT_TRANSACTION: TransactionStorage.getTxnSupplier().getTransaction(parentTxn);
+            txn = new InheritingTxnView(pView,txnId,txnId,allowsWrites, null, null);
         }
     }
 
