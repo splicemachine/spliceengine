@@ -1,11 +1,21 @@
 package com.splicemachine.si.impl.timestamp;
 
+import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
+
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.ipc.HMasterInterface;
 import org.apache.log4j.Logger;
@@ -36,7 +46,7 @@ import com.splicemachine.constants.SpliceConstants;
  * 
  * @author Walt Koetke
  */
-public class TimestampClient extends TimestampBaseHandler {
+public class TimestampClient extends TimestampBaseHandler implements TimestampRegionManagement {
 
 	private static final Logger LOG = Logger.getLogger(TimestampClient.class);
 
@@ -76,6 +86,11 @@ public class TimestampClient extends TimestampBaseHandler {
    
     private int _port;
 
+	// Metrics to expose via JMX. See TimestampRegionManagement
+	// for solid definitions of each metric.
+    private AtomicLong _numRequests = new AtomicLong(0);
+    private AtomicLong _totalRequestDuration = new AtomicLong(0);
+
     public TimestampClient() {
 
     	_port = SpliceConstants.timestampServerBindPort;
@@ -105,6 +120,12 @@ public class TimestampClient extends TimestampBaseHandler {
 		
 		// Would be nice to try connecting here, but not sure if this works right.
 		// connectIfNeeded();
+		
+		try {
+			registerJMX();
+		} catch (Exception e) {
+	        TimestampUtil.doServerError(LOG, "Unable to register TimestampClient with JMX. Timestamps will still be generated but metrics will not be available.");
+		}
     }
 
     protected String getHost() throws TimestampIOException {
@@ -116,6 +137,9 @@ public class TimestampClient extends TimestampBaseHandler {
 			 */
 			@SuppressWarnings("deprecation") HMasterInterface master = HConnectionManager.getConnection(SpliceConstants.config).getMaster();
 			hostName = master.getClusterStatus().getMaster().getHostname();
+			
+			// Would this be better?
+			// SpliceUtilities.getAdmin().getClusterStatus().getMaster().getHostname();
     	} catch (Exception e) {
     		TimestampUtil.doClientErrorThrow(LOG, "Unable to determine host name for active hbase master", e);
     	}
@@ -175,6 +199,9 @@ public class TimestampClient extends TimestampBaseHandler {
     
     public long getNextTimestamp() throws TimestampIOException {
 
+    	// Measure duration of full client request for JMX
+        long requestStartTime = System.currentTimeMillis();
+
     	connectIfNeeded();
     	
     	short clientCallId = (short)_clientCallCounter.getAndIncrement();
@@ -232,6 +259,10 @@ public class TimestampClient extends TimestampBaseHandler {
     	
         TimestampUtil.doClientDebug(LOG, "Client call complete: %s", callback);
     	
+        // Since request was successful, update JMX metrics
+        _numRequests.incrementAndGet();
+        _totalRequestDuration.addAndGet(System.currentTimeMillis() - requestStartTime);
+        
     	return timestamp;
     }
 
@@ -281,4 +312,26 @@ public class TimestampClient extends TimestampBaseHandler {
 	protected void doError(String message, Throwable t, Object... args) {
     	TimestampUtil.doClientError(LOG, message, t, args);
     }
+
+	private void registerJMX() throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
+        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+        registerJMX(mbs);
+        TimestampUtil.doServerInfo(LOG, "TimestampClient on region server successfully registered with JMX");
+	}
+	
+    private void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
+        ObjectName name = new ObjectName("com.splicemachine.si.impl.timestamp.request:type=TimestampRegionManagement"); // Same string is in JMXUtils
+        mbs.registerMBean(this, name);
+    }
+
+	public long getNumberTimestampRequests() {
+		return _numRequests.get();
+	}
+	
+ 	public double getAvgTimestampRequestDuration() {
+ 		double a = (double)_totalRequestDuration.get();
+ 		double b = (double)_numRequests.get();
+ 		return a / b;
+ 	}
+
 }

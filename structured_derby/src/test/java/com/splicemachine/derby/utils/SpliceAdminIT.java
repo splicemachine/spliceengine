@@ -80,9 +80,8 @@ public class SpliceAdminIT {
             "\t)";
     @Test
     public void testSqlEscape() throws Exception {
-        String escaped = SpliceAdmin.escape(SQL);
+        String escaped = SpliceUtils.escape(SQL);
         StringBuilder sb = new StringBuilder(String.format("select * from (values ('%s')) foo (sqlstatement)",escaped));
-//        System.out.println(sb.toString());
         Assert.assertFalse("SQL contained double spaces.", sb.toString().contains("  "));
         Assert.assertFalse("SQL contained tab chars.",sb.toString().contains("\\t"));
         Assert.assertFalse("SQL contained newline chars.", sb.toString().contains("\\n"));
