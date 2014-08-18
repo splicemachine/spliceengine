@@ -1,8 +1,8 @@
 package com.splicemachine.derby.management;
 
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.utils.Snowflake;
 import org.apache.derby.iapi.tools.run;
 
 import java.beans.ConstructorProperties;
@@ -48,7 +48,7 @@ public class StatementInfo {
 
 		public StatementInfo(String sql,
 												 String user,
-												 Txn txn,
+												 TxnView txn,
 												 int numSinks,
 												 com.splicemachine.uuid.Snowflake uuidGenerator) {
 				this.numSinks = numSinks;
@@ -81,7 +81,7 @@ public class StatementInfo {
 
         public StatementInfo(String sql,
                              String user,
-                             long txnId,
+                             TxnView txn,
                              int numSinks,
                              long statementUuid) {
             this.numSinks = numSinks;

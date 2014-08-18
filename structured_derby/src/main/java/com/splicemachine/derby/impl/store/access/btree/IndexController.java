@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
@@ -61,7 +62,7 @@ public class IndexController  extends SpliceController  {
 						boolean[] order = ((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
 						byte[] rowKey = generateIndexKey(row, order);
             elevateTransaction();
-						Put put = SpliceUtils.createPut(rowKey,trans.getTxn());
+						Put put = SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
 						encodeRow(row, put,null,null);
 						htable.put(put);
 						return 0;
@@ -82,7 +83,7 @@ public class IndexController  extends SpliceController  {
 						byte[] rowKey = generateIndexKey(row, order);
 
             elevateTransaction();
-						Put put = SpliceUtils.createPut(rowKey,trans.getTxn());
+						Put put = SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
 						encodeRow(row, put,null,null);
 
 						destRowLocation.setValue(put.getRow());
@@ -103,11 +104,11 @@ public class IndexController  extends SpliceController  {
 						Put put;
 						int[] validCols;
 						if (openSpliceConglomerate.cloneRowTemplate().length == row.length && validColumns == null) {
-								put = SpliceUtils.createPut(DerbyBytesUtil.generateIndexKey(row,sortOrder,"1.0"),trans.getTxn());
+								put = SpliceUtils.createPut(DerbyBytesUtil.generateIndexKey(row,sortOrder,"1.0"),((SpliceTransaction)trans).getTxn());
 								validCols = null;
 						} else {
 								DataValueDescriptor[] oldValues = openSpliceConglomerate.cloneRowTemplate();
-								Get get = SpliceUtils.createGet(loc, oldValues, null, trans.getTxn());
+								Get get = SpliceUtils.createGet(loc, oldValues, null, trans.getTxnInformation());
 								Result result = htable.get(get);
 								ExecRow execRow = new ValueRow(oldValues.length);
 								execRow.setRowArray(oldValues);
@@ -124,7 +125,7 @@ public class IndexController  extends SpliceController  {
 												validCols[pos] = i;
 										}
 										byte[] rowKey = generateIndexKey(row,sortOrder);
-										put = SpliceUtils.createPut(rowKey,trans.getTxn());
+										put = SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
 								}finally{
 										Closeables.closeQuietly(decoder);
 								}

@@ -15,6 +15,7 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import org.apache.derby.iapi.error.StandardException;
@@ -53,7 +54,7 @@ public class IndexRowReaderBuilder {
 		private String tableVersion;
 		private int[] mainTableKeyColumnTypes;
 		private HTableInterface table;
-    private Txn txn;
+    private TxnView txn;
 
     public IndexRowReaderBuilder indexColumns(int[] indexCols){
 				this.indexCols = indexCols;
@@ -85,7 +86,7 @@ public class IndexRowReaderBuilder {
 				return this;
 		}
 
-    public IndexRowReaderBuilder transaction(Txn transaction) {
+    public IndexRowReaderBuilder transaction(TxnView transaction) {
         this.txn = transaction;
         return this;
     }

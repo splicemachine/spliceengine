@@ -177,7 +177,7 @@ public class SpliceDatabase extends BasicDatabase {
 		 * @return
 		 * @throws StandardException
 		 */
-		public LanguageConnectionContext generateLanguageConnectionContext(Txn txn,
+		public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,
 																																			 ContextManager cm,
 																																			 String user,
 																																			 String drdaID,

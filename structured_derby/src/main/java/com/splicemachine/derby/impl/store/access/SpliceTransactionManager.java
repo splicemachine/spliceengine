@@ -11,6 +11,7 @@ import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -1703,8 +1704,8 @@ public class SpliceTransactionManager implements XATransactionController,
 		return sc;
 	}
 
-	public SpliceTransaction getRawTransaction() {
-		return (SpliceTransaction)rawtran;
+	public BaseSpliceTransaction getRawTransaction() {
+		return (BaseSpliceTransaction)rawtran;
 	}
 
 	public void commit() throws StandardException {
@@ -2262,7 +2263,7 @@ public class SpliceTransactionManager implements XATransactionController,
 		return spliceScan;
 	}
 
-		public Txn getActiveStateTxn() {
-        return ((SpliceTransaction)rawtran).getActiveStateTxn();
+		public TxnView getActiveStateTxn() {
+        return ((BaseSpliceTransaction)rawtran).getActiveStateTxn();
 		}
 }

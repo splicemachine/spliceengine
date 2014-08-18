@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.job.Task;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
@@ -93,7 +94,7 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
     }
 
     @Override
-    public Txn getTxn() {
+    public TxnView getTxn() {
         return instructions.getTxn();
     }
 

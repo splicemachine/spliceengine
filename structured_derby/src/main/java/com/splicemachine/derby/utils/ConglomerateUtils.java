@@ -4,14 +4,13 @@ import com.carrotsearch.hppc.BitSet;
 import com.google.common.base.Preconditions;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
@@ -23,7 +22,10 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InvalidClassException;
+import java.io.ObjectInputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -47,7 +49,7 @@ public class ConglomerateUtils extends SpliceConstants {
 	 * @param <T> the type to return
 	 * @return an instance of {@code T} which contains the conglomerate information.
 	 */
-	public static <T> T readConglomerate(long conglomId, Class<T> instanceClass, Txn txn) throws StandardException {
+	public static <T> T readConglomerate(long conglomId, Class<T> instanceClass, TxnView txn) throws StandardException {
 		SpliceLogUtils.trace(LOG,"readConglomerate {%d}, for instanceClass {%s}",conglomId,instanceClass);
 		Preconditions.checkNotNull(txn);
 		Preconditions.checkNotNull(conglomId);

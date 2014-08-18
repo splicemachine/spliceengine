@@ -17,6 +17,7 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.catalog.UUID;
@@ -95,8 +96,8 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 	}
 
     protected Txn getIndexTransaction(TransactionController parent, TransactionController tc, Txn tentativeTransaction, long tableConglomId) throws StandardException {
-        final Txn parentTxn = ((SpliceTransactionManager)parent).getActiveStateTxn();
-        final Txn wrapperTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+        final TxnView parentTxn = ((SpliceTransactionManager)parent).getActiveStateTxn();
+        final TxnView wrapperTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
 //        final TransactionId parentTransactionId =  new TransactionId(getTransactionId(parent));
 //        final TransactionId wrapperTransactionId =  new TransactionId(getTransactionId(tc));
         Txn indexTxn;
@@ -117,7 +118,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 //        }
 
         // Wait for past transactions to die
-        List<Txn> toIgnore = Arrays.asList(parentTxn,wrapperTxn,indexTxn);
+        List<TxnView> toIgnore = Arrays.asList(parentTxn,wrapperTxn,indexTxn);
         long oldestActiveTxn;
         try {
             oldestActiveTxn = waitForConcurrentTransactions(indexTxn, toIgnore,tableConglomId);

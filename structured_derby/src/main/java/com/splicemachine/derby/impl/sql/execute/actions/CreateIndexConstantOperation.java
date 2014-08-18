@@ -1,17 +1,19 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Properties;
-
 import com.google.common.io.Closeables;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.TentativeIndexDesc;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -21,25 +23,11 @@ import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.depend.DependencyManager;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptor;
-import org.apache.derby.iapi.sql.dictionary.DataDescriptorGenerator;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.store.access.AccessFactoryGlobals;
-import org.apache.derby.iapi.store.access.ColumnOrdering;
-import org.apache.derby.iapi.store.access.ConglomerateController;
-import org.apache.derby.iapi.store.access.GroupFetchScanController;
-import org.apache.derby.iapi.store.access.RowLocationRetRowSource;
-import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.store.access.*;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
@@ -51,12 +39,9 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.ddl.DDLChange;
-import com.splicemachine.derby.ddl.TentativeIndexDesc;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Properties;
 
 
 public class CreateIndexConstantOperation extends IndexConstantOperation {
@@ -729,7 +714,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 
             // Perform tentative DDL change
             Txn tentativeTransaction;
-            Txn parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+            TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
             try {
                 TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
                 tentativeTransaction = lifecycleManager.beginTransaction(Bytes.toBytes(Long.toString(heapConglomerateId)));

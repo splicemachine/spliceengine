@@ -3,14 +3,13 @@ package com.splicemachine.derby.impl.job.AlterTable;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.job.Task;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.catalog.UUID;
+import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
-import org.apache.derby.impl.sql.execute.ColumnInfo;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
@@ -30,7 +29,7 @@ public class LoadConglomerateJob implements CoprocessorJob {
     private final long toConglomId;
     private final ColumnInfo[] columnInfo;
     private final int droppedColumnPosition;
-    private final Txn txn;
+    private final TxnView txn;
     private final long statementId;
     private final long operationId;
     private final boolean isTraced;
@@ -41,7 +40,7 @@ public class LoadConglomerateJob implements CoprocessorJob {
                                long conglomId,
                                ColumnInfo[] columnInfo,
                                int droppedColumnPosition,
-                               Txn txn,
+                               TxnView txn,
                                long statementId,
                                long operationId,
                                boolean isTraced) {
@@ -83,7 +82,7 @@ public class LoadConglomerateJob implements CoprocessorJob {
     }
 
     @Override
-    public Txn getTxn() {
+    public TxnView getTxn() {
         return txn;
     }
 }

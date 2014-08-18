@@ -175,7 +175,12 @@ public class TaskStatus implements Externalizable{
             long txnId = in.readLong();
             long parentTxn = in.readLong();
             boolean allowsWrites = in.readBoolean();
-            TxnView pView = parentTxn<0? Txn.ROOT_TRANSACTION: TransactionStorage.getTxnSupplier().getTransaction(parentTxn);
+            /*
+             * If the parent transaction id is the same as ours, and we don't allow writes,then
+             * we treat this as a read-only transaction. Since commits and rollbacks don't do anything
+             * for read only operations, it's fine to just inherit from the root transaction.
+             */
+            TxnView pView = parentTxn<0||(parentTxn==txnId&&!allowsWrites)? Txn.ROOT_TRANSACTION: TransactionStorage.getTxnSupplier().getTransaction(parentTxn);
             txn = new InheritingTxnView(pView,txnId,txnId,allowsWrites, null, null);
         }
     }

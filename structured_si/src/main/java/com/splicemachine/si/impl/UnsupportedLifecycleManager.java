@@ -71,7 +71,7 @@ public class UnsupportedLifecycleManager implements TxnLifecycleManager {
 		}
 
 		@Override
-		public Txn chainTransaction(Txn parentTxn, Txn.IsolationLevel isolationLevel, boolean dependent, boolean additive, byte[] destinationTable, Txn txnToCommit) throws IOException {
+		public Txn chainTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean dependent, boolean additive, byte[] destinationTable, Txn txnToCommit) throws IOException {
 				throw new UnsupportedOperationException("Cannot chain a transaction from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 		}
 }

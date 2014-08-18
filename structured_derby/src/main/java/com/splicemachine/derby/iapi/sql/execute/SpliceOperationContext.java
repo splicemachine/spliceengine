@@ -9,6 +9,7 @@ import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.hbase.ReadAheadRegionScanner;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
@@ -46,7 +47,7 @@ public class SpliceOperationContext {
     private boolean cacheBlocks = true;
     private SpliceRuntimeContext spliceRuntimeContext;
 
-		private Txn txn;
+		private TxnView txn;
     private TransactionalRegion txnRegion;
 
     public SpliceOperationContext(HRegion region,
@@ -56,7 +57,7 @@ public class SpliceOperationContext {
                                   GenericStorablePreparedStatement preparedStatement,
                                   LanguageConnectionContext lcc,boolean isSink,SpliceOperation topOperation,
                                   SpliceRuntimeContext spliceRuntimeContext,
-																	Txn txn){
+																	TxnView txn){
         this.region= region;
         this.scan = scan;
         this.activation = activation;
@@ -79,7 +80,7 @@ public class SpliceOperationContext {
                                   LanguageConnectionContext lcc,
                                   boolean isSink,SpliceOperation topOperation,
                                   SpliceRuntimeContext spliceRuntimeContext,
-																	Txn txn){
+																	TxnView txn){
         this.activation = activation;
         this.preparedStatement = preparedStatement;
 
@@ -181,16 +182,16 @@ public class SpliceOperationContext {
         return activation;
     }
 
-		public Txn getTxn() { return txn; }
+		public TxnView getTxn() { return txn; }
 
 		public static SpliceOperationContext newContext(Activation a){
 				return newContext(a,null);
 		}
 
-    public static SpliceOperationContext newContext(Activation a,Txn txn){
+    public static SpliceOperationContext newContext(Activation a,TxnView txn){
 				if(txn==null){
 						TransactionController te = a.getLanguageConnectionContext().getTransactionExecute();
-						txn = ((SpliceTransaction)((SpliceTransactionManager) te).getRawTransaction()).getTxn();
+						txn = ((SpliceTransactionManager) te).getRawTransaction().getActiveStateTxn();
 				}
         return new SpliceOperationContext(null,null,null,
                 a,

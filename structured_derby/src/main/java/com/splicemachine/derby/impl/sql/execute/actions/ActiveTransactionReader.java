@@ -23,9 +23,12 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.Task;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.DenseTxn;
 import com.splicemachine.si.impl.SparseTxn;
+import com.splicemachine.si.impl.TxnViewBuilder;
 import com.splicemachine.stream.CloseableStream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.stream.Transformer;
@@ -48,7 +51,7 @@ import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
- *         Date: 7/30/14
+ * Date: 7/30/14
  */
 public class ActiveTransactionReader {
     private final long minTxnId;
@@ -61,24 +64,59 @@ public class ActiveTransactionReader {
         this.writeTable = writeTable;
     }
 
-    public CloseableStream<Txn> getActiveTransactions() throws IOException{
+    public CloseableStream<TxnView> getAllTransactions() throws IOException{
+        return getAllTransactions(SpliceConstants.DEFAULT_CACHE_SIZE);
+    }
+
+    public CloseableStream<TxnView> getActiveTransactions() throws IOException{
         return getActiveTransactions(SpliceConstants.DEFAULT_CACHE_SIZE);
     }
 
-    public CloseableStream<Txn> getActiveTransactions(int queueSize) throws IOException{
+    public CloseableStream<TxnView> getAllTransactions(int queueSize) throws IOException{
         byte[] operationId = SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+        ActiveTxnJob job = new ActiveTxnJob(operationId, queueSize,false);
+        return runJobAndScan(queueSize, job);
+    }
+
+    public CloseableStream<TxnView> getActiveTransactions(int queueSize) throws IOException{
+        byte[] operationId = SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+        ActiveTxnJob job = new ActiveTxnJob(operationId, queueSize);
+        return runJobAndScan(queueSize, job);
+    }
+
+    protected CloseableStream<TxnView> runJobAndScan(int queueSize, ActiveTxnJob job) throws IOException {
         try {
-            final JobFuture submit = SpliceDriver.driver().getJobScheduler().submit(new ActiveTxnJob(operationId,queueSize));
+            final JobFuture submit = SpliceDriver.driver().getJobScheduler().submit(job);
             submit.completeAll(null);
             JobStats jobStats = submit.getJobStats();
 
             boolean[] usedTempBuckets = getUsedTempBuckets(jobStats);
-            final AsyncScanner scanner = configureResultScan(queueSize, operationId, usedTempBuckets);
-            return scanner.stream().transform(new Transformer<List<KeyValue>, Txn>() {
+            final AsyncScanner scanner = configureResultScan(queueSize, job.operationUUID, usedTempBuckets);
+            return scanner.stream().transform(new Transformer<List<KeyValue>, TxnView>() {
                 @Override
-                public Txn transform(List<KeyValue> element) throws StreamException {
-                    throw new UnsupportedOperationException("IMPLEMENT");
-//                    return (DenseTxn)SparseTxn.decodeFromNetwork(element.get(0).value(),true);
+                public TxnView transform(List<KeyValue> element) throws StreamException {
+                    DenseTxn denseTxn = (DenseTxn) SparseTxn.decodeFromNetwork(element.get(0).value(), true);
+                    TxnViewBuilder tvb = new TxnViewBuilder().txnId(denseTxn.getTxnId())
+                            .parentTxnId(denseTxn.getParentTxnId())
+                            .beginTimestamp(denseTxn.getBeginTimestamp())
+                            .commitTimestamp(denseTxn.getCommitTimestamp())
+                            .globalCommitTimestamp(denseTxn.getGlobalCommitTimestamp())
+                            .state(denseTxn.getState())
+                            .isolationLevel(denseTxn.getIsolationLevel())
+                            .keepAliveTimestamp(denseTxn.getLastKATime())
+                            .destinationTable(denseTxn.getDestinationTableBuffer())
+                            .store(TransactionStorage.getTxnSupplier());
+
+                    if(denseTxn.hasAdditiveField())
+                        tvb = tvb.additive(denseTxn.isAdditive());
+                    if(denseTxn.hasDependentField())
+                        tvb = tvb.dependent(denseTxn.isDependent());
+
+                    try {
+                        return tvb.build();
+                    } catch (IOException e) {
+                        throw new StreamException(e);
+                    }
                 }
             });
         } catch (ExecutionException e) {
@@ -112,7 +150,7 @@ public class ActiveTransactionReader {
                          * We want to ignore the operationUid and bucket id when sorting data. In this
                          * case, our data starts at location 10 (bucket + opUUid+0x00).length = 10
                          */
-                        int prefixLength = 11;
+                        int prefixLength = 10;
                         return Bytes.compareTo(o1, prefixLength, o1.length - prefixLength, o2, prefixLength, o2.length - prefixLength);
                     }
                 }
@@ -138,10 +176,16 @@ public class ActiveTransactionReader {
     private class ActiveTxnJob implements CoprocessorJob {
         private final byte[] operationUUID;
         private final int queueSize;
+        private final boolean activeOnly;
 
         private ActiveTxnJob(byte[] operationUUID, int queueSize) {
+            this(operationUUID, queueSize,true);
+        }
+
+        private ActiveTxnJob(byte[] operationUUID, int queueSize,boolean activeOnly) {
             this.operationUUID = operationUUID;
             this.queueSize = queueSize;
+            this.activeOnly = activeOnly;
         }
 
         @Override
@@ -151,7 +195,7 @@ public class ActiveTransactionReader {
 
         @Override
         public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
-            ActiveTransactionTask task = new ActiveTransactionTask(getJobId(), minTxnId, maxTxnId, writeTable, operationUUID,queueSize);
+            TransactionReadTask task = new TransactionReadTask(getJobId(), minTxnId, maxTxnId, writeTable, operationUUID,queueSize,activeOnly);
             return Collections.singletonMap(task,Pair.newPair(HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW));
         }
 

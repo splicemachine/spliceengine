@@ -6,6 +6,7 @@ import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.impl.sql.execute.LazyScan;
 import com.splicemachine.derby.impl.sql.execute.ParallelScan;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -17,6 +18,7 @@ import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -42,7 +44,7 @@ import java.io.IOException;
 public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		protected static Logger LOG = Logger.getLogger(SpliceScan.class);
     protected OpenSpliceConglomerate spliceConglomerate;
-    private Txn txn;
+    private TxnView txn;
 
 		protected Scan scan;
 		protected FormatableBitSet scanColumnList;
@@ -88,7 +90,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				this.stopKeyValue = stopKeyValue;
 				this.stopSearchOperator = stopSearchOperator;
 				try {
-						((SpliceTransaction)trans).setActiveState(false, false, false, null);
+						((BaseSpliceTransaction)trans).setActiveState(false, false, null);
 				} catch (Exception e) {
 						e.printStackTrace();
 				}
@@ -117,7 +119,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				this.qualifier = qualifier;
 				this.stopKeyValue = stopKeyValue;
 				this.stopSearchOperator = stopSearchOperator;
-				this.txn = ((SpliceTransaction)trans).getTxn();
+				this.txn = ((BaseSpliceTransaction)trans).getTxnInformation();
 				setupScan();
 				attachFilter();
 				tableName = spliceConglomerate.getConglomerate().getContainerid() + "";
@@ -205,7 +207,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 						throw StandardException.newException("Attempting to delete with a null current result");
 				try {
             elevateTransaction(table.getTableName());
-						SpliceUtils.doDelete(table, txn, this.currentResult.getRow());
+            SpliceUtils.doDelete(table, txn, this.currentResult.getRow());
 						currentRowDeleted = true;
 						return true;
 				} catch (Exception e) {
@@ -215,7 +217,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		}
 
     private void elevateTransaction(byte[] tableName) throws IOException {
-        txn = txn.elevateToWritable(tableName);
+        txn = ((Txn)txn).elevateToWritable(tableName);
     }
 
     public boolean next() throws StandardException {
@@ -454,7 +456,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		}
 
 		public boolean replace(DataValueDescriptor[] row, FormatableBitSet validColumns) throws StandardException {
-				SpliceLogUtils.trace(LOG, "replace values for these valid Columns %s",validColumns);
+				SpliceLogUtils.trace(LOG, "replace values for these valid Columns %s", validColumns);
 				try {
 						int[] validCols = SpliceUtils.bitSetToMap(validColumns);
             elevateTransaction(table.getTableName());

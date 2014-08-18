@@ -49,12 +49,12 @@ public class OperationSink {
     private final Timer totalTimer;
     private final long waitTimeNs;
     private long statementId;
-		private Txn txn;
+		private TxnView txn;
 
 		public OperationSink(byte[] taskId,
                          SinkingOperation operation,
                          CallBufferFactory<KVPair> tableWriter,
-												 Txn txn,
+												 TxnView txn,
                          long statementId,
                          long waitTimeNs) {
         this.tableWriter = tableWriter;
@@ -68,7 +68,7 @@ public class OperationSink {
     }
 
     public static OperationSink create(SinkingOperation operation,
-																			 byte[] taskId, Txn txn,
+																			 byte[] taskId, TxnView txn,
 																			 long statementId,long waitTimeNs) throws IOException {
         return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter(), txn,statementId,waitTimeNs);
     }

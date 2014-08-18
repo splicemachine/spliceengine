@@ -3,6 +3,7 @@ package com.splicemachine.si.impl;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.ByteSlice;
 
 import java.io.IOException;
@@ -14,7 +15,7 @@ import java.util.Collection;
  * @author Scott Fines
  * Date: 6/30/14
  */
-public class SparseTxn {
+public class SparseTxn{
 
 		private final long txnId;
 		private final long beginTimestamp;

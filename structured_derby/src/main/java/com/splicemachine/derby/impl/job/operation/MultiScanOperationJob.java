@@ -12,6 +12,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.job.Task;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
@@ -32,7 +33,7 @@ public class MultiScanOperationJob implements CoprocessorJob,Externalizable {
 		private List<Scan> scans;
 		private SpliceObserverInstructions instructions;
 		private HTableInterface table;
-    private Txn txn;
+    private TxnView txn;
     private int taskPriority;
 		private String jobId;
 
@@ -42,7 +43,7 @@ public class MultiScanOperationJob implements CoprocessorJob,Externalizable {
 		public MultiScanOperationJob(List<Scan> scans,
 																 SpliceObserverInstructions instructions,
 																 HTableInterface table,
-                                 Txn txn,
+                                 TxnView txn,
 																 int taskPriority) {
 				this.scans = scans;
 				this.instructions = instructions;
@@ -82,7 +83,7 @@ public class MultiScanOperationJob implements CoprocessorJob,Externalizable {
     }
 
     @Override
-    public Txn getTxn() {
+    public TxnView getTxn() {
         return txn;
     }
 

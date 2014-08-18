@@ -101,7 +101,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 						return createReadableTransaction(isolationLevel,isDependent,additive,parentTxn);
 		}
 		@Override
-		public Txn chainTransaction(Txn parentTxn,
+		public Txn chainTransaction(TxnView parentTxn,
 																Txn.IsolationLevel isolationLevel,
 																boolean dependent,
 																boolean additive,

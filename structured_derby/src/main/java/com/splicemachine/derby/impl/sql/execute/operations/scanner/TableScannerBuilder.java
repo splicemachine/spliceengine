@@ -1,9 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;
@@ -20,7 +21,7 @@ public class TableScannerBuilder {
 		private	MetricFactory metricFactory;
 		private	Scan scan;
 		private	int[] rowColumnMap;
-		private Txn txn;
+		private TxnView txn;
 		private	int[] keyColumnEncodingOrder;
 		private	int[] keyColumnTypes;
 		private	int[] keyDecodingMap;
@@ -62,7 +63,7 @@ public class TableScannerBuilder {
 //				return this;
 		}
 
-		public TableScannerBuilder transaction(Txn txn){
+		public TableScannerBuilder transaction(TxnView txn){
 				assert txn!=null: "No Transaction specified";
 				this.txn = txn;
 				return this;

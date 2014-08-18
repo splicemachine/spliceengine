@@ -7,11 +7,13 @@ import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManagerContext;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoObjectInput;
@@ -56,7 +58,7 @@ public class SpliceObserverInstructions implements Externalizable {
 		protected String sessionUserName;
 		protected SpliceRuntimeContext spliceRuntimeContext;
 
-		private Txn txn;
+		private TxnView txn;
 
 		public SpliceObserverInstructions() {
 				super();
@@ -66,7 +68,7 @@ public class SpliceObserverInstructions implements Externalizable {
 		public SpliceObserverInstructions(GenericStorablePreparedStatement statement,
 																			SpliceOperation topOperation,
 																			ActivationContext activationContext,
-																			Txn txn, String sessionUserName, SchemaDescriptor defaultSchemaDescriptor,
+																			TxnView txn, String sessionUserName, SchemaDescriptor defaultSchemaDescriptor,
 																			SpliceRuntimeContext spliceRuntimeContext) {
 				this.statement = statement;
 				this.topOperation = topOperation;
@@ -91,7 +93,7 @@ public class SpliceObserverInstructions implements Externalizable {
 				this.spliceRuntimeContext = spliceRuntimeContext;
 		}
 
-		public Txn getTxn(){
+		public TxnView getTxn(){
 				return txn;
 		}
 
@@ -173,15 +175,15 @@ public class SpliceObserverInstructions implements Externalizable {
 		public static SpliceObserverInstructions create(Activation activation,
 																										SpliceOperation topOperation,
 																										SpliceRuntimeContext spliceRuntimeContext){
-				Txn txn = ((SpliceTransaction)((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction()).getTxn();
-				return create(activation, topOperation, spliceRuntimeContext,txn);
+				TxnView txn = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction().getActiveStateTxn();
+				return create(activation, topOperation, spliceRuntimeContext, txn);
 		}
 
 		public static SpliceObserverInstructions create(Activation activation,
 																										SpliceOperation topOperation,
 																										SpliceRuntimeContext spliceRuntimeContext,
-																										Txn txn) {
-				ActivationContext activationContext = ActivationContext.create(activation,topOperation);
+																										TxnView txn) {
+				ActivationContext activationContext = ActivationContext.create(activation, topOperation);
 
 				return new SpliceObserverInstructions(
 								(GenericStorablePreparedStatement) activation.getPreparedStatement(),
