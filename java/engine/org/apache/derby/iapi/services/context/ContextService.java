@@ -595,11 +595,11 @@ public final class ContextService //OLD extends Hashtable
      * @param contextId ConnectionContext.CONTEXT_ID, AccessFactoryGlobals.RAMXACT_CONTEXT_ID,
      *                  AccessFactoryGlobals.USER_TRANS_NAME, LanguageConnectionContext.CONTEXT_ID, etc
      */
-    public List<Context> getAllContexts(String contextId) {
-        List<Context> contexts = new ArrayList<Context>();
+    public <T extends Context> List<T> getAllContexts(String contextId) {
+        List<T> contexts = new ArrayList<T>();
         synchronized (this) {
             for (ContextManager contextManager : allContexts) {
-                contexts.addAll(contextManager.getContextStack(contextId));
+                contexts.addAll((Collection<? extends T>) contextManager.getContextStack(contextId));
             }
         }
         return contexts;
