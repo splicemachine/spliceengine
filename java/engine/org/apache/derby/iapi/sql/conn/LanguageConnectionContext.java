@@ -28,7 +28,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.iapi.sql.dictionary.RoleGrantDescriptor;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.compile.OptimizerFactory;
 import org.apache.derby.iapi.types.DataValueFactory;
@@ -37,7 +36,6 @@ import org.apache.derby.iapi.sql.compile.ASTVisitor;
 import org.apache.derby.iapi.sql.depend.Provider;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.CursorActivation;
-import org.apache.derby.iapi.sql.execute.ExecutionContext;
 import org.apache.derby.iapi.sql.execute.ExecutionStmtValidator;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.LanguageFactory;
@@ -50,7 +48,6 @@ import org.apache.derby.iapi.sql.execute.RunTimeStatistics;
 import org.apache.derby.catalog.UUID;
 
 import java.util.Map;
-import java.util.AbstractMap;
 
 /**
  * LanguageConnectionContext keeps the result sets,
@@ -1033,7 +1030,7 @@ public interface LanguageConnectionContext extends Context {
 	 * Copy a map of autoincrement key value pairs into the cache of
 	 * ai values stored in the language connection context.
 	 */
-	public void copyHashtableToAIHT(Map from);
+	public void copyHashtableToAIHT(Map<String, Long> from);
 	
 	/**
 	 * returns the <b>next</b> value to be inserted into an autoincrement col.
@@ -1282,8 +1279,8 @@ public interface LanguageConnectionContext extends Context {
      * @return the Schema of Xplain, may be null.
      */
     public String getXplainSchema();
-    public void setXplainStatement(Object key, Object stmt);
-    public Object getXplainStatement(Object key);
+    public void setXplainStatement(String key, String stmt);
+    public String getXplainStatement(String key);
     public void setXplainStatementId(long id);
     public long getXplainStatementId();
     /**
