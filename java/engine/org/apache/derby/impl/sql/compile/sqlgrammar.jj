@@ -2055,26 +2055,26 @@ public class SQLParser
     }
 
     /**
-     * Ranking window functions get their operand column from from the ORDER BY clause.<br/>
+     * Ranking window functions get their operand columns from from the ORDER BY clause.<br/>
      * Here, we inspect and validate the window ORDER BY clause (within OVER clause) to find
-     * the column with which to create the ranking function node.
+     * the columns with which to create the ranking function node.
      *
      * @param window The QueryTreeNode that represents the parsed WindowDefinitionNode.
      * @return the column reference that is the first item in the window's OrderByList.
      */
-    private ValueNode columnRefForRankFunct(QueryTreeNode window) throws StandardException {
-        ValueNode columnRef = null;
+    private ValueNode[] columnsRefForRankFunct(QueryTreeNode window) throws StandardException {
         OrderByList orderByList = ((WindowDefinitionNode)window).getOrderByList();
         if (orderByList == null || orderByList.size() == 0) {
             SanityManager.THROWASSERT("Missing required ORDER BY clause for ranking window function.");
         }
-        if (orderByList.size() > 1) {
-            SanityManager.THROWASSERT("ORDER BY clause for ranking window function is restricted to one column only.");
+
+        ValueNode[] columnRefs = new ValueNode[orderByList.size()];
+
+        for (int i=1; i<0; i++) {
+            columnRefs[i] = orderByList.getOrderByColumn(0).getColumnExpression();
         }
 
-        columnRef = orderByList.getOrderByColumn(0).getColumnExpression();
-
-        return columnRef;
+        return columnRefs;
     }
 }
 
@@ -9960,7 +9960,7 @@ windowOrAggregateFunctionNode() throws StandardException :
 {
 	ValueNode winOrAgg;
 	QueryTreeNode window = null;
-	ValueNode rankColRef = null;
+	ValueNode[] rankColsRef = null;
 }
 {
 	<COUNT> <LEFT_PAREN>
@@ -10007,9 +10007,9 @@ windowOrAggregateFunctionNode() throws StandardException :
 |
 	<DENSERANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
 	{
-	    rankColRef = columnRefForRankFunct(window);
+	    rankColsRef = columnsRefForRankFunct(window);
         winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
-                            rankColRef,
+                            null,
                             DenseRankFunctionDefinition.class,
                             Boolean.FALSE,
                             "DENSE_RANK",
@@ -10025,9 +10025,9 @@ windowOrAggregateFunctionNode() throws StandardException :
 |
 	<RANK> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
 	{
-	    rankColRef = columnRefForRankFunct(window);
+	    rankColsRef = columnsRefForRankFunct(window);
         winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
-                            rankColRef,
+                            null,
                             RankFunctionDefinition.class,
                             Boolean.FALSE,
                             "RANK",
@@ -10043,9 +10043,9 @@ windowOrAggregateFunctionNode() throws StandardException :
 |
 	<ROWNUMBER> <LEFT_PAREN> <RIGHT_PAREN> window = overClause()
 	{
-	    rankColRef = columnRefForRankFunct(window);
+	    rankColsRef = columnsRefForRankFunct(window);
         winOrAgg = (ValueNode) nodeFactory.getNode(C_NodeTypes.AGGREGATE_NODE,
-                            rankColRef,
+                            null,
                             RowNumberFunctionDefinition.class,
                             Boolean.FALSE,
                             "ROW_NUMBER",
