@@ -1147,9 +1147,7 @@ public class SpliceTransactionManager implements XATransactionController,
 			LOG.trace("openConglomerate conglomId " + conglomId);
 
 		return (openConglomerate(findExistingConglomerate(conglomId), hold,
-				open_mode, lock_level, isolation_level,
-				(StaticCompiledOpenConglomInfo) null,
-				(DynamicCompiledOpenConglomInfo) null));
+				open_mode, lock_level, isolation_level, null, null));
 	}
 
 	public long findConglomid(long container_id) throws StandardException {
@@ -1528,7 +1526,7 @@ public class SpliceTransactionManager implements XATransactionController,
 		if (LOG.isTraceEnabled())
 			LOG.trace("getPropertyDefault key " + key);
 		return (accessmanager.getTransactionalProperties().getPropertyDefault(
-				this, key));
+            this, key));
 	}
 
 	/**
@@ -1554,7 +1552,7 @@ public class SpliceTransactionManager implements XATransactionController,
 		if (LOG.isTraceEnabled())
 			LOG.trace("setPropertyDefault key " + key);
 		accessmanager.getTransactionalProperties().setPropertyDefault(this,
-				key, value);
+            key, value);
 	}
 
 	/**

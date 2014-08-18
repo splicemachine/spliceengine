@@ -1,18 +1,17 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
-import com.google.common.base.Preconditions;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.AttemptsExhaustedException;
-import com.splicemachine.derby.utils.TransactionUtils;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.job.TaskStatus;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.ReadOnlyTxn;
+import com.splicemachine.si.impl.WritableTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -47,8 +46,9 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
      */
     private volatile boolean trashed = false;
 		private ControlWatcher statusWatcher;
+    private Txn txn;
 
-		RegionTaskControl(byte[] startRow,
+    RegionTaskControl(byte[] startRow,
                       RegionTask task,
                       JobControl jobControl,
                       TaskFutureContext taskFutureContext,
@@ -259,37 +259,12 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
 						fail(e);
 						return false;
 				}
-//				if(!task.isTransactional()){
-//            //no need to roll back a nontransactional task
-//            return true;
-//        }
-//
-//        String tId = taskStatus.getTransactionId();
-//        if(tId==null){
-//            //emit a warning in case
-//            SpliceLogUtils.info(LOG,"Attempting to rollback a transactional task with no transaction. Task: "+ getTaskNode());
-//            return true;
-//        }
-//
-//				if(LOG.isDebugEnabled())
-//						SpliceLogUtils.debug(LOG,"Attempting to roll back transaction id %s on task %d",tId,Bytes.toLong(getTaskId()));
-//        try {
-//						boolean rollback = TransactionUtils.rollback(HTransactorFactory.getTransactionManager(), tId, maxTries);
-//						if(LOG.isDebugEnabled())
-//								SpliceLogUtils.debug(LOG,"Rollback of transaction %s on task %d complete with return state %b",tId,Bytes.toLong(getTaskId()),rollback);
-//						return rollback; //TODO -sf- make 5 configurable
-//        } catch (AttemptsExhaustedException e) {
-//						SpliceLogUtils.error(LOG,"Unable to roll back transaction id %s for task %d",tId,Bytes.toLong(getTaskId()));
-//            fail(e);
-//            return false;
-//        }finally{
-//				}
     }
 
 
 
     boolean commit(){
-				Txn txn = task.getTxn();
+				Txn txn = getTxn();
 				if(txn==null) return true;
 
 				try{
@@ -323,8 +298,22 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
 //        }
     }
 
+    private Txn getTxn() {
+        if(txn==null){
+            TxnView txnInformation = taskStatus.getTxnInformation();
+            TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
+            if(txnInformation.allowsWrites())
+                txn = ReadOnlyTxn.createReadOnlyChildTransaction(txnInformation.getParentTxnView(), lifecycleManager,true,false);
+            else
+                txn =new WritableTxn(txnInformation.getTxnId(),
+                        txnInformation.getBeginTimestamp(),
+                        txnInformation.getIsolationLevel(),txnInformation.getParentTxnView(),lifecycleManager,true,false);
+        }
+        return txn;
+    }
 
-/******************************************************************************************/
+
+    /******************************************************************************************/
     /*private helper methods*/
 
     /*
