@@ -86,7 +86,7 @@ public class Streams {
         }
     }
 
-    private static class NoOpCloseableStream<T> extends BaseStream<T> implements CloseableStream<T> {
+    private static class NoOpCloseableStream<T> extends BaseCloseableStream<T> {
         private final Stream<T> stream;
 
         public NoOpCloseableStream(Stream<T> stream) {
