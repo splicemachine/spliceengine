@@ -1,7 +1,6 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.collect.Lists;
-import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
 import com.splicemachine.derby.impl.job.JobInfo;
@@ -22,7 +21,6 @@ import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -40,8 +38,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
-import com.google.common.io.Closeables;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.monitor.ModuleFactory;
@@ -76,36 +72,20 @@ import org.apache.derby.jdbc.InternalDriver;
 import org.apache.hadoop.hbase.ClusterStatus;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HServerLoad;
-import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.hbase.ManifestReader.SpliceMachineVersion;
-import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
-import com.splicemachine.derby.impl.job.JobInfo;
-import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
-import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
-import com.splicemachine.derby.management.StatementInfo;
-import com.splicemachine.derby.management.StatementManagement;
-import com.splicemachine.hbase.ThreadPoolStatus;
-import com.splicemachine.hbase.jmx.JMXUtils;
-import com.splicemachine.job.JobSchedulerManagement;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.coprocessors.SIObserver;
-import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.logging.Logging;
 
 /**
  * @author Jeff Cunningham
  *         Date: 12/9/13
  */
-public class SpliceAdmin {
+public class SpliceAdmin extends BaseAdminProcedures {
 	private static Logger LOG = Logger.getLogger(SpliceAdmin.class);
 	
     public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName, final String logLevel) throws SQLException {
@@ -159,14 +139,10 @@ public class SpliceAdmin {
         });
     }
 
-    /**
-     * @return
-     * @throws SQLException
-     */
     public static void SYSCS_GET_ACTIVE_SERVERS(ResultSet[] resultSet) throws SQLException {
         StringBuilder sb = new StringBuilder("select * from (values ");
         int i = 0;
-        for (ServerName serverName : getServers()) {
+        for (ServerName serverName : SpliceUtils.getServers()) {
             if (i != 0) {
                 sb.append(", ");
             }
@@ -280,7 +256,7 @@ public class SpliceAdmin {
                 for (Map.Entry<String, List<Pair<String, String>>> jobEntry : jobMap.entrySet()) {
                     String jobID = jobEntry.getKey();
                     for (Pair<String, String> statement : jobEntry.getValue()) {
-                        String sql = escape(statement.getFirst());
+                        String sql = SpliceUtils.escape(statement.getFirst());
                         String jobHost = statement.getSecond();
                         String taskID = "unknownID";
                         String taskHost = "unknownHost";
@@ -319,29 +295,6 @@ public class SpliceAdmin {
                 resultSet[0] = executeStatement(sb);
             }
         });
-    }
-
-    private static interface JMXServerOperation {
-        void operate(List<Pair<String, JMXConnector>> jmxConnector) throws MalformedObjectNameException, IOException, SQLException;
-    }
-
-    private static void operate(JMXServerOperation operation) throws SQLException {
-        List<ServerName> servers = getServers();
-        List<Pair<String, JMXConnector>> connections = null;
-        try {
-            connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
-            operation.operate(connections);
-        } catch (MalformedObjectNameException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        } finally {
-            if (connections != null) {
-                for (Pair<String, JMXConnector> connectorPair : connections) {
-                    Closeables.closeQuietly(connectorPair.getSecond());
-                }
-            }
-        }
     }
 
     public static void SYSCS_GET_PAST_STATEMENT_SUMMARY(final ResultSet[] resultSets) throws SQLException {
@@ -561,11 +514,6 @@ public class SpliceAdmin {
         }
     }
 
-    static String escape(String first) {
-        // escape single quotes | compress multiple whitespace chars into one, (replacing tab, newline, etc)
-        return first.replaceAll("\\'", "\\'\\'").replaceAll("\\s+", " ");
-    }
-
     public static void SYSCS_GET_MAX_TASKS(final int workerTier, final ResultSet[] resultSet) throws SQLException {
         operate(new JMXServerOperation() {
             @Override
@@ -609,7 +557,6 @@ public class SpliceAdmin {
             }
         });
     }
-
 
     public static void SYSCS_SET_WRITE_POOL(final int writePool) throws SQLException {
         operate(new JMXServerOperation() {
@@ -1188,25 +1135,12 @@ public class SpliceAdmin {
     	return typedProps;
     }
 
-    public static void getActiveTasks() throws MasterNotRunningException, ZooKeeperConnectionException {
-        HBaseAdmin admin = SpliceUtils.getAdmin();
-        // todo
-        // get JMX connection
-        // exec JMX query
-        // close connection
-        // return ?
-    }
-
-    public static void getActiveSQLStatementsByNode() {
-        // todo
-    }
-
-		/**
-		 * Be Careful when using this, as it will return conglomerate ids for all the indices of a table
-		 * as well as the table itself. While the first conglomerate SHOULD be the main table, there
-		 * really isn't a guarantee, and it shouldn't be relied upon for correctness in all cases.
-		 */
-		public static long[] getConglomids(Connection conn, String schemaName, String tableName) throws SQLException {
+	/**
+	 * Be Careful when using this, as it will return conglomerate ids for all the indices of a table
+	 * as well as the table itself. While the first conglomerate SHOULD be the main table, there
+	 * really isn't a guarantee, and it shouldn't be relied upon for correctness in all cases.
+	 */
+	public static long[] getConglomids(Connection conn, String schemaName, String tableName) throws SQLException {
         List<Long> conglomIDs = new ArrayList<Long>();
         if (schemaName == null)
             // default schema
@@ -1257,69 +1191,6 @@ public class SpliceAdmin {
         return congloms;
     }
 
-
-    public static Connection getDefaultConn() throws SQLException {
-        InternalDriver id = InternalDriver.activeDriver();
-        if (id != null) {
-            Connection conn = id.connect("jdbc:default:connection", null);
-            if (conn != null)
-                return conn;
-        }
-        throw Util.noCurrentConnection();
-    }
-
-    static ResultSet executeStatement(StringBuilder sb) throws SQLException {
-        ResultSet result = null;
-        Connection connection = getDefaultConn();
-        try {
-            PreparedStatement ps = connection.prepareStatement(sb.toString());
-            result = ps.executeQuery();
-            connection.commit();
-        } catch (SQLException e) {
-            connection.rollback();
-            throw new SQLException(sb.toString(), e);
-        } finally {
-            connection.close();
-        }
-        return result;
-    }
-
-    public static void sendSMTP(
-            String toAddress,
-            String fromAddress,
-            String subject,
-            String content,
-            String transportProtocol,
-            String smtpHost,
-            int smtpPort)
-            throws Exception {
-        Properties profile = new Properties();
-        profile.put("mail.transport.protocol", "smtp");
-        profile.put("mail.smtp.host", "smtp@acme_widgets.com");
-        profile.put("mail.smtp.port", "25");
-        // TODO: java mail
-//        InternetAddress from = new InternetAddress(fromAddress);
-//        InternetAddress recipient = new InternetAddress(toAddress);
-//        Session session = Session.getInstance(profile);
-//
-//        MimeMessage myMessage = new MimeMessage(session);
-//        myMessage.setFrom(from);
-//        myMessage.setSubject(subject);
-//        myMessage.setText(content);
-//        myMessage.addRecipient(Message.RecipientType.TO, recipient);
-//        // Send the message
-//        javax.mail.Transport.send(myMessage);
-    }
-
-
-    private static List<String> getServerNames(Collection<ServerName> serverInfo) {
-        List<String> names = new ArrayList<String>(serverInfo.size());
-        for (ServerName sname : serverInfo) {
-            names.add(sname.getHostname());
-        }
-        return names;
-    }
-
     /* @return  Map<regionNameAsString,HServerLoad.RegionLoad> */
     private static Map<String, HServerLoad.RegionLoad> getRegionLoad() throws SQLException {
         Map<String, HServerLoad.RegionLoad> regionLoads = new HashMap<String, HServerLoad.RegionLoad>();
@@ -1353,7 +1224,7 @@ public class SpliceAdmin {
         HBaseAdmin admin = null;
         try {
             admin = SpliceUtils.getAdmin();
-            for (ServerName serverName : getServers()) {
+            for (ServerName serverName : SpliceUtils.getServers()) {
                 try {
                     serverLoadMap.put(serverName, admin.getClusterStatus().getLoad(serverName));
                 } catch (IOException e) {
@@ -1370,27 +1241,6 @@ public class SpliceAdmin {
         }
 
         return serverLoadMap;
-    }
-
-    private static List<ServerName> getServers() throws SQLException {
-        HBaseAdmin admin = null;
-        List<ServerName> servers = null;
-        try {
-            admin = SpliceUtils.getAdmin();
-            try {
-                servers = new ArrayList<ServerName>(admin.getClusterStatus().getServers());
-            } catch (IOException e) {
-                throw new SQLException(e);
-            }
-        } finally {
-            if (admin != null)
-                try {
-                    admin.close();
-                } catch (IOException e) {
-                    // ignore
-                }
-        }
-        return servers;
     }
 
     private static class Trip<T, U, V> {
