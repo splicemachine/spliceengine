@@ -190,6 +190,9 @@
 								<!-- ### Overrides for structured_si ### -->
 								<!-- ################################### -->
 								<!-- # Preserve the classes accessed externally. -->
+                                <option>-keep @javax.management.MXBean class com.splicemachine.si.impl.timestamp.TimestampOracle</option>
+                                <option>-keep @javax.management.MXBean class com.splicemachine.si.impl.timestamp.TimestampClient</option>
+                                <option>-keepattributes MXBean</option>
 								<option>-keep public class com.splicemachine.si.impl.WriteConflict { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.DDLFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.FilterStatePacked { public *; }</option>
