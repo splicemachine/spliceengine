@@ -119,7 +119,6 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         info.put("estimatedCost", rsn.getFinalCostEstimate().getEstimatedCost());
         info.put("estimatedRowCount", rsn.getFinalCostEstimate().getEstimatedRowCount());
         info.put("estimatedSingleScanRowCount", rsn.getFinalCostEstimate().singleScanRowCount());
-        info.put("rowOrdering", rsn.getFinalCostEstimate().getRowOrdering());
         info.put("numberOfRegions", ((SortState) rsn.getFinalCostEstimate()).getNumberOfRegions());
         List<ResultSetNode> children = RSUtils.getChildren(rsn);
         info.put("children", Lists.transform(children, new Function<ResultSetNode, Map<String,Object>>() {
