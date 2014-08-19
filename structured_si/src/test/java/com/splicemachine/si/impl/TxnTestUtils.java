@@ -304,8 +304,11 @@ public class TxnTestUtils {
 												}
 										}
 								}
-								if(filter!=null)
+								if(filter!=null){
+                    if(filter.filterRow()) continue;
+
 										filter.filterRow(toAdd);
+                }
 								if(toAdd.size()>0){
 										results.addAll(toAdd);
 										return true;

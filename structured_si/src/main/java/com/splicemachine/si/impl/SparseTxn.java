@@ -32,9 +32,10 @@ public class SparseTxn{
 		private final Txn.State state;
 
 		private final ByteSlice destTableBuffer;
+    private boolean timedOut;
 
 
-		public SparseTxn(long txnId,
+    public SparseTxn(long txnId,
 										 long beginTimestamp,
 										 long parentTxnId,
 										 long commitTimestamp,
@@ -188,5 +189,9 @@ public class SparseTxn{
                     true,dependent,
                     true,additive,
                     level,state, destTable);
+    }
+
+    public boolean isTimedOut() {
+        return timedOut;
     }
 }

@@ -91,6 +91,7 @@ public class TransactionResolver {
                 new BlockingWaitStrategy());
         disruptor.handleEventsWith(new ResolveEventHandler());
         ringBuffer = disruptor.getRingBuffer();
+        disruptor.start();
     }
 
     public void resolveTimedOut(HRegion txnRegion,long txnId,boolean oldForm){
@@ -165,6 +166,7 @@ public class TransactionResolver {
          * location.
          */
             long globalCommitTs = view.getEffectiveCommitTimestamp();
+            if(globalCommitTs<0) return; //transaction isn't actually committed, so don't do it
 
             Put put = new Put(TxnUtils.getRowKey(txnId));
             if(oldForm)

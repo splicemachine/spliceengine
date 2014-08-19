@@ -44,11 +44,13 @@ public class RegionTxnStore {
 
 		private final TxnDecoder oldTransactionDecoder;
 		private final V2TxnDecoder newTransactionDecoder;
+    private final TransactionResolver resolver;
 
-		public RegionTxnStore(HRegion region) {
+		public RegionTxnStore(HRegion region,TransactionResolver resolver) {
 				this.region = region;
 				this.oldTransactionDecoder = V1TxnDecoder.INSTANCE;
 				this.newTransactionDecoder = V2TxnDecoder.INSTANCE;
+        this.resolver = resolver;
 		}
 
 		/**
@@ -63,14 +65,7 @@ public class RegionTxnStore {
 				Result result = region.get(get);
 				if(result==null || result.size()<=0) return null; //no transaction
 
-						/*
-						 * We want to support backwards-compatibility here, so we need to be able to read either format.
-						 * If the data is encoded in the old format, read that. Otherwise, read the new format
-						 */
-        SparseTxn txn = newTransactionDecoder.decode(txnId,result);
-        if(txn==null)
-            txn = oldTransactionDecoder.decode(txnId,result);
-        return txn;
+        return decode(txnId,result);
 		}
 
 		/**
@@ -342,10 +337,7 @@ public class RegionTxnStore {
         return new RegionScanIterator<DenseTxn>(scanner,new RegionScanIterator.IOFunction< DenseTxn>() {
             @Override
             public DenseTxn apply(@Nullable List<KeyValue> keyValues) throws IOException{
-                DenseTxn txn = newTransactionDecoder.decode(keyValues);
-                if(txn==null)
-                    txn = oldTransactionDecoder.decode(keyValues);
-                return txn;
+                return decode(keyValues);
             }
         });
     }
@@ -363,22 +355,38 @@ public class RegionTxnStore {
             @Override
             public DenseTxn apply(@Nullable List<KeyValue> keyValues) throws IOException{
                 DenseTxn txn = newTransactionDecoder.decode(keyValues);
-                if(txn==null)
+                boolean oldForm = false;
+                if(txn==null){
+                    oldForm = true;
                     txn = oldTransactionDecoder.decode(keyValues);
+                }
 
-                //this transaction should be returned because it's active
+                /*
+                 * In normal circumstances, we would say that this transaction is active
+                 * (since it passed the ActiveTxnFilter).
+                 *
+                 * However, a dependent child transaction may need to be returned even though
+                 * he is committed, because a parent along the chain remains active. In this case,
+                 * we need to resolve the effective commit timestamp of the parent, and if that value
+                 * is -1, then we return it. Otherwise, just mark the child transaction with a global
+                 * commit timestamp and move on.
+                 */
                 if(txn.isDependent()){
                     long parentTxnId =txn.getParentTxnId();
-                    if(parentTxnId>0){
-                    /*
-                     * We need to make sure that this transaction is actually active,
-                     * in case the parent has committed/rolledback already
-                     */
-                        TxnView parentTxn = store.getTransaction(parentTxnId);
-                        if(parentTxn.getEffectiveState()!= Txn.State.ACTIVE){
-                            // we are not actually active
+                    if(parentTxnId<0){
+                        //even though we're dependent, we're a parent transaction, so we are good to go
+                        return txn;
+                    }
+
+                    switch(store.getTransaction(parentTxnId).getEffectiveState()){
+                        case ACTIVE:
+                            return txn;
+                        case ROLLEDBACK:
+                            resolver.resolveTimedOut(region,txn.getTxnId(),oldForm);
                             return null;
-                        }
+                        case COMMITTED:
+                            resolver.resolveGlobalCommitTimestamp(region,txn.getTxnId(),oldForm);
+                            return null;
                     }
                 }
 
@@ -417,5 +425,49 @@ public class RegionTxnStore {
         Scan scan = new Scan(startKey,stopKey);
         scan.setMaxVersions(1);
         return scan;
+    }
+
+
+    private SparseTxn decode(long txnId,Result result) throws IOException {
+        SparseTxn txn = newTransactionDecoder.decode(txnId,result);
+        boolean oldForm = false;
+        if(txn==null){
+            oldForm = true;
+            txn = oldTransactionDecoder.decode(txnId,result);
+        }
+
+        resolveTxn(txn, oldForm);
+        return txn;
+
+    }
+    private DenseTxn decode(List<KeyValue> keyValues) throws IOException {
+        DenseTxn txn = newTransactionDecoder.decode(keyValues);
+        boolean oldForm = false;
+        if(txn==null){
+            oldForm = true;
+            txn = oldTransactionDecoder.decode(keyValues);
+        }
+
+        resolveTxn(txn, oldForm);
+        return txn;
+    }
+
+    private void resolveTxn(SparseTxn txn, boolean oldForm) {
+        switch(txn.getState()){
+            case ROLLEDBACK:
+                if(txn.isTimedOut()){
+                    resolver.resolveTimedOut(region,txn.getTxnId(),oldForm);
+                }
+                break;
+            case COMMITTED:
+                if(txn.getParentTxnId()>0 && txn.getGlobalCommitTimestamp()<0){
+                /*
+                 * Just because the transaction was committed and has a parent doesn't mean that EVERY parent
+                 * has been committed; still, submit this to the resolver on the off chance that it
+                 * has been fully committed, so we can get away with the global commit work.
+                 */
+                    resolver.resolveGlobalCommitTimestamp(region,txn.getTxnId(),oldForm);
+                }
+        }
     }
 }

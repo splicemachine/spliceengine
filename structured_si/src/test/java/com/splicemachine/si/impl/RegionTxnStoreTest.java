@@ -2,6 +2,7 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.region.RegionTxnStore;
+import com.splicemachine.si.impl.region.TransactionResolver;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.junit.Assert;
@@ -10,6 +11,9 @@ import org.junit.Test;
 import static com.splicemachine.si.impl.TxnTestUtils.assertTxnsMatch;
 import static com.splicemachine.si.impl.TxnTestUtils.getMockRegion;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -22,7 +26,8 @@ public class RegionTxnStoreTest {
 		public void testCanWriteAndReadNewTransactionInformation() throws Exception {
 				HRegion region = getMockRegion();
 
-				RegionTxnStore store = new RegionTxnStore(region);
+        TransactionResolver resolver = getTransactionResolver();
+				RegionTxnStore store = new RegionTxnStore(region,resolver);
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
@@ -31,11 +36,12 @@ public class RegionTxnStoreTest {
 				assertTxnsMatch("Transactions do not match!",txn,transaction);
 		}
 
-		@Test
+
+    @Test
 		public void testCanCommitATransaction() throws Exception {
 				HRegion region = getMockRegion();
 
-				RegionTxnStore store = new RegionTxnStore(region);
+				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver());
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
@@ -68,7 +74,7 @@ public class RegionTxnStoreTest {
 		public void testCanRollbackATransaction() throws Exception {
 				HRegion region = getMockRegion();
 
-				RegionTxnStore store = new RegionTxnStore(region);
+				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver());
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
@@ -91,7 +97,7 @@ public class RegionTxnStoreTest {
 		public void testCanGetActiveTransactions() throws Exception {
 				HRegion region = getMockRegion();
 
-				RegionTxnStore store = new RegionTxnStore(region);
+				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver());
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
@@ -105,7 +111,7 @@ public class RegionTxnStoreTest {
 		public void testGetActiveTransactionsFiltersOutRolledbackTxns() throws Exception {
 				HRegion region = getMockRegion();
 
-				RegionTxnStore store = new RegionTxnStore(region);
+				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver());
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
@@ -121,7 +127,7 @@ public class RegionTxnStoreTest {
 		public void testGetActiveTransactionsFiltersOutCommittedTxns() throws Exception {
 				HRegion region = getMockRegion();
 
-				RegionTxnStore store = new RegionTxnStore(region);
+				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver());
 
 				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
@@ -129,12 +135,15 @@ public class RegionTxnStoreTest {
 				Thread.sleep(100); //sleep for 100 ms to ensure that the System.currentTimeMillis() moves forward
 				store.recordCommit(txn.getTxnId(),2l);
 
-				long[] activeTxnIds = store.getActiveTxnIds(0, 2,null);
+				long[] activeTxnIds = store.getActiveTxnIds(0, 3,null);
 				Assert.assertEquals("Incorrect length!",0,activeTxnIds.length);
 		}
 
-
-
-
+    protected TransactionResolver getTransactionResolver() {
+        TransactionResolver resolver = mock(TransactionResolver.class);
+        doNothing().when(resolver).resolveGlobalCommitTimestamp(any(HRegion.class), anyLong(), anyBoolean());
+        doNothing().when(resolver).resolveTimedOut(any(HRegion.class), anyLong(), anyBoolean());
+        return resolver;
+    }
 
 }

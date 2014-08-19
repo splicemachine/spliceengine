@@ -83,6 +83,17 @@ class ActiveTxnFilter extends FilterBase {
     }
 
     private ReturnCode filterCommitTimestamp(KeyValue kv) {
+        if(matchesQualifier(kv,V2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES)
+                ||matchesQualifier(kv,V1TxnDecoder.OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN)){
+            /*
+             * We have a global commit timestamp set. This means that not only are we
+             * committed, but we are also (probably) the child of a committed transaction.
+             * Thus, we can immediately filter this row out
+             */
+            filter = true;
+            return ReturnCode.NEXT_ROW;
+        }
+        //check for a normal commit column
         if(matchesQualifier(kv,V2TxnDecoder.COMMIT_QUALIFIER_BYTES)
                 ||matchesQualifier(kv,V1TxnDecoder.OLD_COMMIT_TIMESTAMP_COLUMN)){
                 /*
@@ -153,8 +164,10 @@ class ActiveTxnFilter extends FilterBase {
                 return ReturnCode.NEXT_ROW;
             }else
                 return ReturnCode.INCLUDE;
-        }else
+        }else{
+            isAlive = true;
             return ReturnCode.INCLUDE;
+        }
     }
 
     private ReturnCode filterState(KeyValue kv) {
@@ -182,13 +195,15 @@ class ActiveTxnFilter extends FilterBase {
                 filter = true;
                 return ReturnCode.NEXT_ROW;
             }
-            checkState = Txn.State.ROLLEDBACK.encode();
-            if(Bytes.equals(checkState,0,checkState.length,
-                    kv.getBuffer(),kv.getValueOffset(),kv.getValueLength())){
-                filter = true;
-                return ReturnCode.NEXT_ROW;
+            if(!isActive){
+                checkState = Txn.State.ROLLEDBACK.encode();
+                if(Bytes.equals(checkState,0,checkState.length,
+                        kv.getBuffer(),kv.getValueOffset(),kv.getValueLength())){
+                    filter = true;
+                    return ReturnCode.NEXT_ROW;
+                }
+                committed = true; //we know we are committed
             }
-            committed = true; //we know we are committed
             return ReturnCode.INCLUDE;
         }else{
             return ReturnCode.INCLUDE; //we can't filter it based on state
