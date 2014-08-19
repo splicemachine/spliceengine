@@ -7,13 +7,11 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.ThrowIfDisconnected;
-import com.splicemachine.si.api.CannotCommitException;
-import com.splicemachine.si.api.TimestampSource;
-import com.splicemachine.si.api.TransactionTimestamps;
-import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.DenseTxn;
 import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.si.impl.SparseTxn;
+import com.splicemachine.si.impl.region.TransactionResolver;
 import com.splicemachine.utils.Source;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HConstants;
@@ -44,12 +42,23 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
 		private HRegion region;
 		private TimestampSource timestampSource;
 
+    private static volatile TransactionResolver txnResolver;
     @Override
 		public void start(CoprocessorEnvironment env) {
 				region = ((RegionCoprocessorEnvironment)env).getRegion();
         SpliceConstants.TableEnv table = EnvUtils.getTableEnv((RegionCoprocessorEnvironment)env);
         if(table.equals(SpliceConstants.TableEnv.TRANSACTION_TABLE)){
-            regionStore = new RegionTxnStore(region);
+            TransactionResolver resolver = txnResolver;
+            if(resolver==null){
+                synchronized (LOG){
+                    if(txnResolver!=null)
+                        resolver = txnResolver;
+                    else{
+                        txnResolver = new TransactionResolver(TransactionStorage.getTxnSupplier(),2,128);
+                    }
+                }
+            }
+            regionStore = new RegionTxnStore(region,resolver);
             timestampSource = TransactionTimestamps.getTimestampSource();
         }
 		}

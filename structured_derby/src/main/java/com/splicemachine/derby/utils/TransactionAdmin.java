@@ -38,16 +38,16 @@ import java.util.List;
 public class TransactionAdmin {
 		private static final ResultColumnDescriptor[] TRANSACTION_TABLE_COLUMNS = new GenericColumnDescriptor[]{
 						new GenericColumnDescriptor("txnId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("parentTxnId",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("modifiedConglomerate",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+            new GenericColumnDescriptor("status",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+            new GenericColumnDescriptor("isolationLevel",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
 						new GenericColumnDescriptor("beginTimestamp",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
-						new GenericColumnDescriptor("parentTxnId",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("commitTimestamp",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+            new GenericColumnDescriptor("effectiveCommitTimestamp",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
 						new GenericColumnDescriptor("isDependent",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN)),
 						new GenericColumnDescriptor("isAdditive",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN)),
-						new GenericColumnDescriptor("isolationLevel",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
-						new GenericColumnDescriptor("commitTimestamp",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
-						new GenericColumnDescriptor("effectiveCommitTimestamp",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
-						new GenericColumnDescriptor("status",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
-						new GenericColumnDescriptor("lastKeepAlive",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP)),
-						new GenericColumnDescriptor("modifiedConglomerate",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR))
+						new GenericColumnDescriptor("lastKeepAlive",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP))
 		};
 
 		private static final ResultColumnDescriptor[] CURRENT_TXN_ID_COLUMNS = new GenericColumnDescriptor[]{
@@ -121,18 +121,10 @@ public class TransactionAdmin {
                     template.resetRowArray();
                     DataValueDescriptor[] dvds = template.getRowArray();
                     dvds[0].setValue(txn.getTxnId());
-                    dvds[1].setValue(txn.getBeginTimestamp());
                     if(txn.getParentTxnId()!=-1l)
-                        dvds[2].setValue(txn.getParentTxnId());
+                        dvds[1].setValue(txn.getParentTxnId());
                     else
-                        dvds[2].setToNull();
-                    dvds[3].setValue(txn.isDependent());
-                    dvds[4].setValue(txn.isAdditive());
-                    dvds[5].setValue(txn.getIsolationLevel().toHumanFriendlyString());
-                    setLong(dvds[6], txn.getCommitTimestamp());
-                    setLong(dvds[7],txn.getEffectiveCommitTimestamp());
-                    dvds[8].setValue(txn.getState().toString());
-                    dvds[9].setValue(new Timestamp(txn.getLastKeepAliveTimestamp()),null);
+                        dvds[1].setToNull();
                     Iterator<ByteSlice> destTables = txn.getDestinationTables();
                     if(destTables!=null && destTables.hasNext()){
                         StringBuilder tables = new StringBuilder();
@@ -143,10 +135,18 @@ public class TransactionAdmin {
                             else isFirst=false;
                             tables.append(Bytes.toString(Encoding.decodeBytesUnsortd(table.array(), table.offset(), table.length())));
                         }
-                        dvds[10].setValue(tables.toString());
+                        dvds[2].setValue(tables.toString());
                     }else
-                        dvds[10].setToNull();
+                        dvds[2].setToNull();
 
+                    dvds[3].setValue(txn.getState().toString());
+                    dvds[4].setValue(txn.getIsolationLevel().toHumanFriendlyString());
+                    dvds[5].setValue(txn.getBeginTimestamp());
+                    setLong(dvds[6], txn.getCommitTimestamp());
+                    setLong(dvds[7],txn.getEffectiveCommitTimestamp());
+                    dvds[8].setValue(txn.isDependent());
+                    dvds[9].setValue(txn.isAdditive());
+                    dvds[10].setValue(new Timestamp(txn.getLastKeepAliveTimestamp()),null);
                     results.add(template.getClone());
                 }
             }  finally{
