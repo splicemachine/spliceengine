@@ -13,36 +13,214 @@ Logging for the optimizer can be enabled by the following settings.
 \emph{log4j.logger.com.splicemachine.derby.impl.sql.compile=TRACE, Console1}
 \emph{log4j.additivity.com.splicemachine.derby.impl.sql.compile=false}
 
+Plan level logging can be enabled via this log setting.
+
+\emph{log4j.logger.com.splicemachine.derby.impl.ast=INFO, Console1}
+\emph{log4j.additivity.com.splicemachine.derby.impl.ast=false}
+
 \subsection{Key Cost Selection Constants}
 
 Here are the key constants that drive the planning optimization and selection:
 
 \begin{enumerate}
-	\item \emph{splice.optimizer.hbaseRegionRowsEstimate} (Default=1500000): This
-	metric is the number of rows to associate with the cost based optimizer when seeing a single
-	region.  
-	\item \emph{splice.optimizer.indexPerRowCost} (Default=0.20): This
-	metric is the cost per row of data returned from an index scan. 
-	\item \emph{splice.optimizer.baseTablePerRowCost} (Default=1): This
-	metric is the cost per row of data returned from a table scan. 
-	\item \emph{splice.optimizer.fetchFromRowLocationCost} (Default=3): This
-	metric is the remote cost per single row lookup from index to base table.
-	\item \emph{splice.optimizer.getBaseTableFetchFromFullKeyCost} (Default=1):
-	This metric is the ?
-	\item \emph{splice.optimizer.getIndexFetchFromFullKeyCost} (Default=3): Metric
-	that describes a unique lookup against an index where all the keys of the
-	index are unique and defined in the query.
+	\item \emph{splice.optimizer.extraQualifierMultiplier} (Default=0.9d): This metric is multiplied by number of rows and cost to determine an effect of 1..n extra qualifiers on the source result set.  
+	\item \emph{splice.optimizer.extraStartStopQualifierMultiplier} (Default=0.5d): This multiplier is applied to single region tables where their is a start stop qualifier (i.e. constrained on the first column).  This is a rough estimate for cardinality (yikes).
+	\item \emph{splice.optimizer.hashCost} (Default=0.01d): The in-memory cost of hashing a number of records.  This cost is applied to make sure merge join is promoted for not having to perform a hash. 
+	\item \emph{splice.optimizer.networkCost} (Default=2.00d): Network cost of calls.  This corresponds to how many network hops while reading remote data.
+	\item \emph{splice.optimizer.writeCost} (Default=3.00d): The cost of writing
+	data in the case where you need to reshuffle the data.  This is a pretty expensive operation.
+	\item \emph{splice.optimizer.broadcastRegionMBThreshold} (Default=3): Threshold
+	in megabytes for the broadcast join region size.  The default is 1/100th of the
+	region servers memory footprint.
+	\item \emph{splice.optimizer.hbaseRegionRowsEstimate} (Default=5000000): Estimate of the number of rows in a region.
+	\item \emph{splice.optimizer.indexPerRowCost} (Default=1.00d): Cost per Row for an Index.  The cost adjustment is really driving the percentage of columns in the index vs. the base table.
+	\item \emph{splice.optimizer.baseTablePerRowCost} (Default=1.0d): Base Table
+	Per Row Cost Multiplier.
+	\item \emph{splice.optimizer.fetchFromRowLocationCost} (Default=3.0d): Cost for a random read from the base table from a sorted index (expensive).
+	\item \emph{splice.optimizer.getBaseTableFetchFromFullKeyCost} (Default=1.0d):
+	A fetch from a primary key on a base table
+	\item \emph{splice.optimizer.getIndexFetchFromFullKeyCost} (Default=0.1d): Cost
+	for doing a single fetch from an index (cheap).
+	\item \emph{splice.optimizer.minimalRows} (Default=20l): The minimum number of rows for the optimizer to consider during a scan against an index or table.	
 \end{enumerate}
 
-\subsection{Table Access}
+\subsection{Table Row Count Computation}
+
+One core computation, is the accurate estimate of the row count for the table. 
+It is calculated as follows
+
+The row count is computed currently via the following algorithm.
+
+$ $
+$ N=Number of Base Conglomerate Regions$
+$ $
+$ \beta=Region Row Estimate $
+$ $
+$\sum_{n=1}^{N}(RegionStoreSize_n/MaxRegionStoreSize)*\beta$
+$ $
+
+\lstset{ %
+language=C++,           % choose the language of the code
+numberstyle=\tiny,      % the size of the fonts that are used for the line-numbers
+basicstyle=\tiny    % the size of the fonts that are used for the line-numbers
+}
+
+
+
+\subsection{Table Access Non Primary Key}
+
+After creating a simple table via:
+
+\begin{verbatim}
+create table table1_nopk (col1 int, col2 int, col3 int);
+\end{verbatim}
+
+A scan is performed without a qualifer.
+
+\begin{verbatim}
+select * from tabl1_nopk;
+\end{verbatim}
+
+  The
+  \emph{com.splicemachine.derby.impl.store.access.hbase.HBaseCostController}
+  is utilized to compute the scan cost for the underlying FromBaseTable. 
+
+\begin{lstlisting}
+ScrollInsensitiveResultSetNode ({n=3, rowOrdering=RowOrder { unorderedOptimizables=[] ColumnOrdering=[]}, estimatedCost=20.0, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+  ProjectRestrictNode ({n=2, rowOrdering=RowOrder { unorderedOptimizables=[] ColumnOrdering=[]}, estimatedCost=20.0, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+    ProjectRestrictNode ({n=1, rowOrdering=RowOrder { unorderedOptimizables=[] ColumnOrdering=[]}, estimatedCost=20.0, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+      FromBaseTable ({n=0, estimatedCost=20.0, table=TABLE1_NOPK,1232, estimatedSingleScanRowCount=20.0, rowOrdering=RowOrder { unorderedOptimizables=[] ColumnOrdering=[]}, estimatedRowCount=20, numberOfRegions=1})
+\end{lstlisting}     
+
+\subsection{Table Access Primary Key}
+\begin{verbatim}
+create table table1_pk (col1 int, col2 int, col3 int, primary key (col1)); 
+\end{verbatim}
+\begin{verbatim}
+ScrollInsensitiveResultSetNode ({n=3, rowOrdering=RowOrder { ColumnOrdering=[ ColumnOrdering 0: 1:0:1]}, estimatedCost=20.0, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+  ProjectRestrictNode ({n=2, rowOrdering=RowOrder { ColumnOrdering=[ ColumnOrdering 0: 1:0:1]}, estimatedCost=20.0, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+    ProjectRestrictNode ({n=1, rowOrdering=RowOrder { ColumnOrdering=[ ColumnOrdering 0: 1:0:1]}, estimatedCost=20.0, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+      FromBaseTable ({n=0, estimatedCost=20.0, table=TABLE1_PK,1248, estimatedSingleScanRowCount=20.0, rowOrdering=RowOrder { ColumnOrdering=[ ColumnOrdering 0: 1:0:1]}, estimatedRowCount=20, numberOfRegions=1})
+\end{verbatim}      
+
+\begin{verbatim}
+select * from table1_pk where col1 = 1;
+\end{verbatim}
+
+\begin{verbatim}
+ScrollInsensitiveResultSetNode ({n=3, rowOrdering=RowOrder { ColumnOrdering=[]}, estimatedCost=1.0, estimatedSingleScanRowCount=1.0, estimatedRowCount=1, numberOfRegions=1})
+  ProjectRestrictNode ({n=2, rowOrdering=RowOrder { ColumnOrdering=[]}, estimatedCost=1.0, estimatedSingleScanRowCount=1.0, estimatedRowCount=1, numberOfRegions=1})
+    ProjectRestrictNode ({n=1, rowOrdering=RowOrder { ColumnOrdering=[]}, estimatedCost=1.0, estimatedSingleScanRowCount=1.0, estimatedRowCount=1, numberOfRegions=1})
+      FromBaseTable ({n=0, estimatedCost=1.0, table=TABLE1_PK,1248, estimatedSingleScanRowCount=1.0, quals=[(COL1[0:1] = 1)], rowOrdering=RowOrder { ColumnOrdering=[]}, estimatedRowCount=1, numberOfRegions=1})
+\end{verbatim}
+
 
 \subsection{Index Access}
 
-\subsection{Sort Avoidance}
+\subsubsection{Non Unique Index Access}
+\begin{verbatim}
+create index table1_nopk_ix1 on table1_nopk (col2);
+\end{verbatim}
 
-\subsection{Join Selection}
+\begin{verbatim}
+select col2 from table1_nopk;
+\end{verbatim}
+
+\begin{verbatim}
+ScrollInsensitiveResultSetNode ({n=3, rowOrdering=RowOrder { ColumnOrdering=[ ColumnOrdering 0: 1:0:2]}, estimatedCost=13.333333333333332, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+  ProjectRestrictNode ({n=2, rowOrdering=RowOrder { ColumnOrdering=[ ColumnOrdering 0: 1:0:2]}, estimatedCost=13.333333333333332, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+    ProjectRestrictNode ({n=1, rowOrdering=RowOrder { ColumnOrdering=[ ColumnOrdering 0: 1:0:2]}, estimatedCost=13.333333333333332, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+      FromBaseTable ({n=0, using-index=TABLE1_NOPK_IX1,1265, table=TABLE1_NOPK,1232, estimatedCost=13.333333333333332, estimatedSingleScanRowCount=20.0, rowOrdering=RowOrder { ColumnOrdering=[ ColumnOrdering 0: 1:0:2]}, numberOfRegions=1, estimatedRowCount=20})
+\end{verbatim}
+
+\begin{verbatim}
+select * from table1_nopk where col2 = 1;
+\end{verbatim}
+
+\begin{verbatim}
+ScrollInsensitiveResultSetNode ({n=3, rowOrdering=RowOrder { unorderedOptimizables=[] ColumnOrdering=[]}, estimatedCost=17.999999523162842, estimatedSingleScanRowCount=17.999999523162842, estimatedRowCount=17, numberOfRegions=1})
+  ProjectRestrictNode ({n=2, rowOrdering=RowOrder { unorderedOptimizables=[] ColumnOrdering=[]}, estimatedCost=17.999999523162842, estimatedSingleScanRowCount=17.999999523162842, estimatedRowCount=17, numberOfRegions=1})
+    ProjectRestrictNode ({n=1, rowOrdering=RowOrder { unorderedOptimizables=[] ColumnOrdering=[]}, estimatedCost=17.999999523162842, estimatedSingleScanRowCount=17.999999523162842, estimatedRowCount=17, numberOfRegions=1})
+      FromBaseTable ({n=0, estimatedCost=17.999999523162842, table=TABLE1_NOPK,1232, estimatedSingleScanRowCount=17.999999523162842, quals=[(COL2[0:2] = 1)], rowOrdering=RowOrder { unorderedOptimizables=[] ColumnOrdering=[]}, estimatedRowCount=17, numberOfRegions=1})
+\end{verbatim}
+
+
+\subsubsection{Unique Index Access}
+
+\begin{verbatim}
+create unique index table1_nopk_ix2 on table1_nopk (col3);
+\end{verbatim}
+
+\begin{verbatim}
+select * from table1_nopk where col3 = 1;
+\end{verbatim}
+
+\begin{verbatim}
+ScrollInsensitiveResultSetNode ({n=4, rowOrdering=RowOrder { ColumnOrdering=[]}, estimatedCost=3.100000001490116, estimatedSingleScanRowCount=1.0, estimatedRowCount=1, numberOfRegions=1})
+  ProjectRestrictNode ({n=3, rowOrdering=RowOrder { ColumnOrdering=[]}, estimatedCost=3.100000001490116, estimatedSingleScanRowCount=1.0, estimatedRowCount=1, numberOfRegions=1})
+    ProjectRestrictNode ({n=2, rowOrdering=RowOrder { ColumnOrdering=[]}, estimatedCost=3.100000001490116, estimatedSingleScanRowCount=1.0, estimatedRowCount=1, numberOfRegions=1})
+      IndexToBaseRowNode ({n=1, rowOrdering=RowOrder { ColumnOrdering=[]}, estimatedCost=3.100000001490116, estimatedSingleScanRowCount=1.0, estimatedRowCount=1, numberOfRegions=1})
+        FromBaseTable ({n=0, using-index=TABLE1_NOPK_IX2,1281, table=TABLE1_NOPK,1232, estimatedCost=3.100000001490116, estimatedSingleScanRowCount=1.0, quals=[(COL3[1:3] = 1)], rowOrdering=RowOrder { ColumnOrdering=[]}, numberOfRegions=1, estimatedRowCount=1})
+\end{verbatim}
+
+\subsection{Primary Key Sort Avoidance}
+
+\begin{verbatim}
+select * from table1_nopk order by col1;
+\end{verbatim}
+
+\begin{verbatim}
+ScrollInsensitiveResultSetNode ({n=4, estimatedCost=20.0, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+  OrderByNode ({n=3, estimatedCost=20.0, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+    ProjectRestrictNode ({n=2, rowOrdering=RowOrder { unorderedOptimizables=[] ColumnOrdering=[]}, estimatedCost=20.0, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+      ProjectRestrictNode ({n=1, rowOrdering=RowOrder { unorderedOptimizables=[] ColumnOrdering=[]}, estimatedCost=20.0, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+        FromBaseTable ({n=0, estimatedCost=20.0, table=TABLE1_NOPK,1232, estimatedSingleScanRowCount=20.0, rowOrdering=RowOrder { unorderedOptimizables=[] ColumnOrdering=[]}, estimatedRowCount=20, numberOfRegions=1})
+\end{verbatim}
+   
+\begin{verbatim}    
+ select * from table1_pk order by col1;
+\end{verbatim}
+ 
+\begin{verbatim}
+ ScrollInsensitiveResultSetNode ({n=3, rowOrdering=RowOrder { ColumnOrdering=[ ColumnOrdering 0: 1:0:1]}, estimatedCost=20.0, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+  ProjectRestrictNode ({n=2, rowOrdering=RowOrder { ColumnOrdering=[ ColumnOrdering 0: 1:0:1]}, estimatedCost=20.0, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+    ProjectRestrictNode ({n=1, rowOrdering=RowOrder { ColumnOrdering=[ ColumnOrdering 0: 1:0:1]}, estimatedCost=20.0, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+      FromBaseTable ({n=0, estimatedCost=20.0, table=TABLE1_PK,1248, estimatedSingleScanRowCount=20.0, rowOrdering=RowOrder { ColumnOrdering=[ ColumnOrdering 0: 1:0:1]}, estimatedRowCount=20, numberOfRegions=1})
+\end{verbatim}
+
+      
+\subsection{Index Sort Avoidance}
+
+\begin{verbatim}
+select * from table1_nopk where col3 = 1;             
+\end{verbatim}
+
+\begin{verbatim}
+ScrollInsensitiveResultSetNode ({n=3, rowOrdering=RowOrder { ColumnOrdering=[ ColumnOrdering 0: 1:0:3]}, estimatedCost=13.333333333333332, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+  ProjectRestrictNode ({n=2, rowOrdering=RowOrder { ColumnOrdering=[ ColumnOrdering 0: 1:0:3]}, estimatedCost=13.333333333333332, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+    ProjectRestrictNode ({n=1, rowOrdering=RowOrder { ColumnOrdering=[ ColumnOrdering 0: 1:0:3]}, estimatedCost=13.333333333333332, estimatedSingleScanRowCount=20.0, estimatedRowCount=20, numberOfRegions=1})
+      FromBaseTable ({n=0, using-index=TABLE1_NOPK_IX2,1281, table=TABLE1_NOPK,1232, estimatedCost=13.333333333333332, estimatedSingleScanRowCount=20.0, rowOrdering=RowOrder { ColumnOrdering=[ ColumnOrdering 0: 1:0:3]}, numberOfRegions=1, estimatedRowCount=20})
+\end{verbatim}
+
+      
+
+
+\subsection{Order By Node}
+
+No cost is currently assigned to an order by node. (DB-1664)  
+
+\subsection{Join Node}
+
+Join Nodes have two really important concepts in the planning process.  The
+first concept is feasibility.  The cost of a join will only be evaluated if it
+is feasible.  Joins that are not feasible that are hinted will throw
+SQLExceptions stating that the join order is not allowed.  The second concept is
+the cost associated with performing the join.  The costing functions enumerated
+below attempt to associate the true costs (write, network, etc.) of the various
+join functions.
 
 \subsubsection{Nested Loop Join Operation}
+
 
 \subsubsection{Sort Merge Join Operation}
 

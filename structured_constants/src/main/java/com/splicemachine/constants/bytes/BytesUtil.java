@@ -191,7 +191,7 @@ public class BytesUtil {
     /**
      * @return whether [start1, end1) and [start2, end2) share any values
      */
-    private static boolean overlap(byte[] start1, byte[] end1, byte[] start2, byte[] end2) {
+    public static boolean overlap(byte[] start1, byte[] end1, byte[] start2, byte[] end2) {
         return startLessThanEnd(start1, end2) && startLessThanEnd(start2, end1);
     }
 

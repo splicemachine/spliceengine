@@ -82,7 +82,6 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
                              Optimizer optimizer,
                              CostEstimate costEstimate) {
     	SpliceLogUtils.trace(LOG, "estimateCost innerTable=%s,predList=%s,conglomerateDescriptor=%s,outerCost=%s,optimizer=%s,costEstimate=%s",innerTable,predList,cd,outerCost,optimizer,costEstimate);
-    	SpliceLogUtils.trace(LOG,"hmm");
     }
 
 	@Override
