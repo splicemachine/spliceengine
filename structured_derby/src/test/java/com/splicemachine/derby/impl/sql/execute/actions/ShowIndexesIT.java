@@ -2,14 +2,17 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
+
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+
 import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -66,6 +69,7 @@ public class ShowIndexesIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore
     public void testCreateSingleColumnIndex() throws Exception {
     	SpliceIndexWatcher indexWatcher = new SpliceIndexWatcher(TABLE_NAME_1, CLASS_NAME, INDEX_NAME_1, CLASS_NAME, "(C1)", false);
     	indexWatcher.starting(null);
@@ -77,6 +81,7 @@ public class ShowIndexesIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore
     public void testCreateMultiColumnIndex() throws Exception {
     	SpliceIndexWatcher indexWatcher1 = new SpliceIndexWatcher(TABLE_NAME_1, CLASS_NAME, INDEX_NAME_1, CLASS_NAME, "(C1)", false);
     	SpliceIndexWatcher indexWatcher2 = new SpliceIndexWatcher(TABLE_NAME_2, CLASS_NAME, INDEX_NAME_2, CLASS_NAME, "(C1, C2, C3)", false);

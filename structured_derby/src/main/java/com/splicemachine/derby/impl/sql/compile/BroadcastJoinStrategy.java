@@ -90,7 +90,7 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 		TableDescriptor td;
 		ConglomerateDescriptor[] cd;
 		if (hashFeasible && innerTable != null && innerTable.isBaseTable() && (td = innerTable.getTableDescriptor())!= null && 
-				(cd = td.getConglomerateDescriptors()) != null && cd.length == 1) {
+				(cd = td.getConglomerateDescriptors()) != null && cd.length >= 1) {
 	        Map<String,RegionLoad> regionLoads = HBaseRegionLoads.getCachedRegionLoadsMapForTable(cd[0].getConglomerateNumber()+"");
 			if (regionLoads == null)
 				return false;

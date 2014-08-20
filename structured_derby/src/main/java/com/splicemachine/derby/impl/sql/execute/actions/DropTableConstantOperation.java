@@ -1,5 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.DropTableDDLChangeDesc;
 import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 
@@ -74,7 +77,6 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 	 */
 	public void executeConstantAction( Activation activation ) throws StandardException {
 		TableDescriptor td;
-		UUID tableID;
 		ConglomerateDescriptor[] cds;
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
@@ -137,9 +139,8 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
             // XXX-TODO NO LOCK lockTableForDDL(tc, heapId, true);
 
             /* Drop the triggers */
-            GenericDescriptorList tdl = dd.getTriggerDescriptors(td);
-            for (Iterator descIter = tdl.iterator(); descIter.hasNext(); ) {
-                TriggerDescriptor trd = (TriggerDescriptor)descIter.next();
+            for (Object aTdl : dd.getTriggerDescriptors(td)) {
+                TriggerDescriptor trd = (TriggerDescriptor) aTdl;
                 trd.drop(lcc);
             }
 
@@ -149,7 +150,7 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 
             for (int index = 0; index < cdlSize; index++)
             {
-                ColumnDescriptor cd = (ColumnDescriptor) cdl.elementAt(index);
+                ColumnDescriptor cd = cdl.elementAt(index);
 
                 // If column has a default we drop the default and
                 // any dependencies
@@ -177,24 +178,19 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 
             long[] dropped = new long[cds.length - 1];
             int numDropped = 0;
-            for (int index = 0; index < cds.length; index++)
-            {
-                ConglomerateDescriptor cd = cds[index];
-
+            for (ConglomerateDescriptor cd : cds) {
                 /* if it's for an index, since similar indexes share one
                  * conglomerate, we only drop the conglomerate once
                  */
-                if (cd.getConglomerateNumber() != heapId)
-                {
+                if (cd.getConglomerateNumber() != heapId) {
                     long thisConglom = cd.getConglomerateNumber();
 
                     int i;
-                    for (i = 0; i < numDropped; i++)
-                    {
+                    for (i = 0; i < numDropped; i++) {
                         if (dropped[i] == thisConglom)
                             break;
                     }
-                    if (i == numDropped)	// not dropped
+                    if (i == numDropped)    // not dropped
                     {
                         dropped[numDropped++] = thisConglom;
                         tc.dropConglomerate(thisConglom);
@@ -214,11 +210,18 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 
             dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
 
+            /* Invalidate dependencies remotely.  */
+            DDLChange ddlChange = new DDLChange(tc.getTransactionIdString(), DDLChangeType.DROP_TABLE);
+            ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
+            ddlChange.setTentativeDDLDesc(new DropTableDDLChangeDesc(this.conglomerateNumber, this.tableId));
+
+            notifyMetadataChange(ddlChange);
+
             //
             // The table itself can depend on the user defined types of its columns.
             // Drop all of those dependencies now.
             //
-            adjustUDTDependencies( lcc, dd, td, null, true );
+            adjustUDTDependencies(lcc, dd, td, null, true);
 
             /* Drop the table */
             dd.dropTableDescriptor(td, sd, tc);

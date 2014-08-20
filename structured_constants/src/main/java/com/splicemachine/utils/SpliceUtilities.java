@@ -5,16 +5,19 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 
 import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.MasterNotRunningException;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.io.hfile.Compression;
-import org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.regionserver.StoreFile.BloomType;
 import org.apache.log4j.Logger;
@@ -32,6 +35,54 @@ public class SpliceUtilities extends SIConstants {
 			throw new RuntimeException(e);
 		}
 	}
+
+    /**
+     * Returns list of active region server names
+     */
+    public static List<ServerName> getServers() throws SQLException {
+        HBaseAdmin admin = null;
+        List<ServerName> servers = null;
+        try {
+            admin = getAdmin();
+            try {
+                servers = new ArrayList<ServerName>(admin.getClusterStatus().getServers());
+            } catch (IOException e) {
+                throw new SQLException(e);
+            }
+        } finally {
+            if (admin != null)
+                try {
+                    admin.close();
+                } catch (IOException e) {
+                    // ignore
+                }
+        }
+        return servers;
+    }
+
+    /**
+     * Returns master server name
+     */
+    public static ServerName getMasterServer() throws SQLException {
+        HBaseAdmin admin = null;
+        ServerName server = null;
+        try {
+            admin = getAdmin();
+            try {
+                server = admin.getClusterStatus().getMaster();
+            } catch (IOException e) {
+                throw new SQLException(e);
+            }
+        } finally {
+            if (admin != null)
+                try {
+                    admin.close();
+                } catch (IOException e) {
+                    // ignore
+                }
+        }
+        return server;
+    }
 
 	public static Configuration getConfig() {
 		return config;
@@ -213,4 +264,9 @@ public class SpliceUtilities extends SIConstants {
 		}
 	}
     
+    public static String escape(String first) {
+        // escape single quotes | compress multiple whitespace chars into one, (replacing tab, newline, etc)
+        return first.replaceAll("\\'", "\\'\\'").replaceAll("\\s+", " ");
+    }
+
 }

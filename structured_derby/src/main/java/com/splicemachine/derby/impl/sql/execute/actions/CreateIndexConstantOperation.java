@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Properties;
 
 import com.google.common.io.Closeables;
+import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.si.api.TransactionManager;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -735,7 +736,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                     uniqueWithDuplicateNulls,
                     SpliceUtils.bitSetFromBooleanArray(descColumns));
             DDLChange ddlChange = new DDLChange(tentativeTransaction.getTransactionIdString(),
-                    DDLChange.TentativeType.CREATE_INDEX);
+                    DDLChangeType.CREATE_INDEX);
             ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
             ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
 

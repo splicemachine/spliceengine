@@ -18,7 +18,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceUserWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-@Ignore()
+//@Ignore()
 public class DerbyAuthorizationAndAuthenticationIT extends SpliceUnitTest { 
     private static final String SCHEMA_NAME = DerbyAuthorizationAndAuthenticationIT.class.getSimpleName().toUpperCase();
     protected static final String USER1 = "john";

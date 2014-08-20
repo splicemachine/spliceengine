@@ -643,7 +643,6 @@
 								<argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
 								<argument>-Dcom.sun.management.jmxremote.port=10102</argument>
 								<argument>-Xmx8g</argument>
-								<argument>-javaagent:/Users/johnleach/Downloads/jolokia-jvm-1.2.2-agent.jar</argument>
 								<argument>-Xms1g</argument>
 								<argument>-XX:MaxPermSize=256M</argument>
 								<argument>-XX:+CMSClassUnloadingEnabled</argument>

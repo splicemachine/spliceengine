@@ -338,4 +338,12 @@ public class SpliceTransaction implements Transaction {
 		return state;
 	}
 
+    @Override
+    public String toString() {
+        return "SpliceTransaction{" +
+                "state=" + state +
+                ", transName='" + transName + '\'' +
+                ", transactionId=" + transactionId +
+                '}';
+    }
 }

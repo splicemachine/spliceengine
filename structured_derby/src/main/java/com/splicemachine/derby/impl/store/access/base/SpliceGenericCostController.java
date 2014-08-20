@@ -23,6 +23,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.sql.compile.SortState;
 import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -58,7 +59,7 @@ public abstract class SpliceGenericCostController extends GenericCostController 
 	protected static boolean isRegionInScan(Scan scan, HRegionInfo regionInfo) {
 		assert (scan != null);
 		assert (regionInfo != null);
-		return HRegionUtil.containsRange(regionInfo, scan.getStartRow(), scan.getStopRow());
+		return BytesUtil.overlap(regionInfo.getStartKey(), regionInfo.getEndKey(), scan.getStartRow(), scan.getStopRow());
 	}
 	
 	protected static long getRowSize(long constantRowSize, RegionLoad regionLoad, long hfileMaxSize) {
@@ -67,7 +68,7 @@ public abstract class SpliceGenericCostController extends GenericCostController 
 		if (regionLoad==null)
 			return constantRowSize; // No Metrics
 		float rowSize = (float) constantRowSize*((float) HBaseRegionLoads.memstoreAndStorefileSize(regionLoad)/(float) hfileMaxSize);
-		return rowSize < 20?20l:(long) rowSize;
+		return rowSize < SpliceConstants.optimizerTableMinimalRows?SpliceConstants.optimizerTableMinimalRows:(long) rowSize;
 	}
 	
     public static SortedSet<HRegionInfo> getRegions(long conglomId) {

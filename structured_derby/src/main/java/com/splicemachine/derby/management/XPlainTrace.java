@@ -64,9 +64,9 @@ public class XPlainTrace {
 
             populateMetrics();
 
-            aggregateLoops();
-
             aggregateSubqueries();
+
+            aggregateLoops();
 
             aggregateTableScan();
 
@@ -147,7 +147,8 @@ public class XPlainTrace {
 
     private void populateLoopsMap(XPlainTreeNode node, NavigableMap<Integer,
             List<XPlainTreeNode>> loopsMap, int level) {
-        if (node.isIndexScanOperation() || node.isTableScanOperation()) {
+        if (node.isIndexScanOperation() || node.isTableScanOperation() || node.isProjectRestrictOperation())
+        {
             Deque<XPlainTreeNode> children = node.getChildren();
             if (children != null && children.size() > 0 &&
                 children.getFirst().getOperationType().compareToIgnoreCase("ScrollInsensitive") == 0) {
@@ -334,9 +335,11 @@ public class XPlainTrace {
 
             populateMetrics();
 
+            aggregateSubqueries();
+
             aggregateLoops();
 
-            aggregateSubqueries();
+            aggregateTableScan();
         }
         return topOperation;
     }

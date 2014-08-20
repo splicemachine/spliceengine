@@ -60,10 +60,6 @@ public class TransactionAdmin {
 						new GenericColumnDescriptor("txnId",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
 		};
 
-		private static void throwNullArgError(Object value) {
-		    throw new IllegalArgumentException(String.format("Required argument %s is null.", value));	
-		}
-		
 		public static void SYSCS_GET_CURRENT_TRANSACTION(ResultSet[] resultSet) throws SQLException{
 				EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
 				TransactionId txnId= new TransactionId(getTransactionId(defaultConn.getLanguageConnection().getTransactionExecute()));
@@ -190,7 +186,6 @@ public class TransactionAdmin {
 		}
 
 		private static String getTransactionId(TransactionController tc) {
-			if (tc == null) throwNullArgError("tc");
 			org.apache.derby.iapi.store.raw.Transaction td = ((SpliceTransactionManager)tc).getRawTransaction();
 			return SpliceUtils.getTransID(td);
 		}

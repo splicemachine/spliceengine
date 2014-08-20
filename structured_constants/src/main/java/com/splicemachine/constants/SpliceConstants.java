@@ -433,22 +433,46 @@ public class SpliceConstants {
 		
         public static long regionMaxFileSize;
 
+        /**
+         * 
+         * This metric is multiplied by number of rows and cost to determine an effect of 1..n extra qualifiers on the source result set.
+         * 
+         */
 		@Parameter private static final String OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER = "splice.optimizer.extraQualifierMultiplier";
 		@DefaultValue(OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER) public static final double DEFAULT_OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER = 0.9d;
         public static double extraQualifierMultiplier;
 
+        /**
+         * This multiplier is applied to single region tables where their is a start stop qualifier (i.e. constrained on the first column).  This is 
+         * a rough estimate for cardinality (yikes).
+         * 
+         */
 		@Parameter private static final String OPTIMIZER_EXTRA_START_STOP_QUALIFIER_MULTIPLIER = "splice.optimizer.extraStartStopQualifierMultiplier";
 		@DefaultValue(OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER) public static final double DEFAULT_OPTIMIZER_EXTRA_START_STOP_QUALIFIER_MULTIPLIER = 0.5d;
         public static double extraStartStopQualifierMultiplier;
 
+        /**
+         * 
+         * The in-memory cost of hashing a number of records.  This cost is applied to make sure merge join is promoted for not having to perform a hash.
+         * 
+         */
 		@Parameter private static final String OPTIMIZER_HASH_COST = "splice.optimizer.hashCost";
 		@DefaultValue(OPTIMIZER_HASH_COST) public static final double DEFAULT_OPTIMIZER_HASH_COST = 0.01;
         public static double optimizerHashCost;
 
+        /**
+         * Network cost of calls.  This corresponds to how many network hops while reading remote data.
+         * 
+         */
 		@Parameter private static final String OPTIMIZER_NETWORK_COST = "splice.optimizer.networkCost";
 		@DefaultValue(OPTIMIZER_NETWORK_COST) public static final double DEFAULT_OPTIMIZER_NETWORK_COST = 2.00;
         public static double optimizerNetworkCost;        
 
+        /**
+         * 
+         * The cost of writing data in the case where you need to reshuffle the data.  This is a pretty expensive operation.
+         * 
+         */
 		@Parameter private static final String OPTIMIZER_WRITE_COST = "splice.optimizer.writeCost";
 		@DefaultValue(OPTIMIZER_NETWORK_COST) public static final double DEFAULT_OPTIMIZER_WRITE_COST = 3.00;
         public static double optimizerWriteCost;        
@@ -461,35 +485,75 @@ public class SpliceConstants {
 		@DefaultValue(HASHNLJ_RIGHTHASHTABLE_SIZE) public static final int DEFAULT_HASHNLJ_RIGHTHASHTABLE_SIZE = 1024;
         public static int hashNLJRightHashTableSize;
 
-        
+        /**
+         * Threshold in megabytes for the broadcast join region size.
+         * 
+         */
 		@Parameter private static final String BROADCAST_REGION_MB_THRESHOLD = "splice.optimizer.broadcastRegionMBThreshold";
 		@DefaultValue(BROADCAST_REGION_MB_THRESHOLD) public static final int DEFAULT_BROADCAST_REGION_MB_THRESHOLD = (int) (Runtime.getRuntime().maxMemory() / (1024l * 1024l * 100l));
         public static int broadcastRegionMBThreshold;
 
+        /**
+         * Estimate of the number of rows in a region.
+         * 
+         */
 		@Parameter private static final String HBASE_REGION_ROWS_ESTIMATE = "splice.optimizer.hbaseRegionRowsEstimate";
 		@DefaultValue(HBASE_REGION_ROWS_ESTIMATE) public static final long DEFAULT_HBASE_REGION_ROWS_ESTIMATE = 5000000;
         public static long hbaseRegionRowEstimate;
 
+        /**
+         * 
+         * Cost per Row for an Index.  The cost adjustment is really driving the percentage of columns in the index vs. the base table.
+         * 
+         */
 		@Parameter private static final String INDEX_PER_ROW_COST = "splice.optimizer.indexPerRowCost";
 		@DefaultValue(INDEX_PER_ROW_COST) public static final double DEFAULT_INDEX_PER_ROW_COST = 1.00d;
 		public static double indexPerRowCost;
 		
+		/**
+		 * 
+		 * Base Table Per Row Cost Multiplier.
+		 * 
+		 */
 		@Parameter private static final String BASE_TABLE_PER_ROW_COST = "splice.optimizer.baseTablePerRowCost";
 		@DefaultValue(BASE_TABLE_PER_ROW_COST) public static final double DEFAULT_BASE_TABLE_PER_ROW_COST = 1.0d;		
 		public static double baseTablePerRowCost;
 
+		/**
+		 * 
+		 * Cost for a random read from the base table from a sorted index (expensive).
+		 * 
+		 */
 		@Parameter private static final String FETCH_FROM_ROW_LOCATION_COST = "splice.optimizer.fetchFromRowLocationCost";
 		@DefaultValue(FETCH_FROM_ROW_LOCATION_COST) public static final double DEFAULT_FETCH_FROM_ROW_LOCATION_COST = 3.0d;		
 		public static double fetchFromRowLocationCost;
 
+		/**
+		 * 
+		 * A fetch from a primary key on a base table/
+		 * 
+		 */
 		@Parameter private static final String GET_BASE_TABLE_FETCH_FROM_FULL_KEY_COST = "splice.optimizer.getBaseTableFetchFromFullKeyCost";
 		@DefaultValue(GET_BASE_TABLE_FETCH_FROM_FULL_KEY_COST) public static final double DEFAULT_GET_BASE_TABLE_FETCH_FROM_FULL_KEY_COST = 1.0d;				
 		public static double getBaseTableFetchFromFullKeyCost;
 
+		/**
+		 * 
+		 * Cost for doing a single fetch from an index (cheap).
+		 * 
+		 */
 		@Parameter private static final String GET_INDEX_FETCH_FROM_FULL_KEY_COST = "splice.optimizer.getIndexFetchFromFullKeyCost";
 		@DefaultValue(GET_INDEX_FETCH_FROM_FULL_KEY_COST) public static final double DEFAULT_GET_INDEX_FETCH_FROM_FULL_KEY_COST = 0.1d;						
 		public static double getIndexFetchFromFullKeyCost;
-        
+
+		/**
+		 * 
+		 * The minimum number of rows for the optimizer to consider during a scan against an index or table.
+		 * 
+		 */
+		@Parameter private static final String OPTIMIZER_TABLE_MINIMAL_ROWS = "splice.optimizer.minimalRows";
+		@DefaultValue(OPTIMIZER_TABLE_MINIMAL_ROWS) public static final long DEFAULT_OPTIMIZER_TABLE_MINIMAL_ROWS = 20;						
+		public static long optimizerTableMinimalRows;
         
 		/**
 		 * The length of time (in seconds) to wait before killing a write thread which is not in use. Turning
@@ -573,7 +637,7 @@ public class SpliceConstants {
 		public static String authentication;
 		
 		@Parameter public static final String AUTHENTICATION_LDAP_SERVER = "splice.authentication.ldap.server";
-		@DefaultValue(AUTHENTICATION_LDAP_SERVER) public static final String DEFAULT_AUTHENTICATION_LDAP_SERVER = "localhost:9090";
+		@DefaultValue(AUTHENTICATION_LDAP_SERVER) public static final String DEFAULT_AUTHENTICATION_LDAP_SERVER = "localhost:389";
 		public static String authenticationLDAPServer;
 		
 		@Parameter public static final String AUTHENTICATION_LDAP_SEARCHAUTHDN = "splice.authentication.ldap.searchAuthDN";
@@ -1003,7 +1067,7 @@ public class SpliceConstants {
 				fetchFromRowLocationCost = SpliceConstants.config.getFloat(FETCH_FROM_ROW_LOCATION_COST, (float) DEFAULT_FETCH_FROM_ROW_LOCATION_COST);
 				getBaseTableFetchFromFullKeyCost = SpliceConstants.config.getFloat(GET_BASE_TABLE_FETCH_FROM_FULL_KEY_COST, (float) DEFAULT_GET_BASE_TABLE_FETCH_FROM_FULL_KEY_COST);
 				getIndexFetchFromFullKeyCost = SpliceConstants.config.getFloat(GET_INDEX_FETCH_FROM_FULL_KEY_COST, (float) DEFAULT_GET_INDEX_FETCH_FROM_FULL_KEY_COST);
-				
+				optimizerTableMinimalRows = SpliceConstants.config.getLong(OPTIMIZER_TABLE_MINIMAL_ROWS, DEFAULT_OPTIMIZER_TABLE_MINIMAL_ROWS);
 				if(ipcThreads < maxThreads){
             /*
              * Some of our writes will also write out to indices and/or read data from HBase, which

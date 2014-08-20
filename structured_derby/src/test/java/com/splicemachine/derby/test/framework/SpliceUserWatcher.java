@@ -10,6 +10,8 @@ import org.apache.log4j.Logger;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
+import com.splicemachine.constants.SpliceConstants;
+
 public class SpliceUserWatcher extends TestWatcher {
 	private static final Logger LOG = Logger.getLogger(SpliceUserWatcher.class);
 	public String userName;
@@ -40,6 +42,7 @@ public class SpliceUserWatcher extends TestWatcher {
 	}
 	
 	public void createUser(String userName, String password) {
+	  if (!SpliceConstants.authentication.toUpperCase().equals("LDAP")) {
 		Connection connection = null;
 		PreparedStatement statement = null;
 		try {
@@ -56,10 +59,11 @@ public class SpliceUserWatcher extends TestWatcher {
 			DbUtils.closeQuietly(statement);
 			DbUtils.commitAndCloseQuietly(connection);
 		}
-		
+	  }
 	}
 	
 	public void dropUser(String userName) {
+	  if (SpliceConstants.authentication.toUpperCase().equals("LDAP")) {
 		Connection connection = null;
 		PreparedStatement statement = null;
 		try {
@@ -80,6 +84,7 @@ public class SpliceUserWatcher extends TestWatcher {
 			DbUtils.closeQuietly(statement);
 			DbUtils.commitAndCloseQuietly(connection);
 		}
+	  }
 	}
 	
 	public void dropAndCreateUser(String userName, String password) {
