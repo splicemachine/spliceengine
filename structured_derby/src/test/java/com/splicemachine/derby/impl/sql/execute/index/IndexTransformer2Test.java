@@ -10,6 +10,8 @@ import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.junit.Assert;
 import org.junit.Test;
 
+import static org.junit.Assert.*;
+
 
 /**
  * @author Scott Fines
@@ -36,24 +38,25 @@ public class IndexTransformer2Test {
 
 				int[] indexKeyMap = new int[]{0,-1,-1,-1};
 				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
+                int srcColumnTypes[] = new int[] { StoredFormatIds.SQL_INTEGER_ID,  StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID };
 
-				IndexTransformer2 idx = new IndexTransformer2(true,true,"1.0",null,null,null,indexKeyMap,sourceAscDescInfo);
+				IndexTransformer2 idx = new IndexTransformer2(true,true,"1.0",null,srcColumnTypes,null,indexKeyMap,sourceAscDescInfo);
 
 				KVPair translated = idx.translate(kvPair);
 
 				byte[] key = translated.getRow();
 				Assert.assertNotNull("No row key set!", key);
-				Assert.assertTrue("No bytes in the row key!",key.length>0);
+				assertTrue("No bytes in the row key!", key.length > 0);
 
 				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(key);
 
-				Assert.assertTrue("Incorrect row key!",keyDecoder.nextIsNull());
+				assertTrue("Incorrect row key!", keyDecoder.nextIsNull());
 				keyDecoder.skipLong();
 
 				//need to check with a duplicate null entry
 				byte[] mainLoc = keyDecoder.decodeNextBytesUnsorted();
-				Assert.assertArrayEquals("Incorrect row reference!",kvPair.getRow(),mainLoc);
+				assertArrayEquals("Incorrect row reference!", kvPair.getRow(), mainLoc);
 		}
 
 		@Test
@@ -75,21 +78,22 @@ public class IndexTransformer2Test {
 
 				int[] indexKeyMap = new int[]{0,-1,-1,-1};
 				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
+                int srcColumnTypes[] = new int[] { StoredFormatIds.SQL_INTEGER_ID,  StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID };
 
-				IndexTransformer2 idx = new IndexTransformer2(true,false,"1.0",null,null,null,indexKeyMap,sourceAscDescInfo);
+				IndexTransformer2 idx = new IndexTransformer2(true,false,"1.0",null,srcColumnTypes,null,indexKeyMap,sourceAscDescInfo);
 
 				KVPair translated = idx.translate(kvPair);
 
 				byte[] key = translated.getRow();
 				Assert.assertNotNull("No row key set!", key);
-				Assert.assertTrue("No bytes in the row key!",key.length>0);
+				assertTrue("No bytes in the row key!", key.length > 0);
 
 				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(key);
 
 				int keyField = keyDecoder.decodeNextInt();
-				Assert.assertEquals("incorrect key value!",1,keyField);
-				Assert.assertFalse("Data is still present in the key!", keyDecoder.available());
+				assertEquals("incorrect key value!", 1, keyField);
+				assertFalse("Data is still present in the key!", keyDecoder.available());
 		}
 
 		@Test
@@ -111,22 +115,23 @@ public class IndexTransformer2Test {
 
 				int[] indexKeyMap = new int[]{0,-1,-1,-1};
 				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
+                int srcColumnTypes[] = new int[] { StoredFormatIds.SQL_INTEGER_ID,  StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID };
 
-				IndexTransformer2 idx = new IndexTransformer2(false,false,"1.0",null,null,null,indexKeyMap,sourceAscDescInfo);
+				IndexTransformer2 idx = new IndexTransformer2(false,false,"1.0",null,srcColumnTypes,null,indexKeyMap,sourceAscDescInfo);
 
 				KVPair translated = idx.translate(kvPair);
 
 				byte[] key = translated.getRow();
 				Assert.assertNotNull("No row key set!", key);
-				Assert.assertTrue("No bytes in the row key!",key.length>0);
+				assertTrue("No bytes in the row key!", key.length > 0);
 
 				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(key);
 
 				int keyField = keyDecoder.decodeNextInt();
-				Assert.assertEquals("incorrect key value!",1,keyField);
+				assertEquals("incorrect key value!", 1, keyField);
 				byte[] mainLoc = keyDecoder.decodeNextBytesUnsorted();
-				Assert.assertArrayEquals("Incorrect row reference!",kvPair.getRow(),mainLoc);
+				assertArrayEquals("Incorrect row reference!", kvPair.getRow(), mainLoc);
 		}
 
 		@Test
@@ -148,23 +153,25 @@ public class IndexTransformer2Test {
 
 				int[] indexKeyMap = new int[]{0,1,-1,-1};
 				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
+                int[] sourceKeyTypes = new int[]{StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID};
 
-				IndexTransformer2 idx = new IndexTransformer2(false,false,"1.0",null,null,null,indexKeyMap,sourceAscDescInfo);
+
+                IndexTransformer2 idx = new IndexTransformer2(false,false,"1.0",null,sourceKeyTypes,null,indexKeyMap,sourceAscDescInfo);
 
 				KVPair translated = idx.translate(kvPair);
 
 				byte[] key = translated.getRow();
 				Assert.assertNotNull("No row key set!", key);
-				Assert.assertTrue("No bytes in the row key!",key.length>0);
+				assertTrue("No bytes in the row key!", key.length > 0);
 
 				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(key);
 
 				int keyField = keyDecoder.decodeNextInt();
-				Assert.assertEquals("incorrect key value!",1,keyField);
-				Assert.assertEquals("incorrect key value!",2,keyDecoder.decodeNextInt());
+				assertEquals("incorrect key value!", 1, keyField);
+				assertEquals("incorrect key value!", 2, keyDecoder.decodeNextInt());
 				byte[] mainLoc = keyDecoder.decodeNextBytesUnsorted();
-				Assert.assertArrayEquals("Incorrect row reference!",kvPair.getRow(),mainLoc);
+				assertArrayEquals("Incorrect row reference!", kvPair.getRow(), mainLoc);
 		}
 
 		@Test
@@ -198,16 +205,16 @@ public class IndexTransformer2Test {
 
 				byte[] key = translated.getRow();
 				Assert.assertNotNull("No row key set!", key);
-				Assert.assertTrue("No bytes in the row key!",key.length>0);
+				assertTrue("No bytes in the row key!", key.length > 0);
 
 				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(key);
 
 				int keyField = keyDecoder.decodeNextInt();
-				Assert.assertEquals("incorrect key value!",1,keyField);
+				assertEquals("incorrect key value!", 1, keyField);
 //				Assert.assertEquals("incorrect key value!",2,keyDecoder.decodeNextInt());
 				byte[] mainLoc = keyDecoder.decodeNextBytesUnsorted();
-				Assert.assertArrayEquals("Incorrect row reference!",kvPair.getRow(),mainLoc);
+				assertArrayEquals("Incorrect row reference!", kvPair.getRow(), mainLoc);
 		}
 
 		@Test
@@ -215,41 +222,42 @@ public class IndexTransformer2Test {
 				BitSet nonNullFields = new BitSet();
 				nonNullFields.set(0,4);
 				nonNullFields.clear(0);
-				BitSet scalarFields = new BitSet();
+
+                BitSet scalarFields = new BitSet();
 				scalarFields.set(0,4);
 				BitSet floatFields = new BitSet();
 				BitSet doubleFields = new BitSet();
 
-				EntryEncoder row = EntryEncoder.create(SpliceKryoRegistry.getInstance(),4,
-								nonNullFields,scalarFields,floatFields,doubleFields);
-				row.getEntryEncoder().encodeNext(2).encodeNext(3).encodeNext(4);
+				EntryEncoder srcValueEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(), 4 ,
+								nonNullFields, scalarFields, floatFields, doubleFields);
 
-				byte[] rowData = row.encode();
+				srcValueEncoder.getEntryEncoder().encodeNext(2).encodeNext(3).encodeNext(4);
 
-				KVPair kvPair = new KVPair(Encoding.encode(1),rowData);
+                byte[] srcRowKey = Encoding.encode(1);
+				byte[] srcValue = srcValueEncoder.encode();
+
+                KVPair srcKvPair = new KVPair(srcRowKey, srcValue);
 
 				int[] indexKeyMap = new int[]{0,-1,-1,-1};
 				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
-				int[] sourceKeyEncodingOrder = new int[]{0};
-				int[] sourceKeyTypes = new int[]{StoredFormatIds.SQL_INTEGER_ID};
+				int[] sourceKeyTypes = new int[]{StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID};
 
-				IndexTransformer2 idx = new IndexTransformer2(false,false,"1.0",
-								null,sourceKeyTypes,null,
-								indexKeyMap,sourceAscDescInfo);
+				IndexTransformer2 transformer = new IndexTransformer2(false,false,"1.0",null,sourceKeyTypes,null,
+                        indexKeyMap,sourceAscDescInfo);
 
-				KVPair translated = idx.translate(kvPair);
+				KVPair translated = transformer.translate(srcKvPair);
 
-				byte[] key = translated.getRow();
-				Assert.assertNotNull("No row key set!", key);
-				Assert.assertTrue("No bytes in the row key!",key.length>0);
+				byte[] indexRowKey = translated.getRow();
+				Assert.assertNotNull("No row key set!", indexRowKey);
+				assertTrue("No bytes in the row key!", indexRowKey.length > 0);
 
 				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
-				keyDecoder.set(key);
+				keyDecoder.set(indexRowKey);
 
-				Assert.assertTrue("Incorrectly missed a null entry!",keyDecoder.nextIsNull());
+				assertTrue("Incorrectly missed a null entry!", keyDecoder.nextIsNull());
 				keyDecoder.skipLong();
 				byte[] mainLoc = keyDecoder.decodeNextBytesUnsorted();
-				Assert.assertArrayEquals("Incorrect row reference!",kvPair.getRow(),mainLoc);
+				assertArrayEquals("Incorrect row reference!", srcKvPair.getRow(), mainLoc);
 		}
 
 		@Test
@@ -273,26 +281,27 @@ public class IndexTransformer2Test {
 				int[] indexKeyMap = new int[]{0,1,-1,-1};
 				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
 				int[] sourceKeyEncodingOrder = new int[]{0};
-				int[] sourceKeyTypes = new int[]{StoredFormatIds.SQL_INTEGER_ID};
+                int srcColumnTypes[] = new int[] { StoredFormatIds.SQL_INTEGER_ID,  StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID };
 
-				IndexTransformer2 idx = new IndexTransformer2(false,false,"1.0",
-								sourceKeyEncodingOrder,sourceKeyTypes,null,
+
+            IndexTransformer2 idx = new IndexTransformer2(false,false,"1.0",
+								sourceKeyEncodingOrder,srcColumnTypes,null,
 								indexKeyMap,sourceAscDescInfo);
 
 				KVPair translated = idx.translate(kvPair);
 
 				byte[] key = translated.getRow();
 				Assert.assertNotNull("No row key set!", key);
-				Assert.assertTrue("No bytes in the row key!",key.length>0);
+				assertTrue("No bytes in the row key!", key.length > 0);
 
 				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(key);
 
 				int keyField = keyDecoder.decodeNextInt();
-				Assert.assertEquals("incorrect key value!",1,keyField);
-				Assert.assertEquals("incorrect key value!",2,keyDecoder.decodeNextInt());
+				assertEquals("incorrect key value!", 1, keyField);
+				assertEquals("incorrect key value!", 2, keyDecoder.decodeNextInt());
 				byte[] mainLoc = keyDecoder.decodeNextBytesUnsorted();
-				Assert.assertArrayEquals("Incorrect row reference!",kvPair.getRow(),mainLoc);
+				assertArrayEquals("Incorrect row reference!", kvPair.getRow(), mainLoc);
 		}
 
 		@Test
@@ -316,26 +325,27 @@ public class IndexTransformer2Test {
 				int[] indexKeyMap = new int[]{0,1,-1,-1};
 				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
 				int[] sourceKeyEncodingOrder = new int[]{0};
-				int[] sourceKeyTypes = new int[]{StoredFormatIds.SQL_INTEGER_ID};
+                int srcColumnTypes[] = new int[] { StoredFormatIds.SQL_INTEGER_ID,  StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID };
 
-				IndexTransformer2 idx = new IndexTransformer2(false,false,"1.0",
-								sourceKeyEncodingOrder,sourceKeyTypes,new boolean[]{true},
+
+            IndexTransformer2 idx = new IndexTransformer2(false,false,"1.0",
+								sourceKeyEncodingOrder,srcColumnTypes,new boolean[]{true},
 								indexKeyMap,sourceAscDescInfo);
 
 				KVPair translated = idx.translate(kvPair);
 
 				byte[] key = translated.getRow();
 				Assert.assertNotNull("No row key set!", key);
-				Assert.assertTrue("No bytes in the row key!",key.length>0);
+				assertTrue("No bytes in the row key!", key.length > 0);
 
 				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
 				keyDecoder.set(key);
 
 				int keyField = keyDecoder.decodeNextInt();
-				Assert.assertEquals("incorrect key value!",1,keyField);
-				Assert.assertEquals("incorrect key value!",2,keyDecoder.decodeNextInt());
+				assertEquals("incorrect key value!", 1, keyField);
+				assertEquals("incorrect key value!", 2, keyDecoder.decodeNextInt());
 				byte[] mainLoc = keyDecoder.decodeNextBytesUnsorted();
-				Assert.assertArrayEquals("Incorrect row reference!",kvPair.getRow(),mainLoc);
+				assertArrayEquals("Incorrect row reference!", kvPair.getRow(), mainLoc);
 		}
 
 }
