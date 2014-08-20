@@ -252,9 +252,9 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 
 				if(readOnly)
 						return ReadOnlyTxn.createReadOnlyTransaction(txnId,
-										txnSupplier.getTransaction(parentTxnId), beginTs, level, true, false,control);
+										txnSupplier.getTransaction(parentTxnId), beginTs, level, false,control);
 				else{
-						return new WritableTxn(txnId,beginTs,level, txnSupplier.getTransaction(parentTxnId),control,true,false);
+						return new WritableTxn(txnId,beginTs,level, txnSupplier.getTransaction(parentTxnId),control, false);
 				}
 		}
 }

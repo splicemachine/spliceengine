@@ -33,8 +33,8 @@ import org.junit.runners.Suite;
 				ActiveTxnCacheTest.class,
 				RegionTxnStoreTest.class,
 				SynchronousReadResolverTest.class,
-//				CompactionTest.class,
-                TransactionStatusTest.class
+        ActiveTransactionTest.class,
+        TransactionStatusTest.class
 })
 @RunWith(Suite.class)
 public class MemorySuite{

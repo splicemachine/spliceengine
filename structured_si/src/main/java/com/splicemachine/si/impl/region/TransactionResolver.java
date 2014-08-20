@@ -152,8 +152,9 @@ public class TransactionResolver {
         public void onEvent(TxnResolveEvent event, long sequence, boolean endOfBatch) throws Exception {
             if(event.timedOut){
                 resolveTimeOut(event.txnRegion,event.txnId,event.oldForm);
-            }else
-                resolveCommit(event.txnRegion,event.txnId,event.oldForm);
+            }
+//            else
+//                resolveCommit(event.txnRegion,event.txnId,event.oldForm);
         }
     }
 

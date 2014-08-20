@@ -321,5 +321,13 @@ public class InMemoryTxnStore implements TxnStore {
 						this.txn = txn;
 						this.keepAliveTs = System.currentTimeMillis();
 				}
-		}
+
+        @Override
+        public String toString() {
+            return "TxnHolder{" +
+                    "txn=" + txn +
+                    ", keepAliveTs=" + keepAliveTs +
+                    '}';
+        }
+    }
 }

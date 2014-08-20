@@ -13,14 +13,19 @@ import com.splicemachine.si.data.hbase.HDataLib;
 import com.splicemachine.si.data.hbase.HTableReader;
 import com.splicemachine.si.data.hbase.HTableWriter;
 import com.splicemachine.si.data.hbase.IHTable;
-import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.STableReaderDelegate;
+import com.splicemachine.si.impl.SystemClock;
+import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.store.LazyTxnSupplier;
 import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
+import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
@@ -85,8 +90,10 @@ public class HStoreSetup implements StoreSetup {
 						ZkUtils.initializeZookeeper();
 
 						tableSource = new TestHTableSource(testCluster,new String[]{SpliceConstants.DEFAULT_FAMILY,SIConstants.DEFAULT_FAMILY});
-            tableSource.addTable(testCluster, SpliceConstants.TRANSACTION_TABLE, new String[]{
-										SIConstants.DEFAULT_FAMILY, SIConstants.SI_PERMISSION_FAMILY});
+            HBaseAdmin admin = testCluster.getHBaseAdmin();
+            HTableDescriptor td = SpliceUtilities.generateTransactionTable();
+            admin.createTable(td, SpliceUtilities.generateTransactionSplits());
+
 						tableSource.addPackedTable(getPersonTableName());
 
 						CoprocessorTxnStore txnS = new CoprocessorTxnStore(new SpliceHTableFactory(true),timestampSource,null);

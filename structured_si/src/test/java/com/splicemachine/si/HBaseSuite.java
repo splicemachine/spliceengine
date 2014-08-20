@@ -3,7 +3,6 @@ package com.splicemachine.si;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionStatusTest;
 import com.splicemachine.si.txn.JtaXAResourceHBaseTest;
 import com.splicemachine.si.txn.TransactionManagerHBaseTest;
 import org.junit.AfterClass;
@@ -19,9 +18,9 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({JtaXAResourceHBaseTest.class,
 				TransactionManagerHBaseTest.class,
 				SIFilterHBaseTest.class,
-	//			HbasePackedAsyncRollForwardTest.class,
 				SITransactorHBasePackedTest.class,
-				HBasePackedCompactionTest.class
+				HBasePackedCompactionTest.class,
+        HBaseActiveTransactionTest.class
 })
 @RunWith(Suite.class)
 @Ignore("Temporary ignoring")

@@ -98,41 +98,23 @@ public interface TxnLifecycleManager {
 		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, byte[] destinationTable) throws IOException;
 
 		/**
-		 * Create a Child transaction of the parent, inheriting the additive property from its parent.
-		 *
-		 * this is functionally equivalent to calling
-		 * {@code beginChildTransaction(parentTxn,isolationLevel,dependent,parentTxn.isAdditive(),destinationTable)};
-		 *
-		 * @param parentTxn the parent transaction, or {@code null} if this is a top-level transaction. If {@code null},
-		 *                  then the default values supplied by {@link Txn#ROOT_TRANSACTION} will be used for isolation level,
-		 *                  dependent, and additive properties.
-		 * @param isolationLevel the isolation level to use for reads
-		 * @param destinationTable a table to which writes are to proceed, or {@code null} if the transaction
-		 *                         is to start as read-only.
-		 * @return a new transaction with inherited properties
-		 * @throws IOException if something goes wrong in creating the transaction
-		 */
-		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel,boolean dependent, byte[] destinationTable) throws IOException;
-
-		/**
 		 * Begin a child transaction of the parent.
 		 *
-		 * @param isolationLevel the isolation level to use for reads
-		 * @param isDependent if the transaction is dependent on the parent transaction's lifecycle
-		 * @param additive If this is a write transaction, whether it is considered "additive". If {@code true}, then
-		 *                 this transaction will not throw Write/Write conflicts. If {@code destinationTable==null},
-		 *                 then this is carried through until a writable transaction is created.
-		 * @param parentTxn the parent transaction, or {@code null} if this is a top-level transaction
-		 * @param destinationTable a table to which writes are to proceed, or {@code null} if the transaction
-		 *                         is to start as read-only.
-		 * @return a new child transaction
+		 *
+     * @param parentTxn the parent transaction, or {@code null} if this is a top-level transaction
+     * @param isolationLevel the isolation level to use for reads
+     * @param additive If this is a write transaction, whether it is considered "additive". If {@code true}, then
+     *                 this transaction will not throw Write/Write conflicts. If {@code destinationTable==null},
+     *                 then this is carried through until a writable transaction is created.
+     * @param destinationTable a table to which writes are to proceed, or {@code null} if the transaction
+     *                         is to start as read-only.
+     * @return a new child transaction
 		 * @throws java.io.IOException if something goes wrong in creating the transaction
 		 */
 		public Txn beginChildTransaction(TxnView parentTxn,
-																		 Txn.IsolationLevel isolationLevel,
-																		 boolean isDependent,
-																		 boolean additive,
-																		 byte[] destinationTable) throws IOException;
+                                     Txn.IsolationLevel isolationLevel,
+                                     boolean additive,
+                                     byte[] destinationTable) throws IOException;
 
 		/**
 		 * Elevate a transaction from a read-only transaction to one which allows writes. This

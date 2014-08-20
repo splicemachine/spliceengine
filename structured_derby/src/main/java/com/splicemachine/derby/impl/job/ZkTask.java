@@ -435,7 +435,6 @@ public abstract class ZkTask implements RegionTask,Externalizable {
         }
 
         return new InheritingTxnView(ppParent,parentTxnId,parentTxnId,level,
-                true,false,
                 true,additive,true,allowWrites,
                 -1l,-1l, Txn.State.ACTIVE);
 		}

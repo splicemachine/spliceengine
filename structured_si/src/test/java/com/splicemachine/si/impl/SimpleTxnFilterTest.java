@@ -92,7 +92,7 @@ public class SimpleTxnFilterTest {
 				Map<Long,Txn> txnMap = Maps.newHashMap();
 				TxnSupplier baseStore = getMapStore(txnMap);
 
-				Txn active = new WritableTxn(1l,1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,null,mock(TxnLifecycleManager.class),false,false);
+				Txn active = new WritableTxn(1l,1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,null,mock(TxnLifecycleManager.class), false);
 				txnMap.put(active.getTxnId(),active);
 
 				assertActive(baseStore,active,2l);
@@ -107,8 +107,8 @@ public class SimpleTxnFilterTest {
 				Map<Long,Txn> txnMap = Maps.newHashMap();
 				TxnSupplier baseStore = getMapStore(txnMap);
 
-				Txn active = new WritableTxn(1l,1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,null,mock(TxnLifecycleManager.class),false,false);
-				Txn child = new WritableTxn(2l,2l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,active,mock(TxnLifecycleManager.class),false,false);
+				Txn active = new WritableTxn(1l,1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,null,mock(TxnLifecycleManager.class), false);
+				Txn child = new WritableTxn(2l,2l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,active,mock(TxnLifecycleManager.class), false);
 				txnMap.put(active.getTxnId(),active);
 				txnMap.put(child.getTxnId(),child);
 
@@ -347,7 +347,7 @@ public class SimpleTxnFilterTest {
 
 		private void assertActive(TxnSupplier baseStore, Txn active,long readTs) throws IOException{
 				DataStore ds = getMockDataStore();
-				Txn myTxn = new ReadOnlyTxn(readTs,readTs, Txn.IsolationLevel.SNAPSHOT_ISOLATION,null,mock(TxnLifecycleManager.class),false,false);
+				Txn myTxn = new ReadOnlyTxn(readTs,readTs, Txn.IsolationLevel.SNAPSHOT_ISOLATION,null,mock(TxnLifecycleManager.class),false);
 
 				ReadResolver resolver = getActiveReadResolver();
 

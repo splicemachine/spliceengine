@@ -8,11 +8,9 @@ import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.TransactionId;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -20,11 +18,9 @@ import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.depend.DependencyManager;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -94,7 +90,7 @@ public class DropIndexConstantOperation2 extends IndexConstantOperation{
 				//create a second nested transaction
 				TxnView parent = ((SpliceTransactionManager)tc).getActiveStateTxn();
 				try {
-            Txn pipelineTxn = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parent, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,false,null);
+            Txn pipelineTxn = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parent, Txn.IsolationLevel.SNAPSHOT_ISOLATION, false,null);
 //						TransactionId pipelineTxn = HTransactorFactory.getTransactionManager().beginChildTransaction(parent, true,false);
 						List<TxnView> toIgnore = Arrays.asList(parent, pipelineTxn);
 						//wait to ensure that all previous transactions terminate

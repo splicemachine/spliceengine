@@ -109,8 +109,6 @@ public class ActiveTransactionReader {
 
                     if(denseTxn.hasAdditiveField())
                         tvb = tvb.additive(denseTxn.isAdditive());
-                    if(denseTxn.hasDependentField())
-                        tvb = tvb.dependent(denseTxn.isDependent());
 
                     try {
                         return tvb.build();

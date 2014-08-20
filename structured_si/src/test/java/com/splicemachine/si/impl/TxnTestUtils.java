@@ -38,8 +38,6 @@ public class TxnTestUtils {
 				Assert.assertEquals(baseErrorMessage + " TxnIds differ", correct.getTxnId(), actual.getTxnId());
 				Assert.assertEquals(baseErrorMessage + " Parent txn ids differ", correct.getParentTxnId(), actual.getParentTxnId());
 				Assert.assertEquals(baseErrorMessage + " Begin timestamps differ", correct.getBeginTimestamp(), actual.getBeginTimestamp());
-				Assert.assertEquals(baseErrorMessage + " HasDependent property differs", correct.hasDependentField(), actual.hasDependentField());
-				Assert.assertEquals(baseErrorMessage + " Dependent property differs", correct.isDependent(), actual.isDependent());
 				Assert.assertEquals(baseErrorMessage + " HasAdditive property differs", correct.hasAdditiveField(), actual.hasAdditiveField());
 				Assert.assertEquals(baseErrorMessage + " Additive property differs", correct.isAdditive(), actual.isAdditive());
 				Assert.assertEquals(baseErrorMessage + " Isolation level differs", correct.getIsolationLevel(), actual.getIsolationLevel());

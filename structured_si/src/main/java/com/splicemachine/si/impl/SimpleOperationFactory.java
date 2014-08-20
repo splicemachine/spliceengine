@@ -94,7 +94,7 @@ public class SimpleOperationFactory implements TxnOperationFactory {
             parentTxn = Txn.ROOT_TRANSACTION;
         }else
             parentTxn = txnSupplier.getTransaction(parentTxnId);
-				return new ReadOnlyTxn(beginTs,beginTs,isoLevel,parentTxn,UnsupportedLifecycleManager.INSTANCE,false,false);
+				return new ReadOnlyTxn(beginTs,beginTs,isoLevel,parentTxn,UnsupportedLifecycleManager.INSTANCE,false);
 		}
 
 		@Override

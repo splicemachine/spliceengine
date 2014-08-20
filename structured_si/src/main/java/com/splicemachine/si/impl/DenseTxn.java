@@ -16,7 +16,6 @@ public class DenseTxn extends SparseTxn {
                     long parentTxnId,
                     long commitTimestamp,
                     long globalCommitTimestamp,
-                    boolean hasDependentField, boolean dependent,
                     boolean hasAdditiveField, boolean additive,
                     Txn.IsolationLevel isolationLevel,
                     Txn.State state,
@@ -24,7 +23,6 @@ public class DenseTxn extends SparseTxn {
                     long lastKeepAliveTime) {
         super(txnId, beginTimestamp, parentTxnId,
                 commitTimestamp, globalCommitTimestamp,
-                hasDependentField, dependent,
                 hasAdditiveField, additive, isolationLevel, state, destTableBuffer);
         this.lastKATime = lastKeepAliveTime;
     }

@@ -16,7 +16,6 @@ import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Status;
-import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
@@ -35,7 +34,6 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -219,7 +217,7 @@ public class SinkTask extends ZkTask {
 				if(instructions.getTopOperation() instanceof DMLWriteOperation){
 						table = ((DMLWriteOperation)instructions.getTopOperation()).getDestinationTable();
 				}
-				return tc.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),true,false,table);
+				return tc.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(), false,table);
 		}
 
 		@Override

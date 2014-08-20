@@ -17,10 +17,8 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
-import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionLifecycle;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.ExceptionSeverity;
@@ -40,7 +38,6 @@ import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
 import org.apache.derby.impl.sql.execute.ValueRow;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HConstants;
@@ -310,7 +307,7 @@ public class HdfsImport {
 
 				Txn childTransaction;
 				try {
-						childTransaction = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, true, conglomBytes);
+						childTransaction = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, conglomBytes);
 				} catch (IOException e) {
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
 				}
