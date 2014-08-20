@@ -60,15 +60,8 @@ public class ForwardingLifecycleManager implements TxnLifecycleManager{
 		}
 
 		@Override
-		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean dependent, byte[] destinationTable) throws IOException {
-				Txn txn = lifecycleManager.beginChildTransaction(parentTxn, isolationLevel, dependent, destinationTable);
-				afterStart(txn);
-				return txn;
-		}
-
-		@Override
-		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean isDependent, boolean additive, byte[] destinationTable) throws IOException {
-				Txn txn = lifecycleManager.beginChildTransaction(parentTxn, isolationLevel, isDependent, additive, destinationTable);
+		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable) throws IOException {
+				Txn txn = lifecycleManager.beginChildTransaction(parentTxn, isolationLevel, additive, destinationTable);
 				afterStart(txn);
 				return txn;
 		}

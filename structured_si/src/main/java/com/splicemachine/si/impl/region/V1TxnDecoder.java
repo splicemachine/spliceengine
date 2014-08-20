@@ -202,6 +202,6 @@ public class V1TxnDecoder extends TxnDecoder{
         }
 
         return new DenseTxn(txnId,beginTs,parentTs,
-                commitTs,globalCommitTs,hasDependent,dependent,hasAdditive,additive,level,state,destTableBuffer,kaTime);
+                commitTs,globalCommitTs, hasAdditive,additive,level,state,destTableBuffer,kaTime);
     }
 }

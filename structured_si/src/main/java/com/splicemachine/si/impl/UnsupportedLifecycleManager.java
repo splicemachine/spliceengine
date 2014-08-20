@@ -42,16 +42,11 @@ public class UnsupportedLifecycleManager implements TxnLifecycleManager {
 
 		@Override
 		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, byte[] destinationTable) throws IOException {
-				return beginChildTransaction(parentTxn,isolationLevel,false,destinationTable);
+				return beginChildTransaction(parentTxn,isolationLevel, false,destinationTable);
 		}
 
 		@Override
-		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean dependent, byte[] destinationTable) throws IOException {
-				return beginChildTransaction(parentTxn,isolationLevel,false,false,destinationTable);
-		}
-
-		@Override
-		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean isDependent, boolean additive, byte[] destinationTable) throws IOException {
+		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean additive, byte[] destinationTable) throws IOException {
 				throw new UnsupportedOperationException("Cannot create new transactions from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 		}
 

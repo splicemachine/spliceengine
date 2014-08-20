@@ -44,7 +44,7 @@ public class SynchronousReadResolverTest {
             }
         }).when(tc).rollback(1l);
 
-				Txn rolledBackTxn = new WritableTxn(1l,1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc,false,false);
+				Txn rolledBackTxn = new WritableTxn(1l,1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc, false);
 				store.recordNewTransaction(rolledBackTxn);
         rolledBackTxn.rollback(); //ensure that it's rolled back
 
@@ -57,7 +57,7 @@ public class SynchronousReadResolverTest {
 				region.put(testPut);
 
 				Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(2l,Txn.ROOT_TRANSACTION,2l,
-								Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,false,mock(TxnLifecycleManager.class));
+								Txn.IsolationLevel.SNAPSHOT_ISOLATION, false,mock(TxnLifecycleManager.class));
 				SimpleTxnFilter filter = new SimpleTxnFilter(store,readTxn,resolver,TxnTestUtils.getMockDataStore());
 
 				Result result = region.get(new Get(rowKey));
@@ -88,7 +88,7 @@ public class SynchronousReadResolverTest {
                 return null;
             }
         }).when(tc).commit(anyLong());
-				Txn committedTxn = new WritableTxn(1l,1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc,false,false);
+				Txn committedTxn = new WritableTxn(1l,1l, Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc, false);
 				store.recordNewTransaction(committedTxn);
         committedTxn.commit();
 
@@ -101,7 +101,7 @@ public class SynchronousReadResolverTest {
 				region.put(testPut);
 
 				Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(2l,Txn.ROOT_TRANSACTION,2l,
-								Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,false,mock(TxnLifecycleManager.class));
+								Txn.IsolationLevel.SNAPSHOT_ISOLATION, false,mock(TxnLifecycleManager.class));
 				SimpleTxnFilter filter = new SimpleTxnFilter(store,readTxn,resolver,TxnTestUtils.getMockDataStore());
 
 				Result result = region.get(new Get(rowKey));
@@ -134,7 +134,7 @@ public class SynchronousReadResolverTest {
 				tc.setKeepAliveScheduler(new ManualKeepAliveScheduler(store));
 				Txn parentTxn = tc.beginTransaction(Bytes.toBytes("1184"));
 
-				Txn childTxn = tc.beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,false,Bytes.toBytes("1184"));
+				Txn childTxn = tc.beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, false,Bytes.toBytes("1184"));
 
 				byte[] rowKey = Encoding.encode("hello");
 				Put testPut = new Put(rowKey);

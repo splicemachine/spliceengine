@@ -171,8 +171,7 @@ public interface Txn extends TxnView{
 				SNAPSHOT_ISOLATION(3){
 						@Override
 						public boolean canSee(long beginTimestamp, TxnView otherTxn,boolean isParent) {
-								return otherTxn.getEffectiveState() == State.COMMITTED
-												&& otherTxn.getEffectiveCommitTimestamp() < beginTimestamp;
+                return otherTxn.getState()==State.COMMITTED && otherTxn.getCommitTimestamp() <= beginTimestamp;
 						}
 
             @Override public String toHumanFriendlyString() { return "SNAPSHOT ISOLATION"; }

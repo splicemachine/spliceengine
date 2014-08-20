@@ -304,11 +304,11 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
             if(txnInformation==null) return null; //no transaction to commit
             TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
             if(!txnInformation.allowsWrites())
-                txn = ReadOnlyTxn.createReadOnlyChildTransaction(txnInformation.getParentTxnView(), lifecycleManager,true,false);
+                txn = ReadOnlyTxn.createReadOnlyChildTransaction(txnInformation.getParentTxnView(), lifecycleManager, false);
             else
                 txn =new WritableTxn(txnInformation.getTxnId(),
                         txnInformation.getBeginTimestamp(),
-                        txnInformation.getIsolationLevel(),txnInformation.getParentTxnView(),lifecycleManager,true,false);
+                        txnInformation.getIsolationLevel(),txnInformation.getParentTxnView(),lifecycleManager, false);
         }
         return txn;
     }

@@ -24,7 +24,6 @@ import org.junit.*;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -130,7 +129,7 @@ public class SITransactorTest extends SIConstants {
 		@Ignore("This test doesn't make sense, because a child must commit before the parent can")
 		public void testGetActiveTransactionsFiltersOutChildrenCommit() throws Exception {
 				Txn parent = control.beginTransaction(DESTINATION_TABLE);
-				Txn child = control.beginChildTransaction(parent,parent.getIsolationLevel(),true,DESTINATION_TABLE);
+				Txn child = control.beginChildTransaction(parent,parent.getIsolationLevel(), DESTINATION_TABLE);
 				long[] activeTxns = txnStore.getActiveTransactionIds(child, null);
 				Assert.assertEquals("Incorrect size",2,activeTxns.length);
 				Arrays.sort(activeTxns);
@@ -147,45 +146,9 @@ public class SITransactorTest extends SIConstants {
 				Assert.assertEquals("Incorrect transaction returned!",next.getTxnId(),activeTxns[0]);
 		}
 
-		@Test
-		public void testGetActiveWriteTransactionsShowsWriteTransactions() throws Exception {
-				Txn parent = control.beginTransaction(DESTINATION_TABLE);
-
-				long[] ids = txnStore.getActiveTransactionIds(parent, null);
-				Assert.assertEquals("Incorrect size",1,ids.length);
-				Assert.assertArrayEquals("Incorrect values", new long[]{parent.getTxnId()}, ids);
-
-				TimestampSource timestampSource = transactorSetup.timestampSource;
-				timestampSource.nextTimestamp();
-				timestampSource.nextTimestamp();
 
 
-				//now see if a read-only doesn't show
-				Txn next = control.beginTransaction();
-				ids = txnStore.getActiveTransactionIds(next, null);
-				Assert.assertEquals("Incorrect size",1,ids.length);
-				Assert.assertArrayEquals("Incorrect values", new long[]{parent.getTxnId()}, ids);
-		}
 
-		@Test
-		public void testGetActiveTransactionsWorksWithGap() throws Exception {
-				Txn parent = control.beginTransaction(DESTINATION_TABLE);
-
-				long[] ids = txnStore.getActiveTransactionIds(parent, null);
-				Assert.assertEquals("Incorrect size",1,ids.length);
-				Assert.assertArrayEquals("Incorrect values", new long[]{parent.getTxnId()}, ids);
-
-				TimestampSource timestampSource = transactorSetup.timestampSource;
-				timestampSource.nextTimestamp();
-				timestampSource.nextTimestamp();
-
-
-				Txn next = control.beginTransaction(DESTINATION_TABLE);
-				ids = txnStore.getActiveTransactionIds(next, null);
-				Assert.assertEquals("Incorrect size",2,ids.length);
-				Arrays.sort(ids);
-				Assert.assertArrayEquals("Incorrect values",new long[]{parent.getTxnId(),next.getTxnId()},ids);
-		}
 
 		@Test
 		public void testChildTransactionsInterleave() throws Exception {
@@ -203,34 +166,52 @@ public class SITransactorTest extends SIConstants {
 				Assert.assertEquals("joe absent", testUtility.read(interleave, "joe"));
 		}
 
-		@Test
+    @Test
+    public void testTwoChildTransactionTreesIntervleavedWritesAndReads() throws Exception {
+        Txn p1 = control.beginTransaction(DESTINATION_TABLE);
+        Txn c1 = control.beginChildTransaction(p1,DESTINATION_TABLE);
+        Txn g1 = control.beginChildTransaction(c1,DESTINATION_TABLE);
+
+        testUtility.insertAge(g1,"tickle",20);
+        g1.commit();
+        c1.commit();
+
+        Txn p2 = control.beginTransaction(DESTINATION_TABLE);
+        p1.commit();
+        Txn c2 = control.beginChildTransaction(p2,DESTINATION_TABLE);
+        Txn g2 = control.beginChildTransaction(c2,DESTINATION_TABLE);
+
+        Assert.assertEquals("tickle absent", testUtility.read(g2, "tickle"));
+    }
+
+    @Test(expected=WriteConflict.class)
+    public void testTwoChildTransactionTreesIntervleavedWritesAndWrites() throws Throwable {
+        Txn p1 = control.beginTransaction(DESTINATION_TABLE);
+        Txn c1 = control.beginChildTransaction(p1,DESTINATION_TABLE);
+        Txn g1 = control.beginChildTransaction(c1,DESTINATION_TABLE);
+
+        testUtility.insertAge(g1,"tickle2",20);
+        g1.commit();
+        c1.commit();
+
+        Txn p2 = control.beginTransaction(DESTINATION_TABLE);
+        p1.commit();
+        Txn c2 = control.beginChildTransaction(p2,DESTINATION_TABLE);
+        Txn g2 = control.beginChildTransaction(c2,DESTINATION_TABLE);
+
+        try{
+        testUtility.insertAge(g2,"tickle2",22);
+        }catch(RetriesExhaustedWithDetailsException re){
+            throw re.getCauses().get(0);
+        }
+    }
+
+    @Test
 		public void testCanRecordWriteTable() throws Exception {
 				Txn parent = control.beginTransaction(DESTINATION_TABLE);
 				TxnView transaction = txnStore.getTransaction(parent.getTxnId(),true);
 				Iterator<ByteSlice> destinationTables = transaction.getDestinationTables();
 				Assert.assertArrayEquals("Incorrect write table!", DESTINATION_TABLE, destinationTables.next().getByteCopy());
-		}
-
-		@Test
-		@Ignore("This test doesn't make sense. You must commit the grandchild, then the child, then the parent for transactional behavior to be considered correct")
-		public void testGetActiveTransactionsFiltersOutIfParentRollsbackGrandChildCommits() throws Exception {
-				Txn parent = control.beginTransaction(DESTINATION_TABLE);
-				Txn child = control.beginChildTransaction(parent,parent.getIsolationLevel(),true, DESTINATION_TABLE);
-				Txn grandChild = control.beginChildTransaction(child,child.getIsolationLevel(),true,DESTINATION_TABLE);
-				long[] ids = txnStore.getActiveTransactionIds(grandChild, null);
-				Assert.assertEquals("Incorrect size",3,ids.length);
-				Arrays.sort(ids);
-				Assert.assertArrayEquals("Incorrect values", new long[]{parent.getTxnId(), child.getTxnId(), grandChild.getTxnId()}, ids);
-				@SuppressWarnings("UnusedDeclaration") Txn grandGrandChild = control.beginChildTransaction(child,child.getIsolationLevel(),true,DESTINATION_TABLE);
-
-				//commit grandchild, leave child alone, and rollback parent, then see who's active. should be noone
-				grandChild.commit();
-				parent.rollback();
-
-				Txn next = control.beginTransaction(DESTINATION_TABLE);
-				ids = txnStore.getActiveTransactionIds(next, null);
-				Assert.assertEquals("Incorrect size",1,ids.length);
-				Assert.assertArrayEquals("Incorrect values", new long[]{next.getTxnId()}, ids);
 		}
 
 		@Test
@@ -576,7 +557,7 @@ public class SITransactorTest extends SIConstants {
         t1.commit();
 
         Txn t2 = control.beginTransaction(DESTINATION_TABLE);
-        Txn t3 = control.beginChildTransaction(t2, t2.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t3 = control.beginChildTransaction(t2, t2.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.deleteRow(t3, "joe93");
 				t2.rollback();
 
@@ -1162,7 +1143,7 @@ public class SITransactorTest extends SIConstants {
     public void testDependentChildSeesParentsWrites() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe40", 20);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(),true,null);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), null);
         Assert.assertEquals("joe40 age=20 job=null", testUtility.read(t2, "joe40"));
     }
 
@@ -1170,7 +1151,7 @@ public class SITransactorTest extends SIConstants {
     public void childDependentTransactionWriteRead() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe25", 20);
-        Txn t2 = control.beginChildTransaction(t1, t1.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1, t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "moe25", 21);
         Assert.assertEquals("joe25 age=20 job=null", testUtility.read(t1, "joe25"));
         Assert.assertEquals("moe25 absent", testUtility.read(t1, "moe25"));
@@ -1211,8 +1192,8 @@ public class SITransactorTest extends SIConstants {
     public void multipleChildDependentTransactionWriteRead() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe26", 20);
-        Txn t2 = control.beginChildTransaction(t1, t1.getIsolationLevel(),true,DESTINATION_TABLE);
-        Txn t3 = control.beginChildTransaction(t1, t1.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1, t1.getIsolationLevel(), DESTINATION_TABLE);
+        Txn t3 = control.beginChildTransaction(t1, t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "moe26", 21);
         testUtility.insertJob(t3, "boe26", "baker");
         Assert.assertEquals("joe26 age=20 job=null", testUtility.read(t1, "joe26"));
@@ -1251,9 +1232,9 @@ public class SITransactorTest extends SIConstants {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe45", 20);
         testUtility.insertAge(t1, "boe45", 19);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "joe45", 21);
-        Txn t3 = control.beginChildTransaction(t1, t1.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t3 = control.beginChildTransaction(t1, t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertJob(t3, "boe45", "baker");
         Assert.assertEquals("joe45 age=20 job=null", testUtility.read(t1, "joe45"));
         Assert.assertEquals("joe45 age=21 job=null", testUtility.read(t2, "joe45"));
@@ -1268,7 +1249,7 @@ public class SITransactorTest extends SIConstants {
 				t3.rollback();
         Assert.assertEquals("joe45 age=20 job=null", testUtility.read(t1, "joe45"));
 				Assert.assertEquals("boe45 age=19 job=null", testUtility.read(t1, "boe45"));
-        Txn t4 = control.beginChildTransaction(t1, t1.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t4 = control.beginChildTransaction(t1, t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t4, "joe45", 24);
         Assert.assertEquals("joe45 age=20 job=null", testUtility.read(t1, "joe45"));
         Assert.assertEquals("joe45 age=24 job=null", testUtility.read(t4, "joe45"));
@@ -1291,14 +1272,14 @@ public class SITransactorTest extends SIConstants {
     public void multipleChildCommitParentRollback() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe46", 20);
-        Txn t2 = control.beginChildTransaction(t1, t1.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1, t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertJob(t2, "moe46", "baker");
         t2.commit();
 				Assert.assertEquals("joe46 age=20 job=null", testUtility.read(t1, "joe46"));
 				Assert.assertEquals("moe46 age=null job=baker", testUtility.read(t1, "moe46"));
 				t1.rollback();
         // @TODO: it should not be possible to start a child on a rolled back transaction
-        Txn t3 = control.beginChildTransaction(t1,t1.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t3 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
         Assert.assertEquals("joe46 absent", testUtility.read(t3, "joe46"));
 				/*
 				 * When we create a child transaction after rolling back the parent, we
@@ -1314,7 +1295,7 @@ public class SITransactorTest extends SIConstants {
     public void childDependentTransactionWriteRollbackParentRead() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe27", 20);
-        Txn t2 = control.beginChildTransaction(t1, t1.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1, t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "moe27", 21);
         t2.commit();
 				t1.rollback();
@@ -1328,14 +1309,14 @@ public class SITransactorTest extends SIConstants {
     public void commitParentOfCommittedDependent() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe32", 20);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "moe32", 21);
         t2.commit();
 
 //        final Transaction transactionStatusA = transactorSetup.transactionStore.getTransaction(t2.commit();
 				TxnView t2Check = txnStore.getTransaction(t2.getTxnId());
-        Assert.assertNotEquals("committing a dependent child sets a local commit timestamp", -1l, t2Check.getCommitTimestamp());
-				Assert.assertEquals("incorrect effective commit timestamp!", -1l, t2Check.getEffectiveCommitTimestamp());
+        Assert.assertNotEquals("committing a child does not set a local commit timestamp", -1l, t2Check.getCommitTimestamp());
+				Assert.assertEquals("child has effective commit timestamp even though parent has not committed!", -1l, t2Check.getEffectiveCommitTimestamp());
 				long earlyCommit = t2Check.getCommitTimestamp();
         t1.commit();
 
@@ -1349,7 +1330,7 @@ public class SITransactorTest extends SIConstants {
     public void dependentWriteFollowedByReadCommittedWriter() throws IOException {
         Txn parent = control.beginTransaction(DESTINATION_TABLE);
 
-        Txn child = control.beginChildTransaction(parent,parent.getIsolationLevel(),true, DESTINATION_TABLE);
+        Txn child = control.beginChildTransaction(parent,parent.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(child, "joe34", 22);
         child.commit();
 
@@ -1448,8 +1429,8 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void childrenOfChildrenCommitCommitCommitParentWriteFirst() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        Txn t2 = control.beginChildTransaction(t1, t1.getIsolationLevel(),true,DESTINATION_TABLE);
-        Txn t3 = control.beginChildTransaction(t2, t2.getIsolationLevel(),false, DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1, t1.getIsolationLevel(), DESTINATION_TABLE);
+        Txn t3 = control.beginChildTransaction(t2, t2.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe57", 18);
         testUtility.insertAge(t1, "boe57", 19);
         testUtility.insertAge(t2, "boe57", 21);
@@ -1522,7 +1503,7 @@ public class SITransactorTest extends SIConstants {
 				 *
 				 */
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "joe101", 20);
         t2.commit();
         testUtility.insertAge(t1, "joe101", 21);
@@ -1555,7 +1536,7 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void parentDeleteDoesNotConflictWithPriorChildDelete() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.deleteRow(t2, "joe109");
         t2.commit();
         testUtility.deleteRow(t1, "joe109");
@@ -1567,7 +1548,7 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void parentWritesDoNotConflictWithPriorActiveChildWrites() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "joe102", 20);
         testUtility.insertAge(t1, "joe102", 21);
         Assert.assertEquals("joe102 age=21 job=null", testUtility.read(t1, "joe102"));
@@ -1578,7 +1559,7 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void parentWritesDoNotConflictWithPriorActiveChildDelete() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.deleteRow(t2, "joe106");
         testUtility.insertAge(t1, "joe106", 21);
         Assert.assertEquals("joe106 age=21 job=null", testUtility.read(t1, "joe106"));
@@ -1631,8 +1612,8 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void childrenOfChildrenCommitCommitRollbackParentWriteFirst() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(),true,DESTINATION_TABLE);
-        Txn t3 = control.beginChildTransaction(t2,t2.getIsolationLevel(), false,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
+        Txn t3 = control.beginChildTransaction(t2,t2.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe58", 18);
         testUtility.insertAge(t1, "boe58", 19);
         testUtility.insertAge(t2, "boe58", 21);
@@ -1653,8 +1634,8 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void childrenOfChildrenCommitRollbackCommit() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(),true,DESTINATION_TABLE);
-        Txn t3 = control.beginChildTransaction(t2,t2.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
+        Txn t3 = control.beginChildTransaction(t2,t2.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t3, "joe55", 20);
         Assert.assertEquals("joe55 age=20 job=null", testUtility.read(t3, "joe55"));
         t3.commit();
@@ -1676,8 +1657,8 @@ public class SITransactorTest extends SIConstants {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
 				testUtility.insertAge(t1, "joe59", 18);
 				testUtility.insertAge(t1, "boe59", 19);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(),true,DESTINATION_TABLE);
-        Txn t3 = control.beginChildTransaction(t2,t1.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
+        Txn t3 = control.beginChildTransaction(t2,t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "boe59", 21);
         testUtility.insertAge(t3, "joe59", 20);
         Assert.assertEquals("joe59 age=20 job=null", testUtility.read(t3, "joe59"));
@@ -1722,8 +1703,8 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void childrenOfChildrenRollbackCommitCommit() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(),true,DESTINATION_TABLE);
-        Txn t3 = control.beginChildTransaction(t2,t2.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
+        Txn t3 = control.beginChildTransaction(t2,t2.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t3, "joe56", 20);
         Assert.assertEquals("joe56 age=20 job=null", testUtility.read(t3, "joe56"));
         t3.commit();
@@ -2308,7 +2289,7 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void childIndependentTransactionWriteCommitRollbackRead() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(),true,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "joe52", 21);
         t2.commit();
         t2.rollback();
@@ -2320,7 +2301,7 @@ public class SITransactorTest extends SIConstants {
     public void childIndependentSeesParentWrites() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe41", 20);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), false,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
         Assert.assertEquals("joe41 age=20 job=null", testUtility.read(t2, "joe41"));
     }
 
@@ -2328,7 +2309,7 @@ public class SITransactorTest extends SIConstants {
     public void childIndependentReadOnlySeesParentWrites() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe96", 20);
-        final Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(),false,null);
+        final Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), null);
         Assert.assertEquals("joe96 age=20 job=null", testUtility.read(t2, "joe96"));
     }
 
@@ -2337,7 +2318,7 @@ public class SITransactorTest extends SIConstants {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe99", 20);
 //        Txn t2 = control.beginChildTransaction(t1, false, true, false, true, true, null);
-				Txn t2 = control.beginChildTransaction(t1, Txn.IsolationLevel.READ_UNCOMMITTED, false, false, DESTINATION_TABLE);
+				Txn t2 = control.beginChildTransaction(t1, Txn.IsolationLevel.READ_UNCOMMITTED, false, DESTINATION_TABLE);
         Assert.assertEquals("joe99 age=20 job=null", testUtility.read(t2, "joe99"));
     }
 
@@ -2346,7 +2327,7 @@ public class SITransactorTest extends SIConstants {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe100", 20);
 //        final Txn t2 = control.beginChildTransaction(t1, false, false, false, true, true, null);
-				final Txn t2 = control.beginChildTransaction(t1, Txn.IsolationLevel.READ_UNCOMMITTED,false,false,null);
+				final Txn t2 = control.beginChildTransaction(t1, Txn.IsolationLevel.READ_UNCOMMITTED, false,null);
 				Assert.assertEquals("joe100 age=20 job=null", testUtility.read(t2, "joe100"));
 		}
 
@@ -2363,7 +2344,7 @@ public class SITransactorTest extends SIConstants {
         otherTransaction.commit();
 
 //        Txn t2 = control.beginChildTransaction(t1, false, true, false, null, true, null);
-				Txn t2 = control.beginChildTransaction(t1, Txn.IsolationLevel.READ_COMMITTED,false,false,DESTINATION_TABLE);
+				Txn t2 = control.beginChildTransaction(t1, Txn.IsolationLevel.READ_COMMITTED, false,DESTINATION_TABLE);
 				Assert.assertEquals("joe38 age=30 job=null", testUtility.read(t2, "joe38"));
         t2.commit();
         t1.commit();
@@ -2382,27 +2363,9 @@ public class SITransactorTest extends SIConstants {
         otherTransaction.commit();
 
 //        Txn t2 = control.beginChildTransaction(t1, false, false, false, null, true, null);
-				Txn t2 = control.beginChildTransaction(t1, Txn.IsolationLevel.READ_COMMITTED,false,false,DESTINATION_TABLE);
+				Txn t2 = control.beginChildTransaction(t1, Txn.IsolationLevel.READ_COMMITTED, false,DESTINATION_TABLE);
 				Assert.assertEquals("joe97 age=30 job=null", testUtility.read(t2, "joe97"));
 				t2.commit();
-        t1.commit();
-    }
-
-    @Test
-    public void childIndependentTransactionWithReadCommittedOffWithOtherCommitBetweenParentAndChild() throws IOException {
-        Txn t0 = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(t0, "joe39", 20);
-        t0.commit();
-
-        Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-
-        Txn otherTransaction = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(otherTransaction, "joe39", 30);
-        otherTransaction.commit();
-
-        Txn t2 = control.beginChildTransaction(t1, Txn.IsolationLevel.SNAPSHOT_ISOLATION, false,DESTINATION_TABLE);
-        Assert.assertEquals("joe39 age=20 job=null", testUtility.read(t2, "joe39"));
-        t2.commit();
         t1.commit();
     }
 
@@ -2418,7 +2381,7 @@ public class SITransactorTest extends SIConstants {
         testUtility.insertAge(otherTransaction, "joe98", 30);
         otherTransaction.commit();
 
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(),false,null);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), null);
         Assert.assertEquals("joe98 age=20 job=null", testUtility.read(t2, "joe98"));
         t2.commit();
         t1.commit();
@@ -2428,7 +2391,7 @@ public class SITransactorTest extends SIConstants {
     public void childIndependentTransactionWriteRollbackRead() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe28", 20);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), false,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "moe28", 21);
         Assert.assertEquals("joe28 age=20 job=null", testUtility.read(t1, "joe28"));
         Assert.assertEquals("moe28 absent", testUtility.read(t1, "moe28"));
@@ -2443,44 +2406,10 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
-    public void multipleChildIndependentTransactionWriteRead() throws IOException {
-        Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(t1, "jow31", 20);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), false,DESTINATION_TABLE);
-        Txn t3 = control.beginChildTransaction(t1,t1.getIsolationLevel(), false,DESTINATION_TABLE);
-        testUtility.insertAge(t2, "mow31", 21);
-        testUtility.insertJob(t3, "bow31", "baker");
-        Assert.assertEquals("jow31 age=20 job=null", testUtility.read(t1, "jow31"));
-        Assert.assertEquals("mow31 absent", testUtility.read(t1, "mow31"));
-        Assert.assertEquals("bow31 absent", testUtility.read(t1, "bow31"));
-        t2.commit();
-
-        Txn t4 = control.beginTransaction();
-        Assert.assertEquals("mow31 age=21 job=null", testUtility.read(t4, "mow31"));
-
-        t3.commit();
-
-        Txn t5 = control.beginTransaction();
-        Assert.assertEquals("jow31 absent", testUtility.read(t5, "jow31"));
-        Assert.assertEquals("mow31 age=21 job=null", testUtility.read(t5, "mow31"));
-        Assert.assertEquals("bow31 age=null job=baker", testUtility.read(t5, "bow31"));
-
-        Assert.assertEquals("jow31 age=20 job=null", testUtility.read(t1, "jow31"));
-        Assert.assertEquals("mow31 age=21 job=null", testUtility.read(t1, "mow31"));
-        Assert.assertEquals("bow31 age=null job=baker", testUtility.read(t1, "bow31"));
-        t1.commit();
-
-        Txn t6 = control.beginTransaction();
-        Assert.assertEquals("jow31 age=20 job=null", testUtility.read(t6, "jow31"));
-        Assert.assertEquals("mow31 age=21 job=null", testUtility.read(t6, "mow31"));
-        Assert.assertEquals("bow31 age=null job=baker", testUtility.read(t6, "bow31"));
-    }
-
-    @Test
     public void multipleChildIndependentConflict() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), false,DESTINATION_TABLE);
-        Txn t3 = control.beginChildTransaction(t1,t1.getIsolationLevel(), false,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
+        Txn t3 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "moe31", 21);
         try {
             testUtility.insertJob(t3, "moe31", "baker");
@@ -2494,44 +2423,10 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
-    public void childIndependentTransactionWriteRead() throws IOException {
-        Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(t1, "joe29", 20);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), false,DESTINATION_TABLE);
-        testUtility.insertAge(t2, "moe29", 21);
-        Assert.assertEquals("moe29 absent", testUtility.read(t1, "moe29"));
-        t2.commit();
-        Assert.assertEquals("moe29 age=21 job=null", testUtility.read(t1, "moe29"));
-
-        Txn t3 = control.beginTransaction();
-        Assert.assertEquals("moe29 age=21 job=null", testUtility.read(t3, "moe29"));
-
-        Assert.assertEquals("moe29 age=21 job=null", testUtility.read(t1, "moe29"));
-        t1.commit();
-
-        Txn t4 = control.beginTransaction();
-        Assert.assertEquals("moe29 age=21 job=null", testUtility.read(t4, "moe29"));
-    }
-
-    @Test
-    public void childIndependentTransactionWriteRollbackParentRead() throws IOException {
-        Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(t1, "joe30", 20);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), false,DESTINATION_TABLE);
-        testUtility.insertAge(t2, "moe30", 21);
-        t2.commit();
-        t1.rollback();
-
-        Txn t4 = control.beginTransaction();
-        Assert.assertEquals("joe30 absent", testUtility.read(t4, "joe30"));
-        Assert.assertEquals("moe30 age=21 job=null", testUtility.read(t4, "moe30"));
-    }
-
-    @Test
     public void commitParentOfCommittedIndependent() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe49", 20);
-        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), false,DESTINATION_TABLE);
+        Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "moe49", 21);
         t2.commit();
 //        final Transaction transactionStatusA = transactorSetup.transactionStore.getTransaction(t2.commit();
@@ -2545,40 +2440,6 @@ public class SITransactorTest extends SIConstants {
 								toCheckA.getEffectiveCommitTimestamp(), toCheckB.getEffectiveCommitTimestamp());
     }
 
-    @Test
-    public void independentWriteOverlapWithReadCommittedWriter() throws IOException {
-        Txn parent = control.beginTransaction(DESTINATION_TABLE);
-
-        Txn other = control.beginTransaction(Txn.IsolationLevel.READ_COMMITTED,DESTINATION_TABLE);
-
-        Txn child = control.beginChildTransaction(parent, parent.getIsolationLevel(), false, DESTINATION_TABLE);
-        testUtility.insertAge(child, "joe33", 22);
-        child.commit();
-
-        Assert.assertEquals("joe33 age=22 job=null", testUtility.read(other, "joe33"));
-        try {
-            testUtility.insertAge(other, "joe33", 21);
-            Assert.fail();
-        } catch (WriteConflict e) {
-        } catch (RetriesExhaustedWithDetailsException e) {
-            testUtility.assertWriteConflict(e);
-        } finally {
-						other.rollback();
-        }
-    }
-
-    @Test
-    public void independentWriteFollowedByReadCommittedWriter() throws IOException {
-        Txn parent = control.beginTransaction(DESTINATION_TABLE);
-
-        Txn child = control.beginChildTransaction(parent,parent.getIsolationLevel(), false,DESTINATION_TABLE);
-        testUtility.insertAge(child, "joe35", 22);
-        child.commit();
-
-        Txn other = control.beginTransaction(Txn.IsolationLevel.READ_COMMITTED,DESTINATION_TABLE);
-        testUtility.insertAge(other, "joe35", 21);
-        other.commit();
-    }
 
     @Test
     public void writeAllNullsRead() throws IOException {
@@ -2697,6 +2558,23 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
+    public void testDeleteThenInsertWithinChildTransactions() throws Exception {
+        Txn t1 = control.beginTransaction(DESTINATION_TABLE);
+        testUtility.insertAge(t1,"joel",20);
+        t1.commit();
+
+
+        Txn p = control.beginTransaction(DESTINATION_TABLE);
+        Txn c1 = control.beginChildTransaction(p,DESTINATION_TABLE);
+        testUtility.deleteRow(c1,"joel");
+        c1.commit();
+        Txn c2 = control.beginChildTransaction(p,DESTINATION_TABLE);
+        Assert.assertEquals("joel absent",testUtility.read(c2,"joel"));
+        testUtility.insertAge(c2,"joel",22);
+        Assert.assertEquals("joel age=22 job=null",testUtility.read(c2,"joel"));
+    }
+
+    @Test
     public void writeDeleteBatchInsertRead() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe145", 10);
@@ -2770,165 +2648,6 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("147zoe age=51 job=null", testUtility.read(t2, "147zoe"));
     }
 
-    // "Oldest Active" tests
-
-    @Test
-    public void oldestActiveTransactionsOne() throws IOException {
-        final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        transactorSetup.timestampSource.rememberTimestamp(t1.getTxnId() - 1);
-        long[] ids = txnStore.getActiveTransactionIds(t1, null);
-//        Assert.assertEquals(1, ids.length);
-        Assert.assertEquals(t1.getTxnId(), ids[0]);
-    }
-
-    @Test
-    public void oldestActiveTransactionsTwo() throws IOException {
-        final Txn t0 = control.beginTransaction(DESTINATION_TABLE);
-        transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
-        final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        long[] ids = txnStore.getActiveTransactionIds(t1, null);
-				System.out.printf("%d,%d,%s%n",t0.getTxnId(),t1.getTxnId(),Arrays.toString(ids));
-        Assert.assertEquals(2, ids.length);
-				Arrays.sort(ids);
-        Assert.assertEquals(t0.getTxnId(), ids[0]);
-        Assert.assertEquals(t1.getTxnId(), ids[1]);
-    }
-
-    @Test
-    public void oldestActiveTransactionsFuture() throws IOException {
-        final Txn t0 = control.beginTransaction(DESTINATION_TABLE);
-        transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
-        final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        control.beginTransaction();
-        final long[] ids = txnStore.getActiveTransactionIds(t1, null);
-        Assert.assertEquals(2, ids.length);
-				Arrays.sort(ids);
-        Assert.assertEquals(t0.getTxnId(), ids[0]);
-        Assert.assertEquals(t1.getTxnId(), ids[1]);
-    }
-
-    @Test
-    public void oldestActiveTransactionsSkipCommitted() throws IOException {
-        final Txn t0 = control.beginTransaction(DESTINATION_TABLE);
-        transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
-        final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
-        t0.commit();
-        final long[] ids = txnStore.getActiveTransactionIds(t2, null);
-        Assert.assertEquals(2, ids.length);
-				Arrays.sort(ids);
-        Assert.assertEquals(t1.getTxnId(), ids[0]);
-        Assert.assertEquals(t2.getTxnId(), ids[1]);
-    }
-
-    @Test
-    public void oldestActiveTransactionsSkipCommittedGap() throws IOException {
-        final Txn t0 = control.beginTransaction(DESTINATION_TABLE);
-        transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
-        final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
-        t1.commit();
-        final long[] ids = txnStore.getActiveTransactionIds(t2, null);
-        Assert.assertEquals(2, ids.length);
-				Arrays.sort(ids);
-        Assert.assertEquals(t0.getTxnId(), ids[0]);
-        Assert.assertEquals(t2.getTxnId(), ids[1]);
-    }
-
-    @Test
-    public void oldestActiveTransactionsSavedTimestampAdvances() throws IOException {
-        final Txn t0 = control.beginTransaction(DESTINATION_TABLE);
-        transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId() - 1);
-				Txn t2 = control.beginTransaction(DESTINATION_TABLE);
-				final Txn t3 = control.beginTransaction(DESTINATION_TABLE);
-        t0.commit();
-        final long originalSavedTimestamp = transactorSetup.timestampSource.retrieveTimestamp();
-				transactorSetup.timestampSource.rememberTimestamp(t3.getTxnId()-1);
-        txnStore.getActiveTransactionIds(t3, null);
-        final long newSavedTimestamp = transactorSetup.timestampSource.retrieveTimestamp();
-        Assert.assertEquals(originalSavedTimestamp + 2, newSavedTimestamp);
-    }
-
-    @Test
-    public void oldestActiveTransactionsIgnoreEffectiveStatus() throws IOException {
-        final Txn t0 = control.beginTransaction(DESTINATION_TABLE);
-        transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
-        final Txn t1 = control.beginChildTransaction(t0,DESTINATION_TABLE);
-        t1.commit();
-        final Txn t2 = control.beginChildTransaction(t0,DESTINATION_TABLE);
-        long[] active = txnStore.getActiveTransactionIds(t2, null);
-        Assert.assertEquals(2, active.length);
-				Arrays.sort(active);
-				Assert.assertArrayEquals(new long[]{t0.getTxnId(), t2.getTxnId()}, active);
-    }
-
-    @Test
-    public void oldestActiveTransactionIgnoresCommitTimestampIds() throws IOException {
-        final Txn t0 = control.beginTransaction(DESTINATION_TABLE);
-        transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
-        Txn committedTransactionID = null;
-        for (int i = 0; i < SITransactor.MAX_ACTIVE_COUNT; i++) {
-            final Txn transactionId = control.beginTransaction(DESTINATION_TABLE);
-            if (committedTransactionID == null) {
-                committedTransactionID = transactionId;
-            }
-            transactionId.commit();
-        }
-				Assert.assertNotNull(committedTransactionID);
-				Long commitTimestamp = (committedTransactionID.getTxnId() + 1);
-				TxnView voidedTransactionID = txnStore.getTransaction(commitTimestamp);
-				Assert.assertNull("Transaction id mistakenly found!",voidedTransactionID);
-
-        final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        final long[] ids = txnStore.getActiveTransactionIds(t1, null);
-        Assert.assertEquals(2, ids.length);
-				Arrays.sort(ids);
-        Assert.assertEquals(t0.getTxnId(), ids[0]);
-				Assert.assertEquals(t1.getTxnId(), ids[1]);
-				//this transaction should still be missing
-				voidedTransactionID = txnStore.getTransaction(commitTimestamp);
-				Assert.assertNull("Transaction id mistakenly found!",voidedTransactionID);
-		}
-
-    @Test
-    public void oldestActiveTransactionsManyActive() throws IOException {
-				LongArrayList startedTxns = LongArrayList.newInstance();
-        final Txn t0 = control.beginTransaction(DESTINATION_TABLE);
-				startedTxns.add(t0.getTxnId());
-        transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
-        for (int i = 0; i < SITransactor.MAX_ACTIVE_COUNT / 2; i++) {
-						Txn transactionId = control.beginTransaction(DESTINATION_TABLE);
-						startedTxns.add(transactionId.getTxnId());
-				}
-        final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-				startedTxns.add(t1.getTxnId());
-        final long[] ids = txnStore.getActiveTransactionIds(t1, null);
-
-        Assert.assertEquals(startedTxns.size(), ids.length);
-				Arrays.sort(ids);
-				Assert.assertArrayEquals(startedTxns.toArray(),ids);
-//        Assert.assertEquals(t0.getTxnId(), ids[0]);
-//        Assert.assertEquals(t1.getTxnId(), result.get(ids.length - 1).getId());
-    }
-
-    @Test
-		@Ignore("-sf- can't figure out what it's supposed to test")
-    public void oldestActiveTransactionsTooManyActive() throws IOException {
-        final Txn t0 = control.beginTransaction(DESTINATION_TABLE);
-        transactorSetup.timestampSource.rememberTimestamp(t0.getTxnId());
-        for (int i = 0; i < SITransactor.MAX_ACTIVE_COUNT; i++) {
-            control.beginTransaction();
-        }
-
-        final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        try {
-            txnStore.getActiveTransactionIds(t1, null);
-            Assert.fail();
-        } catch (RuntimeException ex) {
-            Assert.assertTrue(ex.getMessage().startsWith("expected max id of"));
-        }
-    }
-
     // Permission tests
 
     @Test
@@ -2969,7 +2688,7 @@ public class SITransactorTest extends SIConstants {
         testUtility.insertAge(t1, "joe70", 20);
         final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
 //        final Txn t3 = control.beginChildTransaction(t2, true, true, true, null, null, null);
-				final Txn t3 = control.beginChildTransaction(t2,t2.getIsolationLevel(),true,true,DESTINATION_TABLE);
+				final Txn t3 = control.beginChildTransaction(t2,t2.getIsolationLevel(), true,DESTINATION_TABLE);
         testUtility.insertJob(t3, "joe70", "butcher");
         t3.commit();
         t2.commit();
@@ -2982,7 +2701,7 @@ public class SITransactorTest extends SIConstants {
     public void additiveWritesFirst() throws IOException {
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
 //        final Txn t2 = control.beginChildTransaction(t1, true, true, true, null, null, null);
-				final Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(),true,true,DESTINATION_TABLE);
+				final Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), true,DESTINATION_TABLE);
         testUtility.insertJob(t2, "joe70", "butcher");
         final Txn t3 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t3, "joe70", 20);
@@ -3000,7 +2719,7 @@ public class SITransactorTest extends SIConstants {
         final Txn t1 = control.beginTransaction();
         final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
         t1.commit();
-        final Txn t3 = control.beginChildTransaction(t2, t2.getIsolationLevel(),true,false,DESTINATION_TABLE);
+        final Txn t3 = control.beginChildTransaction(t2, t2.getIsolationLevel(), false,DESTINATION_TABLE);
         Assert.assertEquals(t1.getTxnId() + 1, t2.getTxnId());
         // next ID burned for commit
         Assert.assertEquals(t1.getTxnId() + 2, t3.getTxnId());
@@ -3011,7 +2730,7 @@ public class SITransactorTest extends SIConstants {
         final Txn t1 = control.beginTransaction();
         final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
 //        final Txn t3 = control.beginChildTransaction(t2, true, true, false, null, null, t1.commit();
-				final Txn t3 = control.beginChildTransaction(t2, t2.getIsolationLevel(),true,false,DESTINATION_TABLE);
+				final Txn t3 = control.beginChildTransaction(t2, t2.getIsolationLevel(), false,DESTINATION_TABLE);
         Assert.assertEquals(t1.getTxnId() + 1, t2.getTxnId());
         // no ID burned for commit
         Assert.assertEquals(t1.getTxnId() + 2, t3.getTxnId());

@@ -17,39 +17,36 @@ public class ReadOnlyTxn extends AbstractTxn {
 		private AtomicReference<State> state = new AtomicReference<State>(State.ACTIVE);
 
 		private final TxnLifecycleManager tc;
-		private final boolean dependent;
 		private final boolean additive;
 
 
 		public static Txn create(long txnId, IsolationLevel isolationLevel,TxnLifecycleManager tc) {
-				return new ReadOnlyTxn(txnId,txnId,isolationLevel,Txn.ROOT_TRANSACTION,tc,false,true);
+				return new ReadOnlyTxn(txnId,txnId,isolationLevel,Txn.ROOT_TRANSACTION,tc,false);
 		}
 
 		public static Txn createReadOnlyTransaction(long txnId,
-																								TxnView parentTxn,
-																								long beginTs,
-																								IsolationLevel level,
-																								boolean isDependent,
-																								boolean additive,
-																								TxnLifecycleManager control) {
-				return new ReadOnlyTxn(txnId,beginTs,level,parentTxn,control,isDependent,additive);
+                                                TxnView parentTxn,
+                                                long beginTs,
+                                                IsolationLevel level,
+                                                boolean additive,
+                                                TxnLifecycleManager control) {
+				return new ReadOnlyTxn(txnId,beginTs,level,parentTxn,control,additive);
 		}
 
 		public static ReadOnlyTxn createReadOnlyChildTransaction(
-						TxnView parentTxn,
-						TxnLifecycleManager tc,
-						boolean dependent,
-						boolean additive){
+            TxnView parentTxn,
+            TxnLifecycleManager tc,
+            boolean additive){
 				//make yourself a copy of the parent transaction, for the purposes of reading
 				return new ReadOnlyTxn(parentTxn.getTxnId(),
 								parentTxn.getBeginTimestamp(),
-								parentTxn.getIsolationLevel(),parentTxn,tc,dependent,additive);
+								parentTxn.getIsolationLevel(),parentTxn,tc,additive);
 		}
 		public static ReadOnlyTxn createReadOnlyParentTransaction(long txnId,long beginTimestamp,
 																															IsolationLevel isolationLevel,
 																															TxnLifecycleManager tc,
 																															boolean additive){
-				return new ReadOnlyTxn(txnId,beginTimestamp,isolationLevel, ROOT_TRANSACTION,tc,false,additive);
+				return new ReadOnlyTxn(txnId,beginTimestamp,isolationLevel, ROOT_TRANSACTION,tc,additive);
 		}
 
 		protected ReadOnlyTxn(long txnId,
@@ -57,14 +54,12 @@ public class ReadOnlyTxn extends AbstractTxn {
 											 IsolationLevel isolationLevel,
 											 TxnView parentTxn,
 											 TxnLifecycleManager tc,
-											 boolean dependent,
 											 boolean additive) {
 				super(txnId, beginTimestamp, isolationLevel);
 				this.parentTxn = parentTxn;
 				this.tc = tc;
 				this.additive = additive;
 
-				this.dependent = dependent;
 		}
 
     @Override
@@ -135,7 +130,7 @@ public class ReadOnlyTxn extends AbstractTxn {
 						 * create a child transaction id or a begin timestamp of our own. Instead of elevating,
 						 * we actually create a writable child transaction.
 						 */
-						return tc.beginChildTransaction(parentTxn,isolationLevel,dependent,additive,writeTable);
+						return tc.beginChildTransaction(parentTxn,isolationLevel,additive,writeTable);
 				}else{
 						return tc.elevateTransaction(this, writeTable); //requires at least one network call
 				}

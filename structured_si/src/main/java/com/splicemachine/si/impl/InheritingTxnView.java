@@ -18,8 +18,6 @@ import java.util.Iterator;
  * Date: 6/19/14
  */
 public class InheritingTxnView extends AbstractTxnView {
-		private final boolean hasDependent;
-		private final boolean isDependent;
 		private final boolean hasAdditive;
 		private final boolean isAdditive;
 
@@ -44,7 +42,6 @@ public class InheritingTxnView extends AbstractTxnView {
                 beginTimestamp,
                 isolationLevel,
                 false,false,
-                false,false,
                 true,allowWrites,-1l,-1l,state);
     }
 
@@ -56,19 +53,17 @@ public class InheritingTxnView extends AbstractTxnView {
 								txnId,
 								beginTimestamp,
 								isolationLevel,
-								false,false,false,false,false,false,-1l,-1l,state);
+                false,false,false,false,-1l,-1l,state);
 		}
 
 		public InheritingTxnView(TxnView parentTxn,
 														 long txnId, long beginTimestamp,
 														 Txn.IsolationLevel isolationLevel,
-														 boolean hasDependent, boolean isDependent,
 														 boolean hasAdditive, boolean isAdditive,
 														 boolean hasAllowWrites,boolean allowWrites,
 														 long commitTimestamp,long globalCommitTimestamp,
 														 Txn.State state) {
 			this(parentTxn, txnId, beginTimestamp, isolationLevel,
-							hasDependent, isDependent,
 							hasAdditive, isAdditive,
 							hasAllowWrites, allowWrites,
 							commitTimestamp, globalCommitTimestamp,
@@ -78,14 +73,12 @@ public class InheritingTxnView extends AbstractTxnView {
     public InheritingTxnView(TxnView parentTxn,
                              long txnId, long beginTimestamp,
                              Txn.IsolationLevel isolationLevel,
-                             boolean hasDependent, boolean isDependent,
                              boolean hasAdditive, boolean isAdditive,
                              boolean hasAllowWrites,boolean allowWrites,
                              long commitTimestamp,long globalCommitTimestamp,
                              Txn.State state,
                              Iterator<ByteSlice> destinationTables) {
         this(parentTxn, txnId, beginTimestamp, isolationLevel,
-                hasDependent, isDependent,
                 hasAdditive, isAdditive,
                 hasAllowWrites, allowWrites,
                 commitTimestamp, globalCommitTimestamp,
@@ -95,7 +88,6 @@ public class InheritingTxnView extends AbstractTxnView {
 		public InheritingTxnView(TxnView parentTxn,
 														 long txnId, long beginTimestamp,
 														 Txn.IsolationLevel isolationLevel,
-														 boolean hasDependent, boolean isDependent,
 														 boolean hasAdditive, boolean isAdditive,
 														 boolean hasAllowWrites,boolean allowWrites,
 														 long commitTimestamp,long globalCommitTimestamp,
@@ -103,8 +95,6 @@ public class InheritingTxnView extends AbstractTxnView {
 														 Iterator<ByteSlice> destinationTables,
                              long lastKaTime) {
 				super(txnId, beginTimestamp, isolationLevel);
-				this.hasDependent = hasDependent;
-				this.isDependent = isDependent;
 				this.hasAdditive = hasAdditive;
 				this.isAdditive = isAdditive;
 				this.parentTxn = parentTxn;
@@ -154,11 +144,12 @@ public class InheritingTxnView extends AbstractTxnView {
 		@Override
 		public long getEffectiveCommitTimestamp() {
 				if(globalCommitTimestamp>=0) return globalCommitTimestamp;
-        long ts = parentTxn.getEffectiveCommitTimestamp();
-        if(ts<0) ts = commitTimestamp;
-        else
-            globalCommitTimestamp = ts;
-        return ts;
+        if(Txn.ROOT_TRANSACTION.equals(parentTxn)) {
+            globalCommitTimestamp = commitTimestamp;
+        }else{
+            globalCommitTimestamp = parentTxn.getEffectiveCommitTimestamp();
+        }
+        return globalCommitTimestamp;
 		}
 
 		@Override

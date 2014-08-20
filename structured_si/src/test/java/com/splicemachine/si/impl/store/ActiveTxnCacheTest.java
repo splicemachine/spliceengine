@@ -28,7 +28,7 @@ public class ActiveTxnCacheTest {
 		@Test
 		public void testCachingWorks() throws Exception {
         TxnLifecycleManager tc = getLifecycleManager();
-				Txn txn = new WritableTxn(1,1, Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc,false,false);
+				Txn txn = new WritableTxn(1,1, Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc, false);
 
 				final boolean[] called = new boolean[]{false};
 				TxnStore backStore = new InMemoryTxnStore(new SimpleTimestampSource(),Long.MAX_VALUE){
@@ -59,7 +59,7 @@ public class ActiveTxnCacheTest {
     @Test
     public void testDoesNotCacheRolledbackTransactions() throws Exception {
         TxnLifecycleManager tc = getLifecycleManager();
-        Txn txn = new WritableTxn(1,1, Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc,false,false);
+        Txn txn = new WritableTxn(1,1, Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,tc, false);
 
         final AtomicInteger accessCount = new AtomicInteger(0);
         TxnStore backStore = new InMemoryTxnStore(new SimpleTimestampSource(),Long.MAX_VALUE){

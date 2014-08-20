@@ -50,7 +50,7 @@ public abstract class AbstractTxnView implements TxnView {
     @Override
     public long getEffectiveBeginTimestamp() {
         TxnView parent = getParentTxnView();
-        if(parent!=null && !Txn.ROOT_TRANSACTION.equals(parent))
+        if(!Txn.ROOT_TRANSACTION.equals(parent))
             return parent.getEffectiveBeginTimestamp();
         return beginTimestamp;
     }
@@ -98,37 +98,55 @@ public abstract class AbstractTxnView implements TxnView {
 
           TxnView t = otherTxn;
           TxnView below = null;
-          while(!t.equals(Txn.ROOT_TRANSACTION) && t.getState()!=Txn.State.ACTIVE){
+          while(t.getState()!=Txn.State.ACTIVE){
               if(t.getState()== Txn.State.ROLLEDBACK) return false; //never see rolled back transactions
               below = t;
               t = t.getParentTxnView();
           }
 
-          if(equals(t) || t.descendsFrom(this)){
+          if(t.descendsFrom(this)){
               //we are an ancestor, so use READ_COMMITTED/READ_UNCOMMITTED semantics
               Txn.IsolationLevel level = isolationLevel;
               if(level== Txn.IsolationLevel.SNAPSHOT_ISOLATION)
                   level = Txn.IsolationLevel.READ_COMMITTED;
 
+              /*
+               * Since we an ancestor, we use our own begin timestamp to determine the operations.
+               */
               return level.canSee(beginTimestamp,otherTxn,true);
           }
           else if(descendsFrom(t)){
-              //we are a descendant of the LAT. Thus, we use the commit timestamp of below
-              if(below==null){
-                  //we are a child of otherTxn, so we can see the reads
-                  return true;
-              }
+              if(below==null) return true; //we are a child of t, so we can see  the reads
+              /*
+               * We are a descendant of the LAT. Thus, we use the commit timestamp of below,
+               * and the begin timestamp of the child of t which is also our ancestor.
+               */
+              TxnView b = getImmediateChild(t);
 
-              return isolationLevel.canSee(beginTimestamp,below,false);
+              return isolationLevel.canSee(b.getBeginTimestamp(),below,false);
           }else{
              /*
-              * We are not on the same transaction chain, so just use normal isolation level semantics.
-              * Note that in most cases, this will return false
+              * We have no transactions in common. One of two things is true:
+              *
+              * 1. we are at the ROOT transaction => do an isolationLevel visibility on t
+              * 2. we are at some node before the transaction => we are active.
+              *
+              * In either case, we allow the normal transactional semantics to determine our
+              * effective state.
               */
-              return isolationLevel.canSee(beginTimestamp,otherTxn,false);
+              TxnView b = this;
+              while(!t.equals(b)){
+                  if(Txn.ROOT_TRANSACTION.equals(b.getParentTxnView())) break;
+                  b = b.getParentTxnView();
+              }
+              if(Txn.ROOT_TRANSACTION.equals(t))
+                  t = below; //the next element below
+
+              return isolationLevel.canSee(b.getBeginTimestamp(),t,false);
           }
 
 		}
+
 
     @Override
     public boolean isAdditive() {
@@ -161,9 +179,8 @@ public abstract class AbstractTxnView implements TxnView {
                  * we are assuming that we are active when this method is called). Therefore,
                  * we can check the conflict directly
                  */
-                return otherTxn.getEffectiveCommitTimestamp()>beginTimestamp? ConflictType.SIBLING: ConflictType.NONE;
+                return otherTxn.getEffectiveCommitTimestamp()>getEffectiveBeginTimestamp()? ConflictType.SIBLING: ConflictType.NONE;
         }
-
 
         /*
          * We know that otherTxn is effectively active, but we don't necessarily know
@@ -179,7 +196,7 @@ public abstract class AbstractTxnView implements TxnView {
          */
         TxnView t = otherTxn;
         TxnView below = null;
-        while(!t.equals(Txn.ROOT_TRANSACTION) && t.getState()!= Txn.State.ACTIVE){
+        while(t.getState()!= Txn.State.ACTIVE){
             //we don't need to check roll backs because getEffectiveState() would have been rolled back in that case
             below = t;
             t = t.getParentTxnView();
@@ -192,12 +209,13 @@ public abstract class AbstractTxnView implements TxnView {
                 //we are a child of otherTxn, so no conflict
                 return ConflictType.NONE;
             }
-            return below.getCommitTimestamp()>beginTimestamp? ConflictType.SIBLING: ConflictType.NONE;
-        }else{
-            //we do not descend from t, and t does not descend from us. We are unrelated, and still active.
-            //therefore, we conflict
-            return ConflictType.SIBLING;
-        }
+
+            TxnView b = getImmediateChild(t);
+            return below.getCommitTimestamp()>b.getBeginTimestamp()? ConflictType.SIBLING: ConflictType.NONE;
+        }else if(Txn.ROOT_TRANSACTION.equals(t)){
+            TxnView b = getImmediateChild(t);
+            return below.getCommitTimestamp()>b.getBeginTimestamp()? ConflictType.SIBLING: ConflictType.NONE;
+        }else return ConflictType.SIBLING;
     }
 
     @Override
@@ -208,7 +226,7 @@ public abstract class AbstractTxnView implements TxnView {
     @Override
     public boolean descendsFrom(TxnView potentialParent) {
         TxnView t = this;
-        while(t!=null && !t.equals(Txn.ROOT_TRANSACTION)){
+        while(!t.equals(Txn.ROOT_TRANSACTION)){
             if(t.equals(potentialParent)) return true;
             else
                 t = t.getParentTxnView();
@@ -230,4 +248,23 @@ public abstract class AbstractTxnView implements TxnView {
 		public int hashCode() {
 				return (int) (txnId ^ (txnId >>> 32));
 		}
+
+    private TxnView getImmediateChild(TxnView ancestor) {
+        /*
+         * This fetches the transaction which is the ancestor
+         * of this transaction that is immediately BELOW the
+         * specified transaction.
+         *
+         * Note that this should *ONLY* be called when you
+         * *KNOW* that ancestor is an ancestor of yours
+         */
+        TxnView b = this;
+        TxnView n = this.getParentTxnView();
+        while(!ancestor.equals(n)){
+            b = n;
+            n = n.getParentTxnView();
+            assert n!=null: "Reached ROOT transaction without finding ancestor!";
+        }
+        return b;
+    }
 }

@@ -29,7 +29,7 @@ public class RegionTxnStoreTest {
         TransactionResolver resolver = getTransactionResolver();
 				RegionTxnStore store = new RegionTxnStore(region,resolver);
 
-				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
+				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
 
 				SparseTxn transaction = store.getTransaction(txn.getTxnId());
@@ -43,7 +43,7 @@ public class RegionTxnStoreTest {
 
 				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver());
 
-				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
+				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
 
 				//check that insertion works
@@ -61,7 +61,7 @@ public class RegionTxnStoreTest {
 
 				SparseTxn correctTxn = new SparseTxn(txn.getTxnId(),txn.getBeginTimestamp(),txn.getParentTxnId(),
 								commitTs,txn.getGlobalCommitTimestamp(),
-								txn.hasDependentField(),txn.isDependent(),txn.hasAdditiveField(),txn.isAdditive(),txn.getIsolationLevel(),
+								txn.hasAdditiveField(),txn.isAdditive(),txn.getIsolationLevel(),
 								Txn.State.COMMITTED,new ByteSlice());
 
 				assertTxnsMatch("Transaction does not match committed state!",correctTxn,store.getTransaction(txn.getTxnId()));
@@ -76,7 +76,7 @@ public class RegionTxnStoreTest {
 
 				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver());
 
-				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
+				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
 
 				//check that insertion works
@@ -87,7 +87,7 @@ public class RegionTxnStoreTest {
 
 				SparseTxn correctTxn = new SparseTxn(txn.getTxnId(),txn.getBeginTimestamp(),txn.getParentTxnId(),
 								txn.getCommitTimestamp(),txn.getGlobalCommitTimestamp(),
-								txn.hasDependentField(),txn.isDependent(),txn.hasAdditiveField(),txn.isAdditive(),txn.getIsolationLevel(),
+								txn.hasAdditiveField(),txn.isAdditive(),txn.getIsolationLevel(),
 								Txn.State.ROLLEDBACK,new ByteSlice());
 
 				assertTxnsMatch("Transaction does not match committed state!",correctTxn,store.getTransaction(txn.getTxnId()));
@@ -99,7 +99,7 @@ public class RegionTxnStoreTest {
 
 				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver());
 
-				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
+				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
 
 				long[] activeTxnIds = store.getActiveTxnIds(0, 2,null);
@@ -113,7 +113,7 @@ public class RegionTxnStoreTest {
 
 				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver());
 
-				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
+				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
 
 				Thread.sleep(100); //sleep for 100 ms to ensure that the System.currentTimeMillis() moves forward
@@ -129,7 +129,7 @@ public class RegionTxnStoreTest {
 
 				RegionTxnStore store = new RegionTxnStore(region,getTransactionResolver());
 
-				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
+				SparseTxn txn = new SparseTxn(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,new ByteSlice());
 				store.recordTransaction(txn);
 
 				Thread.sleep(100); //sleep for 100 ms to ensure that the System.currentTimeMillis() moves forward

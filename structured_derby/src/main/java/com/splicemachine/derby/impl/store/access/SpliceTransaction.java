@@ -106,7 +106,7 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 //										if(nested){
                     TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
                     if(nested)
-                        txn = lifecycleManager.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),dependent,false,null);
+                        txn = lifecycleManager.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(), false,null);
                     else
                         txn = lifecycleManager.beginTransaction();
 //										}

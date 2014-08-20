@@ -237,14 +237,6 @@ public class CoprocessorTxnStore implements TxnStore{
         if(decoder.nextIsNull()) decoder.skip();
         else isolationLevel = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
 
-        boolean hasDependent = false;
-        boolean dependent = false;
-        if(decoder.nextIsNull()) decoder.skip();
-        else{
-            hasDependent = true;
-            dependent = decoder.decodeNextBoolean();
-        }
-
         boolean hasAdditive = false;
         boolean additive = false;
         if(decoder.nextIsNull()) decoder.skip();
@@ -297,7 +289,6 @@ public class CoprocessorTxnStore implements TxnStore{
         TxnView parentTxn = cache.getTransaction(parentTxnId);
         return new InheritingTxnView(parentTxn,txnId,beginTs,
                 isolationLevel,
-                hasDependent,dependent,
                 hasAdditive,additive,
                 true,true,
                 commitTs,globalCommitTs,

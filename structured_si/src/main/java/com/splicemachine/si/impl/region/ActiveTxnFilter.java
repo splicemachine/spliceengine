@@ -90,6 +90,7 @@ class ActiveTxnFilter extends FilterBase {
              * committed, but we are also (probably) the child of a committed transaction.
              * Thus, we can immediately filter this row out
              */
+            committed=true;
             filter = true;
             return ReturnCode.NEXT_ROW;
         }
@@ -126,10 +127,9 @@ class ActiveTxnFilter extends FilterBase {
 
     private ReturnCode filterDestinationTable(KeyValue kv) {
         if(destinationTable==null) return ReturnCode.INCLUDE; //no destination table to check
-        if(destTablesSeen) return ReturnCode.SKIP;
         if(matchesQualifier(kv,V2TxnDecoder.DESTINATION_TABLE_QUALIFIER_BYTES)
                 ||matchesQualifier(kv,V1TxnDecoder.OLD_WRITE_TABLE_COLUMN)){
-            assert !destTablesSeen: "Programmer error: Destination table column set twice";
+            if(destTablesSeen) return ReturnCode.SKIP;
             destTablesSeen = true;
             if(!Bytes.equals(destinationTable, 0, destinationTable.length, kv.getBuffer(), kv.getValueOffset(), kv.getValueLength())){
                 //tables do not match
@@ -141,12 +141,14 @@ class ActiveTxnFilter extends FilterBase {
     }
 
     private ReturnCode filterKeepAlive(KeyValue kv) {
-        if(keepAliveSeen)
-            return ReturnCode.SKIP;
         Txn.State adjustedState;
         if(matchesQualifier(kv,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES)){
+            if(keepAliveSeen)
+                return ReturnCode.SKIP;
             adjustedState = TxnDecoder.adjustStateForTimeout(Txn.State.ACTIVE, kv, false);
         }else if(matchesQualifier(kv,V1TxnDecoder.OLD_KEEP_ALIVE_COLUMN)){
+            if(keepAliveSeen)
+                return ReturnCode.SKIP;
             adjustedState = TxnDecoder.adjustStateForTimeout(Txn.State.ACTIVE, kv, true);
         }else{
             return ReturnCode.INCLUDE; //not the keep alive column
@@ -171,7 +173,6 @@ class ActiveTxnFilter extends FilterBase {
     }
 
     private ReturnCode filterState(KeyValue kv) {
-        if(stateSeen) return ReturnCode.SKIP;
         if(committed){
                 /*
                  * We've already seen the commit timestamp field, so we know that our state
@@ -181,6 +182,7 @@ class ActiveTxnFilter extends FilterBase {
         }
         if(matchesQualifier(kv,V2TxnDecoder.STATE_QUALIFIER_BYTES)
                 || matchesQualifier(kv,V1TxnDecoder.OLD_STATUS_COLUMN)){
+            if(stateSeen) return ReturnCode.SKIP;
             stateSeen = true;
             byte[] checkState = Txn.State.ACTIVE.encode(); //doesn't actually create a new byte[]
             boolean isActive = Bytes.equals(checkState,0,checkState.length,
@@ -199,6 +201,7 @@ class ActiveTxnFilter extends FilterBase {
                 checkState = Txn.State.ROLLEDBACK.encode();
                 if(Bytes.equals(checkState,0,checkState.length,
                         kv.getBuffer(),kv.getValueOffset(),kv.getValueLength())){
+                    //we are rolled back, don't need to expose it
                     filter = true;
                     return ReturnCode.NEXT_ROW;
                 }

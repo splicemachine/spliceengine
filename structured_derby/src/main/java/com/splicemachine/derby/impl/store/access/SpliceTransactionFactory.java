@@ -169,7 +169,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 						 * if parentTxn==null, then this will make a call to the timestamp source to generate a begin timestamp
 						 * for a read-only transaction; this requires a single network call.
 						 */
-            Txn txn = lifecycleManager.beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,dependent,true,null);
+            Txn txn = lifecycleManager.beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true,null);
             SpliceTransaction trans = new SpliceTransaction(NoLockSpace.INSTANCE, dataValueFactory, transName,txn);
             trans.setTransactionName(transName);
 
@@ -195,7 +195,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		 * way is likely very inexpensive to call this method, but it will be doubly expensive when elevateTransaction()
 		 * is called (as it will require 2 network calls to elevate).
 		 *
-		 * @see com.splicemachine.si.api.TxnLifecycleManager#beginChildTransaction(com.splicemachine.si.api.TxnView, com.splicemachine.si.api.Txn.IsolationLevel,boolean, boolean,byte[])
+		 * @see com.splicemachine.si.api.TxnLifecycleManager#beginChildTransaction(com.splicemachine.si.api.TxnView, com.splicemachine.si.api.Txn.IsolationLevel, boolean, byte[])
 		 */
 		protected final SpliceTransaction startCommonTransaction(HBaseStore hbaseStore,
 																										 ContextManager contextMgr,

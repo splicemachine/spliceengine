@@ -63,10 +63,6 @@ class V2TxnDecoder extends TxnDecoder{
         MultiFieldEncoder metaFieldEncoder = MultiFieldEncoder.create(5);
         metaFieldEncoder.encodeNext(txn.getBeginTimestamp()).encodeNext(txn.getParentTxnId());
 
-        if(txn.hasDependentField())
-            metaFieldEncoder.encodeNext(txn.isDependent());
-        else
-            metaFieldEncoder.encodeEmpty();
         if(txn.hasAdditiveField())
             metaFieldEncoder.encodeNext(txn.isAdditive());
         else
@@ -144,15 +140,6 @@ class V2TxnDecoder extends TxnDecoder{
         if(!decoder.nextIsNull()) parentTxnId = decoder.decodeNextLong();
         else decoder.skip();
 
-        boolean isDependent = false;
-        boolean hasDependent = true;
-        if(!decoder.nextIsNull())
-            isDependent = decoder.decodeNextBoolean();
-        else {
-            hasDependent = false;
-            decoder.skip();
-        }
-
         boolean isAdditive = false;
         boolean hasAdditive = true;
         if(!decoder.nextIsNull())
@@ -173,17 +160,6 @@ class V2TxnDecoder extends TxnDecoder{
         long globalTs = -1l;
         if(globalCommitKv!=null)
             globalTs = Encoding.decodeLong(globalCommitKv.getBuffer(), globalCommitKv.getValueOffset(), false);
-        else {
-								/*
-								 * for independent transactions, global commit = commit. As a result,
-								 * by putting this if check in here, we make the global commit timestamp purely
-								 * a performance enhancement to avoid parent transaction lookups, and we avoid
-								 * requiring an extra get() during commit time( the extra get is necessary to
-								 * determine if a transaction is dependent or not).
-								 */
-            if(hasDependent && !isDependent)
-                globalTs = commitTs; //for independent transactions, global commit = commit
-        }
 
         Txn.State state = Txn.State.decode(stateKv.getBuffer(),stateKv.getValueOffset(),stateKv.getValueLength());
 
@@ -206,7 +182,7 @@ class V2TxnDecoder extends TxnDecoder{
         }
 
         return new DenseTxn(txnId,beginTs,parentTxnId,
-                commitTs,globalTs,hasDependent,isDependent,hasAdditive,isAdditive,level,state,destTableBuffer,kaTime);
+                commitTs,globalTs, hasAdditive,isAdditive,level,state,destTableBuffer,kaTime);
     }
 
 

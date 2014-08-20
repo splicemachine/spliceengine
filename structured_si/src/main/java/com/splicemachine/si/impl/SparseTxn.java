@@ -3,11 +3,7 @@ package com.splicemachine.si.impl;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.ByteSlice;
-
-import java.io.IOException;
-import java.util.Collection;
 
 /**
  * Represents a Txn where some (optional) fields are populated.
@@ -23,8 +19,6 @@ public class SparseTxn{
 		private final long commitTimestamp;
 		private final long globalCommitTimestamp;
 
-		private final boolean hasDependentField;
-		private final boolean dependent;
 		private final boolean hasAdditiveField;
 		private final boolean additive;
 
@@ -40,7 +34,6 @@ public class SparseTxn{
 										 long parentTxnId,
 										 long commitTimestamp,
 										 long globalCommitTimestamp,
-										 boolean hasDependentField, boolean dependent,
 										 boolean hasAdditiveField, boolean additive,
 										 Txn.IsolationLevel isolationLevel,
 										 Txn.State state,
@@ -50,8 +43,6 @@ public class SparseTxn{
 				this.parentTxnId = parentTxnId;
 				this.commitTimestamp = commitTimestamp;
 				this.globalCommitTimestamp = globalCommitTimestamp;
-				this.hasDependentField = hasDependentField;
-				this.dependent = dependent;
 				this.hasAdditiveField = hasAdditiveField;
 				this.additive = additive;
 				this.isolationLevel = isolationLevel;
@@ -77,9 +68,6 @@ public class SparseTxn{
 		 */
 		public long getGlobalCommitTimestamp() { return globalCommitTimestamp; }
 
-		public boolean hasDependentField() { return hasDependentField; }
-		public boolean isDependent() { return dependent; }
-
 		public boolean hasAdditiveField() { return hasAdditiveField; }
 		public boolean isAdditive() { return additive; }
 
@@ -103,10 +91,6 @@ public class SparseTxn{
         if(level==null)encoder.encodeEmpty();
         else encoder.encodeNext(level.encode());
 
-        if(hasDependentField())
-            encoder.encodeNext(isDependent());
-        else
-            encoder.encodeEmpty();
         if(hasAdditiveField())
             encoder.encodeNext(isAdditive());
         else
@@ -151,7 +135,6 @@ public class SparseTxn{
 
         long beginTs = decoder.decodeNextLong();
         Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
-        boolean dependent = decoder.decodeNextBoolean();
         boolean additive = decoder.decodeNextBoolean();
         long commitTs = -1l;
         if(decoder.nextIsNull()) decoder.skip();
@@ -179,14 +162,12 @@ public class SparseTxn{
             return new DenseTxn(txnId,beginTs,
                     parentTxnId,
                     commitTs,globalCommitTs,
-                    true,dependent,
                     true,additive,
                     level,state, destTable, lastKaTime);
         else
             return new SparseTxn(txnId,beginTs,
                     parentTxnId,
                     commitTs,globalCommitTs,
-                    true,dependent,
                     true,additive,
                     level,state, destTable);
     }

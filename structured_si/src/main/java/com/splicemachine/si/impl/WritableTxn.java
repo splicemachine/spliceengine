@@ -34,29 +34,25 @@ public class WritableTxn extends AbstractTxn {
 
 
 		public WritableTxn(long txnId,
-											 long beginTimestamp,
-											 IsolationLevel isolationLevel,
-											 TxnView parent,
-											 TxnLifecycleManager tc,
-											 boolean isDependent,
-											 boolean isAdditive) {
-			this(txnId, beginTimestamp, isolationLevel, parent, tc, isDependent, isAdditive,null);
+                       long beginTimestamp,
+                       IsolationLevel isolationLevel,
+                       TxnView parent,
+                       TxnLifecycleManager tc,
+                       boolean isAdditive) {
+			this(txnId, beginTimestamp, isolationLevel, parent, tc, isAdditive,null);
 		}
 		public WritableTxn(long txnId,
-											 long beginTimestamp,
-											 IsolationLevel isolationLevel,
-											 TxnView parent,
-											 TxnLifecycleManager tc,
-											 boolean isDependent,
-											 boolean isAdditive,
-											 byte[] destinationTable) {
+                       long beginTimestamp,
+                       IsolationLevel isolationLevel,
+                       TxnView parent,
+                       TxnLifecycleManager tc,
+                       boolean isAdditive,
+                       byte[] destinationTable) {
 				super(txnId, beginTimestamp, isolationLevel);
 				this.parent = parent;
 				this.tc = tc;
 				this.isAdditive = isAdditive;
 
-				if(isDependent)
-						assert parent!=null: "Cannot be dependent with no parent transaction";
 				if(destinationTable!=null)
 						this.tableWrites.add(destinationTable);
 		}

@@ -61,33 +61,25 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 		public Txn beginChildTransaction(TxnView parentTxn, byte[] destinationTable) throws IOException {
 				if(parentTxn==null)
 						parentTxn = Txn.ROOT_TRANSACTION;
-				return beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),true,parentTxn.isAdditive(),destinationTable);
+				return beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), parentTxn.isAdditive(), destinationTable);
 		}
 
 		@Override
 		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, byte[] destinationTable) throws IOException {
 				if(parentTxn==null)
 						parentTxn = Txn.ROOT_TRANSACTION;
-				return beginChildTransaction(parentTxn, isolationLevel, true, parentTxn.isAdditive(), destinationTable);
-		}
-
-		@Override
-		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, boolean dependent, byte[] destinationTable) throws IOException {
-				if(parentTxn==null)
-						parentTxn = Txn.ROOT_TRANSACTION;
-				return beginChildTransaction(parentTxn, isolationLevel, dependent, parentTxn.isAdditive(), destinationTable);
+				return beginChildTransaction(parentTxn, isolationLevel, parentTxn.isAdditive(), destinationTable);
 		}
 
     private static final Logger LOG = Logger.getLogger(ClientTxnLifecycleManager.class);
 
 		@Override
 		public Txn beginChildTransaction(TxnView parentTxn,
-																		 Txn.IsolationLevel isolationLevel,
-																		 boolean isDependent,
-																		 boolean additive,
-																		 byte[] destinationTable) throws IOException {
+                                     Txn.IsolationLevel isolationLevel,
+                                     boolean additive,
+                                     byte[] destinationTable) throws IOException {
         if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"Beginning child transaction: parent=%s,isolationLevel=%s,isDependent=%b,additive=%b,destinationTable=%s,isReadOnly=%b",parentTxn,isolationLevel,isDependent,additive,destinationTable,destinationTable==null);
+            SpliceLogUtils.trace(LOG,"Beginning child transaction: parent=%s,isolationLevel=%s,additive=%b,destinationTable=%s,isReadOnly=%b",parentTxn,isolationLevel,additive,destinationTable,destinationTable==null);
 				if(parentTxn==null)
 						parentTxn = Txn.ROOT_TRANSACTION;
 				if(destinationTable!=null && !parentTxn.allowsWrites())
@@ -96,9 +88,9 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
             throw new DoNotRetryIOException("Cannot create a child of an inactive transaction. Parent: "+ parentTxn);
 				if(destinationTable!=null){
 						long timestamp = timestampSource.nextTimestamp();
-						return createWritableTransaction(timestamp,isolationLevel,isDependent,additive,parentTxn,destinationTable);
+						return createWritableTransaction(timestamp,isolationLevel,additive,parentTxn,destinationTable);
 				}else
-						return createReadableTransaction(isolationLevel,isDependent,additive,parentTxn);
+						return createReadableTransaction(isolationLevel,additive,parentTxn);
 		}
 		@Override
 		public Txn chainTransaction(TxnView parentTxn,
@@ -130,12 +122,12 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
         long oldTs = txnToCommit.getCommitTimestamp();
 
 				if(destinationTable!=null)
-						return createWritableTransaction(oldTs,isolationLevel,dependent,additive,parentTxn,destinationTable);
+						return createWritableTransaction(oldTs,isolationLevel, additive,parentTxn,destinationTable);
 				else{
 						if(parentTxn.equals(Txn.ROOT_TRANSACTION)){
 								return ReadOnlyTxn.createReadOnlyParentTransaction(oldTs,oldTs,isolationLevel,this,additive);
 						}else{
-								return ReadOnlyTxn.createReadOnlyChildTransaction(parentTxn,this,dependent,additive);
+								return ReadOnlyTxn.createReadOnlyChildTransaction(parentTxn,this, additive);
 						}
 				}
 		}
@@ -169,11 +161,10 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 		/**********************************************************************************************************/
 		/*private helper method*/
 		private Txn createWritableTransaction(long timestamp,
-																					Txn.IsolationLevel isolationLevel,
-																					boolean isDependent,
-																					boolean additive,
-																					TxnView parentTxn,
-																					byte[] destinationTable) throws IOException {
+                                          Txn.IsolationLevel isolationLevel,
+                                          boolean additive,
+                                          TxnView parentTxn,
+                                          byte[] destinationTable) throws IOException {
 				/*
 				 * Create a writable transaction directly.
 				 *
@@ -184,7 +175,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 						parentTxn = new LazyTxn(parentTxn.getTxnId(),store,
 										true,true,true,parentTxn.isAdditive(),parentTxn.getIsolationLevel()); //TODO -sf- should this be here?
 				WritableTxn newTxn = new WritableTxn(timestamp,
-								timestamp,isolationLevel,parentTxn,this,isDependent,additive,destinationTable);
+								timestamp,isolationLevel,parentTxn,this, additive,destinationTable);
 				//record the transaction on the transaction table--network call
 				store.recordNewTransaction(newTxn);
 				keepAliveScheduler.scheduleKeepAlive(newTxn);
@@ -193,9 +184,8 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 		}
 
 		private Txn createReadableTransaction(Txn.IsolationLevel isolationLevel,
-																					boolean isDependent,
-																					boolean additive,
-																					TxnView parentTxn) {
+                                          boolean additive,
+                                          TxnView parentTxn) {
 				/*
 				 * Creates an elevatable, read-only transaction.
 				 *
@@ -215,7 +205,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 						long beginTimestamp = timestampSource.nextTimestamp();
 						return ReadOnlyTxn.createReadOnlyParentTransaction(beginTimestamp,beginTimestamp,isolationLevel,this,additive);
 				}else{
-						return ReadOnlyTxn.createReadOnlyChildTransaction(parentTxn,this,isDependent,additive);
+						return ReadOnlyTxn.createReadOnlyChildTransaction(parentTxn,this, additive);
 				}
 		}
 

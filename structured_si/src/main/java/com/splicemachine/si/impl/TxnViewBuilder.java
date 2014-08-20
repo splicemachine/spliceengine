@@ -30,8 +30,6 @@ public class TxnViewBuilder {
     private Txn.State currentState;
     private Txn.IsolationLevel isolationLevel;
 
-    private boolean hasDependent;
-    private boolean dependent;
     private boolean hasAdditive;
     private boolean additive;
     private boolean hasAllowWrites;
@@ -71,12 +69,6 @@ public class TxnViewBuilder {
 
     public TxnViewBuilder state(Txn.State state){
         this.currentState = state;
-        return this;
-    }
-
-    public TxnViewBuilder dependent(boolean dependent){
-        this.hasDependent = true;
-        this.dependent = dependent;
         return this;
     }
 
@@ -150,7 +142,7 @@ public class TxnViewBuilder {
         else
             destTableIterator= new SliceIterator(destinationTables.iterator());
         return new InheritingTxnView(parentTxn,
-                txnId,beginTimestamp,isolationLevel,hasDependent,dependent,
+                txnId,beginTimestamp,isolationLevel,
                 hasAdditive,additive,hasAllowWrites,allowWrites,
                 commitTimestamp,globalCommitTimestamp,currentState,
                 destTableIterator,lastKeepAliveTime);

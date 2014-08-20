@@ -296,36 +296,12 @@ public class RegionTxnStore {
 		 * @throws IOException
 		 */
 		public long[] getActiveTxnIds(long beforeTs, long afterTs, byte[] destinationTable) throws IOException{
-				Scan scan = new Scan(region.getStartKey(),region.getEndKey());
-				scan.addColumn(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES);
-				scan.addColumn(FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
-				//add old columns for backwards compatibility
-				scan.addColumn(FAMILY,V1TxnDecoder.OLD_STATUS_COLUMN);
-				scan.addColumn(FAMILY,V1TxnDecoder.OLD_KEEP_ALIVE_COLUMN);
-				scan.setMaxVersions(1);
-
-				if(destinationTable!=null){
-						scan.addColumn(FAMILY,V2TxnDecoder.DESTINATION_TABLE_QUALIFIER_BYTES);
-						scan.addColumn(FAMILY,V1TxnDecoder.OLD_WRITE_TABLE_COLUMN);
-				}
-
-				scan.setFilter(new ActiveTxnFilter(beforeTs, afterTs, destinationTable));
-
-				RegionScanner scanner = region.getScanner(scan);
-				LongArrayList txnIds = new LongArrayList();
-				List<KeyValue> keyValues = Lists.newArrayListWithExpectedSize(4);
-				boolean shouldContinue;
-				do{
-						keyValues.clear();
-						shouldContinue = scanner.nextRaw(keyValues,null);
-						if(keyValues.size()<=0) {
-								break;
-						}
-						KeyValue elem = keyValues.get(0);
-						txnIds.add(TxnUtils.txnIdFromRowKey(elem.getBuffer(),elem.getRowOffset(),elem.getRowLength()));
-				}while(shouldContinue);
-
-				return txnIds.toArray();
+        Source<DenseTxn> activeTxn = getActiveTxns(afterTs,beforeTs,destinationTable);
+        LongArrayList lal = LongArrayList.newInstance();
+        while(activeTxn.hasNext()){
+            lal.add(activeTxn.next().getTxnId());
+        }
+        return lal.toArray();
 		}
 
     public Source<DenseTxn> getAllTxns(long minTs, long maxTs) throws IOException{
@@ -365,29 +341,27 @@ public class RegionTxnStore {
                  * In normal circumstances, we would say that this transaction is active
                  * (since it passed the ActiveTxnFilter).
                  *
-                 * However, a dependent child transaction may need to be returned even though
+                 * However, a child transaction may need to be returned even though
                  * he is committed, because a parent along the chain remains active. In this case,
                  * we need to resolve the effective commit timestamp of the parent, and if that value
                  * is -1, then we return it. Otherwise, just mark the child transaction with a global
                  * commit timestamp and move on.
                  */
-                if(txn.isDependent()){
-                    long parentTxnId =txn.getParentTxnId();
-                    if(parentTxnId<0){
-                        //even though we're dependent, we're a parent transaction, so we are good to go
-                        return txn;
-                    }
+                long parentTxnId =txn.getParentTxnId();
+                if(parentTxnId<0){
+                    //we are a top-level transaction
+                    return txn;
+                }
 
-                    switch(store.getTransaction(parentTxnId).getEffectiveState()){
-                        case ACTIVE:
-                            return txn;
-                        case ROLLEDBACK:
-                            resolver.resolveTimedOut(region,txn.getTxnId(),oldForm);
-                            return null;
-                        case COMMITTED:
-                            resolver.resolveGlobalCommitTimestamp(region,txn.getTxnId(),oldForm);
-                            return null;
-                    }
+                switch(store.getTransaction(parentTxnId).getEffectiveState()){
+                    case ACTIVE:
+                        return txn;
+                    case ROLLEDBACK:
+                        resolver.resolveTimedOut(region,txn.getTxnId(),oldForm);
+                        return null;
+                    case COMMITTED:
+                        resolver.resolveGlobalCommitTimestamp(region,txn.getTxnId(),oldForm);
+                        return null;
                 }
 
                 return txn;
@@ -419,7 +393,7 @@ public class RegionTxnStore {
         byte[] startKey = BytesUtil.concat(Arrays.asList(new byte[]{bucket}, Bytes.toBytes(afterTs)));
         if(BytesUtil.startComparator.compare(region.getStartKey(),startKey)>0)
             startKey = region.getStartKey();
-        byte[] stopKey = BytesUtil.concat(Arrays.asList(new byte[]{bucket}, Bytes.toBytes(beforeTs)));
+        byte[] stopKey = BytesUtil.concat(Arrays.asList(new byte[]{bucket}, Bytes.toBytes(beforeTs+1)));
         if(BytesUtil.endComparator.compare(region.getEndKey(),stopKey)<0)
             stopKey = region.getEndKey();
         Scan scan = new Scan(startKey,stopKey);
