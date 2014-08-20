@@ -12,6 +12,7 @@ import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.hbase.table.BetterHTablePool;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionReadController;
 import com.splicemachine.si.impl.DDLFilter;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -44,7 +45,9 @@ import org.apache.derby.iapi.store.raw.ContainerKey;
 import org.apache.derby.iapi.store.raw.LockingPolicy;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.shared.common.reference.Attribute;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -478,7 +481,7 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 
     public void startDDLChange(DDLChange ddlChange) {
         cacheDisabled = true;
-        ongoingDDLChanges.put(ddlChange.getIdentifier(), ddlChange);
+        ongoingDDLChanges.put(ddlChange.getChangeId(), ddlChange);
         conglomCacheInvalidate();
     }
 
@@ -486,7 +489,8 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
         DDLChange ddlChange = ongoingDDLChanges.remove(identifier);
         if (ddlChange != null) {
             try {
-                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getParentTransactionId(),ddlChange.getTransactionId());
+                TransactionReadController<Get, Scan> txController = HTransactorFactory.getTransactionReadController();
+                DDLFilter ddlFilter = txController.newDDLFilter(ddlChange.getParentTransactionId(), ddlChange.getTransactionId());
                 if (ddlFilter.compareTo(ddlDemarcationPoint) > 0) {
                     ddlDemarcationPoint = ddlFilter;
                 }

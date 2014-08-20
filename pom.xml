@@ -35,7 +35,6 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<junit.version>4.11</junit.version>
-		<gson.version>1.6</gson.version>
 		<maven.compiler.source>1.6</maven.compiler.source>
 		<maven.compiler.target>1.6</maven.compiler.target>
 		<maven.jar.plugin.version>2.3.1</maven.jar.plugin.version>
@@ -286,46 +285,17 @@
 		</pluginRepository>
 	</pluginRepositories>
 	<repositories>
-		<repository>
-			<id>central</id>
-			<url>http://repo1.maven.org/maven2</url>
-		</repository>
+
+        <!--
+        SPLICEMACHINE GROUP REPO: This is our single repo URL that proxies and caches other repos. Currently it
+        is proxying: maven central, splice releases, splice snapshots, splice 3rd party.  To view/edit configured
+        repos in the group log into nexus, select repository "Splice Developers", view Configuration tab.
+        -->
 		<repository>
 			<id>splicemachine</id>
-			<url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
+			<url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
 		</repository>
-        <repository>
-            <id>structured-hbase-snapshot</id>
-            <url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-		<repository>
-			<id>protostuff-repo</id>
-			<name>protostuff-repo</name>
-			<url>http://protostuff.googlecode.com/svn/repos/maven2</url>
-		</repository>
-		<repository>
-			<id>smartgwt</id>
-			<url>http://www.smartclient.com/maven2/</url>
-		</repository>
-		<repository>
-			<id>gson-repo</id>
-			<url>http://google-gson.googlecode.com/svn/mavenrepo</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-		</repository>
+
 	</repositories>
 	<profiles>
 		<profile>
@@ -453,16 +423,6 @@
 				<repository>
 					<id>cloudera</id>
 					<url>https://repository.cloudera.com/content/repositories/releases/</url>
-					<snapshots>
-						<enabled>false</enabled>
-					</snapshots>
-					<releases>
-						<enabled>true</enabled>
-					</releases>
-				</repository>
-				<repository>
-					<id>sonatype-nexus-staging</id>
-					<url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
 					<snapshots>
 						<enabled>false</enabled>
 					</snapshots>

@@ -82,7 +82,6 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
                              Optimizer optimizer,
                              CostEstimate costEstimate) {
     	SpliceLogUtils.trace(LOG, "estimateCost innerTable=%s,predList=%s,conglomerateDescriptor=%s,outerCost=%s,optimizer=%s,costEstimate=%s",innerTable,predList,cd,outerCost,optimizer,costEstimate);
-    	SpliceLogUtils.trace(LOG,"hmm");
     }
 
 	@Override
@@ -208,6 +207,8 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
         if (innerTable.isBaseTable()) {
 			/* Must have an equijoin on a column in the conglomerate */
             cd = innerTable.getCurrentAccessPath().getConglomerateDescriptor();
+            if (cd.getConglomerateNumber() < 1184)
+            	return false; // temporary: system tables cannot support merge, argh. JL
         }
         if (cd == null) {
         	return false;

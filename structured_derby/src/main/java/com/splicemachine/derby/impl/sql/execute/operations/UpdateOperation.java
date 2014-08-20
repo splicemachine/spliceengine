@@ -210,14 +210,15 @@ public class UpdateOperation extends DMLWriteOperation{
 				return finalPkColumns;
 		}
 
-		private FormatableBitSet getHeapList() {
+		private FormatableBitSet getHeapList() throws StandardException{
 				FormatableBitSet heapList = ((UpdateConstantOperation)writeInfo.getConstantAction()).getBaseRowReadList();
 				if(heapList==null){
-						int[] changedCols = ((UpdateConstantOperation)writeInfo.getConstantAction()).getChangedColumnIds();
-						heapList = new FormatableBitSet(changedCols.length);
-						for(int colPosition:changedCols){
-								heapList.grow(colPosition+1);
-								heapList.set(colPosition);
+						ExecRow row = ((UpdateConstantOperation)writeInfo.getConstantAction()).getEmptyHeapRow(activation.getLanguageConnectionContext());
+                        int length = row.getRowArray().length;
+						heapList = new FormatableBitSet(length+1);
+
+						for(int i = 1; i < length+1; ++i){
+                                heapList.set(i);
 						}
 				}
 				return heapList;

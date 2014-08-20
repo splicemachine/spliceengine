@@ -2,39 +2,38 @@ package com.splicemachine.derby.ddl;
 
 import java.io.Serializable;
 
+/**
+ * Object used to communicate/represent a single DDL change to remote nodes.
+ */
 public class DDLChange implements Serializable {
 
-    public enum TentativeType {
-        CHANGE_PK, ADD_CHECK, CREATE_FK, CREATE_INDEX, ADD_NOT_NULL, ADD_COLUMN, DROP_COLUMN
-    }
-
+    /* Currently is the sequence ID from zookeeper for this change.  Example: 16862@host0000000005 */
+    private String changeId;
     private String transactionId;
     private String parentTransactionId;
-    private TentativeType type;
-    private boolean tentative;
+    private DDLChangeType changeType;
     private TentativeDDLDesc tentativeDDLDesc;
-    private String identifier;
 
     public DDLChange(String transactionId) {
+        // what is the meaning of a null change type?
         this(transactionId, null);
     }
 
-    public DDLChange(String transactionId, TentativeType type) {
+    public DDLChange(String transactionId, DDLChangeType ddlChangeType) {
         this.transactionId = transactionId;
-        this.type = type;
-        this.tentative = type != null;
+        this.changeType = ddlChangeType;
     }
 
     public String getTransactionId() {
         return transactionId;
     }
 
-    public TentativeType getType() {
-        return type;
+    public DDLChangeType getChangeType() {
+        return changeType;
     }
 
     public boolean isTentative() {
-        return tentative;
+        return changeType != null && changeType.isTentative();
     }
 
     public TentativeDDLDesc getTentativeDDLDesc() {
@@ -53,11 +52,22 @@ public class DDLChange implements Serializable {
         this.parentTransactionId = parentTransactionId;
     }
 
-    public String getIdentifier() {
-        return identifier;
+    public String getChangeId() {
+        return changeId;
     }
 
-    public void setIdentifier(String identifier) {
-        this.identifier = identifier;
+    public void setChangeId(String changeId) {
+        this.changeId = changeId;
+    }
+
+    @Override
+    public String toString() {
+        return "DDLChange{" +
+                "transactionId='" + transactionId + '\'' +
+                ", parentTransactionId='" + parentTransactionId + '\'' +
+                ", type=" + changeType +
+                ", tentativeDDLDesc=" + tentativeDDLDesc +
+                ", identifier='" + changeId + '\'' +
+                '}';
     }
 }

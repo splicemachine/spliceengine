@@ -494,6 +494,24 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(purgeXplainTrace);
+
+                    /*
+                     * Procedure to return timestamp generator info
+                     */
+                    procedures.add(Procedure.newBuilder().name("SYSCS_GET_TIMESTAMP_GENERATOR_INFO")
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .ownerClass(TimestampAdmin.class.getCanonicalName())
+                        .build());
+
+                    /*
+                     * Procedure to return timestamp request info
+                     */
+                    procedures.add(Procedure.newBuilder().name("SYSCS_GET_TIMESTAMP_REQUEST_INFO")
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .ownerClass(TimestampAdmin.class.getCanonicalName())
+                        .build());
                 }
 
             }

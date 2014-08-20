@@ -8,9 +8,17 @@ import org.apache.zookeeper.data.Stat;
 
 import com.splicemachine.constants.SpliceConstants;
 
+import java.lang.management.ManagementFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class TimestampOracle {
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
+
+public class TimestampOracle implements TimestampMasterManagement {
 
     private static final Logger LOG = Logger.getLogger(TimestampOracle.class);
 
@@ -30,7 +38,12 @@ public class TimestampOracle {
 	// Singleton instance, used by TimestampServerHandler
 	private static TimestampOracle _instance;
 	
-	public static final TimestampOracle getInstance(RecoverableZooKeeper rzk, String blockNode)
+	// Metrics to expose via JMX. See TimestampMasterManagement
+	// for solid definitions of each metric.
+    private AtomicLong _numBlocksReserved = new AtomicLong(0);
+    private AtomicLong _numTimestampsCreated = new AtomicLong(0);
+
+    public static final TimestampOracle getInstance(RecoverableZooKeeper rzk, String blockNode)
 	    throws TimestampIOException {
 		synchronized(TimestampOracle.class) {
 			if (_instance == null) {
@@ -79,6 +92,11 @@ public class TimestampOracle {
 				_maxReservedTimestamp = maxReservedTs;
 				_timestampCounter.set(_maxReservedTimestamp + 1);
 			}
+			try {
+				registerJMX();
+			} catch (Exception e) {
+		        TimestampUtil.doServerError(LOG, "Unable to register Timestamp Generator with JMX. Service will function but metrics will not be available.");
+			}
 		} catch (KeeperException e) {
 			throw new TimestampIOException(e);
 		} catch (InterruptedException e) {
@@ -92,6 +110,7 @@ public class TimestampOracle {
 		if (nextTS > maxTS) {
 			reserveNextBlock(maxTS);
 		}
+		_numTimestampsCreated.incrementAndGet(); // JMX metric
 		return nextTS;
 	}
 
@@ -103,12 +122,34 @@ public class TimestampOracle {
 			try {
 				_zooKeeper.setData(_blockNode, data, -1 /* version */); // durably reserve the next block
 				_maxReservedTimestamp = nextMax;
-				TimestampUtil.doServerDebug(LOG, "Next timestamp block reserved wich max = %s", _maxReservedTimestamp);
+				_numBlocksReserved.incrementAndGet(); // JMX metric
+				TimestampUtil.doServerDebug(LOG, "Next timestamp block reserved with max = %s", _maxReservedTimestamp);
 			} catch (KeeperException e) {
 				throw new TimestampIOException(e);
 			} catch (InterruptedException e) {
 				throw new TimestampIOException(e);
 			}
 		}
+	}
+
+	private void registerJMX() throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
+        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+        registerJMX(mbs);
+        TimestampUtil.doServerInfo(LOG, "Timestamp Generator on master successfully registered with JMX");
+	}
+	
+    private void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
+        ObjectName name = new ObjectName("com.splicemachine.si.impl.timestamp.generator:type=TimestampMasterManagement");  // Same string is in JMXUtils
+        mbs.registerMBean(this, name);
+    }
+
+	@Override
+	public long getNumberTimestampsCreated() {
+		return _numTimestampsCreated.get();
+	}
+
+	@Override
+	public long getNumberBlocksReserved() {
+		return _numBlocksReserved.get();
 	}
 }
