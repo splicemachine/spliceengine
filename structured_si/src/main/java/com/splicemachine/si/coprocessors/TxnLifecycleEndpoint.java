@@ -55,6 +55,7 @@ public class TxnLifecycleEndpoint extends BaseEndpointCoprocessor implements Txn
                         resolver = txnResolver;
                     else{
                         txnResolver = new TransactionResolver(TransactionStorage.getTxnSupplier(),2,128);
+                        resolver = txnResolver;
                     }
                 }
             }

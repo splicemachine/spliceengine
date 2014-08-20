@@ -106,8 +106,7 @@ public class InMemoryTxnStore implements TxnStore {
 		}
 
 		protected Txn getRolledbackTxn(long txnId, final Txn txn) {
-        return new AbstractTxn(txnId,txn.getBeginTimestamp(),txn.getIsolationLevel()) {
-
+        return new ForwardingTxnView(txn) {
             @Override
             public void commit() throws IOException {
                 throw new UnsupportedOperationException("Txn is rolled back");
@@ -119,9 +118,6 @@ public class InMemoryTxnStore implements TxnStore {
             public Txn elevateToWritable(byte[] writeTable) throws IOException {
                 throw new UnsupportedOperationException("Txn is rolled back");
             }
-            @Override public long getCommitTimestamp() { return -1l; }
-            @Override public long getEffectiveCommitTimestamp() { return -1l; }
-            @Override public State getEffectiveState() { return State.ROLLEDBACK; }
             @Override public State getState() { return State.ROLLEDBACK; }
         };
 		}
@@ -154,10 +150,8 @@ public class InMemoryTxnStore implements TxnStore {
 								}else
 										globalCommitTs = -1l;
 						}
-            txnHolder.txn = new AbstractTxn(txn.getTxnId(),txn.getBeginTimestamp(),txn.getIsolationLevel()) {
-
+            txnHolder.txn = new ForwardingTxnView(txn){
                 @Override public void commit() throws IOException {  } //do nothing
-
                 @Override
                 public void rollback() throws IOException {
                     throw new UnsupportedOperationException("Cannot rollback a committed transaction");
@@ -168,24 +162,9 @@ public class InMemoryTxnStore implements TxnStore {
                     throw new UnsupportedOperationException("Txn is committed");
                 }
 
-                @Override
-                public long getCommitTimestamp() {
-                    return commitTs;
-                }
-
-                @Override
-                public long getEffectiveCommitTimestamp() {
-                    if(txn.isDependent()){
-                        return getParentTxnView().getEffectiveCommitTimestamp();
-                    }else return commitTs;
-                }
-
-                @Override
-                public long getGlobalCommitTimestamp() {
-                    return globalCommitTs;
-                }
-
-                @Override public State getState() { return State.ROLLEDBACK; }
+                @Override public long getCommitTimestamp() { return commitTs; }
+                @Override public long getGlobalCommitTimestamp() { return globalCommitTs; }
+                @Override public Txn.State getState() { return Txn.State.COMMITTED; }
             };
 						return commitTs;
 				}finally{

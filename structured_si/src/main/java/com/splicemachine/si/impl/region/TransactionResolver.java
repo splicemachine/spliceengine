@@ -12,6 +12,7 @@ import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -168,6 +169,7 @@ public class TransactionResolver {
             long globalCommitTs = view.getEffectiveCommitTimestamp();
             if(globalCommitTs<0) return; //transaction isn't actually committed, so don't do it
 
+            SpliceLogUtils.trace(LOG,"Adding global commit timestamp to transaction %d", txnId);
             Put put = new Put(TxnUtils.getRowKey(txnId));
             if(oldForm)
                 put.add(SIConstants.DEFAULT_FAMILY_BYTES,V1TxnDecoder.OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN, Bytes.toBytes(globalCommitTs));
@@ -186,6 +188,7 @@ public class TransactionResolver {
         try{
             Put put = new Put(TxnUtils.getRowKey(txnId));
 
+            SpliceLogUtils.trace(LOG,"Moving Txn %d from timed out to outright rolled back",txnId);
             if(oldForm)
                 put.add(SIConstants.DEFAULT_FAMILY_BYTES,V1TxnDecoder.OLD_STATUS_COLUMN, Txn.State.ROLLEDBACK.encode());
             else

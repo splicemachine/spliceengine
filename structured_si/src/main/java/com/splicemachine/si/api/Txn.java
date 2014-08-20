@@ -52,7 +52,7 @@ public interface Txn extends TxnView{
         }
 
         @Override public boolean canSee(TxnView otherTxn) { return false; }
-        @Override public boolean isDependent() { return false; }
+
         @Override public boolean isAdditive() { return false; }
 
         @Override public long getGlobalCommitTimestamp() { return -1l; }
@@ -158,11 +158,12 @@ public interface Txn extends TxnView{
 				READ_COMMITTED(2){
 						@Override
 						public boolean canSee(long beginTimestamp, TxnView otherTxn,boolean isParent) {
-								if(otherTxn.getState() !=State.COMMITTED) return false; //if itself hasn't been committed, it can't be seen
-								State effectiveState = otherTxn.getEffectiveState();
-								if(effectiveState==State.ROLLEDBACK) return false; //if it's been effectively rolled back, it can't be seen
-								//if we are a parent situation, then the effective state is active, but we can still see it.
-								return isParent || effectiveState == State.COMMITTED;
+                return otherTxn.getState()==State.COMMITTED;
+//								if(otherTxn.getState() !=State.COMMITTED) return false; //if itself hasn't been committed, it can't be seen
+//								State effectiveState = otherTxn.getEffectiveState();
+//								if(effectiveState==State.ROLLEDBACK) return false; //if it's been effectively rolled back, it can't be seen
+//								//if we are a parent situation, then the effective state is active, but we can still see it.
+//								return isParent || effectiveState == State.COMMITTED;
 						}
 
             @Override public String toHumanFriendlyString() { return "READ COMMITTED"; }

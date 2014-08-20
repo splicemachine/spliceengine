@@ -516,14 +516,18 @@ public class SITransactor<Table,
     			result.getColumnLatest(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES),
     			result.getColumnLatest(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES)
     			);	
-        boolean hasTombstone = hasCurrentTransactionTombstone(updateTransaction.getTxnId(),
+        boolean hasTombstone = hasCurrentTransactionTombstone(updateTransaction,
         		result.getColumnLatest(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES));        
         return new ConflictResults(timestampConflicts.toRollForward, timestampConflicts.childConflicts, hasTombstone);
     }
 
-    private boolean hasCurrentTransactionTombstone(long transactionId, KeyValue tombstoneValue) {
-				return tombstoneValue != null && tombstoneValue.getTimestamp() == transactionId && !dataStore.isAntiTombstone(tombstoneValue);
-		}
+    private boolean hasCurrentTransactionTombstone(TxnView updateTxn, KeyValue tombstoneValue) throws IOException {
+        if(tombstoneValue==null) return false; //no tombstone at all
+        if(dataStore.isAntiTombstone(tombstoneValue)) return false; //actually an anti-tombstone
+
+        TxnView tombstoneTxn = transactionStore.getTransaction(tombstoneValue.getTimestamp());
+        return updateTxn.conflicts(tombstoneTxn)==ConflictType.NONE;
+    }
 
 
 		private ConflictResults checkTimestampsHandleNull(TxnView updateTransaction,

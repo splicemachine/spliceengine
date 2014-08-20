@@ -80,14 +80,12 @@ public class DDLChange implements Externalizable {
         out.writeLong(txn.getTxnId());
         out.writeLong(txn.getBeginTimestamp());
         out.writeLong(txn.getParentTxnId());
-        out.writeBoolean(txn.isDependent());
         out.writeBoolean(txn.isAdditive());
 
         out.writeBoolean(parentTxn!=null);
         if(parentTxn!=null){
             out.writeLong(parentTxn.getTxnId());
             out.writeLong(parentTxn.getParentTxnId());
-            out.writeBoolean(parentTxn.isDependent());
             out.writeBoolean(parentTxn.isAdditive());
         }
     }
@@ -102,7 +100,6 @@ public class DDLChange implements Externalizable {
         long txnId = in.readLong();
         long beginTs = in.readLong();
         long parentTxnId = in.readLong();
-        boolean dependent = in.readBoolean();
         boolean additive = in.readBoolean();
 
         Txn parentTxn = TransactionStorage.getTxnSupplier().getTransaction(parentTxnId);
@@ -128,7 +125,6 @@ public class DDLChange implements Externalizable {
             long pTxnId = in.readLong();
             long pBeginTs = pTxnId;
             long pParentTxnId = in.readLong();
-            boolean pDependent = in.readBoolean();
             boolean pAdditive = in.readBoolean();
 
             parentTxn = txnSupplier.getTransaction(txnId);

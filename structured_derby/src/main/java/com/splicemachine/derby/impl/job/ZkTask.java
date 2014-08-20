@@ -413,7 +413,6 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 				out.writeLong(parentTxn.getParentTxnId());
 				out.writeByte(parentTxn.getIsolationLevel().encode());
 				out.writeBoolean(parentTxn.allowsWrites());
-				out.writeBoolean(parentTxn.isDependent());
 				out.writeBoolean(parentTxn.isAdditive());
 		}
 
@@ -422,7 +421,6 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 				long pParentTxnId = in.readLong();
 				Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(in.readByte());
 				boolean allowWrites = in.readBoolean();
-				boolean dependent = in.readBoolean();
 				boolean additive = in.readBoolean();
 
         TxnView ppParent;
@@ -437,7 +435,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
         }
 
         return new InheritingTxnView(ppParent,parentTxnId,parentTxnId,level,
-                true,dependent,
+                true,false,
                 true,additive,true,allowWrites,
                 -1l,-1l, Txn.State.ACTIVE);
 		}

@@ -67,9 +67,7 @@ public class ReadOnlyTxn extends AbstractTxn {
 				this.dependent = dependent;
 		}
 
-		@Override public boolean isDependent() { return dependent; }
-
-		@Override
+    @Override
 		public boolean isAdditive() {
 				return additive;
 		}

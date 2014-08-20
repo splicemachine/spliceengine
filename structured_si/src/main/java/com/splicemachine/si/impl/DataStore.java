@@ -232,7 +232,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 		}
 
 		private byte[] encodeForOp(Txn txn){
-				MultiFieldEncoder encoder = MultiFieldEncoder.create(5);
+				MultiFieldEncoder encoder = MultiFieldEncoder.create(4);
 				encoder.encodeNext(txn.getTxnId());
 				TxnView parentTxn = txn.getParentTxnView();
 				if(parentTxn!=null && !Txn.ROOT_TRANSACTION.equals(parentTxn))
@@ -240,7 +240,6 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 				else encoder.encodeEmpty();
 				encoder.encodeNext(txn.getBeginTimestamp());
 				encoder.encodeNext(txn.getIsolationLevel().encode());
-				encoder.encodeNext(txn.isDependent());
 				return encoder.build();
 		}
 
@@ -250,13 +249,12 @@ public class DataStore<Mutation, Put extends OperationWithAttributes, Delete, Ge
 				long parentTxnId = decoder.readOrSkipNextLong(-1l);
 				long beginTs = decoder.decodeNextLong();
 				Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
-				boolean isDependent = decoder.decodeNextBoolean();
 
 				if(readOnly)
 						return ReadOnlyTxn.createReadOnlyTransaction(txnId,
-										txnSupplier.getTransaction(parentTxnId), beginTs, level, isDependent, false,control);
+										txnSupplier.getTransaction(parentTxnId), beginTs, level, true, false,control);
 				else{
-						return new WritableTxn(txnId,beginTs,level, txnSupplier.getTransaction(parentTxnId),control,isDependent,false);
+						return new WritableTxn(txnId,beginTs,level, txnSupplier.getTransaction(parentTxnId),control,true,false);
 				}
 		}
 }

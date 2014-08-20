@@ -40,8 +40,7 @@ public class ActiveWriteTxn extends AbstractTxnView{
 
 		@Override public boolean allowsWrites() { return true; }
 
-		@Override public boolean isDependent() { return false; }
-		@Override public boolean isAdditive() { return additive; }
+    @Override public boolean isAdditive() { return additive; }
 		@Override public long getGlobalCommitTimestamp() { return -1l; }
 
     @Override

@@ -124,13 +124,7 @@ public class InheritingTxnView extends AbstractTxnView {
 				return destinationTables;
 		}
 
-		@Override
-		public boolean isDependent() {
-				if(hasDependent) return isDependent;
-				return parentTxn.isDependent();
-		}
-
-		@Override
+    @Override
 		public boolean isAdditive() {
 				if(hasAdditive) return isAdditive;
 				return parentTxn.isAdditive();
@@ -160,11 +154,11 @@ public class InheritingTxnView extends AbstractTxnView {
 		@Override
 		public long getEffectiveCommitTimestamp() {
 				if(globalCommitTimestamp>=0) return globalCommitTimestamp;
-				if(isDependent()){
-						globalCommitTimestamp = parentTxn.getEffectiveCommitTimestamp();
-						return globalCommitTimestamp;
-				}
-				else return commitTimestamp;
+        long ts = parentTxn.getEffectiveCommitTimestamp();
+        if(ts<0) ts = commitTimestamp;
+        else
+            globalCommitTimestamp = ts;
+        return ts;
 		}
 
 		@Override
