@@ -61,14 +61,14 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 		public Txn beginChildTransaction(TxnView parentTxn, byte[] destinationTable) throws IOException {
 				if(parentTxn==null)
 						parentTxn = Txn.ROOT_TRANSACTION;
-				return beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),parentTxn.isDependent(),parentTxn.isAdditive(),destinationTable);
+				return beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),true,parentTxn.isAdditive(),destinationTable);
 		}
 
 		@Override
 		public Txn beginChildTransaction(TxnView parentTxn, Txn.IsolationLevel isolationLevel, byte[] destinationTable) throws IOException {
 				if(parentTxn==null)
 						parentTxn = Txn.ROOT_TRANSACTION;
-				return beginChildTransaction(parentTxn, isolationLevel, parentTxn.isDependent(), parentTxn.isAdditive(), destinationTable);
+				return beginChildTransaction(parentTxn, isolationLevel, true, parentTxn.isAdditive(), destinationTable);
 		}
 
 		@Override
@@ -182,7 +182,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 				 */
 				if(parentTxn!=null &&!Txn.ROOT_TRANSACTION.equals(parentTxn))
 						parentTxn = new LazyTxn(parentTxn.getTxnId(),store,
-										true,parentTxn.isDependent(),true,parentTxn.isAdditive(),parentTxn.getIsolationLevel()); //TODO -sf- should this be here?
+										true,true,true,parentTxn.isAdditive(),parentTxn.getIsolationLevel()); //TODO -sf- should this be here?
 				WritableTxn newTxn = new WritableTxn(timestamp,
 								timestamp,isolationLevel,parentTxn,this,isDependent,additive,destinationTable);
 				//record the transaction on the transaction table--network call

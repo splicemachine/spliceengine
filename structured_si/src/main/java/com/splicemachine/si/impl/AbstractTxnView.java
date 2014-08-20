@@ -25,14 +25,21 @@ public abstract class AbstractTxnView implements TxnView {
     }
 
     @Override
+    public long getEffectiveCommitTimestamp() {
+        long gCTs = getGlobalCommitTimestamp();
+        if(gCTs>0) return gCTs;
+        TxnView pTxn = getParentTxnView();
+        if(Txn.ROOT_TRANSACTION.equals(pTxn)) return getCommitTimestamp();
+        else return pTxn.getEffectiveCommitTimestamp();
+    }
+
+    @Override
     public Txn.State getEffectiveState() {
         Txn.State currState = getState();
         if(currState== Txn.State.ROLLEDBACK) return currState; //if we are rolled back, then we were rolled back
-        if(isDependent()){
-            //if we are dependent, then defer to parent's status
-            return getParentTxnView().getEffectiveState();
-        }
-        return currState;
+        TxnView parentTxnView = getParentTxnView();
+        if(Txn.ROOT_TRANSACTION.equals(parentTxnView)) return currState;
+        else return parentTxnView.getEffectiveState();
     }
 
     @Override public Txn.IsolationLevel getIsolationLevel() { return isolationLevel; }
@@ -74,48 +81,54 @@ public abstract class AbstractTxnView implements TxnView {
 		public final boolean canSee(TxnView otherTxn) {
 				assert otherTxn!=null: "Cannot access visibility semantics of a null transaction!";
 				if(equals(otherTxn)) return true; //you can always see your own writes
+          /*
+           * We know that the otherTxn is effectively active, but we don't
+           * necessarily know where in the chain we are considered active. As
+           * a result, we need to look at these transactions at the common level.
+           *
+           * To do this, we find the lowest active transaction in otherTxn's chain(called LAT),
+           * and the transaction immediately below it (called below).
+           *
+           * If the LAT is an ancestor of this transaction, then use the commit timestamp from below.
+           *
+           * If the LAT is a descendant of this transaction, then we must modify our visibility rules
+           * as follows: If the isolation level is SNAPSHOT_ISOLATION or READ_COMMITTED, use
+           * the READ_COMMITTED semantics. If the level is READ_UNCOMMITTED, use READ_UNCOMMITTED semantics.
+           */
 
-				/*
-				 * If otherTxn is a child of us, then we have one of two
-				 * visibility rules--either READ UNCOMMITTED or READ COMMITTED. If
-				 * you are in SNAPSHOT_ISOLATION, that is equivalent to READ_COMMITTED. Otherwise,
-				 * a parent won't ever be able to see it's child's writes (violating the constraint
-				 * that a child mimics the behavior of the parent).
-				 *
-				 * However, if otherTxn is a parent of us, then we can always see those writes.
-				 */
+          TxnView t = otherTxn;
+          TxnView below = null;
+          while(!t.equals(Txn.ROOT_TRANSACTION) && t.getState()!=Txn.State.ACTIVE){
+              if(t.getState()== Txn.State.ROLLEDBACK) return false; //never see rolled back transactions
+              below = t;
+              t = t.getParentTxnView();
+          }
 
-				//look to see otherTxn is a parent (or grandparent, etc.)
-				TxnView parent = getParentTxnView();
-				while(parent!=null && parent.getTxnId()>=0){
-						if(parent.equals(otherTxn)) {
-								return parent.getEffectiveState() != Txn.State.ROLLEDBACK;
-						}
-						else
-								parent = parent.getParentTxnView(); //keep going, it might be a grandparent
-				}
+          if(equals(t) || t.descendsFrom(this)){
+              //we are an ancestor, so use READ_COMMITTED/READ_UNCOMMITTED semantics
+              Txn.IsolationLevel level = isolationLevel;
+              if(level== Txn.IsolationLevel.SNAPSHOT_ISOLATION)
+                  level = Txn.IsolationLevel.READ_COMMITTED;
 
-				//look to see if we are a parent of otherTxn--if so, adjust the isolation leve
-				parent = otherTxn;
-				while(parent!=null && parent.getTxnId()>=0){
-						if(equals(parent)){
-								//we are a parent of this transaction
-								Txn.IsolationLevel toCheck = isolationLevel;
-								if(isolationLevel== Txn.IsolationLevel.SNAPSHOT_ISOLATION)
-										toCheck = Txn.IsolationLevel.READ_COMMITTED;
-								return toCheck.canSee(beginTimestamp,otherTxn,true);
-						}else
-								parent = parent.getParentTxnView();
-				}
+              return level.canSee(beginTimestamp,otherTxn,true);
+          }
+          else if(descendsFrom(t)){
+              //we are a descendant of the LAT. Thus, we use the commit timestamp of below
+              if(below==null){
+                  //we are a child of otherTxn, so we can see the reads
+                  return true;
+              }
 
-				//it's not a parent transaction of us, so default to visibility semantics
-				return isolationLevel.canSee(getEffectiveBeginTimestamp(),otherTxn,false);
+              return isolationLevel.canSee(beginTimestamp,below,false);
+          }else{
+             /*
+              * We are not on the same transaction chain, so just use normal isolation level semantics.
+              * Note that in most cases, this will return false
+              */
+              return isolationLevel.canSee(beginTimestamp,otherTxn,false);
+          }
+
 		}
-
-    @Override
-    public boolean isDependent() {
-        return false;
-    }
 
     @Override
     public boolean isAdditive() {
@@ -139,25 +152,50 @@ public abstract class AbstractTxnView implements TxnView {
 				 * otherwise, we conflict
 				 */
         if(equals(otherTxn)) return ConflictType.NONE; //cannot conflict with ourself
-        if(otherTxn.getEffectiveState()== Txn.State.ROLLEDBACK) return ConflictType.NONE; //cannot conflict with rolled back transactions
+        switch(otherTxn.getEffectiveState()){
+            case ROLLEDBACK: return ConflictType.NONE; //cannot conflict with ourself
+            case COMMITTED:
+                if(otherTxn.descendsFrom(this)) return ConflictType.CHILD;
+                /*
+                 * If otherTxn is committed, then we cannot be an ancestor (by definition,
+                 * we are assuming that we are active when this method is called). Therefore,
+                 * we can check the conflict directly
+                 */
+                return otherTxn.getEffectiveCommitTimestamp()>beginTimestamp? ConflictType.SIBLING: ConflictType.NONE;
+        }
 
-        //check to see if we are a parent of the other transaction--if so, this is a child conflict
+
+        /*
+         * We know that otherTxn is effectively active, but we don't necessarily know
+         * where in the chain we are considered active. Therefore, we must navigate the tree
+         * to find the lowest active transaction, and the transaction immediately below it.
+         *
+         * If the lowest active transaction is a descendant of ours, then this is a child conflict.
+         *
+         * If the lowest active transaction is an ancestor of ours, then we have the common ancestor. In this
+         * case, we compare the commit timestamp of the transaction immediately BELOW the lowest active transaction
+         * to our begin timestamp to determine whether or not it is visible.
+         *
+         */
         TxnView t = otherTxn;
-        while(t!=null && t.getTxnId()>=0){
-            if(equals(t)) return ConflictType.CHILD;
+        TxnView below = null;
+        while(!t.equals(Txn.ROOT_TRANSACTION) && t.getState()!= Txn.State.ACTIVE){
+            //we don't need to check roll backs because getEffectiveState() would have been rolled back in that case
+            below = t;
             t = t.getParentTxnView();
         }
 
-        //check to see if the other transaction is a parent of us, in which case there is no conflict
-        t = this;
-        while(t!=null && t.getTxnId()>=0){
-            if(otherTxn.equals(t)) return ConflictType.NONE;
-            t = t.getParentTxnView();
-        }
-
-        if(otherTxn.getEffectiveState()== Txn.State.COMMITTED){
-            return otherTxn.getEffectiveCommitTimestamp()> beginTimestamp ? ConflictType.SIBLING: ConflictType.NONE;
+        if(t.descendsFrom(this)) return ConflictType.CHILD;
+        else if(this.descendsFrom(t)){
+            // this is the common ancestor that we care about
+            if(below==null){
+                //we are a child of otherTxn, so no conflict
+                return ConflictType.NONE;
+            }
+            return below.getCommitTimestamp()>beginTimestamp? ConflictType.SIBLING: ConflictType.NONE;
         }else{
+            //we do not descend from t, and t does not descend from us. We are unrelated, and still active.
+            //therefore, we conflict
             return ConflictType.SIBLING;
         }
     }

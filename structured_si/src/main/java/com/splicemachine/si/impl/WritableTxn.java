@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl;
 
-import com.google.common.collect.ForwardingIterator;
 import com.splicemachine.si.api.CannotCommitException;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
@@ -27,7 +26,6 @@ public class WritableTxn extends AbstractTxn {
 
 		private final TxnLifecycleManager tc;
 
-		private final boolean isDependent;
 		private final boolean isAdditive;
 
 		private volatile State state = State.ACTIVE;
@@ -55,7 +53,6 @@ public class WritableTxn extends AbstractTxn {
 				super(txnId, beginTimestamp, isolationLevel);
 				this.parent = parent;
 				this.tc = tc;
-				this.isDependent = isDependent;
 				this.isAdditive = isAdditive;
 
 				if(isDependent)
@@ -68,16 +65,12 @@ public class WritableTxn extends AbstractTxn {
 				super(txn.getTxnId(),txn.getBeginTimestamp(),txn.getIsolationLevel());
 				this.parent = txn.getParentTxnView();
 				this.tc = tc;
-				this.isDependent = txn.isDependent();
 				this.isAdditive = txn.isAdditive();
-				if(isDependent)
-						assert parent!=null: "Cannot be dependent with no parent transaction";
 				if(destinationTable!=null)
 						this.tableWrites.add(destinationTable);
 		}
 
-		@Override public boolean isDependent() { return isDependent; }
-		@Override public boolean isAdditive() { return isAdditive; }
+    @Override public boolean isAdditive() { return isAdditive; }
 
 		@Override
 		public long getGlobalCommitTimestamp() {
@@ -93,11 +86,12 @@ public class WritableTxn extends AbstractTxn {
 		@Override
 		public long getEffectiveCommitTimestamp() {
 				if(globalCommitTimestamp>=0) return globalCommitTimestamp;
-				if(isDependent){
+        if(Txn.ROOT_TRANSACTION.equals(parent))
+            globalCommitTimestamp = commitTimestamp;
+        else
 						globalCommitTimestamp = parent.getEffectiveCommitTimestamp();
-						return globalCommitTimestamp;
-				}
-				else return commitTimestamp;
+
+        return globalCommitTimestamp;
 		}
 
     @Override public TxnView getParentTxnView() { return parent; }

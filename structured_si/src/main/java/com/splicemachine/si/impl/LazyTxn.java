@@ -96,18 +96,7 @@ public class LazyTxn implements TxnView {
 				return delegate.conflicts(otherTxn);
 		}
 
-		@Override
-		public boolean isDependent() {
-				if(hasDependent) return dependent;
-				try {
-						lookup(false); //don't need to force, since dependent never changes
-				} catch (IOException e) {
-						throw new RuntimeException(e);
-				}
-				return delegate.isDependent();
-		}
-
-		@Override
+    @Override
 		public boolean isAdditive() {
 				if(hasAdditive) return additive;
 				try {
@@ -252,9 +241,9 @@ public class LazyTxn implements TxnView {
 		@Override
 		public boolean equals(Object o) {
 				if (this == o) return true;
-				if (!(o instanceof Txn)) return false;
+				if (!(o instanceof TxnView)) return false;
 
-				Txn other = (Txn) o;
+				TxnView other = (TxnView) o;
 
 				return txnId == other.getTxnId();
 

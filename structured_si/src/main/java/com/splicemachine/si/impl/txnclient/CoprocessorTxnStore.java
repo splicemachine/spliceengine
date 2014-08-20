@@ -306,7 +306,7 @@ public class CoprocessorTxnStore implements TxnStore{
 
     private byte[] encode(Txn txn) {
         List<ByteSlice> destinationTables = Lists.newArrayList(txn.getDestinationTables());
-				MultiFieldEncoder encoder = MultiFieldEncoder.create(9 + destinationTables.size());
+				MultiFieldEncoder encoder = MultiFieldEncoder.create(8 + destinationTables.size());
 				encoder.encodeNext(txn.getTxnId());
 
 				TxnView parentTxn = txn.getParentTxnView();
@@ -316,7 +316,6 @@ public class CoprocessorTxnStore implements TxnStore{
 
 				encoder.encodeNext(txn.getBeginTimestamp())
 								.encodeNext(txn.getIsolationLevel().encode())
-								.encodeNext(txn.isDependent())
 								.encodeNext(txn.isAdditive());
 				if(txn.getState()== Txn.State.COMMITTED){
 						encoder = encoder.encodeNext(txn.getCommitTimestamp());

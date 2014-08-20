@@ -1933,6 +1933,7 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
+    @Ignore
     public void transactionCommitFailRaceCommitWins() throws Exception {
         final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe68", 20);

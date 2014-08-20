@@ -345,10 +345,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
                  * safely.
                  */
                 Txn txn = getChildTransaction();
-//								TransactionId childTransactionId = getChildTransaction();
-
 								try {
-//										spliceObserverInstructions.setTxn(txn);
+                    //set the child transaction
+                    spliceObserverInstructions.setTxn(txn);
 										JobResults stats = rowProvider.shuffleRows(spliceObserverInstructions);
 										long i = 0;
 										for (TaskStats stat: stats.getJobStats().getTaskStats()) {

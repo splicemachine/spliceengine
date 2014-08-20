@@ -136,8 +136,6 @@ public interface TxnView {
      */
     boolean canSee(TxnView otherTxn);
 
-    boolean isDependent();
-
     boolean isAdditive();
 
     /**
