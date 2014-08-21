@@ -9,11 +9,11 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.MergingWriteStats;
 import com.splicemachine.hbase.writer.WriteStats;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.stats.Metrics;
-import com.splicemachine.stats.TimeView;
-import com.splicemachine.stats.Timer;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.metrics.TimeView;
+import com.splicemachine.metrics.Timer;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -43,7 +43,7 @@ public class ParallelImporter implements Importer{
 		private Timer processTimer;
 
 
-		public ParallelImporter(ImportContext importContext,ExecRow template,Txn txn,
+		public ParallelImporter(ImportContext importContext,ExecRow template,TxnView txn,
 														ImportErrorReporter errorReporter) {
         this(importContext,
 												template,
@@ -59,7 +59,7 @@ public class ParallelImporter implements Importer{
 														ExecRow template,
 														int numProcessingThread,
 														int maxImportReadBufferSize,
-														Txn txn,ImportErrorReporter errorReporter) {
+														TxnView txn,ImportErrorReporter errorReporter) {
 				this(importContext,
 								template,
 								txn,
@@ -71,7 +71,7 @@ public class ParallelImporter implements Importer{
 
     public ParallelImporter(ImportContext importCtx,
                             ExecRow template,
-                            Txn txn,
+                            TxnView txn,
                             int numProcessingThreads,
                             int maxImportReadBufferSize,
                             CallBufferFactory<KVPair> factory,

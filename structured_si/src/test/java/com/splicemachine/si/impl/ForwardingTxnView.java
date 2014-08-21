@@ -24,6 +24,12 @@ public abstract class ForwardingTxnView extends AbstractTxn{
         return "Txn("+getTxnId()+","+getState()+")";
     }
 
+
+    @Override
+    public long getGlobalCommitTimestamp() {
+        return 0;
+    }
+
     @Override public void commit() throws IOException { delegate.commit(); }
     @Override public void rollback() throws IOException { delegate.rollback(); }
     @Override public Txn elevateToWritable(byte[] writeTable) throws IOException { return delegate.elevateToWritable(writeTable); }

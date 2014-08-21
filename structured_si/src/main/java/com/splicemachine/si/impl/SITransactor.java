@@ -577,7 +577,7 @@ public class SITransactor<Table,
 								}
 								if(dataTransaction.getState()== Txn.State.ROLLEDBACK)
 										return; //can't conflict with a rolled back transaction
-								final ConflictType conflictType = checkTransactionConflict(updateTransaction, dataTransaction);
+								final ConflictType conflictType = updateTransaction.conflicts(dataTransaction);
 								switch (conflictType) {
 										case CHILD:
 												if(conflicts[1]==null)
@@ -615,7 +615,7 @@ public class SITransactor<Table,
                 }
                 if(dataTransaction.getState()== Txn.State.ROLLEDBACK)
                     return; //can't conflict with a rolled back transaction
-                final ConflictType conflictType = checkTransactionConflict(updateTransaction, dataTransaction);
+                final ConflictType conflictType = updateTransaction.conflicts(dataTransaction);
                 switch (conflictType) {
                     case CHILD:
 												if(conflicts[1]==null)
@@ -666,20 +666,8 @@ public class SITransactor<Table,
 //        } else return !dataTransaction.isRootTransaction() && checkTransactionTimeout(dataTransaction.getParent());
 //    }
 
-    /**
-     * Determine if the dataTransaction conflicts with the updateTransaction.
-     */
-    private ConflictType checkTransactionConflict(TxnView updateTransaction, TxnView dataTransaction)
-            throws IOException {
-        if (updateTransaction.equals(dataTransaction) || updateTransaction.isAdditive() || dataTransaction.isAdditive()) {
-            return ConflictType.NONE;
-        } else {
-						return updateTransaction.conflicts(dataTransaction);
-        }
-    }
 
-
-		// Roll-forward / compaction
+    // Roll-forward / compaction
 
     @Override
     public SICompactionState newCompactionState() {
