@@ -18,7 +18,9 @@ import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.hbase.async.HbaseAttributeHolder;
 
 /**
@@ -87,6 +89,8 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
 	public RegionScanner postScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan,RegionScanner s) throws IOException {
 		if (scan.getAttribute(SPLICE_OBSERVER_INSTRUCTIONS) != null){
 			SpliceLogUtils.trace(LOG, "postScannerOpen called, wrapping SpliceOperationRegionScanner");
+			if (scan.getCaching() < 0) // Async Scanner is corrupting this value..
+				scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
 			return super.postScannerOpen(e, scan, new SpliceOperationRegionScanner(s,scan,e.getEnvironment().getRegion()));
 		}
 //		SpliceLogUtils.trace(LOG, "postScannerOpen called, but no instructions specified");
