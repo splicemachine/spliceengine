@@ -10,7 +10,7 @@ public class CreateOutputTable {
 	public void createTable(String tableName, String sqlStat)
 	{
 		try {
-			Connection conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb");
+			Connection conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
 			Statement stmt = conn.createStatement();
 			stmt.execute(sqlStat);
 			

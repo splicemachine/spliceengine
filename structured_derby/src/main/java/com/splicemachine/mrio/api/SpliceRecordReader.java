@@ -1,56 +1,59 @@
-/**
- * SpliceRecordReader which fetches row by row from Splice
- * @author Yanan Jian
- * Created on: 08/14/14
- */
 package com.splicemachine.mrio.api;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLBlob;
-import org.apache.derby.iapi.types.SQLBoolean;
-import org.apache.derby.iapi.types.SQLChar;
-import org.apache.derby.iapi.types.SQLDouble;
-import org.apache.derby.iapi.types.SQLInteger;
-import org.apache.derby.iapi.types.SQLLongint;
-import org.apache.derby.iapi.types.SQLReal;
-import org.apache.derby.iapi.types.SQLSmallint;
-import org.apache.derby.iapi.types.SQLTime;
-import org.apache.derby.iapi.types.SQLTimestamp;
-import org.apache.derby.iapi.types.SQLVarchar;
-import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableRecordReader;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import com.splicemachine.constants.SIConstants;
+import com.google.common.collect.Lists;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.si.api.SIFilter;
+import com.splicemachine.si.data.hbase.HRowAccumulator;
+import com.splicemachine.si.impl.RowAccumulator;
+import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.IntArrays;
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
 
-public class SpliceRecordReader extends RecordReader<ImmutableBytesWritable, ExecRow>{
+import org.apache.derby.iapi.types.*;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.impl.sql.execute.ValueRow;
+
+
+public class SpliceRecordReader extends SpliceTableRecordReaderBase{
+
 	private HTable htable = null;
 	private ImmutableBytesWritable rowkey = null;
 	private ExecRow value = null;
 	private ResultScanner scanner = null;
 	private Scan scan = null;
-	private Scan currentScan = null;
 	private SQLUtil sqlUtil = null;
 	private HashMap<List, List> tableStructure = new HashMap<List, List>();
 	private HashMap<List, List> pks = new HashMap<List, List>();
@@ -61,7 +64,6 @@ public class SpliceRecordReader extends RecordReader<ImmutableBytesWritable, Exe
     private SpliceTableScannerBuilder builder= null;   
     private SpliceTableScanner tableScanner = null;
     private Configuration conf = null;
-    private TableRecordReader hbaseTableRecordReader = new TableRecordReader();
     
     public SpliceRecordReader(Configuration conf)
     {
@@ -89,25 +91,18 @@ public class SpliceRecordReader extends RecordReader<ImmutableBytesWritable, Exe
 			e.printStackTrace();
 		}
 	}
+
 	
-	public void setScan(Scan scan)
-	{
-		this.scan = scan;
-	}
-	
-	public void restart(byte[] firstRow) throws IOException{
+	@Override
+	public void restart(byte[] firstRow) {
+		scan = new Scan();
 		
-		if(scan == null)
-			currentScan = new Scan();
-		else
-			currentScan = new Scan(scan);
-		
-		currentScan.setStartRow(firstRow);
-		currentScan.setMaxVersions();
-		currentScan.setAttribute(SIConstants.SI_EXEMPT, Bytes.toBytes(true));
+		scan.setStartRow(firstRow);
+		scan.setMaxVersions();
+		scan.setAttribute(SIConstants.SI_EXEMPT, Bytes.toBytes(true));
 		if(htable != null)
 			try {
-				this.scanner = this.htable.getScanner(currentScan);
+				this.scanner = this.htable.getScanner(scan);
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -117,6 +112,7 @@ public class SpliceRecordReader extends RecordReader<ImmutableBytesWritable, Exe
 			String transaction_id = conf.get(SpliceMRConstants.SPLICE_TRANSACTION_ID);
 			buildTableScannerBuilder(transaction_id);
 			tableScanner = this.builder.build();
+			//tableScanner.setColumnTypes(colTypes);
 			
 		} catch (NumberFormatException e) {
 			e.printStackTrace();
@@ -126,6 +122,9 @@ public class SpliceRecordReader extends RecordReader<ImmutableBytesWritable, Exe
 		
 	}
 
+	public void init() throws IOException {
+		restart(scan.getStartRow());
+	}
 	
 	@Override
     public ImmutableBytesWritable getCurrentKey(){
@@ -261,7 +260,7 @@ public class SpliceRecordReader extends RecordReader<ImmutableBytesWritable, Exe
 		}
 	
     	builder = new SpliceTableScannerBuilder()
-		.scan(currentScan)
+		.scan(scan)
 		.scanner(scanner)	
 		.metricFactory(Metrics.basicMetricFactory())
 		.transactionID(txsId)
@@ -301,6 +300,7 @@ public class SpliceRecordReader extends RecordReader<ImmutableBytesWritable, Exe
     public void setHTable(HTable htable) {
 		this.htable = htable;
 		Configuration conf = htable.getConfiguration();
+		//String tableName = conf.get(TableInputFormat.INPUT_TABLE);
 		String tableName = conf.get(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME);
 		
 		if (sqlUtil == null)
@@ -327,11 +327,5 @@ public class SpliceRecordReader extends RecordReader<ImmutableBytesWritable, Exe
 	    
 	    
 	    
-	}
-
-	@Override
-	public float getProgress() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		return 0;
 	}
 }

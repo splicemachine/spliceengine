@@ -79,12 +79,12 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
 		
 		HTable table;
 		try {
-			
+			System.out.println("create RecordReader, tableID:"+String.valueOf(tableID));
 			table = new HTable(HBaseConfiguration.create(conf), tableID);
 			TableSplit tSplit = (TableSplit)split;
 			trr.setHTable(table);
 			trr.restart(tSplit.getStartRow());
-			
+			System.out.println("finished creating RecordReader");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -108,7 +108,8 @@ public class SpliceInputFormat extends InputFormat<ImmutableBytesWritable, ExecR
 	
 	public void setConf(Configuration configuration) {
 		
-		tableName = configuration.get(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME);		
+		tableName = configuration.get(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME);	
+		
 		try {
 			tableID = sqlUtil.getConglomID(tableName);
 			this.conf = configuration;
