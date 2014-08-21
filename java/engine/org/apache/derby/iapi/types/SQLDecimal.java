@@ -290,72 +290,27 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 * DECIMAL implementation. Convert to a BigDecimal using getObject
 	 * which will return a BigDecimal
 	 */
-	public int typeToBigDecimal()
-	{
+	public int typeToBigDecimal() {
 		return java.sql.Types.DECIMAL;
 	}
 
     // 0 or null is false, all else is true
-	public boolean	getBoolean()
-	{
-
+	public boolean	getBoolean() {
 		BigDecimal localValue = getBigDecimal();
 		if (localValue == null)
 			return false;
-
 		return localValue.compareTo(ZERO) != 0;
 	}
 
-	public String	getString()
-	{
+	public String	getString() {
 		BigDecimal localValue = getBigDecimal();
 		if (localValue == null)
 			return null;
-		else if (toPlainString == null)
-			return localValue.toString();
-        else
-        {
-            // use reflection so we can still compile using JDK1.4
-            // if we are prepared to require 1.5 to compile then this can be a direct call
-            try {
-                return (String) toPlainString.invoke(localValue, null);
-            } catch (IllegalAccessException e) {
-                // can't happen based on the JDK spec
-                throw new IllegalAccessError("toPlainString");
-            } catch (InvocationTargetException e) {
-                Throwable t = e.getTargetException();
-                if (t instanceof RuntimeException) {
-                    throw (RuntimeException) t;
-                } else if (t instanceof Error) {
-                    throw (Error) t;
-                } else {
-                    // can't happen
-                    throw new IncompatibleClassChangeError("toPlainString");
-                }
-            }
-        }
+		else
+			return localValue.toPlainString();
 	}
 
-    private static final Method toPlainString;
-    private static final Method bdPrecision;
-    static {
-        Method m;
-        try {
-            m = BigDecimal.class.getMethod("toPlainString", null);
-        } catch (NoSuchMethodException e) {
-            m = null;
-        }
-        toPlainString = m;
-        try {
-            m = BigDecimal.class.getMethod("precision", null);
-        } catch (NoSuchMethodException e) {
-            m = null;
-        }
-        bdPrecision = m;
-    }
-
-	public Object	getObject()
-	{
+	public Object	getObject() {
 		/*
 		** BigDecimal is immutable
 		*/
@@ -366,13 +321,11 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 * Set the value from a correctly typed BigDecimal object.
 	 * @throws StandardException 
 	 */
-	void setObject(Object theValue) throws StandardException
-	{
+	void setObject(Object theValue) throws StandardException {
 		setValue((BigDecimal) theValue);
 	}
 	
 	protected void setFrom(DataValueDescriptor theValue) throws StandardException {
-
 		setCoreValue(SQLDecimal.getBigDecimal(theValue));
 	}
 
@@ -382,8 +335,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	}
 
 	// this is for DataType's error generator
-	public String getTypeName()
-	{
+	public String getTypeName() {
 		return TypeId.DECIMAL_NAME;
 	}
 
@@ -1139,49 +1091,15 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 * @param decimalValue Value to get whole digits from, never null.
 	 * @return number of whole digits.
 	 */
-	private static int getWholeDigits(BigDecimal decimalValue)
-	{
+	private static int getWholeDigits(BigDecimal decimalValue) {
         /**
          * if ONE > abs(value) then the number of whole digits is 0
          */
         decimalValue = decimalValue.abs();
         if (ONE.compareTo(decimalValue) == 1)
-        {
             return 0;
-        }
-        
-        if (bdPrecision != null)
-		{
-	        // use reflection so we can still compile using JDK1.4
-			// if we are prepared to require 1.5 to compile then this can be a
-			// direct call
-			try {
-				// precision is the number of digits in the unscaled value,
-				// subtracting the scale (positive or negative) will give the
-				// number of whole digits.
-				int precision = ((Integer) bdPrecision.invoke(decimalValue,
-						null)).intValue();
-				return precision - decimalValue.scale();
-			} catch (IllegalAccessException e) {
-				// can't happen based on the JDK spec
-				throw new IllegalAccessError("precision");
-			} catch (InvocationTargetException e) {
-				Throwable t = e.getTargetException();
-				if (t instanceof RuntimeException) {
-					throw (RuntimeException) t;
-				} else if (t instanceof Error) {
-					throw (Error) t;
-				} else {
-					// can't happen
-					throw new IncompatibleClassChangeError("precision");
-				}
-			}
-            
-		}
-   
-		String s = decimalValue.toString();
-        return (decimalValue.scale() == 0) ? s.length() : s.indexOf('.');
-	}
+        return decimalValue.precision() - decimalValue.scale();
+	}   
 	
 	public Format getFormat() {
 		return Format.DECIMAL;
