@@ -50,7 +50,6 @@ public class ActiveTransactionTest {
     }
     @Before
     public void setUp() throws IOException {
-//        SynchronousRollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
         baseSetUp();
     }
 

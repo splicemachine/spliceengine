@@ -12,13 +12,13 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.writer.WriteStats;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.uuid.UUIDGenerator;
@@ -247,7 +247,7 @@ public class ImportTask extends ZkTask{
 						throw new ExecutionException(e);
 				}
 
-				Txn txn = getTxn();
+				TxnView txn = status.getTxnInformation();
 
 				if(LOG.isInfoEnabled())
 						SpliceLogUtils.info(LOG,"Importing %s using transaction %s, which is a child of transaction %s",
@@ -255,11 +255,22 @@ public class ImportTask extends ZkTask{
 				if(shouldParallelize) {
 						return new ParallelImporter(importContext,row, txn,errorReporter);
 				} else
-//						return new SequentialImporter(importContext,row,transactionId,errorReporter);
 						return new ParallelImporter(importContext,row,1,SpliceConstants.maxImportReadBufferSize,txn,errorReporter);
 		}
 
-		@Override
+    @Override
+    protected Txn beginChildTransaction(TxnView parentTxn, TxnLifecycleManager tc) throws IOException {
+        byte[] table = importContext.getTableName().getBytes();
+        /*
+         * We use an additive transaction structure here so that two separate files
+         * in the same import process will not throw Write/Write conflicts with one another,
+         * but will instead by passed through to the underlying constraint (that way, we'll
+         * get UniqueConstraint violations instead of Write/Write conflicts).
+         */
+        return tc.beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,table);
+    }
+
+    @Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 				super.readExternal(in);
 				importContext = (ImportContext)in.readObject();

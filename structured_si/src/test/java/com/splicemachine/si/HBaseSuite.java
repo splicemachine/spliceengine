@@ -20,7 +20,8 @@ import org.junit.runners.Suite;
 				SIFilterHBaseTest.class,
 				SITransactorHBasePackedTest.class,
 				HBasePackedCompactionTest.class,
-        HBaseActiveTransactionTest.class
+        HBaseActiveTransactionTest.class,
+        HBaseTransactionInteractionTest.class
 })
 @RunWith(Suite.class)
 @Ignore("Temporary ignoring")

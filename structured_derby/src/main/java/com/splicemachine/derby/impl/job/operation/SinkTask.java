@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
@@ -214,10 +215,24 @@ public class SinkTask extends ZkTask {
 		@Override
 		protected Txn beginChildTransaction(TxnView parentTxn, TxnLifecycleManager tc) throws IOException {
 				byte[] table = null;
-				if(instructions.getTopOperation() instanceof DMLWriteOperation){
-						table = ((DMLWriteOperation)instructions.getTopOperation()).getDestinationTable();
+        boolean additive = false;
+        SpliceOperation topOperation = instructions.getTopOperation();
+        if(topOperation instanceof DMLWriteOperation){
+						table = ((DMLWriteOperation) topOperation).getDestinationTable();
+            /*
+             * (DB-949)Insert operations should use an Additive transaction, so that internal WW conflicts will
+             * be replaced by the proper UniqueConstraint violations (if necessary)
+             *
+             * -sf- Technically speaking, we could make DeleteOperations additive as well, in order to avoid
+             * throwing a Write/Write conflict if you accidentally deleted the same row twice in the same
+             * operation. However, we would like to do our best to avoid those kinds of situations in the
+             * first place, as they are inefficient (also, I have no good way of creating such an issue), so
+             * we will leave it out for now
+             */
+            if(topOperation instanceof InsertOperation)
+                additive = true;
 				}
-				return tc.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(), false,table);
+				return tc.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(), additive,table);
 		}
 
 		@Override

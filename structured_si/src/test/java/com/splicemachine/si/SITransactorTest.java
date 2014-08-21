@@ -1,6 +1,5 @@
 package com.splicemachine.si;
 
-import com.carrotsearch.hppc.LongArrayList;
 import com.google.common.base.Function;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
@@ -9,7 +8,9 @@ import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.light.*;
-import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.ForwardingLifecycleManager;
+import com.splicemachine.si.impl.Tracer;
+import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.si.impl.translate.Transcoder;
 import com.splicemachine.si.impl.translate.Translator;
 import com.splicemachine.utils.ByteSlice;
@@ -126,7 +127,6 @@ public class SITransactorTest extends SIConstants {
     }
 
 		@Test
-		@Ignore("This test doesn't make sense, because a child must commit before the parent can")
 		public void testGetActiveTransactionsFiltersOutChildrenCommit() throws Exception {
 				Txn parent = control.beginTransaction(DESTINATION_TABLE);
 				Txn child = control.beginChildTransaction(parent,parent.getIsolationLevel(), DESTINATION_TABLE);
@@ -145,10 +145,6 @@ public class SITransactorTest extends SIConstants {
 				Assert.assertEquals("Incorrect size",1,activeTxns.length);
 				Assert.assertEquals("Incorrect transaction returned!",next.getTxnId(),activeTxns[0]);
 		}
-
-
-
-
 
 		@Test
 		public void testChildTransactionsInterleave() throws Exception {
@@ -339,18 +335,6 @@ public class SITransactorTest extends SIConstants {
 
         Assert.assertEquals("joe128 age=20 job=null[ V.age@~9=20 ]", testUtility.scan(t3, "joe128"));
         t2.commit();
-    }
-
-    @Test
-    @Ignore
-    public void writeScanNoColumns() throws IOException {
-        Txn t1 = control.beginTransaction();
-        testUtility.insertAge(t1, "joe84", 20);
-        t1.commit();
-
-        Txn t2 = control.beginTransaction();
-        // reading si only (i.e. no data columns) returns the rows but none of the "user" data
-        Assert.assertEquals("joe84 age=null job=null", testUtility.scanNoColumns(t2, "joe84", false));
     }
 
     @Test
@@ -1267,29 +1251,39 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("boe45 age=19 job=null", testUtility.read(t5, "boe45"));
     }
 
-    @Test
-    @Ignore("It is not possible to create a child of a rolled back parent")
-    public void multipleChildCommitParentRollback() throws IOException {
-        Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(t1, "joe46", 20);
-        Txn t2 = control.beginChildTransaction(t1, t1.getIsolationLevel(), DESTINATION_TABLE);
-        testUtility.insertJob(t2, "moe46", "baker");
-        t2.commit();
-				Assert.assertEquals("joe46 age=20 job=null", testUtility.read(t1, "joe46"));
-				Assert.assertEquals("moe46 age=null job=baker", testUtility.read(t1, "moe46"));
-				t1.rollback();
-        // @TODO: it should not be possible to start a child on a rolled back transaction
-        Txn t3 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
-        Assert.assertEquals("joe46 absent", testUtility.read(t3, "joe46"));
-				/*
-				 * When we create a child transaction after rolling back the parent, we
-				 * enter the realm of undefined semantics. In this sense, we choose
-				 * to be strict with respect to roll backs--in that way, rolling back
-				 * a transaction is as if it never happened, EVEN TO ITSELF.
-				 *
-				 */
-        Assert.assertEquals("moe46 absent", testUtility.read(t3, "moe46"));
-    }
+    /*
+     * The following test is commented out because it actually
+     * IS now impossible to create a child of a rolled back parent--however,
+     * that impossibility is not cluster-safe--we don't put a protection
+     * into the transaction subsystem directly to prevent one from creating
+     * a child on another machine.
+     *
+     * Instead, we take it as a given that proper use is to not create a
+     * child of a rolled back transaction, and that the behavior in such cases
+     * is undefined--thus, no tests to assert behavior in those cases.
+     */
+//    @Test
+//    @Ignore("It is not possible to create a child of a rolled back parent")
+//    public void multipleChildCommitParentRollback() throws IOException {
+//        Txn t1 = control.beginTransaction(DESTINATION_TABLE);
+//        testUtility.insertAge(t1, "joe46", 20);
+//        Txn t2 = control.beginChildTransaction(t1, t1.getIsolationLevel(), DESTINATION_TABLE);
+//        testUtility.insertJob(t2, "moe46", "baker");
+//        t2.commit();
+//				Assert.assertEquals("joe46 age=20 job=null", testUtility.read(t1, "joe46"));
+//				Assert.assertEquals("moe46 age=null job=baker", testUtility.read(t1, "moe46"));
+//				t1.rollback();
+//        Txn t3 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
+//        Assert.assertEquals("joe46 absent", testUtility.read(t3, "joe46"));
+//				/*
+//				 * When we create a child transaction after rolling back the parent, we
+//				 * enter the realm of undefined semantics. In this sense, we choose
+//				 * to be strict with respect to roll backs--in that way, rolling back
+//				 * a transaction is as if it never happened, EVEN TO ITSELF.
+//				 *
+//				 */
+//        Assert.assertEquals("moe46 absent", testUtility.read(t3, "moe46"));
+//    }
 
     @Test
     public void childDependentTransactionWriteRollbackParentRead() throws IOException {
@@ -1720,106 +1714,6 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("boe56 absent", testUtility.read(t4, "boe56"));
     }
 
-    @Ignore
-    @Test
-    public void readWriteMechanics() throws Exception {
-        final SDataLib dataLib = storeSetup.getDataLib();
-        final STableReader reader = storeSetup.getReader();
-
-        final byte[] testKey = dataLib.newRowKey(new Object[]{"jim"});
-        OperationWithAttributes put = dataLib.newPut(testKey);
-        byte[] family = dataLib.encode(DEFAULT_FAMILY);
-        byte[] ageQualifier = dataLib.encode("age");
-        dataLib.addKeyValueToPut(put, family, ageQualifier, -1, dataLib.encode(25));
-        Txn t = control.beginTransaction();
-//        transactorSetup.clientTransactor.initializePut(t.getTxnId(), put);
-        OperationWithAttributes put2 = dataLib.newPut(testKey);
-        dataLib.addKeyValueToPut(put2, family, ageQualifier, -1, dataLib.encode(27));
-//        transactorSetup.clientTransactor.initializePut( transactorSetup.clientTransactor.txnIdFromPut(put), put2);
-        Assert.assertTrue(Bytes.equals(dataLib.encode((short) 0), put2.getAttribute(SIConstants.SI_NEEDED)));
-        Object testSTable = reader.open(storeSetup.getPersonTableName());
-        try {
-            Assert.assertTrue(transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put));
-            Assert.assertTrue(transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put2));
-            Object get1 = TransactorTestUtility.makeGet(dataLib, testKey);
-//            transactorSetup.clientTransactor.initializeGet(t.getTxnId(), get1);
-            Result result = reader.get(testSTable, get1);
-            if (useSimple) {
-//                result = transactorSetup.readController.filterResult(transactorSetup.readController.newFilterState(transactorSetup.rollForwardQueue, t), result);
-            }
-            final int ageRead = (Integer) dataLib.decode(result.getValue(family, ageQualifier), Integer.class);
-            Assert.assertEquals(27, ageRead);
-        } finally {
-            reader.close(testSTable);
-        }
-
-        Txn t2 = control.beginTransaction();
-        Object get = TransactorTestUtility.makeGet(dataLib, testKey);
-        testSTable = reader.open(storeSetup.getPersonTableName());
-        try {
-            final Result resultTuple = reader.get(testSTable, get);
-//            final TxnFilter filterState = transactorSetup.readController.newFilterState(transactorSetup.rollForwardQueue, t2);
-            if (useSimple) {
-//                transactorSetup.readController.filterResult(filterState, resultTuple);
-            }
-        } finally {
-            reader.close(testSTable);
-        }
-
-        t.commit();
-        t = control.beginTransaction();
-
-        dataLib.addKeyValueToPut(put, family, ageQualifier, -1, dataLib.encode(35));
-//        transactorSetup.clientTransactor.initializePut(t.getTxnId(), put);
-        testSTable = reader.open(storeSetup.getPersonTableName());
-        try {
-            Assert.assertTrue(transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put));
-        } finally {
-            reader.close(testSTable);
-        }
-    }
-
-		@Ignore
-    public void transactionTimeout() throws IOException, InterruptedException {
-        Txn t1 = control.beginTransaction();
-        testUtility.insertAge(t1, "joe63", 20);
-        sleep();
-        Txn t2 = control.beginTransaction();
-        testUtility.insertAge(t2, "joe63", 21);
-        t2.commit();
-    }
-
-    @Test
-		@Ignore("KeepAlives function differently now")
-    public void transactionNoTimeoutWithKeepAlive() throws IOException, InterruptedException {
-        Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(t1, "joe64", 20);
-        sleep();
-//        txnStore.keepAlive(t1);
-        Txn t2 = control.beginTransaction();
-        try {
-            testUtility.insertAge(t2, "joe64", 21);
-            Assert.fail();
-        } catch (WriteConflict e) {
-        } catch (RetriesExhaustedWithDetailsException e) {
-            testUtility.assertWriteConflict(e);
-        } finally {
-						t2.rollback();
-        }
-    }
-
-    @Ignore("KeepAlives function differently now")
-    public void transactionTimeoutAfterKeepAlive() throws IOException, InterruptedException {
-        Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(t1, "joe65", 20);
-        sleep();
-//				txnStore.keepAlive(t1);
-        sleep();
-        Txn t2 = control.beginTransaction();
-        testUtility.insertAge(t2, "joe65", 21);
-        t2.commit();
-    }
-
     private void sleep() throws InterruptedException {
         if (useSimple) {
             final IncrementingClock clock = (IncrementingClock) storeSetup.getClock();
@@ -1850,440 +1744,6 @@ public class SITransactorTest extends SIConstants {
         } finally {
 						t2.rollback();
         }
-    }
-
-    @Test
-		@Ignore("Committing state is no longer valid")
-    public void transactionCommitFailRaceFailWins() throws Exception {
-        final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(t1, "joe67", 20);
-        final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
-
-        final Exception[] exception = new Exception[1];
-        final CountDownLatch latch = new CountDownLatch(1);
-        final CountDownLatch latch2 = new CountDownLatch(1);
-        Tracer.registerStatus(new Function<Object[], Object>() {
-            @Override
-            public Object apply(@Nullable Object[] input) {
-								Assert.assertTrue(input!=null && input[0] !=null);
-                final Long transactionId = (Long) input[0];
-                final TransactionStatus status = (TransactionStatus) input[1];
-                final Boolean beforeChange = (Boolean) input[2];
-                if (transactionId == t2.getTxnId()) {
-                    if (status.equals(TransactionStatus.COMMITTING)) {
-                        if (beforeChange) {
-                            try {
-                                latch.await(2, TimeUnit.SECONDS);
-                            } catch (InterruptedException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    } else if (status.equals(TransactionStatus.ERROR)) {
-                        if (!beforeChange) {
-                            latch.countDown();
-                        }
-                    }
-                }
-                return null;
-            }
-        });
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    t2.commit();
-                } catch (IOException e) {
-                    exception[0] = e;
-                    latch2.countDown();
-                }
-            }
-        }).start();
-        try {
-            testUtility.insertAge(t2, "joe67", 22);
-        } catch (WriteConflict e) {
-        } catch (RetriesExhaustedWithDetailsException e) {
-            testUtility.assertWriteConflict(e);
-        } finally {
-						t2.rollback();
-        }
-
-        latch2.await(2, TimeUnit.SECONDS);
-        Assert.assertEquals("committing failed", exception[0].getMessage());
-        Assert.assertEquals(IOException.class, exception[0].getClass());
-    }
-
-    @Test
-    @Ignore
-    public void transactionCommitFailRaceCommitWins() throws Exception {
-        final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(t1, "joe68", 20);
-        final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
-
-        final Exception[] exception = new Exception[1];
-        final CountDownLatch latch = new CountDownLatch(1);
-        final CountDownLatch latch2 = new CountDownLatch(1);
-        Tracer.registerStatus(new Function<Object[], Object>() {
-            @Override
-            public Object apply(@Nullable Object[] input) {
-								Assert.assertTrue(input!=null && input[0] !=null);
-                final Long transactionId = (Long) input[0];
-                final TransactionStatus status = (TransactionStatus) input[1];
-                final Boolean beforeChange = (Boolean) input[2];
-                if (transactionId == t2.getTxnId()) {
-                    if (status.equals(TransactionStatus.ERROR)) {
-                        if (beforeChange) {
-                            try {
-                                latch.await(2, TimeUnit.SECONDS);
-                            } catch (InterruptedException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    } else if (status.equals(TransactionStatus.COMMITTED)) {
-                        if (!beforeChange) {
-                            latch.countDown();
-                        }
-                    }
-                }
-                return null;
-            }
-        });
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    t2.commit();
-                    latch2.countDown();
-                } catch (IOException e) {
-                    exception[0] = e;
-                }
-            }
-        }).start();
-
-        try {
-            testUtility.insertAge(t2, "joe68", 22);
-            // it would be better if this threw an exception indicating that the transaction has already been committed
-        } catch (WriteConflict e) {
-        } catch (RetriesExhaustedWithDetailsException e) {
-            testUtility.assertWriteConflict(e);
-        } finally {
-						t2.rollback();
-        }
-
-        latch2.await(2, TimeUnit.SECONDS);
-        Assert.assertNull(exception[0]);
-    }
-
-		@Test
-		@Ignore("Committing state is no longer valid. Kept for historical reasons")
-    public void committingRace() throws IOException {
-        try {
-            final CountDownLatch latch = new CountDownLatch(1);
-            final CountDownLatch latch2 = new CountDownLatch(1);
-            final CountDownLatch latch3 = new CountDownLatch(1);
-            final Boolean[] success = new Boolean[]{false};
-            final Boolean[] waits = new Boolean[]{false, false};
-            Tracer.registerCommitting(new Function<Long, Object>() {
-                @Override
-                public Object apply(@Nullable Long aLong) {
-                    latch.countDown();
-                    try {
-                        waits[1] = latch2.await(2, TimeUnit.SECONDS);
-                        Assert.assertTrue(waits[1]);
-                    } catch (InterruptedException e) {
-                        Assert.fail();
-                    }
-                    return null;
-                }
-            });
-            Tracer.registerWaiting(new Function<Long, Object>() {
-                @Override
-                public Object apply(@Nullable Long aLong) {
-                    latch2.countDown();
-                    return null;
-                }
-            });
-            Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-            testUtility.insertAge(t1, "joe86", 20);
-
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        waits[0] = latch.await(2, TimeUnit.SECONDS);
-                        Assert.assertTrue(waits[0]);
-                        Txn t2 = control.beginTransaction();
-                        try {
-                            testUtility.insertAge(t2, "joe86", 21);
-                            Assert.fail();
-                        } catch (WriteConflict ignored) {
-                        } catch (RetriesExhaustedWithDetailsException e) {
-                            testUtility.assertWriteConflict(e);
-                        } finally {
-														t2.rollback();
-                        }
-                        success[0] = true;
-                        latch3.countDown();
-                    } catch (InterruptedException e) {
-                        Assert.fail();
-                    } catch (IOException e) {
-                        Assert.fail(e.getMessage());
-                    }
-                }
-            }).start();
-
-            t1.commit();
-            Assert.assertTrue(latch3.await(2, TimeUnit.SECONDS));
-            Assert.assertTrue(waits[0]);
-            Assert.assertTrue(waits[1]);
-            Assert.assertTrue(success[0]);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } finally {
-            Tracer.registerCommitting(null);
-            Tracer.registerWaiting(null);
-        }
-    }
-
-    @Ignore
-    public void committingRaceNested() throws IOException {
-        try {
-            final CountDownLatch latch = new CountDownLatch(1);
-            final CountDownLatch latch2 = new CountDownLatch(1);
-            final CountDownLatch latch3 = new CountDownLatch(1);
-            final Boolean[] success = new Boolean[]{false};
-            final Boolean[] waits = new Boolean[]{false, false};
-            final Txn t1 = control.beginTransaction();
-            final Txn t1a = control.beginChildTransaction(t1,DESTINATION_TABLE);
-            Tracer.registerCommitting(new Function<Long, Object>() {
-                @Override
-                public Object apply(@Nullable Long timestamp) {
-										Assert.assertNotNull(timestamp);
-                    if (timestamp.equals(t1a.getTxnId())) {
-                        latch.countDown();
-                        try {
-                            waits[1] = latch2.await(2, TimeUnit.SECONDS);
-                            Assert.assertTrue(waits[1]);
-                        } catch (InterruptedException e) {
-                            Assert.fail();
-                        }
-                    }
-                    return null;
-                }
-            });
-            testUtility.insertAge(t1a, "joe88", 20);
-            Tracer.registerWaiting(new Function<Long, Object>() {
-                @Override
-                public Object apply(@Nullable Long timestamp) {
-										Assert.assertNotNull(timestamp);
-                    if (timestamp.equals(t1a.getTxnId())) {
-                        latch2.countDown();
-                    }
-                    return null;
-                }
-            });
-
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        waits[0] = latch.await(2, TimeUnit.SECONDS);
-                        Assert.assertTrue(waits[0]);
-                        Txn t2 = control.beginTransaction();
-                        try {
-                            testUtility.insertAge(t2, "joe88", 21);
-                            Assert.fail();
-                        } catch (WriteConflict ignored) {
-                        } catch (RetriesExhaustedWithDetailsException e) {
-                            testUtility.assertWriteConflict(e);
-                        } finally {
-                            t2.rollback();
-                        }
-                        success[0] = true;
-                        latch3.countDown();
-                    } catch (InterruptedException e) {
-                        Assert.fail();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }).start();
-
-            t1a.commit();
-            t1.commit();
-            Assert.assertTrue(latch3.await(2, TimeUnit.SECONDS));
-            Assert.assertTrue(waits[0]);
-            Assert.assertTrue(waits[1]);
-            Assert.assertTrue(success[0]);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } finally {
-            Tracer.registerCommitting(null);
-            Tracer.registerWaiting(null);
-        }
-    }
-
-    @Test
-		@Ignore("The Committing state is no longer valid. Kept for historical reasons")
-    public void committingRaceCommitFails() throws Exception {
-        try {
-            final CountDownLatch latch = new CountDownLatch(1);
-            final CountDownLatch latch2 = new CountDownLatch(1);
-            final CountDownLatch latch3 = new CountDownLatch(1);
-            final Boolean[] success = new Boolean[]{false};
-            final Exception[] exception = new Exception[]{null};
-            Tracer.registerCommitting(new Function<Long, Object>() {
-                @Override
-                public Object apply(@Nullable Long aLong) {
-                    latch.countDown();
-                    try {
-                        Assert.assertTrue(latch2.await(5, TimeUnit.SECONDS));
-                    } catch (InterruptedException e) {
-                        Assert.fail();
-                    }
-                    return null;
-                }
-            });
-            final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-            Tracer.registerWaiting(new Function<Long, Object>() {
-                @Override
-                public Object apply(@Nullable Long aLong) {
-//                    try {
-//                        Assert.assertTrue(transactorSetup.transactionStore.recordTransactionStatusChange(t1.getTxnId(),
-//                                TransactionStatus.COMMITTING, TransactionStatus.ERROR));
-//                    } catch (IOException e) {
-//                        exception[0] = e;
-//                        throw new RuntimeException(e);
-//                    }
-                    latch2.countDown();
-                    return null;
-                }
-            });
-            testUtility.insertAge(t1, "joe87", 20);
-
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Assert.assertTrue(latch.await(5, TimeUnit.SECONDS));
-                        Txn t2 = control.beginTransaction();
-                        testUtility.insertAge(t2, "joe87", 21);
-                        success[0] = true;
-                        latch3.countDown();
-                    } catch (InterruptedException e) {
-                        Assert.fail();
-                    } catch (IOException e) {
-                        Assert.fail(e.getMessage());
-                    }
-                }
-            }).start();
-
-            try {
-                t1.commit();
-                Assert.fail();
-            } catch (DoNotRetryIOException e) {
-            } catch (RetriesExhaustedWithDetailsException e) {
-                assertWriteFailed(e);
-            }
-            Assert.assertTrue(latch3.await(5, TimeUnit.SECONDS));
-            if (exception[0] != null) {
-                throw exception[0];
-            }
-            Assert.assertTrue(success[0]);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } finally {
-            Tracer.registerCommitting(null);
-            Tracer.registerWaiting(null);
-        }
-    }
-
-    @Test
-		@Ignore("Committing state no longer conceptually exists. Keeping around for historical reasons")
-    public void committingNeverVisible() throws Exception {
-        try {
-            final CountDownLatch latch = new CountDownLatch(1);
-            final CountDownLatch latch2 = new CountDownLatch(1);
-            final CountDownLatch latch3 = new CountDownLatch(1);
-
-            final Boolean[] success = new Boolean[]{false, false};
-            final Exception[] exception = new Exception[]{null};
-            Tracer.registerCommitting(new Function<Long, Object>() {
-                @Override
-                public Object apply(@Nullable Long aLong) {
-                    latch.countDown();
-                    try {
-                        Assert.assertTrue("No progress", latch2.await(10, TimeUnit.SECONDS));
-                    } catch (InterruptedException e) {
-                        Assert.fail();
-                    }
-                    return null;
-                }
-            });
-            final Txn t1 = control.beginTransaction();
-            Tracer.registerWaiting(new Function<Long, Object>() {
-                @Override
-                public Object apply(@Nullable Long aLong) {
-                    success[0] = true;
-                    latch2.countDown();
-                    return null;
-                }
-            });
-
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Assert.assertTrue(latch.await(10, TimeUnit.SECONDS));
-												TxnView txn = txnStore.getTransaction(t1.getTxnId());
-//												txn.commit();
-												success[1] = txn.getEffectiveState()== Txn.State.COMMITTED;
-//                        ImmutableTransaction it1 = transactorSetup.transactionStore.getImmutableTransaction(t1.commit();
-//                        Transaction txn1 = transactorSetup.transactionStore.getTransaction(t1);
-//                        TransactionStatus status = txn1.getEffectiveStatus();
-//                        success[1] = !status.isCommitting();
-                    } catch (Exception e) {
-                        success[1] = false;
-                    } finally {
-                        latch2.countDown();
-                        latch3.countDown();
-                    }
-                }
-            }).start();
-
-            try {
-                t1.commit();
-            } catch (DoNotRetryIOException e) {
-                Assert.fail();
-            } catch (RetriesExhaustedWithDetailsException e) {
-                Assert.fail();
-            }
-
-            Assert.assertTrue("Latch timed out waiting",latch3.await(10, TimeUnit.SECONDS));
-            Assert.assertTrue("Nobody waited for transaction while committing", success[0]);
-            Assert.assertTrue("Concurrent worker saw transaction in committing state", success[1]);
-        } finally {
-            Tracer.registerCommitting(null);
-            Tracer.registerWaiting(null);
-        }
-    }
-
-    @Test
-		@Ignore("Not needed")
-    public void writeReadViaFilterResult() throws IOException {
-        Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(t1, "joe89", 20);
-        t1.commit();
-
-        Txn t2 = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(t2, "joe89", 21);
-
-        Txn t3 = control.beginTransaction();
-        Result result = testUtility.readRaw("joe89");
-//        TxnFilter filterState = transactorSetup.readController.newFilterState(t3);
-//        result = transactorSetup.readController.filterResult(filterState, result);
-        Assert.assertEquals("joe89 age=20 job=null", testUtility.resultToString("joe89", result));
     }
 
     @Test
@@ -2648,72 +2108,7 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("147zoe age=51 job=null", testUtility.read(t2, "147zoe"));
     }
 
-    // Permission tests
-
-    @Test
-    @Ignore("disabled until DDL changes are merged")
-    public void forbidWrites() throws IOException {
-        final Txn t1 = control.beginTransaction();
-				Assert.fail("Implement!");
-//        Assert.assertTrue(control.forbidWrites(storeSetup.getPersonTableName(), t1));
-//        try {
-//            testUtility.insertAge(t1, "joe69", 20);
-//            Assert.fail();
-//        } catch (PermissionFailure ex) {
-//            Assert.assertTrue(ex.getMessage().startsWith("permission fail"));
-//        } catch (RetriesExhaustedWithDetailsException e) {
-//            assertPermissionFailure(e);
-//        }
-    }
-
-    @Test
-    @Ignore("disabled until DDL changes are merged")
-    public void forbidWritesAfterWritten() throws IOException {
-        final Txn t1 = control.beginTransaction();
-        testUtility.insertAge(t1, "joe69", 20);
-				Assert.fail("Implement!");
-//        Assert.assertFalse(control.forbidWrites(storeSetup.getPersonTableName(), t1));
-    }
-
-    private void assertPermissionFailure(RetriesExhaustedWithDetailsException e) {
-        Assert.assertEquals(1, e.getNumExceptions());
-        Assert.assertTrue(e.getMessage().contains("permission fail"));
-    }
-
-    // Additive tests
-
-    @Test
-    public void additiveWritesSecond() throws IOException {
-        final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(t1, "joe70", 20);
-        final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
-//        final Txn t3 = control.beginChildTransaction(t2, true, true, true, null, null, null);
-				final Txn t3 = control.beginChildTransaction(t2,t2.getIsolationLevel(), true,DESTINATION_TABLE);
-        testUtility.insertJob(t3, "joe70", "butcher");
-        t3.commit();
-        t2.commit();
-        t1.commit();
-        final Txn t4 = control.beginTransaction();
-        Assert.assertEquals("joe70 age=20 job=butcher", testUtility.read(t4, "joe70"));
-    }
-
-    @Test
-    public void additiveWritesFirst() throws IOException {
-        final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-//        final Txn t2 = control.beginChildTransaction(t1, true, true, true, null, null, null);
-				final Txn t2 = control.beginChildTransaction(t1,t1.getIsolationLevel(), true,DESTINATION_TABLE);
-        testUtility.insertJob(t2, "joe70", "butcher");
-        final Txn t3 = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(t3, "joe70", 20);
-        t3.commit();
-        t2.commit();
-        t1.commit();
-        final Txn t4 = control.beginTransaction();
-        Assert.assertEquals("joe70 age=20 job=butcher", testUtility.read(t4, "joe70"));
-    }
-
     // Commit & begin together tests
-
     @Test
     public void testCommitAndBeginSeparate() throws IOException {
         final Txn t1 = control.beginTransaction();
@@ -2745,75 +2140,4 @@ public class SITransactorTest extends SIConstants {
 				control.chainTransaction(t3, t3.getIsolationLevel(), true, true, DESTINATION_TABLE, t2);
 				Assert.fail();
 		}
-
-    @Test
-    @Ignore
-    public void test() throws IOException {
-        final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(t1, "joe70", 20);
-        t1.commit();
-
-        final LDataLib dataLib2 = new LDataLib();
-        final Clock clock2 = new IncrementingClock(1000);
-        final LStore store2 = new LStore(clock2);
-
-        final Transcoder transcoder = new Transcoder() {
-            @Override
-            public Object transcode(Object data) {
-                return data;
-            }
-
-            @Override
-            public Object transcodeKey(Object key) {
-                return storeSetup.getDataLib().decode((byte[])key, String.class);
-            }
-
-            @Override
-            public Object transcodeFamily(Object family) {
-                return storeSetup.getDataLib().decode((byte[])family, String.class);
-            }
-
-            @Override
-            public Object transcodeQualifier(Object qualifier) {
-                return storeSetup.getDataLib().decode((byte[])qualifier, String.class);
-            }
-        };
-        final Transcoder transcoder2 = new Transcoder() {
-            @Override
-            public Object transcode(Object data) {
-                return data;
-            }
-
-            @Override
-            public Object transcodeKey(Object key) {
-                return dataLib2.decode((byte[])key, String.class);
-            }
-
-            @Override
-            public Object transcodeFamily(Object family) {
-                return dataLib2.decode((byte[])family, String.class);
-            }
-
-            @Override
-            public Object transcodeQualifier(Object qualifier) {
-                return dataLib2.decode((byte[])qualifier, String.class);
-            }
-        };
-        final Translator translator = new Translator(storeSetup.getDataLib(), storeSetup.getReader(), dataLib2, store2, store2, transcoder, transcoder2);
-
-        translator.translate(storeSetup.getPersonTableName());
-        final LGet get = dataLib2.newGet(dataLib2.encode("joe70"), null, null, null);
-        final LTable table2 = store2.open(storeSetup.getPersonTableName());
-        final Result result = store2.get(table2, get);
-        Assert.assertNotNull(result);
-        final List<KeyValue> results = dataLib2.listResult(result);
-        Assert.assertEquals(2, results.size());
-        final KeyValue kv = results.get(1);
-        Assert.assertEquals("joe70", Bytes.toString(kv.getRow()));
-        Assert.assertEquals("V", Bytes.toString(kv.getFamily()));
-        Assert.assertEquals("age", Bytes.toString(kv.getQualifier()));
-        Assert.assertEquals(1L, kv.getTimestamp());
-        Assert.assertEquals(20, Bytes.toInt(kv.getValue()));
-
-    }
 }

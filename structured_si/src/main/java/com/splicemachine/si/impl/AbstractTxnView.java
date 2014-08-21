@@ -77,10 +77,32 @@ public abstract class AbstractTxnView implements TxnView {
         return false;
     }
 
-    	@Override
-		public final boolean canSee(TxnView otherTxn) {
-				assert otherTxn!=null: "Cannot access visibility semantics of a null transaction!";
-				if(equals(otherTxn)) return true; //you can always see your own writes
+    @Override
+    public final boolean canSee(TxnView otherTxn) {
+        assert otherTxn!=null: "Cannot access visibility semantics of a null transaction!";
+        if(equals(otherTxn)) return true; //you can always see your own writes
+        if(isAdditive() && otherTxn.isAdditive()){
+            /*
+             * Both transactions are additive, but we can only treat them as additive
+             * if they are both children of the same parent.
+             *
+             * However, if they DO have the same parent, then they operate as if they
+             * have a READ_UNCOMMITTED isolation level.
+             *
+             * Note that a readonly child transaction inherits the same transactional
+             * structure as the parent (e.g. there is no such thing as a read-only child
+             * transaction, you are just reading with the parent transaction). As a result,
+             * we say that if otherTxn is a direct child of us, or we are a direct child
+             * of otherTxn, then we can also be additive with respect to one another.
+             */
+            TxnView myParent = getParentTxnView();
+            TxnView otherParent = otherTxn.getParentTxnView();
+            if(equals(otherParent)
+                    || otherTxn.equals(myParent)
+                    || !myParent.equals(Txn.ROOT_TRANSACTION) && myParent.equals(otherParent)){
+                return Txn.IsolationLevel.READ_UNCOMMITTED.canSee(beginTimestamp,otherTxn,false);
+            }
+        }
           /*
            * We know that the otherTxn is effectively active, but we don't
            * necessarily know where in the chain we are considered active. As
@@ -147,20 +169,9 @@ public abstract class AbstractTxnView implements TxnView {
 
 		}
 
-
-    @Override
-    public boolean isAdditive() {
-        return false;
-    }
-
-    @Override
-    public long getGlobalCommitTimestamp() {
-        return 0;
-    }
-
     @Override
     public ConflictType conflicts(TxnView otherTxn) {
-/*
+        /*
 				 * There are two ways that a transaction does not conflict.
 				 *
 				 * 1. otherTxn.equals(this)
@@ -170,6 +181,18 @@ public abstract class AbstractTxnView implements TxnView {
 				 * otherwise, we conflict
 				 */
         if(equals(otherTxn)) return ConflictType.NONE; //cannot conflict with ourself
+        if(isAdditive() && otherTxn.isAdditive()){
+            /*
+             * Both transactions are additive, but we can only treat them as additive
+             * if they are both children of the same parent.
+             */
+            TxnView myParent = getParentTxnView();
+            TxnView otherParent = otherTxn.getParentTxnView();
+            if(!myParent.equals(Txn.ROOT_TRANSACTION) && myParent.equals(otherParent)){
+                //we are additive, so no conflict
+                return ConflictType.NONE;
+            }
+        }
         switch(otherTxn.getEffectiveState()){
             case ROLLEDBACK: return ConflictType.NONE; //cannot conflict with ourself
             case COMMITTED:
@@ -214,14 +237,17 @@ public abstract class AbstractTxnView implements TxnView {
             return below.getCommitTimestamp()>b.getBeginTimestamp()? ConflictType.SIBLING: ConflictType.NONE;
         }else if(Txn.ROOT_TRANSACTION.equals(t)){
             TxnView b = getImmediateChild(t);
+            /*
+             * below isn't null here, because that would imply that otherTxn == t == ROOT, which would mean
+             * that someone wrote with the ROOT transaction, which should never happen. As a result, we throw
+             * in this assertion here to help validate that, but it probably won't ever happen.
+             */
+            assert below != null: "Programmer error: below should never be null here";
             return below.getCommitTimestamp()>b.getBeginTimestamp()? ConflictType.SIBLING: ConflictType.NONE;
         }else return ConflictType.SIBLING;
     }
 
-    @Override
-		public Iterator<ByteSlice> getDestinationTables() {
-				return Iterators.emptyIterator();
-    }
+    @Override public Iterator<ByteSlice> getDestinationTables() { return Iterators.emptyIterator(); }
 
     @Override
     public boolean descendsFrom(TxnView potentialParent) {
@@ -244,11 +270,10 @@ public abstract class AbstractTxnView implements TxnView {
 				return txnId == that.getTxnId();
 		}
 
-		@Override
-		public int hashCode() {
-				return (int) (txnId ^ (txnId >>> 32));
-		}
+		@Override public int hashCode() { return (int) (txnId ^ (txnId >>> 32)); }
 
+    /************************************************************************************************************/
+    /*private helper methods*/
     private TxnView getImmediateChild(TxnView ancestor) {
         /*
          * This fetches the transaction which is the ancestor

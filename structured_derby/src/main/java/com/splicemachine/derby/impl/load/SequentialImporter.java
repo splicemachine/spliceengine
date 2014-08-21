@@ -42,13 +42,13 @@ public class SequentialImporter implements Importer{
 
 		public SequentialImporter(ImportContext importContext,
 															ExecRow templateRow,
-															Txn txn, ImportErrorReporter errorReporter){
+															TxnView txn, ImportErrorReporter errorReporter){
 			this(importContext, templateRow, txn,SpliceDriver.driver().getTableWriter(),SpliceDriver.getKryoPool(),errorReporter);
 		}
 
 		public SequentialImporter(ImportContext importContext,
 															ExecRow templateRow,
-															Txn txn, ImportErrorReporter errorReporter,
+															TxnView txn, ImportErrorReporter errorReporter,
 															CallBufferFactory<KVPair> callBufferFactory,
 															KryoPool kryoPool){
 				this(importContext, templateRow, txn,callBufferFactory,kryoPool,errorReporter);

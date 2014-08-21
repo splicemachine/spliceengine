@@ -20,6 +20,7 @@ import org.junit.runners.Suite;
 //				SIFilterTest.class,
 				SimpleTxnFilterTest.class,
 				SITransactorTest.class,
+        TransactionInteractionTest.class,
 //				SITransactorPackedTest.class,
 //				JtaXAResourceTest.class,
 //				TransactionManagerTest.class,

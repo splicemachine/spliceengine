@@ -94,7 +94,9 @@ public class SimpleOperationFactory implements TxnOperationFactory {
             parentTxn = Txn.ROOT_TRANSACTION;
         }else
             parentTxn = txnSupplier.getTransaction(parentTxnId);
-				return new ReadOnlyTxn(beginTs,beginTs,isoLevel,parentTxn,UnsupportedLifecycleManager.INSTANCE,false);
+
+        boolean isAdditive = BytesUtil.toBoolean(txnData,17);
+				return new ReadOnlyTxn(beginTs,beginTs,isoLevel,parentTxn,UnsupportedLifecycleManager.INSTANCE,isAdditive);
 		}
 
 		@Override
@@ -123,10 +125,11 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 				if(isCountStar)
 						op.setAttribute(SIConstants.SI_COUNT_STAR,SIConstants.TRUE_BYTES);
 
-				byte[] data = new byte[17];
+				byte[] data = new byte[18];
 				BytesUtil.longToBytes(txn.getBeginTimestamp(),data,0);
         BytesUtil.longToBytes(txn.getParentTxnId(),data,8);
 				data[16] = txn.getIsolationLevel().encode();
+        data[17] = (byte)(txn.isAdditive()? -1:0);
 
 				op.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,data);
         op.setAttribute(SIConstants.SI_NEEDED,SIConstants.SI_NEEDED_VALUE_BYTES);
