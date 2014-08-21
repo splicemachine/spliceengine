@@ -20,7 +20,7 @@ public class ImportData {
 		this.tableName = tableName;
 		try {
 			if(conn == null)
-				conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb");
+				conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
 			Statement stmt = conn.createStatement();
 			stmt.execute(sqlStat);
 			
@@ -37,7 +37,7 @@ public class ImportData {
 		String absolutePath = f.getAbsolutePath();
 		try {
 			if(conn == null)
-				conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb");
+				conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
 			Statement stmt = conn.createStatement();
 			
 			br = new BufferedReader(new FileReader(absolutePath + filePath));

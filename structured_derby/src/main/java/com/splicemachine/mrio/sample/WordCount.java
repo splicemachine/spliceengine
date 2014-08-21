@@ -195,7 +195,10 @@ public class WordCount {
 			try {
 				b = job.waitForCompletion(true);
 				if (!b)
+					{
+					System.out.println("Job Failed");
 					job.rollback();
+					}
 				else
 					job.commit();
 			} catch (InterruptedException e) {

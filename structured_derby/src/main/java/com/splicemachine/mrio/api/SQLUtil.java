@@ -28,7 +28,7 @@ public class SQLUtil {
 	  
 	  private SQLUtil() throws Exception {  
 	      Class.forName("org.apache.derby.jdbc.ClientDriver").newInstance();
-	      connect = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb");
+	      connect = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
 	      
 	  }
 	  
@@ -53,7 +53,7 @@ public class SQLUtil {
 	  
 	  public Connection createConn() throws SQLException
 	  {
-		  Connection conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb");
+		  Connection conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
 		  return conn;
 	  }
 	  

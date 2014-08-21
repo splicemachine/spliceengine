@@ -335,21 +335,28 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 							currentRowLocation = null;	
 							return null;
 					}else{
+						
 							if(template.nColumns()>0){
+								
 									KeyValue kv = keyValues.get(0);
 									if(!filterRowKey(kv)||!filterRow(filter)){
 											//filter the row first, then filter the row key
+											
 											filterCounter.increment();
 											setRowLocation(kv);
+											
 											return template;
 									}
 							}else if(!filterRow(filter)){
 									//still need to filter rows to deal with transactional issues
+								
 									filterCounter.increment();
 									KeyValue kv = keyValues.get(0);
-									setRowLocation(kv);								
+									setRowLocation(kv);		
+									
 									return template;
 							}
+							
 							setRowLocation(keyValues.get(0));
 							
 							return template;
@@ -486,9 +493,11 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 			Iterator<KeyValue> kvIter = keyValues.iterator();
 			
 			while(kvIter.hasNext()){
+				
 					KeyValue kv = kvIter.next();
 					
 					Filter.ReturnCode returnCode = filter.filterKeyValue(kv);
+					
 					switch(returnCode){
 							case NEXT_COL:
 							case NEXT_ROW:
@@ -502,14 +511,12 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 					}
 					
 			}
-			
 			return keyValues.size() > 0 && filter.getAccumulator().result() != null;
 	}
 
 	private boolean filterRowKey(KeyValue keyValue) throws IOException {
 			if(!isKeyed) 
 			{
-				
 				return true;
 			}
 
@@ -524,7 +531,6 @@ public class SpliceTableScanner implements StandardIterator<ExecRow>{
 
 			keyAccumulator.reset();
 			primaryKeyIndex.reset();
-
 			return predicateFilter.match(primaryKeyIndex, keyDecoderProvider, keyAccumulator);
 	}
 
