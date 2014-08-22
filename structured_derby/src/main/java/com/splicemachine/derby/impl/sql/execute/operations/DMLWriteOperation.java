@@ -181,7 +181,26 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
 		@Override
 		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
-				JobResults jobResults = super.doShuffle(runtimeContext);
+        long start = System.currentTimeMillis();
+        final RowProvider rowProvider = getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext);
+
+        nextTime+= System.currentTimeMillis()-start;
+        //TODO -sf- can we remove the transaction here?
+        Txn childTransaction = getChildTransaction();
+        try{
+            SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),
+                    this, runtimeContext,
+                    childTransaction);
+            jobResults = rowProvider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
+        }finally{
+            /*
+             * Commit the underlying child transaction
+             */
+            if(jobResults.getJobStats().getNumFailedTasks()>0){
+                childTransaction.rollback();
+            }else
+                childTransaction.commit();
+        }
 				long rowsModified = 0;
 				for(TaskStats stats:jobResults.getJobStats().getTaskStats()){
 						rowsModified+=stats.getTotalRowsWritten();
@@ -271,6 +290,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
 				@Override
 				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException, IOException {
+            Txn child = getChildTransaction();
+            instructions.setTxn(child);
+
 						JobResults jobStats = rowProvider.shuffleRows(instructions,postCompleteTasks);
 						long i = 0;
 						for (TaskStats stat: jobStats.getJobStats().getTaskStats()) {
@@ -350,10 +372,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 										for (TaskStats stat: stats.getJobStats().getTaskStats()) {
 												i = i + stat.getTotalRowsWritten();
 										}
-										//modifiedProvider.setRowsModified(stats.get.getTotalRecords());
 										modifiedProvider.setRowsModified(i);
                     txn.commit();
-//										commitTransactionSafely(,0);
 								} catch (Exception ioe) {
 										if(ioe instanceof StandardException && ErrorState.XACT_COMMIT_EXCEPTION.getSqlState().equals(((StandardException)ioe).getSqlState())){
 												//bad news, we couldn't commit the transaction. Nothing we can do there,
@@ -363,86 +383,15 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 										//we encountered some other kind of error. Try and roll back the Transaction
 										try {
                         txn.rollback();
-//												rollback(childTransactionId,0);
 										}catch (IOException e) {
                         throw new RuntimeException(e);
                     }
                     throw new RuntimeException(ioe);
-								} finally {
-//										clearChildTransactionID();
 								}
-						}
+            }
 				}
 
-
-
-				private void rollback(TransactionId txnId, int numTries) throws StandardException {
-						if(numTries> SpliceConstants.numRetries)
-								throw ErrorState.XACT_ROLLBACK_EXCEPTION.newException();
-						try{
-								HTransactorFactory.getTransactionManager().rollback(txnId);
-						}catch (IOException e) {
-								TransactionStatus status = getTransactionStatusSafely(txnId,0);
-								switch (status) {
-										case ACTIVE:
-												//we can retry
-												rollback(txnId, numTries+1);
-												return;
-										case COMMITTING:
-												throw new IllegalStateException("Seen a transaction state of COMMITTING");
-										case ROLLED_BACK:
-												//whoo, we succeeded
-												return;
-										default:
-												throw ErrorState.XACT_ROLLBACK_EXCEPTION.newException();
-								}
-						}
-				}
-
-				private void commitTransactionSafely(TransactionId txnId, int numTries) throws StandardException{
-            /*
-             * We attempt to commit the transaction safely.
-             *
-             * If we fail to commit, then we must check our transaction state, and retry commit if necessary
-             */
-						//we're out of tries, give up
-						if(numTries> SpliceConstants.numRetries)
-								throw ErrorState.XACT_COMMIT_EXCEPTION.newException();
-
-						try{
-								HTransactorFactory.getTransactionManager().commit(txnId);
-						} catch (IOException e) {
-								TransactionStatus status = getTransactionStatusSafely(txnId,0);
-								switch (status) {
-										case COMMITTED:
-												//whoo, success!
-												return;
-										case ACTIVE:
-												//cool, we can retry the commit
-												commitTransactionSafely(txnId, numTries+1);
-												return;
-										case COMMITTING:
-												throw new IllegalStateException("Seen a committing transaction state!");
-										default:
-												//we can't retry, that's bad
-												throw ErrorState.XACT_COMMIT_EXCEPTION.newException();
-								}
-						}
-				}
-
-				private TransactionStatus getTransactionStatusSafely(TransactionId txnId, int numTries) throws StandardException{
-						if(numTries> SpliceConstants.numRetries)
-								throw ErrorState.XACT_COMMIT_EXCEPTION.newException();
-						try{
-								return HTransactorFactory.getTransactionManager().getTransactionStatus(txnId);
-						}catch(IOException ioe){
-								LOG.error(ioe);
-								//try again
-								return getTransactionStatusSafely(txnId, numTries+1);
-						}
-				}
-
-				@Override
+        @Override
 				public void close() {
 						rowsModified = 0;
 						SpliceLogUtils.trace(LOG, "close in modifiedProvider for Delete/Insert/Update");

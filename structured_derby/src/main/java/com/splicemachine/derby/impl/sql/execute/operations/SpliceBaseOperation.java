@@ -108,7 +108,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 		protected int resultSetNumber;
 		protected OperationInformation operationInformation;
-		private transient JobResults jobResults;
+		protected transient JobResults jobResults;
 		protected long statementId = -1l; //default value if the statementId isn't set
 
 		public SpliceBaseOperation() {
