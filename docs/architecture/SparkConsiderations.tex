@@ -1,0 +1,160 @@
+\documentclass{article}
+\usepackage[margin=1.25in]{geometry}
+\usepackage{fancyhdr}
+\usepackage{url}
+\pagestyle{fancy}
+\lhead{} \rhead{}
+\chead{Splice Machine Technical Design Document}
+\lfoot{Splice Machine, Inc. Proprietary and Confidential}
+\cfoot{}
+\rfoot{\thepage\\}
+
+\begin{document}
+
+\title{Spark Considerations}
+\author{John Leach, Daniel G\'{o}mez Ferro, Gene Davis}
+\maketitle
+\makeauthor
+\thispagestyle{fancy}
+
+\section{Revision History}
+\begin{enumerate}
+  \item 8/20/15 - (GD) Initial version
+\end{enumerate}
+\section{Background}
+Splice Machine has a number of shortcomings where it is possible that Spark can help.  This document presents these shortcomings as several potential projects (some independent, some with dependencies between them) where Spark is a considered option.  Other options, alternatives, and workarounds will be discussed.  A proposed plan will be outlined for us to help determine the best course(s) of action.  
+
+Spark is its own complex piece of software so we should be clear that the cost of the complexities are understood should we choose options involving Spark.  That being said, once we have chosen to bite the bullet and choose to embed Spark in our solution, presumably adding other uses for Spark will be less complex.
+
+This document is not a complete design document for all development work, but is intended to guide analysis of each situation.  Where they exist, relevant design docs will be referenced.  
+
+\section{OLAP Performance Improvements using Spark for TEMP tables}
+
+\subsection{Problem Statement}
+
+Splice currently writes to the HBase TEMP table when intermediate results from SQL operations need to be stored for a follow-on phase of that operation (example: a join requiring a MergeSort algorithm).  In certain cases the TEMP table can become a significant bottleneck to this process, given that it is a table that must be written to and then read from, and given the overhead placed on HBase tables (replication, compaction, WAL, etc.).  
+
+\subsection{Options to Consider}
+
+A project has been in work to gauge Spark's effectiveness as a TEMP table replacement under certain conditions.  No other alternatives are being considered for this project. 
+
+\subsection{Spark Proposal}
+
+The proposal is to wrap up the current development work and perform sufficient tests to assess Spark's usefulness as a TEMP table replacement.
+
+\begin{sloppypar}
+See:
+
+ \url{https://docs.google.com/a/splicemachine.com/document/d/1dg_5kCDtxMo89cUhYQBVlq7ReHIbzJvXlcXGEnngVtI} 
+ 
+ for details.
+\end{sloppypar}
+
+\subsection{Issues}
+
+\begin{itemize}
+	\item It is unclear which scenarios will benefit from using Spark for just TEMP table work.  More testing needs to be done.
+	\item The complexity of Spark setup/packaging/configuration against all supported Hadoop platforms needs to be worked through
+\end{itemize}
+
+\subsection{Status/Proposed Plan}
+
+The prototype has been worked on for some time and is nearly finished; more complete testing/benchmarking of the solution will be needed.
+
+\section{Improve Stability During Compactions}
+
+\subsection{Problem Statement}
+
+Compactions are a known challenge in HBase, especially when there are situations of fast data growth.  Splice Machine incurs fast data growth when importing data, creating indexes for large tables, and other operations that will create many rows of data.  Compaction is currently done by the region server JVM.  During heavy compaction activity, the HBase cluster stability is at risk; additionally, compaction can dramatically impact performance of operations being run at the time of the compaction, leading to a high degree of performance unpredictability for those operations.
+
+\subsection{Options for Resolution}
+
+There may be several options, some of which may be complementary:
+
+\begin{itemize}
+	\item Research what other companies are doing (RocketFuel, etc)
+	\item Turn compaction off when needed, and set up a plan for manual compaction when appropriate.  The main problem with this is it requires tuning and there is no one-size-fits-all solution for customers
+	\item The multi-tasks-per-region HBase enhancement has initially demonstrated compaction performance improvements which we should assess
+	\item Experiment with compaction parameters to see if they provide relief
+	\item We can rewrite compactions to occur off-heap in a manner less impactful on the Region Server.  
+		\subitem Using Spark
+		\subitem Using some other mechanism?
+\end{itemize}
+
+\subsection{Spark Proposal}
+
+Design and implement a compaction algorithm in Spark which would eliminate compaction processes in the RegionServer JVM.
+
+\subsection{Proposed Plan}
+
+Meet with RocketFuel (and possibly others) to learn their best practices.
+
+Take a multi-step approach to investigating the Spark solution as well as workarounds available to us.  Step 1 is to create a compaction-heavy scenario that reflects what we might see.  Then we can test this scenario against various alternatives:
+
+\begin{itemize}
+	\item The multi-tasks-per-region HBase enhancement's improvement
+	\item A set of best practices for manually dealing with compactions
+	\item Compaction parameters
+	\item Off-heap compaction rewrite using Spark
+\end{itemize}
+
+\section{JVM Heap and GC Pressure}
+
+\subsection{Problem Statement}
+
+Region Server task throughput suffers when memory fills up.  Even with 32+ GB RAM on a box, Region Server max memory is kept at 8GB max since a full GC on any more can cause severe latencies on the Region Server query performance.
+
+\subsection{Options for Resolution}
+
+\begin{itemize}
+	\item Explore other JVM's that attack the GC pause issue (example: Azul)
+	\item Leverage other off-heap work that reduces memory pressure on the Region Server (see other solutions)
+\end{itemize}
+
+\subsection{Proposed Plan}
+
+Research and test other JVM solutions to see if they provide relief  vs what we experience today on GC-heavy workloads
+
+\section{Heterogeneous Workloads (OLAP/OLTP) Struggle in single JVM}
+
+\subsection{Problem Statement}
+
+In heterogeneous workloads (both OLAP and OLTP queries) OLTP performance suffers because appropriate caching that works well for OLTP workloads will get wiped (and to no advantage) when OLAP queries come along.
+
+\subsection{Options for Resolution}
+
+\begin{itemize}
+	\item Explore tuning options given any work that was done previously
+ 	\item More fully embrace a Spark architecture for handling OLAP queries independent of HBase's handling of the OLTP workload
+\end{itemize}
+
+
+\subsection{Spark Proposal}
+
+A high-level design exists for how the Spark/HBase dual OLAP/OLTP architecture would work.  
+
+\begin{sloppypar}
+See:
+
+ \url{https://docs.google.com/a/splicemachine.com/document/d/1dg_5kCDtxMo89cUhYQBVlq7ReHIbzJvXlcXGEnngVtI} 
+ 
+ for details.
+\end{sloppypar}
+
+\subsection{Proposed Plan}
+
+Pending decisions and results on other Spark work, this should at least be prototyped and tested on heterogeneous workloads.
+
+
+\section{Spark Issues}
+
+A decision to adopt Spark for helping to solve Splice Machine challenges needs to address many complexities, including the following:
+
+\begin{itemize}
+	\item Extra number of moving parts in an already complex system
+	\item Product version compatibility issues against the various platforms we will support
+	\item Once we go there, is Spark required?  Optional?  How is it packaged and positioned for customers?
+\end{itemize}
+
+
+\end{document}
