@@ -5,8 +5,17 @@ import com.google.common.base.Preconditions;
 import java.math.BigDecimal;
 
 /**
+ * Encode multiple fields into a single byte array.  Encode(X) methods delegate to our XEncoding classes.
+ *
+ * Spec:
+ *
+ * -- Fields are followed by a single byte, 0, field delimiter.
+ * -- Last field does not get a delimiter.
+ * -- Empty fields are represented by a single byte, 0.
+ * -- Empty fields are not followed by a delimiter.
+ *
  * @author Scott Fines
- * Created on: 6/10/13
+ *         Created on: 6/10/13
  */
 public class MultiFieldEncoder {
     private final byte[][] fields;
@@ -14,21 +23,17 @@ public class MultiFieldEncoder {
     private int currentPos;
     private int currentSize;
     private int initialPos;
-    private int initalSize;
+    private int initialSize;
 
-		private MultiFieldEncoder(int numFields){
+    private MultiFieldEncoder(int numFields) {
         fields = new byte[numFields][];
         this.numFields = numFields;
-        this.initialPos=0;
-        this.initalSize=0;
+        this.initialPos = 0;
+        this.initialSize = 0;
 
-				//initialize ourselves
+		//initialize ourselves
         reset();
     }
-
-//    public static MultiFieldEncoder create(int numFields){
-//        return new MultiFieldEncoder(KryoPool.defaultPool(),numFields);
-//    }
 
     public static MultiFieldEncoder create(int numFields){
         return new MultiFieldEncoder(numFields);
@@ -207,7 +212,7 @@ public class MultiFieldEncoder {
         return this;
     }
 
-		public byte[] build(){
+	public byte[] build(){
         //if you haven't tried to encode anything, return empty array
         if(currentPos==0) return new byte[0];
 
@@ -239,12 +244,12 @@ public class MultiFieldEncoder {
          * then. Just make sure we don't keep one of these around for forever without using it repeatedly.
          */
         currentPos=initialPos;
-        currentSize=initalSize;
+        currentSize= initialSize;
     }
 
     public void mark(){
         initialPos=currentPos;
-        initalSize=currentSize;
+        initialSize =currentSize;
     }
 
     public byte[] getEncodedBytes(int position) {

@@ -1,13 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
-import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -21,6 +18,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 /**
  * @author Scott Fines
  *         Created on: 3/8/13
@@ -28,6 +28,7 @@ import java.util.List;
 @Category(SerialTest.class)
 public class NonUniqueIndexIT extends SpliceUnitTest { 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+
 	public static final String CLASS_NAME = NonUniqueIndexIT.class.getSimpleName().toUpperCase();
 	public static final String TABLE_NAME_1 = "A";
 	public static final String TABLE_NAME_2 = "B";
@@ -38,7 +39,8 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
     public static final String TABLE_NAME_7 = "G";
     public static final String TABLE_NAME_8 = "H";
     public static final String TABLE_NAME_9 = "I";
-    public static final String TABLE_NAME_10 = "TEST_DELETE_TABLE";
+    public static final String TABLE_NAME_10 = "J";
+
 	public static final String INDEX_11 = "IDX_A1";
 	public static final String INDEX_21 = "IDX_B1";
 	public static final String INDEX_31 = "IDX_C1";
@@ -48,6 +50,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
     public static final String INDEX_62 = "IDX_F2";
     public static final String INDEX_81 = "IDX_H2";
     public static final String INDEX_91 = "IDX_I1";
+    public static final String INDEX_J = "IDX_J1";
 
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
@@ -59,6 +62,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
     protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8,spliceSchemaWatcher.schemaName,"(oid decimal(5),name varchar(40))");
     protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_NAME_9,spliceSchemaWatcher.schemaName,"(c1 int, c2 int, c3 int)");
+    protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_NAME_10,spliceSchemaWatcher.schemaName,"(i int, j int)");
 
     @Override
     public String getSchemaName() {
@@ -76,10 +80,11 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
 		.around(spliceTableWatcher6)
         .around(spliceTableWatcher7)
             .around(spliceTableWatcher8)
-            .around(spliceTableWatcher9);
+            .around(spliceTableWatcher9)
+    .around(spliceTableWatcher10);
 
 	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+	@Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
     @Test(timeout=10000)
     public void testCanCreateIndexWithMultipleEntries() throws Exception{
@@ -363,8 +368,28 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
         try{
             methodWatcher.prepareStatement("update "+ spliceTableWatcher9+" set c2 = 11 where c3 = 7").executeUpdate();
         }finally{
-            indexWatcher.drop();;
+            indexWatcher.drop();
         }
+    }
+
+    /* DB-1644: When source table contained nulls in indexed columns selects from indexes would result in non-null values
+     * showing up in wrong column. */
+    @Test
+    public void testIndexWithNullValuesInSourceTable() throws Exception {
+        methodWatcher.prepareStatement("insert into " + TABLE_NAME_10 +" values (1, null), (2,3), (4, null)").execute();
+        methodWatcher.prepareStatement("create index " + INDEX_J + " on " + TABLE_NAME_10 + " (j,i)").execute();
+        ResultSet rs = methodWatcher.executeQuery("select j,i from " + TABLE_NAME_10 + "  --SPLICE-PROPERTIES index=" + INDEX_J);
+        List<Pair<Integer,Integer>> rows = Lists.newArrayList();
+        while(rs.next()) {
+            Pair<Integer, Integer> par = new Pair<Integer, Integer>();
+            par.setFirst((Integer) rs.getObject(1));
+            par.setSecond((Integer) rs.getObject(2));
+            rows.add(par);
+        }
+        assertEquals(3, rows.size());
+        assertTrue(rows.contains(new Pair<Integer,Integer>(null, 1)));
+        assertTrue(rows.contains(new Pair<Integer,Integer>(null, 4)));
+        assertTrue(rows.contains(new Pair<Integer,Integer>(3, 2)));
     }
 
     private void assertSelectCorrect(String schemaName, String tableName, String name, int size) throws Exception{

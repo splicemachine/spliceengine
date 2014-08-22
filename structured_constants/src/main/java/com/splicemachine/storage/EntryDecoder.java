@@ -24,6 +24,10 @@ public class EntryDecoder implements FieldSkipper,Supplier<MultiFieldDecoder> {
 
     public EntryDecoder() { }
 
+    public EntryDecoder(byte[] bytes) {
+        set(bytes);
+    }
+
     public void set(byte[] bytes){
         set(bytes,0,bytes.length);
     }

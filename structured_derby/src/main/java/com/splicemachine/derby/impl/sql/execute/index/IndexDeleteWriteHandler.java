@@ -4,7 +4,6 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.batch.WriteContext;
@@ -27,7 +26,7 @@ import java.util.List;
 public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
     private final List<KVPair> deletes = Lists.newArrayListWithExpectedSize(0);
-    private final IndexTransformer2 transformer;
+    private final IndexTransformer transformer;
     private CallBuffer<KVPair> indexBuffer;
     private final int expectedWrites;
 
@@ -68,7 +67,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 				for(int i=indexedColumns.nextSetBit(0);i>=0; i= indexedColumns.nextSetBit(i+1)){
 						keyDecodingMap[i] = keyEncodingMap[i];
 				}
-				this.transformer = new IndexTransformer2(
+				this.transformer = new IndexTransformer(
 								unique,
 								uniqueWithDuplicateNulls,
 								null, //TODO -sf- make this table version match
