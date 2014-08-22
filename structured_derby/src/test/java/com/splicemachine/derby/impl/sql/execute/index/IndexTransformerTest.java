@@ -1,351 +1,275 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
-import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Random;
+
+import static com.splicemachine.utils.BitSets.newBitSet;
 import static org.junit.Assert.*;
 
 
-/**
- * @author Scott Fines
- * Date: 4/17/14
- */
 public class IndexTransformerTest {
 
-		@Test
-		public void testCanTranslateUniqueWithDuplicateNullsNoSourceKeyColumns() throws Exception {
-				BitSet nonNullFields = new BitSet();
-				nonNullFields.set(0,4);
-				BitSet scalarFields = new BitSet();
-				scalarFields.set(0,4);
-				BitSet floatFields = new BitSet();
-				BitSet doubleFields = new BitSet();
+    private static final KryoPool KRYO = SpliceKryoRegistry.getInstance();
+    private static final int[] SRC_COL_TYPES = new int[]{StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID};
+    private static final boolean[] INDEX_KEY_SORT_ORDER = new boolean[]{true, true, true, true};
 
-				EntryEncoder row = EntryEncoder.create(SpliceKryoRegistry.getInstance(),4,
-								nonNullFields,scalarFields,floatFields,doubleFields);
-				row.getEntryEncoder().encodeEmpty().encodeNext(2).encodeNext(3).encodeNext(4);
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // unique
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-				byte[] rowData = row.encode();
+    @Test
+    public void unique_NoSourceKeyColumns_UniqueWithDuplicateNulls() throws Exception {
 
-				KVPair kvPair = new KVPair(new byte[]{},rowData);
+        EntryEncoder row = EntryEncoder.create(KRYO, 4, newBitSet(0, 1, 2, 3), newBitSet(0, 1, 2, 3), newBitSet(), newBitSet());
+        row.getEntryEncoder().encodeEmpty().encodeNext(2).encodeNext(3).encodeNext(4);
+        byte[] srcValue = row.encode();
+        byte[] srcRowKey = randomByteArray(30);
+        KVPair srcKvPair = new KVPair(srcRowKey, srcValue);
+        int[] indexKeyMap = new int[]{0, -1, -1, -1};
 
-				int[] indexKeyMap = new int[]{0,-1,-1,-1};
-				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
-                int srcColumnTypes[] = new int[] { StoredFormatIds.SQL_INTEGER_ID,  StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID };
+        IndexTransformer idx = new IndexTransformer(true, true, "1.0", null, SRC_COL_TYPES, null, indexKeyMap, INDEX_KEY_SORT_ORDER);
 
-				IndexTransformer idx = new IndexTransformer(true,true,"1.0",null,srcColumnTypes,null,indexKeyMap,sourceAscDescInfo);
+        KVPair indexKV = idx.translate(srcKvPair);
 
-				KVPair translated = idx.translate(kvPair);
+        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, false, new Integer[]{null});
+    }
 
-				byte[] key = translated.getRow();
-				Assert.assertNotNull("No row key set!", key);
-				assertTrue("No bytes in the row key!", key.length > 0);
+    @Test
+    public void unique_NoSourceKeyColumns() throws Exception {
 
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
-				keyDecoder.set(key);
+        EntryEncoder row = EntryEncoder.create(KRYO, 4, newBitSet(0, 1, 2, 3), newBitSet(0, 1, 2, 3), newBitSet(), newBitSet());
+        row.getEntryEncoder().encodeNext(111).encodeNext(2).encodeNext(3).encodeNext(4);
+        byte[] srcValue = row.encode();
+        byte[] srcRowKey = randomByteArray(30);
+        KVPair srcKvPair = new KVPair(srcRowKey, srcValue);
 
-				assertTrue("Incorrect row key!", keyDecoder.nextIsNull());
-				keyDecoder.skipLong();
+        int[] indexKeyMap = new int[]{0, -1, -1, -1};
 
-				//need to check with a duplicate null entry
-				byte[] mainLoc = keyDecoder.decodeNextBytesUnsorted();
-				assertArrayEquals("Incorrect row reference!", kvPair.getRow(), mainLoc);
-		}
+        IndexTransformer idx = new IndexTransformer(true, false, "1.0", null, SRC_COL_TYPES, null, indexKeyMap, INDEX_KEY_SORT_ORDER);
 
-		@Test
-		public void testCanTranslateUniqueNoSourceKeyColumns() throws Exception {
-				BitSet nonNullFields = new BitSet();
-				nonNullFields.set(0,4);
-				BitSet scalarFields = new BitSet();
-				scalarFields.set(0,4);
-				BitSet floatFields = new BitSet();
-				BitSet doubleFields = new BitSet();
+        KVPair indexKV = idx.translate(srcKvPair);
 
-				EntryEncoder row = EntryEncoder.create(SpliceKryoRegistry.getInstance(),4,
-								nonNullFields,scalarFields,floatFields,doubleFields);
-				row.getEntryEncoder().encodeNext(1).encodeNext(2).encodeNext(3).encodeNext(4);
+        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, true, 111);
+    }
 
-				byte[] rowData = row.encode();
+    @Test
+    public void unique_NoSourceKeyColumns_TwoNullIndexColumns() throws Exception {
 
-				KVPair kvPair = new KVPair(new byte[]{},rowData);
+        EntryEncoder row = EntryEncoder.create(KRYO, 4, newBitSet(0, 2), newBitSet(0, 1, 2, 3), newBitSet(), newBitSet());
+        row.getEntryEncoder().encodeNext(111).encodeNext(333);
+        byte[] srcValue = row.encode();
+        byte[] srcRowKey = randomByteArray(30);
+        KVPair srcKvPair = new KVPair(srcRowKey, srcValue);
 
-				int[] indexKeyMap = new int[]{0,-1,-1,-1};
-				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
-                int srcColumnTypes[] = new int[] { StoredFormatIds.SQL_INTEGER_ID,  StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID };
+        int[] indexKeyMap = new int[]{0, 1, 2, 3};
 
-				IndexTransformer idx = new IndexTransformer(true,false,"1.0",null,srcColumnTypes,null,indexKeyMap,sourceAscDescInfo);
+        IndexTransformer idx = new IndexTransformer(true, false, "1.0", null, SRC_COL_TYPES, null, indexKeyMap, INDEX_KEY_SORT_ORDER);
 
-				KVPair translated = idx.translate(kvPair);
+        KVPair indexKV = idx.translate(srcKvPair);
 
-				byte[] key = translated.getRow();
-				Assert.assertNotNull("No row key set!", key);
-				assertTrue("No bytes in the row key!", key.length > 0);
+        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, true, 111, null, 333, null);
+    }
 
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
-				keyDecoder.set(key);
+    @Test
+    public void unique_NoSourceKeyColumns_TwoNullIndexColumns_ReOrdered() throws Exception {
 
-				int keyField = keyDecoder.decodeNextInt();
-				assertEquals("incorrect key value!", 1, keyField);
-				assertFalse("Data is still present in the key!", keyDecoder.available());
-		}
+        EntryEncoder row = EntryEncoder.create(KRYO, 4, newBitSet(0, 2), newBitSet(0, 1, 2, 3), newBitSet(), newBitSet());
+        row.getEntryEncoder().encodeNext(111).encodeNext(333);
+        byte[] srcValue = row.encode();
+        byte[] srcRowKey = randomByteArray(30);
+        KVPair srcKvPair = new KVPair(srcRowKey, srcValue);
 
-		@Test
-		public void testCanTranslateNonUniqueNoKeyColumns() throws Exception {
-				BitSet nonNullFields = new BitSet();
-				nonNullFields.set(0,4);
-				BitSet scalarFields = new BitSet();
-				scalarFields.set(0,4);
-				BitSet floatFields = new BitSet();
-				BitSet doubleFields = new BitSet();
+        int[] indexKeyMap = new int[]{3, 2, 1, 0};
 
-				EntryEncoder row = EntryEncoder.create(SpliceKryoRegistry.getInstance(),4,
-								nonNullFields,scalarFields,floatFields,doubleFields);
-				row.getEntryEncoder().encodeNext(1).encodeNext(2).encodeNext(3).encodeNext(4);
+        IndexTransformer idx = new IndexTransformer(true, false, "1.0", null, SRC_COL_TYPES, null, indexKeyMap, INDEX_KEY_SORT_ORDER);
 
-				byte[] rowData = row.encode();
+        KVPair indexKV = idx.translate(srcKvPair);
 
-				KVPair kvPair = new KVPair(new byte[]{},rowData);
+        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, true, null, 333, null, 111);
+    }
 
-				int[] indexKeyMap = new int[]{0,-1,-1,-1};
-				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
-                int srcColumnTypes[] = new int[] { StoredFormatIds.SQL_INTEGER_ID,  StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID };
+    @Test
+    public void unique_NoSourceKeyColumns_multipleNullValuesAtStartOfIndexRowKey() throws Exception {
 
-				IndexTransformer idx = new IndexTransformer(false,false,"1.0",null,srcColumnTypes,null,indexKeyMap,sourceAscDescInfo);
+        EntryEncoder row = EntryEncoder.create(KRYO, 4, newBitSet(0, 2), newBitSet(0, 1, 2, 3), newBitSet(), newBitSet());
+        row.getEntryEncoder().encodeNext(111).encodeNext(333);
+        byte[] srcValue = row.encode();
+        byte[] srcRowKey = randomByteArray(30);
+        KVPair srcKvPair = new KVPair(srcRowKey, srcValue);
 
-				KVPair translated = idx.translate(kvPair);
-
-				byte[] key = translated.getRow();
-				Assert.assertNotNull("No row key set!", key);
-				assertTrue("No bytes in the row key!", key.length > 0);
-
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
-				keyDecoder.set(key);
-
-				int keyField = keyDecoder.decodeNextInt();
-				assertEquals("incorrect key value!", 1, keyField);
-				byte[] mainLoc = keyDecoder.decodeNextBytesUnsorted();
-				assertArrayEquals("Incorrect row reference!", kvPair.getRow(), mainLoc);
-		}
+        int[] indexKeyMap = new int[]{3, 1, 2, 0};
 
-		@Test
-		public void testCanTranslateNonUniqueTwoFieldsNoKeyColumns() throws Exception {
-				BitSet nonNullFields = new BitSet();
-				nonNullFields.set(0,4);
-				BitSet scalarFields = new BitSet();
-				scalarFields.set(0,4);
-				BitSet floatFields = new BitSet();
-				BitSet doubleFields = new BitSet();
+        IndexTransformer idx = new IndexTransformer(true, false, "1.0", null, SRC_COL_TYPES, null, indexKeyMap, INDEX_KEY_SORT_ORDER);
 
-				EntryEncoder row = EntryEncoder.create(SpliceKryoRegistry.getInstance(),4,
-								nonNullFields,scalarFields,floatFields,doubleFields);
-				row.getEntryEncoder().encodeNext(1).encodeNext(2).encodeNext(3).encodeNext(4);
+        KVPair indexKV = idx.translate(srcKvPair);
 
-				byte[] rowData = row.encode();
+        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, true, null, null, 333, 111);
+    }
 
-				KVPair kvPair = new KVPair(new byte[]{},rowData);
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // non-unique
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-				int[] indexKeyMap = new int[]{0,1,-1,-1};
-				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
-                int[] sourceKeyTypes = new int[]{StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID};
+    @Test
+    public void nonUnique_NoKeyColumns() throws Exception {
+        EntryEncoder row = EntryEncoder.create(KRYO, 4, newBitSet(0, 1, 2, 3), newBitSet(0, 1, 2, 3), newBitSet(), newBitSet());
+        row.getEntryEncoder().encodeNext(-11111).encodeNext(2).encodeNext(3).encodeNext(4);
+        byte[] srcValue = row.encode();
+        byte[] srcRowKey = randomByteArray(30);
+        KVPair srcKvPair = new KVPair(srcRowKey, srcValue);
 
+        int[] indexKeyMap = new int[]{0, -1, -1, -1};
 
-                IndexTransformer idx = new IndexTransformer(false,false,"1.0",null,sourceKeyTypes,null,indexKeyMap,sourceAscDescInfo);
+        IndexTransformer idx = new IndexTransformer(false, false, "1.0", null, SRC_COL_TYPES, null, indexKeyMap, INDEX_KEY_SORT_ORDER);
 
-				KVPair translated = idx.translate(kvPair);
+        KVPair indexKV = idx.translate(srcKvPair);
 
-				byte[] key = translated.getRow();
-				Assert.assertNotNull("No row key set!", key);
-				assertTrue("No bytes in the row key!", key.length > 0);
+        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, false, -11111);
+    }
 
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
-				keyDecoder.set(key);
+    @Test
+    public void nonUnique_TwoFieldsNoKeyColumns() throws Exception {
 
-				int keyField = keyDecoder.decodeNextInt();
-				assertEquals("incorrect key value!", 1, keyField);
-				assertEquals("incorrect key value!", 2, keyDecoder.decodeNextInt());
-				byte[] mainLoc = keyDecoder.decodeNextBytesUnsorted();
-				assertArrayEquals("Incorrect row reference!", kvPair.getRow(), mainLoc);
-		}
-
-		@Test
-		public void testCanTranslateNonUniqueOneFieldsOneKeyColumn() throws Exception {
-				BitSet nonNullFields = new BitSet();
-				nonNullFields.set(0,4);
-				nonNullFields.clear(0);
-				BitSet scalarFields = new BitSet();
-				scalarFields.set(0,4);
-				BitSet floatFields = new BitSet();
-				BitSet doubleFields = new BitSet();
+        EntryEncoder row = EntryEncoder.create(KRYO, 4, newBitSet(0, 1, 2, 3), newBitSet(0, 1, 2, 3), newBitSet(), newBitSet());
+        row.getEntryEncoder().encodeNext(1111).encodeNext(2222).encodeNext(3).encodeNext(4);
+        byte[] srcValue = row.encode();
+        byte[] srcRowKey = randomByteArray(30);
 
-				EntryEncoder row = EntryEncoder.create(SpliceKryoRegistry.getInstance(),4,
-								nonNullFields,scalarFields,floatFields,doubleFields);
-				row.getEntryEncoder().encodeNext(2).encodeNext(3).encodeNext(4);
+        KVPair srcKvPair = new KVPair(srcRowKey, srcValue);
 
-				byte[] rowData = row.encode();
+        int[] indexKeyMap = new int[]{0, 1, -1, -1};
 
-				KVPair kvPair = new KVPair(Encoding.encode(1),rowData);
+        IndexTransformer idx = new IndexTransformer(false, false, "1.0", null, SRC_COL_TYPES, null, indexKeyMap, INDEX_KEY_SORT_ORDER);
 
-				int[] indexKeyMap = new int[]{0,-1,-1,-1};
-				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
-				int[] sourceKeyEncodingOrder = new int[]{0};
-				int[] sourceKeyTypes = new int[]{StoredFormatIds.SQL_INTEGER_ID};
+        KVPair indexKV = idx.translate(srcKvPair);
 
-				IndexTransformer idx = new IndexTransformer(false,false,"1.0",
-								sourceKeyEncodingOrder,sourceKeyTypes,new boolean[]{true},
-								indexKeyMap,sourceAscDescInfo);
+        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, false, 1111, 2222);
+    }
 
-				KVPair translated = idx.translate(kvPair);
+    @Test
+    public void nonUnique_OneFieldsOneKeyColumn() throws Exception {
 
-				byte[] key = translated.getRow();
-				Assert.assertNotNull("No row key set!", key);
-				assertTrue("No bytes in the row key!", key.length > 0);
+        EntryEncoder row = EntryEncoder.create(KRYO, 4, newBitSet(1, 2, 3), newBitSet(0, 1, 2, 3), newBitSet(), newBitSet());
+        row.getEntryEncoder().encodeNext(2).encodeNext(3).encodeNext(4);
+        byte[] srcValue = row.encode();
+        byte[] srcRowKey = Encoding.encode(1111);
 
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
-				keyDecoder.set(key);
+        KVPair srcKvPair = new KVPair(srcRowKey, srcValue);
 
-				int keyField = keyDecoder.decodeNextInt();
-				assertEquals("incorrect key value!", 1, keyField);
-//				Assert.assertEquals("incorrect key value!",2,keyDecoder.decodeNextInt());
-				byte[] mainLoc = keyDecoder.decodeNextBytesUnsorted();
-				assertArrayEquals("Incorrect row reference!", kvPair.getRow(), mainLoc);
-		}
-
-		@Test
-		public void testCanTranslateNonUniqueTwoFieldsOneKeyColumnNullSourceKey() throws Exception {
-				BitSet nonNullFields = new BitSet();
-				nonNullFields.set(0,4);
-				nonNullFields.clear(0);
+        int[] indexKeyMap = new int[]{0, -1, -1, -1};
+        int[] sourceKeyEncodingOrder = new int[]{0};
+        int[] sourceKeyTypes = new int[]{StoredFormatIds.SQL_INTEGER_ID};
 
-                BitSet scalarFields = new BitSet();
-				scalarFields.set(0,4);
-				BitSet floatFields = new BitSet();
-				BitSet doubleFields = new BitSet();
+        IndexTransformer idx = new IndexTransformer(false, false, "1.0", sourceKeyEncodingOrder, sourceKeyTypes, new boolean[]{true}, indexKeyMap, INDEX_KEY_SORT_ORDER);
 
-				EntryEncoder srcValueEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(), 4 ,
-								nonNullFields, scalarFields, floatFields, doubleFields);
+        KVPair indexKV = idx.translate(srcKvPair);
 
-				srcValueEncoder.getEntryEncoder().encodeNext(2).encodeNext(3).encodeNext(4);
+        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, false, 1111);
+    }
 
-                byte[] srcRowKey = Encoding.encode(1);
-				byte[] srcValue = srcValueEncoder.encode();
+    @Test
+    public void nonUnique_TwoIndexFieldsOneKeyColumnNullSourceKey() throws Exception {
 
-                KVPair srcKvPair = new KVPair(srcRowKey, srcValue);
+        EntryEncoder srcValueEncoder = EntryEncoder.create(KRYO, 4, newBitSet(1, 2, 3), newBitSet(0, 1, 2, 3), newBitSet(), newBitSet());
+        srcValueEncoder.getEntryEncoder().encodeNext(2).encodeNext(3).encodeNext(4);
+        byte[] srcValue = srcValueEncoder.encode();
+        byte[] srcRowKey = Encoding.encode(1111);
+        KVPair srcKvPair = new KVPair(srcRowKey, srcValue);
 
-				int[] indexKeyMap = new int[]{0,-1,-1,-1};
-				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
-				int[] sourceKeyTypes = new int[]{StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID};
+        int[] indexKeyMap = new int[]{0, -1, -1, -1};
 
-				IndexTransformer transformer = new IndexTransformer(false,false,"1.0",null,sourceKeyTypes,null,
-                        indexKeyMap,sourceAscDescInfo);
+        IndexTransformer transformer = new IndexTransformer(false, false, "1.0", null, SRC_COL_TYPES, null,
+                indexKeyMap, INDEX_KEY_SORT_ORDER);
 
-				KVPair translated = transformer.translate(srcKvPair);
+        KVPair indexKV = transformer.translate(srcKvPair);
 
-				byte[] indexRowKey = translated.getRow();
-				Assert.assertNotNull("No row key set!", indexRowKey);
-				assertTrue("No bytes in the row key!", indexRowKey.length > 0);
+        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, false, new Integer[]{null});
+    }
 
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
-				keyDecoder.set(indexRowKey);
+    @Test
+    public void nonUnique_TwoIndexFields_OneKeyColumn_NullSourceKeyAscDescInfo() throws Exception {
 
-				assertTrue("Incorrectly missed a null entry!", keyDecoder.nextIsNull());
-				keyDecoder.skipLong();
-				byte[] mainLoc = keyDecoder.decodeNextBytesUnsorted();
-				assertArrayEquals("Incorrect row reference!", srcKvPair.getRow(), mainLoc);
-		}
+        EntryEncoder row = EntryEncoder.create(KRYO, 4, newBitSet(1, 2, 3), newBitSet(0, 1, 2, 3), newBitSet(), newBitSet());
+        row.getEntryEncoder().encodeNext(222222).encodeNext(3).encodeNext(4);
+        byte[] srcValue = row.encode();
+        byte[] srcRowKey = Encoding.encode(111111);
+        KVPair srcKvPair = new KVPair(srcRowKey, srcValue);
 
-		@Test
-		public void testCanTranslateNonUniqueTwoFieldsOneKeyColumnNullSourceKeyAscDescInfo() throws Exception {
-				BitSet nonNullFields = new BitSet();
-				nonNullFields.set(0,4);
-				nonNullFields.clear(0);
-				BitSet scalarFields = new BitSet();
-				scalarFields.set(0,4);
-				BitSet floatFields = new BitSet();
-				BitSet doubleFields = new BitSet();
+        int[] indexKeyMap = new int[]{0, 1, -1, -1};
+        int[] sourceKeyEncodingOrder = new int[]{0};
 
-				EntryEncoder row = EntryEncoder.create(SpliceKryoRegistry.getInstance(),4,
-								nonNullFields,scalarFields,floatFields,doubleFields);
-				row.getEntryEncoder().encodeNext(2).encodeNext(3).encodeNext(4);
+        IndexTransformer idx = new IndexTransformer(false, false, "1.0", sourceKeyEncodingOrder, SRC_COL_TYPES, null,
+                indexKeyMap, INDEX_KEY_SORT_ORDER);
 
-				byte[] rowData = row.encode();
+        KVPair indexKV = idx.translate(srcKvPair);
 
-				KVPair kvPair = new KVPair(Encoding.encode(1),rowData);
+        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, false, 111111, 222222);
+    }
 
-				int[] indexKeyMap = new int[]{0,1,-1,-1};
-				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
-				int[] sourceKeyEncodingOrder = new int[]{0};
-                int srcColumnTypes[] = new int[] { StoredFormatIds.SQL_INTEGER_ID,  StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID };
+    @Test
+    public void nonUnique_TwoIndexFields_OneKeyColumn() throws Exception {
 
+        EntryEncoder row = EntryEncoder.create(KRYO, 4, newBitSet(1, 2, 3), newBitSet(0, 1, 2, 3), newBitSet(), newBitSet());
+        row.getEntryEncoder().encodeNext(2222222).encodeNext(3).encodeNext(4);
+        byte[] srcValue = row.encode();
+        byte[] srcRowKey = Encoding.encode(1111111);
+        KVPair srcKvPair = new KVPair(srcRowKey, srcValue);
 
-            IndexTransformer idx = new IndexTransformer(false,false,"1.0",
-								sourceKeyEncodingOrder,srcColumnTypes,null,
-								indexKeyMap,sourceAscDescInfo);
+        int[] indexKeyMap = new int[]{0, 1, -1, -1};
+        int[] sourceKeyEncodingOrder = new int[]{0};
 
-				KVPair translated = idx.translate(kvPair);
+        IndexTransformer idx = new IndexTransformer(false, false, "1.0", sourceKeyEncodingOrder, SRC_COL_TYPES, new boolean[]{true},
+                indexKeyMap, INDEX_KEY_SORT_ORDER);
 
-				byte[] key = translated.getRow();
-				Assert.assertNotNull("No row key set!", key);
-				assertTrue("No bytes in the row key!", key.length > 0);
+        KVPair indexKV = idx.translate(srcKvPair);
 
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
-				keyDecoder.set(key);
+        verifyResultingIndexRowKey(indexKV.getRow(), srcRowKey, false, 1111111, 2222222);
+    }
 
-				int keyField = keyDecoder.decodeNextInt();
-				assertEquals("incorrect key value!", 1, keyField);
-				assertEquals("incorrect key value!", 2, keyDecoder.decodeNextInt());
-				byte[] mainLoc = keyDecoder.decodeNextBytesUnsorted();
-				assertArrayEquals("Incorrect row reference!", kvPair.getRow(), mainLoc);
-		}
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // help
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-		@Test
-		public void testCanTranslateNonUniqueTwoFieldsOneKeyColumn() throws Exception {
-				BitSet nonNullFields = new BitSet();
-				nonNullFields.set(0,4);
-				nonNullFields.clear(0);
-				BitSet scalarFields = new BitSet();
-				scalarFields.set(0,4);
-				BitSet floatFields = new BitSet();
-				BitSet doubleFields = new BitSet();
+    /**
+     * INDEX ROW KEY VERIFICATION:
+     *
+     * Verify index row key resulting from transformation has the expected column values
+     * and, if unique, has the source row key appended.
+     */
+    public void verifyResultingIndexRowKey(byte[] indexRowKey, byte[] srcRowKey, boolean uniqueIndexAndRow, Integer... expectedIndexRowKeyValues) {
+        assertNotNull("No row key set!", indexRowKey);
+        assertTrue("No bytes in the row key!", indexRowKey.length > 0);
 
-				EntryEncoder row = EntryEncoder.create(SpliceKryoRegistry.getInstance(),4,
-								nonNullFields,scalarFields,floatFields,doubleFields);
-				row.getEntryEncoder().encodeNext(2).encodeNext(3).encodeNext(4);
+        MultiFieldDecoder keyDecoder = MultiFieldDecoder.wrap(indexRowKey);
+        for (Integer expectedIndex : expectedIndexRowKeyValues) {
+            if (expectedIndex != null) {
+                assertEquals("index row key did cont contain expected value=" + expectedIndex, expectedIndex.intValue(), keyDecoder.decodeNextInt());
+            } else {
+                assertTrue(keyDecoder.nextIsNull());
+                keyDecoder.skipLong();
+            }
+        }
+        if (!uniqueIndexAndRow) {
+            assertArrayEquals("Incorrect row reference!", srcRowKey, keyDecoder.decodeNextBytesUnsorted());
+        } else {
+            assertFalse("Expected to have read the entire index row key", keyDecoder.available());
+        }
+    }
 
-				byte[] rowData = row.encode();
+    private static final Random RANDOM = new Random();
 
-				KVPair kvPair = new KVPair(Encoding.encode(1),rowData);
-
-				int[] indexKeyMap = new int[]{0,1,-1,-1};
-				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
-				int[] sourceKeyEncodingOrder = new int[]{0};
-                int srcColumnTypes[] = new int[] { StoredFormatIds.SQL_INTEGER_ID,  StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID };
-
-
-            IndexTransformer idx = new IndexTransformer(false,false,"1.0",
-								sourceKeyEncodingOrder,srcColumnTypes,new boolean[]{true},
-								indexKeyMap,sourceAscDescInfo);
-
-				KVPair translated = idx.translate(kvPair);
-
-				byte[] key = translated.getRow();
-				Assert.assertNotNull("No row key set!", key);
-				assertTrue("No bytes in the row key!", key.length > 0);
-
-				MultiFieldDecoder keyDecoder = MultiFieldDecoder.create();
-				keyDecoder.set(key);
-
-				int keyField = keyDecoder.decodeNextInt();
-				assertEquals("incorrect key value!", 1, keyField);
-				assertEquals("incorrect key value!", 2, keyDecoder.decodeNextInt());
-				byte[] mainLoc = keyDecoder.decodeNextBytesUnsorted();
-				assertArrayEquals("Incorrect row reference!", kvPair.getRow(), mainLoc);
-		}
+    private byte[] randomByteArray(int len) {
+        byte[] b = new byte[len];
+        RANDOM.nextBytes(b);
+        return b;
+    }
 
 }

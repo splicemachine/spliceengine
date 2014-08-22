@@ -41,7 +41,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     private int[] formatIds;
     private BitSet pkColumns;
     private BitSet pkIndexColumns;
-    private IndexTransformer.KeyData[] pkIndex;
+    private KeyData[] pkIndex;
     private DataValueDescriptor[] kdvds;
     private MultiFieldDecoder keyDecoder;
     private int[] reverseColumnOrdering;
@@ -160,13 +160,13 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 }
             }
             if(pkIndex == null)
-                pkIndex = new IndexTransformer.KeyData[len];
+                pkIndex = new KeyData[len];
             keyDecoder.set(mutation.getRow());
             for (int i = 0; i < len; ++i) {
                 int offset = keyDecoder.offset();
                 DerbyBytesUtil.skip(keyDecoder, kdvds[i]);
                 int size = keyDecoder.offset()-1-offset;
-                pkIndex[i] = new IndexTransformer.KeyData(offset, size);
+                pkIndex[i] = new KeyData(offset, size);
             }
         }
         if (columnOrdering != null && columnOrdering.length > 0) {
@@ -397,4 +397,22 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 		// XXX JLEACH TODO
 		throw new RuntimeException("Not Supported");
 	}
+
+    private static class KeyData {
+        private int offset;
+        private int size;
+
+        public KeyData(int offset, int size) {
+            this.offset = offset;
+            this.size = size;
+        }
+
+        public int getOffset() {
+            return offset;
+        }
+
+        public int getSize() {
+            return size;
+        }
+    }
 }

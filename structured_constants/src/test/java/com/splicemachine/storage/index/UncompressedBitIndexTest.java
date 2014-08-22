@@ -3,6 +3,7 @@ package com.splicemachine.storage.index;
 import com.carrotsearch.hppc.BitSet;
 import org.junit.Test;
 
+import static com.splicemachine.utils.BitSets.newBitSet;
 import static org.junit.Assert.*;
 
 public class UncompressedBitIndexTest {
@@ -46,14 +47,6 @@ public class UncompressedBitIndexTest {
         assertEquals("{{0, 2, 4},{0},{2},{4}}", decodedBitIndex.toString());
 
         assertNotEquals(bitIndex, decodedBitIndex);
-    }
-
-    private BitSet newBitSet(int... bits) {
-        BitSet bitSet = new BitSet();
-        for (int b : bits) {
-            bitSet.set(b);
-        }
-        return bitSet;
     }
 
 }
