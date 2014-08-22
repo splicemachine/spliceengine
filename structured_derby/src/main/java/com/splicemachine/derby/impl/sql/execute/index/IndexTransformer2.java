@@ -274,4 +274,22 @@ public class IndexTransformer2 {
     public boolean isUnique() {
         return isUnique;
     }
+
+    public static class KeyData {
+        private int offset;
+        private int size;
+
+        public KeyData(int offset, int size) {
+            this.offset = offset;
+            this.size = size;
+        }
+
+        public int getOffset() {
+            return offset;
+        }
+
+        public int getSize() {
+            return size;
+        }
+    }
 }
