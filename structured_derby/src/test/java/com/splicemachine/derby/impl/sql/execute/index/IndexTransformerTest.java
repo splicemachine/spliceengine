@@ -17,7 +17,7 @@ import static org.junit.Assert.*;
  * @author Scott Fines
  * Date: 4/17/14
  */
-public class IndexTransformer2Test {
+public class IndexTransformerTest {
 
 		@Test
 		public void testCanTranslateUniqueWithDuplicateNullsNoSourceKeyColumns() throws Exception {
@@ -40,7 +40,7 @@ public class IndexTransformer2Test {
 				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
                 int srcColumnTypes[] = new int[] { StoredFormatIds.SQL_INTEGER_ID,  StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID };
 
-				IndexTransformer2 idx = new IndexTransformer2(true,true,"1.0",null,srcColumnTypes,null,indexKeyMap,sourceAscDescInfo);
+				IndexTransformer idx = new IndexTransformer(true,true,"1.0",null,srcColumnTypes,null,indexKeyMap,sourceAscDescInfo);
 
 				KVPair translated = idx.translate(kvPair);
 
@@ -80,7 +80,7 @@ public class IndexTransformer2Test {
 				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
                 int srcColumnTypes[] = new int[] { StoredFormatIds.SQL_INTEGER_ID,  StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID };
 
-				IndexTransformer2 idx = new IndexTransformer2(true,false,"1.0",null,srcColumnTypes,null,indexKeyMap,sourceAscDescInfo);
+				IndexTransformer idx = new IndexTransformer(true,false,"1.0",null,srcColumnTypes,null,indexKeyMap,sourceAscDescInfo);
 
 				KVPair translated = idx.translate(kvPair);
 
@@ -117,7 +117,7 @@ public class IndexTransformer2Test {
 				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
                 int srcColumnTypes[] = new int[] { StoredFormatIds.SQL_INTEGER_ID,  StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID };
 
-				IndexTransformer2 idx = new IndexTransformer2(false,false,"1.0",null,srcColumnTypes,null,indexKeyMap,sourceAscDescInfo);
+				IndexTransformer idx = new IndexTransformer(false,false,"1.0",null,srcColumnTypes,null,indexKeyMap,sourceAscDescInfo);
 
 				KVPair translated = idx.translate(kvPair);
 
@@ -156,7 +156,7 @@ public class IndexTransformer2Test {
                 int[] sourceKeyTypes = new int[]{StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID};
 
 
-                IndexTransformer2 idx = new IndexTransformer2(false,false,"1.0",null,sourceKeyTypes,null,indexKeyMap,sourceAscDescInfo);
+                IndexTransformer idx = new IndexTransformer(false,false,"1.0",null,sourceKeyTypes,null,indexKeyMap,sourceAscDescInfo);
 
 				KVPair translated = idx.translate(kvPair);
 
@@ -197,7 +197,7 @@ public class IndexTransformer2Test {
 				int[] sourceKeyEncodingOrder = new int[]{0};
 				int[] sourceKeyTypes = new int[]{StoredFormatIds.SQL_INTEGER_ID};
 
-				IndexTransformer2 idx = new IndexTransformer2(false,false,"1.0",
+				IndexTransformer idx = new IndexTransformer(false,false,"1.0",
 								sourceKeyEncodingOrder,sourceKeyTypes,new boolean[]{true},
 								indexKeyMap,sourceAscDescInfo);
 
@@ -242,7 +242,7 @@ public class IndexTransformer2Test {
 				boolean[] sourceAscDescInfo = new boolean[]{true,true,true,true};
 				int[] sourceKeyTypes = new int[]{StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID};
 
-				IndexTransformer2 transformer = new IndexTransformer2(false,false,"1.0",null,sourceKeyTypes,null,
+				IndexTransformer transformer = new IndexTransformer(false,false,"1.0",null,sourceKeyTypes,null,
                         indexKeyMap,sourceAscDescInfo);
 
 				KVPair translated = transformer.translate(srcKvPair);
@@ -284,7 +284,7 @@ public class IndexTransformer2Test {
                 int srcColumnTypes[] = new int[] { StoredFormatIds.SQL_INTEGER_ID,  StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID };
 
 
-            IndexTransformer2 idx = new IndexTransformer2(false,false,"1.0",
+            IndexTransformer idx = new IndexTransformer(false,false,"1.0",
 								sourceKeyEncodingOrder,srcColumnTypes,null,
 								indexKeyMap,sourceAscDescInfo);
 
@@ -328,7 +328,7 @@ public class IndexTransformer2Test {
                 int srcColumnTypes[] = new int[] { StoredFormatIds.SQL_INTEGER_ID,  StoredFormatIds.SQL_INTEGER_ID, StoredFormatIds.SQL_INTEGER_ID };
 
 
-            IndexTransformer2 idx = new IndexTransformer2(false,false,"1.0",
+            IndexTransformer idx = new IndexTransformer(false,false,"1.0",
 								sourceKeyEncodingOrder,srcColumnTypes,new boolean[]{true},
 								indexKeyMap,sourceAscDescInfo);
 

@@ -32,7 +32,7 @@ import java.util.List;
 public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     protected CallBuffer<KVPair> indexBuffer;
-    protected IndexTransformer2 transformer;
+    protected IndexTransformer transformer;
     private EntryDecoder newPutDecoder;
     private EntryDecoder oldDataDecoder;
     private final int expectedWrites;
@@ -41,7 +41,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     private int[] formatIds;
     private BitSet pkColumns;
     private BitSet pkIndexColumns;
-    private IndexTransformer2.KeyData[] pkIndex;
+    private IndexTransformer.KeyData[] pkIndex;
     private DataValueDescriptor[] kdvds;
     private MultiFieldDecoder keyDecoder;
     private int[] reverseColumnOrdering;
@@ -82,7 +82,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 				for(int i=indexedColumns.nextSetBit(0);i>=0;i = indexedColumns.nextSetBit(i+1)){
 						keyDecodingMap[i] = mainColToIndexPos[i];
 				}
-				this.transformer = new IndexTransformer2(unique,uniqueWithDuplicateNulls,null,
+				this.transformer = new IndexTransformer(unique,uniqueWithDuplicateNulls,null,
 								columnOrdering,formatIds,null,keyDecodingMap,destKeySortOrder);
 //        this.transformer = new IndexTransformer(indexedColumns,
 //                translatedIndexColumns,nonUniqueIndexColumn,descColumns,mainColToIndexPosMap,
@@ -160,13 +160,13 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 }
             }
             if(pkIndex == null)
-                pkIndex = new IndexTransformer2.KeyData[len];
+                pkIndex = new IndexTransformer.KeyData[len];
             keyDecoder.set(mutation.getRow());
             for (int i = 0; i < len; ++i) {
                 int offset = keyDecoder.offset();
                 DerbyBytesUtil.skip(keyDecoder, kdvds[i]);
                 int size = keyDecoder.offset()-1-offset;
-                pkIndex[i] = new IndexTransformer2.KeyData(offset, size);
+                pkIndex[i] = new IndexTransformer.KeyData(offset, size);
             }
         }
         if (columnOrdering != null && columnOrdering.length > 0) {

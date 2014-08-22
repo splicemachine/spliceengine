@@ -35,7 +35,7 @@ import java.util.Arrays;
  * @author Scott Fines
  *         Date: 4/17/14
  */
-public class IndexTransformer2 {
+public class IndexTransformer {
 
     private ByteEntryAccumulator destKeyAccumulator;
     private EntryEncoder destRowEncoder;
@@ -55,14 +55,14 @@ public class IndexTransformer2 {
 
     private TypeProvider typeProvider;
 
-    public IndexTransformer2(boolean isUnique,
-                             boolean isUniqueWithDuplicateNulls,
-                             String tableVersion,
-                             int[] sourceKeyColumnEncodingOrder,
-                             int[] columnTypes,
-                             boolean[] sourceKeyColumnSortOrder,
-                             int[] destKeyEncodingMap,
-                             boolean[] destKeyColumnSortOrder) {
+    public IndexTransformer(boolean isUnique,
+                            boolean isUniqueWithDuplicateNulls,
+                            String tableVersion,
+                            int[] sourceKeyColumnEncodingOrder,
+                            int[] columnTypes,
+                            boolean[] sourceKeyColumnSortOrder,
+                            int[] destKeyEncodingMap,
+                            boolean[] destKeyColumnSortOrder) {
         this.isUnique = isUnique;
         this.isUniqueWithDuplicateNulls = isUniqueWithDuplicateNulls;
         this.sourceKeyColumnEncodingOrder = sourceKeyColumnEncodingOrder;
