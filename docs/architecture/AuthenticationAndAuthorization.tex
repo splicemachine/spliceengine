@@ -198,7 +198,8 @@ For LDAP authentication mode, edit \\ structured\_derby/src/main/resources/splic
 If Cloudera Manager is used, add the following properties to hbase-$>$configuration-$>$Service-Wide-$>$Advanced-$>$HBase Service Configuration Safety Valve for hbase-site.xml. \\
 Otherwise add the properties to hbase-site.xml manually. \\
 In case of MapR, hbase-site.xml is normally under /opt/mapr/hbase/hbase-VERSION/conf/ \\
-In case of HortonWorks, hbase-site.xml is normally under /etc/hbase/conf.dist/ \\ \\
+In case of HortonWorks, hbase-site.xml is normally under /etc/hbase/conf.dist/ \\ 
+Note that on HortonWorks, users can choose to use ambari. After enabling it, users can add custom hbase-site.xml properties through its web interface, via HBase-$>$Configs-$>$Custom hbase-site.xml-$>$Add Property...  \\ 
 For NONE authentication mode:
 \begin{lstlisting}
   <property> 
