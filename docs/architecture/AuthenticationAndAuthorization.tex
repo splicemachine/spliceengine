@@ -139,7 +139,7 @@ We are open to have other proposals.
 
 \subsection{Software Packaging for Standalone/Cluster Installation}
 \subsubsection{Standalone Installation}
-Since NATIVE authentication mode is turned on by default, package should already include splice-site.xml with properties set to NATIVE authentication mode as shown below:
+Since NATIVE authentication mode is turned on by default, package should include splice-site.xml with properties set to NATIVE authentication mode as shown below:
 \begin{lstlisting}
   <property> 
     <name>splice.authentication</name> 
@@ -195,7 +195,10 @@ For LDAP authentication mode, edit \\ structured\_derby/src/main/resources/splic
 \end{lstlisting}
 
 \subsubsection{Cluster Configuration}
-If Cloudera Manager is used, add the following properties to hbase-$>$configuration-$>$Service-Wide-$>$Advanced-$>$HBase Service Configuration Safety Valve for hbase-site.xml. Otherwise add the properties to hbase-site.xml manually. \\ \\
+If Cloudera Manager is used, add the following properties to hbase-$>$configuration-$>$Service-Wide-$>$Advanced-$>$HBase Service Configuration Safety Valve for hbase-site.xml. \\
+Otherwise add the properties to hbase-site.xml manually. \\
+In case of MapR, hbase-site.xml is normally under /opt/mapr/hbase/hbase-VERSION/conf/ \\
+In case of HortonWorks, hbase-site.xml is normally under /etc/hbase/conf.dist/ \\ \\
 For NONE authentication mode:
 \begin{lstlisting}
   <property> 
