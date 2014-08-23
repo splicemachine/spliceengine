@@ -332,12 +332,21 @@ module.exports = function (grunt) {
 		//	 dist: {}
 		// },
 
-		// Test settings
+		// Unit test settings
 		karma: {
 			unit: {
 				configFile: 'karma.conf.js',
 				singleRun: true
 			}
+		},
+
+		// E2E test settings
+		protractor: {
+			options: {
+				keepAlive: true,
+				configFile: "protractor.conf.js"
+			},
+			run: {}
 		}
 	});
 
