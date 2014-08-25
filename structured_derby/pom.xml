@@ -383,10 +383,19 @@
 								<argument>-Djava.awt.headless=true</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties</argument>
-								<argument>-Xmx2g</argument>
+								<argument>-Xmx4g</argument>
 								<argument>-Xms1g</argument>
+								<argument>-Xmn128m</argument>
+								<argument>-XX:+UseConcMarkSweepGC</argument>
+								<argument>-XX:+UseParNewGC</argument>
+								<argument>-XX:NewSize=128m</argument>
+								<argument>-XX:MaxNewSize=128m</argument>
+								<argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
+								<argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
+								<argument>-XX:MaxGCPauseMillis=100</argument>								
 								<argument>-XX:MaxPermSize=256M</argument>
 								<argument>-XX:+CMSClassUnloadingEnabled</argument>
+								<argument>-XX:MaxDirectMemorySize=1g</argument>
 								<argument>-enableassertions</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
 								<argument>-Dderby.debug.true=DumpClassFile,DumpParseTree,DumpBindTree,DumpOptimizedTree,ByteCodeGenInstr</argument>
@@ -511,10 +520,19 @@
 								<argument>-Djava.awt.headless=true</argument>
 								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/hbase-log4j.properties</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
-								<argument>-Xmx3g</argument>
+								<argument>-Xmx4g</argument>
 								<argument>-Xms1g</argument>
+								<argument>-Xmn128m</argument>
+								<argument>-XX:+UseConcMarkSweepGC</argument>
+								<argument>-XX:+UseParNewGC</argument>
+								<argument>-XX:NewSize=128m</argument>
+								<argument>-XX:MaxNewSize=128m</argument>
+								<argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
+								<argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
+								<argument>-XX:MaxGCPauseMillis=100</argument>								
 								<argument>-XX:MaxPermSize=256M</argument>
 								<argument>-XX:+CMSClassUnloadingEnabled</argument>
+								<argument>-XX:MaxDirectMemorySize=1g</argument>
 								<argument>-enableassertions</argument>
 								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
 								<argument>${project.build.directory}/zookeeper</argument>
@@ -563,8 +581,17 @@
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Xmx2g</argument>
+								<argument>-Xmn128m</argument>
+								<argument>-XX:+UseConcMarkSweepGC</argument>
+								<argument>-XX:+UseParNewGC</argument>
+								<argument>-XX:NewSize=128m</argument>
+								<argument>-XX:MaxNewSize=128m</argument>
+								<argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
+								<argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
+								<argument>-XX:MaxGCPauseMillis=100</argument>								
 								<argument>-XX:MaxPermSize=256M</argument>
 								<argument>-XX:+CMSClassUnloadingEnabled</argument>
+								<argument>-XX:MaxDirectMemorySize=1g</argument>
 								<argument>com.splicemachine.test.SpliceTestClusterParticipant</argument>
 								<argument>${project.build.directory}/hbase</argument>
                                 <argument>${memberNumber}</argument>
@@ -634,7 +661,6 @@
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Xdebug</argument>
-								<argument>-XX:+UseConcMarkSweepGC</argument>
 								<argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Djava.awt.headless=true</argument>
@@ -644,6 +670,14 @@
 								<argument>-Dcom.sun.management.jmxremote.port=10102</argument>
 								<argument>-Xmx8g</argument>
 								<argument>-Xms1g</argument>
+								<argument>-Xmn128m</argument>
+								<argument>-XX:+UseConcMarkSweepGC</argument>
+								<argument>-XX:+UseParNewGC</argument>
+								<argument>-XX:NewSize=128m</argument>
+								<argument>-XX:MaxNewSize=128m</argument>
+								<argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
+								<argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
+								<argument>-XX:MaxGCPauseMillis=100</argument>								
 								<argument>-XX:MaxPermSize=256M</argument>
 								<argument>-XX:+CMSClassUnloadingEnabled</argument>
 								<argument>-XX:MaxDirectMemorySize=1g</argument>
