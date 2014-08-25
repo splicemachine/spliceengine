@@ -1,9 +1,17 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.si.api.TransactionLifecycle;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
@@ -111,14 +119,43 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         ColumnDescriptor			columnDescriptor;
         ExecRow						template;
 
-        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-        DataDictionary dd = lcc.getDataDictionary();
-        TransactionController tc = lcc.getTransactionExecute();
 
 		/* Mark the activation as being for create table */
         activation.setForCreateTable();
 
-        // setup for create conglomerate call:
+        /*
+         * Put the create table into a child transaction.
+         * At this end of this action, no matter what, we will
+         * either commit or roll back the transaction.
+         *
+         * This may not be strictly necessary (e.g. we might
+         * be able to get away with not using child transactions
+         * in this case since the data dictionary handles things,
+         * but this way is certainly safer).
+         */
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        Txn createTxn = getChildTransaction(((SpliceTransactionManager)lcc.getTransactionExecute()).getRawTransaction());
+        try{
+            createTable(activation);
+            createTxn.commit(); //commit the child transaction
+        }catch(Exception e){
+            /*
+             * In the event of an error of any kind, roll back the child transaction
+             */
+            try {
+                createTxn.rollback();
+            } catch (IOException e1) {
+                LOG.error("Error encountered when attempting to roll back a transaction", e1);
+            }
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    protected void createTable(Activation activation) throws StandardException {
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        TransactionController tc = lcc.getTransactionExecute();
+        ExecRow template;TableDescriptor td;ColumnDescriptor columnDescriptor;// setup for create conglomerate call:
         //   o create row template to tell the store what type of rows this
         //     table holds.
         //   o create array of collation id's to tell collation id of each
@@ -140,13 +177,13 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         }
 
         for (int ix = 0; ix < columnInfo.length; ix++) {
-            ColumnInfo  col_info = columnInfo[ix];
+            ColumnInfo col_info = columnInfo[ix];
             if (pkColumnNames != null && pkColumnNames.contains(col_info.name)) {
                 columnOrdering[pkColumnNames.indexOf(col_info.name)] = new IndexColumnOrder(ix);
             }
             // Get a template value for each column
             if (col_info.defaultValue != null) {
-                /* If there is a default value, use it, otherwise use null */
+            /* If there is a default value, use it, otherwise use null */
                 template.setColumn(ix + 1, col_info.defaultValue);
             }
             else {
@@ -222,9 +259,9 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         ColumnDescriptor[] cdlArray = new ColumnDescriptor[columnInfo.length];
         for (int ix = 0; ix < columnInfo.length; ix++) {
             UUID defaultUUID = columnInfo[ix].newDefaultUUID;
-			/* Generate a UUID for the default, if one exists
-			 * and there is no default id yet.
-			 */
+/* Generate a UUID for the default, if one exists
+ * and there is no default id yet.
+ */
             if (columnInfo[ix].defaultInfo != null && defaultUUID == null) {
                 defaultUUID = dd.getUUIDFactory().createUUID();
             }
@@ -289,10 +326,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 		/* Create any constraints */
         if (constraintActions != null)
         {
-			/*
-			** Do everything but FK constraints first,
-			** then FK constraints on 2nd pass.
-			*/
+/*
+** Do everything but FK constraints first,
+** then FK constraints on 2nd pass.
+*/
             for (int conIndex = 0; conIndex < constraintActions.length; conIndex++)
             {
                 // skip fks
@@ -339,7 +376,18 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         // dependency until now. (DERBY-4479)
         dd.getDependencyManager().addDependency(
                 activation.getPreparedStatement(), td, lcc.getContextManager());
+    }
 
+    protected Txn getChildTransaction(BaseSpliceTransaction userTxn) throws StandardException {
+        assert userTxn instanceof SpliceTransaction :"Programmer error: attempted to elevate a non-elevatable Transaction";
+        SpliceTransaction uTxn = (SpliceTransaction)userTxn;
+        byte[] table = "16".getBytes(); //the systables table, for convenience
+        try {
+            uTxn.elevate(table);
+            return TransactionLifecycle.getLifecycleManager().beginChildTransaction(uTxn.getActiveStateTxn(), table);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
     protected ConglomerateDescriptor getTableConglomerateDescriptor(TableDescriptor td,
