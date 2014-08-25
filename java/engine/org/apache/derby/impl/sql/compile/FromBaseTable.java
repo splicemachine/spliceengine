@@ -4348,31 +4348,8 @@ public class FromBaseTable extends FromTable {
 	}
 
 	private int getDefaultBulkFetch()
-		throws StandardException
-	{
-		int valInt;
-		String valStr = PropertyUtil.getServiceProperty(
-						  getLanguageConnectionContext().getTransactionCompile(),
-						  LanguageProperties.BULK_FETCH_PROP,
-						  LanguageProperties.BULK_FETCH_DEFAULT);
-							
-		valInt = getIntProperty(valStr, LanguageProperties.BULK_FETCH_PROP);
-
-		// verify that the specified value is valid
-		if (valInt <= 0)
-		{
-			throw StandardException.newException(SQLState.LANG_INVALID_BULK_FETCH_VALUE, 
-					String.valueOf(valInt));
-		}
-
-		/*
-		** If the value is <= 1, then reset it
-		** to UNSET -- this is how customers can
-		** override the bulkFetch default to turn
-		** it off.
-		*/
-		return (valInt <= 1) ?
-			UNSET : valInt;
+		throws StandardException {
+		return 16; // Stop Going to the database for parsing this number.  JL
 	}
 
 	private String getUserSpecifiedIndexName()
