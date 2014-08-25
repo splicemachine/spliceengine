@@ -56,7 +56,7 @@ public class WriteResult implements Externalizable{
 
 		public void write(Output output) throws IOException{
 			output.writeInt(code.ordinal());
-				if(code==Code.FAILED){
+				if(code==Code.FAILED||code==Code.WRITE_CONFLICT){
 						output.writeString(errorMessage);
 				}
 				output.writeBoolean(constraintContext!=null);
@@ -66,7 +66,7 @@ public class WriteResult implements Externalizable{
 
 		public static WriteResult fromBytes(Input input) throws IOException{
 				Code code = Code.fromOrdinal(input.readInt());
-				String errorMessage = code==Code.FAILED?input.readString():null;
+				String errorMessage = code==Code.FAILED||code==Code.WRITE_CONFLICT?input.readString():null;
 				ConstraintContext context = input.readBoolean()? ConstraintContext.fromBytes(input):null;
 				return new WriteResult(code,errorMessage,context);
 		}

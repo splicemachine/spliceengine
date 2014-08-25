@@ -4,9 +4,12 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import org.junit.Assert;
 import org.junit.Test;
+
+import static org.mockito.Mockito.mock;
 
 /**
  * @author Scott Fines
@@ -39,7 +42,7 @@ public class BulkWriteTest {
 
 				byte[] bytes = write.toBytes();
 
-				BulkWrite decoded = BulkWrite.fromBytes(bytes);
+				BulkWrite decoded = BulkWrite.fromBytes(bytes,mock(TxnSupplier.class));
 
 				ObjectArrayList<KVPair> decList = decoded.getMutations();
 				KVPair decPair = decList.get(0);

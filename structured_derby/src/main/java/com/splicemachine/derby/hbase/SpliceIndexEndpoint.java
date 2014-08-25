@@ -9,7 +9,9 @@ import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.BulkWrite;
 import com.splicemachine.hbase.writer.BulkWriteResult;
 import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
@@ -68,7 +70,8 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     private Meter failedMeter =SpliceDriver.driver().getRegistry().newMeter(failedMeterName,"failedRows",TimeUnit.SECONDS);
     private Meter rejectedMeter =SpliceDriver.driver().getRegistry().newMeter(rejectedMeterName,"rejectedRows",TimeUnit.SECONDS);
 
-    private RegionServerMetrics metrics;
+    private volatile RegionServerMetrics metrics;
+    private volatile TxnSupplier txnStore;
 
     @Override
     public void start(CoprocessorEnvironment env) {
@@ -114,6 +117,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
                             throw new UnsupportedOperationException("IMPLEMENT");
                         }
                     });
+                    txnStore = TransactionStorage.getTxnSupplier();
                 }else{
                     region = TransactionalRegions.nonTransactionalRegion(rce.getRegion());
                 }
@@ -142,7 +146,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 						return result.toBytes();
 				}
 
-				BulkWrite bulkWrite = BulkWrite.fromBytes(bulkWriteBytes);
+				BulkWrite bulkWrite = BulkWrite.fromBytes(bulkWriteBytes,txnStore);
 				assert bulkWrite.getTxn()!=null;
 
 //				SpliceLogUtils.trace(LOG,"batchMutate %s",bulkWrite);

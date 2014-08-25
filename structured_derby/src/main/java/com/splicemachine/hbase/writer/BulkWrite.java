@@ -6,6 +6,7 @@ import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TransactionStorage;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.si.impl.InheritingTxnView;
@@ -139,7 +140,7 @@ public class BulkWrite implements Externalizable {
 				return output.toBytes();
 		}
 
-		public static BulkWrite fromBytes(byte[] bulkWriteBytes) throws IOException {
+		public static BulkWrite fromBytes(byte[] bulkWriteBytes,TxnSupplier txnStore) throws IOException {
 				Input input = new Input(bulkWriteBytes);
 
 				long txnId = input.readLong();
@@ -148,7 +149,7 @@ public class BulkWrite implements Externalizable {
 				boolean additive = input.readBoolean();
 
         TxnView parentTxn;
-        if(parentTxnId>=0) parentTxn = new ActiveWriteTxn(parentTxnId,parentTxnId);
+        if(parentTxnId>=0) parentTxn = txnStore.getTransaction(parentTxnId);
         else parentTxn = Txn.ROOT_TRANSACTION;
 
         TxnView writeTxn = new ActiveWriteTxn(txnId,beginTs,parentTxn,additive);
