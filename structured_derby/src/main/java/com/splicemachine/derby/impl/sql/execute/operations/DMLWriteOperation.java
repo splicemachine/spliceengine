@@ -194,9 +194,12 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
             jobResults = rowProvider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
         }finally{
             /*
-             * Commit the underlying child transaction
+             * Commit the underlying child transaction.
+             *
+             * If jobResults==null, then the shuffle itself failed with an error, so roll
+             * it back.
              */
-            if(jobResults.getJobStats().getNumFailedTasks()>0){
+            if(jobResults==null || jobResults.getJobStats().getNumFailedTasks()>0){
                 childTransaction.rollback();
             }else
                 childTransaction.commit();
