@@ -8440,6 +8440,13 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 							<arg>operation</arg>
 							<arg>transactions</arg>
 						</msg>
+
+						<msg>
+							<name>SE014</name>
+							<text>Write Conflict detected between transactions {0} and {1}.</text>
+							<arg>txn1</arg>
+							<arg>txn2</arg>
+						</msg>
        </family>
     </section>
 
