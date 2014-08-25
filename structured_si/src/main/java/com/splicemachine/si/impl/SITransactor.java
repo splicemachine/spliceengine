@@ -586,7 +586,7 @@ public class SITransactor<Table,
 												break;
 										case SIBLING:
 												if (doubleCheckConflict(updateTransaction, dataTransaction)) {
-														throw new WriteConflict("Write conflict detected between active transactions "+ dataTransactionId+" and "+ updateTransaction.getTxnId());
+                            throw new WriteConflict(dataTransactionId,updateTransaction.getTxnId());
 												}
 												break;
 								}
@@ -596,7 +596,7 @@ public class SITransactor<Table,
 								// Committed transaction
 								final long dataCommitTimestamp = dataLib.decode(commitTimestampValue, Long.class);
 								if (dataCommitTimestamp > updateTransaction.getBeginTimestamp()) {
-										throw new WriteConflict("Write transaction "+ updateTransaction.getTxnId()+" conflicts with committed transaction " + dataTransactionId);
+                    throw new WriteConflict(dataTransactionId,updateTransaction.getTxnId());
 								}
 						}
 				}
@@ -624,7 +624,7 @@ public class SITransactor<Table,
                         break;
                     case SIBLING:
                         if (doubleCheckConflict(updateTransaction, dataTransaction)) {
-                            throw new WriteConflict("Write conflict detected between active transactions "+ dataTransactionId+" and "+ updateTransaction.getTxnId());
+                            throw new WriteConflict(dataTransactionId,updateTransaction.getTxnId());
                         }
                         break;
                 }

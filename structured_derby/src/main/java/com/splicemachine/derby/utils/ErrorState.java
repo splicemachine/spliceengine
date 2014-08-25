@@ -979,12 +979,7 @@ public enum ErrorState {
     LANG_INVALID_CONTEXT_ITEM_TYPE( "42Z77"),
     LANG_XMLPARSE_UNKNOWN_PARAM_TYPE( "42Z79"),
 
-    LANG_SERIALIZABLE										( "42Z80.U"){
-        @Override
-        public boolean accepts(Throwable t) {
-            return super.accepts(t) || t instanceof WriteConflict;
-        }
-    },
+    LANG_SERIALIZABLE										( "42Z80.U"),
     LANG_READ_COMMITTED										( "42Z81.U"),
     LANG_EXCLUSIVE											( "42Z82.U"),
     LANG_INSTANTANEOUS_SHARE									( "42Z83.U"),
@@ -1883,7 +1878,23 @@ public enum ErrorState {
 		LANG_NO_WRITE_PERMISSION("SE010"),
 		LANG_NO_READ_PERMISSION("SE011"),
 		LANG_NOT_A_DIRECTORY("SE012"),
-		DDL_ACTIVE_TRANSACTIONS("SE013");
+		DDL_ACTIVE_TRANSACTIONS("SE013"),
+    WRITE_WRITE_CONFLICT("SE014"){
+        @Override
+        public boolean accepts(Throwable t) {
+            return super.accepts(t)|| t instanceof WriteConflict;
+        }
+
+        @Override
+        public StandardException newException(Throwable rootCause) {
+            if(!(rootCause instanceof WriteConflict))
+                return super.newException(rootCause);
+            WriteConflict conflict = (WriteConflict)rootCause;
+            long txn1 = conflict.getFirstTransaction();
+            long txn2 = conflict.getSecondTransaction();
+            return StandardException.newException(getSqlState(),txn1,txn2);
+        }
+    };
 
 		private final String sqlState;
 

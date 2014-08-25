@@ -210,7 +210,7 @@ public class Exceptions {
 								case FAILED:
 										return new IOException(result.getErrorMessage());
 								case WRITE_CONFLICT:
-										return new WriteConflict(result.getErrorMessage());
+										return WriteConflict.fromString(result.getErrorMessage());
 								case SUCCESS:
 										return null; //won't happen
 								case PRIMARY_KEY_VIOLATION:
