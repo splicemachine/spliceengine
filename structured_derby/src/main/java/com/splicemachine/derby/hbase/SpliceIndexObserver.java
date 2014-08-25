@@ -212,7 +212,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             case CHECK_VIOLATION:
                 throw ConstraintViolation.create(Constraint.Type.CHECK, mutationResult.getConstraintContext());
             case WRITE_CONFLICT:
-                throw new WriteConflict(mutationResult.getErrorMessage());
+                throw WriteConflict.fromString(mutationResult.getErrorMessage());
 		case NOT_RUN:
 		case SUCCESS:
 		default:
