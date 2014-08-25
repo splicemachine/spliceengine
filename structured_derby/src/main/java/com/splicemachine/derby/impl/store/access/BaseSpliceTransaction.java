@@ -112,7 +112,9 @@ public abstract class BaseSpliceTransaction implements Transaction {
 
     public abstract TxnView getTxnInformation();
 
-    public abstract void setActiveState(boolean nested, boolean dependent, TxnView parentTxn);
+    public abstract void setActiveState(boolean nested, boolean additive, TxnView parentTxn,byte[] table);
+
+    public abstract void setActiveState(boolean nested, boolean additive, TxnView parentTxn);
 
     public TxnView getActiveStateTxn(){
         setActiveState(false,false,null);

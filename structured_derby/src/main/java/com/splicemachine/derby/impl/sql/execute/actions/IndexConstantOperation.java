@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.carrotsearch.hppc.LongArrayList;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -11,14 +10,12 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
+import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.si.api.TransactionLifecycle;
-import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.uuid.Snowflake;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -28,7 +25,6 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 
@@ -98,27 +94,18 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
     protected Txn getIndexTransaction(TransactionController parent, TransactionController tc, Txn tentativeTransaction, long tableConglomId) throws StandardException {
         final TxnView parentTxn = ((SpliceTransactionManager)parent).getActiveStateTxn();
         final TxnView wrapperTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
-//        final TransactionId parentTransactionId =  new TransactionId(getTransactionId(parent));
-//        final TransactionId wrapperTransactionId =  new TransactionId(getTransactionId(tc));
         Txn indexTxn;
         try{
-            indexTxn = TransactionLifecycle.getLifecycleManager().chainTransaction(wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,true,null,tentativeTransaction);
+            byte[] tableBytes = Long.toString(tableConglomId).getBytes();
+            indexTxn = TransactionLifecycle.getLifecycleManager().chainTransaction(wrapperTxn,
+                    Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, tableBytes,tentativeTransaction);
         } catch (IOException e) {
             LOG.error("Couldn't commit transaction for tentative DDL operation");
             // TODO must cleanup tentative DDL change
             throw Exceptions.parseException(e);
         }
-//        TransactionId indexTransaction;
-//        try {
-//            indexTransaction = transactor.beginChildTransaction(wrapperTransactionId, true, true, false, false, true, tentativeTransaction);
-//        } catch (IOException e) {
-//            LOG.error("Couldn't commit transaction for tentative DDL operation");
-//            // TODO must cleanup tentative DDL change
-//            throw Exceptions.parseException(e);
-//        }
-
         // Wait for past transactions to die
-        List<TxnView> toIgnore = Arrays.asList(parentTxn,wrapperTxn,indexTxn);
+        List<TxnView> toIgnore = Arrays.asList(parentTxn,wrapperTxn,tentativeTransaction,indexTxn);
         long oldestActiveTxn;
         try {
             oldestActiveTxn = waitForConcurrentTransactions(indexTxn, toIgnore,tableConglomId);
@@ -127,8 +114,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             throw Exceptions.parseException(e);
         }
         if (oldestActiveTxn>=0) {
-            throw StandardException.newException(SQLState.LANG_SERIALIZABLE,
-                    new RuntimeException(String.format("Transaction %d is still active.", oldestActiveTxn)));
+            throw ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("CreateIndex("+indexName+")",oldestActiveTxn);
         }
         return indexTxn;
     }
@@ -192,7 +178,6 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 
     protected void createIndex(Activation activation, DDLChange ddlChange,
                                HTableInterface table, TableDescriptor td) throws StandardException {
-        String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
         JobFuture future = null;
         JobInfo info = null;
         /*StatementInfo statementInfo = new StatementInfo(String.format("create index on %s",tableName),userId,
@@ -201,7 +186,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         int[] columnOrdering = null;
-        int[] formatIds= null;
+        int[] formatIds;
         ColumnDescriptorList cdList = td.getColumnDescriptorList();
         int numCols =  cdList.size();
         formatIds = new int[numCols];
@@ -248,7 +233,6 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             }
             throw Exceptions.parseException(e);
         }finally {
-            //SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced());
             cleanupFuture(future);
         }
     }

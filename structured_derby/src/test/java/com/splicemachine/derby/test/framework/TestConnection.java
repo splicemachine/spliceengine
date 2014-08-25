@@ -2,12 +2,15 @@ package com.splicemachine.derby.test.framework;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.ManagedCallableStatement;
+import com.splicemachine.stream.Accumulator;
+import com.splicemachine.stream.StreamException;
 
 import java.sql.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Scott Fines
@@ -67,11 +70,10 @@ public class TestConnection implements Connection{
 
     @Override
     public void close() throws SQLException {
-        for(Statement s:statements){
-            s.close();
-        }
+        closeStatements();
         delegate.close();
     }
+
 
     public void reset() throws SQLException {
         delegate.setAutoCommit(oldAutoCommit);
@@ -198,4 +200,43 @@ public class TestConnection implements Connection{
 //        return delegate.getNetworkTimeout();
     }
     @Override public <T> T unwrap(Class<T> iface) throws SQLException { return delegate.unwrap(iface); }
-    @Override public boolean isWrapperFor(Class<?> iface) throws SQLException { return delegate.isWrapperFor(iface); } }
+    @Override public boolean isWrapperFor(Class<?> iface) throws SQLException { return delegate.isWrapperFor(iface); }
+
+    /*Convenience test methods*/
+
+    public void forAllRows(String query,Accumulator<ResultSet>accumulator) throws Exception {
+        Statement s = createStatement();
+        ResultSet resultSet = s.executeQuery(query);
+        while(resultSet.next()){
+            accumulator.accumulate(resultSet);
+        }
+    }
+
+    public long count(String query) throws Exception{
+        final AtomicLong rowCount = new AtomicLong(0);
+        forAllRows(query,new Accumulator<ResultSet>() {
+            @Override
+            public void accumulate(ResultSet next) throws StreamException {
+                rowCount.incrementAndGet();
+            }
+        });
+        return rowCount.get();
+    }
+
+    /***********************************************************************************/
+    /*private helper methods*/
+    private void closeStatements() throws SQLException {
+        for(Statement s:statements){
+            s.close();
+        }
+    }
+
+    public long getCurrentTransactionId() throws SQLException {
+        Statement s= createStatement();
+        ResultSet resultSet = s.executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
+        if(!resultSet.next())
+            throw new IllegalStateException("Did not see any response from GET_CURRENT_TRANSACTION()");
+        return resultSet.getLong(1);
+    }
+
+}

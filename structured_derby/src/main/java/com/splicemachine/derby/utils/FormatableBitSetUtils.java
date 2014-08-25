@@ -29,4 +29,12 @@ public class FormatableBitSetUtils {
 				}
 				return destArray;
 		}
+
+    public static FormatableBitSet fromIntArray(int bitSetSize, int[] columns){
+        FormatableBitSet bitSet = new FormatableBitSet(bitSetSize);
+        for (int baseColumnPosition : columns) {
+            bitSet.set(baseColumnPosition);
+        }
+        return bitSet;
+    }
 }

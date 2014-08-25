@@ -1815,7 +1815,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 //        TransactionId wrapperTransactionId = new TransactionId(wrapperTransaction);
         Txn dropColumnTransaction;
         try {
-            dropColumnTransaction = TransactionLifecycle.getLifecycleManager().chainTransaction(wrapperTransaction, Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,false, Bytes.toBytes(Long.toString(tableConglomId)),tentativeTransaction);
+            dropColumnTransaction = TransactionLifecycle.getLifecycleManager().chainTransaction(wrapperTransaction, Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, Bytes.toBytes(Long.toString(tableConglomId)),tentativeTransaction);
 //            dropColumnTransaction = transactor.beginChildTransaction(wrapperTransactionId,
 //                    true, true, false, false, true, tentativeTransaction);
         } catch (IOException e) {
